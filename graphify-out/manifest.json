@@ -874,5 +874,17 @@
     "seen": 1787435869.3478029,
     "ast_hash": "bcf3dda547ab28f0ab15b587731e4905",
     "semantic_hash": "bcf3dda547ab28f0ab15b587731e4905"
+  },
+  ".claude/settings.json": {
+    "mtime": 1787436400.9000385,
+    "seen": 1787438795.235839,
+    "ast_hash": "3d1b1afdafd4facffcf39a83a45ccc77",
+    "semantic_hash": ""
+  },
+  "CLAUDE.md": {
+    "mtime": 1787436400.8855538,
+    "seen": 1787438795.235931,
+    "ast_hash": "82efb97a359f5c7290bf2513d14686be",
+    "semantic_hash": ""
   }
 }
