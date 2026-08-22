@@ -60,8 +60,8 @@ class WorkspaceFlowTest {
                 itineraryContent = { Text("行程内容") },
             )
         }
-        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(48.dp)
-        compose.onNodeWithTag("workspace-search").assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(40.dp)
+        compose.onNodeWithTag("workspace-search").assertHeightIsEqualTo(40.dp)
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("收起").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("半屏").fetchSemanticsNodes().size)
@@ -70,8 +70,8 @@ class WorkspaceFlowTest {
         val mapBottom = compose.onNodeWithTag("workspace-map").getUnclippedBoundsInRoot().bottom
         val searchTop = compose.onNodeWithTag("workspace-search").getUnclippedBoundsInRoot().top
         val scopeTop = compose.onNodeWithTag("scope-PLACE_POOL").getUnclippedBoundsInRoot().top
-        assert(mapBottom <= searchTop)
-        assert(searchTop < scopeTop)
+        assert(searchTop < mapBottom)
+        assert(mapBottom <= scopeTop)
         compose.onNodeWithText("地点内容").assertIsDisplayed()
         compose.onNodeWithText("每日行程").performClick()
         compose.onNodeWithText("行程内容").assertIsDisplayed()

@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
@@ -108,16 +109,6 @@ fun TripWorkspaceScreen(
         },
     ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            Row(
-                Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 8.dp).testTag("workspace-top-bar"),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            ) {
-                TextButton(onBack) { Text("返回") }
-                Text(state.tripName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                TextButton(onPrivacySettings) { Text("地图授权") }
-                TextButton(onSettings) { Text("设置") }
-            }
             Box(Modifier.weight(1f).fillMaxWidth().testTag("workspace-map")) {
                 if (consent == null) {
                     Text("同意高德隐私政策后显示地图", Modifier.padding(16.dp))
@@ -135,17 +126,56 @@ fun TripWorkspaceScreen(
                         }
                     )
                 }
-                Box(Modifier.align(androidx.compose.ui.Alignment.TopEnd).padding(8.dp)) {
-                    TextButton(
-                        onClick = { layerMenuExpanded = true },
-                        modifier = Modifier.testTag("layer-menu").semantics { contentDescription = "地图图层" },
+                Surface(
+                    modifier = Modifier
+                        .align(androidx.compose.ui.Alignment.TopCenter)
+                        .padding(top = 5.dp, start = 10.dp, end = 10.dp)
+                        .fillMaxWidth()
+                        .height(40.dp)
+                        .testTag("workspace-top-bar"),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
+                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                    shadowElevation = 3.dp,
+                ) {
+                    Row(
+                        Modifier.fillMaxSize().padding(horizontal = 4.dp),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                    ) {
+                        TextButton(onBack) { Text("返回") }
+                        Text(state.tripName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
+                        TextButton(onPrivacySettings) { Text("地图授权") }
+                        TextButton(onSettings) { Text("设置") }
+                    }
+                }
+                Box(Modifier.align(androidx.compose.ui.Alignment.TopEnd).padding(top = 55.dp, end = 10.dp)) {
+                    Surface(
+                        modifier = Modifier
+                            .size(24.dp)
+                            .testTag("layer-menu")
+                            .semantics { contentDescription = "地图图层" }
+                            .clickable { layerMenuExpanded = true },
+                        shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
+                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        shadowElevation = 2.dp,
                     ) {
                         val iconColor = MaterialTheme.colorScheme.primary
-                        Canvas(Modifier.size(20.dp)) {
-                            val stroke = size.minDimension / 10f
-                            drawRect(iconColor, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
-                            drawLine(iconColor, start = androidx.compose.ui.geometry.Offset(0f, size.height / 3f), end = androidx.compose.ui.geometry.Offset(size.width, size.height / 3f), strokeWidth = stroke)
-                            drawLine(iconColor, start = androidx.compose.ui.geometry.Offset(0f, size.height * 2f / 3f), end = androidx.compose.ui.geometry.Offset(size.width, size.height * 2f / 3f), strokeWidth = stroke)
+                        Canvas(Modifier.fillMaxSize().padding(4.dp)) {
+                            val stroke = 1.5.dp.toPx()
+                            val w = size.width
+                            val h = size.height
+                            fun layer(centerY: Float) {
+                                val path = androidx.compose.ui.graphics.Path().apply {
+                                    moveTo(w / 2f, centerY - h * 0.18f)
+                                    lineTo(w, centerY)
+                                    lineTo(w / 2f, centerY + h * 0.18f)
+                                    lineTo(0f, centerY)
+                                    close()
+                                }
+                                drawPath(path, iconColor, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                            }
+                            layer(h * 0.36f)
+                            layer(h * 0.62f)
                         }
                     }
                     DropdownMenu(expanded = layerMenuExpanded, onDismissRequest = { layerMenuExpanded = false }) {
@@ -161,30 +191,15 @@ fun TripWorkspaceScreen(
                         }
                     }
                 }
+                Box(
+                    Modifier
+                        .align(androidx.compose.ui.Alignment.BottomCenter)
+                        .padding(start = 10.dp, end = 10.dp, bottom = 5.dp),
+                ) {
+                    PlaceSearchField(searchQuery, onSearchQueryChange)
+                }
             }
             mapError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 8.dp)) }
-            if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) {
-                WorkspaceSheetHandle(
-                    Modifier
-                        .testTag("workspace-sheet-handle")
-                        .pointerInput(scaffoldState.bottomSheetState) {
-                            var dragDistance = 0f
-                            detectVerticalDragGestures(
-                                onDragStart = { dragDistance = 0f },
-                                onVerticalDrag = { _, amount -> dragDistance += amount },
-                                onDragEnd = {
-                                    if (dragDistance < -24f) coroutineScope.launch {
-                                        viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
-                                        scaffoldState.bottomSheetState.partialExpand()
-                                    }
-                                },
-                            )
-                        },
-                )
-            }
-            Box(Modifier.padding(horizontal = 10.dp)) {
-                PlaceSearchField(searchQuery, onSearchQueryChange)
-            }
             Spacer(Modifier.height(10.dp))
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp).testTag("scope-controls"),
@@ -193,7 +208,34 @@ fun TripWorkspaceScreen(
                     SelectablePill(state.mapScope == scope, { viewModel.selectScope(scope) }, { Text(scope.label()) }, Modifier.testTag("scope-${scope.name}"))
                 }
             }
-            Spacer(Modifier.height(10.dp))
+            if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) {
+                Surface(
+                    Modifier.fillMaxWidth(),
+                    shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
+                    color = MaterialTheme.colorScheme.surface,
+                    shadowElevation = 4.dp,
+                ) {
+                    WorkspaceSheetHandle(
+                        Modifier
+                            .testTag("workspace-sheet-handle")
+                            .pointerInput(scaffoldState.bottomSheetState) {
+                                var dragDistance = 0f
+                                detectVerticalDragGestures(
+                                    onDragStart = { dragDistance = 0f },
+                                    onVerticalDrag = { _, amount -> dragDistance += amount },
+                                    onDragEnd = {
+                                        if (dragDistance < -24f) coroutineScope.launch {
+                                            viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
+                                            scaffoldState.bottomSheetState.partialExpand()
+                                        }
+                                    },
+                                )
+                            },
+                    )
+                }
+            } else {
+                Spacer(Modifier.height(10.dp))
+            }
         }
     }
     state.selectedMarker?.let { marker ->

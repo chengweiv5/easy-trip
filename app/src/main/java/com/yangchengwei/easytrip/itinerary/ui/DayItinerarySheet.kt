@@ -22,7 +22,6 @@ import com.yangchengwei.easytrip.core.model.TransportMode
 fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Modifier, onSelectDay: (String) -> Unit = {}) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
     Column(modifier.padding(12.dp)) {
-        Text("每日行程", style = MaterialTheme.typography.headlineSmall)
         DaySelector(state.days, state.selectedDayId) { viewModel.selectDay(it); onSelectDay(it) }
         if (state.savedPlaces.isNotEmpty()) {
             Row(Modifier.horizontalScroll(rememberScrollState())) {

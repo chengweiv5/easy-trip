@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.place.ui
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -22,12 +23,13 @@ fun PlaceSearchField(value: String, onValueChange: (String) -> Unit) {
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth().height(48.dp).testTag("workspace-search").semantics { contentDescription = "搜索地点" },
+        modifier = Modifier.fillMaxWidth().height(40.dp).testTag("workspace-search").semantics { contentDescription = "搜索地点" },
         singleLine = true,
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
         decorationBox = { input ->
             Box(
                 Modifier
+                    .background(androidx.compose.ui.graphics.Color.White, RoundedCornerShape(8.dp))
                     .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(8.dp))
                     .padding(horizontal = 12.dp),
                 contentAlignment = Alignment.CenterStart,

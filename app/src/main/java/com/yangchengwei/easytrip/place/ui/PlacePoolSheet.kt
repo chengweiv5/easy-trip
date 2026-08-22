@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
@@ -22,7 +21,6 @@ fun PlacePoolSheet(
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
     Column(modifier.padding(16.dp)) {
-        Text("地点池", style = MaterialTheme.typography.headlineSmall)
         if (showSearch) PlaceSearchField(state.search.query, viewModel::setQuery)
         SavedPlacesContent(
             places = state.search.savedPlaces,
