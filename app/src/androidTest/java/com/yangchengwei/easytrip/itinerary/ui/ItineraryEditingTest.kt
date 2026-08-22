@@ -1,0 +1,159 @@
+package com.yangchengwei.easytrip.itinerary.ui
+
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextClearance
+import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.core.model.RouteStatus
+import com.yangchengwei.easytrip.core.model.TransportMode
+import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
+import com.yangchengwei.easytrip.place.domain.SavedPlace
+import com.yangchengwei.easytrip.route.data.RouteLegEntity
+import com.yangchengwei.easytrip.route.domain.RouteLegRepository
+import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
+import com.yangchengwei.easytrip.trip.domain.*
+import java.time.Instant
+import java.time.LocalTime
+import kotlinx.coroutines.flow.*
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Rule
+import org.junit.Test
+
+class ItineraryEditingTest {
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun duplicateDragCrossDayTimingOverrideAndRetry() {
+        val trips = FakeTrips()
+        val itineraries = FakeItineraries()
+        val legs = FakeLegs()
+        val coordinator = FakeCoordinator()
+        val model = DayItineraryViewModel(
+            "trip",
+            trips,
+            itineraries,
+            legs,
+            coordinator,
+            flowOf(listOf(SavedPlace("hotel", "trip", "poi", "酒店", "", GeoPoint(1.0, 2.0), "", emptyList()))),
+        )
+        compose.setContent { DayItinerarySheet(model) }
+        compose.waitUntil(5_000) { model.state.value.items.size == 3 }
+
+        compose.onNodeWithTag("add-place-hotel").performClick()
+        compose.waitUntil(5_000) { itineraries.adds == listOf(Add("day-1", "hotel", 3)) }
+
+        compose.onNodeWithTag("mode-leg-1").performClick()
+        compose.onNodeWithText("步行").performClick()
+        compose.waitUntil(5_000) { coordinator.overrides.isNotEmpty() }
+        assertEquals("leg-1" to TransportMode.WALK, coordinator.overrides.single())
+
+        compose.onNodeWithTag("retry-leg-2").performClick()
+        compose.waitUntil(5_000) { coordinator.retries.isNotEmpty() }
+        assertEquals(listOf("leg-2"), coordinator.retries)
+
+        compose.onNodeWithTag("item-i2").performTouchInput {
+            down(center)
+            advanceEventTime(700)
+            moveTo(Offset(center.x, center.y - 500f), 800)
+            up()
+        }
+        compose.waitUntil(5_000) { itineraries.moves.isNotEmpty() }
+        assertEquals(Move("i2", "day-1", 0), itineraries.moves.single())
+
+        compose.onNodeWithTag("item-i2").performTouchInput {
+            down(center)
+            advanceEventTime(700)
+            moveTo(Offset(center.x, center.y + 500f), 800)
+            up()
+        }
+        compose.waitUntil(5_000) { itineraries.moves.size == 2 }
+        assertEquals(Move("i2", "day-1", 2), itineraries.moves.last())
+
+        compose.onNodeWithTag("move-i3").performClick()
+        compose.onNodeWithTag("move-to-day-2").performClick()
+        compose.waitUntil(5_000) { itineraries.moves.size == 3 }
+        assertEquals(Move("i3", "day-2", 0), itineraries.moves.last())
+
+        compose.onNodeWithTag("timing-i1").performClick()
+        compose.onNodeWithTag("arrival-time-input").performTextClearance()
+        compose.onNodeWithTag("arrival-time-input").performTextInput("09:30")
+        compose.onNodeWithTag("stay-minutes-input").performTextClearance()
+        compose.onNodeWithTag("stay-minutes-input").performTextInput("480")
+        compose.onNodeWithText("保存时间").performClick()
+        compose.waitUntil(5_000) { itineraries.timings.isNotEmpty() }
+        assertEquals(Timing("i1", LocalTime.of(9, 30), 480), itineraries.timings.single())
+
+        compose.onNodeWithTag("delete-i1").performClick()
+        compose.onNodeWithText("确认删除").performClick()
+        compose.waitUntil(5_000) { itineraries.deletes == listOf("i1") }
+    }
+
+    private class FakeTrips : TripRepository {
+        private val trip = MutableStateFlow(TripWithDays("trip", "Trip", null, TravelMode.FLEXIBLE, listOf(TripDay("day-1", 0), TripDay("day-2", 1))))
+        override fun observeTrip(tripId: String) = trip.map { it }
+        override fun observeTrips() = flowOf(emptyList<TripSummary>())
+        override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun renameTrip(tripId: String, name: String) = Unit
+        override suspend fun setStartDate(tripId: String, startDate: java.time.LocalDate?) = Unit
+        override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit
+        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day"
+        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteDay(dayId: String) = Unit
+        override suspend fun deleteTrip(tripId: String) = Unit
+    }
+
+    private class FakeItineraries : ItineraryRepository {
+        private val hotel = ItineraryPlace("hotel", "酒店", "", GeoPoint(1.0, 2.0))
+        private val museum = ItineraryPlace("museum", "博物馆", "", GeoPoint(1.1, 2.1))
+        private val day1 = MutableStateFlow(DayItinerary("day-1", "trip", listOf(ItineraryItem("i1", hotel, null, null), ItineraryItem("i2", hotel, null, null), ItineraryItem("i3", museum, null, null))))
+        private val day2 = MutableStateFlow(DayItinerary("day-2", "trip", emptyList()))
+        val adds = mutableListOf<Add>(); val moves = mutableListOf<Move>(); val timings = mutableListOf<Timing>(); val deletes = mutableListOf<String>()
+        override fun observeDay(dayId: String) = if (dayId == "day-1") day1 else day2
+        override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int): String { adds += Add(dayId, savedPlaceId, targetIndex); return "new" }
+        override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) { moves += Move(itemId, targetDayId, targetIndex) }
+        override suspend fun deleteItem(itemId: String) { deletes += itemId }
+        override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) { timings += Timing(itemId, arrivalTime, stayMinutes) }
+        override suspend fun removePlaceOccurrences(placeId: String) = Unit
+    }
+
+    private class FakeLegs : RouteLegRepository {
+        override fun observeDay(dayId: String) = if (dayId == "day-1") flowOf(listOf(
+            leg("leg-1", "i1", "i2", RouteStatus.SUCCESS, TransportMode.TAXI, 1500, 300),
+            leg("leg-2", "i2", "i3", RouteStatus.FAILED, TransportMode.WALK, null, null),
+        )) else flowOf(emptyList())
+        override fun observePending() = flowOf(emptyList<com.yangchengwei.easytrip.route.domain.RouteLegWithEndpoints>())
+        override suspend fun get(legId: String) = null
+        override suspend fun requeueTransientFailures() = 0
+        override suspend fun recoverInterruptedCalculations(online: Boolean) = 0
+        override suspend fun repairCorruptPolyline(legId: String, version: Long) = false
+        override suspend fun claimIfVersionMatches(legId: String, version: Long) = false
+        override suspend fun waitForNetworkIfVersionMatches(legId: String, version: Long) = false
+        override suspend fun releaseClaimIfVersionMatches(legId: String, version: Long, online: Boolean) = false
+        override suspend fun completeIfVersionMatches(legId: String, version: Long, result: com.yangchengwei.easytrip.route.domain.RouteResult) = false
+        override suspend fun failIfVersionMatches(legId: String, version: Long, failure: com.yangchengwei.easytrip.route.domain.RoutePlanOutcome.Failure) = false
+        override suspend fun overrideMode(legId: String, mode: TransportMode, online: Boolean) = false
+        override suspend fun retry(legId: String, online: Boolean) = false
+        private fun leg(id:String, from:String,to:String,status:RouteStatus,mode:TransportMode,distance:Int?,duration:Int?) = RouteLegEntity(id,"day-1",from,to,mode,status=status,distanceMeters=distance,durationSeconds=duration,errorCode=if(status==RouteStatus.FAILED)"no route" else null,version=1,updatedAt=Instant.EPOCH)
+    }
+
+    private class FakeCoordinator : RouteRefreshCoordinator {
+        val overrides=mutableListOf<Pair<String,TransportMode>>(); val retries=mutableListOf<String>()
+        override fun start(scope: kotlinx.coroutines.CoroutineScope)=Unit
+        override suspend fun retry(legId:String):Boolean { retries+=legId; return true }
+        override suspend fun overrideMode(legId:String,mode:TransportMode):Boolean { overrides+=legId to mode; return true }
+    }
+    data class Add(val day:String,val place:String,val index:Int)
+    data class Move(val item:String,val day:String,val index:Int)
+    data class Timing(val item:String,val time:LocalTime?,val minutes:Int?)
+}

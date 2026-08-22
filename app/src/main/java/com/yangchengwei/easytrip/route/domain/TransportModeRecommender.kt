@@ -1,0 +1,4 @@
+package com.yangchengwei.easytrip.route.domain
+import com.yangchengwei.easytrip.core.model.TransportMode
+import com.yangchengwei.easytrip.core.model.TravelMode
+class TransportModeRecommender { fun recommend(travelMode: TravelMode, straightLineMeters: Double): TransportMode { if (travelMode == TravelMode.SELF_DRIVE) return TransportMode.DRIVE; return when (straightLineMeters) { in 0.0..1_000.0 -> TransportMode.WALK; in 1_000.0..20_000.0 -> TransportMode.TAXI; else -> TransportMode.TRANSIT } } }

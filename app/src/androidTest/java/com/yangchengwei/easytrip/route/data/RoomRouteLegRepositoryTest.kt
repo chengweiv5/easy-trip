@@ -1,0 +1,28 @@
+package com.yangchengwei.easytrip.route.data
+import android.content.Context
+import androidx.room.Room
+import androidx.test.core.app.ApplicationProvider
+import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.yangchengwei.easytrip.core.database.EasyTripDatabase
+import com.yangchengwei.easytrip.core.model.*
+import com.yangchengwei.easytrip.itinerary.data.ItineraryItemEntity
+import com.yangchengwei.easytrip.place.data.SavedPlaceEntity
+import com.yangchengwei.easytrip.route.domain.*
+import com.yangchengwei.easytrip.trip.data.*
+import java.time.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.test.runTest
+import org.junit.After
+import org.junit.Assert.*
+import org.junit.Before
+import org.junit.Test
+import org.junit.runner.RunWith
+@RunWith(AndroidJUnit4::class) class RoomRouteLegRepositoryTest { lateinit var db:EasyTripDatabase;lateinit var repo:RoomRouteLegRepository;val now=Instant.EPOCH
+ @Before fun setup(){db=Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(),EasyTripDatabase::class.java).build();repo=RoomRouteLegRepository(db.routeLegDao())}
+ @After fun close()=db.close()
+ @Test fun conditionalWritesAndTransientRequeueAreAtomic()=runTest { seed(); val dao=db.routeLegDao();dao.insert(leg());assertEquals(1,repo.observePending().first().size);assertTrue(repo.claimIfVersionMatches("leg",1));assertFalse(repo.completeIfVersionMatches("leg",0,result()));assertTrue(repo.failIfVersionMatches("leg",1,RoutePlanOutcome.Failure(RouteErrorKind.TRANSIENT,"net")));assertEquals(0,repo.observePending().first().size);assertEquals(1,repo.requeueTransientFailures());val pending=repo.observePending().first().single();assertEquals(2,pending.version);assertTrue(repo.claimIfVersionMatches("leg",2));assertTrue(repo.completeIfVersionMatches("leg",2,result()));assertFalse(repo.failIfVersionMatches("leg",1,RoutePlanOutcome.Failure(RouteErrorKind.NO_ROUTE))); }
+ @Test fun overrideAndRetryClearCacheAndIncrementVersion()=runTest { seed();db.routeLegDao().insert(leg(status=RouteStatus.SUCCESS,polyline=PolylineCodec.encode(result().polyline),distance=10));assertTrue(repo.overrideMode("leg",TransportMode.WALK,true));var row=db.routeLegDao().legs("day").single();assertEquals(2,row.version);assertNull(row.polyline);assertEquals(TransportMode.WALK,row.selectedMode);assertTrue(repo.retry("leg",false));row=db.routeLegDao().legs("day").single();assertEquals(3,row.version);assertEquals(RouteStatus.WAITING_NETWORK,row.status) }
+ private suspend fun seed(){db.tripDao().insertTrip(TripEntity("trip","Trip",TimeMode.DRAFT,null,TravelMode.FLEXIBLE,now,now));db.tripDao().insertDay(TripDayEntity("day","trip",0));db.savedPlaceDao().insertPlace(SavedPlaceEntity("a","trip","a","A","A",1.0,2.0,cityCode="010"));db.savedPlaceDao().insertPlace(SavedPlaceEntity("b","trip","b","B","B",3.0,4.0,cityCode="021"));db.itineraryEditingDao().insertItem(ItineraryItemEntity("i1","day","trip","a",0));db.itineraryEditingDao().insertItem(ItineraryItemEntity("i2","day","trip","b",1000))}
+ private fun leg(status:RouteStatus=RouteStatus.PENDING,polyline:String?=null,distance:Int?=null)=RouteLegEntity("leg","day","i1","i2",TransportMode.TRANSIT,status=status,distanceMeters=distance,polyline=polyline,version=1,updatedAt=now)
+ private fun result()=RouteResult(10,20,listOf(GeoPoint(1.0,2.0),GeoPoint(3.0,4.0)))
+}
