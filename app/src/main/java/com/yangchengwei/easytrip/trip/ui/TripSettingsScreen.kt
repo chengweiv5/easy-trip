@@ -67,10 +67,7 @@ fun TripSettingsScreen(viewModel: TripSettingsViewModel, onBack: () -> Unit) {
                 Button(onClick = { showPicker = true }) { Text(state.startDate?.toString() ?: "选择起始日期") }
                 Button(onClick = { viewModel.setStartDate(null) }) { Text("无日期") }
             }
-            Row(
-                Modifier.selectableGroup(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
+            Row(Modifier.selectableGroup()) {
                 SelectablePill(state.travelMode == TravelMode.FLEXIBLE, { viewModel.setTravelMode(TravelMode.FLEXIBLE) }, { Text("灵活") }, Modifier.testTag("settings-mode-FLEXIBLE"), role = Role.RadioButton)
                 SelectablePill(state.travelMode == TravelMode.SELF_DRIVE, { viewModel.setTravelMode(TravelMode.SELF_DRIVE) }, { Text("自驾") }, Modifier.testTag("settings-mode-SELF_DRIVE"), role = Role.RadioButton)
             }

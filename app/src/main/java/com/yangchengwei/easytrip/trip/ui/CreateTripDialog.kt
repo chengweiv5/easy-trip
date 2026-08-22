@@ -42,7 +42,7 @@ fun CreateTripDialog(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(state.createName, viewModel::setCreateName, label = { Text("旅行名称") })
                 OutlinedTextField(state.createDays, viewModel::setCreateDays, label = { Text("天数") })
-                Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.selectableGroup()) {
                     SelectablePill(state.createTimeMode == CreateTimeMode.DRAFT, { viewModel.setCreateTimeMode(CreateTimeMode.DRAFT) }, { Text("无日期") }, Modifier.testTag("create-time-DRAFT"), role = Role.RadioButton)
                     SelectablePill(
                         state.createTimeMode == CreateTimeMode.DATED,
@@ -55,7 +55,7 @@ fun CreateTripDialog(
                         role = Role.RadioButton,
                     )
                 }
-                Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(Modifier.selectableGroup()) {
                     SelectablePill(state.createTravelMode == TravelMode.FLEXIBLE, { viewModel.setCreateTravelMode(TravelMode.FLEXIBLE) }, { Text("灵活") }, Modifier.testTag("create-mode-FLEXIBLE"), role = Role.RadioButton)
                     SelectablePill(state.createTravelMode == TravelMode.SELF_DRIVE, { viewModel.setCreateTravelMode(TravelMode.SELF_DRIVE) }, { Text("自驾") }, Modifier.testTag("create-mode-SELF_DRIVE"), role = Role.RadioButton)
                 }

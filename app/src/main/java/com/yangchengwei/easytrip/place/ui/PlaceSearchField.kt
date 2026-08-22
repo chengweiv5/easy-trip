@@ -22,7 +22,7 @@ fun PlaceSearchField(value: String, onValueChange: (String) -> Unit) {
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = Modifier.fillMaxWidth().height(36.dp).testTag("workspace-search").semantics { contentDescription = "搜索地点" },
+        modifier = Modifier.fillMaxWidth().height(48.dp).testTag("workspace-search").semantics { contentDescription = "搜索地点" },
         singleLine = true,
         textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
         decorationBox = { input ->

@@ -1,7 +1,6 @@
 package com.yangchengwei.easytrip.place.ui
 
 import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -32,7 +31,6 @@ fun SavedPlacesContent(
             item {
                 Row(
                     Modifier.horizontalScroll(rememberScrollState()),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     tags.forEach { tag ->
                         SelectablePill(

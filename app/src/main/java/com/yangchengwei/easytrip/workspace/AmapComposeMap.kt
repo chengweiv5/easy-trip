@@ -1,5 +1,16 @@
 package com.yangchengwei.easytrip.workspace
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
@@ -10,7 +21,11 @@ import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
 import android.widget.TextView
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
@@ -59,6 +74,8 @@ interface AmapMapHost {
     fun onResume()
     fun onPause()
     fun onDestroy()
+    fun zoomIn() = Unit
+    fun zoomOut() = Unit
     fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit = { _, _ -> })
 }
 
@@ -71,10 +88,15 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     private var consumedViewportId: Long? = null
     private var appliedLayer: MapLayer? = null
     override val view: View = mapView
-    override fun onCreate() = mapView.onCreate(null)
+    override fun onCreate() {
+        mapView.onCreate(null)
+        mapView.map.uiSettings.isZoomControlsEnabled = false
+    }
     override fun onResume() = mapView.onResume()
     override fun onPause() = mapView.onPause()
     override fun onDestroy() = mapView.onDestroy()
+    override fun zoomIn() = mapView.map.animateCamera(CameraUpdateFactory.zoomIn())
+    override fun zoomOut() = mapView.map.animateCamera(CameraUpdateFactory.zoomOut())
     override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
         mapLayerRendering(appliedLayer, layer)?.let { rendering ->
             runCatching {
@@ -232,12 +254,40 @@ fun AmapComposeMap(
             controller.dispose()
         }
     }
-    AndroidView(
-        factory = { host.view },
-        modifier = modifier,
-        update = {
-            consent.validateActive()
-            host.render(model, layer, onMarkerClick, onLayerError)
-        },
-    )
+    Box(modifier) {
+        AndroidView(
+            factory = { host.view },
+            modifier = Modifier.fillMaxSize(),
+            update = {
+                consent.validateActive()
+                host.render(model, layer, onMarkerClick, onLayerError)
+            },
+        )
+        Column(
+            Modifier.align(Alignment.CenterEnd).padding(end = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
+            MapZoomButton("+", "zoom-in", host::zoomIn)
+            MapZoomButton("−", "zoom-out", host::zoomOut)
+        }
+    }
+}
+
+@Composable
+private fun MapZoomButton(label: String, tag: String, onClick: () -> Unit) {
+    Surface(
+        modifier = Modifier.size(24.dp).testTag(tag).clickable(onClick = onClick),
+        shape = RoundedCornerShape(4.dp),
+        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        shadowElevation = 2.dp,
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val color = androidx.compose.ui.graphics.Color.Black
+            val stroke = 2.dp.toPx()
+            val inset = size.width * 0.28f
+            drawLine(color, androidx.compose.ui.geometry.Offset(inset, size.height / 2), androidx.compose.ui.geometry.Offset(size.width - inset, size.height / 2), stroke)
+            if (label == "+") drawLine(color, androidx.compose.ui.geometry.Offset(size.width / 2, inset), androidx.compose.ui.geometry.Offset(size.width / 2, size.height - inset), stroke)
+        }
+    }
 }

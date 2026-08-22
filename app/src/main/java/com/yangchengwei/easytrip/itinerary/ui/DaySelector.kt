@@ -12,5 +12,5 @@ import com.yangchengwei.easytrip.core.ui.component.SelectablePill
 import com.yangchengwei.easytrip.trip.domain.TripDay
 
 @Composable fun DaySelector(days:List<TripDay>,selected:String?,onSelect:(String)->Unit){
-    Row(Modifier.horizontalScroll(rememberScrollState())){days.forEach{day->SelectablePill(day.id==selected,{onSelect(day.id)},{Text("Day ${day.index+1}")},Modifier.padding(end=8.dp))}}
+    Row(Modifier.horizontalScroll(rememberScrollState())){days.forEach{day->SelectablePill(day.id==selected,{onSelect(day.id)},{Text("Day ${day.index+1}")})}}
 }

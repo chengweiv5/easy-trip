@@ -1,11 +1,13 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Surface
 import androidx.compose.material3.BottomSheetScaffold
 import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Button
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -23,8 +25,11 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -35,6 +40,7 @@ import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.core.ui.component.SelectablePill
 import com.yangchengwei.easytrip.place.ui.PlaceSearchField
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.launch
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -54,6 +60,7 @@ fun TripWorkspaceScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     var mapError by remember { mutableStateOf<String?>(null) }
     var layerMenuExpanded by remember { mutableStateOf(false) }
+    val coroutineScope = rememberCoroutineScope()
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = rememberStandardBottomSheetState(
             initialValue = when (state.sheetLevel) {
@@ -72,28 +79,25 @@ fun TripWorkspaceScreen(
         }
     }
     LaunchedEffect(scaffoldState.bottomSheetState) {
-        snapshotFlow { scaffoldState.bottomSheetState.currentValue }.distinctUntilChanged().collect { value ->
-            when (value) {
-                SheetValue.Expanded -> viewModel.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
-                SheetValue.PartiallyExpanded -> viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
-                SheetValue.Hidden -> viewModel.setSheetLevel(WorkspaceSheetLevel.COLLAPSED)
-            }
+        snapshotFlow {
+            scaffoldState.bottomSheetState.currentValue to scaffoldState.bottomSheetState.targetValue
+        }.distinctUntilChanged().collect { (current, target) ->
+            settledWorkspaceSheetLevel(current, target, state.sheetLevel)?.let(viewModel::setSheetLevel)
         }
     }
     BottomSheetScaffold(
         scaffoldState = scaffoldState,
-        sheetPeekHeight = if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) 56.dp else 220.dp,
+        sheetPeekHeight = if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) 0.dp else 220.dp,
+        sheetDragHandle = null,
         sheetContent = {
             Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp).testTag("workspace-sheet")) {
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) {
+                    WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle"))
+                }
+                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
                     SelectablePill(state.tab == WorkspaceTab.SEARCH, { viewModel.selectTab(WorkspaceTab.SEARCH) }, { Text("搜索") }, modifier = Modifier.testTag("tab-SEARCH"), role = Role.Tab)
                     SelectablePill(state.tab == WorkspaceTab.PLACES, { viewModel.selectTab(WorkspaceTab.PLACES) }, { Text("地点池") }, modifier = Modifier.testTag("tab-PLACES"), role = Role.Tab)
                     SelectablePill(state.tab == WorkspaceTab.ITINERARY, { viewModel.selectTab(WorkspaceTab.ITINERARY) }, { Text("每日行程") }, modifier = Modifier.testTag("tab-ITINERARY"), role = Role.Tab)
-                }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                    TextButton({ viewModel.setSheetLevel(WorkspaceSheetLevel.COLLAPSED) }) { Text("收起") }
-                    TextButton({ viewModel.setSheetLevel(WorkspaceSheetLevel.HALF) }) { Text("半屏") }
-                    TextButton({ viewModel.setSheetLevel(WorkspaceSheetLevel.EXPANDED) }) { Text("展开") }
                 }
                 when (state.tab) {
                     WorkspaceTab.SEARCH -> searchContent()
@@ -157,19 +161,33 @@ fun TripWorkspaceScreen(
                         }
                     }
                 }
-                if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) {
-                    Button(
-                        { viewModel.setSheetLevel(WorkspaceSheetLevel.HALF) },
-                        Modifier.align(androidx.compose.ui.Alignment.BottomCenter).testTag("expand-sheet"),
-                    ) { Text("展开抽屉") }
-                }
             }
             mapError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 8.dp)) }
-            PlaceSearchField(searchQuery, onSearchQueryChange)
+            if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) {
+                WorkspaceSheetHandle(
+                    Modifier
+                        .testTag("workspace-sheet-handle")
+                        .pointerInput(scaffoldState.bottomSheetState) {
+                            var dragDistance = 0f
+                            detectVerticalDragGestures(
+                                onDragStart = { dragDistance = 0f },
+                                onVerticalDrag = { _, amount -> dragDistance += amount },
+                                onDragEnd = {
+                                    if (dragDistance < -24f) coroutineScope.launch {
+                                        viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
+                                        scaffoldState.bottomSheetState.partialExpand()
+                                    }
+                                },
+                            )
+                        },
+                )
+            }
+            Box(Modifier.padding(horizontal = 10.dp)) {
+                PlaceSearchField(searchQuery, onSearchQueryChange)
+            }
             Spacer(Modifier.height(10.dp))
             Row(
                 Modifier.fillMaxWidth().padding(horizontal = 8.dp).testTag("scope-controls"),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 MapScope.entries.forEach { scope ->
                     SelectablePill(state.mapScope == scope, { viewModel.selectScope(scope) }, { Text(scope.label()) }, Modifier.testTag("scope-${scope.name}"))
@@ -190,6 +208,35 @@ fun TripWorkspaceScreen(
             },
             confirmButton = { Button(viewModel::dismissMarker) { Text("关闭") } },
         )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+internal fun settledWorkspaceSheetLevel(
+    current: SheetValue,
+    target: SheetValue,
+    requested: WorkspaceSheetLevel,
+): WorkspaceSheetLevel? {
+    if (current != target) return null
+    if (requested == WorkspaceSheetLevel.COLLAPSED && current == SheetValue.PartiallyExpanded) return null
+    return when (current) {
+        SheetValue.Hidden -> WorkspaceSheetLevel.COLLAPSED
+        SheetValue.PartiallyExpanded -> WorkspaceSheetLevel.HALF
+        SheetValue.Expanded -> WorkspaceSheetLevel.EXPANDED
+    }
+}
+
+@Composable
+private fun WorkspaceSheetHandle(modifier: Modifier = Modifier) {
+    Box(
+        modifier.fillMaxWidth().height(24.dp),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        Surface(
+            Modifier.width(32.dp).height(4.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+        ) {}
     }
 }
 

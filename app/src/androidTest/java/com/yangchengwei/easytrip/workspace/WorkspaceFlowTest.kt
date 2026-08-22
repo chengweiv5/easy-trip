@@ -5,9 +5,13 @@ import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -57,7 +61,11 @@ class WorkspaceFlowTest {
             )
         }
         compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(48.dp)
-        compose.onNodeWithTag("workspace-search").assertHeightIsEqualTo(36.dp)
+        compose.onNodeWithTag("workspace-search").assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("收起").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("半屏").fetchSemanticsNodes().size)
+        assertEquals(0, compose.onAllNodesWithText("展开").fetchSemanticsNodes().size)
         compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         val mapBottom = compose.onNodeWithTag("workspace-map").getUnclippedBoundsInRoot().bottom
         val searchTop = compose.onNodeWithTag("workspace-search").getUnclippedBoundsInRoot().top
@@ -70,8 +78,11 @@ class WorkspaceFlowTest {
         compose.onNodeWithTag("scope-WHOLE_TRIP").performClick()
         compose.waitUntil(5_000) { model.state.value.mapScope == MapScope.WHOLE_TRIP }
         assertEquals("WHOLE_TRIP", saved.get<String>("workspace.scope"))
-        compose.onNodeWithText("收起").performClick()
-        compose.onNodeWithTag("expand-sheet").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput { swipeDown() }
+        compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.COLLAPSED }
+        android.os.SystemClock.sleep(1_000)
+        assertEquals(WorkspaceSheetLevel.COLLAPSED, model.state.value.sheetLevel)
+        compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed().performTouchInput { swipeUp() }
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.HALF }
     }
 
