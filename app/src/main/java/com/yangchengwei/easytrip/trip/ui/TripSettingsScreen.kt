@@ -11,20 +11,18 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
@@ -39,11 +37,15 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Button
+import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
+import com.yangchengwei.easytrip.core.ui.component.SelectablePill
 import java.time.Instant
 import java.time.ZoneOffset
 import kotlin.math.roundToInt
@@ -56,15 +58,21 @@ fun TripSettingsScreen(viewModel: TripSettingsViewModel, onBack: () -> Unit) {
     var editingName by remember { mutableStateOf(false) }
     var name by remember(state.name) { mutableStateOf(state.name) }
     Scaffold(topBar = { TopAppBar(title = { Text(state.name.ifEmpty { "旅行设置" }) }, navigationIcon = { IconButton(onClick = onBack) { Text("返回") } }) }) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding).padding(16.dp)) {
+        Column(
+            Modifier.fillMaxSize().padding(padding).padding(16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Button(onClick = { editingName = true }) { Text("重命名旅行") }
-            Row {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Button(onClick = { showPicker = true }) { Text(state.startDate?.toString() ?: "选择起始日期") }
                 Button(onClick = { viewModel.setStartDate(null) }) { Text("无日期") }
             }
-            Row {
-                FilterChip(state.travelMode == TravelMode.FLEXIBLE, { viewModel.setTravelMode(TravelMode.FLEXIBLE) }, { Text("灵活") })
-                FilterChip(state.travelMode == TravelMode.SELF_DRIVE, { viewModel.setTravelMode(TravelMode.SELF_DRIVE) }, { Text("自驾") })
+            Row(
+                Modifier.selectableGroup(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+            ) {
+                SelectablePill(state.travelMode == TravelMode.FLEXIBLE, { viewModel.setTravelMode(TravelMode.FLEXIBLE) }, { Text("灵活") }, Modifier.testTag("settings-mode-FLEXIBLE"), role = Role.RadioButton)
+                SelectablePill(state.travelMode == TravelMode.SELF_DRIVE, { viewModel.setTravelMode(TravelMode.SELF_DRIVE) }, { Text("自驾") }, Modifier.testTag("settings-mode-SELF_DRIVE"), role = Role.RadioButton)
             }
             Button(onClick = viewModel::appendDay) { Text("末尾追加旅行日") }
             LazyColumn {

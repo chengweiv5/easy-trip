@@ -44,7 +44,12 @@ class TripListViewModel(private val service: TripService, repository: TripReposi
     fun dismissCreate() { mutableState.value = mutableState.value.copy(showCreateDialog = false) }
     fun setCreateName(value: String) { mutableState.value = mutableState.value.copy(createName = value) }
     fun setCreateDays(value: String) { mutableState.value = mutableState.value.copy(createDays = value.filter(Char::isDigit)) }
-    fun setCreateTimeMode(value: CreateTimeMode) { mutableState.value = mutableState.value.copy(createTimeMode = value) }
+    fun setCreateTimeMode(value: CreateTimeMode) {
+        mutableState.value = mutableState.value.copy(
+            createTimeMode = value,
+            createStartDate = if (value == CreateTimeMode.DRAFT) null else mutableState.value.createStartDate,
+        )
+    }
     fun setCreateStartDate(value: LocalDate) { mutableState.value = mutableState.value.copy(createStartDate = value) }
     fun setCreateTravelMode(value: TravelMode) { mutableState.value = mutableState.value.copy(createTravelMode = value) }
     fun create() {

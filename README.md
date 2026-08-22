@@ -33,7 +33,17 @@ AMAP_API_KEY=your-amap-android-key
 adb install -r app/build/outputs/apk/debug/app-debug.apk
 ```
 
-物理真机发布验收参见 [`docs/testing/v1-device-checklist.md`](docs/testing/v1-device-checklist.md)。
+物理真机发布验收参见 [`docs/testing/v1-device-checklist.md`](docs/testing/v1-device-checklist.md) 和 [`docs/testing/v2-device-checklist.md`](docs/testing/v2-device-checklist.md)。
+
+## v2 工作台
+
+- 内容抽屉分为“搜索 / 地点池 / 每日行程”三个独立 Tab。
+- 点击搜索结果会聚焦并高亮地图标记，详情仍保留在搜索 Tab。
+- 支持标准、卫星（含路网）两种图层，选择在本机全局保存。
+- 进入旅行、地点集合变化或主动切换地图范围时自动适配视野；Tab 和抽屉变化不会重置手动视角。
+- 地图固定在顶部，搜索与地点池/单日/全程范围控制固定在抽屉上方。
+- 每日行程使用地点卡片与交通连接段组成的时间轴；距离按米或公里显示。
+- Launcher 使用地图定位点与路线主题 adaptive icon。
 
 ## 数据与隐私
 

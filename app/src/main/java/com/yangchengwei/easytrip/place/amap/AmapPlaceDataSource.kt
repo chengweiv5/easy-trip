@@ -20,7 +20,7 @@ data class PlaceCandidate(
     val poiId: String,
     val name: String,
     val address: String,
-    val point: GeoPoint,
+    val point: GeoPoint?,
     val cityCode: String?,
 )
 

@@ -5,7 +5,12 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.hasAnyDescendant
 import androidx.compose.ui.test.hasText
@@ -15,6 +20,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipe
+import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.AppNavigation
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
@@ -41,10 +47,10 @@ class TripFlowTest {
         compose.onNodeWithText("川西环线").performClick()
         compose.waitForIdle()
         compose.onNodeWithText("旅行工作区 id-1").assertIsDisplayed()
-        compose.onNodeWithText("旅行设置").performClick()
+        compose.onNodeWithText("设置").performClick()
         compose.onNodeWithText("返回").performClick()
         compose.onNodeWithText("旅行工作区 id-1").assertIsDisplayed()
-        compose.onNodeWithText("旅行设置").performClick()
+        compose.onNodeWithText("设置").performClick()
         compose.onNodeWithText("操作 Day 2").performClick()
         compose.onNodeWithText("前插").performClick()
         compose.waitForIdle()
@@ -57,7 +63,7 @@ class TripFlowTest {
     @Test fun dragMovesAcrossTwoPositionsOnceAndAccessibilityMovesOnePosition() {
         val repository = FakeTripRepository().apply { seed("拖动测试", 5) }
         compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
-        compose.onNodeWithText("设置 拖动测试").performClick()
+        compose.onNodeWithTag("trip-settings-id-1").performClick()
         val originalIds = repository.trip.value!!.days.map { it.id }
 
         compose.onNodeWithText("拖动 Day 1").performTouchInput {
@@ -89,12 +95,12 @@ class TripFlowTest {
         val repository = FakeTripRepository().apply { seed("取消删除测试", 3) }
         compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
 
-        compose.onNodeWithText("删除 取消删除测试").performClick()
+        compose.onNodeWithTag("trip-delete-id-1").performClick()
         compose.onNodeWithText("旅行日 3，地点 2，标签 1，行程项 4，路线段 5").assertIsDisplayed()
         compose.onNodeWithText("取消删除旅行").performClick()
         assertEquals(0, repository.deletedTrips.size)
 
-        compose.onNodeWithText("设置 取消删除测试").performClick()
+        compose.onNodeWithTag("trip-settings-id-1").performClick()
         compose.onNodeWithText("操作 Day 1").performClick()
         compose.onNodeWithText("删除").performClick()
         compose.onNodeWithText("行程项 2，路线段 1").assertIsDisplayed()
@@ -107,7 +113,7 @@ class TripFlowTest {
         val tripId = repository.trip.value!!.id
         compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
 
-        compose.onNodeWithText("删除 确认删除测试").performClick()
+        compose.onNodeWithTag("trip-delete-id-1").performClick()
         compose.onNodeWithText("旅行日 3，地点 2，标签 1，行程项 4，路线段 5").assertIsDisplayed()
         compose.onNodeWithText("确认删除旅行").performClick()
 
@@ -119,13 +125,33 @@ class TripFlowTest {
     @Test fun confirmingDayDeleteDeletesExactlyOnce() {
         val repository = FakeTripRepository().apply { seed("删除旅行日测试", 3) }
         compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
-        compose.onNodeWithText("设置 删除旅行日测试").performClick()
+        compose.onNodeWithTag("trip-settings-id-1").performClick()
         compose.onNodeWithText("操作 Day 1").performClick()
         compose.onNodeWithText("删除").performClick()
         compose.onNodeWithText("行程项 2，路线段 1").assertIsDisplayed()
         compose.onNodeWithText("确认删除旅行日").performClick()
         compose.waitForIdle()
         assertEquals(1, repository.deletedDays)
+    }
+
+    @Test fun createAndSettingsChoicesUseExclusiveSelectablePills() {
+        val repository = FakeTripRepository().apply { seed("样式测试", 1) }
+        compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
+        compose.onNodeWithText("创建旅行").performClick()
+        compose.onNodeWithTag("create-time-DRAFT").assert(hasRole(Role.RadioButton)).assertIsSelected()
+        compose.onNodeWithTag("create-time-DATED").assertIsNotSelected()
+        compose.onNodeWithTag("create-mode-FLEXIBLE").assertIsSelected()
+        compose.onNodeWithTag("create-mode-SELF_DRIVE").assertIsNotSelected().performClick().assertIsSelected()
+        compose.onNodeWithTag("create-time-DATED").performClick()
+        compose.onNodeWithText("确定日期").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("选择起始日期").fetchSemanticsNodes().size)
+        pressBack()
+        compose.onNodeWithTag("create-time-DRAFT").assertIsSelected()
+        compose.onNodeWithTag("create-time-DATED").assertIsNotSelected()
+        compose.onNodeWithText("取消").performClick()
+        compose.onNodeWithTag("trip-settings-id-1").performClick()
+        compose.onNodeWithTag("settings-mode-FLEXIBLE").assert(hasRole(Role.RadioButton)).assertIsSelected()
+        compose.onNodeWithTag("settings-mode-SELF_DRIVE").assertIsNotSelected()
     }
 
     @Test fun createsThreeDayDraftAndDatedSelfDrive() {
@@ -144,8 +170,14 @@ class TripFlowTest {
         }
         compose.onNodeWithText("创建旅行").performClick(); compose.onNodeWithText("旅行名称").performTextInput("草案"); compose.onNodeWithText("天数").performTextInput("3"); compose.onNodeWithText("创建").performClick()
         compose.waitForIdle(); assertEquals(3, repository.trip.value!!.days.size)
-        compose.onNodeWithText("创建旅行").performClick(); compose.onNodeWithText("旅行名称").performTextInput("日期旅行"); compose.onNodeWithText("天数").performTextInput("2"); compose.onNodeWithText("指定日期").performClick(); compose.onNodeWithText("选择起始日期").performClick()
+        compose.onNodeWithText("创建旅行").performClick(); compose.onNodeWithText("旅行名称").performTextInput("日期旅行"); compose.onNodeWithText("天数").performTextInput("2"); compose.onNodeWithText("指定日期").performClick()
         compose.onNodeWithText("确定日期").performClick()
+        compose.onNodeWithText("2027-03-15").assertIsDisplayed().assertIsSelected()
+        compose.onNodeWithText("无日期").performClick()
+        compose.onNodeWithText("指定日期").assertIsDisplayed().assertIsNotSelected()
+        compose.onNodeWithText("指定日期").performClick()
+        compose.onNodeWithText("确定日期").performClick()
+        compose.onNodeWithText("2027-03-15").assertIsDisplayed().assertIsSelected()
         compose.onNodeWithText("自驾").performClick()
         compose.onNodeWithText("自驾").assertIsSelected()
         compose.onNodeWithText("创建").performClick()
@@ -153,6 +185,8 @@ class TripFlowTest {
         assertEquals(TravelMode.SELF_DRIVE, repository.trip.value!!.travelMode)
         assertEquals(LocalDate.of(2027, 3, 15), repository.trip.value!!.startDate)
     }
+
+    private fun hasRole(role: Role) = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
 
     private class FakeImpacts : DeleteImpactProvider {
         override suspend fun trip(tripId: String) = TripDeleteImpact(3, 2, 1, 4, 5)

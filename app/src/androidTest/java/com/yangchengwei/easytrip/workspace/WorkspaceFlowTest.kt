@@ -2,11 +2,14 @@ package com.yangchengwei.easytrip.workspace
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.TravelMode
@@ -53,7 +56,14 @@ class WorkspaceFlowTest {
                 itineraryContent = { Text("行程内容") },
             )
         }
+        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("workspace-search").assertHeightIsEqualTo(36.dp)
         compose.onNodeWithTag("workspace-map").assertIsDisplayed()
+        val mapBottom = compose.onNodeWithTag("workspace-map").getUnclippedBoundsInRoot().bottom
+        val searchTop = compose.onNodeWithTag("workspace-search").getUnclippedBoundsInRoot().top
+        val scopeTop = compose.onNodeWithTag("scope-PLACE_POOL").getUnclippedBoundsInRoot().top
+        assert(mapBottom <= searchTop)
+        assert(searchTop < scopeTop)
         compose.onNodeWithText("地点内容").assertIsDisplayed()
         compose.onNodeWithText("每日行程").performClick()
         compose.onNodeWithText("行程内容").assertIsDisplayed()

@@ -45,6 +45,126 @@ class MapUiModelMapperTest {
         assertEquals(setOf("place-hotel", "search-search"), model.markers.map { it.key }.toSet())
     }
 
+    @Test fun `focused saved search result reuses its visible marker with search key`() {
+        val places = listOf(saved("hotel", "酒店", shared))
+        val result = com.yangchengwei.easytrip.place.amap.PlaceCandidate("poi-hotel", "酒店搜索结果", "", shared, null)
+
+        val model = MapUiModelMapper.map(
+            MapScope.PLACE_POOL,
+            places,
+            days,
+            emptyList(),
+            searchResults = listOf(result),
+            focusedPoiId = result.poiId,
+        )
+
+        assertEquals(1, model.markers.count { it.point == shared })
+        assertEquals("search-poi-hotel", model.markers.single { it.point == shared }.key)
+    }
+
+    @Test fun `focused saved result absent from selected day is added once in single day scope`() {
+        val result = com.yangchengwei.easytrip.place.amap.PlaceCandidate("poi-hotel", "酒店搜索结果", "", shared, null)
+        val selectedDay = snapshot("day-1", listOf(item("i4", museum)))
+
+        val model = MapUiModelMapper.map(
+            MapScope.SINGLE_DAY,
+            listOf(saved("hotel", "酒店", shared)),
+            days,
+            listOf(selectedDay),
+            selectedDayId = "day-1",
+            searchResults = listOf(result),
+            focusedPoiId = result.poiId,
+        )
+
+        assertEquals(1, model.markers.count { it.point == shared })
+        assertEquals("search-poi-hotel", model.markers.single { it.point == shared }.key)
+    }
+
+    @Test fun `focused result in selected day rekeys occurrence marker without losing occurrences`() {
+        val result = com.yangchengwei.easytrip.place.amap.PlaceCandidate("poi-hotel", "酒店搜索结果", "", shared, null)
+        val selectedDay = snapshot("day-1", listOf(item("i1", hotel), item("i2", hotel)))
+
+        val model = MapUiModelMapper.map(
+            MapScope.SINGLE_DAY,
+            listOf(saved("hotel", "酒店", shared)),
+            days,
+            listOf(selectedDay),
+            selectedDayId = "day-1",
+            searchResults = listOf(result),
+            focusedPoiId = result.poiId,
+        )
+
+        val marker = model.markers.single { it.point == shared }
+        assertEquals("search-poi-hotel", marker.key)
+        assertEquals(listOf("i1", "i2"), marker.occurrences.map { it.itemId })
+    }
+
+    @Test fun `focused saved result in whole trip rekeys occurrence marker without duplicate coordinate`() {
+        val result = com.yangchengwei.easytrip.place.amap.PlaceCandidate("poi-hotel", "酒店搜索结果", "", shared, null)
+        val snapshots = listOf(snapshot("day-1", listOf(item("i1", hotel))), snapshot("day-2", listOf(item("i2", hotel))))
+
+        val model = MapUiModelMapper.map(
+            MapScope.WHOLE_TRIP,
+            listOf(saved("hotel", "酒店", shared)),
+            days,
+            snapshots,
+            searchResults = listOf(result),
+            focusedPoiId = result.poiId,
+        )
+
+        val marker = model.markers.single { it.point == shared }
+        assertEquals("search-poi-hotel", marker.key)
+        assertEquals(listOf("i1", "i2"), marker.occurrences.map { it.itemId })
+    }
+
+    @Test fun `focused search result wins when another result shares its unoccupied coordinate`() {
+        val focused = com.yangchengwei.easytrip.place.amap.PlaceCandidate("focused", "焦点", "", shared, null)
+        val otherResult = com.yangchengwei.easytrip.place.amap.PlaceCandidate("other", "其他", "", shared, null)
+
+        val model = MapUiModelMapper.map(
+            MapScope.SINGLE_DAY,
+            emptyList(),
+            days,
+            emptyList(),
+            selectedDayId = "day-1",
+            searchResults = listOf(otherResult, focused),
+            focusedPoiId = focused.poiId,
+        )
+
+        assertEquals(1, model.markers.count { it.point == shared })
+        assertEquals("search-focused", model.markers.single { it.point == shared }.key)
+    }
+
+    @Test fun `whole trip numbers places continuously across days`() {
+        val first = snapshot("day-1", listOf(item("i1", hotel), item("i2", museum)))
+        val second = snapshot("day-2", listOf(item("i3", hotel), item("i4", museum)))
+
+        val model = MapUiModelMapper.map(MapScope.WHOLE_TRIP, emptyList(), days, listOf(first, second))
+
+        assertEquals("1, 3", model.markers.single { it.point == shared }.label)
+        assertEquals("2, 4", model.markers.single { it.point == other }.label)
+    }
+
+    @Test fun `whole trip adds one midpoint label for each day with valid routes`() {
+        val first = snapshot("day-1", listOf(item("i1", hotel), item("i2", museum)), listOf(leg("l1", "day-1", RouteStatus.SUCCESS, validPolyline())))
+        val second = snapshot("day-2", listOf(item("i3", hotel), item("i4", museum)), listOf(leg("l2", "day-2", RouteStatus.SUCCESS, validPolyline()), leg("l3", "day-2", RouteStatus.FAILED, validPolyline())))
+
+        val model = MapUiModelMapper.map(MapScope.WHOLE_TRIP, emptyList(), days, listOf(first, second))
+
+        assertEquals(setOf("l1", "l2"), model.polylines.map { it.legId }.toSet())
+        assertEquals(2, model.polylines.map { it.colorArgb }.distinct().size)
+        assertEquals(listOf("第一天", "第二天"), model.routeLabels.map { it.label })
+        assertEquals(model.polylines.map { it.colorArgb }, model.routeLabels.map { it.colorArgb })
+    }
+
+    @Test fun `single day does not add route labels`() {
+        val first = snapshot("day-1", listOf(item("i1", hotel), item("i2", museum)), listOf(leg("l1", "day-1", RouteStatus.SUCCESS, validPolyline())))
+
+        val model = MapUiModelMapper.map(MapScope.SINGLE_DAY, emptyList(), days, listOf(first), "day-1")
+
+        assertTrue(model.routeLabels.isEmpty())
+    }
+
     @Test fun `whole trip uses distinct day colors and excludes failed routes`() {
         val first = snapshot("day-1", listOf(item("i1", hotel), item("i2", museum)), listOf(leg("l1", "day-1", RouteStatus.SUCCESS, validPolyline())))
         val second = snapshot("day-2", listOf(item("i3", hotel), item("i4", museum)), listOf(leg("l2", "day-2", RouteStatus.SUCCESS, validPolyline()), leg("l3", "day-2", RouteStatus.FAILED, validPolyline())))

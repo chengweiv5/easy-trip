@@ -1,6 +1,6 @@
 package com.yangchengwei.easytrip
 
-import androidx.compose.material3.Button
+import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Button
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -23,9 +23,10 @@ import com.yangchengwei.easytrip.amap.AmapPrivacyGate
 import com.yangchengwei.easytrip.place.amap.AmapPlaceDataSource
 import com.yangchengwei.easytrip.place.ui.PlacePoolSheet
 import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
+import com.yangchengwei.easytrip.place.ui.PlaceSearchResults
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
-import androidx.compose.material3.TextButton
+import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import android.content.Intent
 import android.net.Uri
 import androidx.compose.foundation.layout.fillMaxSize
@@ -73,7 +74,7 @@ fun AppNavigation(
         }
         composable(TRIP_WORKSPACE_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->
             val id = checkNotNull(entry.arguments?.getString("tripId"))
-            if (application == null) Column { Text("旅行工作区 $id"); Button(onClick = { navController.navigate("trips/$id/settings") }) { Text("旅行设置") } }
+            if (application == null) Column { Text("旅行工作区 $id"); Button(onClick = { navController.navigate("trips/$id/settings") }) { Text("设置") } }
             else {
                 var source by remember {
                     mutableStateOf(
@@ -86,7 +87,8 @@ fun AppNavigation(
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, application.savedPlaceRepository, source))
                 val placeState by placeModel.state.collectAsStateWithLifecycle()
                 val searchResults = remember(placeModel) { placeModel.state.map { it.search.results } }
-                val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, application.savedPlaceRepository, application.itineraryRepository, application.routeLegRepository, searchResults))
+                val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, application.savedPlaceRepository, application.itineraryRepository, application.routeLegRepository, searchResults, application.mapPreferences))
+                val workspaceState by workspaceModel.state.collectAsStateWithLifecycle()
                 val token = application.amapConsentToken?.takeIf { it.isActive() }
                 val itineraryModel: DayItineraryViewModel = viewModel(
                     factory = DayItineraryViewModel.Factory(
@@ -111,7 +113,20 @@ fun AppNavigation(
                     { navController.navigate("trips/$id/settings") },
                     { showConsent = true; policyRead = false },
                     placeState.search.query,
-                    placeModel::setQuery,
+                    { query ->
+                        placeModel.setQuery(query)
+                        workspaceModel.onSearchQueryChanged(query)
+                    },
+                    {
+                        PlaceSearchResults(
+                            state = placeState.search,
+                            savedPoiIds = placeState.savedPoiIds,
+                            onSelect = workspaceModel::focusSearchResult,
+                            onSave = placeModel::save,
+                            modifier = Modifier.fillMaxWidth(),
+                            selectedPoiId = workspaceState.searchSelection?.poiId,
+                        )
+                    },
                     { PlacePoolSheet(placeModel, Modifier.fillMaxWidth(), showSearch = false) },
                     { DayItinerarySheet(itineraryModel, Modifier.fillMaxWidth(), workspaceModel::selectDay) },
                 )

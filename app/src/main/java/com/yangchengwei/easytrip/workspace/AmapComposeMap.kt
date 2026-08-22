@@ -16,13 +16,42 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
+import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.MarkerOptions
 import com.amap.api.maps.model.PolylineOptions
 import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.amap.AmapPrivacyGate
+
+
+sealed interface ViewportCommand {
+    data class SinglePoint(val point: com.yangchengwei.easytrip.core.model.GeoPoint, val zoom: Float) : ViewportCommand
+    data class Bounds(val points: List<com.yangchengwei.easytrip.core.model.GeoPoint>, val paddingPx: Int) : ViewportCommand
+}
+
+data class ViewportRendering(val consumedRequestId: Long?, val command: ViewportCommand?)
+
+fun viewportRendering(consumedRequestId: Long?, request: MapViewportRequest?): ViewportRendering {
+    if (request == null || request.id == consumedRequestId) return ViewportRendering(consumedRequestId, null)
+    val command = when (request.points.size) {
+        0 -> null
+        1 -> ViewportCommand.SinglePoint(request.points.single(), request.singlePointZoom ?: 15f)
+        else -> ViewportCommand.Bounds(request.points, 96)
+    }
+    return ViewportRendering(request.id, command)
+}
+
+data class MapLayerRendering(val mapType: Int, val showMapText: Boolean)
+
+fun mapLayerRendering(applied: MapLayer?, requested: MapLayer): MapLayerRendering? =
+    if (applied == requested) null else when (requested) {
+        MapLayer.STANDARD -> MapLayerRendering(AMap.MAP_TYPE_NORMAL, true)
+        MapLayer.SATELLITE_ROAD -> MapLayerRendering(AMap.MAP_TYPE_SATELLITE, true)
+    }
 
 interface AmapMapHost {
     val view: View
@@ -30,24 +59,66 @@ interface AmapMapHost {
     fun onResume()
     fun onPause()
     fun onDestroy()
-    fun render(model: MapUiModel, onMarkerClick: (String) -> Unit)
+    fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit = { _, _ -> })
 }
 
-private class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
+internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
+    companion object {
+        fun create(context: android.content.Context): AmapMapHost = RealAmapMapHost(context)
+    }
     private val mapView = MapView(context)
-    private var renderedModel: MapUiModel? = null
+    private var renderedOverlays: MapUiModel? = null
+    private var consumedViewportId: Long? = null
+    private var appliedLayer: MapLayer? = null
     override val view: View = mapView
     override fun onCreate() = mapView.onCreate(null)
     override fun onResume() = mapView.onResume()
     override fun onPause() = mapView.onPause()
     override fun onDestroy() = mapView.onDestroy()
-    override fun render(model: MapUiModel, onMarkerClick: (String) -> Unit) {
+    override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
+        mapLayerRendering(appliedLayer, layer)?.let { rendering ->
+            runCatching {
+                mapView.map.mapType = rendering.mapType
+                mapView.map.showMapText(rendering.showMapText)
+            }.onSuccess {
+                appliedLayer = layer
+            }.onFailure { error ->
+                appliedLayer?.let { previous ->
+                    mapLayerRendering(null, previous)?.let { rollback ->
+                        runCatching {
+                            mapView.map.mapType = rollback.mapType
+                            mapView.map.showMapText(rollback.showMapText)
+                        }
+                    }
+                }
+                onLayerError(error, appliedLayer ?: MapLayer.STANDARD)
+            }
+        }
         mapView.map.setOnMarkerClickListener { marker ->
             (marker.`object` as? String)?.let(onMarkerClick)
             true
         }
-        if (model == renderedModel) return
-        renderedModel = model
+        viewportRendering(consumedViewportId, model.viewportRequest).let { rendering ->
+            consumedViewportId = rendering.consumedRequestId
+            when (val command = rendering.command) {
+                null -> Unit
+                is ViewportCommand.SinglePoint -> mapView.map.moveCamera(
+                    CameraUpdateFactory.newLatLngZoom(
+                        LatLng(command.point.latitude, command.point.longitude),
+                        command.zoom,
+                    ),
+                )
+                is ViewportCommand.Bounds -> {
+                    val bounds = LatLngBounds.Builder().apply {
+                        command.points.forEach { include(LatLng(it.latitude, it.longitude)) }
+                    }.build()
+                    mapView.map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, command.paddingPx))
+                }
+            }
+        }
+        val overlays = model.copy(viewportRequest = null)
+        if (overlays == renderedOverlays) return
+        renderedOverlays = overlays
         mapView.map.clear()
         model.polylines.forEach { line ->
             mapView.map.addPolyline(
@@ -57,14 +128,56 @@ private class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
                     .width(10f),
             )
         }
+        model.routeLabels.forEach { label ->
+            mapView.map.addMarker(
+                MarkerOptions()
+                    .position(LatLng(label.point.latitude, label.point.longitude))
+                    .title(label.label)
+                    .icon(routeLabelMarker(label.label, label.colorArgb.toInt())),
+            )
+        }
         model.markers.forEach { marker ->
             val options = MarkerOptions()
                 .position(LatLng(marker.point.latitude, marker.point.longitude))
                 .title(marker.label)
-            if (marker.occurrences.isNotEmpty()) options.icon(numberedMarker(marker.label))
+            when {
+                marker.key == model.highlightedMarkerKey -> options.icon(highlightedMarker())
+                marker.occurrences.isNotEmpty() -> options.icon(numberedMarker(marker.label))
+            }
             mapView.map.addMarker(options).`object` = marker.key
         }
     }
+
+    private fun highlightedMarker() = BitmapDescriptorFactory.fromView(
+        TextView(mapView.context).apply {
+            text = "●"
+            setTextColor(Color.WHITE)
+            textSize = 20f
+            gravity = Gravity.CENTER
+            setPadding(22, 14, 22, 14)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.OVAL
+                setColor(Color.rgb(216, 67, 21))
+                setStroke(5, Color.WHITE)
+            }
+        },
+    )
+
+    private fun routeLabelMarker(label: String, color: Int) = BitmapDescriptorFactory.fromView(
+        TextView(mapView.context).apply {
+            text = label
+            setTextColor(color)
+            textSize = 13f
+            gravity = Gravity.CENTER
+            setPadding(16, 8, 16, 8)
+            background = GradientDrawable().apply {
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 16f
+                setColor(Color.argb(230, 255, 255, 255))
+                setStroke(3, color)
+            }
+        },
+    )
 
     private fun numberedMarker(label: String) = BitmapDescriptorFactory.fromView(
         TextView(mapView.context).apply {
@@ -88,8 +201,10 @@ fun AmapComposeMap(
     model: MapUiModel,
     onMarkerClick: (String) -> Unit,
     consent: AmapConsentToken,
+    layer: MapLayer = MapLayer.STANDARD,
     modifier: Modifier = Modifier,
     hostFactory: (android.content.Context) -> AmapMapHost = ::RealAmapMapHost,
+    onLayerError: (Throwable, MapLayer) -> Unit = { _, _ -> },
 ) {
     val consentSnapshot by consent.active.collectAsState()
     val context = LocalContext.current
@@ -122,7 +237,7 @@ fun AmapComposeMap(
         modifier = modifier,
         update = {
             consent.validateActive()
-            host.render(model, onMarkerClick)
+            host.render(model, layer, onMarkerClick, onLayerError)
         },
     )
 }

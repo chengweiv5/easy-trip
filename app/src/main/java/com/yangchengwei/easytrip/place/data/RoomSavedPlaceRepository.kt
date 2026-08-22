@@ -41,8 +41,9 @@ class RoomSavedPlaceRepository(
 
     override suspend fun save(tripId: String, candidate: PlaceCandidate): SavePlaceResult = database.withTransaction {
         dao.placeId(tripId, candidate.poiId)?.let { return@withTransaction SavePlaceResult.AlreadySaved(it) }
+        val point = requireNotNull(candidate.point) { "无法收藏缺少坐标的地点" }
         val id = idFactory()
-        val inserted = dao.insertPlace(SavedPlaceEntity(id, tripId, candidate.poiId, candidate.name, candidate.address, candidate.point.latitude, candidate.point.longitude, cityCode = candidate.cityCode))
+        val inserted = dao.insertPlace(SavedPlaceEntity(id, tripId, candidate.poiId, candidate.name, candidate.address, point.latitude, point.longitude, cityCode = candidate.cityCode))
         if (inserted != -1L) SavePlaceResult.Saved(id)
         else SavePlaceResult.AlreadySaved(requireNotNull(dao.placeId(tripId, candidate.poiId)))
     }

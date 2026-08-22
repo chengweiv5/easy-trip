@@ -64,6 +64,26 @@ class PlaceSearchReducerTest {
         assertEquals("network", reducer.state.value.error)
     }
 
+    @Test fun replacingSourceCancelsOldRequestAndReissuesCurrentQuery() = runTest {
+        val oldSource = SearchSource()
+        val newSource = SearchSource()
+        val reducer = PlaceSearchReducer(oldSource, this, StandardTestDispatcher(testScheduler))
+        reducer.setQuery("故宫")
+        advanceTimeBy(300)
+        runCurrent()
+
+        reducer.setSource(newSource)
+        runCurrent()
+        assertEquals(listOf("故宫"), oldSource.cancelled)
+        advanceTimeBy(300)
+        runCurrent()
+
+        assertEquals(listOf("故宫"), newSource.queries)
+        newSource.complete("故宫", candidate("new-source"))
+        advanceUntilIdle()
+        assertEquals(listOf("new-source"), reducer.state.value.results.map { it.poiId })
+    }
+
     private fun candidate(id: String) = PlaceCandidate(id, id, "address", GeoPoint(1.0, 2.0), null)
 
     private class SearchSource(private val ignoreCancellation: Boolean = false) : PlaceSearchDataSource {

@@ -16,6 +16,7 @@ import com.yangchengwei.easytrip.route.domain.DefaultRouteRefreshCoordinator
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.ui.RoomDeleteImpactProvider
+import com.yangchengwei.easytrip.workspace.SharedPreferencesMapPreferences
 import kotlinx.coroutines.CoroutineScope
 
 class AppContainer(
@@ -29,6 +30,7 @@ class AppContainer(
     private val context = context.applicationContext
     val database = databaseFactory(this.context)
     val networkMonitor = networkFactory(this.context, applicationScope)
+    val mapPreferences = SharedPreferencesMapPreferences(this.context.getSharedPreferences("map", Context.MODE_PRIVATE))
     val tripRepository = RoomTripRepository(database.tripDao(), database = database, isOnline = { networkMonitor.isOnline.value })
     val tripService = TripService(tripRepository)
     val savedPlaceRepository = RoomSavedPlaceRepository(database, isOnline = { networkMonitor.isOnline.value })

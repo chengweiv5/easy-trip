@@ -1,16 +1,22 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Button
+import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.FilterChip
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.core.ui.component.SelectablePill
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -33,17 +39,25 @@ fun CreateTripDialog(
         onDismissRequest = viewModel::dismissCreate,
         title = { Text("创建旅行") },
         text = {
-            Column {
+            Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(state.createName, viewModel::setCreateName, label = { Text("旅行名称") })
                 OutlinedTextField(state.createDays, viewModel::setCreateDays, label = { Text("天数") })
-                Row {
-                    FilterChip(state.createTimeMode == CreateTimeMode.DRAFT, { viewModel.setCreateTimeMode(CreateTimeMode.DRAFT) }, { Text("无日期") })
-                    FilterChip(state.createTimeMode == CreateTimeMode.DATED, { viewModel.setCreateTimeMode(CreateTimeMode.DATED) }, { Text("指定日期") })
+                Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SelectablePill(state.createTimeMode == CreateTimeMode.DRAFT, { viewModel.setCreateTimeMode(CreateTimeMode.DRAFT) }, { Text("无日期") }, Modifier.testTag("create-time-DRAFT"), role = Role.RadioButton)
+                    SelectablePill(
+                        state.createTimeMode == CreateTimeMode.DATED,
+                        {
+                            viewModel.setCreateTimeMode(CreateTimeMode.DATED)
+                            showPicker = true
+                        },
+                        { Text(state.createStartDate?.toString() ?: "指定日期") },
+                        Modifier.testTag("create-time-DATED"),
+                        role = Role.RadioButton,
+                    )
                 }
-                if (state.createTimeMode == CreateTimeMode.DATED) TextButton(onClick = { showPicker = true }) { Text(state.createStartDate?.toString() ?: "选择起始日期") }
-                Row {
-                    FilterChip(state.createTravelMode == TravelMode.FLEXIBLE, { viewModel.setCreateTravelMode(TravelMode.FLEXIBLE) }, { Text("灵活") })
-                    FilterChip(state.createTravelMode == TravelMode.SELF_DRIVE, { viewModel.setCreateTravelMode(TravelMode.SELF_DRIVE) }, { Text("自驾") })
+                Row(Modifier.selectableGroup(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    SelectablePill(state.createTravelMode == TravelMode.FLEXIBLE, { viewModel.setCreateTravelMode(TravelMode.FLEXIBLE) }, { Text("灵活") }, Modifier.testTag("create-mode-FLEXIBLE"), role = Role.RadioButton)
+                    SelectablePill(state.createTravelMode == TravelMode.SELF_DRIVE, { viewModel.setCreateTravelMode(TravelMode.SELF_DRIVE) }, { Text("自驾") }, Modifier.testTag("create-mode-SELF_DRIVE"), role = Role.RadioButton)
                 }
             }
         },
@@ -52,10 +66,22 @@ fun CreateTripDialog(
     )
     if (showPicker) {
         val picker = rememberDatePickerState(
-            initialSelectedDateMillis = initialDateMillis,
-            initialDisplayedMonthMillis = initialDateMillis,
+            initialSelectedDateMillis = state.createStartDate
+                ?.atStartOfDay(ZoneOffset.UTC)
+                ?.toInstant()
+                ?.toEpochMilli()
+                ?: initialDateMillis,
+            initialDisplayedMonthMillis = state.createStartDate
+                ?.atStartOfDay(ZoneOffset.UTC)
+                ?.toInstant()
+                ?.toEpochMilli()
+                ?: initialDateMillis,
         )
-        DatePickerDialog(onDismissRequest = { showPicker = false }, confirmButton = {
+        val dismissPicker = {
+            showPicker = false
+            if (state.createStartDate == null) viewModel.setCreateTimeMode(CreateTimeMode.DRAFT)
+        }
+        DatePickerDialog(onDismissRequest = dismissPicker, confirmButton = {
             TextButton(onClick = {
                 picker.selectedDateMillis?.let { viewModel.setCreateStartDate(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
                 showPicker = false

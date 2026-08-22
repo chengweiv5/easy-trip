@@ -27,7 +27,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.launch
 
-data class ItineraryItemUi(val id: String, val name: String, val arrivalTime: LocalTime?, val stayMinutes: Int?)
+data class ItineraryItemUi(val id: String, val name: String, val address: String, val arrivalTime: LocalTime?, val stayMinutes: Int?)
 data class RouteLegUi(val id: String, val fromItemId: String, val toItemId: String, val mode: TransportMode, val status: RouteStatus, val distanceMeters: Int?, val durationSeconds: Int?, val error: String?)
 data class DayItineraryUiState(
     val days: List<TripDay> = emptyList(),
@@ -163,7 +163,7 @@ class DayItineraryViewModel(
         )
     }
 
-    private fun ItineraryItem.toUi() = ItineraryItemUi(id, place.name, arrivalTime, stayMinutes)
+    private fun ItineraryItem.toUi() = ItineraryItemUi(id, place.name, place.address, arrivalTime, stayMinutes)
     private fun RouteErrorKind?.toSummary() = when (this) {
         RouteErrorKind.TRANSIENT -> "网络异常，请重试"
         RouteErrorKind.NO_ROUTE -> "未找到可用路线"

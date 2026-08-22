@@ -9,16 +9,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
+import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Button
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
+import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -52,8 +55,14 @@ fun TripListScreen(
                     Row(Modifier.fillMaxWidth().clickable { viewModel.openWorkspace(trip.id) }.padding(vertical = 16.dp), horizontalArrangement = Arrangement.SpaceBetween) {
                         Column(Modifier.clickable { viewModel.openWorkspace(trip.id) }) { Text(trip.name); Text("${trip.dayCount} 天") }
                         Row {
-                            TextButton(onClick = { viewModel.openSettings(trip.id) }) { Text("设置 ${trip.name}") }
-                            TextButton(onClick = { viewModel.requestDelete(trip) }) { Text("删除 ${trip.name}") }
+                            TextButton(
+                                onClick = { viewModel.openSettings(trip.id) },
+                                modifier = Modifier.testTag("trip-settings-${trip.id}").semantics { contentDescription = "设置 ${trip.name}" },
+                            ) { Text("设置") }
+                            TextButton(
+                                onClick = { viewModel.requestDelete(trip) },
+                                modifier = Modifier.testTag("trip-delete-${trip.id}").semantics { contentDescription = "删除 ${trip.name}" },
+                            ) { Text("删除") }
                         }
                     }
                 }

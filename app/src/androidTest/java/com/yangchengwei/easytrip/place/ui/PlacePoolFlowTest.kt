@@ -32,7 +32,7 @@ class PlacePoolFlowTest {
         }
         val model = PlacePoolViewModel(tripId, repository, source)
         compose.setContent { PlacePoolSheet(model) }
-        compose.onNodeWithText("搜索 POI").performTextInput("故宫")
+        compose.onNodeWithText("搜索地点").performTextInput("故宫")
         compose.waitUntil(5_000) { model.state.value.search.results.isNotEmpty() }
         compose.onNodeWithText("故宫博物院").assertExists()
         compose.onAllNodesWithText("收藏")[0].performClick()
@@ -48,7 +48,7 @@ class PlacePoolFlowTest {
         compose.onNodeWithTag("tag-$cultureTagId").performClick()
         compose.waitUntil(5_000) { model.state.value.search.savedPlaces.size == 1 }
         assertEquals("必去", model.state.value.search.savedPlaces.single().note)
-        assertEquals(3, compose.onAllNodesWithText("已收藏").fetchSemanticsNodes().size)
+        assertEquals(2, compose.onAllNodesWithText("已收藏").fetchSemanticsNodes().size)
     }
 
     private fun sequence(vararg prefixes: String): () -> String {
