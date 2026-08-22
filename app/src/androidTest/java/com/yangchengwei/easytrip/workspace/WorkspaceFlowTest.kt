@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
@@ -47,6 +48,85 @@ import org.junit.Test
 class WorkspaceFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
+    @Test fun mapPoiClickOpensCardBeforeCollectionAction() {
+        val saved = SavedStateHandle()
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), saved)
+        val poi = MapPoiUi("poi-card", "故宫", "北京市东城区", GeoPoint(39.916, 116.397))
+        lateinit var host: PoiHost
+        var toggles = 0
+        compose.setContent {
+            TripWorkspaceScreen(
+                viewModel = model,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                isPoiSaved = false,
+                onTogglePoiCollection = { toggles++ },
+                placeContent = { Text("地点内容") },
+                itineraryContent = { Text("行程内容") },
+                mapHostFactory = { PoiHost(it).also { created -> host = created } },
+            )
+        }
+        compose.waitUntil(5_000) { runCatching { host }.isSuccess }
+
+        compose.runOnIdle { host.emit(poi) }
+
+        compose.onNodeWithText("故宫").assertIsDisplayed()
+        compose.onNodeWithText("北京市东城区").assertIsDisplayed()
+        val viewportBeforeClose = model.state.value.map.viewportRequest
+        compose.onNodeWithText("关闭").performClick()
+        compose.waitForIdle()
+        assertEquals(viewportBeforeClose, model.state.value.map.viewportRequest)
+        assertEquals(0, toggles)
+    }
+
+    @Test fun mapPoiWithoutAddressShowsUnavailableMessageAndCanBeCollected() {
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        lateinit var host: PoiHost
+        var collected: PlaceCandidate? = null
+        compose.setContent {
+            TripWorkspaceScreen(
+                viewModel = model,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                isPoiSaved = false,
+                onTogglePoiCollection = { collected = it },
+                placeContent = { Text("地点内容") },
+                itineraryContent = { Text("行程内容") },
+                mapHostFactory = { PoiHost(it).also { created -> host = created } },
+            )
+        }
+        compose.waitUntil(5_000) { runCatching { host }.isSuccess }
+        compose.runOnIdle { host.emit(MapPoiUi("poi-empty-address", "故宫", "", GeoPoint(39.9, 116.4))) }
+
+        compose.onNodeWithText("地址暂不可用").assertIsDisplayed()
+        compose.onNodeWithTag("place-card-collection").performClick()
+        assertEquals("", collected?.address)
+    }
+
+    @Test fun mapPoiWithoutStableIdCannotBeCollected() {
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        lateinit var host: PoiHost
+        compose.setContent {
+            TripWorkspaceScreen(
+                viewModel = model,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                isPoiSaved = false,
+                onTogglePoiCollection = {},
+                placeContent = { Text("地点内容") },
+                itineraryContent = { Text("行程内容") },
+                mapHostFactory = { PoiHost(it).also { created -> host = created } },
+            )
+        }
+        compose.waitUntil(5_000) { runCatching { host }.isSuccess }
+        compose.runOnIdle { host.emit(MapPoiUi(null, "无编号地点", "地址未知", GeoPoint(39.9, 116.4))) }
+
+        compose.onNodeWithText("无法收藏").assertIsNotEnabled()
+    }
+
     @Test fun switchesTabsAndMapScopesAndRestoresSelection() {
         val saved = SavedStateHandle()
         val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), saved)
@@ -61,14 +141,14 @@ class WorkspaceFlowTest {
             )
         }
         compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(40.dp)
-        compose.onNodeWithTag("workspace-search").assertHeightIsEqualTo(40.dp)
+        compose.onNodeWithTag("workspace-search-launcher").assertHeightIsEqualTo(48.dp)
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("收起").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("半屏").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("展开").fetchSemanticsNodes().size)
         compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         val mapBottom = compose.onNodeWithTag("workspace-map").getUnclippedBoundsInRoot().bottom
-        val searchTop = compose.onNodeWithTag("workspace-search").getUnclippedBoundsInRoot().top
+        val searchTop = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().top
         val scopeTop = compose.onNodeWithTag("scope-PLACE_POOL").getUnclippedBoundsInRoot().top
         assert(searchTop < mapBottom)
         assert(mapBottom <= scopeTop)
@@ -80,10 +160,35 @@ class WorkspaceFlowTest {
         assertEquals("WHOLE_TRIP", saved.get<String>("workspace.scope"))
         compose.onNodeWithTag("workspace-sheet-handle").performTouchInput { swipeDown() }
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.COLLAPSED }
-        android.os.SystemClock.sleep(1_000)
+        compose.waitForIdle()
         assertEquals(WorkspaceSheetLevel.COLLAPSED, model.state.value.sheetLevel)
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed().performTouchInput { swipeUp() }
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.HALF }
+    }
+
+    private fun consentToken(): com.yangchengwei.easytrip.amap.AmapConsentToken {
+        val gate = com.yangchengwei.easytrip.amap.AmapPrivacyGate.create(compose.activity)
+        gate.reportPrivacyShown()
+        return requireNotNull(gate.reportUserDecision(true))
+    }
+
+    private class PoiHost(context: android.content.Context) : AmapMapHost {
+        override val view = android.view.View(context)
+        private var callback: (MapPoiUi) -> Unit = {}
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun render(
+            model: MapUiModel,
+            layer: MapLayer,
+            onMarkerClick: (String) -> Unit,
+            onMapPoiClick: (MapPoiUi) -> Unit,
+            onLayerError: (Throwable, MapLayer) -> Unit,
+        ) {
+            callback = onMapPoiClick
+        }
+        fun emit(poi: MapPoiUi) = callback(poi)
     }
 
     private class Trips : TripRepository {

@@ -38,8 +38,10 @@ import com.amap.api.maps.model.BitmapDescriptorFactory
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.MarkerOptions
+import com.amap.api.maps.model.Poi
 import com.amap.api.maps.model.PolylineOptions
 import com.yangchengwei.easytrip.amap.AmapConsentToken
+import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.amap.AmapPrivacyGate
 
 
@@ -68,6 +70,23 @@ fun mapLayerRendering(applied: MapLayer?, requested: MapLayer): MapLayerRenderin
         MapLayer.SATELLITE_ROAD -> MapLayerRendering(AMap.MAP_TYPE_SATELLITE, true)
     }
 
+data class MapPoiUi(
+    val poiId: String?,
+    val name: String,
+    val address: String,
+    val point: GeoPoint,
+)
+
+internal fun Poi.toMapPoiUi(address: String = ""): MapPoiUi? {
+    val coordinate = coordinate ?: return null
+    return MapPoiUi(
+        poiId = poiId?.takeIf(String::isNotBlank),
+        name = name.orEmpty(),
+        address = address,
+        point = GeoPoint(coordinate.latitude, coordinate.longitude),
+    )
+}
+
 interface AmapMapHost {
     val view: View
     fun onCreate()
@@ -76,7 +95,19 @@ interface AmapMapHost {
     fun onDestroy()
     fun zoomIn() = Unit
     fun zoomOut() = Unit
-    fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit = { _, _ -> })
+    fun render(
+        model: MapUiModel,
+        layer: MapLayer,
+        onMarkerClick: (String) -> Unit,
+        onLayerError: (Throwable, MapLayer) -> Unit = { _, _ -> },
+    ) = Unit
+    fun render(
+        model: MapUiModel,
+        layer: MapLayer,
+        onMarkerClick: (String) -> Unit,
+        onMapPoiClick: (MapPoiUi) -> Unit,
+        onLayerError: (Throwable, MapLayer) -> Unit = { _, _ -> },
+    ) = render(model, layer, onMarkerClick, onLayerError)
 }
 
 internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
@@ -97,7 +128,20 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     override fun onDestroy() = mapView.onDestroy()
     override fun zoomIn() = mapView.map.animateCamera(CameraUpdateFactory.zoomIn())
     override fun zoomOut() = mapView.map.animateCamera(CameraUpdateFactory.zoomOut())
-    override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
+    override fun render(
+        model: MapUiModel,
+        layer: MapLayer,
+        onMarkerClick: (String) -> Unit,
+        onLayerError: (Throwable, MapLayer) -> Unit,
+    ) = render(model, layer, onMarkerClick, {}, onLayerError)
+
+    override fun render(
+        model: MapUiModel,
+        layer: MapLayer,
+        onMarkerClick: (String) -> Unit,
+        onMapPoiClick: (MapPoiUi) -> Unit,
+        onLayerError: (Throwable, MapLayer) -> Unit,
+    ) {
         mapLayerRendering(appliedLayer, layer)?.let { rendering ->
             runCatching {
                 mapView.map.mapType = rendering.mapType
@@ -119,6 +163,9 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
         mapView.map.setOnMarkerClickListener { marker ->
             (marker.`object` as? String)?.let(onMarkerClick)
             true
+        }
+        mapView.map.setOnPOIClickListener { poi ->
+            poi.toMapPoiUi()?.let(onMapPoiClick)
         }
         viewportRendering(consumedViewportId, model.viewportRequest).let { rendering ->
             consumedViewportId = rendering.consumedRequestId
@@ -159,28 +206,38 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
             )
         }
         model.markers.forEach { marker ->
-            val options = MarkerOptions()
-                .position(LatLng(marker.point.latitude, marker.point.longitude))
-                .title(marker.label)
-            when {
-                marker.key == model.highlightedMarkerKey -> options.icon(highlightedMarker())
-                marker.occurrences.isNotEmpty() -> options.icon(numberedMarker(marker.label))
-            }
-            mapView.map.addMarker(options).`object` = marker.key
+            mapView.map.addMarker(
+                MarkerOptions()
+                    .position(LatLng(marker.point.latitude, marker.point.longitude))
+                    .title(marker.label)
+                    .icon(markerIcon(marker)),
+            ).`object` = marker.key
         }
     }
 
-    private fun highlightedMarker() = BitmapDescriptorFactory.fromView(
+    private fun markerIcon(marker: MapMarkerUi) = BitmapDescriptorFactory.fromView(
         TextView(mapView.context).apply {
-            text = "●"
+            text = when (marker.kind) {
+                MapMarkerKind.UNSAVED_SEARCH -> "●"
+                MapMarkerKind.SAVED_PLACE_POOL -> "★"
+                MapMarkerKind.SAVED_ITINERARY -> marker.badgeText?.let { "★ $it" } ?: "★"
+            }
             setTextColor(Color.WHITE)
-            textSize = 20f
+            textSize = if (marker.isFocused) 18f else 14f
             gravity = Gravity.CENTER
-            setPadding(22, 14, 22, 14)
+            val horizontalPadding = if (marker.isFocused) 22 else 16
+            val verticalPadding = if (marker.isFocused) 14 else 10
+            setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
             background = GradientDrawable().apply {
-                shape = GradientDrawable.OVAL
-                setColor(Color.rgb(216, 67, 21))
-                setStroke(5, Color.WHITE)
+                shape = GradientDrawable.RECTANGLE
+                cornerRadius = 28f
+                setColor(
+                    when (marker.kind) {
+                        MapMarkerKind.UNSAVED_SEARCH -> Color.rgb(216, 67, 21)
+                        MapMarkerKind.SAVED_PLACE_POOL, MapMarkerKind.SAVED_ITINERARY -> Color.rgb(25, 118, 210)
+                    },
+                )
+                setStroke(if (marker.isFocused) 6 else 3, if (marker.isFocused) Color.YELLOW else Color.WHITE)
             }
         },
     )
@@ -200,22 +257,6 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
             }
         },
     )
-
-    private fun numberedMarker(label: String) = BitmapDescriptorFactory.fromView(
-        TextView(mapView.context).apply {
-            text = label
-            setTextColor(Color.WHITE)
-            textSize = 14f
-            gravity = Gravity.CENTER
-            setPadding(16, 10, 16, 10)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 28f
-                setColor(Color.rgb(25, 118, 210))
-                setStroke(3, Color.WHITE)
-            }
-        },
-    )
 }
 
 @Composable
@@ -223,6 +264,7 @@ fun AmapComposeMap(
     model: MapUiModel,
     onMarkerClick: (String) -> Unit,
     consent: AmapConsentToken,
+    onMapPoiClick: (MapPoiUi) -> Unit = {},
     layer: MapLayer = MapLayer.STANDARD,
     modifier: Modifier = Modifier,
     hostFactory: (android.content.Context) -> AmapMapHost = ::RealAmapMapHost,
@@ -260,7 +302,7 @@ fun AmapComposeMap(
             modifier = Modifier.fillMaxSize(),
             update = {
                 consent.validateActive()
-                host.render(model, layer, onMarkerClick, onLayerError)
+                host.render(model, layer, onMarkerClick, onMapPoiClick, onLayerError)
             },
         )
         Column(

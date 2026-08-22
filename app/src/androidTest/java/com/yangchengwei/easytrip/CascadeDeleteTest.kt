@@ -12,6 +12,7 @@ import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
 import com.yangchengwei.easytrip.place.data.TagEntity
 import com.yangchengwei.easytrip.place.data.SavedPlaceTagCrossRef
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
+import com.yangchengwei.easytrip.place.domain.PlaceService
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import kotlinx.coroutines.flow.first
@@ -46,7 +47,9 @@ class CascadeDeleteTest {
         val firstC = itineraries.addItem(days[0].id, c, 4)
         repeat(2) { itineraries.addItem(days[1].id, removed, it) }
 
-        places.deletePlaceAndReferences(removed)
+        val service = PlaceService(places)
+        assertEquals(5, service.deletionUsageCount(removed))
+        service.deletePlaceAndReferences(removed)
 
         assertEquals(listOf(firstA, firstC), database.itineraryEditingDao().items(days[0].id).map { it.id })
         assertEquals(emptyList<String>(), database.itineraryEditingDao().items(days[1].id).map { it.id })

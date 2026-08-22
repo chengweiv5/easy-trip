@@ -56,7 +56,6 @@ class MapLayerFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                searchContent = { Text("搜索") },
                 placeContent = { Text("地点") },
                 itineraryContent = { Text("行程") },
             )

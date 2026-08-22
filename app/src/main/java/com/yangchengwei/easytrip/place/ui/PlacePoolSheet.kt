@@ -36,12 +36,23 @@ fun PlacePoolSheet(
                 state = state.search,
                 savedPoiIds = state.savedPoiIds,
                 onSelect = {},
-                onSave = viewModel::save,
+                onToggleCollection = viewModel::toggleCollection,
                 modifier = Modifier.fillMaxWidth(),
+                collectionBusyPoiIds = state.collectionBusyPoiIds,
             )
         }
     }
     state.editing?.let { EditSavedPlaceDialog(it, viewModel::dismissEdit, viewModel::updateDetails) }
+    state.collectionError?.let { Text(it, modifier = Modifier.padding(horizontal = 16.dp)) }
+    state.pendingCollectionRemoval?.let { pending ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissCollectionRemoval,
+            title = { Text("取消收藏 ${pending.place.name}？") },
+            text = { Text("将同时删除 ${pending.usageCount} 次行程安排及受影响路线。") },
+            confirmButton = { TextButton(viewModel::confirmCollectionRemoval) { Text("确认取消收藏") } },
+            dismissButton = { TextButton(viewModel::dismissCollectionRemoval) { Text("取消") } },
+        )
+    }
     state.deleting?.let { place ->
         AlertDialog(
             onDismissRequest = viewModel::dismissDelete,

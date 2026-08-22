@@ -19,14 +19,26 @@ data class OccurrenceUi(
     val dayLabel: String,
     val order: Int,
     val placeName: String,
+    val savedPlaceId: String,
 )
+
+enum class MapMarkerKind { UNSAVED_SEARCH, SAVED_PLACE_POOL, SAVED_ITINERARY }
 
 data class MapMarkerUi(
     val key: String,
     val point: GeoPoint,
     val label: String,
     val occurrences: List<OccurrenceUi>,
+    val kind: MapMarkerKind,
+    val badgeText: String? = null,
+    val isFocused: Boolean = false,
+    val savedPlaceId: String? = null,
 )
+
+fun formatOccurrenceBadge(orders: List<Int>): String = when {
+    orders.size <= 3 -> orders.joinToString("·")
+    else -> "${orders.first()} +${orders.size - 1}"
+}
 
 data class MapPolylineUi(
     val legId: String,
@@ -44,7 +56,7 @@ data class MapRouteLabelUi(
 
 data class CorruptRoute(val legId: String, val version: Long)
 
-enum class ViewportReason { INITIAL, PLACE_SET_CHANGED, SCOPE_CHANGED, SEARCH_FOCUS }
+enum class ViewportReason { INITIAL, PLACE_SET_CHANGED, SCOPE_CHANGED, VISIBLE_SET_CHANGED, SEARCH_FOCUS }
 
 data class MapViewportRequest(
     val id: Long,
@@ -92,17 +104,26 @@ data class MapUiModel(
     val corruptRoutes: List<CorruptRoute> = emptyList(),
 )
 
+fun mapViewportPoints(scope: MapScope, model: MapUiModel): List<GeoPoint> =
+    if (scope == MapScope.PLACE_POOL) {
+        model.markers.map(MapMarkerUi::point).distinct()
+    } else {
+        (model.markers.map(MapMarkerUi::point) + model.polylines.flatMap(MapPolylineUi::points)).distinct()
+    }
+
+fun routePalette() = listOf(
+    0xFF1565C0,
+    0xFFC2185B,
+    0xFF00897B,
+    0xFF7B1FA2,
+    0xFFC62828,
+    0xFF0097A7,
+    0xFF303F9F,
+    0xFF2E7D32,
+)
+
 object MapUiModelMapper {
-    private val palette = listOf(
-        0xFFE53935,
-        0xFF1E88E5,
-        0xFF43A047,
-        0xFFFB8C00,
-        0xFF8E24AA,
-        0xFF00ACC1,
-        0xFFF4511E,
-        0xFF3949AB,
-    )
+    private val palette = routePalette()
 
     fun map(
         scope: MapScope,
@@ -114,35 +135,83 @@ object MapUiModelMapper {
         searchResults: List<PlaceCandidate> = emptyList(),
         focusedPoiId: String? = null,
         restoredFocusedPoint: GeoPoint? = null,
+        restoredFocusedCandidate: PlaceCandidate? = null,
     ): MapUiModel {
         val focusedSearch = searchResults.firstOrNull { it.poiId == focusedPoiId }
-        val focusedPointCandidate = focusedSearch?.point ?: restoredFocusedPoint
-        val savedPoiIds = places.mapTo(mutableSetOf(), SavedPlace::amapPoiId)
+            ?: restoredFocusedCandidate?.takeIf { it.poiId == focusedPoiId }
+        val focusedPoint = focusedSearch?.point ?: restoredFocusedPoint
+        val savedByPoiId = places.associateBy(SavedPlace::amapPoiId)
+        val savedById = places.associateBy(SavedPlace::id)
+        val savedByPoint = places.groupBy(SavedPlace::point).mapValues { (_, values) -> values.singleOrNull() }
         fun withSearchMarkers(baseMarkers: List<MapMarkerUi>): List<MapMarkerUi> {
-            val focusedPoint = focusedPointCandidate
-            val focusedKey = focusedPoiId?.let { "search-$it" }
-            val focusedBaseIndex = focusedPoint?.let { point -> baseMarkers.indexOfFirst { it.point == point } } ?: -1
-            val canonicalBase = if (focusedBaseIndex >= 0) {
-                baseMarkers.mapIndexed { index, marker ->
-                    if (index == focusedBaseIndex) marker.copy(key = requireNotNull(focusedKey)) else marker
-                }
-            } else baseMarkers
-            val occupiedPoints = canonicalBase.mapTo(mutableSetOf(), MapMarkerUi::point)
-            val additions = mutableListOf<MapMarkerUi>()
-            if (focusedPoint != null && focusedKey != null && focusedBaseIndex < 0) {
-                additions += MapMarkerUi(focusedKey, focusedPoint, focusedSearch?.name ?: "搜索地点", emptyList())
-                occupiedPoints += focusedPoint
+            val markers = baseMarkers.toMutableList()
+            val markerIndexByPoint = markers.indices.associateBy { markers[it].point }.toMutableMap()
+            val markerIndexByPoiId = mutableMapOf<String, Int>()
+            markers.forEachIndexed { index, marker ->
+                savedByPoint[marker.point]?.amapPoiId?.let { markerIndexByPoiId[it] = index }
             }
-            additions += searchResults.asSequence()
-                .filter { it.point != null }
-                .filterNot { it.poiId in savedPoiIds || it.poiId == focusedPoiId }
+
+            if (focusedPoiId != null && focusedPoint != null) {
+                val saved = savedByPoiId[focusedPoiId] ?: savedByPoint[focusedPoint]
+                val existingIndex = markerIndexByPoiId[focusedPoiId] ?: markerIndexByPoint[focusedPoint]
+                if (existingIndex != null) {
+                    markers[existingIndex] = markers[existingIndex].copy(isFocused = true)
+                } else if (saved != null) {
+                    val marker = MapMarkerUi(
+                        key = "place-${saved.id}",
+                        point = saved.point,
+                        label = saved.name,
+                        occurrences = emptyList(),
+                        kind = if (scope == MapScope.PLACE_POOL) MapMarkerKind.SAVED_PLACE_POOL else MapMarkerKind.SAVED_ITINERARY,
+                        isFocused = true,
+                        savedPlaceId = saved.id,
+                    )
+                    markerIndexByPoint[marker.point] = markers.size
+                    markerIndexByPoiId[saved.amapPoiId] = markers.size
+                    markers += marker
+                } else {
+                    val marker = MapMarkerUi(
+                        key = "search-$focusedPoiId",
+                        point = focusedPoint,
+                        label = focusedSearch?.name ?: "搜索地点",
+                        occurrences = emptyList(),
+                        kind = MapMarkerKind.UNSAVED_SEARCH,
+                        isFocused = true,
+                    )
+                    markerIndexByPoint[marker.point] = markers.size
+                    markers += marker
+                }
+            }
+
+            searchResults.asSequence()
+                .filter { it.point != null && it.poiId != focusedPoiId }
+                .filterNot { it.poiId in savedByPoiId }
                 .distinctBy(PlaceCandidate::point)
-                .filterNot { it.point in occupiedPoints }
-                .map { MapMarkerUi("search-${it.poiId}", requireNotNull(it.point), it.name, emptyList()) }
-            return canonicalBase + additions
+                .filterNot { it.point in markerIndexByPoint }
+                .forEach { result ->
+                    val marker = MapMarkerUi(
+                        key = "search-${result.poiId}",
+                        point = requireNotNull(result.point),
+                        label = result.name,
+                        occurrences = emptyList(),
+                        kind = MapMarkerKind.UNSAVED_SEARCH,
+                    )
+                    markerIndexByPoint[marker.point] = markers.size
+                    markers += marker
+                }
+            return markers
         }
         if (scope == MapScope.PLACE_POOL) {
-            val savedMarkers = places.map { MapMarkerUi("place-${it.id}", it.point, it.name, emptyList()) }
+            val savedMarkers = places.map {
+                MapMarkerUi(
+                    key = "place-${it.id}",
+                    point = it.point,
+                    label = it.name,
+                    occurrences = emptyList(),
+                    kind = MapMarkerKind.SAVED_PLACE_POOL,
+                    savedPlaceId = it.id,
+                )
+            }
             return MapUiModel(withSearchMarkers(savedMarkers))
         }
         val dayById = days.associateBy(TripDay::id)
@@ -152,18 +221,28 @@ object MapUiModelMapper {
             snapshot.itinerary.items.mapIndexed { index, item ->
                 val dayIndex = day?.index ?: 0
                 val dayLabel = startDate?.plusDays(dayIndex.toLong())?.toString() ?: "Day ${dayIndex + 1}"
-                item.place.point to OccurrenceUi(item.id, snapshot.itinerary.dayId, dayLabel, index + 1, item.place.name)
+                item.place.point to OccurrenceUi(item.id, snapshot.itinerary.dayId, dayLabel, index + 1, item.place.name, item.place.id)
             }
         }
         val wholeTripOrder = occurrences.mapIndexed { index, (_, occurrence) -> occurrence.itemId to index + 1 }.toMap()
         val markers = occurrences.groupBy(Pair<GeoPoint, OccurrenceUi>::first).map { (point, entries) ->
             val values = entries.map(Pair<GeoPoint, OccurrenceUi>::second)
-            val label = when (scope) {
-                MapScope.SINGLE_DAY -> values.joinToString(", ") { it.order.toString() }
-                MapScope.WHOLE_TRIP -> values.joinToString(", ") { wholeTripOrder.getValue(it.itemId).toString() }
+            val orders = when (scope) {
+                MapScope.SINGLE_DAY -> values.map(OccurrenceUi::order)
+                MapScope.WHOLE_TRIP -> values.map { wholeTripOrder.getValue(it.itemId) }
                 MapScope.PLACE_POOL -> error("Place pool returns before itinerary mapping")
-            }
-            MapMarkerUi(values.joinToString("|") { it.itemId }, point, label, values)
+            }.sorted()
+            val occurrencePlaceId = values.map(OccurrenceUi::savedPlaceId).distinct().singleOrNull()
+            val saved = occurrencePlaceId?.let(savedById::get)
+            MapMarkerUi(
+                key = saved?.let { "place-${it.id}" } ?: values.joinToString("|") { it.itemId },
+                point = point,
+                label = saved?.name ?: values.first().placeName,
+                occurrences = values,
+                kind = MapMarkerKind.SAVED_ITINERARY,
+                badgeText = formatOccurrenceBadge(orders),
+                savedPlaceId = saved?.id,
+            )
         }
         val corrupt = mutableListOf<CorruptRoute>()
         val polylines = visible.flatMap { snapshot ->

@@ -12,6 +12,7 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -27,7 +28,8 @@ import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.place.domain.SavedPlace
 import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
-import com.yangchengwei.easytrip.place.ui.PlaceSearchResults
+import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
+import com.yangchengwei.easytrip.place.ui.PlaceSearchScreen
 import com.yangchengwei.easytrip.place.ui.PlaceSearchState
 import com.yangchengwei.easytrip.route.domain.RouteLegRepository
 import com.yangchengwei.easytrip.route.domain.RouteLegWithEndpoints
@@ -51,12 +53,76 @@ import org.junit.Test
 class SearchMapFocusTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
+    @Test fun independentSearchSelectionClearsPageAndIsConsumedOnce() {
+        val candidate = PlaceCandidate("poi-saved", "故宫", "地址", GeoPoint(39.9, 116.4), null)
+        val searchState = mutableStateOf(PlaceSearchState())
+        val selectionHandle = SavedStateHandle()
+        val selected = mutableListOf<PlaceCandidate>()
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+
+        compose.setContent {
+            if (searchState.value.query.isBlank()) {
+                TripWorkspaceScreen(
+                    viewModel = workspace,
+                    consent = null,
+                    onBack = {},
+                    onSettings = {},
+                    onOpenSearch = { searchState.value = PlaceSearchState(query = "search-open") },
+                    placeContent = { Text("地点") },
+                    itineraryContent = { Text("行程") },
+                )
+            } else {
+                PlaceSearchScreen(
+                    state = PlacePoolUiState(search = searchState.value),
+                    onQueryChange = { query -> searchState.value = PlaceSearchState(query = query, results = listOf(candidate)) },
+                    onBack = { searchState.value = PlaceSearchState() },
+                    onSelect = {
+                        selectionHandle[SEARCH_SELECTION_RESULT] = it.toSearchSelectionPayload()
+                        searchState.value = PlaceSearchState()
+                    },
+                    onToggleCollection = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("workspace-search-launcher").performClick()
+        compose.onNodeWithTag("workspace-search").performTextInput("故宫")
+        compose.onNodeWithTag("search-result-poi-saved").performClick()
+        compose.onNodeWithTag("workspace-search").assertDoesNotExist()
+        compose.runOnIdle {
+            assertEquals(PlaceSearchState(), searchState.value)
+            assertEquals(true, consumeSearchSelection(selectionHandle, selected::add))
+            assertEquals(false, consumeSearchSelection(selectionHandle, selected::add))
+        }
+        assertEquals(listOf(candidate), selected)
+    }
+
+    @Test fun independentUnsavedSelectionRetainsCardDataAfterSearchResultsClear() {
+        val candidate = PlaceCandidate("poi-unsaved", "故宫", "", GeoPoint(39.9, 116.4), null)
+        val savedState = SavedStateHandle()
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), savedState)
+
+        compose.runOnIdle { model.focusSearchResult(candidate) }
+        compose.waitUntil(5_000) {
+            model.state.value.map.markers.any { it.key == "search-${candidate.poiId}" }
+        }
+        assertEquals(null, model.state.value.selectedMapPoi)
+        compose.runOnIdle { model.selectMarker("search-${candidate.poiId}") }
+        compose.waitUntil(5_000) { model.state.value.selectedMapPoi?.poiId == candidate.poiId }
+
+        assertEquals(candidate.name, model.state.value.selectedMapPoi?.name)
+        assertEquals(candidate.address, model.state.value.selectedMapPoi?.address)
+        assertEquals(candidate.point, model.state.value.selectedMapPoi?.point)
+        assertEquals(candidate.name, savedState.get<String>("workspace.focusedName"))
+        assertEquals(candidate.address, savedState.get<String>("workspace.focusedAddress"))
+    }
+
     @Test fun savedResultClickFlowsThroughWorkspaceMapperAndMovesCameraOnlyOnce() {
         val candidate = PlaceCandidate("poi-saved", "故宫", "地址", GeoPoint(39.9, 116.4), null)
         val saved = SavedPlace("saved", "trip", candidate.poiId, "已收藏故宫", "地址", requireNotNull(candidate.point), "", emptyList())
         val model = TripWorkspaceViewModel(
             "trip", Trips(), SavedPlaces(saved), Itineraries(), Legs(),
-            SavedStateHandle(mapOf("workspace.tab" to WorkspaceTab.SEARCH.name)),
+            SavedStateHandle(mapOf("workspace.tab" to WorkspaceTab.PLACES.name)),
             flowOf(listOf(candidate)),
         )
         val unrelated = mutableStateOf(0)
@@ -73,30 +139,24 @@ class SearchMapFocusTest {
                 consent = token,
                 onBack = {},
                 onSettings = {},
-                searchContent = {
-                    PlaceSearchResults(
-                        state = PlaceSearchState(query = "故宫", results = listOf(candidate)),
-                        savedPoiIds = setOf(candidate.poiId),
-                        onSelect = model::focusSearchResult,
-                        onSave = {},
-                        selectedPoiId = workspaceState.searchSelection?.poiId,
-                    )
-                },
                 placeContent = { Text("地点") },
                 itineraryContent = { Text("行程") },
                 mapHostFactory = { RecordingHost(it).also { created -> host = created } },
             )
         }
 
-        compose.waitUntil(5_000) { model.state.value.tab == WorkspaceTab.SEARCH }
-        compose.onNodeWithTag("search-result-poi-saved").performClick()
+        compose.waitUntil(5_000) { model.state.value.tab == WorkspaceTab.PLACES }
+        compose.runOnIdle { model.focusSearchResult(candidate) }
         compose.waitUntil(5_000) { host.lastModel?.viewportRequest?.reason == ViewportReason.SEARCH_FOCUS }
 
-        compose.onNodeWithTag("tab-SEARCH").assertIsSelected()
-        assertEquals(WorkspaceTab.SEARCH, model.state.value.tab)
+        compose.onNodeWithTag("tab-PLACES").assertIsSelected()
+        assertEquals(WorkspaceTab.PLACES, model.state.value.tab)
         assertEquals(MapLayer.STANDARD, host.lastLayer)
-        assertEquals("search-poi-saved", host.lastModel?.highlightedMarkerKey)
-        assertNotNull(host.lastModel?.markers?.singleOrNull { it.key == "search-poi-saved" })
+        val focusedMarker = host.lastModel?.markers?.singleOrNull { it.point == candidate.point }
+        assertNotNull(focusedMarker)
+        assertEquals("place-saved", focusedMarker?.key)
+        assertEquals(MapMarkerKind.SAVED_PLACE_POOL, focusedMarker?.kind)
+        assertEquals(true, focusedMarker?.isFocused)
         assertEquals(1, host.lastModel?.markers?.count { it.point == candidate.point })
         assertEquals(listOf(candidate.point), host.lastModel?.viewportRequest?.points)
         assertEquals(2, host.viewportCalls)
@@ -110,7 +170,7 @@ class SearchMapFocusTest {
         val candidate = PlaceCandidate("poi-empty", "故宫", "地址", GeoPoint(39.9, 116.4), null)
         val model = TripWorkspaceViewModel(
             "trip", Trips(), Places(), Itineraries(), Legs(),
-            SavedStateHandle(mapOf("workspace.tab" to WorkspaceTab.SEARCH.name)),
+            SavedStateHandle(mapOf("workspace.tab" to WorkspaceTab.PLACES.name)),
             flowOf(listOf(candidate)),
         )
         lateinit var host: RecordingHost
@@ -125,20 +185,12 @@ class SearchMapFocusTest {
                 consent = token,
                 onBack = {},
                 onSettings = {},
-                searchContent = {
-                    PlaceSearchResults(
-                        state = PlaceSearchState(query = "故宫", results = listOf(candidate)),
-                        savedPoiIds = emptySet(),
-                        onSelect = model::focusSearchResult,
-                        onSave = {},
-                    )
-                },
                 placeContent = { Text("地点") },
                 itineraryContent = { Text("行程") },
                 mapHostFactory = { RecordingHost(it).also { created -> host = created } },
             )
         }
-        compose.onNodeWithTag("search-result-poi-empty").performClick()
+        compose.runOnIdle { model.focusSearchResult(candidate) }
         compose.waitUntil(5_000) { model.state.value.map.viewportRequest?.reason == ViewportReason.SEARCH_FOCUS }
         compose.waitForIdle()
 
@@ -155,11 +207,11 @@ class SearchMapFocusTest {
         val initial = model.state.value.map.viewportRequest
 
         compose.runOnIdle {
-            model.selectTab(WorkspaceTab.SEARCH)
+            model.selectTab(WorkspaceTab.PLACES)
             model.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
         }
         compose.waitUntil(5_000) {
-            model.state.value.tab == WorkspaceTab.SEARCH &&
+            model.state.value.tab == WorkspaceTab.PLACES &&
                 model.state.value.sheetLevel == WorkspaceSheetLevel.EXPANDED
         }
 

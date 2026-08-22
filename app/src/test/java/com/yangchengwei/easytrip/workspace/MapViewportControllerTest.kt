@@ -35,12 +35,84 @@ class MapViewportControllerTest {
         assertEquals(List(3) { ViewportReason.PLACE_SET_CHANGED }, listOf(added?.reason, deleted?.reason, moved?.reason))
     }
 
+    @Test fun `map card collection change updates place baseline without moving camera`() {
+        val controller = initializedController()
+        val before = controller.currentRequest
+        controller.retainViewportForPlaceChange(changedBeijing)
+
+        assertNull(
+            controller.update(
+                listOf(beijing, shanghai, changedBeijing),
+                MapScope.PLACE_POOL,
+                listOf(beijing, shanghai, changedBeijing),
+            ),
+        )
+        assertEquals(before, controller.currentRequest)
+
+        val laterDelete = controller.update(
+            listOf(beijing, shanghai),
+            MapScope.PLACE_POOL,
+            listOf(beijing, shanghai),
+        )
+        assertEquals(ViewportReason.PLACE_SET_CHANGED, laterDelete?.reason)
+    }
+
+    @Test fun `map card removal updates place baseline without moving camera`() {
+        val controller = initializedController()
+        val before = controller.currentRequest
+        controller.retainViewportForPlaceChange(shanghai)
+
+        assertNull(controller.update(listOf(beijing), MapScope.PLACE_POOL, listOf(beijing)))
+        assertEquals(before, controller.currentRequest)
+    }
+
+    @Test fun `retained point does not suppress unrelated place changes`() {
+        val controller = initializedController()
+        controller.retainViewportForPlaceChange(changedBeijing)
+
+        val request = controller.update(listOf(beijing), MapScope.PLACE_POOL, listOf(beijing))
+
+        assertEquals(ViewportReason.PLACE_SET_CHANGED, request?.reason)
+    }
+
     @Test fun `switching scope emits visible points`() {
         val controller = initializedController()
         val request = controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(shanghai))
         assertEquals(2L, request?.id)
         assertEquals(ViewportReason.SCOPE_CHANGED, request?.reason)
         assertEquals(listOf(shanghai), request?.points)
+    }
+
+    @Test fun `switching selected day refits changed single day points once`() {
+        val controller = initializedController()
+        controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(beijing))
+
+        val request = controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(shanghai))
+
+        assertEquals(ViewportReason.VISIBLE_SET_CHANGED, request?.reason)
+        assertEquals(listOf(shanghai), request?.points)
+        assertNull(controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(shanghai)))
+    }
+
+    @Test fun `editing selected day refits its complete changed route points once`() {
+        val controller = initializedController()
+        controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(beijing))
+
+        val request = controller.update(
+            listOf(beijing, shanghai),
+            MapScope.SINGLE_DAY,
+            listOf(beijing, changedBeijing, shanghai),
+        )
+
+        assertEquals(ViewportReason.VISIBLE_SET_CHANGED, request?.reason)
+        assertEquals(listOf(beijing, changedBeijing, shanghai), request?.points)
+        assertNull(
+            controller.update(
+                listOf(beijing, shanghai),
+                MapScope.SINGLE_DAY,
+                listOf(beijing, changedBeijing, shanghai),
+            ),
+        )
     }
 
     @Test fun `tab sheet and ordinary recomposition do not emit`() {

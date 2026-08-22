@@ -18,9 +18,10 @@ fun PlaceSearchResults(
     state: PlaceSearchState,
     savedPoiIds: Set<String>,
     onSelect: (PlaceCandidate) -> Unit,
-    onSave: (PlaceCandidate) -> Unit,
+    onToggleCollection: (PlaceCandidate) -> Unit,
     modifier: Modifier = Modifier,
     selectedPoiId: String? = null,
+    collectionBusyPoiIds: Set<String> = emptySet(),
 ) {
     LazyColumn(modifier) {
         if (state.query.isBlank()) item { Text("输入地点开始搜索") }
@@ -35,8 +36,8 @@ fun PlaceSearchResults(
                 trailingContent = {
                     Row {
                         TextButton(
-                            onClick = { if (!saved && locatable) onSave(candidate) },
-                            enabled = !saved && locatable,
+                            onClick = { onToggleCollection(candidate) },
+                            enabled = locatable && candidate.poiId !in collectionBusyPoiIds,
                             modifier = Modifier.testTag("save-result-${candidate.poiId}"),
                         ) { Text(when { saved -> "已收藏"; !locatable -> "无法收藏"; else -> "收藏" }) }
                     }

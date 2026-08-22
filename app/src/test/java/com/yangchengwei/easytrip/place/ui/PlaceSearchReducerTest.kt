@@ -84,6 +84,38 @@ class PlaceSearchReducerTest {
         assertEquals(listOf("new-source"), reducer.state.value.results.map { it.poiId })
     }
 
+    @Test fun clearResetsStateAndCancelsActiveSearch() = runTest {
+        val source = SearchSource(ignoreCancellation = true)
+        val reducer = PlaceSearchReducer(source, this, StandardTestDispatcher(testScheduler))
+        reducer.setSavedPlaces(listOf(SavedPlace("saved", "trip", "poi", "已收藏", "地址", GeoPoint(1.0, 2.0), "", emptyList())))
+        reducer.setQuery("故宫")
+        advanceTimeBy(300)
+        runCurrent()
+        reducer.clear()
+        runCurrent()
+
+        assertEquals(PlaceSearchState(), reducer.state.value)
+        assertEquals(listOf("故宫"), source.cancelled)
+        source.complete("故宫", candidate("stale"))
+        advanceUntilIdle()
+        assertEquals(PlaceSearchState(), reducer.state.value)
+    }
+
+    @Test fun clearResetsErrorState() = runTest {
+        val source = SearchSource()
+        val reducer = PlaceSearchReducer(source, this, StandardTestDispatcher(testScheduler))
+        reducer.setQuery("失败")
+        advanceTimeBy(300)
+        runCurrent()
+        source.fail("失败", IllegalStateException("network"))
+        advanceUntilIdle()
+        assertEquals("network", reducer.state.value.error)
+
+        reducer.clear()
+
+        assertEquals(PlaceSearchState(), reducer.state.value)
+    }
+
     private fun candidate(id: String) = PlaceCandidate(id, id, "address", GeoPoint(1.0, 2.0), null)
 
     private class SearchSource(private val ignoreCancellation: Boolean = false) : PlaceSearchDataSource {

@@ -31,6 +31,12 @@ class PlaceSearchReducer(private var source: PlaceSearchDataSource?, private val
         if (query.isNotBlank()) setQuery(query)
     }
     fun setSavedPlaces(value: List<SavedPlace>) { mutableState.value = mutableState.value.copy(savedPlaces = value) }
+    fun clear() {
+        generation++
+        searchJob?.cancel()
+        searchJob = null
+        mutableState.value = PlaceSearchState()
+    }
     fun setQuery(value: String) {
         val current = ++generation
         searchJob?.cancel()

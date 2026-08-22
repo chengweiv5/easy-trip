@@ -39,7 +39,6 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.core.ui.component.SelectablePill
-import com.yangchengwei.easytrip.place.ui.PlaceSearchField
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -51,11 +50,13 @@ fun TripWorkspaceScreen(
     onBack: () -> Unit,
     onSettings: () -> Unit,
     onPrivacySettings: () -> Unit = {},
-    searchQuery: String = "",
-    onSearchQueryChange: (String) -> Unit = {},
-    searchContent: @Composable () -> Unit = {},
+    onOpenSearch: () -> Unit = {},
     placeContent: @Composable () -> Unit,
     itineraryContent: @Composable () -> Unit,
+    isPoiSaved: Boolean = false,
+    collectionBusyPoiIds: Set<String> = emptySet(),
+    collectionError: String? = null,
+    onTogglePoiCollection: (com.yangchengwei.easytrip.place.amap.PlaceCandidate) -> Unit = {},
     mapHostFactory: (android.content.Context) -> AmapMapHost = { RealAmapMapHost.create(it) },
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -96,12 +97,10 @@ fun TripWorkspaceScreen(
                     WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle"))
                 }
                 Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                    SelectablePill(state.tab == WorkspaceTab.SEARCH, { viewModel.selectTab(WorkspaceTab.SEARCH) }, { Text("搜索") }, modifier = Modifier.testTag("tab-SEARCH"), role = Role.Tab)
                     SelectablePill(state.tab == WorkspaceTab.PLACES, { viewModel.selectTab(WorkspaceTab.PLACES) }, { Text("地点池") }, modifier = Modifier.testTag("tab-PLACES"), role = Role.Tab)
                     SelectablePill(state.tab == WorkspaceTab.ITINERARY, { viewModel.selectTab(WorkspaceTab.ITINERARY) }, { Text("每日行程") }, modifier = Modifier.testTag("tab-ITINERARY"), role = Role.Tab)
                 }
                 when (state.tab) {
-                    WorkspaceTab.SEARCH -> searchContent()
                     WorkspaceTab.PLACES -> placeContent()
                     WorkspaceTab.ITINERARY -> itineraryContent()
                 }
@@ -117,6 +116,7 @@ fun TripWorkspaceScreen(
                         state.map,
                         viewModel::selectMarker,
                         consent,
+                        onMapPoiClick = viewModel::selectMapPoi,
                         layer = state.mapLayer,
                         modifier = Modifier.fillMaxSize(),
                         hostFactory = mapHostFactory,
@@ -194,9 +194,15 @@ fun TripWorkspaceScreen(
                 Box(
                     Modifier
                         .align(androidx.compose.ui.Alignment.BottomCenter)
+                        .fillMaxWidth()
+                        .wrapContentHeight()
                         .padding(start = 10.dp, end = 10.dp, bottom = 5.dp),
+                    contentAlignment = androidx.compose.ui.Alignment.BottomEnd,
                 ) {
-                    PlaceSearchField(searchQuery, onSearchQueryChange)
+                    WorkspaceSearchLauncher(
+                        onClick = onOpenSearch,
+                        modifier = Modifier.fillMaxWidth(0.2f),
+                    )
                 }
             }
             mapError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 8.dp)) }
@@ -238,7 +244,41 @@ fun TripWorkspaceScreen(
             }
         }
     }
+    state.selectedMapPoi?.let { poi ->
+        AlertDialog(
+            onDismissRequest = viewModel::dismissPlaceCard,
+            title = { Text(poi.name) },
+            text = {
+                Column {
+                    Text(poi.address.ifBlank { "地址暂不可用" })
+                    collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
+            },
+            confirmButton = {
+                val poiId = poi.poiId
+                Button(
+                    onClick = {
+                        if (poiId != null) {
+                            onTogglePoiCollection(
+                                com.yangchengwei.easytrip.place.amap.PlaceCandidate(
+                                    poiId = poiId,
+                                    name = poi.name,
+                                    address = poi.address,
+                                    point = poi.point,
+                                    cityCode = null,
+                                ),
+                            )
+                        }
+                    },
+                    enabled = poiId != null && poiId !in collectionBusyPoiIds,
+                    modifier = Modifier.testTag("place-card-collection"),
+                ) { Text(if (poiId == null) "无法收藏" else if (isPoiSaved) "取消收藏" else "收藏") }
+            },
+            dismissButton = { TextButton(viewModel::dismissPlaceCard) { Text("关闭") } },
+        )
+    }
     state.selectedMarker?.let { marker ->
+        val markerPoi = state.selectedMarkerPoi
         AlertDialog(
             onDismissRequest = viewModel::dismissMarker,
             title = { Text(marker.label) },
@@ -246,10 +286,71 @@ fun TripWorkspaceScreen(
                 Column {
                     if (marker.occurrences.isEmpty()) Text("收藏地点")
                     marker.occurrences.forEach { Text("${it.dayLabel} · 第 ${it.order} 项 · ${it.placeName}") }
+                    collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
             },
-            confirmButton = { Button(viewModel::dismissMarker) { Text("关闭") } },
+            confirmButton = {
+                if (markerPoi != null) {
+                    Button(
+                        onClick = {
+                            onTogglePoiCollection(
+                                com.yangchengwei.easytrip.place.amap.PlaceCandidate(
+                                    markerPoi.poiId!!,
+                                    markerPoi.name,
+                                    markerPoi.address,
+                                    markerPoi.point,
+                                    null,
+                                ),
+                            )
+                        },
+                        enabled = markerPoi.poiId !in collectionBusyPoiIds,
+                        modifier = Modifier.testTag("place-card-collection"),
+                    ) { Text("取消收藏") }
+                } else {
+                    Button(viewModel::dismissMarker) { Text("关闭") }
+                }
+            },
+            dismissButton = markerPoi?.let { { TextButton(viewModel::dismissMarker) { Text("关闭") } } },
         )
+    }
+}
+
+@Composable
+fun WorkspaceSearchLauncher(onClick: () -> Unit, modifier: Modifier = Modifier) {
+    Box(
+        modifier
+            .height(48.dp)
+            .testTag("workspace-search-launcher")
+            .semantics { contentDescription = "搜索地点" }
+            .clickable(role = Role.Button, onClick = onClick),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        Surface(
+            Modifier.fillMaxWidth().height(40.dp),
+            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+            color = Color.White,
+            shadowElevation = 2.dp,
+        ) {
+            val iconColor = MaterialTheme.colorScheme.primary
+            Canvas(
+                Modifier
+                    .fillMaxSize()
+                    .padding(10.dp),
+            ) {
+                val stroke = 2.dp.toPx()
+                val radius = size.minDimension * 0.28f
+                val center = androidx.compose.ui.geometry.Offset(size.width * 0.43f, size.height * 0.43f)
+                drawCircle(iconColor, radius, center, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                val diagonal = radius * 0.7f
+                drawLine(
+                    iconColor,
+                    center + androidx.compose.ui.geometry.Offset(diagonal, diagonal),
+                    center + androidx.compose.ui.geometry.Offset(radius * 1.55f, radius * 1.55f),
+                    strokeWidth = stroke,
+                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
+                )
+            }
+        }
     }
 }
 

@@ -16,7 +16,13 @@ import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.workspace.AmapComposeMap
 import com.yangchengwei.easytrip.workspace.AmapMapHost
 import com.yangchengwei.easytrip.workspace.MapLayer
+import com.yangchengwei.easytrip.workspace.MapPoiUi
+import com.yangchengwei.easytrip.workspace.MapMarkerKind
+import com.yangchengwei.easytrip.workspace.MapMarkerUi
 import com.yangchengwei.easytrip.workspace.MapUiModel
+import com.yangchengwei.easytrip.workspace.toMapPoiUi
+import com.amap.api.maps.model.LatLng
+import com.amap.api.maps.model.Poi
 import com.yangchengwei.easytrip.workspace.MapViewportRequest
 import com.yangchengwei.easytrip.workspace.ViewportReason
 import org.junit.Assert.assertEquals
@@ -31,6 +37,57 @@ import java.util.concurrent.TimeUnit
 class AmapComposeMapTest {
     @get:Rule val rule = ActivityScenarioRule(MainActivity::class.java)
 
+    @Test fun sdkPoiTranslationKeepsStableIdAndMarksMissingIdUncollectable() {
+        val point = LatLng(39.916, 116.397)
+
+        assertEquals(
+            MapPoiUi("B0001", "故宫", "北京市东城区景山前街4号", GeoPoint(39.916, 116.397)),
+            Poi("故宫", point, "B0001").toMapPoiUi("北京市东城区景山前街4号"),
+        )
+        assertEquals(null, Poi("无编号地点", point, null).toMapPoiUi()!!.poiId)
+    }
+
+    @Test fun fakeHostDeliversMapPoiToComposeCallback() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        val expected = MapPoiUi("B0001", "故宫", "北京市东城区景山前街4号", GeoPoint(39.916, 116.397))
+        var received: MapPoiUi? = null
+        val emitted = CountDownLatch(1)
+        rule.scenario.onActivity { activity ->
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    onMapPoiClick = { received = it; emitted.countDown() },
+                    hostFactory = { ctx ->
+                        object : AmapMapHost {
+                            override val view: View = View(ctx)
+                            override fun onCreate() = Unit
+                            override fun onResume() = Unit
+                            override fun onPause() = Unit
+                            override fun onDestroy() = Unit
+                            override fun render(
+                                model: MapUiModel,
+                                layer: MapLayer,
+                                onMarkerClick: (String) -> Unit,
+                                onMapPoiClick: (MapPoiUi) -> Unit,
+                                onLayerError: (Throwable, MapLayer) -> Unit,
+                            ) {
+                                if (received == null) onMapPoiClick(expected)
+                            }
+                        }
+                    },
+                )
+            }
+        }
+
+        assertTrue(emitted.await(5, TimeUnit.SECONDS))
+        assertEquals(expected, received)
+    }
+
     @Test fun fakeHostKeepsLifecycleAndConsumesEachViewportRequestOnce() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
         val gate = AmapPrivacyGate.create(context)
@@ -41,6 +98,7 @@ class AmapComposeMapTest {
         var creates = 0
         var resumes = 0
         val viewportIds = mutableListOf<Long>()
+        var renderedMarker: MapMarkerUi? = null
         lateinit var lastOwner: TestOwner
         lateinit var ownerState: androidx.compose.runtime.MutableState<TestOwner>
         rule.scenario.onActivity { lastOwner = TestOwner(); ownerState = mutableStateOf(lastOwner) }
@@ -50,7 +108,16 @@ class AmapComposeMapTest {
         val initialViewport = CountDownLatch(1)
         val secondViewport = CountDownLatch(1)
         val state = mutableStateOf(0)
-        val model = mutableStateOf(MapUiModel(viewportRequest = request(1)))
+        val focusedMarker = MapMarkerUi(
+            key = "place-hotel",
+            point = GeoPoint(39.9, 116.4),
+            label = "酒店",
+            occurrences = emptyList(),
+            kind = MapMarkerKind.SAVED_ITINERARY,
+            badgeText = "1·4",
+            isFocused = true,
+        )
+        val model = mutableStateOf(MapUiModel(markers = listOf(focusedMarker), viewportRequest = request(1)))
         rule.scenario.onActivity { activity ->
             activity.setContent {
                 Text("${state.value}")
@@ -66,6 +133,7 @@ class AmapComposeMapTest {
                             override fun onPause() = Unit
                             override fun onDestroy() { destroys++; destroyed.countDown() }
                             override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
+                                renderedMarker = model.markers.singleOrNull()
                                 model.viewportRequest?.id?.takeIf { it != consumedViewportId }?.let {
                                     consumedViewportId = it
                                     viewportIds += it
@@ -79,6 +147,7 @@ class AmapComposeMapTest {
         }
         assertTrue(created.await(5, TimeUnit.SECONDS))
         assertTrue(initialViewport.await(5, TimeUnit.SECONDS))
+        assertEquals(focusedMarker, renderedMarker)
 
         rule.scenario.onActivity { state.value++ }
         rule.scenario.onActivity { model.value = model.value.copy(highlightedMarkerKey = "model-only") }
