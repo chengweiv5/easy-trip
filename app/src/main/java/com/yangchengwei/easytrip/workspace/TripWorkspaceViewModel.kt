@@ -29,7 +29,6 @@ import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
-import java.io.Serializable
 
 enum class WorkspaceTab { PLACES, ITINERARY }
 
@@ -37,33 +36,6 @@ enum class WorkspaceSheetLevel { COLLAPSED, HALF, EXPANDED }
 
 internal fun restoreWorkspaceTab(raw: String?): WorkspaceTab =
     WorkspaceTab.entries.firstOrNull { it.name == raw } ?: WorkspaceTab.PLACES
-
-const val SEARCH_SELECTION_RESULT = "workspace.searchSelection"
-
-data class SearchSelectionPayload(
-    val poiId: String,
-    val name: String,
-    val address: String,
-    val latitude: Double,
-    val longitude: Double,
-) : Serializable
-
-fun PlaceCandidate.toSearchSelectionPayload(): SearchSelectionPayload {
-    val point = requireNotNull(point)
-    return SearchSelectionPayload(poiId, name, address, point.latitude, point.longitude)
-}
-
-fun SearchSelectionPayload.toPlaceCandidate(): PlaceCandidate =
-    PlaceCandidate(poiId, name, address, GeoPoint(latitude, longitude), null)
-
-internal fun consumeSearchSelection(
-    handle: SavedStateHandle,
-    onSelection: (PlaceCandidate) -> Unit,
-): Boolean {
-    val payload = handle.remove<SearchSelectionPayload>(SEARCH_SELECTION_RESULT) ?: return false
-    onSelection(payload.toPlaceCandidate())
-    return true
-}
 
 data class SearchResultSelection(
     val poiId: String,

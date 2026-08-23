@@ -10,10 +10,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -87,19 +89,57 @@ class PlaceSearchContentTest {
         assertEquals(PlaceSearchAction.QueryChanged(""), action)
     }
 
-    @Test fun narrowLargeFontKeepsSearchAndBackReachable() {
+    @Test fun controlsUseSpecifiedVisualAndTouchBounds() {
+        val candidate = PlaceCandidate("poi-1", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        setContent(PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results)))
+
+        assertSize("place-search-back", 44f, 44f)
+        assertSize("place-search-field", expectedHeight = 48f)
+        assertSize("place-search-place-icon-poi-1", 46f, 46f)
+        assertSize("place-search-bookmark-visual-poi-1", 40f, 40f)
+        assertSize("place-search-bookmark-touch-poi-1", 48f, 48f)
+        compose.onNodeWithContentDescription("清空搜索").assertHasClickAction()
+        assertSize("place-search-clear", 48f, 48f)
+    }
+
+    @Test fun narrowLargeFontKeepsResultsEmptyAndFailureInsideContainerWithoutOverlap() {
+        val candidate = PlaceCandidate("poi-1", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        val state = mutableStateOf(PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results)))
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
                 EasyTripTheme {
-                    Box(Modifier.requiredWidth(280.dp).fillMaxHeight()) {
-                        PlaceSearchContent(PlaceSearchUiState(), {})
+                    Box(Modifier.requiredWidth(280.dp).fillMaxHeight().testTag("narrow-container")) {
+                        PlaceSearchContent(state.value, {})
                     }
                 }
             }
         }
 
-        compose.onNodeWithContentDescription("返回地点池").assertIsDisplayed().assertHasClickAction()
-        compose.onNodeWithContentDescription("搜索地点").assertIsDisplayed()
+        assertHeaderInsideContainerWithoutOverlap()
+        compose.onNodeWithTag("place-search-bookmark-touch-poi-1").assertIsDisplayed()
+        compose.runOnIdle { state.value = PlaceSearchUiState(search = PlaceSearchState("无", phase = PlaceSearchPhase.Empty)) }
+        assertHeaderInsideContainerWithoutOverlap()
+        compose.onNodeWithText("清空搜索").assertIsDisplayed()
+        compose.runOnIdle {
+            state.value = PlaceSearchUiState(search = PlaceSearchState("失败", phase = PlaceSearchPhase.NetworkFailure("网络不可用")))
+        }
+        assertHeaderInsideContainerWithoutOverlap()
+        compose.onNodeWithText("重新搜索").assertIsDisplayed()
+    }
+
+    private fun assertHeaderInsideContainerWithoutOverlap() {
+        val container = compose.onNodeWithTag("narrow-container").getUnclippedBoundsInRoot()
+        val back = compose.onNodeWithTag("place-search-back").getUnclippedBoundsInRoot()
+        val field = compose.onNodeWithTag("place-search-field").getUnclippedBoundsInRoot()
+        assertTrue(back.left >= container.left && back.right <= container.right)
+        assertTrue(field.left >= container.left && field.right <= container.right)
+        assertTrue(back.right <= field.left)
+    }
+
+    private fun assertSize(tag: String, expectedWidth: Float? = null, expectedHeight: Float? = null) {
+        val bounds = compose.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        expectedWidth?.let { assertEquals(it, (bounds.right - bounds.left).value, 0.5f) }
+        expectedHeight?.let { assertEquals(it, (bounds.bottom - bounds.top).value, 0.5f) }
     }
 
     private fun setContent(state: PlaceSearchUiState, onAction: (PlaceSearchAction) -> Unit = {}) {

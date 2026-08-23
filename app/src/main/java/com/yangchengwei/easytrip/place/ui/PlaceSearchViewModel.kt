@@ -118,8 +118,10 @@ class PlaceSearchViewModel(
 
     private fun confirmRemoval() {
         val pending = mutableState.value.pendingCollectionRemoval ?: return
+        val poiId = pending.candidate.poiId
+        if (poiId in mutableState.value.collectionBusyPoiIds) return
+        updateBusy(poiId, true)
         viewModelScope.launch {
-            updateBusy(pending.candidate.poiId, true)
             try {
                 service.deletePlaceAndReferences(pending.place.id)
                 mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null, collectionError = null)
@@ -128,12 +130,14 @@ class PlaceSearchViewModel(
             } catch (error: Throwable) {
                 mutableState.value = mutableState.value.copy(collectionError = error.message ?: "取消收藏失败，请重试")
             } finally {
-                updateBusy(pending.candidate.poiId, false)
+                updateBusy(poiId, false)
             }
         }
     }
 
     private fun dismissRemovalConfirmation() {
+        val pending = mutableState.value.pendingCollectionRemoval ?: return
+        if (pending.candidate.poiId in mutableState.value.collectionBusyPoiIds) return
         mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null, collectionError = null)
     }
 

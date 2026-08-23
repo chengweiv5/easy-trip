@@ -12,7 +12,6 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performClick
-import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
@@ -28,9 +27,6 @@ import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.place.domain.SavedPlace
 import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
-import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
-import com.yangchengwei.easytrip.place.ui.PlaceSearchScreen
-import com.yangchengwei.easytrip.place.ui.PlaceSearchState
 import com.yangchengwei.easytrip.route.domain.RouteLegRepository
 import com.yangchengwei.easytrip.route.domain.RouteLegWithEndpoints
 import com.yangchengwei.easytrip.route.domain.RoutePlanOutcome
@@ -52,50 +48,6 @@ import org.junit.Test
 
 class SearchMapFocusTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
-
-    @Test fun independentSearchSelectionClearsPageAndIsConsumedOnce() {
-        val candidate = PlaceCandidate("poi-saved", "故宫", "地址", GeoPoint(39.9, 116.4), null)
-        val searchState = mutableStateOf(PlaceSearchState())
-        val selectionHandle = SavedStateHandle()
-        val selected = mutableListOf<PlaceCandidate>()
-        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
-
-        compose.setContent {
-            if (searchState.value.query.isBlank()) {
-                TripWorkspaceScreen(
-                    viewModel = workspace,
-                    consent = null,
-                    onBack = {},
-                    onSettings = {},
-                    onOpenSearch = { searchState.value = PlaceSearchState(query = "search-open") },
-                    placeContent = { Text("地点") },
-                    dayItineraryContent = { Text("行程") },
-                )
-            } else {
-                PlaceSearchScreen(
-                    state = PlacePoolUiState(search = searchState.value),
-                    onQueryChange = { query -> searchState.value = PlaceSearchState(query = query, results = listOf(candidate)) },
-                    onBack = { searchState.value = PlaceSearchState() },
-                    onSelect = {
-                        selectionHandle[SEARCH_SELECTION_RESULT] = it.toSearchSelectionPayload()
-                        searchState.value = PlaceSearchState()
-                    },
-                    onToggleCollection = {},
-                )
-            }
-        }
-
-        compose.onNodeWithTag("workspace-search-launcher").performClick()
-        compose.onNodeWithTag("workspace-search").performTextInput("故宫")
-        compose.onNodeWithTag("search-result-poi-saved").performClick()
-        compose.onNodeWithTag("workspace-search").assertDoesNotExist()
-        compose.runOnIdle {
-            assertEquals(PlaceSearchState(), searchState.value)
-            assertEquals(true, consumeSearchSelection(selectionHandle, selected::add))
-            assertEquals(false, consumeSearchSelection(selectionHandle, selected::add))
-        }
-        assertEquals(listOf(candidate), selected)
-    }
 
     @Test fun independentUnsavedSelectionRetainsCardDataAfterSearchResultsClear() {
         val candidate = PlaceCandidate("poi-unsaved", "故宫", "", GeoPoint(39.9, 116.4), null)

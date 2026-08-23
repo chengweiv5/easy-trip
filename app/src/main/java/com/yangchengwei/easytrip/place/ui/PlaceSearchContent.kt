@@ -99,6 +99,7 @@ private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
         Box(
             Modifier
                 .size(44.dp)
+                .testTag("place-search-back")
                 .clip(CircleShape)
                 .clickable { onAction(PlaceSearchAction.Back) }
                 .semantics { contentDescription = "返回地点池"; role = Role.Button },
@@ -112,6 +113,7 @@ private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
             modifier = Modifier
                 .weight(1f)
                 .height(48.dp)
+                .testTag("place-search-field")
                 .semantics { contentDescription = "搜索地点" },
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(
@@ -138,9 +140,12 @@ private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
                     }
                     if (query.isNotEmpty()) {
                         Box(
-                            Modifier.size(32.dp).clip(CircleShape).clickable {
-                                onAction(PlaceSearchAction.QueryChanged(""))
-                            },
+                            Modifier
+                                .size(48.dp)
+                                .testTag("place-search-clear")
+                                .clip(CircleShape)
+                                .clickable { onAction(PlaceSearchAction.QueryChanged("")) }
+                                .semantics { contentDescription = "清空搜索"; role = Role.Button },
                             contentAlignment = Alignment.Center,
                         ) {
                             CloseIcon(Modifier.size(19.dp), SearchMuted)
@@ -266,7 +271,10 @@ private fun SearchResultRow(candidate: PlaceCandidate, saved: Boolean, busy: Boo
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
         Box(
-            Modifier.size(46.dp).background(SearchSoft, RoundedCornerShape(14.dp)),
+            Modifier
+                .size(46.dp)
+                .testTag("place-search-place-icon-${candidate.poiId}")
+                .background(SearchSoft, RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center,
         ) {
             LocationIcon(Modifier.size(22.dp), SearchPrimary)
@@ -281,6 +289,7 @@ private fun SearchResultRow(candidate: PlaceCandidate, saved: Boolean, busy: Boo
         Box(
             Modifier
                 .size(48.dp)
+                .testTag("place-search-bookmark-touch-${candidate.poiId}")
                 .clip(CircleShape)
                 .clickable(enabled = candidate.point != null && !busy, onClick = onToggle)
                 .semantics {
@@ -292,6 +301,7 @@ private fun SearchResultRow(candidate: PlaceCandidate, saved: Boolean, busy: Boo
             Box(
                 Modifier
                     .size(40.dp)
+                    .testTag("place-search-bookmark-visual-${candidate.poiId}")
                     .background(if (saved) SearchPrimary else SearchSurface, CircleShape)
                     .border(1.dp, SearchPrimary, CircleShape),
                 contentAlignment = Alignment.Center,

@@ -29,20 +29,19 @@ import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
 import com.yangchengwei.easytrip.place.ui.PlacePoolSheet
 import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
-import com.yangchengwei.easytrip.place.ui.PlaceSearchScreen
+import com.yangchengwei.easytrip.place.ui.PlaceSearchContent
+import com.yangchengwei.easytrip.place.ui.PlaceSearchViewModel
 import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.workspace.AmapMapHost
 import com.yangchengwei.easytrip.workspace.MapLayer
-import com.yangchengwei.easytrip.workspace.MapMarkerKind
 import com.yangchengwei.easytrip.workspace.MapPoiUi
 import com.yangchengwei.easytrip.workspace.ItineraryScope
 import com.yangchengwei.easytrip.workspace.MapScope
 import com.yangchengwei.easytrip.workspace.MapUiModel
 import com.yangchengwei.easytrip.workspace.TripWorkspaceScreen
 import com.yangchengwei.easytrip.workspace.TripWorkspaceViewModel
-import com.yangchengwei.easytrip.workspace.ViewportReason
 import com.yangchengwei.easytrip.workspace.WorkspaceSection
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
@@ -77,6 +76,7 @@ class V2AcceptanceTest {
             override suspend fun search(keyword: String, city: String?) = listOf(museum, park)
         }
         val placeModel = PlacePoolViewModel(tripId, places, source)
+        val searchModel = PlaceSearchViewModel(tripId, places, source, SavedStateHandle())
         val savedState = SavedStateHandle(mapOf("workspace.tab" to "SEARCH"))
         val workspace = TripWorkspaceViewModel(tripId, trips, places, itineraries, routes, savedState)
         val itinerary = DayItineraryViewModel(tripId, trips, itineraries, routes, null, places.observePlaces(tripId, emptySet()), workspace.selectedDayId)
@@ -87,18 +87,8 @@ class V2AcceptanceTest {
 
         compose.setContent {
             if (searching) {
-                val placeState by placeModel.state.collectAsState()
-                PlaceSearchScreen(
-                    state = placeState,
-                    onQueryChange = placeModel::setQuery,
-                    onBack = { placeModel.clearSearch(); searching = false },
-                    onSelect = {
-                        placeModel.clearSearch()
-                        workspace.focusSearchResult(it)
-                        searching = false
-                    },
-                    onToggleCollection = placeModel::toggleCollection,
-                )
+                val searchState by searchModel.state.collectAsState()
+                PlaceSearchContent(searchState, searchModel::dispatch)
             } else {
                 val placeState by placeModel.state.collectAsState()
                 val workspaceState by workspace.state.collectAsState()
@@ -124,27 +114,18 @@ class V2AcceptanceTest {
         compose.onNodeWithTag("section-ITINERARY").assertExists()
         compose.onNodeWithTag("itinerary-scope-rail").assertDoesNotExist()
         compose.onNodeWithContentDescription("搜索地点").assertHasClickAction().performClick()
-        compose.onNodeWithTag("workspace-search").performTextInput("博物馆")
-        compose.waitUntil(5_000) { placeModel.state.value.search.results.size == 2 }
+        compose.onNodeWithTag("place-search-field").performTextInput("博物馆")
+        compose.waitUntil(5_000) { searchModel.state.value.search.results.size == 2 }
 
-        compose.onNodeWithTag("save-result-museum").performClick()
-        compose.waitUntil(5_000) { "museum" in placeModel.state.value.savedPoiIds }
-        compose.onNodeWithTag("save-result-museum").performClick()
-        compose.waitUntil(5_000) { "museum" !in placeModel.state.value.savedPoiIds }
-        compose.onNodeWithText("确认取消收藏").assertDoesNotExist()
+        compose.onNodeWithTag("place-search-bookmark-touch-museum").performClick()
+        compose.waitUntil(5_000) { "museum" in searchModel.state.value.savedPoiIds }
+        compose.onNodeWithTag("place-search-bookmark-touch-park").performClick()
+        compose.waitUntil(5_000) { "park" in searchModel.state.value.savedPoiIds }
+        assertTrue(searching)
+        assertEquals("博物馆", searchModel.state.value.search.query)
+        compose.onNodeWithTag("place-search-field").assertIsDisplayed()
 
-        compose.onNodeWithTag("search-result-park").performClick()
-        compose.waitUntil(5_000) { !searching }
-        assertEquals("", placeModel.state.value.search.query)
-        compose.waitUntil(5_000) { host.lastModel?.viewportRequest?.reason == ViewportReason.SEARCH_FOCUS }
-        val focused = host.lastModel?.markers?.single { it.point == park.point }
-        assertEquals(MapMarkerKind.UNSAVED_SEARCH, focused?.kind)
-        assertTrue(focused?.isFocused == true)
-        val focusCalls = host.viewportCalls
-        compose.onNodeWithTag("section-PLACE_POOL").performClick()
-        compose.waitForIdle()
-        assertEquals(focusCalls, host.viewportCalls)
-
+        compose.runOnIdle { searching = false }
         compose.runOnIdle { host.emit(MapPoiUi("poi-card", "故宫", "北京市东城区", GeoPoint(39.916, 116.397))) }
         compose.onNodeWithText("故宫").assertIsDisplayed()
         assertFalse(runBlocking { places.observeSavedPoiIds(tripId).first() }.contains("poi-card"))
