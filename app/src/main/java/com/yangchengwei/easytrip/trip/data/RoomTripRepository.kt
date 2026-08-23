@@ -49,20 +49,18 @@ class RoomTripRepository(
     override suspend fun createTrip(command: CreateTrip): String {
         require(command.name.isNotBlank())
         require(command.dayCount >= 1)
-        val tripId = idFactory()
+        val tripId = command.requestId ?: idFactory()
         val now = clock.instant()
         val trip = TripEntity(
             id = tripId,
             name = command.name.trim(),
-            timeMode = TimeMode.DRAFT,
+            timeMode = if (command.startDate == null) TimeMode.DRAFT else TimeMode.DATED,
+            startDate = command.startDate,
             travelMode = command.travelMode,
             createdAt = now,
             updatedAt = now,
         )
-        val days = List(command.dayCount) { index ->
-            TripDayEntity(idFactory(), tripId, index * TripDao.POSITION_STEP)
-        }
-        dao.createTripWithDays(trip, days)
+        dao.createTripWithDaysIdempotent(trip, command.dayCount, idFactory)
         return tripId
     }
 

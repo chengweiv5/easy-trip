@@ -88,6 +88,274 @@ class AmapComposeMapTest {
         assertEquals(expected, received)
     }
 
+    @Test fun delayedMapReadyKeepsLoadingUntilHostSignalsReady() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        val listenerRegistered = CountDownLatch(1)
+        val rendered = CountDownLatch(1)
+        val ready = CountDownLatch(1)
+        var readyListener: (() -> Unit)? = null
+        var renderCount = 0
+        var readyCount = 0
+
+        rule.scenario.onActivity { activity ->
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    hostFactory = { ctx -> object : AmapMapHost {
+                        override val view: View = View(ctx)
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() = Unit
+                        override fun setOnReadyListener(listener: (() -> Unit)?) {
+                            readyListener = listener
+                            listenerRegistered.countDown()
+                        }
+                        override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
+                            renderCount++
+                            rendered.countDown()
+                        }
+                    } },
+                    onMapReady = { readyCount++; ready.countDown() },
+                )
+            }
+        }
+
+        assertTrue(listenerRegistered.await(5, TimeUnit.SECONDS))
+        assertEquals(0, renderCount)
+        assertEquals(0, readyCount)
+        rule.scenario.onActivity { requireNotNull(readyListener).invoke() }
+        assertTrue(rendered.await(5, TimeUnit.SECONDS))
+        assertTrue(ready.await(5, TimeUnit.SECONDS))
+        assertEquals(1, readyCount)
+    }
+
+    @Test fun disposedHostReadyCallbackIsIgnoredAfterReplacement() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        lateinit var ownerState: androidx.compose.runtime.MutableState<TestOwner>
+        val readyCallbacks = mutableListOf<() -> Unit>()
+        val firstReadyListener = CountDownLatch(1)
+        val secondReadyListener = CountDownLatch(1)
+        var renderCount = 0
+        var readyCount = 0
+
+        rule.scenario.onActivity { activity ->
+            ownerState = mutableStateOf(TestOwner())
+            activity.setContent {
+                CompositionLocalProvider(LocalLifecycleOwner provides ownerState.value) {
+                    AmapComposeMap(
+                        model = MapUiModel(),
+                        onMarkerClick = {},
+                        consent = token,
+                        hostFactory = { ctx -> object : AmapMapHost {
+                            override val view: View = View(ctx)
+                            override fun setOnReadyListener(listener: (() -> Unit)?) {
+                                if (listener != null) {
+                                    readyCallbacks += listener
+                                    if (readyCallbacks.size == 1) firstReadyListener.countDown() else secondReadyListener.countDown()
+                                }
+                            }
+                            override fun onCreate() = Unit
+                            override fun onResume() = Unit
+                            override fun onPause() = Unit
+                            override fun onDestroy() = Unit
+                            override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
+                                renderCount++
+                            }
+                        } },
+                        onMapReady = { readyCount++ },
+                    )
+                }
+            }
+        }
+
+        assertTrue(firstReadyListener.await(5, TimeUnit.SECONDS))
+        rule.scenario.onActivity { ownerState.value = TestOwner() }
+        assertTrue(secondReadyListener.await(5, TimeUnit.SECONDS))
+        rule.scenario.onActivity { readyCallbacks.first().invoke() }
+        rule.scenario.onActivity { }
+        assertEquals(0, renderCount)
+        assertEquals(0, readyCount)
+        rule.scenario.onActivity { readyCallbacks.last().invoke() }
+        rule.scenario.onActivity { }
+        assertEquals(1, renderCount)
+        assertEquals(1, readyCount)
+    }
+
+    @Test fun hostCreationFailureIsReported() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        val reported = CountDownLatch(1)
+        var destroyed = 0
+        rule.scenario.onActivity { activity ->
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    hostFactory = { ctx -> object : AmapMapHost {
+                        override val view: View = View(ctx)
+                        override fun onCreate() = throw IllegalStateException("create")
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() { destroyed++ }
+                    } },
+                    onMapError = { reported.countDown() },
+                )
+            }
+        }
+        assertTrue(reported.await(5, TimeUnit.SECONDS))
+        assertEquals(1, destroyed)
+    }
+
+    @Test fun renderFailureIsReported() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        val reported = CountDownLatch(1)
+        rule.scenario.onActivity { activity ->
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    hostFactory = { ctx -> object : AmapMapHost {
+                        override val view: View = View(ctx)
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() = Unit
+                        override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
+                            throw IllegalStateException("render")
+                        }
+                    } },
+                    onMapError = { reported.countDown() },
+                )
+            }
+        }
+        assertTrue(reported.await(5, TimeUnit.SECONDS))
+    }
+
+    @Test fun layerFailureDoesNotReportMapReady() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        val layerReported = CountDownLatch(1)
+        var readyCount = 0
+        rule.scenario.onActivity { activity ->
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    hostFactory = { ctx -> object : AmapMapHost {
+                        override val view: View = View(ctx)
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() = Unit
+                        override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
+                            onLayerError(IllegalStateException("layer"), MapLayer.STANDARD)
+                        }
+                    } },
+                    onLayerError = { _, _ -> layerReported.countDown() },
+                    onMapReady = { readyCount++ },
+                )
+            }
+        }
+        assertTrue(layerReported.await(5, TimeUnit.SECONDS))
+        assertEquals(0, readyCount)
+    }
+
+    @Test fun successfulRenderReportsMapReadyOnceAcrossUpdates() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        val ready = CountDownLatch(1)
+        var readyCount = 0
+        lateinit var model: androidx.compose.runtime.MutableState<MapUiModel>
+        rule.scenario.onActivity { activity ->
+            model = mutableStateOf(MapUiModel())
+            activity.setContent {
+                AmapComposeMap(
+                    model = model.value,
+                    onMarkerClick = {},
+                    consent = token,
+                    hostFactory = { ctx -> object : AmapMapHost {
+                        override val view: View = View(ctx)
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() = Unit
+                    } },
+                    onMapReady = { readyCount++; ready.countDown() },
+                )
+            }
+        }
+        assertTrue(ready.await(5, TimeUnit.SECONDS))
+        rule.scenario.onActivity { model.value = model.value.copy(highlightedMarkerKey = "updated") }
+        rule.scenario.onActivity { }
+        assertEquals(1, readyCount)
+    }
+
+    @Test fun disposedHostCallbacksAreIgnoredAfterLifecycleOwnerReplacement() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        lateinit var ownerState: androidx.compose.runtime.MutableState<TestOwner>
+        val callbacks = mutableListOf<(Throwable, MapLayer) -> Unit>()
+        val firstRender = CountDownLatch(1)
+        val secondRender = CountDownLatch(1)
+        var layerErrors = 0
+        var readyCount = 0
+        rule.scenario.onActivity { activity ->
+            ownerState = mutableStateOf(TestOwner())
+            activity.setContent {
+                CompositionLocalProvider(LocalLifecycleOwner provides ownerState.value) {
+                    AmapComposeMap(
+                        model = MapUiModel(),
+                        onMarkerClick = {},
+                        consent = token,
+                        hostFactory = { ctx -> object : AmapMapHost {
+                            override val view: View = View(ctx)
+                            override fun onCreate() = Unit
+                            override fun onResume() = Unit
+                            override fun onPause() = Unit
+                            override fun onDestroy() = Unit
+                            override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
+                                callbacks += onLayerError
+                                if (callbacks.size == 1) firstRender.countDown() else secondRender.countDown()
+                            }
+                        } },
+                        onLayerError = { _, _ -> layerErrors++ },
+                        onMapReady = { readyCount++ },
+                    )
+                }
+            }
+        }
+        assertTrue(firstRender.await(5, TimeUnit.SECONDS))
+        assertEquals(1, readyCount)
+        rule.scenario.onActivity { ownerState.value = TestOwner() }
+        assertTrue(secondRender.await(5, TimeUnit.SECONDS))
+        assertEquals(2, readyCount)
+        rule.scenario.onActivity { callbacks.first()(IllegalStateException("late"), MapLayer.STANDARD) }
+        assertEquals(0, layerErrors)
+    }
+
     @Test fun fakeHostKeepsLifecycleAndConsumesEachViewportRequestOnce() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
         val gate = AmapPrivacyGate.create(context)

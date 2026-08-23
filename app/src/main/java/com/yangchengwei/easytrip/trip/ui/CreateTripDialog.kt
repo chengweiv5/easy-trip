@@ -1,91 +1,140 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.ExperimentalMaterial3Api
-import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Button
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
-import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.component.SelectablePill
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton
+import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
+import com.yangchengwei.easytrip.core.ui.component.SelectablePill
 import java.time.Instant
 import java.time.ZoneOffset
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun CreateTripDialog(
-    state: TripListUiState,
-    viewModel: TripListViewModel,
+    state: CreateTripUiState,
+    onAction: (CreateTripAction) -> Unit,
     initialDateMillis: Long? = null,
 ) {
     var showPicker by remember { mutableStateOf(false) }
     AlertDialog(
-        onDismissRequest = viewModel::dismissCreate,
+        onDismissRequest = { if (!state.isSubmitting) onAction(CreateTripAction.Dismiss) },
         title = { Text("创建旅行") },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                OutlinedTextField(state.createName, viewModel::setCreateName, label = { Text("旅行名称") })
-                OutlinedTextField(state.createDays, viewModel::setCreateDays, label = { Text("天数") })
-                Row(Modifier.selectableGroup()) {
-                    SelectablePill(state.createTimeMode == CreateTimeMode.DRAFT, { viewModel.setCreateTimeMode(CreateTimeMode.DRAFT) }, { Text("无日期") }, Modifier.testTag("create-time-DRAFT"), role = Role.RadioButton)
+                OutlinedTextField(
+                    state.name,
+                    { onAction(CreateTripAction.NameChanged(it)) },
+                    label = { Text("旅行名称") },
+                    isError = state.nameError != null,
+                    supportingText = state.nameError?.let { { Text(it) } },
+                    enabled = !state.isSubmitting && state.requestId == null,
+                )
+                OutlinedTextField(
+                    state.dayCount,
+                    { onAction(CreateTripAction.DayCountChanged(it)) },
+                    label = { Text("天数") },
+                    isError = state.dayCountError != null,
+                    supportingText = state.dayCountError?.let { { Text(it) } },
+                    enabled = !state.isSubmitting && state.requestId == null,
+                )
+                Row(
+                    Modifier
+                        .selectableGroup()
+                        .then(
+                            if (state.dateError != null) {
+                                Modifier
+                                    .testTag("create-date-control")
+                                    .semantics { error(state.dateError) }
+                                    .border(1.dp, MaterialTheme.colorScheme.error, RoundedCornerShape(10.dp))
+                            } else {
+                                Modifier.testTag("create-date-control")
+                            },
+                        ),
+                ) {
+                    SelectablePill(state.timeMode == CreateTimeMode.DRAFT, { onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DRAFT)) }, { Text("无日期") }, Modifier.testTag("create-time-DRAFT"), enabled = !state.isSubmitting && state.requestId == null, role = Role.RadioButton)
                     SelectablePill(
-                        state.createTimeMode == CreateTimeMode.DATED,
+                        state.timeMode == CreateTimeMode.DATED,
                         {
-                            viewModel.setCreateTimeMode(CreateTimeMode.DATED)
+                            if (state.timeMode != CreateTimeMode.DATED) {
+                                onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DATED))
+                            }
                             showPicker = true
                         },
-                        { Text(state.createStartDate?.toString() ?: "指定日期") },
+                        { Text(state.startDate?.toString() ?: "指定日期") },
                         Modifier.testTag("create-time-DATED"),
+                        enabled = !state.isSubmitting && state.requestId == null,
                         role = Role.RadioButton,
                     )
                 }
-                Row(Modifier.selectableGroup()) {
-                    SelectablePill(state.createTravelMode == TravelMode.FLEXIBLE, { viewModel.setCreateTravelMode(TravelMode.FLEXIBLE) }, { Text("灵活") }, Modifier.testTag("create-mode-FLEXIBLE"), role = Role.RadioButton)
-                    SelectablePill(state.createTravelMode == TravelMode.SELF_DRIVE, { viewModel.setCreateTravelMode(TravelMode.SELF_DRIVE) }, { Text("自驾") }, Modifier.testTag("create-mode-SELF_DRIVE"), role = Role.RadioButton)
+                state.dateError?.let { message ->
+                    Text(
+                        message,
+                        color = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .testTag("create-date-error")
+                            .semantics { error(message) },
+                    )
                 }
+                Row(Modifier.selectableGroup()) {
+                    SelectablePill(state.travelMode == TravelMode.FLEXIBLE, { onAction(CreateTripAction.TravelModeChanged(TravelMode.FLEXIBLE)) }, { Text("灵活") }, Modifier.testTag("create-mode-FLEXIBLE"), enabled = !state.isSubmitting && state.requestId == null, role = Role.RadioButton)
+                    SelectablePill(state.travelMode == TravelMode.SELF_DRIVE, { onAction(CreateTripAction.TravelModeChanged(TravelMode.SELF_DRIVE)) }, { Text("自驾") }, Modifier.testTag("create-mode-SELF_DRIVE"), enabled = !state.isSubmitting && state.requestId == null, role = Role.RadioButton)
+                }
+                state.submitError?.let { Text(it) }
             }
         },
-        confirmButton = { Button(onClick = viewModel::create, enabled = state.createName.isNotBlank() && (state.createDays.toIntOrNull() ?: 0) >= 1 && (state.createTimeMode == CreateTimeMode.DRAFT || state.createStartDate != null)) { Text("创建") } },
-        dismissButton = { Button(onClick = viewModel::dismissCreate) { Text("取消") } },
+        confirmButton = {
+            CompactPrimaryButton(
+                onClick = { onAction(CreateTripAction.Submit) },
+                enabled = !state.isSubmitting,
+                modifier = Modifier.testTag("create-submit"),
+            ) { Text(if (state.isSubmitting) "创建中…" else "创建") }
+        },
+        dismissButton = { CompactSecondaryButton(onClick = { onAction(CreateTripAction.Dismiss) }, enabled = !state.isSubmitting) { Text("取消") } },
     )
     if (showPicker) {
         val picker = rememberDatePickerState(
-            initialSelectedDateMillis = state.createStartDate
-                ?.atStartOfDay(ZoneOffset.UTC)
-                ?.toInstant()
-                ?.toEpochMilli()
-                ?: initialDateMillis,
-            initialDisplayedMonthMillis = state.createStartDate
-                ?.atStartOfDay(ZoneOffset.UTC)
-                ?.toInstant()
-                ?.toEpochMilli()
-                ?: initialDateMillis,
+            initialSelectedDateMillis = state.startDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli() ?: initialDateMillis,
+            initialDisplayedMonthMillis = state.startDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli() ?: initialDateMillis,
         )
-        val dismissPicker = {
-            showPicker = false
-            if (state.createStartDate == null) viewModel.setCreateTimeMode(CreateTimeMode.DRAFT)
-        }
-        DatePickerDialog(onDismissRequest = dismissPicker, confirmButton = {
-            TextButton(onClick = {
-                picker.selectedDateMillis?.let { viewModel.setCreateStartDate(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()) }
+        DatePickerDialog(
+            onDismissRequest = {
                 showPicker = false
-            }) { Text("确定日期") }
-        }) { DatePicker(picker) }
+                if (state.startDate == null) onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DRAFT))
+            },
+            confirmButton = {
+                CompactSecondaryButton(
+                    onClick = {
+                        picker.selectedDateMillis?.let { onAction(CreateTripAction.StartDateChanged(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate())) }
+                        showPicker = false
+                    },
+                    modifier = Modifier.testTag("create-date-confirm"),
+                ) { Text("确定日期") }
+            },
+        ) { DatePicker(picker) }
     }
 }

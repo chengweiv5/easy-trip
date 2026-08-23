@@ -17,15 +17,19 @@ import com.yangchengwei.easytrip.route.domain.RouteLegRepository
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
-import java.io.Serializable
-import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.shareIn
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
+import java.io.Serializable
 
 enum class WorkspaceTab { PLACES, ITINERARY }
 
@@ -87,11 +91,11 @@ data class TripWorkspaceUiState(
 class TripWorkspaceViewModel(
     private val tripId: String,
     private val trips: TripRepository,
-    places: SavedPlaceRepository,
-    itineraries: ItineraryRepository,
+    private val places: SavedPlaceRepository,
+    private val itineraries: ItineraryRepository,
     private val routes: RouteLegRepository,
     private val savedState: SavedStateHandle,
-    searchResults: Flow<List<PlaceCandidate>> = flowOf(emptyList()),
+    private val searchResults: Flow<List<PlaceCandidate>> = flowOf(emptyList()),
     private val mapPreferences: MapPreferences = InMemoryMapPreferences(),
 ) : ViewModel() {
     private val restoredNavigation = restoreWorkspaceNavigation(
@@ -138,97 +142,113 @@ class TripWorkspaceViewModel(
     private var previousDays = emptyList<TripDay>()
     private val mutable = MutableStateFlow(TripWorkspaceUiState())
     val state: StateFlow<TripWorkspaceUiState> = mutable
+    private val mutablePageState = MutableStateFlow<TripWorkspacePageState>(TripWorkspacePageState.Loading)
+    val pageState: StateFlow<TripWorkspacePageState> = mutablePageState
     private val mutableSelectedDayId = MutableStateFlow<String?>(null)
     val selectedDayId: StateFlow<String?> = mutableSelectedDayId
+    private var observationJob: Job? = null
 
     init {
         savedState[SECTION] = section.value.name
         restoredNavigation.itineraryScope?.let { savedState[ITINERARY_SCOPE] = encodeItineraryScope(it) }
-        val trip = trips.observeTrip(tripId).filterNotNull()
-        val snapshots = trip.flatMapLatest { value -> observeSnapshots(value.days, itineraries, routes) }
-        viewModelScope.launch {
-            combine(trip, places.observePlaces(tripId, emptySet()), snapshots, section, itineraryScope, sheet, selectedMarkerKey, searchResults, focusedPoiId, mapInteraction, mapPreferences.layer, selectedMapPoi) { values ->
-                @Suppress("UNCHECKED_CAST")
-                val currentTrip = values[0] as com.yangchengwei.easytrip.trip.domain.TripWithDays
-                @Suppress("UNCHECKED_CAST") val currentPlaces = values[1] as List<SavedPlace>
-                @Suppress("UNCHECKED_CAST") val emittedSnapshots = values[2] as List<DayMapSnapshot>
-                val currentDayIds = currentTrip.days.mapTo(mutableSetOf(), TripDay::id)
-                val currentSnapshots = emittedSnapshots.filter { it.itinerary.dayId in currentDayIds }
-                val currentSection = values[3] as WorkspaceSection
-                val requestedItineraryScope = values[4] as ItineraryScope?
-                val currentItineraryScope = reconcileItineraryScope(requestedItineraryScope, previousDays, currentTrip.days)
-                previousDays = currentTrip.days
-                if (currentItineraryScope != requestedItineraryScope) itineraryScope.value = currentItineraryScope
-                savedState[ITINERARY_SCOPE] = encodeItineraryScope(currentItineraryScope)
-                val currentMapScope = currentSection.toMapScope(currentItineraryScope)
-                val selected = currentItineraryScope.selectedDayId().takeIf { currentSection == WorkspaceSection.ITINERARY }
-                mutableSelectedDayId.value = selected
-                @Suppress("UNCHECKED_CAST") val currentSearch = values[7] as List<PlaceCandidate>
-                val focusedId = values[8] as String?
-                val liveFocusedCandidate = currentSearch.firstOrNull { it.poiId == focusedId }
-                val focusedCandidate = liveFocusedCandidate ?: restoredFocusedCandidate?.takeIf { it.poiId == focusedId }
-                val focusedSavedPlace = currentPlaces.firstOrNull { it.amapPoiId == focusedId }
-                val interaction = values[9] as MapInteractionState
-                if (liveFocusedCandidate != null) focusedResultObserved = true
-                if (focusedId != null && focusedResultObserved && liveFocusedCandidate == null && focusedSavedPlace == null && restoredFocusedCandidate == null) {
-                    clearSearchFocus()
+        observeWorkspace()
+    }
+
+    fun retry() = observeWorkspace()
+
+    private fun observeWorkspace() {
+        observationJob?.cancel()
+        mutablePageState.value = TripWorkspacePageState.Loading
+        observationJob = viewModelScope.launch {
+            runCatching {
+                coroutineScope {
+                    val trip = trips.observeTrip(tripId).shareIn(this, SharingStarted.Eagerly, replay = 1)
+                    val snapshots = trip.flatMapLatest { value ->
+                        if (value == null) flowOf(emptyList()) else observeSnapshots(value.days, itineraries, routes)
+                    }
+                    combine(
+                        trip,
+                        places.observePlaces(tripId, emptySet()),
+                        snapshots,
+                        section,
+                        itineraryScope,
+                        sheet,
+                        selectedMarkerKey,
+                        searchResults,
+                        focusedPoiId,
+                        mapInteraction,
+                        mapPreferences.layer,
+                        selectedMapPoi,
+                    ) { values -> mapWorkspaceState(values) }
+                        .collect { next ->
+                            if (next == null) {
+                                mutableSelectedDayId.value = null
+                                mutablePageState.value = TripWorkspacePageState.NotFound
+                            } else {
+                                mutable.value = next
+                                mutablePageState.value = TripWorkspacePageState.Ready(next.toReadyState())
+                            }
+                        }
                 }
-                val focusMissing = focusedResultObserved && liveFocusedCandidate == null && focusedSavedPlace == null && restoredFocusedCandidate == null
-                val activeFocusedId = focusedId.takeUnless { focusMissing }
-                val focusPoint = focusedCandidate?.point
-                    ?: focusedSavedPlace?.point
-                    ?: interaction.viewportRequest?.takeIf { it.reason == ViewportReason.SEARCH_FOCUS }?.points?.singleOrNull()
-                    ?: restoredFocusPoint.takeIf { activeFocusedId != null }
-                val mapped = MapUiModelMapper.map(
-                    currentMapScope,
-                    currentPlaces,
-                    currentTrip.days,
-                    currentSnapshots,
-                    selected,
-                    currentTrip.startDate,
-                    currentSearch,
-                    activeFocusedId,
-                    focusPoint,
-                    focusedCandidate,
-                )
-                val baseMap = MapUiModelMapper.map(
-                    currentMapScope,
-                    currentPlaces,
-                    currentTrip.days,
-                    currentSnapshots,
-                    selected,
-                    currentTrip.startDate,
-                )
-                viewportController.update(
-                    currentPlaces.map(SavedPlace::point),
-                    currentMapScope,
-                    mapViewportPoints(currentMapScope, baseMap),
-                )
-                val model = mapped.copy(viewportRequest = viewportController.currentRequest)
-                model.corruptRoutes.forEach { route -> launch { routes.repairCorruptPolyline(route.legId, route.version) } }
-                val markerKey = values[6] as String?
-                val selectedMarker = model.markers.firstOrNull { it.key == markerKey }
-                TripWorkspaceUiState(
-                    tripName = currentTrip.name,
-                    days = currentTrip.days,
-                    section = currentSection,
-                    itineraryScope = currentItineraryScope,
-                    mapScope = currentMapScope,
-                    selectedDayId = selected,
-                    wholeTripDays = mapWholeTripDays(currentTrip.days, currentSnapshots),
-                    sheetLevel = WorkspaceSheetLevel.valueOf(values[5] as String),
-                    map = model,
-                    selectedMarker = selectedMarker,
-                    selectedMarkerPoi = selectedMarker?.savedPlaceId?.let { savedPlaceId ->
-                        currentPlaces.firstOrNull { it.id == savedPlaceId }
-                            ?.let { MapPoiUi(it.amapPoiId, it.name, it.address, it.point) }
-                    },
-                    selectedMapPoi = values[11] as MapPoiUi?,
-                    searchSelection = activeFocusedId?.let { id -> focusPoint?.let { SearchResultSelection(id, it) } },
-                    mapLayer = values[10] as MapLayer,
-                )
-            }.collect { mutable.value = it }
+            }.onFailure {
+                if (it !is kotlinx.coroutines.CancellationException) {
+                    mutablePageState.value = TripWorkspacePageState.Error("无法加载旅行")
+                }
+            }
         }
+    }
+
+    private fun mapWorkspaceState(values: Array<Any?>): TripWorkspaceUiState? {
+        val currentTrip = values[0] as com.yangchengwei.easytrip.trip.domain.TripWithDays? ?: return null
+        @Suppress("UNCHECKED_CAST") val currentPlaces = values[1] as List<SavedPlace>
+        @Suppress("UNCHECKED_CAST") val emittedSnapshots = values[2] as List<DayMapSnapshot>
+        val currentDayIds = currentTrip.days.mapTo(mutableSetOf(), TripDay::id)
+        val currentSnapshots = emittedSnapshots.filter { it.itinerary.dayId in currentDayIds }
+        val currentSection = values[3] as WorkspaceSection
+        val requestedItineraryScope = values[4] as ItineraryScope?
+        val currentItineraryScope = reconcileItineraryScope(requestedItineraryScope, previousDays, currentTrip.days)
+        previousDays = currentTrip.days
+        if (currentItineraryScope != requestedItineraryScope) itineraryScope.value = currentItineraryScope
+        savedState[ITINERARY_SCOPE] = encodeItineraryScope(currentItineraryScope)
+        val currentMapScope = currentSection.toMapScope(currentItineraryScope)
+        val selected = currentItineraryScope.selectedDayId().takeIf { currentSection == WorkspaceSection.ITINERARY }
+        mutableSelectedDayId.value = selected
+        @Suppress("UNCHECKED_CAST") val currentSearch = values[7] as List<PlaceCandidate>
+        val focusedId = values[8] as String?
+        val liveFocusedCandidate = currentSearch.firstOrNull { it.poiId == focusedId }
+        val focusedCandidate = liveFocusedCandidate ?: restoredFocusedCandidate?.takeIf { it.poiId == focusedId }
+        val focusedSavedPlace = currentPlaces.firstOrNull { it.amapPoiId == focusedId }
+        val interaction = values[9] as MapInteractionState
+        if (liveFocusedCandidate != null) focusedResultObserved = true
+        if (focusedId != null && focusedResultObserved && liveFocusedCandidate == null && focusedSavedPlace == null && restoredFocusedCandidate == null) clearSearchFocus()
+        val focusMissing = focusedResultObserved && liveFocusedCandidate == null && focusedSavedPlace == null && restoredFocusedCandidate == null
+        val activeFocusedId = focusedId.takeUnless { focusMissing }
+        val focusPoint = focusedCandidate?.point
+            ?: focusedSavedPlace?.point
+            ?: interaction.viewportRequest?.takeIf { it.reason == ViewportReason.SEARCH_FOCUS }?.points?.singleOrNull()
+            ?: restoredFocusPoint.takeIf { activeFocusedId != null }
+        val mapped = MapUiModelMapper.map(currentMapScope, currentPlaces, currentTrip.days, currentSnapshots, selected, currentTrip.startDate, currentSearch, activeFocusedId, focusPoint, focusedCandidate)
+        val baseMap = MapUiModelMapper.map(currentMapScope, currentPlaces, currentTrip.days, currentSnapshots, selected, currentTrip.startDate)
+        viewportController.update(currentPlaces.map(SavedPlace::point), currentMapScope, mapViewportPoints(currentMapScope, baseMap))
+        val model = mapped.copy(viewportRequest = viewportController.currentRequest)
+        model.corruptRoutes.forEach { route -> viewModelScope.launch { routes.repairCorruptPolyline(route.legId, route.version) } }
+        val selectedMarker = model.markers.firstOrNull { it.key == values[6] as String? }
+        return TripWorkspaceUiState(
+            tripName = currentTrip.name,
+            days = currentTrip.days,
+            section = currentSection,
+            itineraryScope = currentItineraryScope,
+            mapScope = currentMapScope,
+            selectedDayId = selected,
+            wholeTripDays = mapWholeTripDays(currentTrip.days, currentSnapshots),
+            sheetLevel = WorkspaceSheetLevel.valueOf(values[5] as String),
+            map = model,
+            selectedMarker = selectedMarker,
+            selectedMarkerPoi = selectedMarker?.savedPlaceId?.let { savedPlaceId -> currentPlaces.firstOrNull { it.id == savedPlaceId }?.let { MapPoiUi(it.amapPoiId, it.name, it.address, it.point) } },
+            selectedMapPoi = values[11] as MapPoiUi?,
+            searchSelection = activeFocusedId?.let { id -> focusPoint?.let { SearchResultSelection(id, it) } },
+            mapLayer = values[10] as MapLayer,
+        )
     }
 
     fun selectSection(value: WorkspaceSection) {

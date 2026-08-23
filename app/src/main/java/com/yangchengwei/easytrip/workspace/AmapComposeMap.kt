@@ -14,8 +14,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.mutableStateOf
 import android.graphics.Color
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
@@ -87,8 +89,56 @@ internal fun Poi.toMapPoiUi(address: String = ""): MapPoiUi? {
     )
 }
 
+internal class MapHostCallbackGuard {
+    private var active = true
+    private var terminalFailure = false
+    private var readyReported = false
+    private var disposalFailureReported = false
+    private var renderGeneration = 0L
+
+    fun beginRender(): Long = ++renderGeneration
+
+    fun dispatchHost(callback: () -> Unit) {
+        if (active && !terminalFailure) callback()
+    }
+
+    fun dispatch(generation: Long, callback: () -> Unit) {
+        if (active && !terminalFailure && generation == renderGeneration) callback()
+    }
+
+    fun reportReady(generation: Long, callback: () -> Unit) {
+        if (!active || terminalFailure || readyReported || generation != renderGeneration) return
+        readyReported = true
+        callback()
+    }
+
+    fun reportError(generation: Long, error: Throwable, callback: (Throwable) -> Unit) {
+        if (!active || terminalFailure || generation != renderGeneration) return
+        terminalFailure = true
+        callback(error)
+    }
+
+    fun reportHostError(error: Throwable, callback: (Throwable) -> Unit) {
+        if (!active || terminalFailure) return
+        terminalFailure = true
+        callback(error)
+    }
+
+    fun reportDisposalError(error: Throwable, callback: (Throwable) -> Unit) {
+        if (terminalFailure || disposalFailureReported) return
+        terminalFailure = true
+        disposalFailureReported = true
+        callback(error)
+    }
+
+    fun deactivate() {
+        active = false
+    }
+}
+
 interface AmapMapHost {
     val view: View
+    fun setOnReadyListener(listener: (() -> Unit)?) { listener?.invoke() }
     fun onCreate()
     fun onResume()
     fun onPause()
@@ -115,17 +165,26 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
         fun create(context: android.content.Context): AmapMapHost = RealAmapMapHost(context)
     }
     private val mapView = MapView(context)
+    private var onReadyListener: (() -> Unit)? = null
+    private val mapLoadedListener = AMap.OnMapLoadedListener { onReadyListener?.invoke() }
     private var renderedOverlays: MapUiModel? = null
     private var consumedViewportId: Long? = null
     private var appliedLayer: MapLayer? = null
     override val view: View = mapView
+    override fun setOnReadyListener(listener: (() -> Unit)?) {
+        onReadyListener = listener
+        mapView.map.setOnMapLoadedListener(if (listener == null) null else mapLoadedListener)
+    }
     override fun onCreate() {
         mapView.onCreate(null)
         mapView.map.uiSettings.isZoomControlsEnabled = false
     }
     override fun onResume() = mapView.onResume()
     override fun onPause() = mapView.onPause()
-    override fun onDestroy() = mapView.onDestroy()
+    override fun onDestroy() {
+        setOnReadyListener(null)
+        mapView.onDestroy()
+    }
     override fun zoomIn() = mapView.map.animateCamera(CameraUpdateFactory.zoomIn())
     override fun zoomOut() = mapView.map.animateCamera(CameraUpdateFactory.zoomOut())
     override fun render(
@@ -269,18 +328,53 @@ fun AmapComposeMap(
     modifier: Modifier = Modifier,
     hostFactory: (android.content.Context) -> AmapMapHost = ::RealAmapMapHost,
     onLayerError: (Throwable, MapLayer) -> Unit = { _, _ -> },
+    onMapError: (Throwable) -> Unit = {},
+    onMapReady: () -> Unit = {},
 ) {
     val consentSnapshot by consent.active.collectAsState()
     val context = LocalContext.current
     if (!consent.isActive(consentSnapshot)) return
     consent.validateActive()
     val lifecycleOwner = LocalLifecycleOwner.current
+    var mapFailure by remember(context, consent, lifecycleOwner) { mutableStateOf<Throwable?>(null) }
+    var mapReady by remember(context, consent, lifecycleOwner) { mutableStateOf(false) }
+    val callbackGuard = remember(context, consent, lifecycleOwner) { MapHostCallbackGuard() }
     val host = remember(context, consent, lifecycleOwner) {
-        consent.validateActive()
-        hostFactory(context).apply { onCreate() }
+        var createdHost: AmapMapHost? = null
+        runCatching {
+            consent.validateActive()
+            hostFactory(context).also { host ->
+                createdHost = host
+                host.setOnReadyListener {
+                    callbackGuard.dispatchHost { mapReady = true }
+                }
+                host.onCreate()
+            }
+        }.onFailure { error ->
+            mapFailure = error
+            callbackGuard.reportHostError(error, onMapError)
+            callbackGuard.deactivate()
+            createdHost?.let { failedHost ->
+                runCatching(failedHost::onDestroy).onFailure { callbackGuard.reportDisposalError(it, onMapError) }
+            }
+        }.getOrNull()
     }
+    if (host == null || mapFailure != null) return
     DisposableEffect(lifecycleOwner, host) {
-        val controller = MapLifecycleController(host::onResume, host::onPause, host::onDestroy)
+        val lifecycleError: (Throwable) -> Unit = { error ->
+            mapFailure = error
+            callbackGuard.reportHostError(error, onMapError)
+        }
+        val controller = MapLifecycleController(
+            resume = { runCatching(host::onResume).onFailure(lifecycleError) },
+            pause = { runCatching(host::onPause).onFailure(lifecycleError) },
+            destroy = {
+                runCatching(host::onDestroy).onFailure { error ->
+                    mapFailure = error
+                    callbackGuard.reportDisposalError(error, onMapError)
+                }
+            },
+        )
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_RESUME -> controller.syncResumed(true)
@@ -292,6 +386,8 @@ fun AmapComposeMap(
         lifecycleOwner.lifecycle.addObserver(observer)
         controller.syncResumed(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
         onDispose {
+            callbackGuard.deactivate()
+            host.setOnReadyListener(null)
             lifecycleOwner.lifecycle.removeObserver(observer)
             controller.dispose()
         }
@@ -301,8 +397,26 @@ fun AmapComposeMap(
             factory = { host.view },
             modifier = Modifier.fillMaxSize(),
             update = {
-                consent.validateActive()
-                host.render(model, layer, onMarkerClick, onMapPoiClick, onLayerError)
+                if (mapReady) {
+                    val renderGeneration = callbackGuard.beginRender()
+                    runCatching {
+                        consent.validateActive()
+                        var layerFailure: Throwable? = null
+                        host.render(
+                            model,
+                            layer,
+                            { markerKey -> callbackGuard.dispatch(renderGeneration) { onMarkerClick(markerKey) } },
+                            { poi -> callbackGuard.dispatch(renderGeneration) { onMapPoiClick(poi) } },
+                        ) { error, retainedLayer ->
+                            layerFailure = error
+                            callbackGuard.reportError(renderGeneration, error) { onLayerError(it, retainedLayer) }
+                        }
+                        if (layerFailure == null) callbackGuard.reportReady(renderGeneration, onMapReady)
+                    }.onFailure {
+                        mapFailure = it
+                        callbackGuard.reportError(renderGeneration, it, onMapError)
+                    }
+                }
             },
         )
         Column(

@@ -18,6 +18,17 @@
             "command": "/opt/homebrew/bin/graphify hook-guard read"
           }
         ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": ".claude/hooks/guard-adb-install.sh",
+            "timeout": 5,
+            "statusMessage": "检查设备安装授权"
+          }
+        ]
       }
     ]
   }

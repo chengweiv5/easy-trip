@@ -5,11 +5,12 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
-import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -25,13 +26,21 @@ class SelectablePillTest {
     @Test fun selectedAndUnselectedPillsExposeSelectionAndClickSemantics() {
         compose.setContent {
             Column {
-                SelectablePill(selected = true, onClick = {}, label = { Text("已选") })
-                SelectablePill(selected = false, onClick = {}, label = { Text("未选") })
+                SelectablePill(selected = true, onClick = {}, label = { Text("已选") }, role = Role.RadioButton)
+                SelectablePill(selected = false, onClick = {}, label = { Text("未选") }, role = Role.RadioButton)
+                SelectablePill(selected = false, onClick = {}, label = { Text("禁用") }, enabled = false, role = Role.RadioButton)
             }
         }
 
-        compose.onNodeWithText("已选").assertIsSelected().assertHasClickAction()
-        compose.onNodeWithText("未选").assertIsNotSelected().assertHasClickAction()
+        compose.onNodeWithText("已选")
+            .assertIsSelected()
+            .assertHasClickAction()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+        compose.onNodeWithText("未选")
+            .assertIsNotSelected()
+            .assertHasClickAction()
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.RadioButton))
+        compose.onNodeWithText("禁用").assertIsNotEnabled()
     }
 
     @Test fun pillSupportsTabRoleAndCompactHeight() {
@@ -47,7 +56,7 @@ class SelectablePillTest {
         compose.onNodeWithText("标签页")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
             .assertWidthIsAtLeast(48.dp)
-            .assertHeightIsAtLeast(32.dp)
+            .assertHeightIsEqualTo(36.dp)
     }
 
     @Test fun selectedPillIsFilledAndUnselectedPillHasNoFillOrOutline() {

@@ -146,6 +146,8 @@ class SearchMapFocusTest {
         }
 
         compose.waitUntil(5_000) { model.state.value.section == WorkspaceSection.PLACE_POOL }
+        compose.waitUntil(5_000) { host.lastModel != null }
+        val viewportCallsBeforeFocus = host.viewportCalls
         compose.runOnIdle { model.focusSearchResult(candidate) }
         compose.waitUntil(5_000) { host.lastModel?.viewportRequest?.reason == ViewportReason.SEARCH_FOCUS }
 
@@ -159,11 +161,11 @@ class SearchMapFocusTest {
         assertEquals(true, focusedMarker?.isFocused)
         assertEquals(1, host.lastModel?.markers?.count { it.point == candidate.point })
         assertEquals(listOf(candidate.point), host.lastModel?.viewportRequest?.points)
-        assertEquals(2, host.viewportCalls)
+        assertEquals(viewportCallsBeforeFocus + 1, host.viewportCalls)
 
         compose.runOnIdle { unrelated.value++ }
         compose.waitForIdle()
-        assertEquals(2, host.viewportCalls)
+        assertEquals(viewportCallsBeforeFocus + 1, host.viewportCalls)
     }
 
     @Test fun searchFocusPersistsWhenBaseScopeHasNoVisiblePoints() {

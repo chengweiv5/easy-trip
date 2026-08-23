@@ -14,6 +14,7 @@ import com.yangchengwei.easytrip.place.data.SavedPlaceEntity
 import com.yangchengwei.easytrip.route.data.RouteLegEntity
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.InsertSide
+import com.yangchengwei.easytrip.trip.domain.TripSummary
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -59,6 +60,76 @@ class RoomTripRepositoryTest {
 
     @After
     fun tearDown() = database.close()
+
+    @Test
+    fun datedCreatePersistsTripAndDaysAtomically() = runTest {
+        val date = LocalDate.parse("2026-10-01")
+        val tripId = repository.createTrip(CreateTrip("Dated", 3, TravelMode.FLEXIBLE, date))
+
+        val created = repository.observeTrip(tripId).first()!!
+        assertEquals(date, created.startDate)
+        assertEquals(3, created.days.size)
+        assertEquals(com.yangchengwei.easytrip.core.model.TimeMode.DATED, database.tripDao().trip(tripId)!!.timeMode)
+    }
+
+    @Test
+    fun createConstraintFailureRollsBackTripAndDays() = runTest {
+        repository = RoomTripRepository(database.tripDao(), clock, idFactory = { "duplicate" })
+
+        assertThrows(SQLiteConstraintException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.createTrip(CreateTrip("Rollback", 2)) }
+        }
+
+        assertEquals(emptyList<TripSummary>(), repository.observeTrips().first())
+        assertEquals(emptyList<TripDayEntity>(), database.tripDao().days("duplicate"))
+    }
+
+    @Test
+    fun replayingRequestIdDoesNotGenerateUnusedDayIds() = runTest {
+        var generatedIds = 0
+        repository = RoomTripRepository(database.tripDao(), clock, idFactory = { "generated-${++generatedIds}" })
+        val command = CreateTrip("Replay", 2, requestId = "request-1")
+
+        repository.createTrip(command)
+        assertEquals(2, generatedIds)
+        repository.createTrip(command)
+        assertEquals(2, generatedIds)
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.createTrip(command.copy(name = "Conflict")) }
+        }
+        assertEquals(2, generatedIds)
+    }
+
+    @Test
+    fun createWithoutRequestIdGeneratesTripAndDayIds() = runTest {
+        var generatedIds = 0
+        repository = RoomTripRepository(database.tripDao(), clock, idFactory = { "generated-${++generatedIds}" })
+
+        repository.createTrip(CreateTrip("Fresh", 3))
+
+        assertEquals(4, generatedIds)
+    }
+
+    @Test
+    fun replayingRequestIdIsIdempotent_andConflictingCommandFails() = runTest {
+        val command = CreateTrip(
+            name = "Replay",
+            dayCount = 2,
+            travelMode = TravelMode.FLEXIBLE,
+            startDate = LocalDate.parse("2026-10-01"),
+            requestId = "request-1",
+        )
+        val first = repository.createTrip(command)
+        val replay = repository.createTrip(command)
+
+        assertEquals(first, replay)
+        assertEquals(1, repository.observeTrips().first().size)
+        assertEquals(2, repository.observeTrip(first).first()!!.days.size)
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.createTrip(command.copy(name = "Conflict")) }
+        }
+        assertEquals(1, repository.observeTrips().first().size)
+    }
 
     @Test
     fun createObserveAndUpdateTrip() = runTest {

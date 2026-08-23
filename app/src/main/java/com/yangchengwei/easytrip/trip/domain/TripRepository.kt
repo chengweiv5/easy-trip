@@ -26,6 +26,8 @@ data class CreateTrip(
     val name: String,
     val dayCount: Int,
     val travelMode: TravelMode = TravelMode.FLEXIBLE,
+    val startDate: LocalDate? = null,
+    val requestId: String? = null,
 )
 
 enum class InsertSide { BEFORE, AFTER }

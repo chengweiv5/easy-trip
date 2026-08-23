@@ -140,7 +140,7 @@ class WorkspaceFlowTest {
             )
         }
         compose.waitUntil(5_000) { model.state.value.map.viewportRequest != null }
-        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(40.dp)
+        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(52.dp)
         compose.onNodeWithTag("workspace-search-launcher").assertHeightIsEqualTo(48.dp)
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("收起").fetchSemanticsNodes().size)

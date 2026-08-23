@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.trip.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsNotSelected
@@ -65,7 +66,7 @@ class TripFlowTest {
     @Test fun createAndSettingsChoicesUseExclusiveSelectablePills() {
         val repository = FakeTripRepository().apply { seed("样式测试", 1) }
         compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
-        compose.onNodeWithText("创建旅行").performClick()
+        compose.onNodeWithTag("create-trip").performClick()
         compose.onNodeWithTag("create-time-DRAFT").assert(hasRole(Role.RadioButton)).assertIsSelected()
         compose.onNodeWithTag("create-time-DATED").assertIsNotSelected()
         compose.onNodeWithTag("create-mode-FLEXIBLE").assertIsSelected()
@@ -96,9 +97,11 @@ class TripFlowTest {
                 march15,
             )
         }
-        compose.onNodeWithText("创建旅行").performClick(); compose.onNodeWithText("旅行名称").performTextInput("草案"); compose.onNodeWithText("天数").performTextInput("3"); compose.onNodeWithText("创建").performClick()
+        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithText("旅行名称").performTextInput("草案"); compose.onNodeWithText("天数").performTextInput("3"); compose.onNodeWithText("创建").performClick()
         compose.waitForIdle(); assertEquals(3, repository.trip.value!!.days.size)
-        compose.onNodeWithText("创建旅行").performClick(); compose.onNodeWithText("旅行名称").performTextInput("日期旅行"); compose.onNodeWithText("天数").performTextInput("2"); compose.onNodeWithText("指定日期").performClick()
+        pressBack()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("create-trip").fetchSemanticsNodes().size == 1 }
+        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithText("旅行名称").performTextInput("日期旅行"); compose.onNodeWithText("天数").performTextInput("2"); compose.onNodeWithText("指定日期").performClick()
         compose.onNodeWithText("确定日期").performClick()
         compose.onNodeWithText("2027-03-15").assertIsDisplayed().assertIsSelected()
         compose.onNodeWithText("无日期").performClick()
@@ -131,7 +134,7 @@ class TripFlowTest {
         val deletedTrips = mutableListOf<String>()
         var deletedDays = 0
         fun seed(name: String, count: Int) { create(CreateTrip(name, count)) }
-        private fun create(command: CreateTrip): String { val id=id(); trip.value=TripWithDays(id,command.name,null,command.travelMode,List(command.dayCount){TripDay(id(),it)}); publish(); return id }
+        private fun create(command: CreateTrip): String { val id=command.requestId ?: id(); trip.value=TripWithDays(id,command.name,command.startDate,command.travelMode,List(command.dayCount){TripDay(id(),it)}); publish(); return id }
         override fun observeTrips(): Flow<List<TripSummary>> = trips
         override fun observeTrip(tripId: String): Flow<TripWithDays?> = trip
         override suspend fun createTrip(command: CreateTrip) = create(command)

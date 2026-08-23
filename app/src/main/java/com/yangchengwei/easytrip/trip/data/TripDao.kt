@@ -36,6 +36,16 @@ interface TripDao {
     @Query("SELECT position FROM trip_days WHERE tripId=:tripId ORDER BY position") suspend fun dayPositions(tripId:String):List<Long>
 
     @Transaction suspend fun createTripWithDays(trip:TripEntity,days:List<TripDayEntity>){ insertTrip(trip); days.forEach(::insertDay) }
+    @Transaction suspend fun createTripWithDaysIdempotent(trip:TripEntity,dayCount:Int,dayIdFactory:()->String){
+        val existing=trip(trip.id)
+        if(existing==null){
+            val newDays=List(dayCount){index->TripDayEntity(dayIdFactory(),trip.id,index*POSITION_STEP)}
+            createTripWithDays(trip,newDays)
+            return
+        }
+        val existingDays=days(trip.id)
+        require(existing.name==trip.name && existing.timeMode==trip.timeMode && existing.startDate==trip.startDate && existing.travelMode==trip.travelMode && existingDays.size==dayCount){"Conflicting create request: ${trip.id}"}
+    }
     @Transaction suspend fun renameTrip(tripId:String,name:String,now:Instant){ require(renameRow(tripId,name,now)==1){"Unknown trip: $tripId"} }
     @Transaction suspend fun setStartDate(tripId:String,date:LocalDate?,mode:TimeMode,now:Instant){ require(dateRow(tripId,date,mode,now)==1){"Unknown trip: $tripId"} }
     @Transaction suspend fun setTravelMode(tripId:String,mode:TravelMode,now:Instant){ require(modeRow(tripId,mode,now)==1){"Unknown trip: $tripId"} }

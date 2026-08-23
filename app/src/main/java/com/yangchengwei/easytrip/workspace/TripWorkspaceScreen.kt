@@ -2,33 +2,28 @@ package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Surface
-import androidx.compose.material3.BottomSheetScaffold
-import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Button
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
-import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -36,10 +31,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.amap.AmapConsentToken
-import com.yangchengwei.easytrip.core.ui.component.SelectablePill
-import com.yangchengwei.easytrip.itinerary.ui.WorkspaceItineraryContent
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
+import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton
+import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
+import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,278 +49,115 @@ fun TripWorkspaceScreen(
     isPoiSaved: Boolean = false,
     collectionBusyPoiIds: Set<String> = emptySet(),
     collectionError: String? = null,
-    onTogglePoiCollection: (com.yangchengwei.easytrip.place.amap.PlaceCandidate) -> Unit = {},
+    onTogglePoiCollection: (PlaceCandidate) -> Unit = {},
     mapHostFactory: (android.content.Context) -> AmapMapHost = { RealAmapMapHost.create(it) },
 ) {
-    val state by viewModel.state.collectAsStateWithLifecycle()
-    var mapError by remember { mutableStateOf<String?>(null) }
-    var layerMenuExpanded by remember { mutableStateOf(false) }
-    val coroutineScope = rememberCoroutineScope()
-    val scaffoldState = rememberBottomSheetScaffoldState(
-        bottomSheetState = rememberStandardBottomSheetState(
-            initialValue = when (state.sheetLevel) {
-                WorkspaceSheetLevel.COLLAPSED -> SheetValue.Hidden
-                WorkspaceSheetLevel.HALF -> SheetValue.PartiallyExpanded
-                WorkspaceSheetLevel.EXPANDED -> SheetValue.Expanded
-            },
-            skipHiddenState = false,
-        ),
-    )
-    LaunchedEffect(state.sheetLevel) {
-        when (state.sheetLevel) {
-            WorkspaceSheetLevel.COLLAPSED -> scaffoldState.bottomSheetState.hide()
-            WorkspaceSheetLevel.HALF -> scaffoldState.bottomSheetState.partialExpand()
-            WorkspaceSheetLevel.EXPANDED -> scaffoldState.bottomSheetState.expand()
-        }
+    val pageState by viewModel.pageState.collectAsStateWithLifecycle()
+    var mapAttempt by remember { mutableIntStateOf(0) }
+    var mapState by remember(consent) { mutableStateOf(if (consent == null) WorkspaceMapState.ConsentRequired else WorkspaceMapState.Loading) }
+    var failedAttempt by remember(consent) { mutableStateOf<Int?>(null) }
+    LaunchedEffect(consent) {
+        mapAttempt++
+        failedAttempt = null
+        mapState = if (consent == null) WorkspaceMapState.ConsentRequired else WorkspaceMapState.Loading
     }
-    LaunchedEffect(scaffoldState.bottomSheetState) {
-        snapshotFlow {
-            scaffoldState.bottomSheetState.currentValue to scaffoldState.bottomSheetState.targetValue
-        }.distinctUntilChanged().collect { (current, target) ->
-            settledWorkspaceSheetLevel(current, target, state.sheetLevel)?.let(viewModel::setSheetLevel)
-        }
-    }
-    BottomSheetScaffold(
-        scaffoldState = scaffoldState,
-        sheetPeekHeight = if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) 0.dp else 220.dp,
-        sheetDragHandle = null,
-        sheetContent = {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 12.dp).testTag("workspace-sheet")) {
-                if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) {
-                    WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle"))
-                }
-                when (state.section) {
-                    WorkspaceSection.PLACE_POOL -> placeContent()
-                    WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
-                        days = state.days,
-                        selected = state.itineraryScope,
-                        wholeTripDays = state.wholeTripDays,
-                        onSelect = viewModel::selectItineraryScope,
-                        dayContent = dayItineraryContent,
-                    )
-                }
+    val ready = (pageState as? TripWorkspacePageState.Ready)?.content
+
+    TripWorkspaceContent(
+        pageState = pageState,
+        mapState = mapState,
+        onPageRetry = viewModel::retry,
+        onMapRetry = {
+            mapAttempt++
+            failedAttempt = null
+            mapState = if (consent == null) WorkspaceMapState.ConsentRequired else WorkspaceMapState.Loading
+        },
+        onAction = { action ->
+            when (action) {
+                TripWorkspaceAction.Back -> onBack()
+                TripWorkspaceAction.OpenSettings -> onSettings()
+                TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
+                TripWorkspaceAction.OpenSearch -> onOpenSearch()
+                TripWorkspaceAction.Retry -> if (mapState is WorkspaceMapState.Failed) {
+                    mapAttempt++
+                    failedAttempt = null
+                    mapState = if (consent == null) WorkspaceMapState.ConsentRequired else WorkspaceMapState.Loading
+                } else viewModel.retry()
+                is TripWorkspaceAction.SelectSection -> viewModel.selectSection(action.section)
+                is TripWorkspaceAction.SelectItineraryScope -> viewModel.selectItineraryScope(action.scope)
+                is TripWorkspaceAction.SelectMapLayer -> viewModel.selectMapLayer(action.layer)
+                is TripWorkspaceAction.SetSheetLevel -> viewModel.setSheetLevel(action.level)
             }
         },
-    ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            Box(Modifier.weight(1f).fillMaxWidth().testTag("workspace-map")) {
-                if (consent == null) {
-                    Text("同意高德隐私政策后显示地图", Modifier.padding(16.dp))
-                } else {
-                    AmapComposeMap(
-                        state.map,
-                        viewModel::selectMarker,
-                        consent,
-                        onMapPoiClick = viewModel::selectMapPoi,
-                        layer = state.mapLayer,
-                        modifier = Modifier.fillMaxSize(),
-                        hostFactory = mapHostFactory,
-                        onLayerError = { _, retainedLayer ->
+        placeContent = placeContent,
+        dayItineraryContent = dayItineraryContent,
+        mapContent = {
+            val token = consent
+            if (token != null && ready != null) key(mapAttempt) {
+                val attemptId = mapAttempt
+                AmapComposeMap(
+                    model = ready.map,
+                    onMarkerClick = viewModel::selectMarker,
+                    consent = token,
+                    onMapPoiClick = viewModel::selectMapPoi,
+                    layer = ready.mapLayer,
+                    modifier = Modifier.fillMaxSize(),
+                    hostFactory = mapHostFactory,
+                    onLayerError = { _, retainedLayer ->
+                        if (attemptId == mapAttempt) {
+                            failedAttempt = attemptId
                             viewModel.selectMapLayer(retainedLayer)
-                            mapError = "地图图层切换失败，已保留当前图层"
+                            mapState = WorkspaceMapState.Failed("地图图层切换失败，已保留当前图层")
                         }
-                    )
-                }
-                Surface(
-                    modifier = Modifier
-                        .align(androidx.compose.ui.Alignment.TopCenter)
-                        .padding(top = 5.dp, start = 10.dp, end = 10.dp)
-                        .fillMaxWidth()
-                        .height(40.dp)
-                        .testTag("workspace-top-bar"),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(10.dp),
-                    color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    shadowElevation = 3.dp,
-                ) {
-                    Row(
-                        Modifier.fillMaxSize().padding(horizontal = 4.dp),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                    ) {
-                        TextButton(onBack) { Text("返回") }
-                        Text(state.tripName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        TextButton(onPrivacySettings) { Text("地图授权") }
-                        TextButton(onSettings) { Text("设置") }
-                    }
-                }
-                Box(Modifier.align(androidx.compose.ui.Alignment.TopEnd).padding(top = 55.dp, end = 10.dp)) {
-                    Surface(
-                        modifier = Modifier
-                            .size(24.dp)
-                            .testTag("layer-menu")
-                            .semantics { contentDescription = "地图图层" }
-                            .clickable { layerMenuExpanded = true },
-                        shape = androidx.compose.foundation.shape.RoundedCornerShape(4.dp),
-                        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                        shadowElevation = 2.dp,
-                    ) {
-                        val iconColor = MaterialTheme.colorScheme.primary
-                        Canvas(Modifier.fillMaxSize().padding(4.dp)) {
-                            val stroke = 1.5.dp.toPx()
-                            val w = size.width
-                            val h = size.height
-                            fun layer(centerY: Float) {
-                                val path = androidx.compose.ui.graphics.Path().apply {
-                                    moveTo(w / 2f, centerY - h * 0.18f)
-                                    lineTo(w, centerY)
-                                    lineTo(w / 2f, centerY + h * 0.18f)
-                                    lineTo(0f, centerY)
-                                    close()
-                                }
-                                drawPath(path, iconColor, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
-                            }
-                            layer(h * 0.36f)
-                            layer(h * 0.62f)
+                    },
+                    onMapError = {
+                        if (attemptId == mapAttempt) {
+                            failedAttempt = attemptId
+                            mapState = WorkspaceMapState.Failed("地图加载失败")
                         }
-                    }
-                    DropdownMenu(expanded = layerMenuExpanded, onDismissRequest = { layerMenuExpanded = false }) {
-                        MapLayer.entries.forEach { layer ->
-                            DropdownMenuItem(
-                                text = { Text(if (state.mapLayer == layer) "✓ ${layer.label()}" else layer.label()) },
-                                onClick = {
-                                    viewModel.selectMapLayer(layer)
-                                    layerMenuExpanded = false
-                                },
-                                modifier = Modifier.testTag("layer-${layer.name}"),
-                            )
-                        }
-                    }
-                }
-                Box(
-                    Modifier
-                        .align(androidx.compose.ui.Alignment.BottomCenter)
-                        .fillMaxWidth()
-                        .wrapContentHeight()
-                        .padding(start = 10.dp, end = 10.dp, bottom = 5.dp),
-                    contentAlignment = androidx.compose.ui.Alignment.BottomEnd,
-                ) {
-                    WorkspaceSearchLauncher(
-                        onClick = onOpenSearch,
-                        modifier = Modifier.fillMaxWidth(0.2f),
-                    )
-                }
-            }
-            mapError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 8.dp)) }
-            Spacer(Modifier.height(10.dp))
-            Row(
-                Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 8.dp)
-                    .testTag("section-controls")
-                    .selectableGroup(),
-            ) {
-                SelectablePill(
-                    state.section == WorkspaceSection.PLACE_POOL,
-                    { viewModel.selectSection(WorkspaceSection.PLACE_POOL) },
-                    { Text("地点池") },
-                    Modifier.weight(1f).testTag("section-${WorkspaceSection.PLACE_POOL.name}"),
-                    role = Role.Tab,
-                )
-                SelectablePill(
-                    state.section == WorkspaceSection.ITINERARY,
-                    { viewModel.selectSection(WorkspaceSection.ITINERARY) },
-                    { Text("行程") },
-                    Modifier.weight(1f).testTag("section-${WorkspaceSection.ITINERARY.name}"),
-                    role = Role.Tab,
+                    },
+                    onMapReady = {
+                        if (attemptId == mapAttempt && failedAttempt != attemptId) mapState = WorkspaceMapState.Ready
+                    },
                 )
             }
-            if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) {
-                Surface(
-                    Modifier.fillMaxWidth(),
-                    shape = androidx.compose.foundation.shape.RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                    color = MaterialTheme.colorScheme.surface,
-                    shadowElevation = 4.dp,
-                ) {
-                    WorkspaceSheetHandle(
-                        Modifier
-                            .testTag("workspace-sheet-handle")
-                            .pointerInput(scaffoldState.bottomSheetState) {
-                                var dragDistance = 0f
-                                detectVerticalDragGestures(
-                                    onDragStart = { dragDistance = 0f },
-                                    onVerticalDrag = { _, amount -> dragDistance += amount },
-                                    onDragEnd = {
-                                        if (dragDistance < -24f) coroutineScope.launch {
-                                            viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
-                                            scaffoldState.bottomSheetState.partialExpand()
-                                        }
-                                    },
-                                )
-                            },
-                    )
-                }
-            } else {
-                Spacer(Modifier.height(10.dp))
-            }
-        }
-    }
-    state.selectedMapPoi?.let { poi ->
+        },
+    )
+
+    ready?.selectedMapPoi?.let { poi ->
         AlertDialog(
             onDismissRequest = viewModel::dismissPlaceCard,
             title = { Text(poi.name) },
-            text = {
-                Column {
-                    Text(poi.address.ifBlank { "地址暂不可用" })
-                    collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                }
-            },
+            text = { Column { Text(poi.address.ifBlank { "地址暂不可用" }); collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) } } },
             confirmButton = {
                 val poiId = poi.poiId
-                Button(
+                CompactPrimaryButton(
                     onClick = {
-                        if (poiId != null) {
-                            onTogglePoiCollection(
-                                com.yangchengwei.easytrip.place.amap.PlaceCandidate(
-                                    poiId = poiId,
-                                    name = poi.name,
-                                    address = poi.address,
-                                    point = poi.point,
-                                    cityCode = null,
-                                ),
-                            )
-                        }
+                        if (poiId != null) onTogglePoiCollection(PlaceCandidate(poiId, poi.name, poi.address, poi.point, null))
                     },
                     enabled = poiId != null && poiId !in collectionBusyPoiIds,
                     modifier = Modifier.testTag("place-card-collection"),
                 ) { Text(if (poiId == null) "无法收藏" else if (isPoiSaved) "取消收藏" else "收藏") }
             },
-            dismissButton = { TextButton(viewModel::dismissPlaceCard) { Text("关闭") } },
+            dismissButton = { CompactSecondaryButton(viewModel::dismissPlaceCard) { Text("关闭") } },
         )
     }
-    state.selectedMarker?.let { marker ->
-        val markerPoi = state.selectedMarkerPoi
+    ready?.selectedMarker?.let { marker ->
+        val markerPoi = ready.selectedMarkerPoi
         AlertDialog(
             onDismissRequest = viewModel::dismissMarker,
             title = { Text(marker.label) },
-            text = {
-                Column {
-                    if (marker.occurrences.isEmpty()) Text("收藏地点")
-                    marker.occurrences.forEach { Text("${it.dayLabel} · 第 ${it.order} 项 · ${it.placeName}") }
-                    collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                }
-            },
+            text = { Column { if (marker.occurrences.isEmpty()) Text("收藏地点"); marker.occurrences.forEach { Text("${it.dayLabel} · 第 ${it.order} 项 · ${it.placeName}") }; collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) } } },
             confirmButton = {
                 if (markerPoi != null) {
-                    Button(
-                        onClick = {
-                            onTogglePoiCollection(
-                                com.yangchengwei.easytrip.place.amap.PlaceCandidate(
-                                    markerPoi.poiId!!,
-                                    markerPoi.name,
-                                    markerPoi.address,
-                                    markerPoi.point,
-                                    null,
-                                ),
-                            )
-                        },
+                    CompactPrimaryButton(
+                        onClick = { onTogglePoiCollection(PlaceCandidate(requireNotNull(markerPoi.poiId), markerPoi.name, markerPoi.address, markerPoi.point, null)) },
                         enabled = markerPoi.poiId !in collectionBusyPoiIds,
                         modifier = Modifier.testTag("place-card-collection"),
                     ) { Text("取消收藏") }
-                } else {
-                    Button(viewModel::dismissMarker) { Text("关闭") }
-                }
+                } else CompactPrimaryButton(viewModel::dismissMarker) { Text("关闭") }
             },
-            dismissButton = markerPoi?.let { { TextButton(viewModel::dismissMarker) { Text("关闭") } } },
+            dismissButton = markerPoi?.let { { CompactSecondaryButton(viewModel::dismissMarker) { Text("关闭") } } },
         )
     }
 }
@@ -334,48 +165,25 @@ fun TripWorkspaceScreen(
 @Composable
 fun WorkspaceSearchLauncher(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(
-        modifier
-            .height(48.dp)
-            .testTag("workspace-search-launcher")
-            .semantics { contentDescription = "搜索地点" }
-            .clickable(role = Role.Button, onClick = onClick),
+        modifier.height(48.dp).testTag("workspace-search-launcher").semantics { contentDescription = "搜索地点" }.clickable(role = Role.Button, onClick = onClick),
         contentAlignment = androidx.compose.ui.Alignment.Center,
     ) {
-        Surface(
-            Modifier.fillMaxWidth().height(40.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
-            color = Color.White,
-            shadowElevation = 2.dp,
-        ) {
-            val iconColor = MaterialTheme.colorScheme.primary
-            Canvas(
-                Modifier
-                    .fillMaxSize()
-                    .padding(10.dp),
-            ) {
+        Surface(Modifier.fillMaxWidth().height(46.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(23.dp), color = Color.White, shadowElevation = 2.dp) {
+            Canvas(Modifier.fillMaxSize().padding(13.dp)) {
+                val color = Color(0xFF2D5E3A)
                 val stroke = 2.dp.toPx()
-                val radius = size.minDimension * 0.28f
-                val center = androidx.compose.ui.geometry.Offset(size.width * 0.43f, size.height * 0.43f)
-                drawCircle(iconColor, radius, center, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
-                val diagonal = radius * 0.7f
-                drawLine(
-                    iconColor,
-                    center + androidx.compose.ui.geometry.Offset(diagonal, diagonal),
-                    center + androidx.compose.ui.geometry.Offset(radius * 1.55f, radius * 1.55f),
-                    strokeWidth = stroke,
-                    cap = androidx.compose.ui.graphics.StrokeCap.Round,
-                )
+                val radius = size.minDimension * .28f
+                val center = androidx.compose.ui.geometry.Offset(size.width * .43f, size.height * .43f)
+                drawCircle(color, radius, center, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
+                val diagonal = radius * .7f
+                drawLine(color, center + androidx.compose.ui.geometry.Offset(diagonal, diagonal), center + androidx.compose.ui.geometry.Offset(radius * 1.55f, radius * 1.55f), strokeWidth = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
             }
         }
     }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
-internal fun settledWorkspaceSheetLevel(
-    current: SheetValue,
-    target: SheetValue,
-    requested: WorkspaceSheetLevel,
-): WorkspaceSheetLevel? {
+internal fun settledWorkspaceSheetLevel(current: SheetValue, target: SheetValue, requested: WorkspaceSheetLevel): WorkspaceSheetLevel? {
     if (current != target) return null
     if (requested == WorkspaceSheetLevel.COLLAPSED && current == SheetValue.PartiallyExpanded) return null
     return when (current) {
@@ -383,29 +191,4 @@ internal fun settledWorkspaceSheetLevel(
         SheetValue.PartiallyExpanded -> WorkspaceSheetLevel.HALF
         SheetValue.Expanded -> WorkspaceSheetLevel.EXPANDED
     }
-}
-
-@Composable
-private fun WorkspaceSheetHandle(modifier: Modifier = Modifier) {
-    Box(
-        modifier.fillMaxWidth().height(24.dp),
-        contentAlignment = androidx.compose.ui.Alignment.Center,
-    ) {
-        Surface(
-            Modifier.width(32.dp).height(4.dp),
-            shape = androidx.compose.foundation.shape.RoundedCornerShape(2.dp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
-        ) {}
-    }
-}
-
-private fun MapScope.label() = when (this) {
-    MapScope.PLACE_POOL -> "地点池"
-    MapScope.SINGLE_DAY -> "单日"
-    MapScope.WHOLE_TRIP -> "全程"
-}
-
-private fun MapLayer.label() = when (this) {
-    MapLayer.STANDARD -> "标准"
-    MapLayer.SATELLITE_ROAD -> "卫星"
 }

@@ -23,6 +23,11 @@ import com.yangchengwei.easytrip.place.amap.AmapPlaceDataSource
 import com.yangchengwei.easytrip.place.ui.PlacePoolSheet
 import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
 import com.yangchengwei.easytrip.place.ui.PlaceSearchScreen
+import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
+import com.yangchengwei.easytrip.route.domain.RouteLegRepository
+import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
+import com.yangchengwei.easytrip.workspace.MapPreferences
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
@@ -52,6 +57,18 @@ const val TRIP_SEARCH_ROUTE = "trips/{tripId}/search"
 
 fun tripSearchRoute(tripId: String): String = "trips/$tripId/search"
 
+data class AppNavigationDependencies(
+    val savedPlaceRepository: SavedPlaceRepository,
+    val itineraryRepository: ItineraryRepository,
+    val routeLegRepository: RouteLegRepository,
+    val mapPreferences: MapPreferences,
+    val routeCoordinator: RouteRefreshCoordinator? = null,
+)
+
+fun interface AppNavigationObserver {
+    fun onNavigate(route: String)
+}
+
 @Composable
 fun AppNavigation() {
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as EasyTripApplication
@@ -65,33 +82,49 @@ fun AppNavigation(
     impacts: DeleteImpactProvider,
     initialDateMillis: Long? = null,
     application: EasyTripApplication? = null,
+    dependencies: AppNavigationDependencies? = null,
+    navigationObserver: AppNavigationObserver? = null,
+    mapHostFactory: ((android.content.Context) -> com.yangchengwei.easytrip.workspace.AmapMapHost)? = null,
 ) {
     val navController = rememberNavController()
+    val navigate: (String) -> Unit = { route ->
+        navigationObserver?.onNavigate(route)
+        navController.navigate(route)
+    }
     NavHost(navController, startDestination = TRIP_LIST_ROUTE) {
         composable(TRIP_LIST_ROUTE) {
             val model: TripListViewModel = viewModel(factory = TripListViewModel.Factory(service, repository, impacts))
             TripListScreen(
                 model,
-                { navController.navigate("trips/$it") },
-                { navController.navigate("trips/$it/settings") },
+                { navigate("trips/$it") },
+                { navigate("trips/$it/settings") },
                 initialDateMillis,
             )
         }
         composable(TRIP_WORKSPACE_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->
             val id = checkNotNull(entry.arguments?.getString("tripId"))
-            if (application == null) Column { Text("旅行工作区 $id"); Button(onClick = { navController.navigate("trips/$id/settings") }) { Text("设置") } }
+            val workspaceDependencies = dependencies ?: application?.let {
+                AppNavigationDependencies(
+                    it.savedPlaceRepository,
+                    it.itineraryRepository,
+                    it.routeLegRepository,
+                    it.mapPreferences,
+                    it.routeCoordinatorOrNull(),
+                )
+            }
+            if (workspaceDependencies == null) Column { Text("旅行工作区 $id"); Button(onClick = { navigate("trips/$id/settings") }) { Text("设置") } }
             else {
                 var source by remember {
                     mutableStateOf(
-                        application.amapConsentToken?.takeIf { it.isActive() }?.let { AmapPlaceDataSource(application, it) },
+                        application?.amapConsentToken?.takeIf { it.isActive() }?.let { AmapPlaceDataSource(application, it) },
                     )
                 }
-                var showConsent by remember { mutableStateOf(!application.amapPrivacyDecided) }
+                var showConsent by remember { mutableStateOf(application?.amapPrivacyDecided == false) }
                 var policyRead by remember { mutableStateOf(false) }
-                var privacyReported by remember { mutableStateOf(application.amapPrivacyShown) }
-                val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, application.savedPlaceRepository, source))
+                var privacyReported by remember { mutableStateOf(application?.amapPrivacyShown == true) }
+                val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val placeState by placeModel.state.collectAsStateWithLifecycle()
-                val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, application.savedPlaceRepository, application.itineraryRepository, application.routeLegRepository, mapPreferences = application.mapPreferences))
+                val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
                 val workspaceState by workspaceModel.state.collectAsStateWithLifecycle()
                 val searchSelection by entry.savedStateHandle
                     .getStateFlow<com.yangchengwei.easytrip.workspace.SearchSelectionPayload?>(SEARCH_SELECTION_RESULT, null)
@@ -101,30 +134,30 @@ fun AppNavigation(
                         consumeSearchSelection(entry.savedStateHandle, workspaceModel::focusSearchResult)
                     }
                 }
-                val token = application.amapConsentToken?.takeIf { it.isActive() }
+                val token = application?.amapConsentToken?.takeIf { it.isActive() }
                 val itineraryModel: DayItineraryViewModel = viewModel(
                     factory = DayItineraryViewModel.Factory(
                         id,
                         repository,
-                        application.itineraryRepository,
-                        application.routeLegRepository,
-                        application.routeCoordinatorOrNull(),
-                        application.savedPlaceRepository.observePlaces(id, emptySet()),
+                        workspaceDependencies.itineraryRepository,
+                        workspaceDependencies.routeLegRepository,
+                        workspaceDependencies.routeCoordinator,
+                        workspaceDependencies.savedPlaceRepository.observePlaces(id, emptySet()),
                         workspaceModel.selectedDayId,
                     ),
                 )
                 LaunchedEffect(source) {
                     placeModel.setSearchSource(source)
-                    itineraryModel.setRouteCoordinator(application.routeCoordinatorOrNull())
-                    if (source != null) application.startRouteCoordinator()
+                    itineraryModel.setRouteCoordinator(workspaceDependencies.routeCoordinator)
+                    if (source != null) application?.startRouteCoordinator()
                 }
                 TripWorkspaceScreen(
                     workspaceModel,
                     token,
                     navController::popBackStack,
-                    { navController.navigate("trips/$id/settings") },
-                    { showConsent = true; policyRead = false },
-                    { navController.navigate(tripSearchRoute(id)) },
+                    { navigate("trips/$id/settings") },
+                    { if (application != null) { showConsent = true; policyRead = false } },
+                    { navigate(tripSearchRoute(id)) },
                     { PlacePoolSheet(placeModel, Modifier.fillMaxWidth(), showSearch = false) },
                     { DayItinerarySheet(itineraryModel, Modifier.fillMaxWidth()) },
                     isPoiSaved = workspaceState.selectedMapPoi?.poiId in placeState.savedPoiIds,
@@ -134,8 +167,9 @@ fun AppNavigation(
                         workspaceModel.retainViewportForPlaceCardCollection()
                         placeModel.toggleCollection(candidate)
                     },
+                    mapHostFactory = mapHostFactory ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
                 )
-                if (showConsent) {
+                if (showConsent && application != null) {
                     SideEffect {
                         application.reportAmapPrivacyShown()
                         privacyReported = true
