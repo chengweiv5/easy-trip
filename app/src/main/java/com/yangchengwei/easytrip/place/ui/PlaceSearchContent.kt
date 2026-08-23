@@ -239,9 +239,23 @@ private fun SearchMessage(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
-        icon()
+        Box(
+            Modifier.then(
+                if (testTagPrefix == null) Modifier else Modifier.testTag("$testTagPrefix-icon"),
+            ),
+        ) {
+            icon()
+        }
         Spacer(Modifier.height(14.dp))
-        Text(title, color = SearchPrimaryDark, fontSize = 19.sp, fontWeight = FontWeight.Bold)
+        Text(
+            title,
+            Modifier.then(
+                if (testTagPrefix == null) Modifier else Modifier.testTag("$testTagPrefix-title"),
+            ),
+            color = SearchPrimaryDark,
+            fontSize = 19.sp,
+            fontWeight = FontWeight.Bold,
+        )
         Spacer(Modifier.height(8.dp))
         Text(
             message,

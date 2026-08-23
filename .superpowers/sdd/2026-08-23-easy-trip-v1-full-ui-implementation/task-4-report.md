@@ -100,6 +100,16 @@ Fix round GREEN 验证：
 - RED：新增测试在旧生产代码中因缺少 `place-search-result-row-poi-1` 等稳定布局节点失败。
 - GREEN：补充仅用于布局定位的 test tags 后，`PlaceSearchContentTest` 6/6 通过；生产布局无需尺寸调整。
 
+## Fix round 3
+
+补齐原 Minor #6 剩余的相邻节点与双轴触控覆盖：
+
+- Empty 和 NetworkFailure 为图标、标题增加纯定位 test tags；未修改尺寸、间距或状态行为。
+- 在 280dp / 2× 字体下读取图标、标题、说明、动作的真实 bounds，逐对断言图标—标题、标题—说明、说明—动作不相交，并断言每个节点四边均位于 Surface 内。
+- 最小触控 helper 同时断言宽度和高度均至少 48dp，覆盖 Results 收藏动作、Empty 清空搜索和 NetworkFailure 重新搜索。
+- RED：旧生产代码因缺少 `place-search-empty-icon` 定位节点失败。
+- GREEN：增加图标与标题纯 test tags 后，`PlaceSearchContentTest` 6/6 通过；生产布局无需调整。
+
 ## Graphify
 
 已运行 `graphify update .`。`graphify-out` 生成物未纳入 Task 4 提交。
