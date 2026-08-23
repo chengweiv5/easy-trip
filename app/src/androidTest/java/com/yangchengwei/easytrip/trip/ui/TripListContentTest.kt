@@ -3,7 +3,9 @@ package com.yangchengwei.easytrip.trip.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -32,12 +34,28 @@ class TripListContentTest {
     @Test fun emptyListShowsDesignedHeaderIllustrationAndCompactCreateAction() {
         setContent(TripListPageState.Empty)
 
-        compose.onNodeWithText("把旅程整理好，再从容出发").assertIsDisplayed()
+        compose.onNodeWithText("周末，去远一点").assertIsDisplayed()
         compose.onNodeWithContentDescription("个人中心").assertIsDisplayed()
         compose.onNodeWithContentDescription("旅行行李插画").assertIsDisplayed()
         compose.onNodeWithText("还没有旅行计划").assertIsDisplayed()
         compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(220.dp)
         compose.onAllNodesWithTag("create-trip").assertCountEquals(1)
+    }
+
+    @Test fun profileMenuInvokesCallbackExactlyOnce() {
+        var clicks = 0
+        compose.setContent {
+            EasyTripTheme {
+                TripListContent(
+                    state = TripListUiState(page = TripListPageState.Empty),
+                    onAction = {},
+                    onProfile = { clicks++ },
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("个人中心").performClick()
+        assertEquals(1, clicks)
     }
 
     @Test fun emptyStateRendersAndOpensCreate() {
@@ -61,8 +79,8 @@ class TripListContentTest {
         compose.onNodeWithTag("trip-list-title").assertIsDisplayed()
         compose.onNodeWithTag("primary-trip-trip-1").assertIsDisplayed()
         compose.onNodeWithText("其他旅行").assertIsDisplayed()
-        compose.onNodeWithTag("trip-settings-trip-2").assertIsDisplayed()
-        compose.onNodeWithTag("trip-delete-trip-2").assertIsDisplayed()
+        compose.onNodeWithTag("other-trip-trip-2").assertIsDisplayed().assertHeightIsEqualTo(72.dp)
+        compose.onNodeWithText("待定日期 · 自驾").assertIsDisplayed()
     }
 
     @Test fun longTripNameAndLargeFontRemainScrollable() {
@@ -102,6 +120,12 @@ class TripListContentTest {
             }
         }
 
+        compose.onNodeWithTag("metadata-days-trip-long", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("metadata-mode-trip-long", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
+        val daysBounds = compose.onNodeWithTag("metadata-days-trip-long", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val modeBounds = compose.onNodeWithTag("metadata-mode-trip-long", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertEquals(true, daysBounds.left >= 0.dp && daysBounds.right <= 280.dp)
+        assertEquals(true, modeBounds.left >= 0.dp && modeBounds.right <= 280.dp)
         compose.onNodeWithTag("trip-settings-trip-long").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("trip-delete-trip-long").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("create-trip").performScrollTo().assertIsDisplayed()

@@ -14,6 +14,7 @@ fun TripListScreen(
     onCreateTrip: () -> Unit,
     onWorkspace: (String) -> Unit,
     onSettings: (String) -> Unit,
+    onProfile: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
@@ -32,6 +33,7 @@ fun TripListScreen(
         onAction = { action ->
             if (action == TripListAction.CreateTrip) onCreateTrip() else viewModel.onAction(action)
         },
+        onProfile = onProfile,
     )
     state.deleteConfirmation?.let { confirmation ->
         ConfirmationDialog(

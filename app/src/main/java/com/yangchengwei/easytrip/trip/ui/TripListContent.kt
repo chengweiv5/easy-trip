@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -26,6 +27,9 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -47,6 +51,7 @@ fun TripListContent(
     state: TripListUiState,
     onAction: (TripListAction) -> Unit,
     modifier: Modifier = Modifier,
+    onProfile: () -> Unit = {},
 ) {
     Scaffold(modifier = modifier, containerColor = MaterialTheme.colorScheme.background) { padding ->
         LazyColumn(
@@ -54,7 +59,7 @@ fun TripListContent(
             contentPadding = PaddingValues(start = 20.dp, top = 18.dp, end = 20.dp, bottom = 24.dp),
             verticalArrangement = Arrangement.spacedBy(24.dp),
         ) {
-            item { TripListHeader() }
+            item { TripListHeader(onProfile) }
             when (val page = state.page) {
                 TripListPageState.Loading -> item { InlineStatus("正在加载旅行") }
                 TripListPageState.Empty -> item {
@@ -72,7 +77,7 @@ fun TripListContent(
                     if (page.otherTrips.isNotEmpty()) {
                         item { Text("其他旅行", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) }
                         items(page.otherTrips, key = TripCardUiModel::id) { trip ->
-                            TripCard(trip, onAction, primary = false)
+                            CompactTripRow(trip) { onAction(TripListAction.OpenTrip(trip.id)) }
                         }
                     }
                     item {
@@ -90,14 +95,15 @@ fun TripListContent(
 }
 
 @Composable
-private fun TripListHeader() {
+private fun TripListHeader(onProfile: () -> Unit) {
     Row(Modifier.fillMaxWidth().height(69.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text("周末，去远一点", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             Text("我的旅行", modifier = Modifier.testTag("trip-list-title"), style = MaterialTheme.typography.headlineLarge)
-            Text("把旅程整理好，再从容出发", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
         }
         Surface(
-            modifier = Modifier.size(48.dp).semantics { contentDescription = "个人中心" },
+            modifier = Modifier.size(48.dp).semantics { contentDescription = "个人中心" }
+                .clickable(role = Role.Button, onClick = onProfile),
             shape = CircleShape,
             color = EasyTripSurfaceSoft,
             contentColor = MaterialTheme.colorScheme.primary,
@@ -114,14 +120,7 @@ private fun EmptyTrips(onCreate: () -> Unit) {
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
         Spacer(Modifier.height(124.dp))
-        Surface(
-            modifier = Modifier.size(56.dp).semantics { contentDescription = "旅行行李插画" },
-            shape = RoundedCornerShape(16.dp),
-            color = EasyTripSurfaceSoft,
-            contentColor = MaterialTheme.colorScheme.primary,
-        ) {
-            Box(contentAlignment = Alignment.Center) { Text("▣", fontSize = 28.sp, fontWeight = FontWeight.Bold) }
-        }
+        LuggageIllustration()
         Spacer(Modifier.height(20.dp))
         Text("还没有旅行计划", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
         Spacer(Modifier.height(8.dp))
@@ -137,6 +136,46 @@ private fun EmptyTrips(onCreate: () -> Unit) {
             onClick = onCreate,
             modifier = Modifier.width(220.dp).testTag("create-trip"),
         ) { Text("创建旅行") }
+    }
+}
+
+@Composable
+private fun LuggageIllustration() {
+    val color = MaterialTheme.colorScheme.primary
+    Canvas(Modifier.size(56.dp).semantics { contentDescription = "旅行行李插画" }) {
+        val stroke = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        drawRoundRect(color, topLeft = androidx.compose.ui.geometry.Offset(size.width * .2f, size.height * .28f), size = androidx.compose.ui.geometry.Size(size.width * .6f, size.height * .58f), cornerRadius = androidx.compose.ui.geometry.CornerRadius(8.dp.toPx()), style = stroke)
+        val handle = Path().apply {
+            moveTo(size.width * .38f, size.height * .28f)
+            lineTo(size.width * .38f, size.height * .16f)
+            lineTo(size.width * .62f, size.height * .16f)
+            lineTo(size.width * .62f, size.height * .28f)
+        }
+        drawPath(handle, color, style = stroke)
+        drawLine(color, androidx.compose.ui.geometry.Offset(size.width * .38f, size.height * .38f), androidx.compose.ui.geometry.Offset(size.width * .38f, size.height * .74f), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+        drawLine(color, androidx.compose.ui.geometry.Offset(size.width * .62f, size.height * .38f), androidx.compose.ui.geometry.Offset(size.width * .62f, size.height * .74f), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+        drawCircle(color, 2.dp.toPx(), androidx.compose.ui.geometry.Offset(size.width * .32f, size.height * .91f))
+        drawCircle(color, 2.dp.toPx(), androidx.compose.ui.geometry.Offset(size.width * .68f, size.height * .91f))
+    }
+}
+
+@Composable
+private fun CompactTripRow(trip: TripCardUiModel, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier.fillMaxWidth().height(72.dp).testTag("other-trip-${trip.id}")
+            .semantics { contentDescription = "打开旅行 ${trip.name}" }
+            .clickable(role = Role.Button, onClick = onClick),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(14.dp),
+    ) {
+        Surface(Modifier.size(48.dp), RoundedCornerShape(12.dp), EasyTripSurfaceSoft) {
+            Box(contentAlignment = Alignment.Center) { Text("旅", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold) }
+        }
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(trip.name, style = MaterialTheme.typography.titleMedium, maxLines = 1)
+            Text("${trip.dateLabel ?: "待定日期"} · ${trip.travelModeLabel}", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall, maxLines = 1)
+        }
+        Text("›", color = MaterialTheme.colorScheme.primary, fontSize = 24.sp)
     }
 }
 
@@ -158,9 +197,9 @@ private fun TripCard(trip: TripCardUiModel, onAction: (TripListAction) -> Unit, 
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(trip.name, style = if (primary) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleLarge)
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    TripMetadata(trip.dayCountLabel, primary)
-                    TripMetadata(trip.travelModeLabel, primary)
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    TripMetadata(trip.dayCountLabel, primary, Modifier.testTag("metadata-days-${trip.id}"))
+                    TripMetadata(trip.travelModeLabel, primary, Modifier.testTag("metadata-mode-${trip.id}"))
                 }
                 trip.dateLabel?.let { TripMetadata(it, primary) }
             }
@@ -179,8 +218,9 @@ private fun TripCard(trip: TripCardUiModel, onAction: (TripListAction) -> Unit, 
 }
 
 @Composable
-private fun TripMetadata(label: String, primary: Boolean) {
+private fun TripMetadata(label: String, primary: Boolean, modifier: Modifier = Modifier) {
     Surface(
+        modifier = modifier,
         shape = RoundedCornerShape(8.dp),
         color = if (primary) Color.White.copy(alpha = 0.14f) else EasyTripSurfaceSoft,
         contentColor = if (primary) Color.White else MaterialTheme.colorScheme.onSurface,

@@ -6,9 +6,10 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,6 +22,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -42,53 +44,59 @@ fun ConfirmationDialog(
         properties = DialogProperties(usePlatformDefaultWidth = false),
     ) {
         Surface(
-            modifier = modifier.width(334.dp),
+            modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp).widthIn(max = 334.dp).heightIn(max = 640.dp),
             shape = RoundedCornerShape(18.dp),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 0.dp,
             shadowElevation = 6.dp,
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = 22.dp, vertical = 24.dp).verticalScroll(rememberScrollState()),
+                modifier = Modifier.padding(horizontal = 22.dp, vertical = 20.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Surface(
-                    modifier = Modifier.size(52.dp),
-                    shape = CircleShape,
-                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
-                    contentColor = MaterialTheme.colorScheme.error,
+                Column(
+                    modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        Text("!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    Surface(
+                        modifier = Modifier.size(52.dp),
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                        contentColor = MaterialTheme.colorScheme.error,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            Text("!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                        }
                     }
-                }
-                Text(model.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
-                Text(model.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = EasyTripBackground) {
-                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                        ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error)
-                        ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.primary)
+                    Text(model.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(model.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = EasyTripBackground) {
+                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                            ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error)
+                            ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.primary)
+                        }
                     }
+                    errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                 }
-                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     EasyTripSecondaryButton(
                         onClick = onDismiss,
                         enabled = confirmEnabled,
-                        modifier = Modifier.weight(1f).height(44.dp),
+                        modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-dismiss"),
                     ) { Text(model.dismissLabel) }
                     if (model.destructive) {
                         EasyTripDangerButton(
                             onClick = onConfirm,
                             enabled = confirmEnabled,
-                            modifier = Modifier.weight(1f).height(44.dp),
+                            modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-confirm"),
                         ) { Text(model.confirmLabel) }
                     } else {
                         EasyTripPrimaryButton(
                             onClick = onConfirm,
                             enabled = confirmEnabled,
-                            modifier = Modifier.weight(1f).height(44.dp),
+                            modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-confirm"),
                         ) { Text(model.confirmLabel) }
                     }
                 }

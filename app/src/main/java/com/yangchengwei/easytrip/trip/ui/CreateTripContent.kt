@@ -4,6 +4,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -93,7 +94,7 @@ fun CreateTripContent(
                 .padding(horizontal = 20.dp, vertical = 18.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
-        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        Row(Modifier.fillMaxWidth().height(58.dp).testTag("create-header"), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(12.dp)) {
             Surface(
                 modifier = Modifier.size(40.dp).clickable(role = Role.Button) { onAction(CreateTripAction.Back) },
                 shape = CircleShape,
@@ -106,7 +107,7 @@ fun CreateTripContent(
             }
         }
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            StepNumber("1", true)
+            StepNumber("1", true, Modifier.testTag("create-step-1"))
             Text("基本信息", style = MaterialTheme.typography.labelMedium)
             Spacer(Modifier.width(28.dp).border(0.5.dp, EasyTripBorder))
             StepNumber("2", false)
@@ -118,12 +119,16 @@ fun CreateTripContent(
                 OutlinedTextField(
                     value = state.name,
                     onValueChange = { onAction(CreateTripAction.NameChanged(it)) },
-                    modifier = Modifier.fillMaxWidth().testTag("create-name"),
+                    modifier = Modifier.fillMaxWidth().height(52.dp).testTag("create-name"),
                     placeholder = { Text("例如：杭州 · 春日慢游") },
                     isError = state.nameError != null,
-                    supportingText = { Text(state.nameError ?: "一个容易辨认的名称，稍后可以修改") },
                     enabled = enabled,
                     singleLine = true,
+                )
+                Text(
+                    state.nameError ?: "一个容易辨认的名称，稍后可以修改",
+                    color = if (state.nameError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                    style = MaterialTheme.typography.bodySmall,
                 )
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -131,20 +136,21 @@ fun CreateTripContent(
                 OutlinedTextField(
                     value = state.dayCount,
                     onValueChange = { onAction(CreateTripAction.DayCountChanged(it)) },
-                    modifier = Modifier.fillMaxWidth().testTag("create-day-count"),
+                    modifier = Modifier.fillMaxWidth().height(52.dp).testTag("create-day-count"),
                     placeholder = { Text("至少 1 天") },
                     isError = state.dayCountError != null,
-                    supportingText = state.dayCountError?.let { message -> { Text(message) } },
                     enabled = enabled,
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 )
+                state.dayCountError?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("出行日期", style = MaterialTheme.typography.labelLarge)
                 Row(
                     Modifier
                         .fillMaxWidth()
+                        .height(66.dp)
                         .selectableGroup()
                         .testTag("create-date-control")
                         .then(if (state.dateError != null) Modifier.semantics { error(state.dateError) } else Modifier),
@@ -164,14 +170,20 @@ fun CreateTripContent(
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("出行方式", style = MaterialTheme.typography.labelLarge)
-                Row(Modifier.fillMaxWidth().selectableGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth().height(82.dp).selectableGroup().testTag("create-mode-options"), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     SelectablePill(state.travelMode == TravelMode.FLEXIBLE, { onAction(CreateTripAction.TravelModeChanged(TravelMode.FLEXIBLE)) }, { Text("灵活") }, Modifier.weight(1f).testTag("create-mode-FLEXIBLE"), enabled, Role.RadioButton)
                     SelectablePill(state.travelMode == TravelMode.SELF_DRIVE, { onAction(CreateTripAction.TravelModeChanged(TravelMode.SELF_DRIVE)) }, { Text("自驾") }, Modifier.weight(1f).testTag("create-mode-SELF_DRIVE"), enabled, Role.RadioButton)
                 }
             }
         }
-            Surface(color = EasyTripSurfaceSoft, shape = RoundedCornerShape(10.dp)) {
-                Text("创建后先收藏感兴趣的地点，再从地点池添加到每天的行程。", modifier = Modifier.padding(12.dp), color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodySmall)
+            Surface(
+                modifier = Modifier.fillMaxWidth().height(40.dp).testTag("create-planning-tip"),
+                color = EasyTripSurfaceSoft,
+                shape = RoundedCornerShape(10.dp),
+            ) {
+                Box(Modifier.padding(horizontal = 12.dp), contentAlignment = Alignment.CenterStart) {
+                    Text("创建后先收藏感兴趣的地点，再从地点池添加到每天的行程。", color = MaterialTheme.colorScheme.secondary, style = MaterialTheme.typography.bodySmall)
+                }
             }
         }
     }
@@ -194,8 +206,10 @@ fun CreateTripContent(
 }
 
 @Composable
-private fun StepNumber(value: String, active: Boolean) {
-    Surface(shape = CircleShape, color = if (active) MaterialTheme.colorScheme.primary else EasyTripSurfaceSoft) {
-        Text(value, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp), color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)
+private fun StepNumber(value: String, active: Boolean, modifier: Modifier = Modifier) {
+    Surface(modifier.size(22.dp), shape = CircleShape, color = if (active) MaterialTheme.colorScheme.primary else EasyTripSurfaceSoft) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(value, color = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.labelSmall)
+        }
     }
 }

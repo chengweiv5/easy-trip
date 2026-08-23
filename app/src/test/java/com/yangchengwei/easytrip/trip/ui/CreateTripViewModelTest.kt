@@ -38,6 +38,21 @@ class CreateTripViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun dayCountStartsEmptyAndUpdatesNaturally() = runTest(dispatcher) {
+        val viewModel = model(FakeRepository())
+
+        assertEquals("", viewModel.state.value.dayCount)
+        viewModel.onAction(CreateTripAction.DayCountChanged("3"))
+
+        assertEquals("3", viewModel.state.value.dayCount)
+    }
+
+    @Test fun savedStateWithoutDayCountRestoresEmptyValue() = runTest(dispatcher) {
+        val viewModel = model(FakeRepository(), SavedStateHandle(mapOf("trip.create.name" to "京都")))
+
+        assertEquals("", viewModel.state.value.dayCount)
+    }
+
     @Test fun blankNameDoesNotCreateTrip() = runTest(dispatcher) {
         val repository = FakeRepository()
         val viewModel = model(repository)

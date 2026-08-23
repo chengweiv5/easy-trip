@@ -8,12 +8,14 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
@@ -48,7 +50,13 @@ class CreateTripContentTest {
         compose.onNodeWithText("出行日期").assertIsDisplayed()
         compose.onNodeWithText("出行方式").assertIsDisplayed()
         compose.onNodeWithText("创建后先收藏感兴趣的地点，再从地点池添加到每天的行程。").assertIsDisplayed()
-        compose.onNodeWithTag("create-submit").assertIsDisplayed()
+        compose.onNodeWithTag("create-header").assertHeightIsEqualTo(58.dp)
+        compose.onNodeWithTag("create-step-1").assertHeightIsEqualTo(22.dp)
+        compose.onNodeWithTag("create-name").assertHeightIsEqualTo(52.dp)
+        compose.onNodeWithTag("create-date-control").assertHeightIsEqualTo(66.dp)
+        compose.onNodeWithTag("create-mode-options").assertHeightIsEqualTo(82.dp)
+        compose.onNodeWithTag("create-planning-tip").assertHeightIsEqualTo(40.dp)
+        compose.onNodeWithTag("create-submit").assertIsDisplayed().assertHeightIsEqualTo(52.dp)
     }
 
     @Test fun dayCountStartsEmptyAndAcceptsNaturalSingleDigitInput() {
@@ -80,18 +88,18 @@ class CreateTripContentTest {
         compose.onNodeWithTag("create-time-DATED").performClick()
         pressBack()
         compose.onNodeWithTag("create-submit").performClick()
-        compose.onNodeWithText("请输入旅行名称").assertIsDisplayed()
-        compose.onNodeWithText("请输入至少 1 天").assertIsDisplayed()
-        compose.onNodeWithText("请选择开始日期").assertIsDisplayed()
+        compose.onNodeWithText("请输入旅行名称").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("请输入至少 1 天").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("create-date-error").performScrollTo().assertIsDisplayed()
 
-        compose.onNodeWithTag("create-name").performTextInput("东京")
+        compose.onNodeWithTag("create-name").performScrollTo().performTextInput("东京")
         compose.onNodeWithText("请输入旅行名称").assertDoesNotExist()
-        compose.onNodeWithText("请输入至少 1 天").assertIsDisplayed()
-        compose.onNodeWithText("请选择开始日期").assertIsDisplayed()
+        compose.onNodeWithText("请输入至少 1 天").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("create-date-error").performScrollTo().assertIsDisplayed()
 
-        compose.onNodeWithTag("create-day-count").performTextInput("3")
+        compose.onNodeWithTag("create-day-count").performScrollTo().performTextInput("3")
         compose.onNodeWithText("请输入至少 1 天").assertDoesNotExist()
-        compose.onNodeWithText("请选择开始日期").assertIsDisplayed()
+        compose.onNodeWithTag("create-date-error").performScrollTo().assertIsDisplayed()
 
         compose.onNodeWithTag("create-time-DRAFT").performClick()
         compose.onNodeWithTag("create-time-DATED").performClick()
