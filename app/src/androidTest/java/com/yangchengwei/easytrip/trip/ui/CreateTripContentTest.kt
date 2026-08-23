@@ -51,6 +51,24 @@ class CreateTripContentTest {
         compose.onNodeWithTag("create-submit").assertIsDisplayed()
     }
 
+    @Test fun dayCountStartsEmptyAndAcceptsNaturalSingleDigitInput() {
+        var state = CreateTripUiState()
+        compose.setContent {
+            EasyTripTheme {
+                CreateTripContent(
+                    state = state,
+                    onAction = { action ->
+                        if (action is CreateTripAction.DayCountChanged) state = state.copy(dayCount = action.value)
+                    },
+                )
+            }
+        }
+
+        assertEquals("", state.dayCount)
+        compose.onNodeWithTag("create-day-count").performTextInput("3")
+        assertEquals("3", state.dayCount)
+    }
+
     @Test fun viewModelValidationErrorsClearOnlyWhenTheirFieldIsCorrected() {
         val repository = RecordingTripRepository()
         val viewModel = CreateTripViewModel(TripService(repository), SavedStateHandle()) { "trip-1" }

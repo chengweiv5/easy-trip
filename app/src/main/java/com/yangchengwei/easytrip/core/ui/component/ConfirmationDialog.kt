@@ -1,15 +1,33 @@
 package com.yangchengwei.easytrip.core.ui.component
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripBackground
+
 @Composable
 fun ConfirmationDialog(
     model: ConfirmationUiModel,
@@ -19,50 +37,70 @@ fun ConfirmationDialog(
     confirmEnabled: Boolean = true,
     errorMessage: String? = null,
 ) {
-    AlertDialog(
-        modifier = modifier,
+    Dialog(
         onDismissRequest = onDismiss,
-        title = { Text(model.title) },
-        text = {
+        properties = DialogProperties(usePlatformDefaultWidth = false),
+    ) {
+        Surface(
+            modifier = modifier.width(334.dp),
+            shape = RoundedCornerShape(18.dp),
+            color = MaterialTheme.colorScheme.surface,
+            tonalElevation = 0.dp,
+            shadowElevation = 6.dp,
+        ) {
             Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier.padding(horizontal = 22.dp, vertical = 24.dp).verticalScroll(rememberScrollState()),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Text(model.message)
-                errorMessage?.let {
-                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                Surface(
+                    modifier = Modifier.size(52.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
+                    contentColor = MaterialTheme.colorScheme.error,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Text("!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                    }
                 }
-                ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error)
-                ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.onSurface)
-            }
-        },
-        confirmButton = {
-            if (model.destructive) {
-                EasyTripDangerButton(onClick = onConfirm, enabled = confirmEnabled) {
-                    Text(model.confirmLabel)
+                Text(model.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                Text(model.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
+                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = EasyTripBackground) {
+                    Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                        ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error)
+                        ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.primary)
+                    }
                 }
-            } else {
-                EasyTripPrimaryButton(onClick = onConfirm, enabled = confirmEnabled) {
-                    Text(model.confirmLabel)
+                errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    EasyTripSecondaryButton(
+                        onClick = onDismiss,
+                        enabled = confirmEnabled,
+                        modifier = Modifier.weight(1f).height(44.dp),
+                    ) { Text(model.dismissLabel) }
+                    if (model.destructive) {
+                        EasyTripDangerButton(
+                            onClick = onConfirm,
+                            enabled = confirmEnabled,
+                            modifier = Modifier.weight(1f).height(44.dp),
+                        ) { Text(model.confirmLabel) }
+                    } else {
+                        EasyTripPrimaryButton(
+                            onClick = onConfirm,
+                            enabled = confirmEnabled,
+                            modifier = Modifier.weight(1f).height(44.dp),
+                        ) { Text(model.confirmLabel) }
+                    }
                 }
             }
-        },
-        dismissButton = {
-            EasyTripSecondaryButton(onClick = onDismiss, enabled = confirmEnabled) {
-                Text(model.dismissLabel)
-            }
-        },
-    )
+        }
+    }
 }
 
 @Composable
-private fun ConfirmationSection(
-    title: String,
-    items: List<String>,
-    color: androidx.compose.ui.graphics.Color,
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        Text(title, style = MaterialTheme.typography.titleSmall, color = color)
-        items.forEach { Text(it, style = MaterialTheme.typography.bodyMedium) }
+private fun ConfirmationSection(title: String, items: List<String>, color: Color) {
+    Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
+        Text(title, style = MaterialTheme.typography.labelMedium, color = color, fontWeight = FontWeight.SemiBold)
+        items.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
     }
 }

@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.trip.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -28,10 +29,14 @@ class TripListContentTest {
         compose.onNodeWithText("正在加载旅行").assertIsDisplayed()
     }
 
-    @Test fun emptyListShowsSingleCreateAction() {
+    @Test fun emptyListShowsDesignedHeaderIllustrationAndCompactCreateAction() {
         setContent(TripListPageState.Empty)
 
+        compose.onNodeWithText("把旅程整理好，再从容出发").assertIsDisplayed()
+        compose.onNodeWithContentDescription("个人中心").assertIsDisplayed()
+        compose.onNodeWithContentDescription("旅行行李插画").assertIsDisplayed()
         compose.onNodeWithText("还没有旅行计划").assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(220.dp)
         compose.onAllNodesWithTag("create-trip").assertCountEquals(1)
     }
 

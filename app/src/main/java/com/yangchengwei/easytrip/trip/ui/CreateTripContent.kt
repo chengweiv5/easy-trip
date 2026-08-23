@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawingPadding
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
@@ -72,7 +73,7 @@ fun CreateTripContent(
                 state.submitError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 EasyTripPrimaryButton(
                     onClick = { onAction(CreateTripAction.Submit) },
-                    modifier = Modifier.fillMaxWidth().testTag("create-submit"),
+                    modifier = Modifier.fillMaxWidth().height(52.dp).testTag("create-submit"),
                     enabled = enabled,
                 ) { Text(if (state.isSubmitting) "创建中…" else "继续") }
                 Text(

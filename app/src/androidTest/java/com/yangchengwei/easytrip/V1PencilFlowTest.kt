@@ -82,10 +82,10 @@ class V1PencilFlowTest {
             )
         }
 
-        compose.onNodeWithText("还没有旅行").assertIsDisplayed()
+        compose.onNodeWithText("还没有旅行计划").assertIsDisplayed()
         compose.onNodeWithTag("create-trip").performClick()
-        compose.onNodeWithText("旅行名称").performTextInput("杭州周末")
-        compose.onNodeWithText("天数").performTextInput("2")
+        compose.onNodeWithTag("create-name").performTextInput("杭州周末")
+        compose.onNodeWithTag("create-day-count").performTextInput("2")
         compose.onNodeWithTag("create-time-DATED").performClick()
         compose.onNodeWithTag("create-date-confirm").performClick()
         compose.onNodeWithTag("create-submit").performClick()
@@ -97,9 +97,9 @@ class V1PencilFlowTest {
             }
         }
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
-        compose.runOnIdle { assertEquals(listOf("trips/$tripId"), routes) }
+        compose.runOnIdle { assertEquals(listOf("trips/create", "trips/$tripId"), routes) }
         compose.waitForIdle()
-        compose.runOnIdle { assertEquals(listOf("trips/$tripId"), routes) }
+        compose.runOnIdle { assertEquals(listOf("trips/create", "trips/$tripId"), routes) }
 
         val saved = runBlocking { repository.observeTrip(tripId).first() }
         assertNotNull(saved)
@@ -109,7 +109,7 @@ class V1PencilFlowTest {
         compose.onNodeWithText("返回").performClick()
         compose.onNodeWithTag("trip-$tripId").assertIsDisplayed().performClick()
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
-        compose.runOnIdle { assertEquals(listOf("trips/$tripId", "trips/$tripId"), routes) }
+        compose.runOnIdle { assertEquals(listOf("trips/create", "trips/$tripId", "trips/$tripId"), routes) }
     }
 
     private class TestMapHost(context: Context) : AmapMapHost {

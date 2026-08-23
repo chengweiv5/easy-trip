@@ -5,7 +5,6 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.defaultMinSize
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
@@ -68,8 +67,10 @@ private fun EasyTripButton(
     }
     Surface(
         modifier = modifier
-            .defaultMinSize(minWidth = EasyTripTheme.sizes.buttonHeight)
-            .height(EasyTripTheme.sizes.buttonHeight)
+            .defaultMinSize(
+                minWidth = EasyTripTheme.sizes.buttonHeight,
+                minHeight = EasyTripTheme.sizes.buttonHeight,
+            )
             .clickable(
                 enabled = enabled,
                 role = Role.Button,
