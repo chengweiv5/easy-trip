@@ -66,6 +66,19 @@ fun TripWorkspaceRoute(
             )
         }
     }
+    LaunchedEffect(places.deleting) {
+        places.deleting?.let { place ->
+            viewModel.openOverlay(
+                WorkspaceOverlay.Confirmation(
+                    confirmation(
+                        title = "删除 ${place.name}？",
+                        message = "将同时删除 ${places.deletionUsageCount} 次行程安排及受影响路线。",
+                        confirmLabel = "确认删除地点",
+                    ),
+                ),
+            )
+        }
+    }
 
     BackHandler(onBack = ::leaveOrCloseOverlay)
     TripWorkspaceScreen(
@@ -101,12 +114,8 @@ fun TripWorkspaceRoute(
                 }
                 is PlacePoolAction.Delete -> {
                     dismissPendingDialogs()
+                    viewModel.closeOverlay()
                     dispatchPlace(action)
-                    viewModel.openOverlay(
-                        WorkspaceOverlay.Confirmation(
-                            confirmation("删除 ${action.place.name}？", "将同时删除行程安排及受影响路线。", "确认删除地点"),
-                        ),
-                    )
                 }
                 PlacePoolAction.DismissDialogs -> closeOverlay()
                 else -> dispatchPlace(action)

@@ -112,18 +112,7 @@ class TripWorkspaceViewModel(
     private val focusedPoiId = savedState.getStateFlow<String?>(FOCUSED_POI, null)
     private val selectedMarkerKey = MutableStateFlow<String?>(null)
     private val overlay = MutableStateFlow<WorkspaceOverlay>(WorkspaceOverlay.None)
-    private val selectedMapPoi = MutableStateFlow(
-        savedState.get<String>(MAP_POI_NAME)?.let { name ->
-            val latitude = savedState.get<Double>(MAP_POI_LATITUDE) ?: return@let null
-            val longitude = savedState.get<Double>(MAP_POI_LONGITUDE) ?: return@let null
-            MapPoiUi(
-                poiId = savedState[MAP_POI_ID],
-                name = name,
-                address = savedState[MAP_POI_ADDRESS] ?: "",
-                point = GeoPoint(latitude, longitude),
-            )
-        },
-    )
+    private val selectedMapPoi = MutableStateFlow<MapPoiUi?>(null)
     private val restoredFocusPoint = savedState.get<Double>(FOCUSED_LATITUDE)?.let { latitude ->
         savedState.get<Double>(FOCUSED_LONGITUDE)?.let { longitude -> GeoPoint(latitude, longitude) }
     }
@@ -153,6 +142,7 @@ class TripWorkspaceViewModel(
     init {
         savedState[SECTION] = section.value.name
         restoredNavigation.itineraryScope?.let { savedState[ITINERARY_SCOPE] = encodeItineraryScope(it) }
+        clearStoredMapPoi()
         observeWorkspace()
     }
 
@@ -291,8 +281,14 @@ class TripWorkspaceViewModel(
     }
     fun selectMapLayer(value: MapLayer) { mapPreferences.setLayer(value) }
     fun setSheetLevel(value: WorkspaceSheetLevel) { savedState[SHEET] = value.name }
-    fun openOverlay(value: WorkspaceOverlay) { overlay.value = value }
-    fun closeOverlay() { overlay.value = WorkspaceOverlay.None }
+    fun openOverlay(value: WorkspaceOverlay) {
+        clearMapDetail()
+        overlay.value = value
+    }
+    fun closeOverlay() {
+        clearMapDetail()
+        overlay.value = WorkspaceOverlay.None
+    }
     fun handleBack(): Boolean {
         if (overlay.value == WorkspaceOverlay.None) return false
         closeOverlay()
@@ -307,24 +303,16 @@ class TripWorkspaceViewModel(
                 return
             }
         }
-        selectedMapPoi.value = null
-        clearStoredMapPoi()
-        selectedMarkerKey.value = key
         openOverlay(WorkspaceOverlay.PlaceDetail(stableOverlayId(key)))
+        selectedMarkerKey.value = key
     }
     fun dismissMarker() {
         selectedMarkerKey.value = null
         closeOverlay()
     }
     fun selectMapPoi(poi: MapPoiUi) {
-        selectedMarkerKey.value = null
-        savedState[MAP_POI_ID] = poi.poiId
-        savedState[MAP_POI_NAME] = poi.name
-        savedState[MAP_POI_ADDRESS] = poi.address
-        savedState[MAP_POI_LATITUDE] = poi.point.latitude
-        savedState[MAP_POI_LONGITUDE] = poi.point.longitude
-        selectedMapPoi.value = poi
         openOverlay(WorkspaceOverlay.PlaceDetail(stableOverlayId(poi.poiId ?: "${poi.point.latitude},${poi.point.longitude}")))
+        selectedMapPoi.value = poi
     }
     fun retainViewportForPlaceCardCollection() {
         selectedMapPoi.value?.let { viewportController.retainViewportForPlaceChange(it.point) }
@@ -335,6 +323,11 @@ class TripWorkspaceViewModel(
         closeOverlay()
     }
     private fun stableOverlayId(value: String): Long = value.hashCode().toLong() and 0xffffffffL
+    private fun clearMapDetail() {
+        selectedMapPoi.value = null
+        selectedMarkerKey.value = null
+        clearStoredMapPoi()
+    }
     private fun clearStoredMapPoi() {
         savedState[MAP_POI_ID] = null
         savedState[MAP_POI_NAME] = null

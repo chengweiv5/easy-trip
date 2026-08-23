@@ -58,6 +58,26 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(true, model.handleBack())
         advanceUntilIdle()
         assertEquals(WorkspaceOverlay.None, model.state.value.overlay)
+        assertNull(model.state.value.selectedMapPoi)
+    }
+
+    @Test fun restoredWorkspaceDropsTemporaryMapDetailPayload() = runTest(dispatcher) {
+        val handle = SavedStateHandle(
+            mapOf(
+                "workspace.mapPoi.id" to "stale-poi",
+                "workspace.mapPoi.name" to "旧地图地点",
+                "workspace.mapPoi.address" to "旧地址",
+                "workspace.mapPoi.latitude" to 39.9,
+                "workspace.mapPoi.longitude" to 116.4,
+            ),
+        )
+
+        val model = model(Trips(days("one")), handle)
+        advanceUntilIdle()
+
+        assertEquals(WorkspaceOverlay.None, model.state.value.overlay)
+        assertNull(model.state.value.selectedMapPoi)
+        assertNull(handle.get<String>("workspace.mapPoi.name"))
     }
 
     @Test fun openingOverlayReplacesCurrentOverlay() = runTest(dispatcher) {

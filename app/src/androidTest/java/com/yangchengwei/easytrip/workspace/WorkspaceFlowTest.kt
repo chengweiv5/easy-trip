@@ -40,6 +40,7 @@ import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flowOf
 import org.junit.Assert.assertEquals
@@ -80,6 +81,57 @@ class WorkspaceFlowTest {
         assertEquals(1, backCount)
         compose.onNodeWithText("返回").performClick()
         compose.waitUntil { backCount == 2 }
+    }
+
+    @Test fun mapDetailBackThenPlaceEditRendersNewTarget() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", EditingPlaces(), null)
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                placeViewModel = placeModel,
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+
+        compose.runOnIdle {
+            workspace.selectMapPoi(MapPoiUi("old-poi", "旧地图地点", "旧地址", GeoPoint(39.9, 116.4)))
+        }
+        compose.onNodeWithText("旧地图地点").assertIsDisplayed()
+        pressBack()
+        compose.waitUntil { workspace.state.value.selectedMapPoi == null }
+
+        compose.onNodeWithText("编辑").performClick()
+        compose.onNodeWithText("编辑 新编辑地点").assertIsDisplayed()
+        compose.onNodeWithText("旧地图地点").assertDoesNotExist()
+    }
+
+    @Test fun deleteConfirmationWaitsForReadyTargetAndConfirmsOnce() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = DelayedDeletePlaces()
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", repository, null)
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                placeViewModel = placeModel,
+            )
+        }
+        compose.waitUntil(5_000) { placeModel.state.value.search.savedPlaces.isNotEmpty() }
+        compose.onNodeWithTag("delete-place-saved").performClick()
+        compose.onNodeWithTag("confirmation-confirm").assertDoesNotExist()
+
+        compose.runOnIdle { repository.usage.complete(2) }
+        compose.waitUntil(5_000) { placeModel.state.value.deleting != null }
+        compose.onNodeWithTag("confirmation-confirm").assertIsDisplayed().performClick()
+        compose.waitUntil(5_000) { repository.deleteCalls == 1 }
+        assertEquals(1, repository.deleteCalls)
+        compose.onNodeWithTag("confirmation-confirm").assertDoesNotExist()
     }
 
     @Test fun mapPoiClickOpensCardBeforeCollectionAction() {
@@ -231,6 +283,30 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.COLLAPSED }
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed().performTouchInput { swipeUp() }
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.HALF }
+    }
+
+    private class EditingPlaces : SavedPlaceRepository {
+        private val place = SavedPlace("saved", "trip", "saved-poi", "新编辑地点", "新地址", GeoPoint(39.8, 116.3), "", emptyList())
+        override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
+        override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
+        override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("saved-poi"))
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
+    private class DelayedDeletePlaces : SavedPlaceRepository {
+        val usage = CompletableDeferred<Int>()
+        var deleteCalls = 0
+        private val place = SavedPlace("saved", "trip", "poi", "待删除地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
+        override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
+        override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("poi"))
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = usage.await()
+        override suspend fun deletePlaceAndReferences(placeId: String) { deleteCalls++ }
     }
 
     private fun consentToken(): com.yangchengwei.easytrip.amap.AmapConsentToken {
