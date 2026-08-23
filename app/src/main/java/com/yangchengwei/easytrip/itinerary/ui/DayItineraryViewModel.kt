@@ -162,6 +162,24 @@ class DayItineraryViewModel(
         mutable.value = mutable.value.copy(timingItemId = null, moveItemId = null, deleteItemId = null, modeLegId = null)
     }
 
+    fun dispatch(action: DayItineraryAction) {
+        when (action) {
+            is DayItineraryAction.AddPlace -> addPlace(action.placeId)
+            is DayItineraryAction.PreviewMove -> previewMove(action.itemId, action.target)
+            is DayItineraryAction.CommitMove -> commitMove(action.itemId, action.target)
+            is DayItineraryAction.RequestTiming -> requestTiming(action.itemId)
+            is DayItineraryAction.RequestCrossDay -> requestCrossDay(action.itemId)
+            is DayItineraryAction.RequestDelete -> requestDelete(action.itemId)
+            is DayItineraryAction.RequestMode -> requestMode(action.legId)
+            is DayItineraryAction.Retry -> retry(action.legId)
+            is DayItineraryAction.MoveToDay -> moveToDay(action.dayId)
+            is DayItineraryAction.SaveTiming -> saveTiming(action.time, action.minutes)
+            is DayItineraryAction.OverrideMode -> overrideMode(action.mode)
+            DayItineraryAction.ConfirmDelete -> confirmDelete()
+            DayItineraryAction.DismissDialogs -> dismissDialogs()
+        }
+    }
+
     private fun clearDay(selectedDayId: String? = null) {
         mutable.value = mutable.value.copy(
             selectedDayId = selectedDayId,

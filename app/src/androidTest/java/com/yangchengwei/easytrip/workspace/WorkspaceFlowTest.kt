@@ -15,6 +15,7 @@ import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso.pressBack
 import androidx.lifecycle.SavedStateHandle
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.TravelMode
@@ -47,6 +48,39 @@ import org.junit.Test
 
 class WorkspaceFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun routeBackClosesOverlayBeforeLeavingAndTopBackUsesSamePriority() {
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        var backCount = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = model,
+                consent = null,
+                onBack = { backCount++ },
+                onSettings = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                onPlaceAction = {},
+                itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                onItineraryAction = {},
+            )
+        }
+        compose.waitUntil(5_000) { model.pageState.value is TripWorkspacePageState.Ready }
+
+        compose.onNodeWithTag("layer-menu").performClick()
+        compose.waitUntil { model.state.value.overlay == WorkspaceOverlay.LayerMenu }
+        pressBack()
+        compose.waitUntil { model.state.value.overlay == WorkspaceOverlay.None }
+        assertEquals(0, backCount)
+        pressBack()
+        compose.waitUntil { backCount == 1 }
+
+        compose.onNodeWithTag("layer-menu").performClick()
+        compose.onNodeWithText("返回").performClick()
+        compose.waitUntil { model.state.value.overlay == WorkspaceOverlay.None }
+        assertEquals(1, backCount)
+        compose.onNodeWithText("返回").performClick()
+        compose.waitUntil { backCount == 2 }
+    }
 
     @Test fun mapPoiClickOpensCardBeforeCollectionAction() {
         val saved = SavedStateHandle()

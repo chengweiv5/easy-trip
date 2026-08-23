@@ -47,6 +47,19 @@ class TripWorkspaceNavigationStateTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun mapPlaceDetailParticipatesInExclusiveOverlayAndBack() = runTest(dispatcher) {
+        val model = model(Trips(days("one", "two")))
+        advanceUntilIdle()
+
+        model.selectMapPoi(MapPoiUi("poi", "故宫", "北京", GeoPoint(39.9, 116.4)))
+        advanceUntilIdle()
+
+        assertEquals(true, model.state.value.overlay is WorkspaceOverlay.PlaceDetail)
+        assertEquals(true, model.handleBack())
+        advanceUntilIdle()
+        assertEquals(WorkspaceOverlay.None, model.state.value.overlay)
+    }
+
     @Test fun openingOverlayReplacesCurrentOverlay() = runTest(dispatcher) {
         val model = model(Trips(days("one", "two")))
         advanceUntilIdle()

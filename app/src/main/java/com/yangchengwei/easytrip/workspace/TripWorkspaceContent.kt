@@ -43,7 +43,13 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.SelectablePill
+import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
+import com.yangchengwei.easytrip.itinerary.ui.DayItineraryContent
+import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.WorkspaceItineraryContent
+import com.yangchengwei.easytrip.place.ui.PlacePoolAction
+import com.yangchengwei.easytrip.place.ui.PlacePoolContent
+import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -55,16 +61,33 @@ fun TripWorkspaceContent(
     onAction: (TripWorkspaceAction) -> Unit,
     onPageRetry: () -> Unit = { onAction(TripWorkspaceAction.Retry) },
     onMapRetry: () -> Unit = { onAction(TripWorkspaceAction.Retry) },
-    placeContent: @Composable () -> Unit,
-    dayItineraryContent: @Composable () -> Unit,
+    placeState: PlacePoolUiState,
+    onPlaceAction: (PlacePoolAction) -> Unit,
+    itineraryState: DayItineraryUiState,
+    onItineraryAction: (DayItineraryAction) -> Unit,
     mapContent: @Composable BoxScope.() -> Unit,
+    placeContent: (@Composable () -> Unit)? = null,
+    dayItineraryContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     when (pageState) {
         TripWorkspacePageState.Loading -> WorkspacePageMessage("旅行加载中")
         TripWorkspacePageState.NotFound -> WorkspacePageMessage("旅行不存在", "返回旅行列表") { onAction(TripWorkspaceAction.Back) }
         is TripWorkspacePageState.Error -> WorkspacePageMessage(pageState.message, "重试", onPageRetry)
-        is TripWorkspacePageState.Ready -> WorkspaceReadyContent(pageState.content, mapState, onAction, onMapRetry, placeContent, dayItineraryContent, mapContent, modifier)
+        is TripWorkspacePageState.Ready -> WorkspaceReadyContent(
+            pageState.content,
+            mapState,
+            onAction,
+            onMapRetry,
+            placeState,
+            onPlaceAction,
+            itineraryState,
+            onItineraryAction,
+            mapContent,
+            placeContent,
+            dayItineraryContent,
+            modifier,
+        )
     }
 }
 
@@ -83,9 +106,13 @@ private fun WorkspaceReadyContent(
     mapState: WorkspaceMapState,
     onAction: (TripWorkspaceAction) -> Unit,
     onMapRetry: () -> Unit,
-    placeContent: @Composable () -> Unit,
-    dayItineraryContent: @Composable () -> Unit,
+    placeState: PlacePoolUiState,
+    onPlaceAction: (PlacePoolAction) -> Unit,
+    itineraryState: DayItineraryUiState,
+    onItineraryAction: (DayItineraryAction) -> Unit,
     mapContent: @Composable BoxScope.() -> Unit,
+    placeContent: (@Composable () -> Unit)?,
+    dayItineraryContent: (@Composable () -> Unit)?,
     modifier: Modifier,
 ) {
     val coroutineScope = rememberCoroutineScope()
@@ -118,13 +145,24 @@ private fun WorkspaceReadyContent(
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).testTag("workspace-sheet")) {
                 if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle"))
                 when (state.section) {
-                    WorkspaceSection.PLACE_POOL -> placeContent()
+                    WorkspaceSection.PLACE_POOL -> if (placeContent != null) placeContent() else PlacePoolContent(
+                        state = placeState,
+                        showSearch = false,
+                        onAction = onPlaceAction,
+                        showDialogs = false,
+                    )
                     WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
                         days = state.days,
                         selected = state.itineraryScope,
                         wholeTripDays = state.wholeTripDays,
                         onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
-                        dayContent = dayItineraryContent,
+                        dayContent = {
+                            if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
+                                state = itineraryState,
+                                onAction = onItineraryAction,
+                                showDialogs = false,
+                            )
+                        },
                     )
                 }
             }

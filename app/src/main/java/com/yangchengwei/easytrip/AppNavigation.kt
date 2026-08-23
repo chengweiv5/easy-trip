@@ -140,9 +140,7 @@ fun AppNavigation(
                 var policyRead by remember { mutableStateOf(false) }
                 var privacyReported by remember { mutableStateOf(application?.amapPrivacyShown == true) }
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
-                val placeState by placeModel.state.collectAsStateWithLifecycle()
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
-                val workspaceState by workspaceModel.state.collectAsStateWithLifecycle()
                 val searchSelection by entry.savedStateHandle
                     .getStateFlow<com.yangchengwei.easytrip.workspace.SearchSelectionPayload?>(SEARCH_SELECTION_RESULT, null)
                     .collectAsStateWithLifecycle()
@@ -169,21 +167,14 @@ fun AppNavigation(
                     if (source != null) application?.startRouteCoordinator()
                 }
                 TripWorkspaceRoute(
-                    workspaceModel,
-                    token,
-                    navController::popBackStack,
-                    { navigate("trips/$id/settings") },
-                    { if (application != null) { showConsent = true; policyRead = false } },
-                    { navigate(tripSearchRoute(id)) },
-                    { PlacePoolSheet(placeModel, Modifier.fillMaxWidth(), showSearch = false) },
-                    { DayItinerarySheet(itineraryModel, Modifier.fillMaxWidth()) },
-                    isPoiSaved = workspaceState.selectedMapPoi?.poiId in placeState.savedPoiIds,
-                    collectionBusyPoiIds = placeState.collectionBusyPoiIds,
-                    collectionError = placeState.collectionError,
-                    onTogglePoiCollection = { candidate ->
-                        workspaceModel.retainViewportForPlaceCardCollection()
-                        placeModel.toggleCollection(candidate)
-                    },
+                    viewModel = workspaceModel,
+                    consent = token,
+                    onBack = navController::popBackStack,
+                    onSettings = { navigate("trips/$id/settings") },
+                    onPrivacySettings = { if (application != null) { showConsent = true; policyRead = false } },
+                    onOpenSearch = { navigate(tripSearchRoute(id)) },
+                    placeViewModel = placeModel,
+                    itineraryViewModel = itineraryModel,
                     mapHostFactory = mapHostFactory ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
                 )
                 if (showConsent && application != null) {

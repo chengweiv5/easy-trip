@@ -310,8 +310,12 @@ class TripWorkspaceViewModel(
         selectedMapPoi.value = null
         clearStoredMapPoi()
         selectedMarkerKey.value = key
+        openOverlay(WorkspaceOverlay.PlaceDetail(stableOverlayId(key)))
     }
-    fun dismissMarker() { selectedMarkerKey.value = null }
+    fun dismissMarker() {
+        selectedMarkerKey.value = null
+        closeOverlay()
+    }
     fun selectMapPoi(poi: MapPoiUi) {
         selectedMarkerKey.value = null
         savedState[MAP_POI_ID] = poi.poiId
@@ -320,6 +324,7 @@ class TripWorkspaceViewModel(
         savedState[MAP_POI_LATITUDE] = poi.point.latitude
         savedState[MAP_POI_LONGITUDE] = poi.point.longitude
         selectedMapPoi.value = poi
+        openOverlay(WorkspaceOverlay.PlaceDetail(stableOverlayId(poi.poiId ?: "${poi.point.latitude},${poi.point.longitude}")))
     }
     fun retainViewportForPlaceCardCollection() {
         selectedMapPoi.value?.let { viewportController.retainViewportForPlaceChange(it.point) }
@@ -327,7 +332,9 @@ class TripWorkspaceViewModel(
     fun dismissPlaceCard() {
         selectedMapPoi.value = null
         clearStoredMapPoi()
+        closeOverlay()
     }
+    private fun stableOverlayId(value: String): Long = value.hashCode().toLong() and 0xffffffffL
     private fun clearStoredMapPoi() {
         savedState[MAP_POI_ID] = null
         savedState[MAP_POI_NAME] = null

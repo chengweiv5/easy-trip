@@ -21,11 +21,37 @@ import com.yangchengwei.easytrip.core.model.TransportMode
 @Composable
 fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Modifier) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
+    DayItineraryContent(state, modifier, viewModel::dispatch)
+}
+
+sealed interface DayItineraryAction {
+    data class AddPlace(val placeId: String) : DayItineraryAction
+    data class PreviewMove(val itemId: String, val target: Int) : DayItineraryAction
+    data class CommitMove(val itemId: String, val target: Int) : DayItineraryAction
+    data class RequestTiming(val itemId: String) : DayItineraryAction
+    data class RequestCrossDay(val itemId: String) : DayItineraryAction
+    data class RequestDelete(val itemId: String) : DayItineraryAction
+    data class RequestMode(val legId: String) : DayItineraryAction
+    data class Retry(val legId: String) : DayItineraryAction
+    data class MoveToDay(val dayId: String) : DayItineraryAction
+    data class SaveTiming(val time: java.time.LocalTime?, val minutes: Int?) : DayItineraryAction
+    data class OverrideMode(val mode: TransportMode) : DayItineraryAction
+    data object ConfirmDelete : DayItineraryAction
+    data object DismissDialogs : DayItineraryAction
+}
+
+@Composable
+fun DayItineraryContent(
+    state: DayItineraryUiState,
+    modifier: Modifier = Modifier,
+    onAction: (DayItineraryAction) -> Unit,
+    showDialogs: Boolean = true,
+) {
     Column(modifier.padding(12.dp)) {
         if (state.savedPlaces.isNotEmpty()) {
             Row(Modifier.horizontalScroll(rememberScrollState())) {
                 state.savedPlaces.forEach { place ->
-                    TextButton({ viewModel.addPlace(place.id) }, Modifier.testTag("add-place-${place.id}")) { Text("添加 ${place.name}") }
+                    TextButton({ onAction(DayItineraryAction.AddPlace(place.id)) }, Modifier.testTag("add-place-${place.id}")) { Text("添加 ${place.name}") }
                 }
             }
         }
@@ -41,53 +67,53 @@ fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Mod
                     item,
                     index,
                     state.previewOrder.size,
-                    { viewModel.previewMove(id, it) },
-                    { viewModel.commitMove(id, it) },
-                    { viewModel.requestTiming(id) },
-                    { viewModel.requestCrossDay(id) },
-                    { viewModel.requestDelete(id) },
+                    { onAction(DayItineraryAction.PreviewMove(id, it)) },
+                    { onAction(DayItineraryAction.CommitMove(id, it)) },
+                    { onAction(DayItineraryAction.RequestTiming(id)) },
+                    { onAction(DayItineraryAction.RequestCrossDay(id)) },
+                    { onAction(DayItineraryAction.RequestDelete(id)) },
                 )
                 val next = state.previewOrder.getOrNull(index + 1)
                 state.legs.firstOrNull { it.fromItemId == id && it.toItemId == next }?.let { leg ->
-                    RouteLegRow(leg, { viewModel.requestMode(leg.id) }, { viewModel.retry(leg.id) })
+                    RouteLegRow(leg, { onAction(DayItineraryAction.RequestMode(leg.id)) }, { onAction(DayItineraryAction.Retry(leg.id)) })
                 }
             }
         }
     }
-    state.timingItemId?.let { id ->
+    if (showDialogs) state.timingItemId?.let { id ->
         val item = state.items.firstOrNull { it.id == id }
-        EditTimingDialog(item?.arrivalTime, item?.stayMinutes, viewModel::dismissDialogs, viewModel::saveTiming)
+        EditTimingDialog(item?.arrivalTime, item?.stayMinutes, { onAction(DayItineraryAction.DismissDialogs) }, { time, minutes -> onAction(DayItineraryAction.SaveTiming(time, minutes)) })
     }
-    state.moveItemId?.let {
+    if (showDialogs) state.moveItemId?.let {
         AlertDialog(
-            onDismissRequest = viewModel::dismissDialogs,
+            onDismissRequest = { onAction(DayItineraryAction.DismissDialogs) },
             title = { Text("移动到…") },
             text = {
                 Column {
                     state.days.filter { it.id != state.selectedDayId }.forEach { day ->
-                        TextButton({ viewModel.moveToDay(day.id) }, Modifier.testTag("move-to-${day.id}")) { Text("Day ${day.index + 1}") }
+                        TextButton({ onAction(DayItineraryAction.MoveToDay(day.id)) }, Modifier.testTag("move-to-${day.id}")) { Text("Day ${day.index + 1}") }
                     }
                 }
             },
             confirmButton = {},
         )
     }
-    state.deleteItemId?.let {
+    if (showDialogs) state.deleteItemId?.let {
         AlertDialog(
-            onDismissRequest = viewModel::dismissDialogs,
+            onDismissRequest = { onAction(DayItineraryAction.DismissDialogs) },
             title = { Text("删除这次安排？") },
-            confirmButton = { TextButton(viewModel::confirmDelete) { Text("确认删除") } },
-            dismissButton = { TextButton(viewModel::dismissDialogs) { Text("取消") } },
+            confirmButton = { TextButton({ onAction(DayItineraryAction.ConfirmDelete) }) { Text("确认删除") } },
+            dismissButton = { TextButton({ onAction(DayItineraryAction.DismissDialogs) }) { Text("取消") } },
         )
     }
-    state.modeLegId?.let {
+    if (showDialogs) state.modeLegId?.let {
         AlertDialog(
-            onDismissRequest = viewModel::dismissDialogs,
+            onDismissRequest = { onAction(DayItineraryAction.DismissDialogs) },
             title = { Text("选择交通方式") },
             text = {
                 Column {
                     TransportMode.entries.forEach { mode ->
-                        TextButton({ viewModel.overrideMode(mode) }, Modifier.testTag("mode-option-${mode.name}")) {
+                        TextButton({ onAction(DayItineraryAction.OverrideMode(mode)) }, Modifier.testTag("mode-option-${mode.name}")) {
                             Text(when (mode) {
                                 TransportMode.WALK -> "步行"
                                 TransportMode.TAXI -> "打车"

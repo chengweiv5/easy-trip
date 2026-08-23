@@ -79,8 +79,10 @@ class TripWorkspaceContentTest {
                     pageState = page,
                     mapState = map,
                     onAction = onAction,
-                    placeContent = { Text("本地点池") },
-                    dayItineraryContent = { Text("单日行程") },
+                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                    onPlaceAction = {},
+                    itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                    onItineraryAction = {},
                     mapContent = { Text("地图就绪") },
                 )
             }

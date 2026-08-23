@@ -106,6 +106,24 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     fun requestDelete(place: SavedPlace) { viewModelScope.launch { mutableState.value = mutableState.value.copy(deleting = place, deletionUsageCount = service.deletionUsageCount(place.id)) } }
     fun dismissDelete() { mutableState.value = mutableState.value.copy(deleting = null, deletionUsageCount = 0) }
     fun confirmDelete() { val place = mutableState.value.deleting ?: return; viewModelScope.launch { service.deletePlaceAndReferences(place.id); dismissDelete() } }
+    fun dismissDialogs() {
+        dismissEdit()
+        dismissDelete()
+        dismissCollectionRemoval()
+    }
+    fun dispatch(action: PlacePoolAction) {
+        when (action) {
+            is PlacePoolAction.SetQuery -> setQuery(action.value)
+            is PlacePoolAction.ToggleTag -> toggleTag(action.id)
+            is PlacePoolAction.Edit -> edit(action.place)
+            is PlacePoolAction.Delete -> requestDelete(action.place)
+            is PlacePoolAction.ToggleCollection -> toggleCollection(action.candidate)
+            is PlacePoolAction.UpdateDetails -> updateDetails(action.note, action.tags)
+            PlacePoolAction.ConfirmCollectionRemoval -> confirmCollectionRemoval()
+            PlacePoolAction.ConfirmDelete -> confirmDelete()
+            PlacePoolAction.DismissDialogs -> dismissDialogs()
+        }
+    }
     private var savedByPoiId: Map<String, SavedPlace> = emptyMap()
     private var placesJob: kotlinx.coroutines.Job? = null
     private var allPlacesJob: kotlinx.coroutines.Job? = null
