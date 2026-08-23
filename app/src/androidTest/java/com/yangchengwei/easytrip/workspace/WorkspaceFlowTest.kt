@@ -63,7 +63,7 @@ class WorkspaceFlowTest {
                 isPoiSaved = false,
                 onTogglePoiCollection = { toggles++ },
                 placeContent = { Text("地点内容") },
-                itineraryContent = { Text("行程内容") },
+                dayItineraryContent = { Text("行程内容") },
                 mapHostFactory = { PoiHost(it).also { created -> host = created } },
             )
         }
@@ -93,7 +93,7 @@ class WorkspaceFlowTest {
                 isPoiSaved = false,
                 onTogglePoiCollection = { collected = it },
                 placeContent = { Text("地点内容") },
-                itineraryContent = { Text("行程内容") },
+                dayItineraryContent = { Text("行程内容") },
                 mapHostFactory = { PoiHost(it).also { created -> host = created } },
             )
         }
@@ -117,7 +117,7 @@ class WorkspaceFlowTest {
                 isPoiSaved = false,
                 onTogglePoiCollection = {},
                 placeContent = { Text("地点内容") },
-                itineraryContent = { Text("行程内容") },
+                dayItineraryContent = { Text("行程内容") },
                 mapHostFactory = { PoiHost(it).also { created -> host = created } },
             )
         }
@@ -127,9 +127,8 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("无法收藏").assertIsNotEnabled()
     }
 
-    @Test fun switchesTabsAndMapScopesAndRestoresSelection() {
-        val saved = SavedStateHandle()
-        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), saved)
+    @Test fun bottomNavigationKeepsItineraryAndMapScopeSynchronized() {
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         compose.setContent {
             TripWorkspaceScreen(
                 viewModel = model,
@@ -137,9 +136,10 @@ class WorkspaceFlowTest {
                 onBack = {},
                 onSettings = {},
                 placeContent = { Text("地点内容") },
-                itineraryContent = { Text("行程内容") },
+                dayItineraryContent = { Text("可编辑日行程") },
             )
         }
+        compose.waitUntil(5_000) { model.state.value.map.viewportRequest != null }
         compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(40.dp)
         compose.onNodeWithTag("workspace-search-launcher").assertHeightIsEqualTo(48.dp)
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
@@ -149,19 +149,52 @@ class WorkspaceFlowTest {
         compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         val mapBottom = compose.onNodeWithTag("workspace-map").getUnclippedBoundsInRoot().bottom
         val searchTop = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().top
-        val scopeTop = compose.onNodeWithTag("scope-PLACE_POOL").getUnclippedBoundsInRoot().top
+        val navigationTop = compose.onNodeWithTag("section-controls").getUnclippedBoundsInRoot().top
         assert(searchTop < mapBottom)
-        assert(mapBottom <= scopeTop)
+        assert(mapBottom <= navigationTop)
+        compose.onNodeWithTag("section-PLACE_POOL").assertExists()
+        compose.onNodeWithTag("section-ITINERARY").assertExists()
+        compose.onNodeWithTag("scope-PLACE_POOL").assertDoesNotExist()
+        compose.onNodeWithTag("scope-SINGLE_DAY").assertDoesNotExist()
+        compose.onNodeWithTag("scope-WHOLE_TRIP").assertDoesNotExist()
+        compose.onNodeWithTag("tab-PLACES").assertDoesNotExist()
+        compose.onNodeWithTag("tab-ITINERARY").assertDoesNotExist()
         compose.onNodeWithText("地点内容").assertIsDisplayed()
-        compose.onNodeWithText("每日行程").performClick()
-        compose.onNodeWithText("行程内容").assertIsDisplayed()
-        compose.onNodeWithTag("scope-WHOLE_TRIP").performClick()
+
+        val placeRequestId = model.state.value.map.viewportRequest?.id
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        compose.waitUntil(5_000) { model.state.value.mapScope == MapScope.SINGLE_DAY }
+        compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
+        compose.onNodeWithText("第一天").assertIsDisplayed()
+        compose.onNodeWithText("可编辑日行程").assertIsDisplayed()
+        assertEquals(ItineraryScope.Day("day-1"), model.state.value.itineraryScope)
+        assertEquals(placeRequestId?.plus(1), model.state.value.map.viewportRequest?.id)
+
+        val dayOneRequestId = model.state.value.map.viewportRequest?.id
+        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
         compose.waitUntil(5_000) { model.state.value.mapScope == MapScope.WHOLE_TRIP }
-        assertEquals("WHOLE_TRIP", saved.get<String>("workspace.scope"))
+        compose.onNodeWithText("可编辑日行程").assertDoesNotExist()
+        compose.onNodeWithTag("whole-trip-day-day-1").assertExists()
+        compose.onNodeWithTag("whole-trip-day-day-2").assertExists()
+        assertEquals(dayOneRequestId?.plus(1), model.state.value.map.viewportRequest?.id)
+
+        val wholeTripRequestId = model.state.value.map.viewportRequest?.id
+        compose.onNodeWithTag("itinerary-scope-day-2").performClick()
+        compose.waitUntil(5_000) { model.state.value.selectedDayId == "day-2" }
+        compose.onNodeWithText("可编辑日行程").assertIsDisplayed()
+        assertEquals(MapScope.SINGLE_DAY, model.state.value.mapScope)
+        assertEquals(wholeTripRequestId?.plus(1), model.state.value.map.viewportRequest?.id)
+
+        compose.onNodeWithTag("section-PLACE_POOL").performClick()
+        compose.waitUntil(5_000) { model.state.value.section == WorkspaceSection.PLACE_POOL }
+        val returnedPlaceRequestId = model.state.value.map.viewportRequest?.id
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        compose.waitUntil(5_000) { model.state.value.section == WorkspaceSection.ITINERARY }
+        assertEquals(ItineraryScope.Day("day-2"), model.state.value.itineraryScope)
+        assertEquals(returnedPlaceRequestId?.plus(1), model.state.value.map.viewportRequest?.id)
+
         compose.onNodeWithTag("workspace-sheet-handle").performTouchInput { swipeDown() }
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.COLLAPSED }
-        compose.waitForIdle()
-        assertEquals(WorkspaceSheetLevel.COLLAPSED, model.state.value.sheetLevel)
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed().performTouchInput { swipeUp() }
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.HALF }
     }
@@ -192,7 +225,15 @@ class WorkspaceFlowTest {
     }
 
     private class Trips : TripRepository {
-        override fun observeTrip(tripId: String) = flowOf(TripWithDays("trip", "川西", null, TravelMode.FLEXIBLE, listOf(TripDay("day", 0))))
+        override fun observeTrip(tripId: String) = flowOf(
+            TripWithDays(
+                "trip",
+                "川西",
+                null,
+                TravelMode.FLEXIBLE,
+                listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
+            ),
+        )
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
         override suspend fun renameTrip(tripId: String, name: String) = Unit
@@ -215,7 +256,20 @@ class WorkspaceFlowTest {
     }
 
     private class Itineraries : ItineraryRepository {
-        override fun observeDay(dayId: String) = flowOf(DayItinerary("day", "trip", listOf(ItineraryItem("i", ItineraryPlace("p", "酒店", "", GeoPoint(1.0, 2.0)), null, null))))
+        override fun observeDay(dayId: String) = flowOf(
+            DayItinerary(
+                dayId,
+                "trip",
+                listOf(
+                    ItineraryItem(
+                        "i-$dayId",
+                        ItineraryPlace("p-$dayId", if (dayId == "day-1") "酒店" else "景点", "", GeoPoint(1.0, if (dayId == "day-1") 2.0 else 3.0)),
+                        null,
+                        null,
+                    ),
+                ),
+            ),
+        )
         override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int) = "i"
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
         override suspend fun deleteItem(itemId: String) = Unit

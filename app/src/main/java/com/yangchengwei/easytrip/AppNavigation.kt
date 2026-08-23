@@ -126,7 +126,7 @@ fun AppNavigation(
                     { showConsent = true; policyRead = false },
                     { navController.navigate(tripSearchRoute(id)) },
                     { PlacePoolSheet(placeModel, Modifier.fillMaxWidth(), showSearch = false) },
-                    { DayItinerarySheet(itineraryModel, Modifier.fillMaxWidth(), workspaceModel::selectDay) },
+                    { DayItinerarySheet(itineraryModel, Modifier.fillMaxWidth()) },
                     isPoiSaved = workspaceState.selectedMapPoi?.poiId in placeState.savedPoiIds,
                     collectionBusyPoiIds = placeState.collectionBusyPoiIds,
                     collectionError = placeState.collectionError,

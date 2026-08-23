@@ -37,12 +37,13 @@ import com.yangchengwei.easytrip.workspace.AmapMapHost
 import com.yangchengwei.easytrip.workspace.MapLayer
 import com.yangchengwei.easytrip.workspace.MapMarkerKind
 import com.yangchengwei.easytrip.workspace.MapPoiUi
+import com.yangchengwei.easytrip.workspace.ItineraryScope
 import com.yangchengwei.easytrip.workspace.MapScope
 import com.yangchengwei.easytrip.workspace.MapUiModel
 import com.yangchengwei.easytrip.workspace.TripWorkspaceScreen
 import com.yangchengwei.easytrip.workspace.TripWorkspaceViewModel
 import com.yangchengwei.easytrip.workspace.ViewportReason
-import com.yangchengwei.easytrip.workspace.WorkspaceTab
+import com.yangchengwei.easytrip.workspace.WorkspaceSection
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After
@@ -108,7 +109,7 @@ class V2AcceptanceTest {
                     onSettings = {},
                     onOpenSearch = { searching = true },
                     placeContent = { PlacePoolSheet(placeModel, showSearch = false) },
-                    itineraryContent = { DayItinerarySheet(itinerary, onSelectDay = workspace::selectDay) },
+                    dayItineraryContent = { DayItinerarySheet(itinerary) },
                     isPoiSaved = workspaceState.selectedMapPoi?.poiId in placeState.savedPoiIds,
                     collectionBusyPoiIds = placeState.collectionBusyPoiIds,
                     onTogglePoiCollection = placeModel::toggleCollection,
@@ -119,10 +120,9 @@ class V2AcceptanceTest {
 
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         compose.onNodeWithTag("layer-menu").assertHasClickAction()
-        compose.onNodeWithTag("scope-PLACE_POOL").assertIsDisplayed()
-        compose.onNodeWithTag("tab-PLACES").assertIsSelected()
-        compose.onNodeWithTag("tab-ITINERARY").assertExists()
-        compose.onNodeWithTag("tab-SEARCH").assertDoesNotExist()
+        compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
+        compose.onNodeWithTag("section-ITINERARY").assertExists()
+        compose.onNodeWithTag("itinerary-scope-rail").assertDoesNotExist()
         compose.onNodeWithContentDescription("搜索地点").assertHasClickAction().performClick()
         compose.onNodeWithTag("workspace-search").performTextInput("博物馆")
         compose.waitUntil(5_000) { placeModel.state.value.search.results.size == 2 }
@@ -141,7 +141,7 @@ class V2AcceptanceTest {
         assertEquals(MapMarkerKind.UNSAVED_SEARCH, focused?.kind)
         assertTrue(focused?.isFocused == true)
         val focusCalls = host.viewportCalls
-        compose.onNodeWithTag("tab-PLACES").performClick()
+        compose.onNodeWithTag("section-PLACE_POOL").performClick()
         compose.waitForIdle()
         assertEquals(focusCalls, host.viewportCalls)
 
@@ -151,7 +151,9 @@ class V2AcceptanceTest {
         compose.onNodeWithTag("place-card-collection").performClick()
         compose.waitUntil(5_000) { "poi-card" in placeModel.state.value.savedPoiIds }
 
-        MapScope.entries.forEach { scope -> compose.onNodeWithTag("scope-${scope.name}").performClick() }
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
+        compose.waitUntil(5_000) { workspace.state.value.itineraryScope == ItineraryScope.WholeTrip }
         compose.waitUntil(5_000) { workspace.state.value.mapScope == MapScope.WHOLE_TRIP }
         val restored = TripWorkspaceViewModel(tripId, trips, places, itineraries, routes, savedState)
         val legacy = TripWorkspaceViewModel(
@@ -163,9 +165,10 @@ class V2AcceptanceTest {
             SavedStateHandle(mapOf("workspace.tab" to "SEARCH")),
         )
         compose.waitUntil(5_000) { restored.state.value.tripName.isNotEmpty() && legacy.state.value.tripName.isNotEmpty() }
-        assertEquals(WorkspaceTab.PLACES, restored.state.value.tab)
+        assertEquals(WorkspaceSection.ITINERARY, restored.state.value.section)
+        assertEquals(ItineraryScope.WholeTrip, restored.state.value.itineraryScope)
         assertEquals(MapScope.WHOLE_TRIP, restored.state.value.mapScope)
-        assertEquals(WorkspaceTab.PLACES, legacy.state.value.tab)
+        assertEquals(WorkspaceSection.PLACE_POOL, legacy.state.value.section)
     }
 
     private fun candidate(id: String, name: String, latitude: Double, longitude: Double) =

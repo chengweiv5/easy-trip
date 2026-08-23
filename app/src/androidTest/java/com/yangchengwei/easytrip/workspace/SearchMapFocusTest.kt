@@ -69,7 +69,7 @@ class SearchMapFocusTest {
                     onSettings = {},
                     onOpenSearch = { searchState.value = PlaceSearchState(query = "search-open") },
                     placeContent = { Text("地点") },
-                    itineraryContent = { Text("行程") },
+                    dayItineraryContent = { Text("行程") },
                 )
             } else {
                 PlaceSearchScreen(
@@ -140,17 +140,17 @@ class SearchMapFocusTest {
                 onBack = {},
                 onSettings = {},
                 placeContent = { Text("地点") },
-                itineraryContent = { Text("行程") },
+                dayItineraryContent = { Text("行程") },
                 mapHostFactory = { RecordingHost(it).also { created -> host = created } },
             )
         }
 
-        compose.waitUntil(5_000) { model.state.value.tab == WorkspaceTab.PLACES }
+        compose.waitUntil(5_000) { model.state.value.section == WorkspaceSection.PLACE_POOL }
         compose.runOnIdle { model.focusSearchResult(candidate) }
         compose.waitUntil(5_000) { host.lastModel?.viewportRequest?.reason == ViewportReason.SEARCH_FOCUS }
 
-        compose.onNodeWithTag("tab-PLACES").assertIsSelected()
-        assertEquals(WorkspaceTab.PLACES, model.state.value.tab)
+        compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
+        assertEquals(WorkspaceSection.PLACE_POOL, model.state.value.section)
         assertEquals(MapLayer.STANDARD, host.lastLayer)
         val focusedMarker = host.lastModel?.markers?.singleOrNull { it.point == candidate.point }
         assertNotNull(focusedMarker)
@@ -186,7 +186,7 @@ class SearchMapFocusTest {
                 onBack = {},
                 onSettings = {},
                 placeContent = { Text("地点") },
-                itineraryContent = { Text("行程") },
+                dayItineraryContent = { Text("行程") },
                 mapHostFactory = { RecordingHost(it).also { created -> host = created } },
             )
         }
@@ -199,21 +199,32 @@ class SearchMapFocusTest {
         assertEquals(1, host.viewportCalls)
     }
 
-    @Test fun tabAndSheetChangesKeepViewModelViewportRequestId() {
+    @Test fun repeatedSelectionSheetChangesAndListRenderingKeepViewportRequestId() {
         val point = GeoPoint(39.9, 116.4)
         val saved = SavedPlace("saved", "trip", "poi", "故宫", "地址", point, "", emptyList())
         val model = TripWorkspaceViewModel("trip", Trips(), SavedPlaces(saved), Itineraries(), Legs(), SavedStateHandle())
+        val listRender = mutableStateOf(0)
+        compose.setContent {
+            listRender.value
+            TripWorkspaceScreen(
+                viewModel = model,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                placeContent = { Text("地点") },
+                dayItineraryContent = { Text("行程") },
+            )
+        }
         compose.waitUntil(5_000) { model.state.value.map.viewportRequest != null }
         val initial = model.state.value.map.viewportRequest
 
         compose.runOnIdle {
-            model.selectTab(WorkspaceTab.PLACES)
+            model.selectSection(WorkspaceSection.PLACE_POOL)
             model.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
+            listRender.value++
         }
-        compose.waitUntil(5_000) {
-            model.state.value.tab == WorkspaceTab.PLACES &&
-                model.state.value.sheetLevel == WorkspaceSheetLevel.EXPANDED
-        }
+        compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.EXPANDED }
+        compose.waitForIdle()
 
         assertEquals(initial, model.state.value.map.viewportRequest)
     }
@@ -237,7 +248,10 @@ class SearchMapFocusTest {
         }
         compose.waitUntil(5_000) { hosts.firstOrNull()?.viewportCalls == 1 }
 
-        compose.runOnIdle { model.selectScope(MapScope.SINGLE_DAY) }
+        compose.runOnIdle {
+            model.selectItineraryScope(ItineraryScope.Day("day"))
+            model.selectSection(WorkspaceSection.ITINERARY)
+        }
         compose.waitUntil(5_000) { model.state.value.map.viewportRequest == null }
         compose.runOnIdle { owner.value = TestOwner() }
         compose.waitUntil(5_000) { hosts.size == 2 }

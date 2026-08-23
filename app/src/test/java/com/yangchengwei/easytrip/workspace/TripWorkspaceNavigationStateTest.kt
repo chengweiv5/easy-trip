@@ -1,0 +1,272 @@
+package com.yangchengwei.easytrip.workspace
+
+import androidx.lifecycle.SavedStateHandle
+import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
+import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.place.domain.PlaceTag
+import com.yangchengwei.easytrip.place.domain.SavePlaceResult
+import com.yangchengwei.easytrip.place.domain.SavedPlace
+import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
+import com.yangchengwei.easytrip.route.domain.RouteLegRepository
+import com.yangchengwei.easytrip.route.domain.RouteLegWithEndpoints
+import com.yangchengwei.easytrip.route.domain.RoutePlanOutcome
+import com.yangchengwei.easytrip.route.domain.RouteResult
+import com.yangchengwei.easytrip.trip.domain.CreateTrip
+import com.yangchengwei.easytrip.trip.domain.InsertSide
+import com.yangchengwei.easytrip.trip.domain.TripDay
+import com.yangchengwei.easytrip.trip.domain.TripRepository
+import com.yangchengwei.easytrip.trip.domain.TripSummary
+import com.yangchengwei.easytrip.trip.domain.TripWithDays
+import java.time.LocalDate
+import java.time.LocalTime
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
+import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.test.setMain
+import org.junit.After
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
+import org.junit.Before
+import org.junit.Test
+
+@OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+class TripWorkspaceNavigationStateTest {
+    private val dispatcher = StandardTestDispatcher()
+
+    @Before fun setUp() = Dispatchers.setMain(dispatcher)
+    @After fun tearDown() = Dispatchers.resetMain()
+
+    @Test fun `navigation is unified persisted and retains remembered itinerary scope`() = runTest(dispatcher) {
+        val handle = SavedStateHandle()
+        val trips = Trips(days("one", "two"))
+        val model = model(trips, handle)
+        advanceUntilIdle()
+
+        assertEquals(WorkspaceSection.PLACE_POOL, model.state.value.section)
+        assertEquals(ItineraryScope.Day("one"), model.state.value.itineraryScope)
+        assertEquals(MapScope.PLACE_POOL, model.state.value.mapScope)
+        assertNull(model.state.value.selectedDayId)
+        assertNull(model.selectedDayId.value)
+
+        model.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+        assertEquals(MapScope.SINGLE_DAY, model.state.value.mapScope)
+        assertEquals("one", model.state.value.selectedDayId)
+
+        model.selectItineraryScope(ItineraryScope.WholeTrip)
+        advanceUntilIdle()
+        assertEquals(MapScope.WHOLE_TRIP, model.state.value.mapScope)
+        assertNull(model.state.value.selectedDayId)
+        assertEquals(listOf("one", "two"), model.state.value.wholeTripDays.map { it.dayId })
+
+        model.selectItineraryScope(ItineraryScope.Day("two"))
+        model.selectSection(WorkspaceSection.PLACE_POOL)
+        advanceUntilIdle()
+        assertEquals(ItineraryScope.Day("two"), model.state.value.itineraryScope)
+        assertNull(model.state.value.selectedDayId)
+        assertNull(model.selectedDayId.value)
+
+        model.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+        assertEquals(ItineraryScope.Day("two"), model.state.value.itineraryScope)
+        assertEquals("two", model.state.value.selectedDayId)
+        assertEquals("two", model.selectedDayId.value)
+        assertEquals(WorkspaceSection.ITINERARY.name, handle.get<String>("workspace.section"))
+        assertEquals("DAY:two", handle.get<String>("workspace.itineraryScope"))
+    }
+
+    @Test fun `legacy navigation migrates once and cannot override new selections`() = runTest(dispatcher) {
+        val handle = SavedStateHandle(
+            mapOf(
+                "workspace.tab" to WorkspaceTab.ITINERARY.name,
+                "workspace.scope" to MapScope.SINGLE_DAY.name,
+                "workspace.selectedDay" to "two",
+            ),
+        )
+        val trips = Trips(days("one", "two"))
+        val first = model(trips, handle)
+        advanceUntilIdle()
+        assertEquals(WorkspaceSection.ITINERARY, first.state.value.section)
+        assertEquals(ItineraryScope.Day("two"), first.state.value.itineraryScope)
+
+        first.selectSection(WorkspaceSection.PLACE_POOL)
+        first.selectItineraryScope(ItineraryScope.WholeTrip)
+        advanceUntilIdle()
+        val restored = model(trips, handle)
+        advanceUntilIdle()
+        assertEquals(WorkspaceSection.PLACE_POOL, restored.state.value.section)
+        assertEquals(ItineraryScope.WholeTrip, restored.state.value.itineraryScope)
+    }
+
+    @Test fun `deleted selected day chooses successor then predecessor and no dates chooses whole trip`() = runTest(dispatcher) {
+        val trips = Trips(days("one", "two", "three"))
+        val model = model(trips)
+        advanceUntilIdle()
+        model.selectSection(WorkspaceSection.ITINERARY)
+        model.selectItineraryScope(ItineraryScope.Day("two"))
+        advanceUntilIdle()
+
+        trips.value.value = trip(days("one", "three"))
+        advanceUntilIdle()
+        assertEquals(ItineraryScope.Day("three"), model.state.value.itineraryScope)
+
+        trips.value.value = trip(days("one"))
+        advanceUntilIdle()
+        assertEquals(ItineraryScope.Day("one"), model.state.value.itineraryScope)
+
+        trips.value.value = trip(emptyList())
+        advanceUntilIdle()
+        assertEquals(ItineraryScope.WholeTrip, model.state.value.itineraryScope)
+        assertNull(model.state.value.selectedDayId)
+    }
+
+    @Test fun `deleted day never renders stale whole trip snapshots or emits an extra viewport`() = runTest(dispatcher) {
+        val trips = Trips(days("one", "two"))
+        val itineraries = MutableItineraries(
+            mapOf(
+                "one" to itinerary("one", item("one-item", 39.9)),
+                "two" to itinerary("two", item("two-item", 31.2)),
+            ),
+        )
+        val model = model(trips, itineraries = itineraries)
+        advanceUntilIdle()
+        model.selectSection(WorkspaceSection.ITINERARY)
+        model.selectItineraryScope(ItineraryScope.WholeTrip)
+        advanceUntilIdle()
+        val requestId = model.state.value.map.viewportRequest?.id
+        val observed = mutableListOf<Pair<Set<String>, Set<String>>>()
+        val observedRequests = mutableListOf<Long?>()
+        val job = launch {
+            model.state.collect { state ->
+                observed += state.days.map(TripDay::id).toSet() to
+                    state.map.markers.flatMap { marker -> marker.occurrences.map { it.dayId } }.toSet()
+                observedRequests += state.map.viewportRequest?.id
+            }
+        }
+
+        trips.value.value = trip(days("one"))
+        advanceUntilIdle()
+        job.cancel()
+
+        assertEquals(setOf("one"), model.state.value.map.markers.flatMap { it.occurrences }.map { it.dayId }.toSet())
+        assertEquals(requestId?.plus(1), model.state.value.map.viewportRequest?.id)
+        assertEquals(false, observed.any { (dayIds, markerDayIds) -> markerDayIds.any { it !in dayIds } })
+        assertEquals(2, observedRequests.distinct().size)
+    }
+
+    @Test fun `stale day selection is ignored and real navigation changes request viewport once`() = runTest(dispatcher) {
+        val itineraries = Itineraries(
+            mapOf(
+                "one" to listOf(item("one-item", 39.9)),
+                "two" to listOf(item("two-item", 31.2)),
+            ),
+        )
+        val model = model(Trips(days("one", "two")), itineraries = itineraries)
+        advanceUntilIdle()
+        assertNull(model.state.value.map.viewportRequest)
+
+        model.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+        val singleDay = model.state.value.map.viewportRequest?.id
+        assertEquals(1L, singleDay)
+
+        model.selectSection(WorkspaceSection.ITINERARY)
+        model.selectItineraryScope(ItineraryScope.Day("missing"))
+        advanceUntilIdle()
+        assertEquals(singleDay, model.state.value.map.viewportRequest?.id)
+        assertEquals(ItineraryScope.Day("one"), model.state.value.itineraryScope)
+
+        model.selectItineraryScope(ItineraryScope.WholeTrip)
+        advanceUntilIdle()
+        assertEquals(singleDay?.plus(1), model.state.value.map.viewportRequest?.id)
+    }
+
+    private fun model(
+        trips: Trips,
+        handle: SavedStateHandle = SavedStateHandle(),
+        itineraries: ItineraryRepository = Itineraries(),
+    ) = TripWorkspaceViewModel("trip", trips, Places(), itineraries, Legs(), handle)
+
+    private fun item(id: String, latitude: Double) = ItineraryItem(
+        id,
+        ItineraryPlace("place-$id", id, "", GeoPoint(latitude, 116.4)),
+        null,
+        null,
+    )
+    private fun itinerary(dayId: String, vararg items: ItineraryItem) = DayItinerary(dayId, "trip", items.toList())
+
+    private fun days(vararg ids: String) = ids.mapIndexed { index, id -> TripDay(id, index) }
+    private fun trip(days: List<TripDay>) = TripWithDays("trip", "北京", LocalDate.of(2026, 8, 23), TravelMode.FLEXIBLE, days)
+
+    private inner class Trips(initial: List<TripDay>) : TripRepository {
+        val value = MutableStateFlow<TripWithDays?>(trip(initial))
+        override fun observeTrip(tripId: String) = value
+        override fun observeTrips() = flowOf(emptyList<TripSummary>())
+        override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun renameTrip(tripId: String, name: String) = Unit
+        override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
+        override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit
+        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day"
+        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteDay(dayId: String) = Unit
+        override suspend fun deleteTrip(tripId: String) = Unit
+    }
+
+    private class Places : SavedPlaceRepository {
+        override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(emptyList<SavedPlace>())
+        override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
+        override fun observeSavedPoiIds(tripId: String) = flowOf(emptySet<String>())
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("place")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
+    private class MutableItineraries(initial: Map<String, DayItinerary>) : ItineraryRepository {
+        private val days = initial.mapValues { MutableStateFlow(it.value) }
+        override fun observeDay(dayId: String) = days.getValue(dayId)
+        override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int) = "item"
+        override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteItem(itemId: String) = Unit
+        override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun removePlaceOccurrences(placeId: String) = Unit
+    }
+
+    private class Itineraries(
+        private val itemsByDay: Map<String, List<ItineraryItem>> = emptyMap(),
+    ) : ItineraryRepository {
+        override fun observeDay(dayId: String) = flowOf(DayItinerary(dayId, "trip", itemsByDay[dayId].orEmpty()))
+        override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int) = "item"
+        override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteItem(itemId: String) = Unit
+        override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun removePlaceOccurrences(placeId: String) = Unit
+    }
+
+    private class Legs : RouteLegRepository {
+        override fun observeDay(dayId: String) = flowOf(emptyList<com.yangchengwei.easytrip.route.data.RouteLegEntity>())
+        override fun observePending(): Flow<List<RouteLegWithEndpoints>> = flowOf(emptyList())
+        override suspend fun get(legId: String) = null
+        override suspend fun requeueTransientFailures() = 0
+        override suspend fun recoverInterruptedCalculations(online: Boolean) = 0
+        override suspend fun repairCorruptPolyline(legId: String, version: Long) = false
+        override suspend fun claimIfVersionMatches(legId: String, version: Long) = false
+        override suspend fun waitForNetworkIfVersionMatches(legId: String, version: Long) = false
+        override suspend fun releaseClaimIfVersionMatches(legId: String, version: Long, online: Boolean) = false
+        override suspend fun completeIfVersionMatches(legId: String, version: Long, result: RouteResult) = false
+        override suspend fun failIfVersionMatches(legId: String, version: Long, failure: RoutePlanOutcome.Failure) = false
+        override suspend fun overrideMode(legId: String, mode: com.yangchengwei.easytrip.core.model.TransportMode, online: Boolean) = false
+        override suspend fun retry(legId: String, online: Boolean) = false
+    }
+}

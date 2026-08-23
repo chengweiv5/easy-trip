@@ -64,6 +64,25 @@ test "$AVD_NAME" = "easy_trip_p60pro"
 ANDROID_SERIAL="$ANDROID_SERIAL" ./gradlew connectedDebugAndroidTest
 ```
 
+## 2026-08-23 工作区导航增量
+
+### 自动化
+
+- `./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest lintDebug`：通过。
+- `ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest`：最终修复后以明确序列号执行，并在 `adb -s emulator-5554 emu avd name` 严格确认为 `easy_trip_p60pro` 后通过；87 项完成，1 项因 Android 版本条件跳过，0 项失败。
+- V2 接受测试已改为断言“地点池 / 行程”分区与“全程 / 每天”行程范围，不保留旧 Tab/范围标签兼容。
+
+### `easy_trip_p60pro` 模拟器
+
+- 安装与启动：通过；安装前再次确认 AVD 名称为 `easy_trip_p60pro`。
+- 实际交互：创建了名为 `Task7` 的 8 天旅行，并在旅行列表观察到名称与“8 天”。
+- 未完成工作区内逐项点击验收：同意高德隐私授权后应用退出到桌面，因此“地点池 / 行程”切换、范围切换、全程空态、单日编辑入口、左栏独立滚动、抽屉三态及地图控件均不标记通过。
+
+### 物理真机
+
+- 结果：**待验收**。
+- 本增量未向物理真机安装或运行测试，不覆盖 2026-08-22 的 V2 已通过记录。
+
 ## 结论
 
-当前状态：**V2 原验收及搜索与收藏增量的自动化、指定模拟器和物理真机验收全部通过。**
+当前状态：**V2 原验收及搜索与收藏增量的自动化、指定模拟器和物理真机验收全部通过；2026-08-23 工作区导航增量自动化通过，模拟器交互仅完成上述已记录项目，物理真机待验收。**

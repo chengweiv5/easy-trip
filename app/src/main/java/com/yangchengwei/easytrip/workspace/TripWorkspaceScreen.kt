@@ -3,8 +3,6 @@ package com.yangchengwei.easytrip.workspace
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
-import androidx.compose.foundation.horizontalScroll
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material3.AlertDialog
@@ -39,6 +37,7 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.core.ui.component.SelectablePill
+import com.yangchengwei.easytrip.itinerary.ui.WorkspaceItineraryContent
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
 
@@ -52,7 +51,7 @@ fun TripWorkspaceScreen(
     onPrivacySettings: () -> Unit = {},
     onOpenSearch: () -> Unit = {},
     placeContent: @Composable () -> Unit,
-    itineraryContent: @Composable () -> Unit,
+    dayItineraryContent: @Composable () -> Unit,
     isPoiSaved: Boolean = false,
     collectionBusyPoiIds: Set<String> = emptySet(),
     collectionError: String? = null,
@@ -96,13 +95,15 @@ fun TripWorkspaceScreen(
                 if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) {
                     WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle"))
                 }
-                Row(Modifier.fillMaxWidth().horizontalScroll(rememberScrollState())) {
-                    SelectablePill(state.tab == WorkspaceTab.PLACES, { viewModel.selectTab(WorkspaceTab.PLACES) }, { Text("地点池") }, modifier = Modifier.testTag("tab-PLACES"), role = Role.Tab)
-                    SelectablePill(state.tab == WorkspaceTab.ITINERARY, { viewModel.selectTab(WorkspaceTab.ITINERARY) }, { Text("每日行程") }, modifier = Modifier.testTag("tab-ITINERARY"), role = Role.Tab)
-                }
-                when (state.tab) {
-                    WorkspaceTab.PLACES -> placeContent()
-                    WorkspaceTab.ITINERARY -> itineraryContent()
+                when (state.section) {
+                    WorkspaceSection.PLACE_POOL -> placeContent()
+                    WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
+                        days = state.days,
+                        selected = state.itineraryScope,
+                        wholeTripDays = state.wholeTripDays,
+                        onSelect = viewModel::selectItineraryScope,
+                        dayContent = dayItineraryContent,
+                    )
                 }
             }
         },
@@ -208,11 +209,26 @@ fun TripWorkspaceScreen(
             mapError?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.padding(horizontal = 8.dp)) }
             Spacer(Modifier.height(10.dp))
             Row(
-                Modifier.fillMaxWidth().padding(horizontal = 8.dp).testTag("scope-controls"),
+                Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = 8.dp)
+                    .testTag("section-controls")
+                    .selectableGroup(),
             ) {
-                MapScope.entries.forEach { scope ->
-                    SelectablePill(state.mapScope == scope, { viewModel.selectScope(scope) }, { Text(scope.label()) }, Modifier.testTag("scope-${scope.name}"))
-                }
+                SelectablePill(
+                    state.section == WorkspaceSection.PLACE_POOL,
+                    { viewModel.selectSection(WorkspaceSection.PLACE_POOL) },
+                    { Text("地点池") },
+                    Modifier.weight(1f).testTag("section-${WorkspaceSection.PLACE_POOL.name}"),
+                    role = Role.Tab,
+                )
+                SelectablePill(
+                    state.section == WorkspaceSection.ITINERARY,
+                    { viewModel.selectSection(WorkspaceSection.ITINERARY) },
+                    { Text("行程") },
+                    Modifier.weight(1f).testTag("section-${WorkspaceSection.ITINERARY.name}"),
+                    role = Role.Tab,
+                )
             }
             if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) {
                 Surface(

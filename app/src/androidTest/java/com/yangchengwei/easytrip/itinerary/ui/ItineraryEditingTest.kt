@@ -44,11 +44,41 @@ import org.junit.Test
 class ItineraryEditingTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
+    @Test
+    fun absentExternalSelectionDefaultsToFirstDay() {
+        val model = DayItineraryViewModel(
+            "trip",
+            FakeTrips(),
+            FakeItineraries(),
+            FakeLegs(),
+            FakeCoordinator(),
+        )
+
+        compose.waitUntil(5_000) {
+            model.state.value.selectedDayId == "day-1" && model.state.value.items.size == 3
+        }
+    }
+
+    @Test fun emptyDayShowsEmptyState() {
+        val model = DayItineraryViewModel(
+            "trip",
+            FakeTrips(),
+            FakeItineraries(),
+            FakeLegs(),
+            FakeCoordinator(),
+            selectedDays = flowOf("day-2"),
+        )
+        compose.setContent { DayItinerarySheet(model) }
+
+        compose.onNodeWithText("暂无行程").assertIsDisplayed()
+    }
+
     @Test fun duplicateDragCrossDayTimingOverrideAndRetry() {
         val trips = FakeTrips()
         val itineraries = FakeItineraries()
         val legs = FakeLegs()
         val coordinator = FakeCoordinator()
+        val selectedDay = MutableStateFlow<String?>("day-1")
         val model = DayItineraryViewModel(
             "trip",
             trips,
@@ -56,10 +86,27 @@ class ItineraryEditingTest {
             legs,
             coordinator,
             flowOf(listOf(SavedPlace("hotel", "trip", "poi", "酒店", "", GeoPoint(1.0, 2.0), "", emptyList()))),
+            selectedDay,
         )
         compose.setContent { DayItinerarySheet(model) }
         compose.waitUntil(5_000) { model.state.value.items.size == 3 }
 
+        compose.onNodeWithText("Day 1").assertDoesNotExist()
+        compose.onNodeWithText("Day 2").assertDoesNotExist()
+        compose.runOnIdle { selectedDay.value = null }
+        compose.waitUntil(5_000) {
+            model.state.value.selectedDayId == null &&
+                model.state.value.items.isEmpty() &&
+                model.state.value.legs.isEmpty() &&
+                model.state.value.previewOrder.isEmpty()
+        }
+        compose.runOnIdle { trips.emitUpdate() }
+        compose.waitForIdle()
+        assertEquals(null, model.state.value.selectedDayId)
+        assertEquals(emptyList<ItineraryItemUi>(), model.state.value.items)
+        assertEquals(emptyList<RouteLegUi>(), model.state.value.legs)
+        compose.runOnIdle { selectedDay.value = "day-1" }
+        compose.waitUntil(5_000) { model.state.value.items.size == 3 }
         listOf("item-i1", "leg-leg-1", "item-i2", "leg-leg-2", "item-i3").forEach {
             compose.onNodeWithTag(it).assertIsDisplayed()
         }
@@ -142,6 +189,7 @@ class ItineraryEditingTest {
 
     private class FakeTrips : TripRepository {
         private val trip = MutableStateFlow(TripWithDays("trip", "Trip", null, TravelMode.FLEXIBLE, listOf(TripDay("day-1", 0), TripDay("day-2", 1))))
+        fun emitUpdate() { trip.value = trip.value.copy(name = "Updated Trip") }
         override fun observeTrip(tripId: String) = trip.map { it }
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"

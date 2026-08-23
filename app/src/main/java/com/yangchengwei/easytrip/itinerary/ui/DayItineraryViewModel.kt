@@ -3,14 +3,11 @@ package com.yangchengwei.easytrip.itinerary.ui
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
-import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
-import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.place.domain.SavedPlace
 import com.yangchengwei.easytrip.route.data.RouteLegEntity
-import com.yangchengwei.easytrip.route.domain.RouteErrorKind
 import com.yangchengwei.easytrip.route.domain.RouteLegRepository
 import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
 import com.yangchengwei.easytrip.trip.domain.TripDay
@@ -25,10 +22,9 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
 
-data class ItineraryItemUi(val id: String, val name: String, val address: String, val arrivalTime: LocalTime?, val stayMinutes: Int?)
-data class RouteLegUi(val id: String, val fromItemId: String, val toItemId: String, val mode: TransportMode, val status: RouteStatus, val distanceMeters: Int?, val durationSeconds: Int?, val error: String?)
 data class DayItineraryUiState(
     val days: List<TripDay> = emptyList(),
     val selectedDayId: String? = null,
@@ -54,34 +50,49 @@ class DayItineraryViewModel(
     selectedDays: Flow<String?> = emptyFlow(),
 ) : ViewModel() {
     private val selectedDay = MutableStateFlow<String?>(null)
+    private var hasExternalSelection = false
+    private var externalSelectedDayId: String? = null
     private val mutable = MutableStateFlow(DayItineraryUiState())
     val state: StateFlow<DayItineraryUiState> = mutable.asStateFlow()
 
     init {
         viewModelScope.launch {
             trips.observeTrip(tripId).filterNotNull().collect { trip ->
-                val chosen = selectedDay.value?.takeIf { id -> trip.days.any { it.id == id } } ?: trip.days.firstOrNull()?.id
+                val chosen = if (hasExternalSelection) {
+                    externalSelectedDayId?.takeIf { id -> trip.days.any { it.id == id } }
+                } else {
+                    selectedDay.value?.takeIf { id -> trip.days.any { it.id == id } } ?: trip.days.firstOrNull()?.id
+                }
                 selectedDay.value = chosen
                 mutable.value = mutable.value.copy(days = trip.days, selectedDayId = chosen)
+                if (chosen == null) clearDay()
             }
         }
         viewModelScope.launch {
-            selectedDay.filterNotNull().flatMapLatest { dayId ->
-                combine(itineraries.observeDay(dayId), routeLegs.observeDay(dayId)) { day, legs -> day to legs }
-            }.collect { (day, legs) -> applyDay(day, legs) }
+            selectedDay.flatMapLatest { dayId ->
+                if (dayId == null) flowOf(null)
+                else combine(itineraries.observeDay(dayId), routeLegs.observeDay(dayId)) { day, legs -> day to legs }
+            }.collect { dayAndLegs ->
+                if (dayAndLegs == null) clearDay()
+                else applyDay(dayAndLegs.first, dayAndLegs.second)
+            }
         }
         viewModelScope.launch {
             savedPlaces.collect { mutable.value = mutable.value.copy(savedPlaces = it) }
         }
         viewModelScope.launch {
-            selectedDays.filterNotNull().collect(::selectDay)
+            selectedDays.collect {
+                hasExternalSelection = true
+                externalSelectedDayId = it
+                selectDay(it)
+            }
         }
     }
 
-    fun selectDay(id: String) {
+    fun selectDay(id: String?) {
         if (id == selectedDay.value) return
         selectedDay.value = id
-        mutable.value = mutable.value.copy(selectedDayId = id, items = emptyList(), legs = emptyList(), previewOrder = emptyList())
+        clearDay(id)
     }
 
     fun addPlace(placeId: String) {
@@ -151,26 +162,31 @@ class DayItineraryViewModel(
         mutable.value = mutable.value.copy(timingItemId = null, moveItemId = null, deleteItemId = null, modeLegId = null)
     }
 
+    private fun clearDay(selectedDayId: String? = null) {
+        mutable.value = mutable.value.copy(
+            selectedDayId = selectedDayId,
+            items = emptyList(),
+            legs = emptyList(),
+            previewOrder = emptyList(),
+            timingItemId = null,
+            moveItemId = null,
+            deleteItemId = null,
+            modeLegId = null,
+        )
+    }
+
     private fun applyDay(day: DayItinerary, legs: List<RouteLegEntity>) {
-        val items = day.items.map { it.toUi() }
+        val items = day.items.map { it.toItineraryItemUi() }
         val previous = mutable.value
         val officialOrder = items.map(ItineraryItemUi::id)
         val keepPreview = previous.items.map(ItineraryItemUi::id) == officialOrder && previous.previewOrder.toSet() == officialOrder.toSet()
         mutable.value = previous.copy(
             items = items,
             previewOrder = if (keepPreview) previous.previewOrder else officialOrder,
-            legs = legs.map { RouteLegUi(it.id, it.fromItemId, it.toItemId, it.selectedMode ?: it.recommendedMode, it.status, it.distanceMeters, it.durationSeconds, it.errorKind.toSummary()) },
+            legs = legs.map { it.toRouteLegUi() },
         )
     }
 
-    private fun ItineraryItem.toUi() = ItineraryItemUi(id, place.name, place.address, arrivalTime, stayMinutes)
-    private fun RouteErrorKind?.toSummary() = when (this) {
-        RouteErrorKind.TRANSIENT -> "网络异常，请重试"
-        RouteErrorKind.NO_ROUTE -> "未找到可用路线"
-        RouteErrorKind.UNSUPPORTED_TRANSIT -> "当前地点不支持公交规划"
-        RouteErrorKind.PERMANENT -> "路线规划失败"
-        null -> null
-    }
     private fun showError(t: Throwable) { mutable.value = mutable.value.copy(error = t.message ?: "操作失败") }
 
     class Factory(

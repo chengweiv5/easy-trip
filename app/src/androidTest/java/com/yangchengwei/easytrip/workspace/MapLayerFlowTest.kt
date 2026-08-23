@@ -57,7 +57,7 @@ class MapLayerFlowTest {
                 onBack = {},
                 onSettings = {},
                 placeContent = { Text("地点") },
-                itineraryContent = { Text("行程") },
+                dayItineraryContent = { Text("行程") },
             )
         }
 

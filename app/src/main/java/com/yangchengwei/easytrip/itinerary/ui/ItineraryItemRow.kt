@@ -19,12 +19,14 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
@@ -42,7 +44,9 @@ fun ItineraryItemRow(
     var drag by remember(item.id) { mutableFloatStateOf(0f) }
     var isDragging by remember(item.id) { mutableStateOf(false) }
     val currentIndex by rememberUpdatedState(index)
-    Card(
+    ItineraryItemCard(
+        item = item,
+        displayOrder = index + 1,
         modifier = Modifier
             .fillMaxWidth()
             .testTag("item-${item.id}")
@@ -71,10 +75,39 @@ fun ItineraryItemRow(
                     },
                 )
             },
-        colors = CardDefaults.cardColors(
-            containerColor = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
-        ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDragging) 12.dp else 3.dp),
+        containerColor = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainer,
+        elevation = if (isDragging) 12.dp else 3.dp,
+    ) {
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+            TextButton(onTiming, Modifier.testTag("timing-${item.id}")) { Text("时间") }
+            TextButton(onCrossDay, Modifier.testTag("move-${item.id}")) { Text("移动到…") }
+            TextButton(onDelete, Modifier.testTag("delete-${item.id}")) { Text("删除") }
+        }
+    }
+}
+
+@Composable
+fun ItineraryItemCard(
+    item: ItineraryItemUi,
+    displayOrder: Int,
+    modifier: Modifier = Modifier,
+) {
+    ItineraryItemCard(item, displayOrder, modifier, MaterialTheme.colorScheme.surfaceContainer, 3.dp)
+}
+
+@Composable
+private fun ItineraryItemCard(
+    item: ItineraryItemUi,
+    displayOrder: Int,
+    modifier: Modifier,
+    containerColor: Color,
+    elevation: Dp,
+    actions: @Composable () -> Unit = {},
+) {
+    Card(
+        modifier = modifier,
+        colors = CardDefaults.cardColors(containerColor = containerColor),
+        elevation = CardDefaults.cardElevation(defaultElevation = elevation),
     ) {
         Column(
             Modifier.padding(horizontal = 16.dp, vertical = 12.dp),
@@ -82,7 +115,7 @@ fun ItineraryItemRow(
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = (index + 1).toString(),
+                    text = displayOrder.toString(),
                     style = MaterialTheme.typography.headlineMedium,
                     color = MaterialTheme.colorScheme.primary,
                 )
@@ -98,11 +131,7 @@ fun ItineraryItemRow(
                     if (timing.isNotEmpty()) Text(timing, style = MaterialTheme.typography.bodyMedium)
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                TextButton(onTiming, Modifier.testTag("timing-${item.id}")) { Text("时间") }
-                TextButton(onCrossDay, Modifier.testTag("move-${item.id}")) { Text("移动到…") }
-                TextButton(onDelete, Modifier.testTag("delete-${item.id}")) { Text("删除") }
-            }
+            actions()
         }
     }
 }

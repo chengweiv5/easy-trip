@@ -52,13 +52,17 @@ class WorkspaceSearchTabsTest {
                 onSettings = {},
                 onOpenSearch = { searchLaunches++ },
                 placeContent = { Text("地点内容") },
-                itineraryContent = { Text("行程内容") },
+                dayItineraryContent = { Text("行程内容") },
             )
         }
 
-        compose.onNodeWithTag("tab-PLACES").assertExists()
-        compose.onNodeWithTag("tab-ITINERARY").assertExists()
-        compose.onNodeWithTag("tab-SEARCH").assertDoesNotExist()
+        compose.onNodeWithTag("section-PLACE_POOL").assertExists()
+        compose.onNodeWithTag("section-ITINERARY").assertExists()
+        compose.onNodeWithTag("scope-PLACE_POOL").assertDoesNotExist()
+        compose.onNodeWithTag("scope-SINGLE_DAY").assertDoesNotExist()
+        compose.onNodeWithTag("scope-WHOLE_TRIP").assertDoesNotExist()
+        compose.onNodeWithTag("tab-PLACES").assertDoesNotExist()
+        compose.onNodeWithTag("tab-ITINERARY").assertDoesNotExist()
         compose.onNodeWithTag("workspace-search-launcher")
             .assertHasClickAction()
             .assert(hasContentDescription("搜索地点"))

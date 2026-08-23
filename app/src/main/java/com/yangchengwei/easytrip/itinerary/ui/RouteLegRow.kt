@@ -27,6 +27,28 @@ import com.yangchengwei.easytrip.core.model.TransportMode
 
 @Composable
 fun RouteLegRow(leg: RouteLegUi, onMode: () -> Unit, onRetry: () -> Unit) {
+    RouteLegContent(leg, Modifier.fillMaxWidth().testTag("leg-${leg.id}")) {
+        TextButton(onMode, Modifier.testTag("mode-${leg.id}")) { Text("交通方式") }
+        if (leg.status == RouteStatus.FAILED) {
+            TextButton(onRetry, Modifier.testTag("retry-${leg.id}")) { Text("重试") }
+        }
+    }
+}
+
+@Composable
+fun RouteLegContent(
+    leg: RouteLegUi,
+    modifier: Modifier = Modifier,
+) {
+    RouteLegContent(leg, modifier) {}
+}
+
+@Composable
+private fun RouteLegContent(
+    leg: RouteLegUi,
+    modifier: Modifier,
+    actions: @Composable () -> Unit,
+) {
     val detail = when (leg.status) {
         RouteStatus.WAITING_NETWORK -> "等待联网"
         RouteStatus.PENDING -> "等待计算"
@@ -38,7 +60,7 @@ fun RouteLegRow(leg: RouteLegUi, onMode: () -> Unit, onRetry: () -> Unit) {
         RouteStatus.FAILED -> leg.error ?: "路线规划失败"
     }
     Row(
-        Modifier.fillMaxWidth().testTag("leg-${leg.id}").padding(start = 28.dp),
+        modifier.padding(start = 28.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {
@@ -59,10 +81,7 @@ fun RouteLegRow(leg: RouteLegUi, onMode: () -> Unit, onRetry: () -> Unit) {
                 if (leg.status == RouteStatus.CALCULATING) {
                     CircularProgressIndicator(Modifier.size(24.dp).semantics { contentDescription = "路线计算中" })
                 }
-                TextButton(onMode, Modifier.testTag("mode-${leg.id}")) { Text("交通方式") }
-                if (leg.status == RouteStatus.FAILED) {
-                    TextButton(onRetry, Modifier.testTag("retry-${leg.id}")) { Text("重试") }
-                }
+                actions()
             }
         }
     }

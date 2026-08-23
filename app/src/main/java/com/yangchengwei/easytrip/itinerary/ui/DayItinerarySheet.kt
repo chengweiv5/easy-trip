@@ -19,10 +19,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.core.model.TransportMode
 
 @Composable
-fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Modifier, onSelectDay: (String) -> Unit = {}) {
+fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Modifier) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
     Column(modifier.padding(12.dp)) {
-        DaySelector(state.days, state.selectedDayId) { viewModel.selectDay(it); onSelectDay(it) }
         if (state.savedPlaces.isNotEmpty()) {
             Row(Modifier.horizontalScroll(rememberScrollState())) {
                 state.savedPlaces.forEach { place ->
@@ -33,6 +32,9 @@ fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Mod
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         val byId = state.items.associateBy(ItineraryItemUi::id)
         LazyColumn {
+            if (state.items.isEmpty()) {
+                item { Text("暂无行程") }
+            }
             itemsIndexed(state.previewOrder, key = { _, id -> id }) { index, id ->
                 val item = byId[id] ?: return@itemsIndexed
                 ItineraryItemRow(
