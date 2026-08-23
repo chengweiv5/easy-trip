@@ -33,12 +33,12 @@ class CreateTripViewModel(
         val current = mutableState.value
         val fieldsLocked = current.isSubmitting
         when (action) {
-            CreateTripAction.Back -> viewModelScope.launch { effectChannel.send(CreateTripEffect.NavigateBack) }
-            is CreateTripAction.NameChanged -> if (!fieldsLocked) update(current.copy(name = action.value, nameError = null, submitError = null))
-            is CreateTripAction.DayCountChanged -> if (!fieldsLocked) update(current.copy(dayCount = action.value.filter(Char::isDigit), dayCountError = null, submitError = null))
-            is CreateTripAction.TimeModeChanged -> if (!fieldsLocked) update(current.copy(timeMode = action.value, startDate = if (action.value == CreateTimeMode.DRAFT) null else current.startDate, dateError = null))
-            is CreateTripAction.StartDateChanged -> if (!fieldsLocked) update(current.copy(startDate = action.value, dateError = null))
-            is CreateTripAction.TravelModeChanged -> if (!fieldsLocked) update(current.copy(travelMode = action.value))
+            CreateTripAction.Back -> if (!fieldsLocked) viewModelScope.launch { effectChannel.send(CreateTripEffect.NavigateBack) }
+            is CreateTripAction.NameChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(name = action.value, nameError = null, submitError = null))
+            is CreateTripAction.DayCountChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(dayCount = action.value.filter(Char::isDigit), dayCountError = null, submitError = null))
+            is CreateTripAction.TimeModeChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(timeMode = action.value, startDate = if (action.value == CreateTimeMode.DRAFT) null else current.startDate, dateError = null))
+            is CreateTripAction.StartDateChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(startDate = action.value, dateError = null))
+            is CreateTripAction.TravelModeChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(travelMode = action.value))
             CreateTripAction.Submit -> submit(current)
         }
     }
@@ -63,6 +63,8 @@ class CreateTripViewModel(
                 .onFailure { update(mutableState.value.copy(isSubmitting = false, submitError = "创建旅行失败，请重试")) }
         }
     }
+
+    private fun updateForCommandChange(value: CreateTripUiState) = update(value.copy(requestId = null))
 
     private fun update(value: CreateTripUiState) {
         mutableState.value = value
