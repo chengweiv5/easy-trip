@@ -4,9 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertHasClickAction
@@ -18,7 +16,20 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.SavedStateHandle
+import androidx.test.espresso.Espresso.pressBack
+import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
+import com.yangchengwei.easytrip.trip.domain.CreateTrip
+import com.yangchengwei.easytrip.trip.domain.InsertSide
+import com.yangchengwei.easytrip.trip.domain.TripRepository
+import com.yangchengwei.easytrip.trip.domain.TripService
+import com.yangchengwei.easytrip.trip.domain.TripSummary
+import com.yangchengwei.easytrip.trip.domain.TripWithDays
+import java.time.LocalDate
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -40,24 +51,16 @@ class CreateTripContentTest {
         compose.onNodeWithTag("create-submit").assertIsDisplayed()
     }
 
-    @Test fun validationErrorsClearOnlyWhenTheirFieldIsCorrected() {
+    @Test fun viewModelValidationErrorsClearOnlyWhenTheirFieldIsCorrected() {
+        val repository = RecordingTripRepository()
+        val viewModel = CreateTripViewModel(TripService(repository), SavedStateHandle()) { "trip-1" }
         compose.setContent {
-            var state by remember { mutableStateOf(CreateTripUiState()) }
-            EasyTripTheme {
-                CreateTripContent(state, onAction = { action ->
-                    state = when (action) {
-                        CreateTripAction.Submit -> state.copy(
-                            nameError = "请输入旅行名称",
-                            dayCountError = "请输入至少 1 天",
-                            dateError = "请选择开始日期",
-                        )
-                        is CreateTripAction.NameChanged -> state.copy(name = action.value, nameError = null)
-                        else -> state
-                    }
-                })
-            }
+            val state by viewModel.state.collectAsState()
+            EasyTripTheme { CreateTripContent(state, viewModel::onAction, initialDateMillis = 1_799_625_600_000L) }
         }
 
+        compose.onNodeWithTag("create-time-DATED").performClick()
+        pressBack()
         compose.onNodeWithTag("create-submit").performClick()
         compose.onNodeWithText("请输入旅行名称").assertIsDisplayed()
         compose.onNodeWithText("请输入至少 1 天").assertIsDisplayed()
@@ -67,6 +70,37 @@ class CreateTripContentTest {
         compose.onNodeWithText("请输入旅行名称").assertDoesNotExist()
         compose.onNodeWithText("请输入至少 1 天").assertIsDisplayed()
         compose.onNodeWithText("请选择开始日期").assertIsDisplayed()
+
+        compose.onNodeWithTag("create-day-count").performTextInput("3")
+        compose.onNodeWithText("请输入至少 1 天").assertDoesNotExist()
+        compose.onNodeWithText("请选择开始日期").assertIsDisplayed()
+
+        compose.onNodeWithTag("create-time-DRAFT").performClick()
+        compose.onNodeWithTag("create-time-DATED").performClick()
+        compose.onNodeWithTag("create-date-confirm").performClick()
+        compose.onNodeWithText("请选择开始日期").assertDoesNotExist()
+        compose.onNodeWithTag("create-submit").performClick()
+        compose.waitUntil { repository.commands.size == 1 }
+        assertEquals("东京", repository.commands.single().name)
+        assertEquals(3, repository.commands.single().dayCount)
+        assertEquals(LocalDate.of(2027, 1, 11), repository.commands.single().startDate)
+    }
+
+    private class RecordingTripRepository : TripRepository {
+        val commands = mutableListOf<CreateTrip>()
+        override fun observeTrips(): Flow<List<TripSummary>> = emptyFlow()
+        override fun observeTrip(tripId: String): Flow<TripWithDays?> = emptyFlow()
+        override suspend fun createTrip(command: CreateTrip): String {
+            commands += command
+            return command.requestId ?: "trip-1"
+        }
+        override suspend fun renameTrip(tripId: String, name: String) = Unit
+        override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
+        override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit
+        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day-1"
+        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteDay(dayId: String) = Unit
+        override suspend fun deleteTrip(tripId: String) = Unit
     }
 
     @Test fun imeInsetsKeepSubmitActionVisibleAndClickable() {
