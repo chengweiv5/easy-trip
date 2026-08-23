@@ -30,10 +30,7 @@ import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -91,7 +88,6 @@ private fun WorkspaceReadyContent(
     mapContent: @Composable BoxScope.() -> Unit,
     modifier: Modifier,
 ) {
-    var layerMenuExpanded by remember { mutableStateOf(false) }
     val coroutineScope = rememberCoroutineScope()
     val scaffoldState = rememberBottomSheetScaffoldState(
         bottomSheetState = rememberStandardBottomSheetState(
@@ -143,14 +139,17 @@ private fun WorkspaceReadyContent(
                 WorkspaceTopBar(state.tripName, onAction)
                 Box(Modifier.align(Alignment.TopEnd).padding(top = 62.dp, end = 20.dp)) {
                     Surface(
-                        Modifier.size(48.dp).testTag("layer-menu").semantics { contentDescription = "地图图层" }.clickable { layerMenuExpanded = true },
+                        Modifier.size(48.dp).testTag("layer-menu").semantics { contentDescription = "地图图层" }.clickable { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
                         shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp,
                     ) { LayerIcon() }
-                    DropdownMenu(layerMenuExpanded, { layerMenuExpanded = false }) {
+                    DropdownMenu(state.overlay == WorkspaceOverlay.LayerMenu, { onAction(TripWorkspaceAction.CloseOverlay) }) {
                         MapLayer.entries.forEach { layer ->
                             DropdownMenuItem(
                                 text = { Text(if (state.mapLayer == layer) "✓ ${layer.label()}" else layer.label()) },
-                                onClick = { onAction(TripWorkspaceAction.SelectMapLayer(layer)); layerMenuExpanded = false },
+                                onClick = {
+                                    onAction(TripWorkspaceAction.SelectMapLayer(layer))
+                                    onAction(TripWorkspaceAction.CloseOverlay)
+                                },
                                 modifier = Modifier.testTag("layer-${layer.name}"),
                             )
                         }

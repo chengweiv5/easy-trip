@@ -12,6 +12,7 @@ data class TripWorkspaceReadyState(
     val selectedMarker: MapMarkerUi?,
     val selectedMarkerPoi: MapPoiUi?,
     val selectedMapPoi: MapPoiUi?,
+    val overlay: WorkspaceOverlay,
 )
 
 internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
@@ -26,6 +27,7 @@ internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
     selectedMarker = selectedMarker,
     selectedMarkerPoi = selectedMarkerPoi,
     selectedMapPoi = selectedMapPoi,
+    overlay = overlay,
 )
 
 sealed interface TripWorkspacePageState {
@@ -52,4 +54,6 @@ sealed interface TripWorkspaceAction {
     data class SelectItineraryScope(val scope: ItineraryScope) : TripWorkspaceAction
     data class SelectMapLayer(val layer: MapLayer) : TripWorkspaceAction
     data class SetSheetLevel(val level: WorkspaceSheetLevel) : TripWorkspaceAction
+    data class OpenOverlay(val overlay: WorkspaceOverlay) : TripWorkspaceAction
+    data object CloseOverlay : TripWorkspaceAction
 }

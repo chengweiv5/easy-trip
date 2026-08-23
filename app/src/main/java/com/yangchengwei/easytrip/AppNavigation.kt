@@ -47,7 +47,7 @@ import com.yangchengwei.easytrip.trip.ui.TripSettingsViewModel
 import com.yangchengwei.easytrip.itinerary.ui.DayItinerarySheet
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
 import com.yangchengwei.easytrip.workspace.SEARCH_SELECTION_RESULT
-import com.yangchengwei.easytrip.workspace.TripWorkspaceScreen
+import com.yangchengwei.easytrip.workspace.TripWorkspaceRoute
 import com.yangchengwei.easytrip.workspace.TripWorkspaceViewModel
 import com.yangchengwei.easytrip.workspace.consumeSearchSelection
 import com.yangchengwei.easytrip.workspace.toSearchSelectionPayload
@@ -168,7 +168,7 @@ fun AppNavigation(
                     itineraryModel.setRouteCoordinator(workspaceDependencies.routeCoordinator)
                     if (source != null) application?.startRouteCoordinator()
                 }
-                TripWorkspaceScreen(
+                TripWorkspaceRoute(
                     workspaceModel,
                     token,
                     navController::popBackStack,

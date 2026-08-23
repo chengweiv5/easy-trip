@@ -47,6 +47,45 @@ class TripWorkspaceNavigationStateTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun openingOverlayReplacesCurrentOverlay() = runTest(dispatcher) {
+        val model = model(Trips(days("one", "two")))
+        advanceUntilIdle()
+
+        model.openOverlay(WorkspaceOverlay.PlaceDetail(11L))
+        model.openOverlay(WorkspaceOverlay.EditItineraryItem(22L))
+        advanceUntilIdle()
+
+        assertEquals(WorkspaceOverlay.EditItineraryItem(22L), model.state.value.overlay)
+    }
+
+    @Test fun backClosesOverlayBeforeLeavingWorkspace() = runTest(dispatcher) {
+        val model = model(Trips(days("one", "two")))
+        advanceUntilIdle()
+        model.openOverlay(WorkspaceOverlay.LayerMenu)
+
+        assertEquals(true, model.handleBack())
+        advanceUntilIdle()
+        assertEquals(WorkspaceOverlay.None, model.state.value.overlay)
+        assertEquals(false, model.handleBack())
+    }
+
+    @Test fun tabDayScopeAndSheetLevelRestoreFromSavedState() = runTest(dispatcher) {
+        val handle = SavedStateHandle(
+            mapOf(
+                "workspace.section" to WorkspaceSection.ITINERARY.name,
+                "workspace.itineraryScope" to "DAY:two",
+                "workspace.sheet" to WorkspaceSheetLevel.EXPANDED.name,
+            ),
+        )
+
+        val model = model(Trips(days("one", "two")), handle)
+        advanceUntilIdle()
+
+        assertEquals(WorkspaceSection.ITINERARY, model.state.value.section)
+        assertEquals(ItineraryScope.Day("two"), model.state.value.itineraryScope)
+        assertEquals(WorkspaceSheetLevel.EXPANDED, model.state.value.sheetLevel)
+    }
+
     @Test fun `navigation is unified persisted and retains remembered itinerary scope`() = runTest(dispatcher) {
         val handle = SavedStateHandle()
         val trips = Trips(days("one", "two"))

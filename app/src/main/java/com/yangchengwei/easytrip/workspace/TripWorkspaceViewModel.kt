@@ -85,6 +85,7 @@ data class TripWorkspaceUiState(
     val selectedMapPoi: MapPoiUi? = null,
     val searchSelection: SearchResultSelection? = null,
     val mapLayer: MapLayer = MapLayer.STANDARD,
+    val overlay: WorkspaceOverlay = WorkspaceOverlay.None,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -110,6 +111,7 @@ class TripWorkspaceViewModel(
     private val sheet = savedState.getStateFlow(SHEET, WorkspaceSheetLevel.HALF.name)
     private val focusedPoiId = savedState.getStateFlow<String?>(FOCUSED_POI, null)
     private val selectedMarkerKey = MutableStateFlow<String?>(null)
+    private val overlay = MutableStateFlow<WorkspaceOverlay>(WorkspaceOverlay.None)
     private val selectedMapPoi = MutableStateFlow(
         savedState.get<String>(MAP_POI_NAME)?.let { name ->
             val latitude = savedState.get<Double>(MAP_POI_LATITUDE) ?: return@let null
@@ -179,6 +181,7 @@ class TripWorkspaceViewModel(
                         mapInteraction,
                         mapPreferences.layer,
                         selectedMapPoi,
+                        overlay,
                     ) { values -> mapWorkspaceState(values) }
                         .collect { next ->
                             if (next == null) {
@@ -248,6 +251,7 @@ class TripWorkspaceViewModel(
             selectedMapPoi = values[11] as MapPoiUi?,
             searchSelection = activeFocusedId?.let { id -> focusPoint?.let { SearchResultSelection(id, it) } },
             mapLayer = values[10] as MapLayer,
+            overlay = values[12] as WorkspaceOverlay,
         )
     }
 
@@ -287,6 +291,13 @@ class TripWorkspaceViewModel(
     }
     fun selectMapLayer(value: MapLayer) { mapPreferences.setLayer(value) }
     fun setSheetLevel(value: WorkspaceSheetLevel) { savedState[SHEET] = value.name }
+    fun openOverlay(value: WorkspaceOverlay) { overlay.value = value }
+    fun closeOverlay() { overlay.value = WorkspaceOverlay.None }
+    fun handleBack(): Boolean {
+        if (overlay.value == WorkspaceOverlay.None) return false
+        closeOverlay()
+        return true
+    }
     fun selectMarker(key: String) {
         val marker = mutable.value.map.markers.firstOrNull { it.key == key }
         if (marker?.kind == MapMarkerKind.UNSAVED_SEARCH) {

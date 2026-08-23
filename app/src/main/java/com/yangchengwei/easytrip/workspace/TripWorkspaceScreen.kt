@@ -74,7 +74,7 @@ fun TripWorkspaceScreen(
         },
         onAction = { action ->
             when (action) {
-                TripWorkspaceAction.Back -> onBack()
+                TripWorkspaceAction.Back -> if (!viewModel.handleBack()) onBack()
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
@@ -87,6 +87,8 @@ fun TripWorkspaceScreen(
                 is TripWorkspaceAction.SelectItineraryScope -> viewModel.selectItineraryScope(action.scope)
                 is TripWorkspaceAction.SelectMapLayer -> viewModel.selectMapLayer(action.layer)
                 is TripWorkspaceAction.SetSheetLevel -> viewModel.setSheetLevel(action.level)
+                is TripWorkspaceAction.OpenOverlay -> viewModel.openOverlay(action.overlay)
+                TripWorkspaceAction.CloseOverlay -> viewModel.closeOverlay()
             }
         },
         placeContent = placeContent,
