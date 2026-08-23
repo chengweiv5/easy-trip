@@ -30,7 +30,8 @@
 
 ## Commit
 
-首轮 agent commit：`e5b46cd846bcb69a3119c8784adff38012433117`。
+- 首轮 agent commit：`e5b46cdee1cc3c86c56d6eb201632701419463d7`。
+- 首轮 controller cherry-pick：`f3d5903678367aa0d449db31a363896e5a29d8ec`。
 
 ## Fix round 1
 
@@ -57,4 +58,6 @@
 
 ## Fix round 1 commit
 
-本轮提交范围：`e5b46cd..HEAD`；最终 SHA 由提交完成后的 Git 输出确认。
+- Agent commit：`1ffee51cb27e890bf2857d0eeb89b4a289f11e4d`。
+- Controller cherry-pick：`b505ffdfae50e999973a2dd6d03b26e036648413`。
+- Agent 提交范围：`e5b46cdee1cc3c86c56d6eb201632701419463d7..1ffee51cb27e890bf2857d0eeb89b4a289f11e4d`。
