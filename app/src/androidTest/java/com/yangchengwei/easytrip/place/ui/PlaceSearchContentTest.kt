@@ -116,15 +116,31 @@ class PlaceSearchContentTest {
         }
 
         assertHeaderInsideContainerWithoutOverlap()
-        compose.onNodeWithTag("place-search-bookmark-touch-poi-1").assertIsDisplayed()
+        assertInside("place-search-result-row-poi-1", "place-search-surface")
+        assertInside("place-search-place-icon-poi-1", "place-search-surface")
+        assertInside("place-search-result-text-poi-1", "place-search-surface")
+        assertInside("place-search-bookmark-visual-poi-1", "place-search-surface", useUnmergedTree = true)
+        assertInside("place-search-bookmark-touch-poi-1", "place-search-surface")
+        assertNoOverlap("place-search-place-icon-poi-1", "place-search-bookmark-touch-poi-1")
+        assertNoOverlap("place-search-result-text-poi-1", "place-search-bookmark-touch-poi-1")
+
         compose.runOnIdle { state.value = PlaceSearchUiState(search = PlaceSearchState("无", phase = PlaceSearchPhase.Empty)) }
         assertHeaderInsideContainerWithoutOverlap()
-        compose.onNodeWithText("清空搜索").assertIsDisplayed()
+        assertInside("place-search-empty-body", "place-search-surface")
+        assertInside("place-search-empty-description", "place-search-surface")
+        assertInside("place-search-empty-action", "place-search-surface")
+        assertNoOverlap("place-search-empty-description", "place-search-empty-action")
+        assertMinimumTouchHeight("place-search-empty-action", 48f)
+
         compose.runOnIdle {
             state.value = PlaceSearchUiState(search = PlaceSearchState("失败", phase = PlaceSearchPhase.NetworkFailure("网络不可用")))
         }
         assertHeaderInsideContainerWithoutOverlap()
-        compose.onNodeWithText("重新搜索").assertIsDisplayed()
+        assertInside("place-search-network-failure-body", "place-search-surface")
+        assertInside("place-search-network-failure-description", "place-search-surface")
+        assertInside("place-search-network-failure-action", "place-search-surface")
+        assertNoOverlap("place-search-network-failure-description", "place-search-network-failure-action")
+        assertMinimumTouchHeight("place-search-network-failure-action", 48f)
     }
 
     private fun assertHeaderInsideContainerWithoutOverlap() {
@@ -134,6 +150,29 @@ class PlaceSearchContentTest {
         assertTrue(back.left >= container.left && back.right <= container.right)
         assertTrue(field.left >= container.left && field.right <= container.right)
         assertTrue(back.right <= field.left)
+    }
+
+    private fun assertInside(tag: String, containerTag: String, useUnmergedTree: Boolean = false) {
+        val container = compose.onNodeWithTag(containerTag).getUnclippedBoundsInRoot()
+        val bounds = compose.onNodeWithTag(tag, useUnmergedTree).getUnclippedBoundsInRoot()
+        assertTrue(bounds.left >= container.left)
+        assertTrue(bounds.top >= container.top)
+        assertTrue(bounds.right <= container.right)
+        assertTrue(bounds.bottom <= container.bottom)
+    }
+
+    private fun assertNoOverlap(firstTag: String, secondTag: String) {
+        val first = compose.onNodeWithTag(firstTag).getUnclippedBoundsInRoot()
+        val second = compose.onNodeWithTag(secondTag).getUnclippedBoundsInRoot()
+        assertTrue(
+            first.right <= second.left || second.right <= first.left ||
+                first.bottom <= second.top || second.bottom <= first.top,
+        )
+    }
+
+    private fun assertMinimumTouchHeight(tag: String, expectedHeight: Float) {
+        val bounds = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+        assertTrue((bounds.bottom - bounds.top).value >= expectedHeight)
     }
 
     private fun assertSize(tag: String, expectedWidth: Float? = null, expectedHeight: Float? = null) {

@@ -175,6 +175,7 @@ private fun SearchBody(state: PlaceSearchUiState, onAction: (PlaceSearchAction) 
             title = "没有找到相关地点",
             message = "试试更短的关键词，或检查地点名称是否正确。",
             buttonLabel = "清空搜索",
+            testTagPrefix = "place-search-empty",
             onButtonClick = { onAction(PlaceSearchAction.QueryChanged("")) },
         )
         is PlaceSearchPhase.NetworkFailure -> SearchMessage(
@@ -182,6 +183,7 @@ private fun SearchBody(state: PlaceSearchUiState, onAction: (PlaceSearchAction) 
             title = "网络连接失败",
             message = phase.message.ifBlank { "无法搜索新的地点。请检查网络连接后重试。" },
             buttonLabel = "重新搜索",
+            testTagPrefix = "place-search-network-failure",
             onButtonClick = { onAction(PlaceSearchAction.Retry) },
         )
         PlaceSearchPhase.Results -> SearchResults(state, onAction)
@@ -227,10 +229,13 @@ private fun SearchMessage(
     title: String,
     message: String,
     buttonLabel: String? = null,
+    testTagPrefix: String? = null,
     onButtonClick: () -> Unit = {},
 ) {
     Column(
-        Modifier.fillMaxSize(),
+        Modifier.fillMaxSize().then(
+            if (testTagPrefix == null) Modifier else Modifier.testTag("$testTagPrefix-body"),
+        ),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {
@@ -240,7 +245,12 @@ private fun SearchMessage(
         Spacer(Modifier.height(8.dp))
         Text(
             message,
-            Modifier.fillMaxWidth().padding(horizontal = 32.dp),
+            Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 32.dp)
+                .then(
+                    if (testTagPrefix == null) Modifier else Modifier.testTag("$testTagPrefix-description"),
+                ),
             color = SearchMuted,
             fontSize = 12.sp,
             lineHeight = 18.sp,
@@ -252,6 +262,9 @@ private fun SearchMessage(
                 Modifier
                     .fillMaxWidth()
                     .height(48.dp)
+                    .then(
+                        if (testTagPrefix == null) Modifier else Modifier.testTag("$testTagPrefix-action"),
+                    )
                     .border(1.dp, SearchBorder, RoundedCornerShape(10.dp))
                     .clip(RoundedCornerShape(10.dp))
                     .clickable(onClick = onButtonClick),
@@ -266,7 +279,10 @@ private fun SearchMessage(
 @Composable
 private fun SearchResultRow(candidate: PlaceCandidate, saved: Boolean, busy: Boolean, onToggle: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().padding(vertical = 12.dp),
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = 12.dp)
+            .testTag("place-search-result-row-${candidate.poiId}"),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -279,7 +295,7 @@ private fun SearchResultRow(candidate: PlaceCandidate, saved: Boolean, busy: Boo
         ) {
             LocationIcon(Modifier.size(22.dp), SearchPrimary)
         }
-        Column(Modifier.weight(1f)) {
+        Column(Modifier.weight(1f).testTag("place-search-result-text-${candidate.poiId}")) {
             Text(candidate.name, color = SearchPrimaryDark, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (candidate.address.isNotBlank()) {
                 Spacer(Modifier.height(3.dp))

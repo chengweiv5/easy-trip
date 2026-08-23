@@ -90,6 +90,16 @@ Fix round GREEN 验证：
 - `V2AcceptanceTest`：1/1 成功，验证连续收藏后仍停留搜索页。
 - `SearchMapFocusTest`：5/5 成功，Task 3 实时地图聚焦保持独立可用。
 
+## Fix round 2
+
+补齐原 Minor #6 的真实窄屏 bounds 验收：
+
+- 在 280dp / 2× 字体下，Results 读取结果行、地点图标、文字区域、收藏视觉与 48dp 触控节点 bounds，断言全部位于内容 Surface 内，且收藏触控不与图标或文字关键区重叠。
+- Empty 为状态主体、说明和清空搜索按钮提供稳定 tag；读取真实 bounds，断言均位于 Surface 内、说明与按钮不重叠、按钮触控高度至少 48dp。
+- NetworkFailure 同样覆盖主体、说明和重新搜索按钮的容器边界、不重叠及最小触控高度。
+- RED：新增测试在旧生产代码中因缺少 `place-search-result-row-poi-1` 等稳定布局节点失败。
+- GREEN：补充仅用于布局定位的 test tags 后，`PlaceSearchContentTest` 6/6 通过；生产布局无需尺寸调整。
+
 ## Graphify
 
 已运行 `graphify update .`。`graphify-out` 生成物未纳入 Task 4 提交。
