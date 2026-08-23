@@ -11,6 +11,7 @@ import com.yangchengwei.easytrip.place.domain.SavedPlace
 import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -103,8 +104,26 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     fun edit(value: SavedPlace) { mutableState.value = mutableState.value.copy(editing = value) }
     fun dismissEdit() { mutableState.value = mutableState.value.copy(editing = null) }
     fun updateDetails(note: String, tags: Set<String>) { val place = mutableState.value.editing ?: return; viewModelScope.launch { repository.updateDetails(place.id, note, tags); dismissEdit() } }
-    fun requestDelete(place: SavedPlace) { viewModelScope.launch { mutableState.value = mutableState.value.copy(deleting = place, deletionUsageCount = service.deletionUsageCount(place.id)) } }
-    fun dismissDelete() { mutableState.value = mutableState.value.copy(deleting = null, deletionUsageCount = 0) }
+    private var deletePreparationJob: Job? = null
+    private var deletePreparationId = 0L
+    fun requestDelete(place: SavedPlace) {
+        deletePreparationJob?.cancel()
+        val requestId = ++deletePreparationId
+        mutableState.value = mutableState.value.copy(deleting = null, deletionUsageCount = 0)
+        deletePreparationJob = viewModelScope.launch {
+            val usageCount = service.deletionUsageCount(place.id)
+            if (requestId == deletePreparationId) {
+                mutableState.value = mutableState.value.copy(deleting = place, deletionUsageCount = usageCount)
+                deletePreparationJob = null
+            }
+        }
+    }
+    fun dismissDelete() {
+        deletePreparationJob?.cancel()
+        deletePreparationJob = null
+        deletePreparationId++
+        mutableState.value = mutableState.value.copy(deleting = null, deletionUsageCount = 0)
+    }
     fun confirmDelete() { val place = mutableState.value.deleting ?: return; viewModelScope.launch { service.deletePlaceAndReferences(place.id); dismissDelete() } }
     fun dismissDialogs() {
         dismissEdit()

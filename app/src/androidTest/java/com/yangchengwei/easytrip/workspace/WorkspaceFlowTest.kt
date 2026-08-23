@@ -109,6 +109,33 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("旧地图地点").assertDoesNotExist()
     }
 
+    @Test fun backDuringDeletePreparationPreventsConfirmationReopening() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = DelayedDeletePlaces()
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", repository, null)
+        var backCount = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = { backCount++ },
+                onSettings = {},
+                placeViewModel = placeModel,
+            )
+        }
+        compose.waitUntil(5_000) { placeModel.state.value.search.savedPlaces.isNotEmpty() }
+        compose.onNodeWithTag("delete-place-saved").performClick()
+        pressBack()
+        compose.waitUntil { backCount == 1 }
+
+        compose.runOnIdle { repository.usage.complete(2) }
+        compose.waitForIdle()
+
+        assertEquals(null, placeModel.state.value.deleting)
+        assertEquals(WorkspaceOverlay.None, workspace.state.value.overlay)
+        compose.onNodeWithTag("confirmation-confirm").assertDoesNotExist()
+    }
+
     @Test fun deleteConfirmationWaitsForReadyTargetAndConfirmsOnce() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val repository = DelayedDeletePlaces()

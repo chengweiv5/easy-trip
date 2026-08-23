@@ -50,7 +50,9 @@ fun TripWorkspaceRoute(
         viewModel.closeOverlay()
     }
     fun leaveOrCloseOverlay() {
-        if (viewModel.handleBack()) dismissPendingDialogs() else onBack()
+        val overlayClosed = viewModel.handleBack()
+        dismissPendingDialogs()
+        if (!overlayClosed) onBack()
     }
 
     LaunchedEffect(places.pendingCollectionRemoval) {
