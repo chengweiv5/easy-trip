@@ -9,7 +9,13 @@ import java.util.Locale
 sealed interface TripListPageState {
     data object Loading : TripListPageState
     data object Empty : TripListPageState
-    data class Content(val trips: List<TripCardUiModel>) : TripListPageState
+    data class Content(
+        val primaryTrip: TripCardUiModel,
+        val otherTrips: List<TripCardUiModel>,
+    ) : TripListPageState {
+        constructor(trips: List<TripCardUiModel>) : this(trips.first(), trips.drop(1))
+        val trips: List<TripCardUiModel> get() = listOf(primaryTrip) + otherTrips
+    }
     data class Error(val message: String) : TripListPageState
 }
 

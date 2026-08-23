@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewModelScope
+import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
@@ -21,6 +22,8 @@ data class TripListUiState(
     val trips: List<TripSummary> = emptyList(),
     val pendingDelete: TripSummary? = null,
     val pendingDeleteImpact: TripDeleteImpact? = null,
+    val deleteConfirmation: ConfirmationUiModel? = null,
+    val deleteInProgress: Boolean = false,
 )
 
 sealed interface TripListNavigation {
@@ -50,7 +53,12 @@ class TripListViewModel(
             }.collect { trips ->
                 mutableState.value = mutableState.value.copy(
                     trips = trips,
-                    page = if (trips.isEmpty()) TripListPageState.Empty else TripListPageState.Content(trips.map(TripSummary::toTripCardUiModel)),
+                    page = if (trips.isEmpty()) {
+                        TripListPageState.Empty
+                    } else {
+                        val cards = trips.map(TripSummary::toTripCardUiModel)
+                        TripListPageState.Content(cards.first(), cards.drop(1))
+                    },
                 )
             }
         }
@@ -68,9 +76,59 @@ class TripListViewModel(
 
     fun openWorkspace(id: String) { viewModelScope.launch { navigationChannel.send(TripListNavigation.OpenWorkspace(id)) } }
     fun openSettings(id: String) { viewModelScope.launch { navigationChannel.send(TripListNavigation.OpenSettings(id)) } }
-    fun requestDelete(value: TripSummary) { viewModelScope.launch { mutableState.value = mutableState.value.copy(pendingDelete = value, pendingDeleteImpact = impacts.trip(value.id)) } }
-    fun cancelDelete() { mutableState.value = mutableState.value.copy(pendingDelete = null, pendingDeleteImpact = null) }
-    fun confirmDelete() { val value = mutableState.value.pendingDelete ?: return; viewModelScope.launch { service.deleteTrip(value.id); cancelDelete() } }
+
+    fun requestDelete(value: TripSummary) {
+        viewModelScope.launch {
+            val impact = impacts.trip(value.id)
+            mutableState.value = mutableState.value.copy(
+                pendingDelete = value,
+                pendingDeleteImpact = impact,
+                deleteConfirmation = impact.toConfirmation(value.name),
+            )
+        }
+    }
+
+    fun cancelDelete() {
+        if (mutableState.value.deleteInProgress) return
+        mutableState.value = mutableState.value.copy(
+            pendingDelete = null,
+            pendingDeleteImpact = null,
+            deleteConfirmation = null,
+        )
+    }
+
+    fun confirmDelete() {
+        val current = mutableState.value
+        val value = current.pendingDelete ?: return
+        if (current.deleteInProgress) return
+        mutableState.value = current.copy(deleteInProgress = true)
+        viewModelScope.launch {
+            service.deleteTrip(value.id)
+            mutableState.value = mutableState.value.copy(
+                pendingDelete = null,
+                pendingDeleteImpact = null,
+                deleteConfirmation = null,
+                deleteInProgress = false,
+            )
+        }
+    }
+
+    private fun TripDeleteImpact.toConfirmation(tripName: String) = ConfirmationUiModel(
+        title = "删除$tripName？",
+        message = "此操作将永久删除旅行及其中的所有内容，无法撤销。",
+        deletedItems = listOf(
+            "$days 个旅行日",
+            "$places 个收藏地点",
+            "$tags 个标签",
+            "$itineraryItems 个行程项",
+            "$routeLegs 个路线段",
+        ),
+        retainedItems = listOf("其他旅行及其内容"),
+        confirmLabel = "确认删除旅行",
+        dismissLabel = "取消",
+        destructive = true,
+        reversible = false,
+    )
 
     class Factory(
         private val service: TripService,

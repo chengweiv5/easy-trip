@@ -57,7 +57,16 @@ class TripFlowTest {
         compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
 
         compose.onNodeWithTag("trip-delete-id-1").performClick()
-        compose.onNodeWithText("旅行日 3，地点 2，标签 1，行程项 4，路线段 5").assertIsDisplayed()
+        compose.onNodeWithText("删除确认删除测试？").assertIsDisplayed()
+        compose.onNodeWithText("此操作将永久删除旅行及其中的所有内容，无法撤销。").assertIsDisplayed()
+        compose.onNodeWithText("将删除").assertIsDisplayed()
+        compose.onNodeWithText("3 个旅行日").assertIsDisplayed()
+        compose.onNodeWithText("2 个收藏地点").assertIsDisplayed()
+        compose.onNodeWithText("1 个标签").assertIsDisplayed()
+        compose.onNodeWithText("4 个行程项").assertIsDisplayed()
+        compose.onNodeWithText("5 个路线段").assertIsDisplayed()
+        compose.onNodeWithText("将保留").assertIsDisplayed()
+        compose.onNodeWithText("其他旅行及其内容").assertIsDisplayed()
         compose.onNodeWithText("确认删除旅行").performClick()
 
         compose.waitUntil { repository.trip.value == null }

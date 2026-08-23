@@ -8,6 +8,7 @@ import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -53,6 +54,84 @@ class TripListViewModelTest {
         assertEquals(listOf("trip-1"), content.trips.map(TripCardUiModel::id))
     }
 
+    @Test fun contentMapsPrimaryAndOtherTripsWithoutStaleCards() = runTest(dispatcher) {
+        val repository = TestTripRepository()
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        repository.trips.value = listOf(
+            TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3),
+            TripSummary("trip-2", "东京", null, TravelMode.SELF_DRIVE, 2),
+        )
+        advanceUntilIdle()
+
+        val first = viewModel.state.value.page as TripListPageState.Content
+        assertEquals("trip-1", first.primaryTrip.id)
+        assertEquals(listOf("trip-2"), first.otherTrips.map(TripCardUiModel::id))
+
+        repository.trips.value = listOf(
+            TripSummary("trip-3", "杭州", null, TravelMode.FLEXIBLE, 1),
+        )
+        advanceUntilIdle()
+
+        val replaced = viewModel.state.value.page as TripListPageState.Content
+        assertEquals("trip-3", replaced.primaryTrip.id)
+        assertEquals(emptyList<TripCardUiModel>(), replaced.otherTrips)
+    }
+
+    @Test fun deletePreviewListsAffectedAndRetainedData() = runTest(dispatcher) {
+        val repository = TestTripRepository()
+        val viewModel = TripListViewModel(
+            TripService(repository),
+            repository,
+            TestImpacts(TripDeleteImpact(3, 2, 1, 4, 5)),
+        )
+        val trip = TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3)
+        repository.trips.value = listOf(trip)
+        advanceUntilIdle()
+
+        viewModel.requestDelete(trip)
+        advanceUntilIdle()
+
+        val confirmation = viewModel.state.value.deleteConfirmation!!
+        assertEquals("删除京都？", confirmation.title)
+        assertEquals(
+            listOf("3 个旅行日", "2 个收藏地点", "1 个标签", "4 个行程项", "5 个路线段"),
+            confirmation.deletedItems,
+        )
+        assertEquals(listOf("其他旅行及其内容"), confirmation.retainedItems)
+        assertEquals(false, confirmation.reversible)
+        assertEquals(true, confirmation.destructive)
+    }
+
+    @Test fun cancellingDeleteDoesNotCallRepository() = runTest(dispatcher) {
+        val repository = TestTripRepository()
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        val trip = TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3)
+
+        viewModel.requestDelete(trip)
+        advanceUntilIdle()
+        viewModel.cancelDelete()
+        advanceUntilIdle()
+
+        assertEquals(emptyList<String>(), repository.deletedTrips)
+        assertEquals(null, viewModel.state.value.deleteConfirmation)
+    }
+
+    @Test fun confirmingDeleteCallsRepositoryOnlyOnce() = runTest(dispatcher) {
+        val repository = TestTripRepository().apply { blockDelete = CompletableDeferred() }
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        val trip = TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3)
+
+        viewModel.requestDelete(trip)
+        advanceUntilIdle()
+        viewModel.confirmDelete()
+        viewModel.confirmDelete()
+        advanceUntilIdle()
+
+        assertEquals(listOf("trip-1"), repository.deletedTrips)
+        repository.blockDelete!!.complete(Unit)
+        advanceUntilIdle()
+    }
+
     @Test fun errorRetryRecoversAndKeepsSingleCollector() = runTest(dispatcher) {
         val repository = TestTripRepository()
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
@@ -76,8 +155,10 @@ class TripListViewModelTest {
         assertEquals(1, repository.maxActiveCollectors)
     }
 
-    private class TestImpacts : DeleteImpactProvider {
-        override suspend fun trip(tripId: String) = TripDeleteImpact(0, 0, 0, 0, 0)
+    private class TestImpacts(
+        private val impact: TripDeleteImpact = TripDeleteImpact(0, 0, 0, 0, 0),
+    ) : DeleteImpactProvider {
+        override suspend fun trip(tripId: String) = impact
         override suspend fun day(dayId: String) = DayDeleteImpact(0, 0)
     }
 
@@ -86,6 +167,8 @@ class TripListViewModelTest {
         var failure: Throwable? = null
         var activeCollectors = 0
         var maxActiveCollectors = 0
+        val deletedTrips = mutableListOf<String>()
+        var blockDelete: CompletableDeferred<Unit>? = null
 
         override fun observeTrips(): Flow<List<TripSummary>> = flow {
             failure?.let { throw it }
@@ -104,6 +187,9 @@ class TripListViewModelTest {
         override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String = "day"
         override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
         override suspend fun deleteDay(dayId: String) = Unit
-        override suspend fun deleteTrip(tripId: String) = Unit
+        override suspend fun deleteTrip(tripId: String) {
+            deletedTrips += tripId
+            blockDelete?.await()
+        }
     }
 }
