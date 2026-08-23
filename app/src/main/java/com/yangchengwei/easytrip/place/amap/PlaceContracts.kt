@@ -8,6 +8,6 @@ internal fun parsePlaces(raw: List<RawPlace>, suggestions: List<String>): List<P
     val places = raw.filter { it.id.isNotBlank() && it.title.isNotBlank() }.map { item ->
         PlaceCandidate(item.id, item.title, item.address, item.point, item.cityCode)
     }
-    if (places.isEmpty()) throw AmapServiceException("POI_EMPTY", 1000, "No candidates; suggestions=$suggestions")
+    if (places.isEmpty() && suggestions.isNotEmpty()) throw AmapServiceException("POI_EMPTY", 1000, "No candidates; suggestions=$suggestions")
     return places
 }

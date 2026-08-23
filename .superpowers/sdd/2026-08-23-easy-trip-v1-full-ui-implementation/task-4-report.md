@@ -110,6 +110,16 @@ Fix round GREEN 验证：
 - RED：旧生产代码因缺少 `place-search-empty-icon` 定位节点失败。
 - GREEN：增加图标与标题纯 test tags 后，`PlaceSearchContentTest` 6/6 通过；生产布局无需调整。
 
+## Fix round 4
+
+修复设备门禁发现的真实空结果误报网络失败：
+
+- 根因：高德 SDK 成功码回调在 `pois` 为空时进入 `parsePlaces`；旧实现无论 `suggestions` 是否为空都抛出 `POI_EMPTY`，随后 `PlaceSearchReducer` 将该异常映射为 `NetworkFailure`，因此绕过了其已有的“空列表 → `PlaceSearchPhase.Empty`”分支。
+- RED：新增最小生产边界测试 `emptyPlacesWithoutSuggestionsReturnEmptyResults`；旧实现抛出 `AmapServiceException`，聚焦测试 1/1 按预期失败。
+- GREEN：仅在候选为空且存在 suggestions 时保留 `POI_EMPTY` 结构化失败；候选和 suggestions 都为空时返回空列表。网络错误码路径及有 suggestions 的失败语义未修改。
+- 验证：`PlaceContractsTest` 通过；`PlaceContractsTest`、Task 4 `PlaceSearch*` 与 `CollectionTogglePolicyTest` 联合 JVM 测试通过。
+- 提交说明：本轮使用 `Map empty POI responses to empty state`，SHA 以该本地提交为准；未 push。
+
 ## Graphify
 
 已运行 `graphify update .`。`graphify-out` 生成物未纳入 Task 4 提交。

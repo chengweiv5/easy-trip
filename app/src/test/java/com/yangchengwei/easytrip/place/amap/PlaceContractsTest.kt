@@ -19,6 +19,10 @@ class PlaceContractsTest {
         assertNull(result.single().point)
     }
 
+    @Test fun emptyPlacesWithoutSuggestionsReturnEmptyResults() {
+        assertEquals(emptyList<PlaceCandidate>(), parsePlaces(emptyList(), emptyList()))
+    }
+
     @Test fun emptyPlacesWithSuggestionsAreStructuredFailure() {
         val error = assertThrows(AmapServiceException::class.java) { parsePlaces(emptyList(), listOf("北京")) }
         assertEquals("POI_EMPTY", error.operation)
