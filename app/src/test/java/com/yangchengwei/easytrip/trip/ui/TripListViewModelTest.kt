@@ -132,6 +132,32 @@ class TripListViewModelTest {
         advanceUntilIdle()
     }
 
+    @Test fun failedDeleteRestoresConfirmationAndAllowsRetry() = runTest(dispatcher) {
+        val repository = TestTripRepository().apply {
+            deleteFailure = IllegalStateException("disk unavailable")
+        }
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        val trip = TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3)
+
+        viewModel.requestDelete(trip)
+        advanceUntilIdle()
+        viewModel.confirmDelete()
+        advanceUntilIdle()
+
+        assertEquals(false, viewModel.state.value.deleteInProgress)
+        assertEquals("删除京都？", viewModel.state.value.deleteConfirmation?.title)
+        assertEquals("删除失败，请重试", viewModel.state.value.deleteError)
+        assertEquals(listOf("trip-1"), repository.deletedTrips)
+
+        repository.deleteFailure = null
+        viewModel.confirmDelete()
+        advanceUntilIdle()
+
+        assertEquals(listOf("trip-1", "trip-1"), repository.deletedTrips)
+        assertEquals(null, viewModel.state.value.deleteConfirmation)
+        assertEquals(null, viewModel.state.value.deleteError)
+    }
+
     @Test fun errorRetryRecoversAndKeepsSingleCollector() = runTest(dispatcher) {
         val repository = TestTripRepository()
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
@@ -169,6 +195,7 @@ class TripListViewModelTest {
         var maxActiveCollectors = 0
         val deletedTrips = mutableListOf<String>()
         var blockDelete: CompletableDeferred<Unit>? = null
+        var deleteFailure: Throwable? = null
 
         override fun observeTrips(): Flow<List<TripSummary>> = flow {
             failure?.let { throw it }
@@ -190,6 +217,7 @@ class TripListViewModelTest {
         override suspend fun deleteTrip(tripId: String) {
             deletedTrips += tripId
             blockDelete?.await()
+            deleteFailure?.let { throw it }
         }
     }
 }

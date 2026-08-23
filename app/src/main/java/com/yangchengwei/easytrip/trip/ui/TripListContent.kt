@@ -139,25 +139,27 @@ private fun TripCard(
                     trip.name,
                     style = if (primary) MaterialTheme.typography.headlineLarge else MaterialTheme.typography.titleLarge,
                 )
-                Row(horizontalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small)) {
+                Column(verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small)) {
                     TripMetadata(trip.dayCountLabel, primary)
                     TripMetadata(trip.travelModeLabel, primary)
                     trip.dateLabel?.let { TripMetadata(it, primary) }
                 }
             }
-            Row(
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small, Alignment.End),
+                verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small),
             ) {
                 EasyTripSecondaryButton(
                     onClick = { onAction(TripListAction.OpenSettings(trip.id)) },
                     modifier = Modifier
+                        .fillMaxWidth()
                         .testTag("trip-settings-${trip.id}")
                         .semantics { contentDescription = "设置 ${trip.name}" },
                 ) { Text("设置") }
                 EasyTripDangerButton(
                     onClick = { onAction(TripListAction.RequestDelete(trip.id)) },
                     modifier = Modifier
+                        .fillMaxWidth()
                         .testTag("trip-delete-${trip.id}")
                         .semantics { contentDescription = "删除 ${trip.name}" },
                 ) { Text("删除") }

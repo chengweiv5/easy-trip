@@ -39,6 +39,7 @@ fun TripListScreen(
             onConfirm = viewModel::confirmDelete,
             onDismiss = viewModel::cancelDelete,
             confirmEnabled = !state.deleteInProgress,
+            errorMessage = state.deleteError,
         )
     }
 }

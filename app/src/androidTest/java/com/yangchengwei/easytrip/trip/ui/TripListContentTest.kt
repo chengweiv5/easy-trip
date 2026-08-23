@@ -9,6 +9,12 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -52,6 +58,49 @@ class TripListContentTest {
         compose.onNodeWithText("其他旅行").assertIsDisplayed()
         compose.onNodeWithTag("trip-settings-trip-2").assertIsDisplayed()
         compose.onNodeWithTag("trip-delete-trip-2").assertIsDisplayed()
+    }
+
+    @Test fun longTripNameAndLargeFontRemainScrollable() {
+        var overflowed = false
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(
+                    density = 1f,
+                    fontScale = 2f,
+                ),
+            ) {
+                EasyTripTheme {
+                    androidx.compose.foundation.layout.Box(
+                        Modifier.requiredWidth(280.dp).fillMaxHeight(),
+                    ) {
+                        TripListContent(
+                            modifier = Modifier.onGloballyPositioned { root ->
+                                overflowed = root.size.width > 280
+                            },
+                            state = TripListUiState(
+                                page = TripListPageState.Content(
+                                    listOf(
+                                        TripCardUiModel(
+                                            "trip-long",
+                                            "一段特别特别长而且需要完整换行展示的旅行名称",
+                                            "123 个旅行日",
+                                            "2026年12月31日",
+                                            "超长自驾出行方式",
+                                        ),
+                                    ),
+                                ),
+                            ),
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("trip-settings-trip-long").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("trip-delete-trip-long").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").performScrollTo().assertIsDisplayed()
+        assertEquals(false, overflowed)
     }
 
     @Test fun contentRenders_andActionsEachFireExactlyOnceWithoutParentLeak() {

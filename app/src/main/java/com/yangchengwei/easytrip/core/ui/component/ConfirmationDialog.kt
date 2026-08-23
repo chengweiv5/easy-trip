@@ -17,6 +17,7 @@ fun ConfirmationDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     confirmEnabled: Boolean = true,
+    errorMessage: String? = null,
 ) {
     AlertDialog(
         modifier = modifier,
@@ -28,6 +29,9 @@ fun ConfirmationDialog(
                 verticalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 Text(model.message)
+                errorMessage?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                }
                 ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error)
                 ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.onSurface)
             }

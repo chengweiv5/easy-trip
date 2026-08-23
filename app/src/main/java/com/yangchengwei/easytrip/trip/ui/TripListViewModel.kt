@@ -24,6 +24,7 @@ data class TripListUiState(
     val pendingDeleteImpact: TripDeleteImpact? = null,
     val deleteConfirmation: ConfirmationUiModel? = null,
     val deleteInProgress: Boolean = false,
+    val deleteError: String? = null,
 )
 
 sealed interface TripListNavigation {
@@ -84,6 +85,7 @@ class TripListViewModel(
                 pendingDelete = value,
                 pendingDeleteImpact = impact,
                 deleteConfirmation = impact.toConfirmation(value.name),
+                deleteError = null,
             )
         }
     }
@@ -94,6 +96,7 @@ class TripListViewModel(
             pendingDelete = null,
             pendingDeleteImpact = null,
             deleteConfirmation = null,
+            deleteError = null,
         )
     }
 
@@ -101,15 +104,24 @@ class TripListViewModel(
         val current = mutableState.value
         val value = current.pendingDelete ?: return
         if (current.deleteInProgress) return
-        mutableState.value = current.copy(deleteInProgress = true)
+        mutableState.value = current.copy(deleteInProgress = true, deleteError = null)
         viewModelScope.launch {
-            service.deleteTrip(value.id)
-            mutableState.value = mutableState.value.copy(
-                pendingDelete = null,
-                pendingDeleteImpact = null,
-                deleteConfirmation = null,
-                deleteInProgress = false,
-            )
+            runCatching { service.deleteTrip(value.id) }
+                .onSuccess {
+                    mutableState.value = mutableState.value.copy(
+                        pendingDelete = null,
+                        pendingDeleteImpact = null,
+                        deleteConfirmation = null,
+                        deleteInProgress = false,
+                        deleteError = null,
+                    )
+                }
+                .onFailure {
+                    mutableState.value = mutableState.value.copy(
+                        deleteInProgress = false,
+                        deleteError = "删除失败，请重试",
+                    )
+                }
         }
     }
 
