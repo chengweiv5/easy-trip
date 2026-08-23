@@ -1050,7 +1050,7 @@ require(scenarios.first { it.number == 1 }.variants.any { it.frameId == "d1sTtb"
 
 ```kotlin
 @Test fun containsEveryExistingNumberedFrameWithoutInventingFive()
-@Test fun containsExactlyFortyEightProductAcceptanceScenarios()
+@Test fun containsExactlyFortySevenAdoptedNumberedScenarios()
 @Test fun coversSevenJourneysAndSixMatrices()
 @Test fun everyScenarioHasFrameFixtureDevicePathAndAssertions()
 ```
