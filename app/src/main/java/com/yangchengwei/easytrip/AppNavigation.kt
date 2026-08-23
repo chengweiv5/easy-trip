@@ -37,6 +37,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import com.yangchengwei.easytrip.trip.domain.TripService
+import com.yangchengwei.easytrip.trip.ui.CreateTripRoute
+import com.yangchengwei.easytrip.trip.ui.CreateTripViewModel
 import com.yangchengwei.easytrip.trip.ui.DeleteImpactProvider
 import com.yangchengwei.easytrip.trip.ui.TripListScreen
 import com.yangchengwei.easytrip.trip.ui.TripListViewModel
@@ -51,6 +53,7 @@ import com.yangchengwei.easytrip.workspace.consumeSearchSelection
 import com.yangchengwei.easytrip.workspace.toSearchSelectionPayload
 
 const val TRIP_LIST_ROUTE = "trips"
+const val CREATE_TRIP_ROUTE = "trips/create"
 const val TRIP_WORKSPACE_ROUTE = "trips/{tripId}"
 const val TRIP_SETTINGS_ROUTE = "trips/{tripId}/settings"
 const val TRIP_SEARCH_ROUTE = "trips/{tripId}/search"
@@ -96,9 +99,23 @@ fun AppNavigation(
             val model: TripListViewModel = viewModel(factory = TripListViewModel.Factory(service, repository, impacts))
             TripListScreen(
                 model,
+                { navigate(CREATE_TRIP_ROUTE) },
                 { navigate("trips/$it") },
                 { navigate("trips/$it/settings") },
-                initialDateMillis,
+            )
+        }
+        composable(CREATE_TRIP_ROUTE) {
+            val model: CreateTripViewModel = viewModel(factory = CreateTripViewModel.Factory(service))
+            CreateTripRoute(
+                onBack = navController::popBackStack,
+                onOpenWorkspace = { id ->
+                    navigationObserver?.onNavigate("trips/$id")
+                    navController.navigate("trips/$id") {
+                        popUpTo(CREATE_TRIP_ROUTE) { inclusive = true }
+                    }
+                },
+                viewModel = model,
+                initialDateMillis = initialDateMillis,
             )
         }
         composable(TRIP_WORKSPACE_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->

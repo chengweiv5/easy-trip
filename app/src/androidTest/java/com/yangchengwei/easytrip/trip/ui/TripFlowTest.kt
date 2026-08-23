@@ -14,6 +14,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.AppNavigation
@@ -75,9 +76,9 @@ class TripFlowTest {
         compose.onNodeWithText("确定日期").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("选择起始日期").fetchSemanticsNodes().size)
         pressBack()
-        compose.onNodeWithTag("create-time-DRAFT").assertIsSelected()
-        compose.onNodeWithTag("create-time-DATED").assertIsNotSelected()
-        compose.onNodeWithText("取消").performClick()
+        compose.onNodeWithTag("create-time-DRAFT").assertIsNotSelected()
+        compose.onNodeWithTag("create-time-DATED").assertIsSelected()
+        pressBack()
         compose.onNodeWithTag("trip-settings-id-1").performClick()
         compose.onNodeWithTag("settings-mode-FLEXIBLE").assert(hasRole(Role.RadioButton)).assertIsSelected()
         compose.onNodeWithTag("settings-mode-SELF_DRIVE").assertIsNotSelected()
@@ -97,21 +98,22 @@ class TripFlowTest {
                 march15,
             )
         }
-        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithText("旅行名称").performTextInput("草案"); compose.onNodeWithText("天数").performTextInput("3"); compose.onNodeWithText("创建").performClick()
+        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithTag("create-name").performTextInput("草案"); compose.onNodeWithTag("create-day-count").performTextInput("3"); compose.onNodeWithText("继续").performClick()
         compose.waitForIdle(); assertEquals(3, repository.trip.value!!.days.size)
         pressBack()
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("create-trip").fetchSemanticsNodes().size == 1 }
-        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithText("旅行名称").performTextInput("日期旅行"); compose.onNodeWithText("天数").performTextInput("2"); compose.onNodeWithText("指定日期").performClick()
+        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithTag("create-name").performTextInput("日期旅行"); compose.onNodeWithTag("create-day-count").performTextInput("2")
+        compose.onNodeWithTag("create-mode-SELF_DRIVE").performScrollTo().performClick()
+        compose.onNodeWithText("指定日期").performClick()
         compose.onNodeWithText("确定日期").performClick()
         compose.onNodeWithText("2027-03-15").assertIsDisplayed().assertIsSelected()
-        compose.onNodeWithText("无日期").performClick()
+        compose.onNodeWithText("日期待定").performClick()
         compose.onNodeWithText("指定日期").assertIsDisplayed().assertIsNotSelected()
         compose.onNodeWithText("指定日期").performClick()
         compose.onNodeWithText("确定日期").performClick()
         compose.onNodeWithText("2027-03-15").assertIsDisplayed().assertIsSelected()
-        compose.onNodeWithText("自驾").performClick()
-        compose.onNodeWithText("自驾").assertIsSelected()
-        compose.onNodeWithText("创建").performClick()
+        compose.onNodeWithTag("create-mode-SELF_DRIVE").assertIsSelected()
+        compose.onNodeWithText("继续").performClick()
         compose.waitUntil { repository.trip.value?.name == "日期旅行" }
         assertEquals(TravelMode.SELF_DRIVE, repository.trip.value!!.travelMode)
         assertEquals(LocalDate.of(2027, 3, 15), repository.trip.value!!.startDate)

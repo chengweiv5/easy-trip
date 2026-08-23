@@ -3,8 +3,9 @@ package com.yangchengwei.easytrip.trip.ui
 import com.yangchengwei.easytrip.core.model.TravelMode
 import java.time.LocalDate
 
+enum class CreateTimeMode { DRAFT, DATED }
+
 data class CreateTripUiState(
-    val visible: Boolean = false,
     val name: String = "",
     val dayCount: String = "",
     val timeMode: CreateTimeMode = CreateTimeMode.DRAFT,
@@ -19,11 +20,16 @@ data class CreateTripUiState(
 )
 
 sealed interface CreateTripAction {
-    data object Dismiss : CreateTripAction
+    data object Back : CreateTripAction
     data class NameChanged(val value: String) : CreateTripAction
     data class DayCountChanged(val value: String) : CreateTripAction
     data class TimeModeChanged(val value: CreateTimeMode) : CreateTripAction
-    data class StartDateChanged(val value: LocalDate) : CreateTripAction
+    data class StartDateChanged(val value: LocalDate?) : CreateTripAction
     data class TravelModeChanged(val value: TravelMode) : CreateTripAction
     data object Submit : CreateTripAction
+}
+
+sealed interface CreateTripEffect {
+    data object NavigateBack : CreateTripEffect
+    data class OpenWorkspace(val tripId: String) : CreateTripEffect
 }

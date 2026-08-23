@@ -14,9 +14,9 @@ import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 @Composable
 fun TripListScreen(
     viewModel: TripListViewModel,
+    onCreateTrip: () -> Unit,
     onWorkspace: (String) -> Unit,
     onSettings: (String) -> Unit,
-    initialDateMillis: Long? = null,
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
@@ -30,8 +30,12 @@ fun TripListScreen(
             }
         }
     }
-    TripListContent(state, viewModel::onAction)
-    if (state.showCreateDialog) CreateTripDialog(state.create, viewModel::onCreateAction, initialDateMillis)
+    TripListContent(
+        state = state,
+        onAction = { action ->
+            if (action == TripListAction.CreateTrip) onCreateTrip() else viewModel.onAction(action)
+        },
+    )
     val impact = state.pendingDeleteImpact
     state.pendingDelete?.let {
         AlertDialog(
