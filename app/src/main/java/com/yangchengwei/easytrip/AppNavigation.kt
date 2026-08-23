@@ -11,7 +11,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.viewmodel.compose.viewModel
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
@@ -22,7 +21,8 @@ import com.yangchengwei.easytrip.amap.AmapPrivacyGate
 import com.yangchengwei.easytrip.place.amap.AmapPlaceDataSource
 import com.yangchengwei.easytrip.place.ui.PlacePoolSheet
 import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
-import com.yangchengwei.easytrip.place.ui.PlaceSearchScreen
+import com.yangchengwei.easytrip.place.ui.PlaceSearchRoute
+import com.yangchengwei.easytrip.place.ui.PlaceSearchViewModel
 import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.route.domain.RouteLegRepository
@@ -46,11 +46,8 @@ import com.yangchengwei.easytrip.trip.ui.TripSettingsScreen
 import com.yangchengwei.easytrip.trip.ui.TripSettingsViewModel
 import com.yangchengwei.easytrip.itinerary.ui.DayItinerarySheet
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
-import com.yangchengwei.easytrip.workspace.SEARCH_SELECTION_RESULT
 import com.yangchengwei.easytrip.workspace.TripWorkspaceRoute
 import com.yangchengwei.easytrip.workspace.TripWorkspaceViewModel
-import com.yangchengwei.easytrip.workspace.consumeSearchSelection
-import com.yangchengwei.easytrip.workspace.toSearchSelectionPayload
 
 const val TRIP_LIST_ROUTE = "trips"
 const val CREATE_TRIP_ROUTE = "trips/create"
@@ -141,14 +138,6 @@ fun AppNavigation(
                 var privacyReported by remember { mutableStateOf(application?.amapPrivacyShown == true) }
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
-                val searchSelection by entry.savedStateHandle
-                    .getStateFlow<com.yangchengwei.easytrip.workspace.SearchSelectionPayload?>(SEARCH_SELECTION_RESULT, null)
-                    .collectAsStateWithLifecycle()
-                LaunchedEffect(searchSelection) {
-                    if (searchSelection != null) {
-                        consumeSearchSelection(entry.savedStateHandle, workspaceModel::focusSearchResult)
-                    }
-                }
                 val token = application?.amapConsentToken?.takeIf { it.isActive() }
                 val itineraryModel: DayItineraryViewModel = viewModel(
                     factory = DayItineraryViewModel.Factory(
@@ -234,36 +223,15 @@ fun AppNavigation(
                 val source = remember {
                     application.amapConsentToken?.takeIf { it.isActive() }?.let { AmapPlaceDataSource(application, it) }
                 }
-                val model: PlacePoolViewModel = viewModel(
-                    factory = PlacePoolViewModel.Factory(id, application.savedPlaceRepository, source),
+                val model: PlaceSearchViewModel = viewModel(
+                    factory = PlaceSearchViewModel.Factory(
+                        id,
+                        application.savedPlaceRepository,
+                        source,
+                        entry.savedStateHandle,
+                    ),
                 )
-                val state by model.state.collectAsStateWithLifecycle()
-                PlaceSearchScreen(
-                    state = state,
-                    onQueryChange = model::setQuery,
-                    onBack = {
-                        model.clearSearch()
-                        navController.popBackStack()
-                    },
-                    onSelect = { candidate ->
-                        navController.previousBackStackEntry
-                            ?.savedStateHandle
-                            ?.set(SEARCH_SELECTION_RESULT, candidate.toSearchSelectionPayload())
-                        model.clearSearch()
-                        navController.popBackStack()
-                    },
-                    onToggleCollection = model::toggleCollection,
-                )
-                state.collectionError?.let { Text(it) }
-                state.pendingCollectionRemoval?.let { pending ->
-                    AlertDialog(
-                        onDismissRequest = model::dismissCollectionRemoval,
-                        title = { Text("取消收藏 ${pending.place.name}？") },
-                        text = { Text("将同时删除 ${pending.usageCount} 次行程安排及受影响路线。") },
-                        confirmButton = { TextButton(model::confirmCollectionRemoval) { Text("确认取消收藏") } },
-                        dismissButton = { TextButton(model::dismissCollectionRemoval) { Text("取消") } },
-                    )
-                }
+                PlaceSearchRoute(model, navController::popBackStack)
             }
         }
         composable(TRIP_SETTINGS_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) {

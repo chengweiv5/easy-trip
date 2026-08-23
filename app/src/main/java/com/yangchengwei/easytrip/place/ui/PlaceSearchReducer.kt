@@ -13,13 +13,38 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-data class PlaceSearchState(val query: String = "", val results: List<PlaceCandidate> = emptyList(), val savedPlaces: List<SavedPlace> = emptyList(), val searching: Boolean = false, val error: String? = null)
+sealed interface PlaceSearchPhase {
+    data object Initial : PlaceSearchPhase
+    data object Loading : PlaceSearchPhase
+    data object Results : PlaceSearchPhase
+    data object Empty : PlaceSearchPhase
+    data class NetworkFailure(val message: String) : PlaceSearchPhase
+}
 
-class PlaceSearchReducer(private var source: PlaceSearchDataSource?, private val scope: CoroutineScope, private val dispatcher: CoroutineDispatcher) {
-    private val mutableState = MutableStateFlow(PlaceSearchState())
+data class PlaceSearchState(
+    val query: String = "",
+    val results: List<PlaceCandidate> = emptyList(),
+    val savedPlaces: List<SavedPlace> = emptyList(),
+    val phase: PlaceSearchPhase = PlaceSearchPhase.Initial,
+) {
+    val searching: Boolean get() = phase == PlaceSearchPhase.Loading
+    val error: String? get() = (phase as? PlaceSearchPhase.NetworkFailure)?.message
+}
+
+class PlaceSearchReducer(
+    private var source: PlaceSearchDataSource?,
+    private val scope: CoroutineScope,
+    private val dispatcher: CoroutineDispatcher,
+    initialQuery: String = "",
+) {
+    private val mutableState = MutableStateFlow(PlaceSearchState(query = initialQuery))
     val state: StateFlow<PlaceSearchState> = mutableState.asStateFlow()
     private var searchJob: Job? = null
     private var generation = 0L
+
+    init {
+        if (initialQuery.isNotBlank()) search(initialQuery)
+    }
 
     fun setSource(value: PlaceSearchDataSource?) {
         if (source === value) return
@@ -27,33 +52,72 @@ class PlaceSearchReducer(private var source: PlaceSearchDataSource?, private val
         searchJob?.cancel()
         generation++
         val query = mutableState.value.query
-        mutableState.value = mutableState.value.copy(searching = false, error = null)
-        if (query.isNotBlank()) setQuery(query)
+        mutableState.value = mutableState.value.copy(phase = PlaceSearchPhase.Initial)
+        if (query.isNotBlank()) search(query)
     }
-    fun setSavedPlaces(value: List<SavedPlace>) { mutableState.value = mutableState.value.copy(savedPlaces = value) }
+
+    fun setSavedPlaces(value: List<SavedPlace>) {
+        mutableState.value = mutableState.value.copy(savedPlaces = value)
+    }
+
     fun clear() {
         generation++
         searchJob?.cancel()
         searchJob = null
         mutableState.value = PlaceSearchState()
     }
+
     fun setQuery(value: String) {
+        searchJob?.cancel()
+        mutableState.value = mutableState.value.copy(
+            query = value,
+            results = if (value.isBlank()) emptyList() else mutableState.value.results,
+            phase = PlaceSearchPhase.Initial,
+        )
+        if (value.isNotBlank()) search(value)
+    }
+
+    fun submit() {
+        val query = mutableState.value.query
+        if (query.isNotBlank()) search(query, debounce = false)
+    }
+
+    fun retry() = submit()
+
+    private fun search(query: String, debounce: Boolean = true) {
         val current = ++generation
         searchJob?.cancel()
-        mutableState.value = mutableState.value.copy(query = value, searching = false, error = null, results = if (value.isBlank()) emptyList() else mutableState.value.results)
-        if (value.isBlank()) { mutableState.value = mutableState.value.copy(searching = false); return }
         searchJob = scope.launch(dispatcher) {
-            delay(300)
+            if (debounce) delay(300)
             val active = source ?: run {
-                if (current == generation) mutableState.value = mutableState.value.copy(searching = false, error = "请先阅读并同意高德隐私政策")
+                if (current == generation) {
+                    mutableState.value = mutableState.value.copy(
+                        results = emptyList(),
+                        phase = PlaceSearchPhase.NetworkFailure("请先阅读并同意高德隐私政策"),
+                    )
+                }
                 return@launch
             }
-            if (current == generation) mutableState.value = mutableState.value.copy(searching = true)
+            if (current == generation) {
+                mutableState.value = mutableState.value.copy(phase = PlaceSearchPhase.Loading)
+            }
             try {
-                val result = active.search(value.trim(), null)
-                if (current == generation) mutableState.value = mutableState.value.copy(results = result, searching = false, error = null)
-            } catch (error: CancellationException) { throw error } catch (error: Throwable) {
-                if (current == generation) mutableState.value = mutableState.value.copy(results = emptyList(), searching = false, error = error.message ?: "搜索失败")
+                val result = active.search(query.trim(), null)
+                if (current == generation) {
+                    mutableState.value = mutableState.value.copy(
+                        results = result,
+                        phase = if (result.isEmpty()) PlaceSearchPhase.Empty else PlaceSearchPhase.Results,
+                    )
+                }
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                if (current == generation) {
+                    mutableState.value = mutableState.value.copy(
+                        results = emptyList(),
+                        phase = PlaceSearchPhase.NetworkFailure(error.message ?: "搜索失败"),
+                    )
+                }
             }
         }
     }

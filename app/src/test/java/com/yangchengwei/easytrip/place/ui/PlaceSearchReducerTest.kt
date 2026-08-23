@@ -48,6 +48,34 @@ class PlaceSearchReducerTest {
         assertEquals(listOf("new"), reducer.state.value.results.map { it.poiId })
     }
 
+    @Test fun loadingResultsEmptyAndNetworkFailureAreExclusive() = runTest {
+        val source = SearchSource()
+        val reducer = PlaceSearchReducer(source, this, StandardTestDispatcher(testScheduler))
+
+        reducer.setQuery("故宫")
+        advanceTimeBy(300)
+        runCurrent()
+        assertEquals(PlaceSearchPhase.Loading, reducer.state.value.phase)
+
+        source.complete("故宫", candidate("result"))
+        advanceUntilIdle()
+        assertEquals(PlaceSearchPhase.Results, reducer.state.value.phase)
+
+        reducer.setQuery("空结果")
+        advanceTimeBy(300)
+        runCurrent()
+        source.completeEmpty("空结果")
+        advanceUntilIdle()
+        assertEquals(PlaceSearchPhase.Empty, reducer.state.value.phase)
+
+        reducer.setQuery("失败")
+        advanceTimeBy(300)
+        runCurrent()
+        source.fail("失败", IllegalStateException("network"))
+        advanceUntilIdle()
+        assertEquals(PlaceSearchPhase.NetworkFailure("network"), reducer.state.value.phase)
+    }
+
     @Test fun failureKeepsSavedPlacePool() = runTest {
         val source = SearchSource()
         val reducer = PlaceSearchReducer(source, this, StandardTestDispatcher(testScheduler))
@@ -133,6 +161,7 @@ class PlaceSearchReducerTest {
             }
         }
         fun complete(query: String, value: PlaceCandidate) { pending.getValue(query).complete(listOf(value)) }
+        fun completeEmpty(query: String) { pending.getValue(query).complete(emptyList()) }
         fun fail(query: String, error: Throwable) { pending.getValue(query).completeExceptionally(error) }
     }
 }
