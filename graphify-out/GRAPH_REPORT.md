@@ -1,16 +1,16 @@
 # Graph Report - easy-trip-v1-full-ui-run  (2026-08-25)
 
 ## Corpus Check
-- 253 files · ~127,316 words
+- 253 files · ~127,326 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 3376 nodes · 7085 edges · 155 communities (125 shown, 30 thin omitted)
+- 3376 nodes · 7085 edges · 155 communities (126 shown, 29 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 470 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5dac1094`
+- Built from commit: `0430151b`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -199,7 +199,7 @@
 ## Hyperedges (group relationships)
 - **旅行编排数据模型** — docs_superpowers_specs_2026_08_21_saved_place, docs_superpowers_specs_2026_08_21_itinerary_item, docs_superpowers_specs_2026_08_21_route_leg [EXTRACTED 1.00]
 
-## Communities (155 total, 30 thin omitted)
+## Communities (155 total, 29 thin omitted)
 
 ### Community 0 - "Easy Trip v1.0 全量 UI 与交互落地设计"
 Cohesion: 0.04
@@ -321,6 +321,10 @@ Nodes (18): ConfirmationDialogTest, SelectablePillTest, EasyTripIconButton(), Mo
 Cohesion: 0.06
 Nodes (33): 10. 数据模型, 11. 空态与错误处理, 12. 可访问性, 13. 测试策略, 14. 验收标准, 1. 目标, 2. 非目标, 3. 信息架构 (+25 more)
 
+### Community 36 - "SchemaTest"
+Cohesion: 0.12
+Nodes (5): Fixture, SchemaTest, RoomDeleteImpactProviderTest, SavedPlaceTagCrossRef, TagEntity
+
 ### Community 37 - "DeleteImpactDao"
 Cohesion: 0.18
 Nodes (3): DeleteImpactDao, RoomDeleteImpactProvider, TripDeleteImpact
@@ -350,8 +354,8 @@ Cohesion: 0.06
 Nodes (34): 1. Graphify 定向查询, 2. 全套 JVM、lint、assemble, 3. 设备检查, 4. Task 4/5 目标 Compose 与相关 Room 测试, adb/uiautomator 断言, API 36 恢复环境生产旅程 B（2026-08-24）, Batch 2 Gate Report, Concerns (+26 more)
 
 ### Community 46 - "PlaceDao"
-Cohesion: 0.06
-Nodes (8): RoomDeleteImpactProviderTest, SchemaPlaceDao, Flow, PlaceDao, PlaceSnapshotRow, PlaceUsageRow, SavedPlaceTagCrossRef, TagEntity
+Cohesion: 0.15
+Nodes (4): Flow, PlaceDao, PlaceSnapshotRow, PlaceUsageRow
 
 ### Community 47 - "TripService"
 Cohesion: 0.15
@@ -490,8 +494,8 @@ Cohesion: 0.43
 Nodes (3): MapInteractionState, reduceMapInteraction(), MapInteractionReducerTest
 
 ### Community 91 - "EasyTripDatabase"
-Cohesion: 0.07
-Nodes (7): OfflineRecoveryTest, CascadeCountDao, EasyTripDatabase, com, SchemaItineraryDao, SchemaRouteDao, RoomDatabase
+Cohesion: 0.06
+Nodes (7): CascadeCountDao, EasyTripDatabase, com, SchemaItineraryDao, SchemaPlaceDao, SchemaRouteDao, RoomDatabase
 
 ### Community 93 - "TripWorkspaceAction"
 Cohesion: 0.17
@@ -542,8 +546,8 @@ Cohesion: 0.20
 Nodes (9): Batch 1 visual fix report, Commit, Fix round 1, Fix round 1 commit, Fix round 1 最终验证, Frame 差异与修复, RED / GREEN, 修改文件 (+1 more)
 
 ### Community 108 - "TravelMode"
-Cohesion: 0.10
-Nodes (14): TransportMode, DRIVE, TAXI, TRANSIT, WALK, TravelMode, FLEXIBLE, SELF_DRIVE (+6 more)
+Cohesion: 0.09
+Nodes (15): OfflineRecoveryTest, TransportMode, DRIVE, TAXI, TRANSIT, WALK, TravelMode, FLEXIBLE (+7 more)
 
 ### Community 109 - "AmapRouteDataSource.kt"
 Cohesion: 0.21
@@ -696,7 +700,7 @@ Nodes (9): CreateTrip, OpenSettings, OpenTrip, RequestDelete, Retry, TripListAct
 ## Knowledge Gaps
 - **577 isolated node(s):** `guard-adb-install.sh script`, `READY`, `STARTING`, `STARTED`, `CANCELLED` (+572 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **30 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **29 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
@@ -705,7 +709,7 @@ _Questions this graph is uniquely positioned to answer:_
   _High betweenness centrality (0.136) - this node is a cross-community bridge._
 - **Why does `PlaceCandidate` connect `PlaceCandidate` to `Legs`, `MapUiModelMapperTest`, `V1AcceptanceTest.kt`, `Legs`, `Trips`, `CreateTrip`, `GeoPoint`, `DelayedDeletePlaces`, `Legs`, `parsePlaces`, `AddToItineraryUiState`, `SavedPlace`, `PlacePoolViewModel`, `CompactSecondaryButton`, `MapUiModel`, `PlaceSearchViewModel`, `TripWorkspaceViewModel`, `TripWorkspaceNavigationStateTest`, `TripWorkspaceScreen`, `EditingPlaces`, `PlaceSearchEvidenceTest`, `reduceMapInteraction`, `.searchCollectionMapAndRestorationFlow`, `PlacePoolContent`, `TestSavedPlaces`?**
   _High betweenness centrality (0.052) - this node is a cross-community bridge._
-- **Why does `TravelMode` connect `TravelMode` to `Legs`, `FakeTripRepository`, `Legs`, `TripSettingsViewModel`, `Trips`, `ItineraryTransactionTest`, `CreateTrip`, `TripListContent.kt`, `TripDao`, `Trips`, `TripRepository`, `Trips`, `DayItinerary`, `Legs`, `PlaceDao`, `FakeRepository`, `SavedPlace`, `FakeTrips`, `CompactSecondaryButton`, `Converters`, `CreateTripViewModel`, `ItineraryDao`, `TripSummary`, `FakeTripRepository`, `CreateTripAction`, `EasyTripDatabase`, `CreateTripUiState`, `CreateTripContent`, `RoomItineraryRepository`, `AddPlacesRequest`?**
+- **Why does `TravelMode` connect `TravelMode` to `Legs`, `FakeTripRepository`, `Legs`, `TripSettingsViewModel`, `Trips`, `ItineraryTransactionTest`, `CreateTrip`, `TripListContent.kt`, `TripDao`, `Trips`, `TripRepository`, `Trips`, `DayItinerary`, `SchemaTest`, `Legs`, `FakeRepository`, `SavedPlace`, `FakeTrips`, `CompactSecondaryButton`, `Converters`, `CreateTripViewModel`, `ItineraryDao`, `TripSummary`, `FakeTripRepository`, `CreateTripAction`, `CreateTripUiState`, `CreateTripContent`, `RoomItineraryRepository`, `AddPlacesRequest`?**
   _High betweenness centrality (0.044) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `GeoPoint` (e.g. with `.result()` and `RoutePlannerTest`) actually correct?**
   _`GeoPoint` has 2 INFERRED edges - model-reasoned connections that need verification._

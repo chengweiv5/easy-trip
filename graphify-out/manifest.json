@@ -1536,9 +1536,9 @@
     "semantic_hash": ""
   },
   "scripts/tests/run-amap-smoke-test.sh": {
-    "mtime": 1787588759.4806473,
-    "seen": 1787588790.6441119,
-    "ast_hash": "c167187e696a81f4cad5fa9684d4afb3",
+    "mtime": 1787589716.884857,
+    "seen": 1787589735.899384,
+    "ast_hash": "3284190a9db1cb5066ab27468e8e2434",
     "semantic_hash": ""
   },
   "docs/testing/amap-emulator-smoke.md": {

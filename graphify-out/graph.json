@@ -241,6 +241,19 @@
       "source_location": "L8"
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest",
+      "label": "OfflineRecoveryTest",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 108,
+      "community_name": "TravelMode",
+      "file_type": "code",
+      "norm_label": "offlinerecoverytest",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
+      "source_location": "L26"
+    },
+    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_model_transportmode_transportmode",
       "label": "TransportMode",
       "_callable": true,
@@ -2984,6 +2997,45 @@
       "source_location": "L24"
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest",
+      "label": "RoomDeleteImpactProviderTest",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": "roomdeleteimpactprovidertest",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
+      "source_location": "L27"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placeentities_savedplacetagcrossref",
+      "label": "SavedPlaceTagCrossRef",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": "savedplacetagcrossref",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceEntities.kt",
+      "source_location": "L6"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placeentities_tagentity",
+      "label": "TagEntity",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": "tagentity",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceEntities.kt",
+      "source_location": "L5"
+    },
+    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_trip_ui_roomdaycontentcounter_deleteimpactdao",
       "label": "DeleteImpactDao",
       "_callable": true,
@@ -3517,32 +3569,6 @@
       "source_location": "L39"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest",
-      "label": "RoomDeleteImpactProviderTest",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": "roomdeleteimpactprovidertest",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
-      "source_location": "L27"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao",
-      "label": "SchemaPlaceDao",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": "schemaplacedao",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L8"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao",
       "label": "PlaceDao",
       "_callable": true,
@@ -3580,32 +3606,6 @@
       "norm_label": "placeusagerow",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceDao.kt",
       "source_location": "L9"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placeentities_savedplacetagcrossref",
-      "label": "SavedPlaceTagCrossRef",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": "savedplacetagcrossref",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceEntities.kt",
-      "source_location": "L6"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placeentities_tagentity",
-      "label": "TagEntity",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": "tagentity",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceEntities.kt",
-      "source_location": "L5"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_trip_domain_tripservice_tripservice",
@@ -6156,19 +6156,6 @@
       "source_location": "L8"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest",
-      "label": "OfflineRecoveryTest",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 91,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": "offlinerecoverytest",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
-      "source_location": "L26"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_cascadecountdao",
       "label": "CascadeCountDao",
       "_callable": true,
@@ -6206,6 +6193,19 @@
       "norm_label": "schemaitinerarydao",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
       "source_location": "L9"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao",
+      "label": "SchemaPlaceDao",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 91,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": "schemaplacedao",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L8"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaroutedao",
@@ -7283,6 +7283,42 @@
       "norm_label": ".recommend()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/data/ItineraryTransactionTest.kt",
       "source_location": "L212"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest_open",
+      "label": ".open()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 108,
+      "community_name": "TravelMode",
+      "file_type": "code",
+      "norm_label": ".open()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
+      "source_location": "L65"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest_setup",
+      "label": ".setUp()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 108,
+      "community_name": "TravelMode",
+      "file_type": "code",
+      "norm_label": ".setup()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
+      "source_location": "L32"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest_teardown",
+      "label": ".tearDown()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 108,
+      "community_name": "TravelMode",
+      "file_type": "code",
+      "norm_label": ".teardown()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
+      "source_location": "L37"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_converters_converters_travelmodetostring",
@@ -16753,6 +16789,150 @@
       "source_location": "L131"
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_countsstructuredtripanddayimpactwithoutcrosstripleakageandupdatesafterdelete",
+      "label": ".countsStructuredTripAndDayImpactWithoutCrossTripLeakageAndUpdatesAfterDelete()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".countsstructuredtripanddayimpactwithoutcrosstripleakageandupdatesafterdelete()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
+      "source_location": "L44"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_insertitem",
+      "label": ".insertItem()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".insertitem()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
+      "source_location": "L90"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_insertplace",
+      "label": ".insertPlace()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".insertplace()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
+      "source_location": "L80"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_inserttag",
+      "label": ".insertTag()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".inserttag()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
+      "source_location": "L86"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_routeleg",
+      "label": ".routeLeg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".routeleg()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
+      "source_location": "L102"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_setup",
+      "label": ".setUp()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".setup()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
+      "source_location": "L32"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_teardown",
+      "label": ".tearDown()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".teardown()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
+      "source_location": "L41"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_insertcrossrefs",
+      "label": ".insertCrossRefs()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".insertcrossrefs()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceDao.kt",
+      "source_location": "L52"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_inserttag",
+      "label": ".insertTag()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".inserttag()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceDao.kt",
+      "source_location": "L50"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_tag",
+      "label": ".tag()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".tag()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceDao.kt",
+      "source_location": "L49"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_roomsavedplacerepository_roomsavedplacerepository_normalize",
+      "label": ".normalize()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".normalize()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/RoomSavedPlaceRepository.kt",
+      "source_location": "L83"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_roomsavedplacerepository_roomsavedplacerepository_updatedetails",
+      "label": ".updateDetails()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": ".updatedetails()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/RoomSavedPlaceRepository.kt",
+      "source_location": "L54"
+    },
+    {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_tripflowtest_fakeimpacts_trip",
       "label": ".trip()",
       "_callable": true,
@@ -18337,186 +18517,6 @@
       "source_location": "L21"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_countsstructuredtripanddayimpactwithoutcrosstripleakageandupdatesafterdelete",
-      "label": ".countsStructuredTripAndDayImpactWithoutCrossTripLeakageAndUpdatesAfterDelete()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".countsstructuredtripanddayimpactwithoutcrosstripleakageandupdatesafterdelete()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
-      "source_location": "L44"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_insertitem",
-      "label": ".insertItem()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".insertitem()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
-      "source_location": "L90"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_insertplace",
-      "label": ".insertPlace()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".insertplace()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
-      "source_location": "L80"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_inserttag",
-      "label": ".insertTag()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".inserttag()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
-      "source_location": "L86"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_routeleg",
-      "label": ".routeLeg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".routeleg()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
-      "source_location": "L102"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_setup",
-      "label": ".setUp()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".setup()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
-      "source_location": "L32"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest_teardown",
-      "label": ".tearDown()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".teardown()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
-      "source_location": "L41"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_easytripdatabase_placedao",
-      "label": ".placeDao()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".placedao()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L29"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_countbytrip",
-      "label": ".countByTrip()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".countbytrip()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L8"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_countcrossrefs",
-      "label": ".countCrossRefs()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".countcrossrefs()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L8"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_deletesavedplace",
-      "label": ".deleteSavedPlace()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".deletesavedplace()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L8"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_deletetag",
-      "label": ".deleteTag()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".deletetag()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L8"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_insertcrossref",
-      "label": ".insertCrossRef()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".insertcrossref()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L8"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_insertsavedplace",
-      "label": ".insertSavedPlace()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".insertsavedplace()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L8"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_inserttag",
-      "label": ".insertTag()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".inserttag()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L8"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_deletecrossrefs",
       "label": ".deleteCrossRefs()",
       "_callable": true,
@@ -18553,18 +18553,6 @@
       "source_location": "L63"
     },
     {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_insertcrossrefs",
-      "label": ".insertCrossRefs()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".insertcrossrefs()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceDao.kt",
-      "source_location": "L52"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_insertplace",
       "label": ".insertPlace()",
       "_callable": true,
@@ -18575,18 +18563,6 @@
       "norm_label": ".insertplace()",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceDao.kt",
       "source_location": "L47"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_inserttag",
-      "label": ".insertTag()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".inserttag()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceDao.kt",
-      "source_location": "L50"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_observecrossrefs",
@@ -18685,18 +18661,6 @@
       "source_location": "L46"
     },
     {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_tag",
-      "label": ".tag()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".tag()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceDao.kt",
-      "source_location": "L49"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao_placedao_updatenote",
       "label": ".updateNote()",
       "_callable": true,
@@ -18718,30 +18682,6 @@
       "file_type": "code",
       "norm_label": ".usagecount()",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceDao.kt",
-      "source_location": "L54"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_roomsavedplacerepository_roomsavedplacerepository_normalize",
-      "label": ".normalize()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".normalize()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/RoomSavedPlaceRepository.kt",
-      "source_location": "L83"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_roomsavedplacerepository_roomsavedplacerepository_updatedetails",
-      "label": ".updateDetails()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": ".updatedetails()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/RoomSavedPlaceRepository.kt",
       "source_location": "L54"
     },
     {
@@ -26749,42 +26689,6 @@
       "source_location": "L40"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest_open",
-      "label": ".open()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 91,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".open()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
-      "source_location": "L65"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest_setup",
-      "label": ".setUp()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 91,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".setup()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
-      "source_location": "L32"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest_teardown",
-      "label": ".tearDown()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 91,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".teardown()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
-      "source_location": "L37"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_cascadecountdao_crossrefs",
       "label": ".crossRefs()",
       "_callable": true,
@@ -26901,6 +26805,18 @@
       "community_name": "EasyTripDatabase",
       "file_type": "code",
       "norm_label": ".itineraryeditingdao()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L29"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_easytripdatabase_placedao",
+      "label": ".placeDao()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 91,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".placedao()",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
       "source_location": "L29"
     },
@@ -27023,6 +26939,90 @@
       "norm_label": ".insertitem()",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
       "source_location": "L11"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_countbytrip",
+      "label": ".countByTrip()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 91,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".countbytrip()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L8"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_countcrossrefs",
+      "label": ".countCrossRefs()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 91,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".countcrossrefs()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L8"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_deletesavedplace",
+      "label": ".deleteSavedPlace()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 91,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".deletesavedplace()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L8"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_deletetag",
+      "label": ".deleteTag()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 91,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".deletetag()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L8"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_insertcrossref",
+      "label": ".insertCrossRef()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 91,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".insertcrossref()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L8"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_insertsavedplace",
+      "label": ".insertSavedPlace()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 91,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".insertsavedplace()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L8"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_inserttag",
+      "label": ".insertTag()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 91,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".inserttag()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L8"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaroutedao_count",
@@ -28812,6 +28812,17 @@
       "norm_label": "\u672a\u89e3\u51b3\u5173\u6ce8\u70b9",
       "source_file": ".superpowers/sdd/2026-08-23-easy-trip-v1-full-ui-implementation/batch-1-visual-fix-report.md",
       "source_location": "L53"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest",
+      "label": "OfflineRecoveryTest.kt",
+      "_origin": "ast",
+      "community": 108,
+      "community_name": "TravelMode",
+      "file_type": "code",
+      "norm_label": "offlinerecoverytest.kt",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
+      "source_location": "L1"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_model_transportmode",
@@ -30660,7 +30671,7 @@
       },
       "norm_label": "run_status()",
       "source_file": "scripts/tests/run-amap-smoke-test.sh",
-      "source_location": "L82"
+      "source_location": "L86"
     },
     {
       "id": "scripts_tests_run_amap_smoke_test_sh__entry",
@@ -32343,6 +32354,17 @@
       "file_type": "code",
       "norm_label": "triplistuimodels.kt",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest",
+      "label": "SchemaTest.kt",
+      "_origin": "ast",
+      "community": 22,
+      "community_name": "TripDao",
+      "file_type": "code",
+      "norm_label": "schematest.kt",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
       "source_location": "L1"
     },
     {
@@ -34411,6 +34433,28 @@
       "source_location": "L365"
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest",
+      "label": "RoomDeleteImpactProviderTest.kt",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": "roomdeleteimpactprovidertest.kt",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
+      "source_location": "L1"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placeentities",
+      "label": "PlaceEntities.kt",
+      "_origin": "ast",
+      "community": 36,
+      "community_name": "SchemaTest",
+      "file_type": "code",
+      "norm_label": "placeentities.kt",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceEntities.kt",
+      "source_location": "L1"
+    },
+    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_trip_ui_roomdaycontentcounter",
       "label": "RoomDayContentCounter.kt",
       "_origin": "ast",
@@ -35497,28 +35541,6 @@
       "source_location": "L262"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest",
-      "label": "SchemaTest.kt",
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": "schematest.kt",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest",
-      "label": "RoomDeleteImpactProviderTest.kt",
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": "roomdeleteimpactprovidertest.kt",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/RoomDeleteImpactProviderTest.kt",
-      "source_location": "L1"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placedao",
       "label": "PlaceDao.kt",
       "_origin": "ast",
@@ -35539,17 +35561,6 @@
       "norm_label": "flow",
       "source_file": "",
       "source_location": ""
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_placeentities",
-      "label": "PlaceEntities.kt",
-      "_origin": "ast",
-      "community": 46,
-      "community_name": "PlaceDao",
-      "file_type": "code",
-      "norm_label": "placeentities.kt",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/data/PlaceEntities.kt",
-      "source_location": "L1"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_trip_domain_tripservice",
@@ -39704,17 +39715,6 @@
       "file_type": "code",
       "norm_label": "mapinteractionreducertest.kt",
       "source_file": "app/src/test/java/com/yangchengwei/easytrip/workspace/MapInteractionReducerTest.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest",
-      "label": "OfflineRecoveryTest.kt",
-      "_origin": "ast",
-      "community": 91,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": "offlinerecoverytest.kt",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
       "source_location": "L1"
     },
     {
@@ -62266,7 +62266,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/tests/run-amap-smoke-test.sh",
-      "source_location": "L90",
+      "source_location": "L94",
       "weight": 1.0
     },
     {
@@ -62278,7 +62278,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/tests/run-amap-smoke-test.sh",
-      "source_location": "L91",
+      "source_location": "L95",
       "weight": 1.0
     },
     {
@@ -62290,7 +62290,7 @@
       "confidence_score": 1.0,
       "context": "call",
       "source_file": "scripts/tests/run-amap-smoke-test.sh",
-      "source_location": "L92",
+      "source_location": "L96",
       "weight": 1.0
     },
     {
@@ -100212,7 +100212,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "scripts/tests/run-amap-smoke-test.sh",
-      "source_location": "L82",
+      "source_location": "L86",
       "weight": 1.0
     },
     {
@@ -125697,5 +125697,5 @@
       "source_file": "docs/superpowers/specs/2026-08-21-easy-trip-v1-design.md"
     }
   ],
-  "built_at_commit": "5dac1094f4591d67d04d9b9f9c819ef24d77efc5"
+  "built_at_commit": "0430151b3c7039192d15f9275918f6a9ae3f9179"
 }
