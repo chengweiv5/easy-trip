@@ -17,7 +17,7 @@ case "\$*" in
   *getprop\\ ro.product.cpu.abi*) printf '%s\n' "${ABI:-x86_64}" ;;
   *getprop\\ ro.boot.qemu.avd_name*) printf '%s\n' "${AVD:-trail_map_api36}" ;;
   *getprop\\ sys.boot_completed*) printf '%s\n' "${BOOT:-1}" ;;
-  *dumpsys\\ SurfaceFlinger*) printf 'GLES: %s\n' "${GLES:-Google SwiftShader}" ;;
+  *dumpsys\\ SurfaceFlinger*) printf '%b' "${SURFACE_FLINGER:-GLES: ${GLES:-Google SwiftShader}\\n}" ;;
   *) exit 2 ;;
 esac
 EOF
@@ -37,6 +37,13 @@ args=(--serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port
 write_adb
 PATH="$TMP:$PATH" "$GATE" "${args[@]}" >/dev/null || fail "approved environment rejected"
 python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["cold_boot"] is True and d["renderer"] == "swiftshader"' "$TMP/good.json" || fail "invalid JSON evidence"
+
+SURFACE_FLINGER='Connection{GLES VSyncRequest noise}\nGLES: ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device))\n' write_adb
+PATH="$TMP:$PATH" "$GATE" "${args[@]}" >/dev/null || fail "later SwiftShader renderer evidence rejected"
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert "VSyncRequest noise" in d["gles"] and "SwiftShader Device" in d["gles"]' "$TMP/good.json" || fail "renderer evidence did not retain matching SurfaceFlinger lines"
+
+SURFACE_FLINGER='Connection{GLES VSyncRequest noise}\nGLES: ANGLE (NVIDIA)\n' write_adb
+expect_rejected "later non-SwiftShader renderer" 3 "${args[@]}"
 
 API=35 write_adb; expect_rejected "wrong API" 3 "${args[@]}"
 API=36 ABI=arm64-v8a write_adb; expect_rejected "wrong ABI" 3 "${args[@]}"

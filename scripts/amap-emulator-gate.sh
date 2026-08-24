@@ -50,7 +50,7 @@ api=$(adb -s "$serial" shell getprop ro.build.version.sdk | tr -d '\r')
 abi=$(adb -s "$serial" shell getprop ro.product.cpu.abi | tr -d '\r')
 avd=$(adb -s "$serial" shell getprop ro.boot.qemu.avd_name | tr -d '\r')
 boot=$(adb -s "$serial" shell getprop sys.boot_completed | tr -d '\r')
-gles=$(adb -s "$serial" shell dumpsys SurfaceFlinger | grep -i -m1 'GLES' || true)
+gles=$(adb -s "$serial" shell dumpsys SurfaceFlinger | grep -i 'GLES' || true)
 printf '%s' "$gles" | grep -qi 'swiftshader' || { printf 'renderer mismatch: %s\n' "$gles" >&2; exit 3; }
 [[ "$avd" == trail_map_api36 ]] || { printf 'AVD mismatch: %s\n' "$avd" >&2; exit 3; }
 [[ "$api" == 36 ]] || { printf 'API mismatch: %s\n' "$api" >&2; exit 3; }
