@@ -2,7 +2,7 @@
 
 ## 固定环境
 
-仅允许 `trail_map_api36`、API 36、`x86_64`，启动参数固定为 `-gpu swiftshader -no-snapshot-load -no-snapshot-save`。脚本使用独立 serial `emulator-5588`，不清除或修改 AVD 用户数据。
+仅允许 Apple Silicon (`arm64`) host 上的 `trail_map_api36`、API 36、`system-images;android-36;google_apis;arm64-v8a` 镜像和 `arm64-v8a` guest ABI，启动参数固定为 `-gpu swiftshader -no-snapshot-load -no-snapshot-save`。脚本使用独立 serial `emulator-5588`，不清除或修改 AVD 用户数据。
 
 ```bash
 AMAP_EVIDENCE_DIR="$PWD/build/amap-smoke" scripts/run-amap-smoke.sh
@@ -16,7 +16,8 @@ AMAP_EVIDENCE_DIR="$PWD/build/amap-smoke" scripts/run-amap-smoke.sh
 
 脚本通过 `${TMPDIR:-/tmp}/easy-trip-android-device-emulator-5588.lock` 实施跨项目设备全局互斥，锁覆盖启动、安装和 instrumentation；owner metadata 记录 PID、时间与 serial。检测到锁时一律 fail-fast，不自动回收或删除，即使记录的 owner PID 已不存在也如此；确认没有任务仍持有设备后，才可人工删除 stale lock。发现任何已连接设备时立即停止，避免操作共享模拟器。启动后、安装 APK 前，门禁记录并校验：
 
-- AVD、API、ABI、唯一 serial
+- host architecture、AVD target/image package、API、guest ABI、唯一 serial
+- emulator version
 - 完整 emulator 命令行
 - renderer 与 GLES 信息
 - `sys.boot_completed=1`

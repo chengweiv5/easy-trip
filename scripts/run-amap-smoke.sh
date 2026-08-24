@@ -11,6 +11,7 @@ EVIDENCE_DIR="$EVIDENCE_ROOT/$RUN_ID"
 LOCK_DIR=${TMPDIR:-/tmp}/easy-trip-android-device-$SERIAL.lock
 COMMAND="emulator -avd $AVD -port 5588 -gpu swiftshader -no-snapshot-load -no-snapshot-save"
 BOOT_TIMEOUT_SECONDS=${AMAP_BOOT_TIMEOUT_SECONDS:-180}
+EXPECTED_IMAGE_PACKAGE=system-images\;android-36\;google_apis\;arm64-v8a
 emulator_pid=
 emulator_identity=
 owned_lock=false
@@ -29,23 +30,27 @@ same_process_identity() {
   [[ -n "$1" && "$1" == "$2" ]]
 }
 
+process_alive() {
+  "${AMAP_KILL_BIN:-kill}" -0 "$1" 2>/dev/null
+}
+
 cleanup() {
   [[ "$cleaned" == false ]] || return 0
   cleaned=true
-  if [[ "$emulator_pid" =~ ^[0-9]+$ ]] && kill -0 "$emulator_pid" 2>/dev/null; then
+  if [[ "$emulator_pid" =~ ^[0-9]+$ ]] && process_alive "$emulator_pid" 2>/dev/null; then
     current_identity=$(process_identity "$emulator_pid" || true)
     if same_process_identity "$emulator_identity" "$current_identity"; then
       kill "$emulator_pid" 2>/dev/null || true
       for _ in 1 2 3 4 5; do
-        kill -0 "$emulator_pid" 2>/dev/null || break
+        process_alive "$emulator_pid" 2>/dev/null || break
         sleep 0.2
       done
-      if kill -0 "$emulator_pid" 2>/dev/null; then
+      if process_alive "$emulator_pid" 2>/dev/null; then
         current_identity=$(process_identity "$emulator_pid" || true)
         if same_process_identity "$emulator_identity" "$current_identity"; then
           kill -KILL "$emulator_pid" 2>/dev/null || true
           for _ in 1 2 3 4 5; do
-            kill -0 "$emulator_pid" 2>/dev/null || break
+            process_alive "$emulator_pid" 2>/dev/null || break
             sleep 0.2
           done
         else
@@ -102,6 +107,21 @@ printf 'token=%s\npid=%s\nstarted=%s\nserial=%s\n' "$lock_token" "$$" "$(date -u
 command -v adb >/dev/null
 command -v emulator >/dev/null
 emulator -list-avds | grep -Fxq "$AVD" || { printf 'approved AVD is missing: %s\n' "$AVD" >&2; exit 11; }
+host_arch=${AMAP_HOST_ARCH:-$(uname -m)}
+[[ "$host_arch" == arm64 ]] || { printf 'approved host architecture required: arm64, got %s\n' "$host_arch" >&2; exit 11; }
+avd_home=${ANDROID_AVD_HOME:-${ANDROID_USER_HOME:-$HOME/.android}/avd}
+avd_config="$avd_home/$AVD.avd/config.ini"
+[[ -f "$avd_config" ]] || { printf 'approved AVD config is missing: %s\n' "$avd_config" >&2; exit 11; }
+avd_target=$(grep -E '^target=' "$avd_config" | tail -1 | cut -d= -f2- || true)
+avd_image_path=$(grep -E '^image\.sysdir\.1=' "$avd_config" | tail -1 | cut -d= -f2- || true)
+avd_config_abi=$(grep -E '^abi\.type=' "$avd_config" | tail -1 | cut -d= -f2- || true)
+avd_image_package=${avd_image_path%/}
+avd_image_package=${avd_image_package//\//;}
+[[ "$avd_target" == android-36 ]] || { printf 'approved AVD target required: android-36, got %s\n' "$avd_target" >&2; exit 11; }
+[[ "$avd_image_package" == "$EXPECTED_IMAGE_PACKAGE" ]] || { printf 'approved AVD image required: %s, got %s\n' "$EXPECTED_IMAGE_PACKAGE" "$avd_image_package" >&2; exit 11; }
+[[ "$avd_config_abi" == arm64-v8a ]] || { printf 'approved AVD ABI required: arm64-v8a, got %s\n' "$avd_config_abi" >&2; exit 11; }
+emulator_version=$(emulator -version 2>&1 | grep -m1 'Android emulator version' || true)
+[[ -n "$emulator_version" ]] || { printf 'unable to determine emulator version\n' >&2; exit 11; }
 attached=$(adb devices | grep -E '^[^[:space:]]+[[:space:]]+device$' || true)
 [[ -z "$attached" ]] || { printf 'refusing to operate while another device is attached:\n%s\n' "$attached" >&2; exit 12; }
 
@@ -114,14 +134,14 @@ emulator_identity=$(process_identity "$emulator_pid" || true)
 printf 'emulator_pid=%s\nemulator_identity=%s\n' "$emulator_pid" "$emulator_identity" >>"$LOCK_DIR/owner"
 deadline=$((SECONDS + BOOT_TIMEOUT_SECONDS))
 while ((SECONDS < deadline)); do
-  kill -0 "$emulator_pid" 2>/dev/null || { printf 'emulator process exited during startup\n' >&2; exit 13; }
+  process_alive "$emulator_pid" 2>/dev/null || { printf 'emulator process exited during startup\n' >&2; exit 13; }
   if [[ "$(adb -s "$SERIAL" get-state 2>/dev/null || true)" == device && "$(adb -s "$SERIAL" shell getprop ro.boot.qemu.avd_name 2>/dev/null | tr -d '\r')" == "$AVD" ]]; then break; fi
   sleep 1
 done
-kill -0 "$emulator_pid" 2>/dev/null || { printf 'emulator process exited during startup\n' >&2; exit 13; }
+process_alive "$emulator_pid" 2>/dev/null || { printf 'emulator process exited during startup\n' >&2; exit 13; }
 [[ "$(adb -s "$SERIAL" get-state 2>/dev/null || true)" == device && "$(adb -s "$SERIAL" shell getprop ro.boot.qemu.avd_name 2>/dev/null | tr -d '\r')" == "$AVD" ]] || { printf 'owned emulator registration timed out\n' >&2; exit 13; }
 while ((SECONDS < deadline)); do
-  if ! kill -0 "$emulator_pid" 2>/dev/null; then
+  if ! process_alive "$emulator_pid" 2>/dev/null; then
     printf 'owned emulator process exited before boot completed\n' >&2
     exit 13
   fi
@@ -130,7 +150,7 @@ while ((SECONDS < deadline)); do
   [[ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]] && break
   sleep 1
 done
-if ! kill -0 "$emulator_pid" 2>/dev/null; then
+if ! process_alive "$emulator_pid" 2>/dev/null; then
   printf 'owned emulator process exited before boot completed\n' >&2
   exit 13
 fi
@@ -138,7 +158,7 @@ current_identity=$(process_identity "$emulator_pid" || true)
 same_process_identity "$emulator_identity" "$current_identity" || { printf 'owned emulator process identity changed before boot completed\n' >&2; exit 13; }
 [[ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]] || { printf 'emulator boot timed out\n' >&2; exit 13; }
 
-"$ROOT/scripts/amap-emulator-gate.sh" --serial "$SERIAL" --command-line "$COMMAND" --evidence "$EVIDENCE_DIR/environment.json"
+"$ROOT/scripts/amap-emulator-gate.sh" --serial "$SERIAL" --command-line "$COMMAND" --host-arch "$host_arch" --image-package "$avd_image_package" --emulator-version "$emulator_version" --evidence "$EVIDENCE_DIR/environment.json"
 ANDROID_SERIAL="$SERIAL" "$ROOT/gradlew" :app:installDebug :app:installDebugAndroidTest
 adb -s "$SERIAL" logcat -c
 set +e

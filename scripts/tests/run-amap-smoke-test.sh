@@ -8,7 +8,8 @@ fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 
 make_fixture() {
   local mode=$1 dir="$TMP/$1"
-  mkdir -p "$dir/bin" "$dir/repo/scripts" "$dir/tmp" "$dir/evidence"
+  mkdir -p "$dir/bin" "$dir/repo/scripts" "$dir/tmp" "$dir/evidence" "$dir/avd/trail_map_api36.avd"
+  printf 'target=android-36\nimage.sysdir.1=system-images/android-36/google_apis/arm64-v8a/\nabi.type=arm64-v8a\n' >"$dir/avd/trail_map_api36.avd/config.ini"
   printf 'stale' >"$dir/evidence/map-loaded.png"
   cp "$ROOT/scripts/run-amap-smoke.sh" "$dir/repo/scripts/"
   cp "$ROOT/scripts/amap-emulator-gate.sh" "$dir/repo/scripts/"
@@ -28,10 +29,17 @@ EOF
   cat >"$dir/bin/emulator" <<EOF
 #!/usr/bin/env bash
 if [[ "\${1:-}" == -list-avds ]]; then printf 'trail_map_api36\n'; exit 0; fi
+if [[ "\${1:-}" == -version ]]; then printf 'Android emulator version 36.1.9.0\n'; exit 0; fi
 printf 'started pid=%s args=%s\n' "\$\$" "\$*" >"$dir/emulator.started"
 [[ "$mode" == startup-fail ]] && exit 7
 trap 'exit 0' TERM INT
 while true; do sleep 1; done
+EOF
+  cat >"$dir/bin/fake-kill" <<EOF
+#!/usr/bin/env bash
+printf '%s\n' "\$*" >>"$dir/fake-kill.calls"
+if [[ "$mode" == boot-exit && "\${1:-}" == -0 && -f "$dir/boot-process-exited" ]]; then exit 1; fi
+exec kill "\$@"
 EOF
   cat >"$dir/bin/fake-ps" <<EOF
 #!/usr/bin/env bash
@@ -56,15 +64,14 @@ case "\$*" in
   *ro.boot.qemu.avd_name*) printf 'trail_map_api36\n' ;;
   *sys.boot_completed*)
     if [[ "$mode" == boot-exit ]]; then
-      pid=\$(grep -Eo 'pid=[0-9]+' "$dir/emulator.started" | cut -d= -f2)
-      kill "\$pid" 2>/dev/null || true
+      touch "$dir/boot-process-exited"
       printf '0\n'
     else
       printf '1\n'
     fi
     ;;
   *ro.build.version.sdk*) printf '36\n' ;;
-  *ro.product.cpu.abi*) printf 'x86_64\n' ;;
+  *ro.product.cpu.abi*) printf 'arm64-v8a\n' ;;
   *dumpsys\\ SurfaceFlinger*) printf 'GLES: Google SwiftShader\n' ;;
   *logcat\\ -d*) printf 'high-volume unrelated diagnostic noise without smoke markers\n' ;;
   *exec-out\\ run-as*\\.png*)
@@ -80,16 +87,24 @@ case "\$*" in
   *) exit 0 ;;
 esac
 EOF
-  chmod +x "$dir/repo/gradlew" "$dir/bin/adb" "$dir/bin/emulator" "$dir/bin/fake-ps"
+  chmod +x "$dir/repo/gradlew" "$dir/bin/adb" "$dir/bin/emulator" "$dir/bin/fake-kill" "$dir/bin/fake-ps"
 }
 
 run_status() {
-  local mode=$1
+  local mode=$1 boot_timeout=1
+  [[ "$mode" == boot-exit ]] && boot_timeout=5
   set +e
-  TMPDIR="$TMP/$mode/tmp" PATH="$TMP/$mode/bin:$PATH" AMAP_PS_BIN="$TMP/$mode/bin/fake-ps" AMAP_EVIDENCE_DIR="$TMP/$mode/evidence" AMAP_BOOT_TIMEOUT_SECONDS=1 "$TMP/$mode/repo/scripts/run-amap-smoke.sh" >"$TMP/$mode/output" 2>&1
+  TMPDIR="$TMP/$mode/tmp" PATH="$TMP/$mode/bin:$PATH" ANDROID_AVD_HOME="$TMP/$mode/avd" AMAP_HOST_ARCH=arm64 AMAP_PS_BIN="$TMP/$mode/bin/fake-ps" AMAP_KILL_BIN="$TMP/$mode/bin/fake-kill" AMAP_EVIDENCE_DIR="$TMP/$mode/evidence" AMAP_BOOT_TIMEOUT_SECONDS="$boot_timeout" "$TMP/$mode/repo/scripts/run-amap-smoke.sh" >"$TMP/$mode/output" 2>&1
   RUN_STATUS=$?
   set -e
 }
+
+make_fixture wrong-avd-image
+printf 'target=android-36\nimage.sysdir.1=system-images/android-36/google_apis/x86_64/\nabi.type=x86_64\n' >"$TMP/wrong-avd-image/avd/trail_map_api36.avd/config.ini"
+run_status wrong-avd-image
+[[ $RUN_STATUS -eq 11 ]] || fail "wrong AVD image returned $RUN_STATUS"
+[[ ! -f "$TMP/wrong-avd-image/emulator.started" ]] || fail 'emulator started before AVD image validation'
+grep -q 'approved AVD image required' "$TMP/wrong-avd-image/output" || fail 'wrong AVD image lacked precise error'
 
 make_fixture startup-fail
 run_status startup-fail
@@ -113,7 +128,7 @@ grep -q 'get-state' "$TMP/timeout/adb.calls" || fail 'timeout did not poll devic
 make_fixture boot-exit
 run_status boot-exit
 [[ $RUN_STATUS -eq 13 ]] || fail "boot process exit returned $RUN_STATUS"
-grep -q 'owned emulator process exited before boot completed' "$TMP/boot-exit/output" || fail 'boot process exit lacked precise error'
+grep -q 'owned emulator process exited before boot completed' "$TMP/boot-exit/output" || { grep -E 'emulator process|identity changed|boot timed out' "$TMP/boot-exit/output" >&2 || true; fail 'boot process exit lacked precise error'; }
 ! grep -q 'boot timed out' "$TMP/boot-exit/output" || fail 'boot process exit was misreported as timeout'
 
 for mode in gate-fail gradle-fail instrumentation-fail marker-missing; do
@@ -146,7 +161,7 @@ run_status pid-reuse
 grep -q 'refusing to kill' "$TMP/pid-reuse/output" || fail 'PID reuse was not detected'
 
 make_fixture signal
-TMPDIR="$TMP/signal/tmp" PATH="$TMP/signal/bin:$PATH" AMAP_PS_BIN="$TMP/signal/bin/fake-ps" AMAP_EVIDENCE_DIR="$TMP/signal/evidence" AMAP_BOOT_TIMEOUT_SECONDS=30 "$TMP/signal/repo/scripts/run-amap-smoke.sh" >"$TMP/signal/output" 2>&1 &
+TMPDIR="$TMP/signal/tmp" PATH="$TMP/signal/bin:$PATH" ANDROID_AVD_HOME="$TMP/signal/avd" AMAP_HOST_ARCH=arm64 AMAP_PS_BIN="$TMP/signal/bin/fake-ps" AMAP_KILL_BIN="$TMP/signal/bin/fake-kill" AMAP_EVIDENCE_DIR="$TMP/signal/evidence" AMAP_BOOT_TIMEOUT_SECONDS=30 "$TMP/signal/repo/scripts/run-amap-smoke.sh" >"$TMP/signal/output" 2>&1 &
 runner_pid=$!
 for _ in $(seq 1 50); do [[ -f "$TMP/signal/emulator.started" ]] && break; sleep 0.02; done
 kill -TERM "$runner_pid"
