@@ -93,6 +93,16 @@ class TripWorkspaceContentTest {
         )
     }
 
+    @Test fun searchLauncherStaysAboveSheetForPhysicalClicks() {
+        setContent(ready(), WorkspaceMapState.Ready)
+        compose.waitForIdle()
+
+        val launcher = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot()
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+
+        assertTrue("launcher=$launcher sheet=$sheet", launcher.bottom <= sheet.top)
+    }
+
     @Test fun workspaceTabsUseIndicatorAndTabSemantics() {
         setContent(ready(), WorkspaceMapState.Ready)
 

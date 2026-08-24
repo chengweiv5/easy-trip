@@ -80,8 +80,8 @@ class V2AcceptanceTest {
         fun waitFor(stage: String, condition: () -> Boolean) {
             try {
                 compose.waitUntil(10_000, condition)
-            } catch (failure: AssertionError) {
-                throw AssertionError("$stage timed out; routes=$navigationRoutes saved=${savedPoiIds.value}", failure)
+            } catch (failure: Throwable) {
+                throw AssertionError("$stage failed; routes=$navigationRoutes saved=${savedPoiIds.value}", failure)
             }
         }
         fun hasTag(tag: String) = compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()

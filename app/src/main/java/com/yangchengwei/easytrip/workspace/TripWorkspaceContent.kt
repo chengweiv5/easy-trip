@@ -194,7 +194,9 @@ private fun WorkspaceReadyContent(
                 MapLegend(Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 82.dp))
                 SearchSurface(
                     { onAction(TripWorkspaceAction.OpenSearch) },
-                    Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 20.dp),
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(start = 20.dp, end = 20.dp, bottom = sheetHeight + 20.dp),
                 )
             }
         },
