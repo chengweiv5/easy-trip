@@ -105,7 +105,14 @@ set -e
 adb -s "$SERIAL" logcat -d >"$EVIDENCE_DIR/logcat.txt"
 [[ $status -eq 0 ]] || exit "$status"
 adb -s "$SERIAL" exec-out run-as com.yangchengwei.easytrip cat files/amap-smoke-loaded.png >"$EVIDENCE_DIR/map-loaded.png"
-[[ -s "$EVIDENCE_DIR/map-loaded.png" ]] || { printf 'loaded map screenshot missing\n' >&2; exit 14; }
+python3 - "$EVIDENCE_DIR/map-loaded.png" <<'PY' || { printf 'loaded map screenshot is not a valid PNG\n' >&2; exit 14; }
+import os, sys
+path = sys.argv[1]
+with open(path, "rb") as image:
+    signature = image.read(8)
+if signature != b"\x89PNG\r\n\x1a\n" or os.path.getsize(path) <= 8:
+    raise SystemExit(1)
+PY
 grep -q 'OK (1 test)' "$EVIDENCE_DIR/instrumentation.txt" || { printf 'instrumentation did not report success\n' >&2; exit 14; }
 grep -q 'AMAP_SMOKE.*map_loaded=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'map-loaded evidence missing\n' >&2; exit 14; }
 grep -q 'AMAP_SMOKE.*screenshot_ready=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'screenshot evidence missing\n' >&2; exit 14; }

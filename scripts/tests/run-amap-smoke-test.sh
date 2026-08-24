@@ -50,7 +50,9 @@ case "\$*" in
   *ro.product.cpu.abi*) printf 'x86_64\n' ;;
   *dumpsys\\ SurfaceFlinger*) printf 'GLES: Google SwiftShader\n' ;;
   *logcat\\ -d*) [[ "$mode" == marker-missing ]] || printf 'I AMAP_SMOKE: map_loaded=true\nI AMAP_SMOKE: screenshot_ready=true\nI AMAP_SMOKE: lifecycle_cleanup=true\n' ;;
-  *exec-out\\ run-as*) printf 'png' ;;
+  *exec-out\\ run-as*)
+    if [[ "$mode" == corrupt-png ]]; then printf 'not-a-png'; else printf '\211PNG\r\n\032\nfixture'; fi
+    ;;
   *am\\ instrument*) [[ "$mode" == instrumentation-fail ]] && exit 25; printf 'OK (1 test)\n' ;;
   *) exit 0 ;;
 esac
@@ -95,6 +97,12 @@ for mode in gate-fail gradle-fail instrumentation-fail marker-missing; do
 done
 grep -q 'am instrument' "$TMP/marker-missing/adb.calls" || fail 'marker fixture never ran instrumentation'
 grep -q 'logcat -d' "$TMP/marker-missing/adb.calls" || fail 'marker fixture never reached marker validation'
+
+make_fixture corrupt-png
+run_status corrupt-png
+[[ $RUN_STATUS -eq 14 ]] || fail "corrupt PNG returned $RUN_STATUS"
+grep -q 'not a valid PNG' "$TMP/corrupt-png/output" || fail 'corrupt PNG did not fail validation precisely'
+grep -q 'exec-out run-as' "$TMP/corrupt-png/adb.calls" || fail 'corrupt PNG fixture did not export screenshot'
 
 make_fixture pid-reuse
 run_status pid-reuse
