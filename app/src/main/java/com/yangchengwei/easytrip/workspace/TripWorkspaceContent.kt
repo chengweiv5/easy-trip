@@ -170,11 +170,16 @@ private fun WorkspaceReadyContent(
                 }
             }
         },
-        background = {
+        background = { sheetHeight ->
             Box(Modifier.fillMaxSize().testTag("workspace-map")) {
                 if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) mapContent()
                 if (mapState != WorkspaceMapState.Ready) {
-                    WorkspaceMapFallback(mapState, { onAction(TripWorkspaceAction.OpenPrivacySettings) }, onMapRetry)
+                    WorkspaceMapFallback(
+                        mapState,
+                        { onAction(TripWorkspaceAction.OpenPrivacySettings) },
+                        onMapRetry,
+                        Modifier.padding(bottom = sheetHeight),
+                    )
                 }
                 WorkspaceTopBar(state.tripName, onAction)
                 MapControls(

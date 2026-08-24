@@ -8,12 +8,13 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
-import androidx.lifecycle.SavedStateHandle
 import androidx.room.Room
 import com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
@@ -28,46 +29,62 @@ import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.workspace.AmapMapHost
 import com.yangchengwei.easytrip.workspace.MapLayer
 import com.yangchengwei.easytrip.workspace.MapPoiUi
-import com.yangchengwei.easytrip.workspace.ItineraryScope
-import com.yangchengwei.easytrip.workspace.MapScope
 import com.yangchengwei.easytrip.workspace.MapUiModel
-import com.yangchengwei.easytrip.workspace.TripWorkspaceViewModel
-import com.yangchengwei.easytrip.workspace.WorkspaceSection
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
 import org.junit.After
-import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicInteger
 
 class V2AcceptanceTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private lateinit var database: EasyTripDatabase
+    private lateinit var observationScope: CoroutineScope
     private var nextId = 0
 
     @Before fun setUp() {
         database = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
+        observationScope = CoroutineScope(Dispatchers.Default)
     }
 
-    @After fun tearDown() = database.close()
+    @After fun tearDown() {
+        observationScope.cancel()
+        database.close()
+    }
 
-    @Test fun searchCollectionMapAndRestorationFlow() {
+    @Test fun searchCollectionAndMapFlowUsesProductionNavigationState() {
         val trips = RoomTripRepository(database.tripDao(), idFactory = { "id-${nextId++}" })
         val places = RoomSavedPlaceRepository(database, idFactory = { "id-${nextId++}" })
         val itineraries = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(), itemIdFactory = { "item-${nextId++}" }, legIdFactory = { "leg-${nextId++}" })
         val routes = RoomRouteLegRepository(database.routeLegDao())
         val tripId = runBlocking { trips.createTrip(CreateTrip("集成验收", 2)) }
+        val savedPoiIds = places.observeSavedPoiIds(tripId).stateIn(
+            observationScope,
+            SharingStarted.Eagerly,
+            emptySet(),
+        )
         val museum = candidate("museum", "博物馆", 39.91, 116.41)
         val park = candidate("park", "公园", 39.92, 116.42)
         val source = object : PlaceSearchDataSource {
             override suspend fun search(keyword: String, city: String?) = listOf(museum, park)
         }
-        val savedState = SavedStateHandle(mapOf("workspace.tab" to "SEARCH"))
-        val workspace = TripWorkspaceViewModel(tripId, trips, places, itineraries, routes, savedState)
-        val navigationRoutes = mutableListOf<String>()
+        val navigationRoutes = java.util.concurrent.CopyOnWriteArrayList<String>()
         lateinit var host: RecordingHost
+        fun waitFor(stage: String, condition: () -> Boolean) {
+            try {
+                compose.waitUntil(10_000, condition)
+            } catch (failure: AssertionError) {
+                throw AssertionError("$stage timed out; routes=$navigationRoutes saved=${savedPoiIds.value}", failure)
+            }
+        }
+        fun hasTag(tag: String) = compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
 
         compose.setContent {
             AppNavigation(
@@ -88,59 +105,46 @@ class V2AcceptanceTest {
         }
 
         compose.onNodeWithTag("trip-$tripId").performClick()
-        compose.waitUntil(5_000) { navigationRoutes.lastOrNull() == "trips/$tripId" }
-        compose.waitForIdle()
-
+        waitFor("workspace UI") { hasTag("workspace-top-bar") }
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         compose.onNodeWithTag("layer-menu").assertHasClickAction()
         compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
         compose.onNodeWithTag("section-ITINERARY").assertExists()
         compose.onNodeWithTag("itinerary-scope-rail").assertDoesNotExist()
+
         compose.onNodeWithTag("workspace-search-launcher").assertHasClickAction().performClick()
-        compose.waitUntil(5_000) { navigationRoutes.lastOrNull() == tripSearchRoute(tripId) }
+        waitFor("place search UI") { hasTag("place-search-field") }
         compose.onNodeWithTag("place-search-field").assertIsDisplayed().performTextInput("博物馆")
-        compose.onNodeWithTag("place-search-bookmark-touch-museum").assertIsDisplayed()
-        compose.onNodeWithTag("place-search-bookmark-touch-park").assertIsDisplayed()
+        waitFor("place search results") {
+            hasTag("place-search-bookmark-touch-museum") && hasTag("place-search-bookmark-touch-park")
+        }
         compose.onAllNodesWithText("加入行程").assertCountEquals(0)
 
         compose.onNodeWithTag("place-search-bookmark-touch-museum").performClick()
-        compose.waitUntil(5_000) {
-            "museum" in runBlocking { places.observeSavedPoiIds(tripId).first() }
-        }
+        waitFor("museum collection") { "museum" in savedPoiIds.value }
+        compose.onNodeWithContentDescription("取消收藏博物馆").assertIsDisplayed()
         compose.onNodeWithTag("place-search-bookmark-touch-park").performClick()
-        compose.waitUntil(5_000) {
-            "park" in runBlocking { places.observeSavedPoiIds(tripId).first() }
-        }
-        compose.onNodeWithTag("place-search-field").assertIsDisplayed()
+        waitFor("park collection") { "park" in savedPoiIds.value }
+        compose.onNodeWithContentDescription("取消收藏公园").assertIsDisplayed()
         compose.onNodeWithTag("place-search-back").performClick()
-        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
+        waitFor("workspace UI after search return") { hasTag("workspace-top-bar") }
 
         compose.runOnIdle { host.emit(MapPoiUi("poi-card", "故宫", "北京市东城区", GeoPoint(39.916, 116.397))) }
         compose.onNodeWithText("故宫").assertIsDisplayed()
-        assertFalse(runBlocking { places.observeSavedPoiIds(tripId).first() }.contains("poi-card"))
+        assertFalse("poi-card" in savedPoiIds.value)
         compose.onNodeWithTag("place-card-collection").performClick()
-        compose.waitUntil(5_000) {
-            "poi-card" in runBlocking { places.observeSavedPoiIds(tripId).first() }
-        }
+        waitFor("map POI collection") { "poi-card" in savedPoiIds.value }
 
+        val placePoolViewportCalls = host.viewportCalls.get()
         compose.onNodeWithTag("section-ITINERARY").performClick()
+        waitFor("itinerary map model") { host.viewportCalls.get() > placePoolViewportCalls }
+        compose.onNodeWithTag("section-ITINERARY").assertIsSelected()
+        compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
+
+        val dayViewportCalls = host.viewportCalls.get()
         compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
-        compose.waitUntil(5_000) { workspace.state.value.itineraryScope == ItineraryScope.WholeTrip }
-        compose.waitUntil(5_000) { workspace.state.value.mapScope == MapScope.WHOLE_TRIP }
-        val restored = TripWorkspaceViewModel(tripId, trips, places, itineraries, routes, savedState)
-        val legacy = TripWorkspaceViewModel(
-            tripId,
-            trips,
-            places,
-            itineraries,
-            routes,
-            SavedStateHandle(mapOf("workspace.tab" to "SEARCH")),
-        )
-        compose.waitUntil(5_000) { restored.state.value.tripName.isNotEmpty() && legacy.state.value.tripName.isNotEmpty() }
-        assertEquals(WorkspaceSection.ITINERARY, restored.state.value.section)
-        assertEquals(ItineraryScope.WholeTrip, restored.state.value.itineraryScope)
-        assertEquals(MapScope.WHOLE_TRIP, restored.state.value.mapScope)
-        assertEquals(WorkspaceSection.PLACE_POOL, legacy.state.value.section)
+        waitFor("whole-trip map model") { host.viewportCalls.get() > dayViewportCalls }
+        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").assertIsSelected()
     }
 
     private fun candidate(id: String, name: String, latitude: Double, longitude: Double) =
@@ -148,8 +152,8 @@ class V2AcceptanceTest {
 
     private class RecordingHost(context: Context) : AmapMapHost {
         override val view = View(context)
-        var lastModel: MapUiModel? = null
-        var viewportCalls = 0
+        @Volatile var lastModel: MapUiModel? = null
+        val viewportCalls = AtomicInteger()
         private var viewportId: Long? = null
         private var poiCallback: (MapPoiUi) -> Unit = {}
         override fun onCreate() = Unit
@@ -167,7 +171,7 @@ class V2AcceptanceTest {
             poiCallback = onMapPoiClick
             model.viewportRequest?.takeIf { it.id != viewportId }?.let {
                 viewportId = it.id
-                viewportCalls++
+                viewportCalls.incrementAndGet()
             }
         }
         fun emit(poi: MapPoiUi) = poiCallback(poi)

@@ -62,17 +62,17 @@ fun WorkspaceBottomSheet(
     header: @Composable () -> Unit,
     content: @Composable () -> Unit,
     modifier: Modifier = Modifier,
-    background: @Composable BoxScope.() -> Unit = {},
+    background: @Composable BoxScope.(bottomInset: androidx.compose.ui.unit.Dp) -> Unit = {},
     searchReturn: Boolean = false,
 ) {
     Box(modifier.fillMaxSize()) {
-        background()
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
             val targetHeight = workspaceSheetHeightDp(
                 availableHeightDp = maxHeight.value,
                 level = value,
                 searchReturn = searchReturn,
             ).dp
+            background(targetHeight)
             var dragOffset by remember { mutableFloatStateOf(0f) }
             LaunchedEffect(value) { dragOffset = 0f }
             Surface(

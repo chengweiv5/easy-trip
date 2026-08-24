@@ -27,6 +27,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
+import java.util.concurrent.atomic.AtomicInteger
 
 class TripWorkspaceContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
@@ -47,19 +48,26 @@ class TripWorkspaceContentTest {
         compose.onNodeWithText("返回").assertIsDisplayed()
     }
 
-    @Test fun mapFailureInvokesOnlyTheDedicatedRetryCallbackOnce() {
+    @Test fun mapFailureRetryIsAboveSheetAndInvokesDedicatedCallbackOnce() {
         val actions = mutableListOf<TripWorkspaceAction>()
-        var retryCalls = 0
+        val retryCalls = AtomicInteger()
         setContent(
             ready(),
             WorkspaceMapState.Failed("地图加载失败"),
             onAction = actions::add,
-            onMapRetry = { retryCalls++ },
+            onMapRetry = { retryCalls.incrementAndGet() },
         )
-        compose.onNodeWithText("地图加载失败").assertIsDisplayed()
-        compose.onNodeWithText("还没有收藏地点").assertExists()
-        compose.onNodeWithTag("workspace-map-retry").performClick()
-        assertEquals(1, retryCalls)
+        compose.waitForIdle()
+        val retry = compose.onNodeWithTag("workspace-map-retry")
+        val sheet = compose.onNodeWithTag("workspace-sheet")
+        retry.assertIsDisplayed()
+        assertTrue(
+            "retry=${retry.getUnclippedBoundsInRoot()} sheet=${sheet.getUnclippedBoundsInRoot()}",
+            retry.getUnclippedBoundsInRoot().bottom <= sheet.getUnclippedBoundsInRoot().top,
+        )
+        retry.performClick()
+        compose.waitForIdle()
+        assertEquals(1, retryCalls.get())
         assertTrue(actions.isEmpty())
     }
 
