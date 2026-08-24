@@ -1662,21 +1662,33 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1FullUiAcceptanceTest.kt": {
-    "mtime": 1787601137.581899,
-    "seen": 1787601153.0068538,
-    "ast_hash": "9e0cab62a6b456f2d50145686b105ea7",
+    "mtime": 1787603093.5050728,
+    "seen": 1787603108.266586,
+    "ast_hash": "91b2b3f30ae963841fdbb2401f96f0ec",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioFixtures.kt": {
-    "mtime": 1787601137.5823004,
-    "seen": 1787601153.006856,
-    "ast_hash": "5a7b82f2feb126e43f178df77d64d06f",
+    "mtime": 1787603093.506306,
+    "seen": 1787603108.2665899,
+    "ast_hash": "1b28715a3627f5e98bc70caef66931f2",
     "semantic_hash": ""
   },
   "docs/testing/v1-full-ui-scenario-matrix.md": {
-    "mtime": 1787601137.5840554,
-    "seen": 1787601153.007082,
-    "ast_hash": "29f7acd1eb8964ec34a14b3d7c5ab39f",
+    "mtime": 1787603093.506828,
+    "seen": 1787603108.266772,
+    "ast_hash": "8226a556025cb5ef55b3f3869b6a2fa2",
+    "semantic_hash": ""
+  },
+  "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioCatalogTest.kt": {
+    "mtime": 1787603093.5054145,
+    "seen": 1787603108.266588,
+    "ast_hash": "7b7d1cdefe288d67e476906dfc99fa6e",
+    "semantic_hash": ""
+  },
+  "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioExecutable.kt": {
+    "mtime": 1787603093.5057483,
+    "seen": 1787603108.266589,
+    "ast_hash": "c7f2f3da66e998b5186dc2741412a047",
     "semantic_hash": ""
   }
 }
