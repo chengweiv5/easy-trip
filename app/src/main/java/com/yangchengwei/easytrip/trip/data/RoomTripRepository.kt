@@ -6,6 +6,7 @@ import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.DateRangeApply
 import com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts
+import com.yangchengwei.easytrip.trip.domain.DayDeletion
 import com.yangchengwei.easytrip.trip.domain.InsertSide
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
@@ -158,6 +159,15 @@ class RoomTripRepository(
 
     override suspend fun deleteDay(dayId: String) {
         dao.deleteAndReorderDay(dayId, clock.instant())
+    }
+
+    override suspend fun deleteDay(command: DayDeletion) {
+        dao.deleteAndReorderDay(
+            command.dayId,
+            command.expectedItineraryItems,
+            command.expectedRouteLegs,
+            clock.instant(),
+        )
     }
 
     override suspend fun deleteTrip(tripId: String) {

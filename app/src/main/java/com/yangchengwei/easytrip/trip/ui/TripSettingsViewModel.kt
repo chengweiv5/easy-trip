@@ -6,6 +6,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.trip.domain.DayDeletion
 import com.yangchengwei.easytrip.trip.domain.TripDateRangeService
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
@@ -19,7 +20,7 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 data class TripDeleteImpact(val days: Int, val places: Int, val tags: Int, val itineraryItems: Int, val routeLegs: Int)
-data class DayDeleteImpact(val itineraryItems: Int, val routeLegs: Int)
+data class DayDeleteImpact(val itineraryItems: Int, val routeLegs: Int, val retainedSavedPlaces: Int)
 interface DeleteImpactProvider {
     suspend fun trip(tripId: String): TripDeleteImpact
     suspend fun day(dayId: String): DayDeleteImpact
@@ -141,10 +142,17 @@ class TripSettingsViewModel(
             try {
                 val refreshed = dateRanges.preview(tripId, range.startDate, range.endDate)
                 if (generation != dateRangeGeneration) return@launch
-                mutableState.value = mutableState.value.copy(
-                    dateRange = mutableState.value.dateRange.copy(confirmation = refreshed),
-                )
-                applyDateRange(refreshed, generation)
+                if (refreshed.deletedDayIds.isEmpty()) {
+                    applyDateRange(refreshed, generation)
+                } else {
+                    mutableState.value = mutableState.value.copy(
+                        dateRange = mutableState.value.dateRange.copy(
+                            confirmation = refreshed,
+                            submitting = false,
+                            error = null,
+                        ),
+                    )
+                }
             } catch (_: Throwable) {
                 if (generation == dateRangeGeneration) {
                     mutableState.value = mutableState.value.copy(
@@ -206,12 +214,19 @@ class TripSettingsViewModel(
     }
     fun confirmDelete() {
         val state = mutableState.value
-        val day = state.pendingDayDeletion?.day ?: return
+        val pending = state.pendingDayDeletion ?: return
+        val day = pending.day
         if (state.dayDeleteInProgress) return
         mutableState.value = state.copy(dayDeleteInProgress = true, dayDeleteError = null)
         viewModelScope.launch {
             try {
-                service.deleteDay(day.id)
+                service.deleteDay(
+                    DayDeletion(
+                        day.id,
+                        pending.impact.itineraryItems,
+                        pending.impact.routeLegs,
+                    ),
+                )
                 mutableState.value = mutableState.value.copy(
                     pendingDayDeletion = null,
                     dayDeleteInProgress = false,

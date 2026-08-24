@@ -32,6 +32,12 @@ data class CreateTrip(
 
 enum class InsertSide { BEFORE, AFTER }
 
+data class DayDeletion(
+    val dayId: String,
+    val expectedItineraryItems: Int,
+    val expectedRouteLegs: Int,
+)
+
 interface TripRepository {
     fun observeTrips(): Flow<List<TripSummary>>
     fun observeTrip(tripId: String): Flow<TripWithDays?>
@@ -44,5 +50,6 @@ interface TripRepository {
     suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String
     suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int)
     suspend fun deleteDay(dayId: String)
+    suspend fun deleteDay(command: DayDeletion) = deleteDay(command.dayId)
     suspend fun deleteTrip(tripId: String)
 }

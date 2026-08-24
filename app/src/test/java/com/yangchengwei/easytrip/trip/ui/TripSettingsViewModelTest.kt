@@ -79,6 +79,10 @@ class TripSettingsViewModelTest {
         repository.applyBlock = null
         model.confirmDateRangeChange()
         advanceUntilIdle()
+        assertEquals(1, repository.applyCalls)
+        assertEquals(true, model.state.value.dateRange.confirmation != null)
+        model.confirmDateRangeChange()
+        advanceUntilIdle()
         assertEquals(2, repository.applyCalls)
         assertEquals(null, model.state.value.dateRange.confirmation)
     }
@@ -129,6 +133,30 @@ class TripSettingsViewModelTest {
         assertEquals(0, repository.deleteCalls)
     }
 
+    @Test fun failedRangeRetryWithDeletionRequiresFreshConfirmation() = runTest(dispatcher) {
+        val repository = FakeRepository(counts = DateRangeDeletionCounts(3, 2, 5)).apply {
+            applyFailure = IllegalStateException()
+        }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.updateDateDraft(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-01"))
+        model.requestDateRangeChange()
+        advanceUntilIdle()
+        model.confirmDateRangeChange()
+        advanceUntilIdle()
+        assertEquals(1, repository.applyCalls)
+
+        repository.applyFailure = null
+        repository.counts = DateRangeDeletionCounts(4, 3, 5)
+        model.confirmDateRangeChange()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.applyCalls)
+        assertEquals(4, model.state.value.dateRange.confirmation?.deletedItineraryItems)
+        assertEquals(false, model.state.value.dateRange.submitting)
+        assertEquals(null, model.state.value.dateRange.error)
+    }
+
     @Test fun failedDayDeleteKeepsRedConfirmationForRetry() = runTest(dispatcher) {
         val repository = FakeRepository().apply { deleteFailure = IllegalStateException() }
         val model = model(repository)
@@ -154,13 +182,13 @@ class TripSettingsViewModelTest {
         repository,
         object : DeleteImpactProvider {
             override suspend fun trip(tripId: String) = TripDeleteImpact(0, 0, 0, 0, 0)
-            override suspend fun day(dayId: String) = DayDeleteImpact(1, 1)
+            override suspend fun day(dayId: String) = DayDeleteImpact(1, 1, 0)
         },
         TripDateRangeService(repository),
     )
 
     private class FakeRepository(
-        private val counts: DateRangeDeletionCounts = DateRangeDeletionCounts(0, 0, 0),
+        var counts: DateRangeDeletionCounts = DateRangeDeletionCounts(0, 0, 0),
         dayCount: Int = 3,
     ) : TripRepository {
         private val trip = MutableStateFlow<TripWithDays?>(TripWithDays(

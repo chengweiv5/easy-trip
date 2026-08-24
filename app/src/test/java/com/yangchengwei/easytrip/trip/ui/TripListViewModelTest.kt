@@ -185,7 +185,7 @@ class TripListViewModelTest {
         private val impact: TripDeleteImpact = TripDeleteImpact(0, 0, 0, 0, 0),
     ) : DeleteImpactProvider {
         override suspend fun trip(tripId: String) = impact
-        override suspend fun day(dayId: String) = DayDeleteImpact(0, 0)
+        override suspend fun day(dayId: String) = DayDeleteImpact(0, 0, 0)
     }
 
     private class TestTripRepository : TripRepository {

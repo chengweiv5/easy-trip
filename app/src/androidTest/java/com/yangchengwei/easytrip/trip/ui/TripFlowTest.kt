@@ -132,7 +132,7 @@ class TripFlowTest {
 
     private class FakeImpacts : DeleteImpactProvider {
         override suspend fun trip(tripId: String) = TripDeleteImpact(3, 2, 1, 4, 5)
-        override suspend fun day(dayId: String) = DayDeleteImpact(2, 1)
+        override suspend fun day(dayId: String) = DayDeleteImpact(2, 1, 2)
     }
 
     private data class MoveCall(val dayId: String, val targetIndex: Int)

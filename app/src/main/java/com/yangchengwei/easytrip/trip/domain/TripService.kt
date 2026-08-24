@@ -20,6 +20,7 @@ class TripService(private val repository: TripRepository) {
     suspend fun appendTripDay(tripId: String) = repository.insertDay(tripId, null, InsertSide.AFTER)
     suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = repository.moveDay(tripId, dayId, targetIndex)
     suspend fun deleteDay(dayId: String) = repository.deleteDay(dayId)
+    suspend fun deleteDay(command: DayDeletion) = repository.deleteDay(command)
     suspend fun deleteTrip(tripId: String) = repository.deleteTrip(tripId)
 
     fun displayDate(startDate: LocalDate?, position: Int): LocalDate? = startDate?.plusDays(position.toLong())

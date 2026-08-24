@@ -53,6 +53,21 @@ class TripDateRangeRoomTest {
         assertEquals(1, database.deleteImpactDao().places(tripId))
     }
 
+    @Test fun dayDeleteRejectsChangedImpactAndLeavesDayUntouched() = runTest {
+        var id = 0
+        val repository = RoomTripRepository(database.tripDao(), idFactory = { "id-${id++}" }, database = database)
+        val tripId = repository.createTrip(CreateTrip("Trip", 2))
+        val dayId = repository.observeTrip(tripId).first()!!.days.first().id
+
+        try {
+            repository.deleteDay(com.yangchengwei.easytrip.trip.domain.DayDeletion(dayId, 1, 0))
+            fail("Expected changed impact")
+        } catch (_: IllegalArgumentException) {
+        }
+
+        assertEquals(2, repository.observeTrip(tripId).first()!!.days.size)
+    }
+
     @Test fun failedGrowthRollsBackDateAndAllAppendedDays() = runTest {
         var id = 0
         val repository = RoomTripRepository(

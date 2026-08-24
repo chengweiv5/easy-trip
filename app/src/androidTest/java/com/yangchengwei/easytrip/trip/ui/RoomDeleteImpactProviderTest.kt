@@ -67,13 +67,13 @@ class RoomDeleteImpactProviderTest {
         database.routeDao().insertLeg(routeLeg("leg-1", "day-1", "item-1", "item-2", now))
 
         assertEquals(TripDeleteImpact(2, 2, 2, 3, 1), provider.trip("trip-1"))
-        assertEquals(DayDeleteImpact(2, 1), provider.day("day-1"))
+        assertEquals(DayDeleteImpact(2, 1, 2), provider.day("day-1"))
         assertEquals(TripDeleteImpact(1, 1, 1, 1, 0), provider.trip("trip-2"))
 
         database.itineraryDao().deleteItem("item-2")
 
         assertEquals(TripDeleteImpact(2, 2, 2, 2, 0), provider.trip("trip-1"))
-        assertEquals(DayDeleteImpact(1, 0), provider.day("day-1"))
+        assertEquals(DayDeleteImpact(1, 0, 2), provider.day("day-1"))
         assertEquals(TripDeleteImpact(1, 1, 1, 1, 0), provider.trip("trip-2"))
     }
 

@@ -130,7 +130,12 @@ fun TripSettingsContent(
         AlertDialog(
             onDismissRequest = onCancelDeleteDay,
             title = { Text("删除 ${pending.day.label}？") },
-            text = { Text("将删除 ${pending.impact.itineraryItems} 个行程项和 ${pending.impact.routeLegs} 个路线段。${state.dayDeleteError.orEmpty()}") },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text("将删除 ${pending.impact.itineraryItems} 个行程项和 ${pending.impact.routeLegs} 个路线段；${pending.impact.retainedSavedPlaces} 个收藏地点会保留。此操作不可撤销，后续旅行日日期编号和路线将变化。")
+                    state.dayDeleteError?.let { Text(it, color = Color.Red) }
+                }
+            },
             confirmButton = { TextButton(onConfirmDeleteDay, enabled = !state.dayDeleteInProgress) { Text("确认删除", color = Color.Red) } },
             dismissButton = { TextButton(onCancelDeleteDay, enabled = !state.dayDeleteInProgress) { Text("取消") } },
         )
