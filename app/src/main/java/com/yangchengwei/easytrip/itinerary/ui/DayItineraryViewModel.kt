@@ -164,6 +164,7 @@ class DayItineraryViewModel(
 
     fun dispatch(action: DayItineraryAction) {
         when (action) {
+            DayItineraryAction.AddPlaces -> Unit
             is DayItineraryAction.AddPlace -> addPlace(action.placeId)
             is DayItineraryAction.PreviewMove -> previewMove(action.itemId, action.target)
             is DayItineraryAction.CommitMove -> commitMove(action.itemId, action.target)

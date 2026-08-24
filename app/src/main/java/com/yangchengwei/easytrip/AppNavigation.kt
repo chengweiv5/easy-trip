@@ -169,6 +169,14 @@ fun AppNavigation(
                     if (searchReturnPayload != null) workspaceSearchReturnState.show(consumeWorkspaceSearchReturn(entry.savedStateHandle))
                 }
                 val token = application?.amapConsentToken?.takeIf { it.isActive() }
+                val addToItineraryModel: com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel = viewModel(
+                    viewModelStoreOwner = entry,
+                    factory = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel.Factory(
+                        id,
+                        com.yangchengwei.easytrip.itinerary.domain.AddPlacesToDayUseCase(workspaceDependencies.itineraryRepository),
+                        com.yangchengwei.easytrip.itinerary.domain.UndoAddedItemsUseCase(workspaceDependencies.itineraryRepository),
+                    ),
+                )
                 val itineraryModel: DayItineraryViewModel = viewModel(
                     factory = DayItineraryViewModel.Factory(
                         id,
@@ -203,6 +211,7 @@ fun AppNavigation(
                     },
                     placeViewModel = placeModel,
                     itineraryViewModel = itineraryModel,
+                    addToItineraryViewModel = addToItineraryModel,
                     mapHostFactory = mapHostFactory ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
                     searchReturn = workspaceSearchReturnState.value,
                     onConsumeSearchReturn = workspaceSearchReturnState::clear,

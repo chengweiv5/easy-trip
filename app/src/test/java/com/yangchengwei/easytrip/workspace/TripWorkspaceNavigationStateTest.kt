@@ -6,7 +6,9 @@ import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
+import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
@@ -89,6 +91,15 @@ class TripWorkspaceNavigationStateTest {
         advanceUntilIdle()
 
         assertEquals(WorkspaceOverlay.EditItineraryItem(22L), model.state.value.overlay)
+    }
+
+    @Test fun addFlowBackPolicyLocksSubmitAndUndoWithoutClosingOtherIdleOverlays() {
+        assertEquals(WorkspaceBackDecision.Ignore, workspaceBackDecision(WorkspaceOverlay.SelectAddTargetDay, AddToItineraryUiState(isSubmitting = true)))
+        assertEquals(WorkspaceBackDecision.Ignore, workspaceBackDecision(WorkspaceOverlay.AddToItineraryResult, AddToItineraryUiState(isUndoing = true)))
+        assertEquals(WorkspaceBackDecision.CloseOverlay, workspaceBackDecision(WorkspaceOverlay.LayerMenu, AddToItineraryUiState(isSubmitting = true)))
+        assertEquals(WorkspaceBackDecision.CloseOverlay, workspaceBackDecision(WorkspaceOverlay.Feedback(FeedbackUiModel("message")), AddToItineraryUiState(isUndoing = true)))
+        assertEquals(WorkspaceBackDecision.CloseOverlay, workspaceBackDecision(WorkspaceOverlay.LayerMenu, AddToItineraryUiState()))
+        assertEquals(WorkspaceBackDecision.LeaveWorkspace, workspaceBackDecision(WorkspaceOverlay.None, AddToItineraryUiState()))
     }
 
     @Test fun backClosesOverlayBeforeLeavingWorkspace() = runTest(dispatcher) {

@@ -25,6 +25,7 @@ fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Mod
 }
 
 sealed interface DayItineraryAction {
+    data object AddPlaces : DayItineraryAction
     data class AddPlace(val placeId: String) : DayItineraryAction
     data class PreviewMove(val itemId: String, val target: Int) : DayItineraryAction
     data class CommitMove(val itemId: String, val target: Int) : DayItineraryAction
@@ -48,6 +49,12 @@ fun DayItineraryContent(
     showDialogs: Boolean = true,
 ) {
     Column(modifier.padding(12.dp)) {
+        if (state.selectedDayId != null) {
+            TextButton(
+                { onAction(DayItineraryAction.AddPlaces) },
+                Modifier.testTag("add-places-to-selected-day"),
+            ) { Text("从地点池添加") }
+        }
         if (state.savedPlaces.isNotEmpty()) {
             Row(Modifier.horizontalScroll(rememberScrollState())) {
                 state.savedPlaces.forEach { place ->

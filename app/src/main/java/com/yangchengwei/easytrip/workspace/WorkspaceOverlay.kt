@@ -5,8 +5,10 @@ import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 sealed interface WorkspaceOverlay {
     data object None : WorkspaceOverlay
     data class PlaceDetail(val placeId: Long) : WorkspaceOverlay
-    data class SelectPlacesForDay(val dayId: Long) : WorkspaceOverlay
-    data class SelectTargetDay(val placeIds: Set<Long>) : WorkspaceOverlay
+    data object SelectAddPlaces : WorkspaceOverlay
+    data object SelectAddTargetDay : WorkspaceOverlay
+    data object AddToItineraryResult : WorkspaceOverlay
+    data class SelectMoveTargetDay(val itemId: String) : WorkspaceOverlay
     data object AddTripDay : WorkspaceOverlay
     data class EditItineraryItem(val itemId: Long) : WorkspaceOverlay
     data class EditRouteLeg(val legId: Long) : WorkspaceOverlay

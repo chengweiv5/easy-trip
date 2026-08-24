@@ -185,6 +185,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             is PlacePoolAction.ToggleCollection -> toggleCollection(action.candidate)
             is PlacePoolAction.UpdateDraft -> updateDetailDraft(action.note, action.tags)
             is PlacePoolAction.UpdateDetails -> updateDetails(action.note, action.tags)
+            PlacePoolAction.StartAddToItinerary -> Unit
             PlacePoolAction.ConfirmCollectionRemoval -> confirmCollectionRemoval()
             PlacePoolAction.ConfirmDelete -> confirmDelete()
             PlacePoolAction.DismissDialogs -> dismissDialogs()

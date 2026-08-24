@@ -41,6 +41,7 @@ fun PlacePoolSheet(
         onConfirmCollectionRemoval = viewModel::confirmCollectionRemoval,
         onDismissDelete = viewModel::dismissDelete,
         onConfirmDelete = viewModel::confirmDelete,
+        onStartAdd = {},
     )
 }
 
@@ -52,6 +53,7 @@ sealed interface PlacePoolAction {
     data class ToggleCollection(val candidate: com.yangchengwei.easytrip.place.amap.PlaceCandidate) : PlacePoolAction
     data class UpdateDraft(val note: String, val tags: Set<String>) : PlacePoolAction
     data class UpdateDetails(val note: String, val tags: Set<String>) : PlacePoolAction
+    data object StartAddToItinerary : PlacePoolAction
     data object ConfirmCollectionRemoval : PlacePoolAction
     data object ConfirmDelete : PlacePoolAction
     data object DismissDialogs : PlacePoolAction
@@ -82,6 +84,7 @@ fun PlacePoolContent(
         onConfirmCollectionRemoval = { onAction(PlacePoolAction.ConfirmCollectionRemoval) },
         onDismissDelete = { onAction(PlacePoolAction.DismissDialogs) },
         onConfirmDelete = { onAction(PlacePoolAction.ConfirmDelete) },
+        onStartAdd = { onAction(PlacePoolAction.StartAddToItinerary) },
         showDialogs = showDialogs,
     )
 }
@@ -103,6 +106,7 @@ fun PlacePoolContent(
     onConfirmCollectionRemoval: () -> Unit,
     onDismissDelete: () -> Unit,
     onConfirmDelete: () -> Unit,
+    onStartAdd: () -> Unit,
     showDialogs: Boolean = true,
 ) {
     Column(modifier.padding(16.dp)) {
@@ -117,6 +121,12 @@ fun PlacePoolContent(
                 com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(onSearch) { Text("搜索地点") }
             }
         } else {
+            if (!showSearch) {
+                com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(
+                    onClick = onStartAdd,
+                    modifier = Modifier.fillMaxWidth().testTag("start-add-to-itinerary"),
+                ) { Text("添加到行程") }
+            }
             androidx.compose.foundation.lazy.LazyColumn(
                 Modifier.fillMaxWidth().weight(1f).testTag("workspace-place-list"),
                 contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),

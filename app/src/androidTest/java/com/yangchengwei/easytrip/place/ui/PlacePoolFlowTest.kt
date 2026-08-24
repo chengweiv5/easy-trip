@@ -1,25 +1,48 @@
 package com.yangchengwei.easytrip.place.ui
 
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
+import androidx.compose.ui.test.swipeUp
+import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
+import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
+import com.yangchengwei.easytrip.itinerary.domain.AddPlacesToDayUseCase
+import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
+import com.yangchengwei.easytrip.itinerary.domain.UndoAddedItemsUseCase
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.SelectPlacesContent
+import com.yangchengwei.easytrip.itinerary.ui.SelectTargetDayContent
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
+import com.yangchengwei.easytrip.trip.domain.TripDay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -27,6 +50,197 @@ import org.junit.Test
 
 class PlacePoolFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun selectPlacesKeepsScheduledSeparateAndDisablesEmptyContinue() {
+        val place = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "scheduled", "trip", "poi", "西湖天地", "上城区南山路", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        var toggled: String? = null
+        compose.setContent {
+            EasyTripTheme {
+                SelectPlacesContent(
+                    rows = listOf(SavedPlaceRowUi(place, 1, scheduled = true)),
+                    state = AddToItineraryUiState(step = AddToItineraryStep.SELECT_PLACES),
+                    onTogglePlace = { toggled = it },
+                    onContinue = {},
+                    onClose = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("已安排 1 次，可重复添加").assertIsDisplayed()
+        compose.onNodeWithTag("select-place-scheduled").performClick()
+        assertEquals("scheduled", toggled)
+        compose.onNodeWithTag("select-places-continue").assertIsNotEnabled()
+    }
+
+    @Test fun contentCallbacksReportClicksWithoutSimulatingViewModelState() {
+        val first = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "first", "trip", "poi-1", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        val second = first.copy(id = "second", amapPoiId = "poi-2", name = "灵隐寺")
+        val toggled = mutableListOf<String>()
+        compose.setContent {
+            EasyTripTheme {
+                SelectPlacesContent(
+                    rows = listOf(SavedPlaceRowUi(first, 0, false), SavedPlaceRowUi(second, 0, false)),
+                    state = AddToItineraryUiState(step = AddToItineraryStep.SELECT_PLACES),
+                    onTogglePlace = toggled::add,
+                    onContinue = {},
+                    onClose = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("select-places-continue").assertIsNotEnabled()
+        compose.onNodeWithTag("select-place-second").performClick()
+        compose.onNodeWithTag("select-place-first").performClick()
+        assertEquals(listOf("second", "first"), toggled)
+    }
+
+    @Test fun realViewModelRecomposesOrderedSelectionAndContinueState() {
+        val first = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "first", "trip", "poi-1", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        val second = first.copy(id = "second", amapPoiId = "poi-2", name = "灵隐寺")
+        val repository = object : ItineraryRepository {
+            override fun observeDay(dayId: String): Flow<DayItinerary> = flowOf(DayItinerary(dayId, "trip", emptyList()))
+            override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int) = "created-$savedPlaceId"
+            override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
+            override suspend fun deleteItem(itemId: String) = Unit
+            override suspend fun updateTiming(itemId: String, arrivalTime: java.time.LocalTime?, stayMinutes: Int?) = Unit
+            override suspend fun removePlaceOccurrences(placeId: String) = Unit
+        }
+        val viewModel = AddToItineraryViewModel(
+            "trip",
+            AddPlacesToDayUseCase(repository),
+            UndoAddedItemsUseCase(repository),
+            SavedStateHandle(),
+        )
+        viewModel.reconcile(listOf("day-1"), setOf("first", "second"))
+        viewModel.startFromPool()
+        compose.setContent {
+            val state = viewModel.state.collectAsStateWithLifecycle().value
+            EasyTripTheme {
+                SelectPlacesContent(
+                    rows = listOf(SavedPlaceRowUi(first, 0, false), SavedPlaceRowUi(second, 0, false)),
+                    state = state,
+                    onTogglePlace = viewModel::togglePlace,
+                    onContinue = viewModel::continueToTargetDay,
+                    onClose = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("select-places-continue").assertIsNotEnabled()
+        compose.onNodeWithTag("select-place-second").performClick()
+        compose.onNodeWithTag("select-place-first").performClick()
+        compose.onNodeWithTag("select-places-continue").assertIsEnabled().performClick()
+        compose.runOnIdle {
+            assertEquals(listOf("second", "first"), viewModel.state.value.selectedPlaceIds)
+            assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, viewModel.state.value.step)
+        }
+    }
+
+    @Test fun selectedScheduledPlaceRemainsSelectedAndContinueIsEnabled() {
+        val place = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "scheduled", "trip", "poi", "西湖天地", "上城区南山路", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                SelectPlacesContent(
+                    rows = listOf(SavedPlaceRowUi(place, 1, scheduled = true)),
+                    state = AddToItineraryUiState(
+                        selectedPlaceIds = listOf("scheduled"),
+                        step = AddToItineraryStep.SELECT_PLACES,
+                    ),
+                    onTogglePlace = {},
+                    onContinue = {},
+                    onClose = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("select-place-scheduled").assertIsSelected()
+        compose.onNodeWithTag("select-places-continue").assertIsEnabled()
+        compose.onNodeWithText("已选 1 个").assertIsDisplayed()
+    }
+
+    @Test fun longDayListScrollsAtNarrowLargeTextWhileSubmitStaysReachable() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(3f, 2f)) {
+                EasyTripTheme {
+                    SelectTargetDayContent(
+                        days = (0..19).map { TripDay("day-$it", it) },
+                        state = AddToItineraryUiState(
+                            selectedPlaceIds = listOf("place"),
+                            targetDayId = "day-1",
+                            validityInitialized = true,
+                            step = AddToItineraryStep.SELECT_TARGET_DAY,
+                        ),
+                        onSelectDay = {},
+                        onSubmit = {},
+                        onClose = {},
+                        modifier = androidx.compose.ui.Modifier.height(280.dp),
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("select-target-day-submit").assertIsDisplayed()
+        compose.onNodeWithTag("target-day-day-19").assertDoesNotExist()
+        compose.onNodeWithTag("select-target-day-list").performScrollToNode(hasTestTag("target-day-day-19"))
+        compose.onNodeWithTag("target-day-day-19").assertIsDisplayed()
+        compose.onNodeWithTag("select-target-day-submit").assertIsDisplayed()
+    }
+
+    @Test fun targetDaySubmissionIsLockedWhileSubmitting() {
+        var submits = 0
+        compose.setContent {
+            EasyTripTheme {
+                SelectTargetDayContent(
+                    days = listOf(TripDay("day-1", 0)),
+                    state = AddToItineraryUiState(
+                        selectedPlaceIds = listOf("place"),
+                        targetDayId = "day-1",
+                        step = AddToItineraryStep.SELECT_TARGET_DAY,
+                        validityInitialized = true,
+                        isSubmitting = true,
+                    ),
+                    onSelectDay = {},
+                    onSubmit = { submits++ },
+                    onClose = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("正在创建行程项，请勿重复操作").assertIsDisplayed()
+        compose.onNodeWithTag("select-target-day-submit").assertIsNotEnabled().performClick()
+        assertEquals(0, submits)
+    }
+
+    @Test fun missingTargetDayKeepsSelectionAndRequiresReselection() {
+        compose.setContent {
+            EasyTripTheme {
+                SelectTargetDayContent(
+                    days = listOf(TripDay("day-2", 1)),
+                    state = AddToItineraryUiState(
+                        selectedPlaceIds = listOf("place-a", "place-b"),
+                        validityInitialized = true,
+                        step = AddToItineraryStep.SELECT_TARGET_DAY,
+                        result = AddPlacesOutcome.TargetDayMissing(listOf("place-a", "place-b")),
+                    ),
+                    onSelectDay = {},
+                    onSubmit = {},
+                    onClose = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("所选旅行日已不存在，请重新选择").assertIsDisplayed()
+        compose.onNodeWithText("已选 2 个地点").assertIsDisplayed()
+        compose.onNodeWithTag("select-target-day-submit").assertIsNotEnabled()
+    }
 
     @Test fun placeDetailAllowsCollectionNoteAndTagsOnly() {
         val place = com.yangchengwei.easytrip.place.domain.SavedPlace(

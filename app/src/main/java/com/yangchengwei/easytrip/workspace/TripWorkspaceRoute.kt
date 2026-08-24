@@ -6,6 +6,9 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
@@ -13,6 +16,25 @@ import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
 import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
+
+enum class WorkspaceBackDecision { Ignore, CloseOverlay, LeaveWorkspace }
+
+fun WorkspaceOverlay.isAddToItineraryOverlay(): Boolean =
+    this == WorkspaceOverlay.SelectAddPlaces ||
+        this == WorkspaceOverlay.SelectAddTargetDay ||
+        this == WorkspaceOverlay.AddToItineraryResult
+
+fun canDismissAddOverlay(overlay: WorkspaceOverlay, addToItinerary: AddToItineraryUiState): Boolean =
+    !overlay.isAddToItineraryOverlay() || (!addToItinerary.isSubmitting && !addToItinerary.isUndoing)
+
+fun workspaceBackDecision(
+    overlay: WorkspaceOverlay,
+    addToItinerary: AddToItineraryUiState,
+): WorkspaceBackDecision = when {
+    overlay == WorkspaceOverlay.None -> WorkspaceBackDecision.LeaveWorkspace
+    !canDismissAddOverlay(overlay, addToItinerary) -> WorkspaceBackDecision.Ignore
+    else -> WorkspaceBackDecision.CloseOverlay
+}
 
 @Composable
 fun TripWorkspaceRoute(
@@ -24,6 +46,7 @@ fun TripWorkspaceRoute(
     onOpenSearch: () -> Unit = {},
     placeViewModel: PlacePoolViewModel? = null,
     itineraryViewModel: DayItineraryViewModel? = null,
+    addToItineraryViewModel: AddToItineraryViewModel? = null,
     placeState: PlacePoolUiState = PlacePoolUiState(),
     onPlaceAction: (PlacePoolAction) -> Unit = {},
     itineraryState: DayItineraryUiState = DayItineraryUiState(),
@@ -39,6 +62,7 @@ fun TripWorkspaceRoute(
     val page = viewModel.pageState.collectAsStateWithLifecycle().value
     val places = placeViewModel?.state?.collectAsStateWithLifecycle()?.value ?: placeState
     val itinerary = itineraryViewModel?.state?.collectAsStateWithLifecycle()?.value ?: itineraryState
+    val addToItinerary = addToItineraryViewModel?.state?.collectAsStateWithLifecycle()?.value ?: AddToItineraryUiState()
     val ready = (page as? TripWorkspacePageState.Ready)?.content
     val dispatchPlace: (PlacePoolAction) -> Unit = placeViewModel?.let { it::dispatch } ?: onPlaceAction
     val dispatchItinerary: (DayItineraryAction) -> Unit = itineraryViewModel?.let { it::dispatch } ?: onItineraryAction
@@ -48,13 +72,38 @@ fun TripWorkspaceRoute(
         itineraryViewModel?.dismissDialogs()
     }
     fun closeOverlay() {
+        val overlay = ready?.overlay ?: WorkspaceOverlay.None
+        if (!canDismissAddOverlay(overlay, addToItinerary)) return
         dismissPendingDialogs()
+        if (overlay.isAddToItineraryOverlay()) addToItineraryViewModel?.cancel()
         viewModel.closeOverlay()
     }
     fun leaveOrCloseOverlay() {
-        val overlayClosed = viewModel.handleBack()
-        dismissPendingDialogs()
-        if (!overlayClosed) onBack()
+        when (workspaceBackDecision(ready?.overlay ?: WorkspaceOverlay.None, addToItinerary)) {
+            WorkspaceBackDecision.Ignore -> Unit
+            WorkspaceBackDecision.CloseOverlay -> closeOverlay()
+            WorkspaceBackDecision.LeaveWorkspace -> {
+                dismissPendingDialogs()
+                onBack()
+            }
+        }
+    }
+
+    LaunchedEffect(ready?.days, places.rows) {
+        addToItineraryViewModel?.reconcile(
+            ready?.days.orEmpty().map { it.id },
+            places.rows.mapTo(mutableSetOf()) { it.place.id },
+        )
+    }
+    LaunchedEffect(addToItinerary.step, addToItinerary.result) {
+        when {
+            addToItinerary.result is com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.PartialSuccess ||
+                addToItinerary.result is com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.TargetDayMissing ->
+                viewModel.openOverlay(WorkspaceOverlay.AddToItineraryResult)
+            addToItinerary.step == AddToItineraryStep.SELECT_PLACES -> viewModel.openOverlay(WorkspaceOverlay.SelectAddPlaces)
+            addToItinerary.step == AddToItineraryStep.SELECT_TARGET_DAY -> viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
+            addToItinerary.step == AddToItineraryStep.COMPLETED -> viewModel.openOverlay(WorkspaceOverlay.AddToItineraryResult)
+        }
     }
 
     LaunchedEffect(places.pendingCollectionRemoval) {
@@ -129,13 +178,27 @@ fun TripWorkspaceRoute(
                     viewModel.closeOverlay()
                     dispatchPlace(action)
                 }
+                PlacePoolAction.StartAddToItinerary -> {
+                    dismissPendingDialogs()
+                    addToItineraryViewModel?.startFromPool()
+                }
                 PlacePoolAction.DismissDialogs -> closeOverlay()
                 else -> dispatchPlace(action)
             }
         },
         itineraryState = itinerary,
+        addToItineraryState = addToItinerary,
+        onToggleAddPlace = { addToItineraryViewModel?.togglePlace(it) },
+        onContinueAddPlaces = { addToItineraryViewModel?.continueToTargetDay() },
+        onSelectAddTargetDay = { addToItineraryViewModel?.selectTargetDay(it) },
+        onSubmitAddPlaces = { addToItineraryViewModel?.submit() },
+        onUndoAddPlaces = { addToItineraryViewModel?.undo() },
+        onRetryPartialAdd = { addToItineraryViewModel?.retryPartial() },
         onItineraryAction = { action ->
             when (action) {
+                DayItineraryAction.AddPlaces -> itinerary.selectedDayId?.let {
+                    addToItineraryViewModel?.startForDay(it)
+                }
                 is DayItineraryAction.RequestTiming -> {
                     dismissPendingDialogs()
                     dispatchItinerary(action)
@@ -144,7 +207,7 @@ fun TripWorkspaceRoute(
                 is DayItineraryAction.RequestCrossDay -> {
                     dismissPendingDialogs()
                     dispatchItinerary(action)
-                    viewModel.openOverlay(WorkspaceOverlay.SelectTargetDay(setOf(stableWorkspaceOverlayId(action.itemId))))
+                    viewModel.openOverlay(WorkspaceOverlay.SelectMoveTargetDay(action.itemId))
                 }
                 is DayItineraryAction.RequestDelete -> {
                     dismissPendingDialogs()

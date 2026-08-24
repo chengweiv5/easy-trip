@@ -2,6 +2,9 @@ package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.ViewModelProvider
+import androidx.lifecycle.createSavedStateHandle
+import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
 import com.yangchengwei.easytrip.itinerary.domain.AddPlacesRequest
@@ -14,6 +17,31 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+
+internal fun mergeUndoIds(oldIds: List<String>, newIds: List<String>): List<String> =
+    (oldIds + newIds).distinct()
+
+internal fun mergeUndoBatch(
+    batches: List<UndoCreatedItemsBatch>,
+    dayId: String,
+    newIds: List<String>,
+): List<UndoCreatedItemsBatch> {
+    if (newIds.isEmpty()) return batches
+    val existing = batches.firstOrNull { it.dayId == dayId }
+    val merged = UndoCreatedItemsBatch(dayId, mergeUndoIds(existing?.itemIds.orEmpty(), newIds))
+    return if (existing == null) batches + merged else batches.map { if (it.dayId == dayId) merged else it }
+}
+
+internal fun retainUndoBatches(
+    batches: List<UndoCreatedItemsBatch>,
+    remainingIds: List<String>,
+): List<UndoCreatedItemsBatch> {
+    val remaining = remainingIds.toSet()
+    return batches.mapNotNull { batch ->
+        batch.copy(itemIds = batch.itemIds.filter { it in remaining })
+            .takeIf { it.itemIds.isNotEmpty() }
+    }
+}
 
 class AddToItineraryViewModel(
     private val tripId: String,
@@ -80,13 +108,19 @@ class AddToItineraryViewModel(
         applyCurrentValidity()
     }
 
+    fun retryPartial() {
+        val current = mutableState.value
+        if (draftLocked() || current.result !is AddPlacesOutcome.PartialSuccess) return
+        updateDraft { it.copy(result = null, step = AddToItineraryStep.SELECT_TARGET_DAY) }
+    }
+
     fun submit() {
         val current = mutableState.value
         val dayId = current.targetDayId ?: return
         if (!current.canSubmit || dayId !in validDayIds || current.selectedPlaceIds.any { it !in validPlaceIds }) return
         val request = AddPlacesRequest(tripId, dayId, current.selectedPlaceIds)
         val generation = ++submitGeneration
-        mutableState.value = current.copy(isSubmitting = true, result = null, undoCreatedItemIds = emptyList(), errorMessage = null)
+        mutableState.value = current.copy(isSubmitting = true, result = null, errorMessage = null)
         submitJob = viewModelScope.launch {
             try {
                 val outcome = addPlaces(request)
@@ -111,9 +145,13 @@ class AddToItineraryViewModel(
         undoJob = viewModelScope.launch {
             val outcome = undoAddedItems(UndoAddedItemsRequest(itemIds))
             if (generation == undoGeneration) {
-                mutableState.value = mutableState.value.copy(
+                val currentState = mutableState.value
+                mutableState.value = currentState.copy(
                     isUndoing = false,
-                    undoCreatedItemIds = outcome.remainingItemIds,
+                    undoBatches = retainUndoBatches(
+                        currentState.undoBatches,
+                        outcome.remainingItemIds,
+                    ),
                     errorMessage = outcome.failure?.let { "撤销失败，请重试" },
                 )
                 applyCurrentValidity()
@@ -145,14 +183,14 @@ class AddToItineraryViewModel(
                 step = AddToItineraryStep.COMPLETED,
                 isSubmitting = false,
                 result = outcome,
-                undoCreatedItemIds = outcome.createdItemIds,
+                undoBatches = mergeUndoBatch(current.undoBatches, request.dayId, outcome.createdItemIds),
             )
             is AddPlacesOutcome.PartialSuccess -> current.copy(
                 selectedPlaceIds = orderedRetained(current.selectedPlaceIds, outcome.failedPlaceIds),
                 step = AddToItineraryStep.SELECT_TARGET_DAY,
                 isSubmitting = false,
                 result = outcome,
-                undoCreatedItemIds = outcome.createdItemIds,
+                undoBatches = mergeUndoBatch(current.undoBatches, request.dayId, outcome.createdItemIds),
             )
             is AddPlacesOutcome.TargetDayMissing -> current.copy(
                 selectedPlaceIds = orderedRetained(current.selectedPlaceIds, outcome.retainedPlaceIds),
@@ -160,7 +198,7 @@ class AddToItineraryViewModel(
                 step = AddToItineraryStep.SELECT_TARGET_DAY,
                 isSubmitting = false,
                 result = outcome,
-                undoCreatedItemIds = emptyList(),
+                undoBatches = current.undoBatches.filterNot { it.dayId == request.dayId },
             )
         }
         mutableState.value = next
@@ -237,6 +275,16 @@ class AddToItineraryViewModel(
         raw?.startsWith("for-day:") == true && raw.removePrefix("for-day:").isNotBlank() ->
             AddToItineraryEditingTarget.ForDay(raw.removePrefix("for-day:"))
         else -> null
+    }
+
+    class Factory(
+        private val tripId: String,
+        private val addPlaces: AddPlacesToDayUseCase,
+        private val undoAddedItems: UndoAddedItemsUseCase,
+    ) : ViewModelProvider.Factory {
+        @Suppress("UNCHECKED_CAST")
+        override fun <T : ViewModel> create(modelClass: Class<T>, extras: CreationExtras): T =
+            AddToItineraryViewModel(tripId, addPlaces, undoAddedItems, extras.createSavedStateHandle()) as T
     }
 
     private companion object {

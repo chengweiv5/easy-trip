@@ -34,9 +34,12 @@ class AddToItineraryStateTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
-    @Test fun `selection list is ordered truth and set is derived`() = runTest(dispatcher) {
+    @Test fun `selection list is ordered truth and continue advances real view model`() = runTest(dispatcher) {
         val viewModel = model(FakeItineraries())
         ready(viewModel)
+        viewModel.startFromPool()
+        assertFalse(viewModel.state.value.canContinue)
+
         viewModel.togglePlace("hotel")
         viewModel.togglePlace("museum")
         viewModel.togglePlace("hotel")
@@ -44,6 +47,10 @@ class AddToItineraryStateTest {
 
         assertEquals(listOf("museum", "hotel"), viewModel.state.value.selectedPlaceIds)
         assertEquals(setOf("museum", "hotel"), viewModel.state.value.selectedPlaceIdSet)
+        assertTrue(viewModel.state.value.canContinue)
+
+        viewModel.continueToTargetDay()
+        assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, viewModel.state.value.step)
     }
 
     @Test fun `saved draft restores order target and editing target but not transient state`() = runTest(dispatcher) {
@@ -130,7 +137,157 @@ class AddToItineraryStateTest {
         assertEquals(AddPlacesOutcome.PartialSuccess("day-1", listOf("created-hotel"), listOf("museum")), viewModel.state.value.result)
     }
 
-    @Test fun `target missing keeps selection clears target and does not expose stale undo ids`() = runTest(dispatcher) {
+    @Test fun `closing partial result clears failed draft result and undo token`() = runTest(dispatcher) {
+        val repository = FakeItineraries(failedPlaceIds = setOf("museum"))
+        val viewModel = model(repository)
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.togglePlace("museum")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        viewModel.cancel()
+
+        assertEquals(AddToItineraryStep.IDLE, viewModel.state.value.step)
+        assertTrue(viewModel.state.value.selectedPlaceIds.isEmpty())
+        assertNull(viewModel.state.value.result)
+        assertTrue(viewModel.state.value.undoCreatedItemIds.isEmpty())
+    }
+
+    @Test fun `retry after partial success retains earlier created ids for undo`() = runTest(dispatcher) {
+        val repository = FakeItineraries(failedPlaceIds = setOf("museum"))
+        val viewModel = model(repository)
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.togglePlace("museum")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        repository.failedPlaceIds = emptySet()
+        viewModel.retryPartial()
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertEquals(listOf("created-hotel", "created-museum"), viewModel.state.value.undoCreatedItemIds)
+    }
+
+    @Test fun `success and partial outcomes merge undo ids without duplicates`() = runTest(dispatcher) {
+        val repository = FakeItineraries(createdItemId = "same-item")
+        val viewModel = model(repository)
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertEquals(listOf("same-item"), viewModel.state.value.undoCreatedItemIds)
+        assertEquals(listOf("same-item"), mergeUndoIds(listOf("same-item"), listOf("same-item")))
+    }
+
+    @Test fun `target missing removes only its day batch and preserves another day undo`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.success("day-1-hotel"),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("museum")),
+                    Result.success("stale-day-2-museum"),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                ),
+            ),
+        )
+        val viewModel = model(repository)
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.togglePlace("museum")
+        viewModel.submit()
+        advanceUntilIdle()
+        assertEquals(
+            listOf(UndoCreatedItemsBatch("day-1", listOf("day-1-hotel"))),
+            viewModel.state.value.undoBatches,
+        )
+
+        viewModel.togglePlace("park")
+        viewModel.selectTargetDay("day-2")
+        viewModel.retryPartial()
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(UndoCreatedItemsBatch("day-1", listOf("day-1-hotel"))),
+            viewModel.state.value.undoBatches,
+        )
+        assertEquals(listOf("museum", "park"), viewModel.state.value.selectedPlaceIds)
+        assertNull(viewModel.state.value.targetDayId)
+
+        viewModel.undo()
+        advanceUntilIdle()
+
+        assertEquals(listOf("day-1-hotel"), repository.deletedItemIds)
+    }
+
+    @Test fun `undo deletes batches from separate successful days`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(listOf(Result.success("day-1-hotel"), Result.success("day-2-museum"))),
+        )
+        val viewModel = model(repository)
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.submit()
+        advanceUntilIdle()
+
+        viewModel.startFromPool()
+        viewModel.togglePlace("museum")
+        viewModel.selectTargetDay("day-2")
+        viewModel.submit()
+        advanceUntilIdle()
+        assertEquals(
+            listOf(
+                UndoCreatedItemsBatch("day-1", listOf("day-1-hotel")),
+                UndoCreatedItemsBatch("day-2", listOf("day-2-museum")),
+            ),
+            viewModel.state.value.undoBatches,
+        )
+        viewModel.undo()
+        advanceUntilIdle()
+
+        assertEquals(listOf("day-1-hotel", "day-2-museum"), repository.deletedItemIds)
+    }
+
+    @Test fun `same day target missing removes that day batch before reselection`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.success("old-hotel"),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("museum")),
+                    Result.success("stale-museum"),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-1")),
+                    Result.success("new-museum"),
+                    Result.success("new-park"),
+                ),
+            ),
+        )
+        val viewModel = model(repository)
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.togglePlace("museum")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        viewModel.togglePlace("park")
+        viewModel.retryPartial()
+        viewModel.submit()
+        advanceUntilIdle()
+        assertTrue(viewModel.state.value.undoCreatedItemIds.isEmpty())
+
+        viewModel.selectTargetDay("day-2")
+        viewModel.submit()
+        advanceUntilIdle()
+        viewModel.undo()
+        advanceUntilIdle()
+
+        assertEquals(listOf("new-museum", "new-park"), repository.deletedItemIds)
+    }
+
+    @Test fun `target missing keeps selection clears target and excludes stale created ids from undo`() = runTest(dispatcher) {
         val repository = FakeItineraries(outcome = AddPlacesOutcome.TargetDayMissing(listOf("hotel", "museum"), listOf("created-before-delete")))
         val viewModel = model(repository)
         ready(viewModel)
@@ -223,6 +380,36 @@ class AddToItineraryStateTest {
         assertEquals(listOf("museum"), viewModel.state.value.selectedPlaceIds)
         assertEquals(AddToItineraryStep.SELECT_PLACES, viewModel.state.value.step)
         assertNull(viewModel.state.value.result)
+    }
+
+    @Test fun `undo failure across day batches does not replay deleted ids`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(listOf(Result.success("day-1-hotel"), Result.success("day-2-museum"))),
+            deleteFailures = mutableMapOf("day-2-museum" to 1),
+        )
+        val viewModel = model(repository)
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.submit()
+        advanceUntilIdle()
+        viewModel.startFromPool()
+        viewModel.togglePlace("museum")
+        viewModel.selectTargetDay("day-2")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        viewModel.undo()
+        advanceUntilIdle()
+        assertEquals(
+            listOf(UndoCreatedItemsBatch("day-2", listOf("day-2-museum"))),
+            viewModel.state.value.undoBatches,
+        )
+
+        viewModel.undo()
+        advanceUntilIdle()
+
+        assertEquals(listOf("day-1-hotel", "day-2-museum", "day-2-museum"), repository.deleteCalls)
+        assertTrue(viewModel.state.value.undoCreatedItemIds.isEmpty())
     }
 
     @Test fun `undo failure retains only undeleted ids and retry resumes from them`() = runTest(dispatcher) {
@@ -318,12 +505,14 @@ class AddToItineraryStateTest {
         )
 
     private class FakeItineraries(
-        private val failedPlaceIds: Set<String> = emptySet(),
+        var failedPlaceIds: Set<String> = emptySet(),
         private val suspendAdd: Boolean = false,
-        private val outcome: AddPlacesOutcome? = null,
+        var outcome: AddPlacesOutcome? = null,
         private val addGate: CompletableDeferred<Unit>? = null,
         private val deleteGate: CompletableDeferred<Unit>? = null,
         private val deleteFailures: MutableMap<String, Int> = mutableMapOf(),
+        private val createdItemId: String? = null,
+        private val addResults: ArrayDeque<Result<String>> = ArrayDeque(),
     ) : ItineraryRepository {
         val addCalls = mutableListOf<String>()
         val deletedItemIds = mutableListOf<String>()
@@ -334,14 +523,18 @@ class AddToItineraryStateTest {
             addCalls += savedPlaceId
             if (suspendAdd) awaitCancellation()
             addGate?.await()
-            if (outcome is AddPlacesOutcome.TargetDayMissing) {
-                if (addCalls.size > outcome.createdItemIds.size) {
-                    throw com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException(dayId)
+            if (addResults.isNotEmpty()) return addResults.removeFirst().getOrThrow()
+            val configuredOutcome = outcome
+            if (configuredOutcome is AddPlacesOutcome.TargetDayMissing) {
+                if (configuredOutcome.createdItemIds.isNotEmpty()) {
+                    val scripted = configuredOutcome.createdItemIds.first()
+                    outcome = configuredOutcome.copy(createdItemIds = configuredOutcome.createdItemIds.drop(1))
+                    return scripted
                 }
-                return outcome.createdItemIds[addCalls.lastIndex]
+                throw com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException(dayId)
             }
             if (savedPlaceId in failedPlaceIds) throw com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException(savedPlaceId)
-            return "created-$savedPlaceId"
+            return createdItemId ?: "created-$savedPlaceId"
         }
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
         override suspend fun deleteItem(itemId: String) {

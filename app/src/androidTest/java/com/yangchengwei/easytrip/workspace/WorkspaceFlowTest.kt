@@ -84,6 +84,42 @@ class WorkspaceFlowTest {
         compose.waitUntil { backCount == 2 }
     }
 
+    @Test fun resultOverlayPrioritizesUndoFailureAndExplainsMissingTargetCleanup() {
+        val ready = TripWorkspaceUiState(tripName = "测试旅行").toReadyState()
+        compose.setContent {
+            TripWorkspaceScreen(
+                pageState = TripWorkspacePageState.Ready(ready.copy(overlay = WorkspaceOverlay.AddToItineraryResult)),
+                consent = null,
+                onAction = {},
+                onMarkerClick = {},
+                onMapPoiClick = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                onPlaceAction = {},
+                itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                addToItineraryState = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState(
+                    result = com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.TargetDayMissing(
+                        retainedPlaceIds = listOf("place"),
+                        createdItemIds = listOf("stale-item"),
+                    ),
+                    undoBatches = listOf(
+                        com.yangchengwei.easytrip.itinerary.ui.UndoCreatedItemsBatch(
+                            dayId = "other-day",
+                            itemIds = listOf("older-live-item"),
+                        ),
+                    ),
+                    errorMessage = "撤销失败，请重试",
+                ),
+                onItineraryAction = {},
+                onCloseOverlay = {},
+                onDismissMapPlace = {},
+            )
+        }
+
+        compose.onNodeWithText("撤销失败，请重试").assertIsDisplayed()
+        compose.onNodeWithText("目标日已删除，该日期新增项已随日期移除；其他日期仍有可撤销项。请重新选择日期。").assertDoesNotExist()
+        compose.onNodeWithText("撤销").assertIsDisplayed()
+    }
+
     @Test fun mapDetailBackThenPlaceEditRendersNewTarget() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", EditingPlaces(), null)
