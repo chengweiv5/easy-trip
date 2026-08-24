@@ -59,6 +59,52 @@ class ItineraryEditingTest {
         }
     }
 
+    @Test fun failedRouteShowsErrorAndRetryAction() {
+        val coordinator = FakeCoordinator()
+        val model = DayItineraryViewModel(
+            "trip",
+            FakeTrips(),
+            FakeItineraries(),
+            FakeLegs(),
+            coordinator,
+        )
+        compose.setContent { DayItinerarySheet(model) }
+        compose.waitUntil(5_000) { model.state.value.legs.any { it.status == RouteStatus.FAILED } }
+
+        compose.onNodeWithText("no route").assertIsDisplayed()
+        compose.onNodeWithTag("retry-leg-2").assertHasClickAction().performClick()
+        compose.waitUntil(5_000) { coordinator.retries == listOf("leg-2") }
+    }
+
+    @Test fun deleteConfirmationExplainsRetentionAndAdjacentRouteRecalculation() {
+        val model = DayItineraryViewModel(
+            "trip",
+            FakeTrips(),
+            FakeItineraries(),
+            FakeLegs(),
+            FakeCoordinator(),
+        )
+        compose.setContent { DayItinerarySheet(model) }
+        compose.waitUntil(5_000) { model.state.value.items.size == 3 }
+
+        compose.onNodeWithTag("delete-i2").performClick()
+        compose.onNodeWithText("仅从当天行程移出，收藏仍保留；相邻路线将重新计算。").assertIsDisplayed()
+    }
+
+    @Test fun itineraryEditSaveFailureRemainsVisible() {
+        compose.setContent {
+            EditItineraryItemContent(
+                draft = ItineraryEditDraft("item", "09:30", "60", saveError = "保存失败"),
+                onArrivalTimeChange = {},
+                onStayMinutesChange = {},
+                onSave = {},
+                onCancel = {},
+            )
+        }
+
+        compose.onNodeWithText("保存失败").assertIsDisplayed()
+    }
+
     @Test fun emptyDayShowsEmptyState() {
         val model = DayItineraryViewModel(
             "trip",

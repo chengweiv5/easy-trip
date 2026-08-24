@@ -28,14 +28,37 @@ class V1FullUiAcceptanceTest {
     }
 
     @Test
-    fun everyScenarioHasFrameFixtureDevicePathAndAssertions() {
+    fun everyScenarioHasTypedFixtureAndRealFocusedTest() {
         V1ScenarioFixtures.scenarios.forEach { scenario ->
             assertTrue("scenario ${scenario.number} frame", scenario.frameId.isNotBlank())
-            assertTrue("scenario ${scenario.number} fixture", scenario.launch.fixture.isNotBlank())
-            assertTrue("scenario ${scenario.number} automation", scenario.launch.automation.isNotBlank())
             assertTrue("scenario ${scenario.number} path", scenario.launch.reachablePath.isNotBlank())
             assertTrue("scenario ${scenario.number} assertions", scenario.assertions.isNotEmpty())
             assertEquals(PhysicalDeviceUiStatus.PENDING, scenario.physicalDeviceUiStatus)
+
+            val automation = scenario.launch.automation
+            val method = Class.forName(automation.className).declaredMethods.singleOrNull {
+                it.name == automation.methodName && it.parameterCount == 0
+            }
+            assertTrue("scenario ${scenario.number} test ${automation.qualifiedName} does not exist", method != null)
+            assertTrue(
+                "scenario ${scenario.number} test ${automation.qualifiedName} is not a JUnit test",
+                method?.getAnnotation(Test::class.java) != null,
+            )
+            assertFalse(
+                "scenario ${scenario.number} uses catalog self-check as automation",
+                automation.className == javaClass.name,
+            )
+        }
+    }
+
+    @Test
+    fun criticalReviewScenariosUseFocusedBehaviorTests() {
+        val critical = setOf(8, 10, 13, 25, 29, 30, 32, 34, 35)
+        V1ScenarioFixtures.scenarios.filter { it.number in critical }.forEach { scenario ->
+            assertTrue(
+                "scenario ${scenario.number} must use a focused scenario test",
+                scenario.launch.automation.className != javaClass.name,
+            )
         }
     }
 
@@ -55,25 +78,4 @@ class V1FullUiAcceptanceTest {
         )
     }
 
-    @Test
-    fun requiredProductSemanticsRemainCatalogued() {
-        assertExpected(3, "搜索页不显示加入行程入口")
-        assertExpected(10, "地点详情不显示加入行程入口")
-        assertExpected(8, "设置页不显示添加一天入口")
-        assertExpected(6, "全程视图不显示编辑或拖动入口")
-        assertExpected(30, "系统权限前先展示用途说明")
-        assertExpected(34, "系统权限前先展示定位用途说明")
-    }
-
-    @Test
-    fun dangerousActionsDescribeTheirImpact() {
-        assertExpected(13, "确认文案说明级联删除影响")
-        assertExpected(25, "确认文案说明地点和路段影响")
-        assertExpected(32, "确认文案说明相邻路线重算影响")
-    }
-
-    private fun assertExpected(number: Int, expected: String) {
-        val assertions = V1ScenarioFixtures.scenarios.first { it.number == number }.assertions
-        assertTrue("scenario $number missing: $expected", assertions.any { it.expected == expected })
-    }
 }

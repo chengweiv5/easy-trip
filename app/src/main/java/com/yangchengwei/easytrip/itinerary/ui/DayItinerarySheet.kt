@@ -137,7 +137,7 @@ fun DayItineraryContent(
             title = { Text("移出${confirmation.placeName}？") },
             text = {
                 Column {
-                    Text("仅从当天行程移出，收藏仍保留。")
+                    Text("仅从当天行程移出，收藏仍保留；相邻路线将重新计算。")
                     confirmation.deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
             },
