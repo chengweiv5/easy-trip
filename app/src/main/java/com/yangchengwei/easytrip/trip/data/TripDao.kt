@@ -34,6 +34,9 @@ interface TripDao {
     @Query("DELETE FROM trips WHERE id=:id") fun deleteTrip(id:String)
     @Query("SELECT COUNT(*) FROM trip_days WHERE tripId=:tripId") fun countDays(tripId:String):Int
     @Query("SELECT position FROM trip_days WHERE tripId=:tripId ORDER BY position") suspend fun dayPositions(tripId:String):List<Long>
+    @Query("SELECT COUNT(*) FROM itinerary_items WHERE tripDayId IN (:dayIds)") suspend fun itemCountForDays(dayIds:List<String>):Int
+    @Query("SELECT COUNT(*) FROM route_legs WHERE tripDayId IN (:dayIds)") suspend fun legCountForDays(dayIds:List<String>):Int
+    @Query("SELECT COUNT(*) FROM saved_places WHERE tripId=:tripId") suspend fun savedPlaceCount(tripId:String):Int
 
     @Transaction suspend fun createTripWithDays(trip:TripEntity,days:List<TripDayEntity>){ insertTrip(trip); days.forEach(::insertDay) }
     @Transaction suspend fun createTripWithDaysIdempotent(trip:TripEntity,dayCount:Int,dayIdFactory:()->String){
@@ -77,7 +80,7 @@ interface TripDao {
     @Transaction
     suspend fun deleteAndReorderDay(dayId:String,now:Instant){
         val tripId=requireNotNull(tripIdForDay(dayId)){"Unknown day: $dayId"}
-        val ordered=days(tripId); park(ordered); require(deleteDayRow(dayId)==1); reorder(ordered.filterNot{it.id==dayId}); require(touch(tripId,now)==1)
+        val ordered=days(tripId); require(ordered.size>1){"Cannot delete the last trip day"}; park(ordered); require(deleteDayRow(dayId)==1); reorder(ordered.filterNot{it.id==dayId}); require(touch(tripId,now)==1)
     }
 
     private suspend fun park(values:List<TripDayEntity>){ values.forEachIndexed{i,d->require(position(d.id,Long.MIN_VALUE+i)==1)} }

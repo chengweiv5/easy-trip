@@ -151,6 +151,8 @@ class TripFlowTest {
         override suspend fun createTrip(command: CreateTrip) = create(command)
         override suspend fun renameTrip(tripId: String, name: String) {}
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) { trip.value=trip.value!!.copy(startDate=startDate); publish() }
+        override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
+        override suspend fun applyDateRange(command: com.yangchengwei.easytrip.trip.domain.DateRangeApply) = Unit
         override suspend fun setTravelMode(tripId: String, mode: TravelMode) { trip.value=trip.value!!.copy(travelMode=mode); publish() }
         override suspend fun insertDay(tripId:String,anchorDayId:String?,side:InsertSide):String { val d=trip.value!!.days.toMutableList();val id=id();val a=anchorDayId?.let{v->d.indexOfFirst{it.id==v}}?:d.size;d.add((a+if(side==InsertSide.AFTER)1 else 0).coerceIn(0,d.size),TripDay(id,0));setDays(d);return id }
         override suspend fun moveDay(tripId:String,dayId:String,targetIndex:Int){moveCalls += MoveCall(dayId,targetIndex);val d=trip.value!!.days.toMutableList();val day=d.removeAt(d.indexOfFirst{it.id==dayId});d.add(targetIndex,day);setDays(d)}

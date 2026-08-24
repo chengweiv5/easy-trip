@@ -4,6 +4,8 @@ import androidx.room.withTransaction
 import com.yangchengwei.easytrip.core.model.TimeMode
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
+import com.yangchengwei.easytrip.trip.domain.DateRangeApply
+import com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts
 import com.yangchengwei.easytrip.trip.domain.InsertSide
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
@@ -71,6 +73,57 @@ class RoomTripRepository(
 
     override suspend fun setStartDate(tripId: String, startDate: LocalDate?) {
         dao.setStartDate(tripId, startDate, if (startDate == null) TimeMode.DRAFT else TimeMode.DATED, clock.instant())
+    }
+
+    override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>): DateRangeDeletionCounts {
+        val db = requireNotNull(database) { "Date range previews require a database transaction" }
+        return db.withTransaction {
+            DateRangeDeletionCounts(
+                itineraryItems = if (dayIds.isEmpty()) 0 else dao.itemCountForDays(dayIds),
+                routeLegs = if (dayIds.isEmpty()) 0 else dao.legCountForDays(dayIds),
+                retainedSavedPlaces = dao.savedPlaceCount(tripId),
+            )
+        }
+    }
+
+    override suspend fun applyDateRange(command: DateRangeApply) {
+        require(command.dayCount >= 1)
+        val db = requireNotNull(database) { "Date range changes require a database transaction" }
+        db.withTransaction {
+            val days = dao.days(command.tripId)
+            require(days.isNotEmpty()) { "Unknown or empty trip: ${command.tripId}" }
+            if (command.expectedDayIds.isNotEmpty()) {
+                require(days.map(TripDayEntity::id) == command.expectedDayIds) { "Trip days changed after preview" }
+            }
+            if (command.expectedDeletedDayIds.isNotEmpty()) {
+                require(days.drop(command.dayCount).map(TripDayEntity::id) == command.expectedDeletedDayIds) {
+                    "Deleted trip days changed after preview"
+                }
+                require(dao.itemCountForDays(command.expectedDeletedDayIds) == command.expectedDeletedItineraryItems) {
+                    "Deleted itinerary items changed after preview"
+                }
+                require(dao.legCountForDays(command.expectedDeletedDayIds) == command.expectedDeletedRouteLegs) {
+                    "Deleted route legs changed after preview"
+                }
+            }
+            dao.setStartDate(
+                command.tripId,
+                command.startDate,
+                if (command.startDate == null) TimeMode.DRAFT else TimeMode.DATED,
+                clock.instant(),
+            )
+            when {
+                command.dayCount > days.size -> repeat(command.dayCount - days.size) {
+                    dao.insertDay(TripDayEntity(idFactory(), command.tripId, (days.size + it) * TripDao.POSITION_STEP))
+                }
+                command.dayCount < days.size -> days.drop(command.dayCount).forEach {
+                    require(dao.deleteDayRow(it.id) == 1)
+                }
+            }
+            dao.days(command.tripId).forEachIndexed { index, day ->
+                require(dao.position(day.id, index * TripDao.POSITION_STEP) == 1)
+            }
+        }
     }
 
     override suspend fun setTravelMode(tripId: String, mode: TravelMode) {

@@ -158,6 +158,8 @@ class DayItinerarySelectionTest {
         override suspend fun createTrip(command: CreateTrip) = "trip"
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
+        override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
+        override suspend fun applyDateRange(command: com.yangchengwei.easytrip.trip.domain.DateRangeApply) = Unit
         override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit
         override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String {
             insertCalls++

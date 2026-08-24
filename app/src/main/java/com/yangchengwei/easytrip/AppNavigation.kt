@@ -43,7 +43,7 @@ import com.yangchengwei.easytrip.trip.ui.CreateTripViewModel
 import com.yangchengwei.easytrip.trip.ui.DeleteImpactProvider
 import com.yangchengwei.easytrip.trip.ui.TripListScreen
 import com.yangchengwei.easytrip.trip.ui.TripListViewModel
-import com.yangchengwei.easytrip.trip.ui.TripSettingsScreen
+import com.yangchengwei.easytrip.trip.ui.TripSettingsRoute
 import com.yangchengwei.easytrip.trip.ui.TripSettingsViewModel
 import com.yangchengwei.easytrip.itinerary.ui.DayItinerarySheet
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
@@ -291,7 +291,7 @@ fun AppNavigation(
         }
         composable(TRIP_SETTINGS_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) {
             val model: TripSettingsViewModel = viewModel(factory = TripSettingsViewModel.Factory(service, repository, impacts))
-            TripSettingsScreen(model, navController::popBackStack)
+            TripSettingsRoute(model, navController::popBackStack)
         }
     }
 }

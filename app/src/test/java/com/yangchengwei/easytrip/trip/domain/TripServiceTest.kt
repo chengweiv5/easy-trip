@@ -160,6 +160,9 @@ class TripServiceTest {
             trip = trip!!.copy(name = name)
         }
 
+        override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = DateRangeDeletionCounts(0, 0, 0)
+        override suspend fun applyDateRange(command: DateRangeApply) = Unit
+
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) {
             trip = trip!!.copy(startDate = startDate)
             selected.value = trip

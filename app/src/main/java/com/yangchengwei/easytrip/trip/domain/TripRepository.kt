@@ -38,6 +38,8 @@ interface TripRepository {
     suspend fun createTrip(command: CreateTrip): String
     suspend fun renameTrip(tripId: String, name: String)
     suspend fun setStartDate(tripId: String, startDate: LocalDate?)
+    suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>): DateRangeDeletionCounts
+    suspend fun applyDateRange(command: DateRangeApply)
     suspend fun setTravelMode(tripId: String, mode: TravelMode)
     suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String
     suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int)

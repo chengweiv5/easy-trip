@@ -6,12 +6,15 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.trip.domain.TripDateRangeService
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
 import java.time.LocalDate
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
@@ -30,7 +33,10 @@ data class TripSettingsUiState(
     val startDate: LocalDate? = null,
     val travelMode: TravelMode = TravelMode.FLEXIBLE,
     val days: List<DayUi> = emptyList(),
+    val dateRange: DateRangeChangeUiState = DateRangeChangeUiState(),
     val pendingDayDeletion: PendingDayDeletion? = null,
+    val dayDeleteInProgress: Boolean = false,
+    val dayDeleteError: String? = null,
 )
 
 class TripSettingsViewModel(
@@ -38,10 +44,15 @@ class TripSettingsViewModel(
     private val service: TripService,
     repository: TripRepository,
     private val impacts: DeleteImpactProvider,
+    private val dateRanges: TripDateRangeService,
 ) : ViewModel() {
     private val tripId: String = checkNotNull(savedStateHandle["tripId"])
     private val mutableState = MutableStateFlow(TripSettingsUiState(tripId))
     val state: StateFlow<TripSettingsUiState> = mutableState.asStateFlow()
+    private var previewJob: Job? = null
+    private var dateRangeGeneration = 0L
+    private var deleteImpactJob: Job? = null
+    private var deleteGeneration = 0L
 
     init {
         viewModelScope.launch {
@@ -51,26 +62,178 @@ class TripSettingsViewModel(
                     startDate = trip.startDate,
                     travelMode = trip.travelMode,
                     days = trip.days.map { DayUi(it.id, service.displayLabel(it, trip.startDate)) },
+                    dateRange = mutableState.value.dateRange.takeIf { it.confirmation != null || it.error != null }
+                        ?: DateRangeChangeUiState(
+                            startDate = trip.startDate,
+                            endDate = trip.startDate?.plusDays((trip.days.size - 1).toLong()),
+                        ),
                 )
             }
         }
     }
 
     fun rename(name: String) { viewModelScope.launch { service.renameTrip(tripId, name) } }
-    fun setStartDate(value: LocalDate?) { viewModelScope.launch { service.setStartDate(tripId, value) } }
     fun setTravelMode(value: TravelMode) { viewModelScope.launch { service.setTravelMode(tripId, value) } }
-    fun requestDelete(day: DayUi) {
-        viewModelScope.launch { mutableState.value = mutableState.value.copy(pendingDayDeletion = PendingDayDeletion(day, impacts.day(day.id))) }
-    }
-    fun cancelDelete() { mutableState.value = mutableState.value.copy(pendingDayDeletion = null) }
-    fun confirmDelete() {
-        val day = mutableState.value.pendingDayDeletion?.day ?: return
-        viewModelScope.launch { service.deleteDay(day.id); cancelDelete() }
+
+    fun updateDateDraft(startDate: LocalDate?, endDate: LocalDate?) {
+        dateRangeGeneration++
+        previewJob?.cancel()
+        mutableState.value = mutableState.value.copy(
+            dateRange = DateRangeChangeUiState(startDate = startDate, endDate = endDate),
+        )
     }
 
-    class Factory(private val service: TripService, private val repository: TripRepository, private val impacts: DeleteImpactProvider) : ViewModelProvider.Factory {
+    fun requestDateRangeChange() {
+        val draft = mutableState.value.dateRange
+        if (draft.submitting || previewJob?.isActive == true) return
+        val generation = ++dateRangeGeneration
+        previewJob = viewModelScope.launch {
+            try {
+                val impact = dateRanges.preview(tripId, draft.startDate, draft.endDate)
+                if (generation != dateRangeGeneration) return@launch
+                if (impact.deletedDayIds.isEmpty()) {
+                    mutableState.value = mutableState.value.copy(dateRange = draft.copy(submitting = true, error = null))
+                    applyDateRange(impact, generation)
+                } else {
+                    mutableState.value = mutableState.value.copy(
+                        dateRange = draft.copy(confirmation = impact, error = null),
+                    )
+                }
+            } catch (_: CancellationException) {
+                throw CancellationException()
+            } catch (_: IllegalArgumentException) {
+                if (generation == dateRangeGeneration) {
+                    val error = if (draft.startDate != null && draft.endDate != null) {
+                        "结束日期不能早于开始日期"
+                    } else {
+                        "开始和结束日期必须同时填写"
+                    }
+                    mutableState.value = mutableState.value.copy(dateRange = draft.copy(error = error))
+                }
+            } catch (_: Throwable) {
+                if (generation == dateRangeGeneration) {
+                    mutableState.value = mutableState.value.copy(
+                        dateRange = draft.copy(error = "无法检查日期范围，请重试"),
+                    )
+                }
+            }
+        }
+    }
+
+    fun cancelDateRangeChange() {
+        if (mutableState.value.dateRange.submitting) return
+        mutableState.value = mutableState.value.copy(
+            dateRange = mutableState.value.dateRange.copy(confirmation = null, error = null),
+        )
+    }
+
+    fun confirmDateRangeChange() {
+        val range = mutableState.value.dateRange
+        val impact = range.confirmation ?: return
+        if (range.submitting) return
+        mutableState.value = mutableState.value.copy(dateRange = range.copy(submitting = true, error = null))
+        val generation = ++dateRangeGeneration
+        viewModelScope.launch {
+            if (range.error == null) {
+                applyDateRange(impact, generation)
+                return@launch
+            }
+            try {
+                val refreshed = dateRanges.preview(tripId, range.startDate, range.endDate)
+                if (generation != dateRangeGeneration) return@launch
+                mutableState.value = mutableState.value.copy(
+                    dateRange = mutableState.value.dateRange.copy(confirmation = refreshed),
+                )
+                applyDateRange(refreshed, generation)
+            } catch (_: Throwable) {
+                if (generation == dateRangeGeneration) {
+                    mutableState.value = mutableState.value.copy(
+                        dateRange = mutableState.value.dateRange.copy(submitting = false, error = "无法重新计算影响，请重试"),
+                    )
+                }
+            }
+        }
+    }
+
+    private suspend fun applyDateRange(
+        impact: com.yangchengwei.easytrip.trip.domain.DateRangeChangeImpact,
+        generation: Long,
+    ) {
+        try {
+            dateRanges.apply(impact, tripId)
+            if (generation == dateRangeGeneration) {
+                mutableState.value = mutableState.value.copy(
+                    dateRange = DateRangeChangeUiState(impact.newStartDate, impact.newEndDate),
+                )
+            }
+        } catch (_: Throwable) {
+            if (generation == dateRangeGeneration) {
+                mutableState.value = mutableState.value.copy(
+                    dateRange = mutableState.value.dateRange.copy(submitting = false, error = "保存失败，请重新计算影响"),
+                )
+            }
+        }
+    }
+
+    fun requestDelete(day: DayUi) {
+        if (mutableState.value.days.size <= 1) return
+        val generation = ++deleteGeneration
+        deleteImpactJob?.cancel()
+        deleteImpactJob = viewModelScope.launch {
+            try {
+                val impact = impacts.day(day.id)
+                if (generation == deleteGeneration) {
+                    mutableState.value = mutableState.value.copy(
+                        pendingDayDeletion = PendingDayDeletion(day, impact),
+                        dayDeleteError = null,
+                    )
+                }
+            } catch (_: CancellationException) {
+                throw CancellationException()
+            } catch (_: Throwable) {
+                if (generation == deleteGeneration) {
+                    mutableState.value = mutableState.value.copy(dayDeleteError = "无法检查删除影响，请重试")
+                }
+            }
+        }
+    }
+    fun cancelDelete() {
+        if (!mutableState.value.dayDeleteInProgress) {
+            deleteGeneration++
+            deleteImpactJob?.cancel()
+            mutableState.value = mutableState.value.copy(pendingDayDeletion = null, dayDeleteError = null)
+        }
+    }
+    fun confirmDelete() {
+        val state = mutableState.value
+        val day = state.pendingDayDeletion?.day ?: return
+        if (state.dayDeleteInProgress) return
+        mutableState.value = state.copy(dayDeleteInProgress = true, dayDeleteError = null)
+        viewModelScope.launch {
+            try {
+                service.deleteDay(day.id)
+                mutableState.value = mutableState.value.copy(
+                    pendingDayDeletion = null,
+                    dayDeleteInProgress = false,
+                    dayDeleteError = null,
+                )
+            } catch (_: Throwable) {
+                mutableState.value = mutableState.value.copy(
+                    dayDeleteInProgress = false,
+                    dayDeleteError = "删除失败，请重试",
+                )
+            }
+        }
+    }
+
+    class Factory(
+        private val service: TripService,
+        private val repository: TripRepository,
+        private val impacts: DeleteImpactProvider,
+        private val dateRanges: TripDateRangeService = TripDateRangeService(repository),
+    ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>, extras: androidx.lifecycle.viewmodel.CreationExtras): T =
-            TripSettingsViewModel(extras.createSavedStateHandle(), service, repository, impacts) as T
+            TripSettingsViewModel(extras.createSavedStateHandle(), service, repository, impacts, dateRanges) as T
     }
 }
