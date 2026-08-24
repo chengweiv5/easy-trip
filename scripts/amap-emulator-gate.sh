@@ -28,7 +28,7 @@ while (($#)); do
 done
 [[ $serial_count -eq 1 && $command_line_count -eq 1 && $evidence_count -eq 1 && $host_arch_count -eq 1 && $image_package_count -eq 1 && $emulator_version_count -eq 1 && -n "$serial" && -n "$command_line" && -n "$evidence" && -n "$host_arch" && -n "$image_package" && -n "$emulator_version" ]] || { printf 'serial, command-line, evidence, host-arch, image-package and emulator-version are each required exactly once\n' >&2; exit 64; }
 [[ "$host_arch" == arm64 ]] || { printf 'host architecture mismatch: %s\n' "$host_arch" >&2; exit 3; }
-[[ "$image_package" == 'system-images;android-36;google_apis;arm64-v8a' ]] || { printf 'AVD image package mismatch: %s\n' "$image_package" >&2; exit 3; }
+[[ "$image_package" == 'system-images;android-36;default;arm64-v8a' ]] || { printf 'AVD image package mismatch: %s\n' "$image_package" >&2; exit 3; }
 
 read -r -a command_args <<<"$command_line"
 [[ ${command_args[0]:-} == emulator ]] || { printf 'invalid emulator executable\n' >&2; exit 3; }

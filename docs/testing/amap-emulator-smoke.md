@@ -2,7 +2,7 @@
 
 ## 固定环境
 
-仅允许 Apple Silicon (`arm64`) host 上的 `trail_map_api36`、API 36、`system-images;android-36;google_apis;arm64-v8a` 镜像和 `arm64-v8a` guest ABI，启动参数固定为 `-gpu swiftshader -no-snapshot-load -no-snapshot-save`。脚本使用独立 serial `emulator-5588`，不清除或修改 AVD 用户数据。
+仅允许 Apple Silicon (`arm64`) host 上的 `trail_map_api36`、API 36、`system-images;android-36;default;arm64-v8a` 镜像和 `arm64-v8a` guest ABI，启动参数固定为 `-gpu swiftshader -no-snapshot-load -no-snapshot-save`。脚本使用独立 serial `emulator-5588`，不清除或修改 AVD 用户数据。
 
 ```bash
 AMAP_EVIDENCE_DIR="$PWD/build/amap-smoke" scripts/run-amap-smoke.sh

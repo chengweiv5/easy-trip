@@ -9,7 +9,7 @@ fail() { printf 'FAIL: %s\n' "$1" >&2; exit 1; }
 make_fixture() {
   local mode=$1 dir="$TMP/$1"
   mkdir -p "$dir/bin" "$dir/repo/scripts" "$dir/tmp" "$dir/evidence" "$dir/avd/trail_map_api36.avd"
-  printf 'target=android-36\nimage.sysdir.1=system-images/android-36/google_apis/arm64-v8a/\nabi.type=arm64-v8a\n' >"$dir/avd/trail_map_api36.avd/config.ini"
+  printf 'target=android-36\nimage.sysdir.1=system-images/android-36/default/arm64-v8a/\nabi.type=arm64-v8a\n' >"$dir/avd/trail_map_api36.avd/config.ini"
   printf 'stale' >"$dir/evidence/map-loaded.png"
   cp "$ROOT/scripts/run-amap-smoke.sh" "$dir/repo/scripts/"
   cp "$ROOT/scripts/amap-emulator-gate.sh" "$dir/repo/scripts/"

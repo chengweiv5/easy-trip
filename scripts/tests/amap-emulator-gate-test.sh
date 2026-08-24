@@ -33,11 +33,11 @@ expect_rejected() {
   [[ $status -eq $expected ]] || fail "$name returned $status, expected $expected"
 }
 
-metadata=(--host-arch arm64 --image-package "system-images;android-36;google_apis;arm64-v8a" --emulator-version "Android emulator version 36.1.9.0")
+metadata=(--host-arch arm64 --image-package "system-images;android-36;default;arm64-v8a" --emulator-version "Android emulator version 36.1.9.0")
 args=(--serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-save" "${metadata[@]}" --evidence "$TMP/good.json")
 write_adb
 PATH="$TMP:$PATH" "$GATE" "${args[@]}" >/dev/null || fail "approved environment rejected"
-python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["cold_boot"] is True and d["renderer"] == "swiftshader" and d["abi"] == "arm64-v8a" and d["host_arch"] == "arm64" and d["image_package"] == "system-images;android-36;google_apis;arm64-v8a" and d["emulator_version"] == "Android emulator version 36.1.9.0"' "$TMP/good.json" || fail "invalid JSON evidence"
+python3 -c 'import json,sys; d=json.load(open(sys.argv[1])); assert d["cold_boot"] is True and d["renderer"] == "swiftshader" and d["abi"] == "arm64-v8a" and d["host_arch"] == "arm64" and d["image_package"] == "system-images;android-36;default;arm64-v8a" and d["emulator_version"] == "Android emulator version 36.1.9.0"' "$TMP/good.json" || fail "invalid JSON evidence"
 
 SURFACE_FLINGER='Connection{GLES VSyncRequest noise}\nGLES: ANGLE (Google, Vulkan 1.3.0 (SwiftShader Device))\n' write_adb
 PATH="$TMP:$PATH" "$GATE" "${args[@]}" >/dev/null || fail "later SwiftShader renderer evidence rejected"
@@ -66,7 +66,7 @@ expect_rejected "conflicting snapshot flag" 3 --serial emulator-5554 --command-l
 expect_rejected "duplicate serial option" 64 "${args[@]}" --serial emulator-5554
 expect_rejected "duplicate command option" 64 "${args[@]}" --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-save"
 expect_rejected "duplicate evidence option" 64 "${args[@]}" --evidence "$TMP/duplicate.json"
-expect_rejected "wrong host architecture" 3 --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-save" --host-arch x86_64 --image-package "system-images;android-36;google_apis;arm64-v8a" --emulator-version "Android emulator version 36.1.9.0" --evidence "$TMP/bad.json"
+expect_rejected "wrong host architecture" 3 --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-save" --host-arch x86_64 --image-package "system-images;android-36;default;arm64-v8a" --emulator-version "Android emulator version 36.1.9.0" --evidence "$TMP/bad.json"
 expect_rejected "wrong image package" 3 --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-save" --host-arch arm64 --image-package "system-images;android-36;google_apis;x86_64" --emulator-version "Android emulator version 36.1.9.0" --evidence "$TMP/bad.json"
 expect_rejected "unknown parameter" 64 "${args[@]}" --surprise value
 
