@@ -70,7 +70,8 @@ class ItineraryEditingTest {
         )
         compose.setContent { DayItinerarySheet(model) }
 
-        compose.onNodeWithText("暂无行程").assertIsDisplayed()
+        compose.onNodeWithText("第2天 · 暂无行程").assertIsDisplayed()
+        compose.onNodeWithText("从地点池添加地点，开始安排这一天").assertIsDisplayed()
     }
 
     @Test fun duplicateDragCrossDayTimingOverrideAndRetry() {
@@ -179,7 +180,7 @@ class ItineraryEditingTest {
         assertEquals(Timing("i1", LocalTime.of(9, 30), 480), itineraries.timings.single())
 
         compose.onNodeWithTag("delete-i1").performClick()
-        compose.onNodeWithText("确认删除").performClick()
+        compose.onNodeWithText("确认移出").performClick()
         compose.waitUntil(5_000) { itineraries.deletes == listOf("i1") }
     }
 

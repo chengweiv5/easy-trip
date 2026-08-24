@@ -34,8 +34,10 @@ data class DayItineraryUiState(
     val legs: List<RouteLegUi> = emptyList(),
     val previewOrder: List<String> = emptyList(),
     val timingItemId: String? = null,
+    val editDraft: ItineraryEditDraft? = null,
     val moveItemId: String? = null,
     val deleteItemId: String? = null,
+    val deleteConfirmation: ItineraryDeleteConfirmation? = null,
     val modeLegId: String? = null,
     val isAppendingDay: Boolean = false,
     val appendDayError: String? = null,
@@ -138,18 +140,82 @@ class DayItineraryViewModel(
         viewModelScope.launch { runCatching { itineraries.moveItem(item, dayId, 0) }.onFailure(::showError) }
     }
 
-    fun requestDelete(itemId: String) { mutable.value = mutable.value.copy(deleteItemId = itemId) }
-    fun confirmDelete() {
-        val item = state.value.deleteItemId ?: return
-        mutable.value = mutable.value.copy(deleteItemId = null)
-        viewModelScope.launch { runCatching { itineraries.deleteItem(item) }.onFailure(::showError) }
+    fun requestDelete(itemId: String) {
+        val item = state.value.items.firstOrNull { it.id == itemId } ?: return
+        mutable.value = mutable.value.copy(
+            deleteItemId = itemId,
+            deleteConfirmation = ItineraryDeleteConfirmation(itemId, item.name),
+        )
     }
 
-    fun requestTiming(itemId: String) { mutable.value = mutable.value.copy(timingItemId = itemId) }
+    fun confirmDelete() {
+        val confirmation = state.value.deleteConfirmation ?: return
+        if (confirmation.isDeleting) return
+        mutable.value = mutable.value.copy(
+            deleteConfirmation = confirmation.copy(isDeleting = true, deleteError = null),
+        )
+        viewModelScope.launch {
+            runCatching { itineraries.deleteItem(confirmation.itemId) }
+                .onSuccess {
+                    mutable.value = mutable.value.copy(deleteItemId = null, deleteConfirmation = null)
+                }
+                .onFailure {
+                    mutable.value = mutable.value.copy(
+                        deleteConfirmation = mutable.value.deleteConfirmation?.copy(
+                            isDeleting = false,
+                            deleteError = it.message ?: "删除失败",
+                        ),
+                    )
+                }
+        }
+    }
+
+    fun requestTiming(itemId: String) {
+        val item = state.value.items.firstOrNull { it.id == itemId } ?: return
+        mutable.value = mutable.value.copy(
+            timingItemId = itemId,
+            editDraft = ItineraryEditDraft(
+                itemId = itemId,
+                arrivalTimeText = item.arrivalTime?.toString().orEmpty(),
+                stayMinutesText = item.stayMinutes?.toString().orEmpty(),
+            ),
+        )
+    }
+
+    fun updateArrivalTime(value: String) {
+        val draft = mutable.value.editDraft ?: return
+        mutable.value = mutable.value.copy(editDraft = draft.copy(arrivalTimeText = value, saveError = null))
+    }
+
+    fun updateStayMinutes(value: String) {
+        val draft = mutable.value.editDraft ?: return
+        mutable.value = mutable.value.copy(editDraft = draft.copy(stayMinutesText = value.filter(Char::isDigit), saveError = null))
+    }
+
+    fun saveTiming() {
+        val draft = mutable.value.editDraft ?: return
+        if (draft.isSaving || !draft.isValid) return
+        mutable.value = mutable.value.copy(editDraft = draft.copy(isSaving = true, saveError = null))
+        viewModelScope.launch {
+            runCatching { itineraries.updateTiming(draft.itemId, draft.arrivalTime, draft.stayMinutes) }
+                .onSuccess {
+                    mutable.value = mutable.value.copy(timingItemId = null, editDraft = null)
+                }
+                .onFailure {
+                    mutable.value = mutable.value.copy(
+                        editDraft = mutable.value.editDraft?.copy(
+                            isSaving = false,
+                            saveError = it.message ?: "保存失败",
+                        ),
+                    )
+                }
+        }
+    }
+
     fun saveTiming(time: LocalTime?, minutes: Int?) {
-        val item = state.value.timingItemId ?: return
-        mutable.value = mutable.value.copy(timingItemId = null)
-        viewModelScope.launch { runCatching { itineraries.updateTiming(item, time, minutes) }.onFailure(::showError) }
+        updateArrivalTime(time?.toString().orEmpty())
+        updateStayMinutes(minutes?.toString().orEmpty())
+        saveTiming()
     }
 
     fun setRouteCoordinator(value: RouteRefreshCoordinator?) { coordinator = value }
@@ -173,7 +239,15 @@ class DayItineraryViewModel(
     }
 
     fun dismissDialogs() {
-        mutable.value = mutable.value.copy(timingItemId = null, moveItemId = null, deleteItemId = null, modeLegId = null)
+        if (mutable.value.editDraft?.isSaving == true || mutable.value.deleteConfirmation?.isDeleting == true) return
+        mutable.value = mutable.value.copy(
+            timingItemId = null,
+            editDraft = null,
+            moveItemId = null,
+            deleteItemId = null,
+            deleteConfirmation = null,
+            modeLegId = null,
+        )
     }
 
     fun dispatch(action: DayItineraryAction) {
@@ -189,6 +263,9 @@ class DayItineraryViewModel(
             is DayItineraryAction.RequestMode -> requestMode(action.legId)
             is DayItineraryAction.Retry -> retry(action.legId)
             is DayItineraryAction.MoveToDay -> moveToDay(action.dayId)
+            is DayItineraryAction.UpdateArrivalTime -> updateArrivalTime(action.value)
+            is DayItineraryAction.UpdateStayMinutes -> updateStayMinutes(action.value)
+            DayItineraryAction.SaveEdit -> saveTiming()
             is DayItineraryAction.SaveTiming -> saveTiming(action.time, action.minutes)
             is DayItineraryAction.OverrideMode -> overrideMode(action.mode)
             DayItineraryAction.ConfirmDelete -> confirmDelete()
@@ -203,8 +280,10 @@ class DayItineraryViewModel(
             legs = emptyList(),
             previewOrder = emptyList(),
             timingItemId = null,
+            editDraft = null,
             moveItemId = null,
             deleteItemId = null,
+            deleteConfirmation = null,
             modeLegId = null,
         )
     }

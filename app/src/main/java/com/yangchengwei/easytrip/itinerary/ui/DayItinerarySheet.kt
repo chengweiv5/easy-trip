@@ -36,6 +36,9 @@ sealed interface DayItineraryAction {
     data class RequestMode(val legId: String) : DayItineraryAction
     data class Retry(val legId: String) : DayItineraryAction
     data class MoveToDay(val dayId: String) : DayItineraryAction
+    data class UpdateArrivalTime(val value: String) : DayItineraryAction
+    data class UpdateStayMinutes(val value: String) : DayItineraryAction
+    data object SaveEdit : DayItineraryAction
     data class SaveTiming(val time: java.time.LocalTime?, val minutes: Int?) : DayItineraryAction
     data class OverrideMode(val mode: TransportMode) : DayItineraryAction
     data object ConfirmDelete : DayItineraryAction
@@ -67,11 +70,17 @@ fun DayItineraryContent(
         val byId = state.items.associateBy(ItineraryItemUi::id)
         LazyColumn {
             if (state.items.isEmpty()) {
-                item { Text("暂无行程") }
+                val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
+                item {
+                    Column {
+                        Text(if (dayNumber == null) "暂无行程" else "第${dayNumber}天 · 暂无行程")
+                        Text("从地点池添加地点，开始安排这一天")
+                    }
+                }
             }
             itemsIndexed(state.previewOrder, key = { _, id -> id }) { index, id ->
                 val item = byId[id] ?: return@itemsIndexed
-                ItineraryItemRow(
+                ItineraryPlaceRow(
                     item,
                     index,
                     state.previewOrder.size,
@@ -88,9 +97,20 @@ fun DayItineraryContent(
             }
         }
     }
-    if (showDialogs) state.timingItemId?.let { id ->
-        val item = state.items.firstOrNull { it.id == id }
-        EditTimingDialog(item?.arrivalTime, item?.stayMinutes, { onAction(DayItineraryAction.DismissDialogs) }, { time, minutes -> onAction(DayItineraryAction.SaveTiming(time, minutes)) })
+    if (showDialogs) state.editDraft?.let { draft ->
+        AlertDialog(
+            onDismissRequest = { if (!draft.isSaving) onAction(DayItineraryAction.DismissDialogs) },
+            confirmButton = {},
+            text = {
+                EditItineraryItemContent(
+                    draft = draft,
+                    onArrivalTimeChange = { onAction(DayItineraryAction.UpdateArrivalTime(it)) },
+                    onStayMinutesChange = { onAction(DayItineraryAction.UpdateStayMinutes(it)) },
+                    onSave = { onAction(DayItineraryAction.SaveEdit) },
+                    onCancel = { onAction(DayItineraryAction.DismissDialogs) },
+                )
+            },
+        )
     }
     if (showDialogs) state.moveItemId?.let {
         AlertDialog(
@@ -106,12 +126,28 @@ fun DayItineraryContent(
             confirmButton = {},
         )
     }
-    if (showDialogs) state.deleteItemId?.let {
+    if (showDialogs) state.deleteConfirmation?.let { confirmation ->
         AlertDialog(
-            onDismissRequest = { onAction(DayItineraryAction.DismissDialogs) },
-            title = { Text("删除这次安排？") },
-            confirmButton = { TextButton({ onAction(DayItineraryAction.ConfirmDelete) }) { Text("确认删除") } },
-            dismissButton = { TextButton({ onAction(DayItineraryAction.DismissDialogs) }) { Text("取消") } },
+            onDismissRequest = { if (!confirmation.isDeleting) onAction(DayItineraryAction.DismissDialogs) },
+            title = { Text("移出${confirmation.placeName}？") },
+            text = {
+                Column {
+                    Text("仅从当天行程移出，收藏仍保留。")
+                    confirmation.deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+                }
+            },
+            confirmButton = {
+                TextButton(
+                    { onAction(DayItineraryAction.ConfirmDelete) },
+                    enabled = !confirmation.isDeleting,
+                ) { Text(if (confirmation.isDeleting) "移出中…" else "确认移出") }
+            },
+            dismissButton = {
+                TextButton(
+                    { onAction(DayItineraryAction.DismissDialogs) },
+                    enabled = !confirmation.isDeleting,
+                ) { Text("取消") }
+            },
         )
     }
     if (showDialogs) state.modeLegId?.let {

@@ -149,6 +149,14 @@ fun TripWorkspaceRoute(
             )
         }
     }
+    LaunchedEffect(itinerary.editDraft) {
+        if (itinerary.editDraft == null && ready?.overlay is WorkspaceOverlay.EditItineraryItem) viewModel.closeOverlay()
+    }
+    LaunchedEffect(itinerary.deleteConfirmation) {
+        if (itinerary.deleteConfirmation == null && ready?.overlay is WorkspaceOverlay.Confirmation && places.pendingCollectionRemoval == null && places.deleting == null) {
+            viewModel.closeOverlay()
+        }
+    }
 
     BackHandler(onBack = ::leaveOrCloseOverlay)
     TripWorkspaceScreen(
@@ -215,7 +223,7 @@ fun TripWorkspaceRoute(
                 is DayItineraryAction.RequestTiming -> {
                     dismissPendingDialogs()
                     dispatchItinerary(action)
-                    viewModel.openOverlay(WorkspaceOverlay.EditItineraryItem(stableWorkspaceOverlayId(action.itemId)))
+                    viewModel.openOverlay(WorkspaceOverlay.EditItineraryItem(action.itemId))
                 }
                 is DayItineraryAction.RequestCrossDay -> {
                     dismissPendingDialogs()
@@ -225,9 +233,14 @@ fun TripWorkspaceRoute(
                 is DayItineraryAction.RequestDelete -> {
                     dismissPendingDialogs()
                     dispatchItinerary(action)
+                    val placeName = itinerary.items.firstOrNull { it.id == action.itemId }?.name.orEmpty()
                     viewModel.openOverlay(
                         WorkspaceOverlay.Confirmation(
-                            confirmation("删除这次安排？", "该安排将从当前日程中移除。", "确认删除"),
+                            confirmation(
+                                "移出${placeName.ifBlank { "该地点" }}？",
+                                "仅从当天行程移出，收藏仍保留。",
+                                "确认移出",
+                            ),
                         ),
                     )
                 }

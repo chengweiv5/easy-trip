@@ -87,10 +87,10 @@ class TripWorkspaceNavigationStateTest {
         advanceUntilIdle()
 
         model.openOverlay(WorkspaceOverlay.PlaceDetail(11L))
-        model.openOverlay(WorkspaceOverlay.EditItineraryItem(22L))
+        model.openOverlay(WorkspaceOverlay.EditItineraryItem("item-22"))
         advanceUntilIdle()
 
-        assertEquals(WorkspaceOverlay.EditItineraryItem(22L), model.state.value.overlay)
+        assertEquals(WorkspaceOverlay.EditItineraryItem("item-22"), model.state.value.overlay)
     }
 
     @Test fun addFlowBackPolicyLocksSubmitAndUndoWithoutClosingOtherIdleOverlays() {

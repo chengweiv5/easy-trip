@@ -43,7 +43,7 @@ import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
 import com.yangchengwei.easytrip.itinerary.ui.SelectPlacesContent
 import com.yangchengwei.easytrip.itinerary.ui.SelectTargetDayContent
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
-import com.yangchengwei.easytrip.itinerary.ui.EditTimingDialog
+import com.yangchengwei.easytrip.itinerary.ui.EditItineraryItemContent
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.ui.PlaceDetailContent
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
@@ -263,11 +263,20 @@ private fun WorkspaceOverlayContent(
                 )
             }
         }
-        is WorkspaceOverlay.EditItineraryItem -> itineraryState.timingItemId?.let { id ->
-            val item = itineraryState.items.firstOrNull { it.id == id }
-            EditTimingDialog(item?.arrivalTime, item?.stayMinutes, { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() }) { time, minutes ->
-                onItineraryAction(DayItineraryAction.SaveTiming(time, minutes)); onClose()
-            }
+        is WorkspaceOverlay.EditItineraryItem -> itineraryState.editDraft?.let { draft ->
+            AlertDialog(
+                onDismissRequest = { if (!draft.isSaving) { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() } },
+                confirmButton = {},
+                text = {
+                    EditItineraryItemContent(
+                        draft = draft,
+                        onArrivalTimeChange = { onItineraryAction(DayItineraryAction.UpdateArrivalTime(it)) },
+                        onStayMinutesChange = { onItineraryAction(DayItineraryAction.UpdateStayMinutes(it)) },
+                        onSave = { onItineraryAction(DayItineraryAction.SaveEdit) },
+                        onCancel = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
+                    )
+                },
+            )
         }
         is WorkspaceOverlay.SelectMoveTargetDay -> AlertDialog(
             onDismissRequest = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
@@ -348,22 +357,57 @@ private fun WorkspaceOverlayContent(
             text = { Column { TransportMode.entries.forEach { mode -> CompactSecondaryButton({ onItineraryAction(DayItineraryAction.OverrideMode(mode)); onClose() }) { Text(mode.label()) } } } },
             confirmButton = {},
         )
-        is WorkspaceOverlay.Confirmation -> ConfirmationDialog(
-            model = overlay.model,
-            onConfirm = {
-                when {
-                    placeState.pendingCollectionRemoval != null -> onPlaceAction(PlacePoolAction.ConfirmCollectionRemoval)
-                    placeState.deleting != null -> onPlaceAction(PlacePoolAction.ConfirmDelete)
-                    itineraryState.deleteItemId != null -> onItineraryAction(DayItineraryAction.ConfirmDelete)
-                }
-                onClose()
-            },
-            onDismiss = {
-                onPlaceAction(PlacePoolAction.DismissDialogs)
-                onItineraryAction(DayItineraryAction.DismissDialogs)
-                onClose()
-            },
-        )
+        is WorkspaceOverlay.Confirmation -> {
+            val itineraryDelete = itineraryState.deleteConfirmation
+            if (itineraryDelete != null) {
+                AlertDialog(
+                    onDismissRequest = {
+                        if (!itineraryDelete.isDeleting) {
+                            onItineraryAction(DayItineraryAction.DismissDialogs)
+                            onClose()
+                        }
+                    },
+                    title = { Text("移出${itineraryDelete.placeName}？") },
+                    text = {
+                        Column {
+                            Text("仅从当天行程移出，收藏仍保留。")
+                            itineraryDelete.deleteError?.let { Text(it) }
+                        }
+                    },
+                    confirmButton = {
+                        CompactPrimaryButton(
+                            onClick = { onItineraryAction(DayItineraryAction.ConfirmDelete) },
+                            enabled = !itineraryDelete.isDeleting,
+                        ) { Text(if (itineraryDelete.isDeleting) "移出中…" else "确认移出") }
+                    },
+                    dismissButton = {
+                        CompactSecondaryButton(
+                            onClick = {
+                                onItineraryAction(DayItineraryAction.DismissDialogs)
+                                onClose()
+                            },
+                            enabled = !itineraryDelete.isDeleting,
+                        ) { Text("取消") }
+                    },
+                )
+            } else {
+                ConfirmationDialog(
+                    model = overlay.model,
+                    onConfirm = {
+                        when {
+                            placeState.pendingCollectionRemoval != null -> onPlaceAction(PlacePoolAction.ConfirmCollectionRemoval)
+                            placeState.deleting != null -> onPlaceAction(PlacePoolAction.ConfirmDelete)
+                        }
+                        onClose()
+                    },
+                    onDismiss = {
+                        onPlaceAction(PlacePoolAction.DismissDialogs)
+                        onItineraryAction(DayItineraryAction.DismissDialogs)
+                        onClose()
+                    },
+                )
+            }
+        }
         is WorkspaceOverlay.Feedback -> AlertDialog(onDismissRequest = onClose, title = { Text(overlay.model.message) }, confirmButton = { CompactSecondaryButton(onClose) { Text("关闭") } })
         WorkspaceOverlay.AddTripDay -> AlertDialog(
             onDismissRequest = { if (!itineraryState.isAppendingDay) onClose() },

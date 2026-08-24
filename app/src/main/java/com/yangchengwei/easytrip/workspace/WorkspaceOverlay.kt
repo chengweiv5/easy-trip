@@ -10,7 +10,7 @@ sealed interface WorkspaceOverlay {
     data object AddToItineraryResult : WorkspaceOverlay
     data class SelectMoveTargetDay(val itemId: String) : WorkspaceOverlay
     data object AddTripDay : WorkspaceOverlay
-    data class EditItineraryItem(val itemId: Long) : WorkspaceOverlay
+    data class EditItineraryItem(val itemId: String) : WorkspaceOverlay
     data class EditRouteLeg(val legId: Long) : WorkspaceOverlay
     data object LayerMenu : WorkspaceOverlay
     data class Confirmation(val model: ConfirmationUiModel) : WorkspaceOverlay

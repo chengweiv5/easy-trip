@@ -136,6 +136,17 @@ class ItineraryTransactionTest {
         }
     }
 
+    @Test fun deletingItineraryItemKeepsSavedPlace() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        seedPlace("museum", "trip", 0.0, 0.0)
+        val itemId = repository.addItem("day", "museum", 0)
+
+        repository.deleteItem(itemId)
+
+        assertEquals(emptyList<ItineraryItemEntity>(), database.itineraryEditingDao().items("day"))
+        assertEquals("museum", database.savedPlaceDao().place("museum")?.id)
+    }
+
     @Test fun timingAndObservationReflectSavedRows() = runTest {
         seedTrip("trip", TravelMode.FLEXIBLE, "day"); seedPlace("hotel", "trip", 0.0, 0.0)
         val id = repository.addItem("day", "hotel", 0); repository.updateTiming(id, LocalTime.of(9, 30), 480)
