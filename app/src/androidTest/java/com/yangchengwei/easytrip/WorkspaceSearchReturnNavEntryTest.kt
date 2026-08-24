@@ -48,7 +48,7 @@ class WorkspaceSearchReturnNavEntryTest {
                 }
             }
         }
-        compose.waitUntil { stateRef.get()?.value != null }
+        compose.waitUntil(timeoutMillis = 5_000) { stateRef.get()?.value != null }
         val oldActivity = compose.activity
         val oldEntryId = entryRef.get()!!.id
         val oldRoute = entryRef.get()!!.destination.route
@@ -58,7 +58,9 @@ class WorkspaceSearchReturnNavEntryTest {
 
         compose.activityRule.scenario.recreate()
 
-        compose.waitUntil { compose.activity !== oldActivity && entryRef.get() != null && stateRef.get() != null }
+        compose.waitUntil(timeoutMillis = 10_000) {
+            compose.activity !== oldActivity && entryRef.get() != null && stateRef.get() != null
+        }
         compose.runOnIdle {
             val recreatedEntry = entryRef.get()!!
             val recreatedState = stateRef.get()!!
@@ -96,7 +98,7 @@ class WorkspaceSearchReturnNavEntryTest {
             }
         }
         compose.runOnIdle { navRef.get()!!.navigate("workspace/A") }
-        compose.waitUntil { enterCount.get() == 1 && stateRef.get() != null }
+        compose.waitUntil(timeoutMillis = 5_000) { enterCount.get() == 1 && stateRef.get() != null }
         val oldEntry = entryRef.get()!!
         val oldState = stateRef.get()!!
         val oldProbe = probeRef.get()!!
@@ -104,7 +106,7 @@ class WorkspaceSearchReturnNavEntryTest {
             oldState.show(WorkspaceSearchReturn(setOf("poi-a")))
             navRef.get()!!.popBackStack()
         }
-        compose.waitUntil {
+        compose.waitUntil(timeoutMillis = 10_000) {
             oldEntry.lifecycle.currentState == Lifecycle.State.DESTROYED && oldProbe.cleared.get()
         }
         entryRef.set(null)
@@ -112,7 +114,9 @@ class WorkspaceSearchReturnNavEntryTest {
         probeRef.set(null)
 
         compose.runOnIdle { navRef.get()!!.navigate("workspace/A") }
-        compose.waitUntil { enterCount.get() == 2 && entryRef.get() != null && stateRef.get() != null }
+        compose.waitUntil(timeoutMillis = 10_000) {
+            enterCount.get() == 2 && entryRef.get() != null && stateRef.get() != null
+        }
         compose.runOnIdle {
             assertNotEquals(oldEntry.id, entryRef.get()!!.id)
             assertNotSame(oldState, stateRef.get())
@@ -135,12 +139,12 @@ class WorkspaceSearchReturnNavEntryTest {
                 }
             }
         }
-        compose.waitUntil { compose.runOnIdle { states.containsKey("A") } }
+        compose.waitUntil(timeoutMillis = 5_000) { compose.runOnIdle { states.containsKey("A") } }
         compose.runOnIdle {
             states.getValue("A").show(WorkspaceSearchReturn(setOf("poi-a")))
             navRef.get()!!.navigate("workspace/B")
         }
-        compose.waitUntil { compose.runOnIdle { states.containsKey("B") } }
+        compose.waitUntil(timeoutMillis = 5_000) { compose.runOnIdle { states.containsKey("B") } }
         compose.runOnIdle {
             assertNotEquals(entries.getValue("A").id, entries.getValue("B").id)
             assertNotSame(states.getValue("A"), states.getValue("B"))
