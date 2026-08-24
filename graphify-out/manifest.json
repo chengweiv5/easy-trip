@@ -1524,9 +1524,9 @@
     "semantic_hash": ""
   },
   "scripts/run-amap-smoke.sh": {
-    "mtime": 1787587467.5862527,
-    "seen": 1787587487.5121,
-    "ast_hash": "8bfa6815b0a6ead4c64ffd149b1c0f23",
+    "mtime": 1787588759.4801192,
+    "seen": 1787588790.64411,
+    "ast_hash": "5f5e1b8517bd455f102df7ac2d7db052",
     "semantic_hash": ""
   },
   "scripts/tests/amap-emulator-gate-test.sh": {
@@ -1536,9 +1536,9 @@
     "semantic_hash": ""
   },
   "scripts/tests/run-amap-smoke-test.sh": {
-    "mtime": 1787587467.58685,
-    "seen": 1787587487.5121012,
-    "ast_hash": "59ec6402a2f19bfa78a8e881b754bf95",
+    "mtime": 1787588759.4806473,
+    "seen": 1787588790.6441119,
+    "ast_hash": "c167187e696a81f4cad5fa9684d4afb3",
     "semantic_hash": ""
   },
   "docs/testing/amap-emulator-smoke.md": {
