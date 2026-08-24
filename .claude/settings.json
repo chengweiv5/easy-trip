@@ -1,5 +1,17 @@
 {
   "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Easy Trip 持续开发诊断日志：https://bytedance.my.larkoffice.com/docx/FGQEdxStTo4Ei2xXxvompRpWyPf。开发过程中遇到单步骤超过约20分钟、重复失败/重试、测试或设备关键阻塞、审查FAIL、Agent异常停止时，使用 lark-doc 追加：影响、环境、事实/推断/未知、证据路径、根因状态、下一步和可并行任务。不要记录普通成功流水；日志写入不得中断主任务。\"}}'",
+            "timeout": 5,
+            "statusMessage": "加载 Easy Trip 诊断日志规则"
+          }
+        ]
+      }
+    ],
     "PreToolUse": [
       {
         "matcher": "Bash|Grep",
