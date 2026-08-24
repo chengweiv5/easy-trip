@@ -20,6 +20,7 @@ import androidx.navigation.navArgument
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.amap.AmapPrivacyGate
 import com.yangchengwei.easytrip.place.amap.AmapPlaceDataSource
+import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import com.yangchengwei.easytrip.place.ui.PlacePoolSheet
 import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
 import com.yangchengwei.easytrip.place.ui.PlaceSearchRoute
@@ -101,6 +102,7 @@ data class AppNavigationDependencies(
     val mapPreferences: MapPreferences,
     val locationPermissionRequestStore: LocationPermissionRequestStore,
     val routeCoordinator: RouteRefreshCoordinator? = null,
+    val placeSearchDataSource: PlaceSearchDataSource? = null,
 )
 
 fun interface AppNavigationObserver {
@@ -320,19 +322,23 @@ fun AppNavigation(
         }
         composable(TRIP_SEARCH_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->
             val id = checkNotNull(entry.arguments?.getString("tripId"))
-            if (application == null) {
+            val savedPlaceRepository = dependencies?.savedPlaceRepository ?: application?.savedPlaceRepository
+            if (savedPlaceRepository == null) {
                 Column {
                     Text("搜索地点")
                     TextButton(onClick = navController::popBackStack) { Text("返回") }
                 }
             } else {
-                val source = remember {
-                    application.amapConsentToken?.takeIf { it.isActive() }?.let { AmapPlaceDataSource(application, it) }
+                val source = remember(application, dependencies?.placeSearchDataSource) {
+                    dependencies?.placeSearchDataSource
+                        ?: application?.amapConsentToken
+                            ?.takeIf { it.isActive() }
+                            ?.let { AmapPlaceDataSource(application, it) }
                 }
                 val model: PlaceSearchViewModel = viewModel(
                     factory = PlaceSearchViewModel.Factory(
                         id,
-                        application.savedPlaceRepository,
+                        savedPlaceRepository,
                         source,
                         entry.savedStateHandle,
                     ),

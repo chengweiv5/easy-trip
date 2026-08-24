@@ -38,6 +38,9 @@ class V1ScenarioCatalogTest(private val scenario: V1Scenario) {
 
 @RunWith(AndroidJUnit4::class)
 class V1ScenarioMetadataTest {
+    @get:Rule
+    val compose = createAndroidComposeRule<ComponentActivity>()
+
     @Test
     fun containsEveryExistingNumberedFrameWithoutInventingFive() {
         val numbers = V1ScenarioFixtures.scenarios.map { it.number }.toSet()
@@ -80,6 +83,20 @@ class V1ScenarioMetadataTest {
     fun eachSuiteGetsAnIndependentExecutableFixture() {
         V1ScenarioFixtures.scenarios.forEach { scenario ->
             assertNotSame(scenario.createExecutable(), scenario.createExecutable())
+        }
+    }
+
+    @Test
+    fun mapFailureSetupCanBeRepeatedOnTheSameExecutable() {
+        val executable = V1ScenarioFixtures.scenarios.first { it.number == 46 }.createExecutable()
+
+        repeat(2) {
+            executable.setup()
+            executable.render(compose)
+            compose.waitForIdle()
+            executable.actions(compose)
+            compose.waitForIdle()
+            executable.assertions(compose)
         }
     }
 

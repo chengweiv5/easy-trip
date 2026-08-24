@@ -3,10 +3,6 @@ package com.yangchengwei.easytrip
 import android.content.Context
 import android.view.View
 import androidx.activity.ComponentActivity
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -19,19 +15,13 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.lifecycle.SavedStateHandle
 import androidx.room.Room
-import com.yangchengwei.easytrip.amap.AmapPrivacyGate
+import com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
-import com.yangchengwei.easytrip.itinerary.ui.DayItinerarySheet
-import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
-import com.yangchengwei.easytrip.place.ui.PlacePoolSheet
-import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
-import com.yangchengwei.easytrip.place.ui.PlaceSearchContent
-import com.yangchengwei.easytrip.place.ui.PlaceSearchViewModel
 import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
@@ -41,7 +31,6 @@ import com.yangchengwei.easytrip.workspace.MapPoiUi
 import com.yangchengwei.easytrip.workspace.ItineraryScope
 import com.yangchengwei.easytrip.workspace.MapScope
 import com.yangchengwei.easytrip.workspace.MapUiModel
-import com.yangchengwei.easytrip.workspace.TripWorkspaceScreen
 import com.yangchengwei.easytrip.workspace.TripWorkspaceViewModel
 import com.yangchengwei.easytrip.workspace.WorkspaceSection
 import kotlinx.coroutines.flow.first
@@ -49,7 +38,6 @@ import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -76,38 +64,32 @@ class V2AcceptanceTest {
         val source = object : PlaceSearchDataSource {
             override suspend fun search(keyword: String, city: String?) = listOf(museum, park)
         }
-        val placeModel = PlacePoolViewModel(tripId, places, source)
-        val searchModel = PlaceSearchViewModel(tripId, places, source, SavedStateHandle())
         val savedState = SavedStateHandle(mapOf("workspace.tab" to "SEARCH"))
         val workspace = TripWorkspaceViewModel(tripId, trips, places, itineraries, routes, savedState)
-        val itinerary = DayItineraryViewModel(tripId, trips, itineraries, routes, null, places.observePlaces(tripId, emptySet()), workspace.selectedDayId)
-        val gate = AmapPrivacyGate.create(compose.activity).apply { reportPrivacyShown() }
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val navigationRoutes = mutableListOf<String>()
         lateinit var host: RecordingHost
-        var searching by mutableStateOf(false)
 
         compose.setContent {
-            if (searching) {
-                val searchState by searchModel.state.collectAsState()
-                PlaceSearchContent(searchState, searchModel::dispatch)
-            } else {
-                val placeState by placeModel.state.collectAsState()
-                val workspaceState by workspace.state.collectAsState()
-                TripWorkspaceScreen(
-                    viewModel = workspace,
-                    consent = token,
-                    onBack = {},
-                    onSettings = {},
-                    onOpenSearch = { searching = true },
-                    placeContent = { PlacePoolSheet(placeModel, showSearch = false) },
-                    dayItineraryContent = { DayItinerarySheet(itinerary) },
-                    isPoiSaved = workspaceState.selectedMapPoi?.poiId in placeState.savedPoiIds,
-                    collectionBusyPoiIds = placeState.collectionBusyPoiIds,
-                    onTogglePoiCollection = placeModel::toggleCollection,
-                    mapHostFactory = { RecordingHost(it).also { created -> host = created } },
-                )
-            }
+            AppNavigation(
+                service = com.yangchengwei.easytrip.trip.domain.TripService(trips),
+                repository = trips,
+                impacts = com.yangchengwei.easytrip.trip.ui.RoomDeleteImpactProvider(database.deleteImpactDao()),
+                dependencies = AppNavigationDependencies(
+                    savedPlaceRepository = places,
+                    itineraryRepository = itineraries,
+                    routeLegRepository = routes,
+                    mapPreferences = com.yangchengwei.easytrip.workspace.InMemoryMapPreferences(),
+                    locationPermissionRequestStore = InMemoryLocationPermissionRequestStore(),
+                    placeSearchDataSource = source,
+                ),
+                navigationObserver = AppNavigationObserver(navigationRoutes::add),
+                mapHostFactory = { RecordingHost(it).also { created -> host = created } },
+            )
         }
+
+        compose.onNodeWithTag("trip-$tripId").performClick()
+        compose.waitUntil(5_000) { navigationRoutes.lastOrNull() == "trips/$tripId" }
+        compose.waitForIdle()
 
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         compose.onNodeWithTag("layer-menu").assertHasClickAction()
@@ -115,26 +97,31 @@ class V2AcceptanceTest {
         compose.onNodeWithTag("section-ITINERARY").assertExists()
         compose.onNodeWithTag("itinerary-scope-rail").assertDoesNotExist()
         compose.onNodeWithTag("workspace-search-launcher").assertHasClickAction().performClick()
-        compose.waitUntil { searching }
-        compose.waitForIdle()
+        compose.waitUntil(5_000) { navigationRoutes.lastOrNull() == tripSearchRoute(tripId) }
         compose.onNodeWithTag("place-search-field").assertIsDisplayed().performTextInput("博物馆")
-        compose.waitUntil(5_000) { searchModel.state.value.search.results.size == 2 }
+        compose.onNodeWithTag("place-search-bookmark-touch-museum").assertIsDisplayed()
+        compose.onNodeWithTag("place-search-bookmark-touch-park").assertIsDisplayed()
         compose.onAllNodesWithText("加入行程").assertCountEquals(0)
 
         compose.onNodeWithTag("place-search-bookmark-touch-museum").performClick()
-        compose.waitUntil(5_000) { "museum" in searchModel.state.value.savedPoiIds }
+        compose.waitUntil(5_000) {
+            "museum" in runBlocking { places.observeSavedPoiIds(tripId).first() }
+        }
         compose.onNodeWithTag("place-search-bookmark-touch-park").performClick()
-        compose.waitUntil(5_000) { "park" in searchModel.state.value.savedPoiIds }
-        assertTrue(searching)
-        assertEquals("博物馆", searchModel.state.value.search.query)
+        compose.waitUntil(5_000) {
+            "park" in runBlocking { places.observeSavedPoiIds(tripId).first() }
+        }
         compose.onNodeWithTag("place-search-field").assertIsDisplayed()
+        compose.onNodeWithTag("place-search-back").performClick()
+        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
 
-        compose.runOnIdle { searching = false }
         compose.runOnIdle { host.emit(MapPoiUi("poi-card", "故宫", "北京市东城区", GeoPoint(39.916, 116.397))) }
         compose.onNodeWithText("故宫").assertIsDisplayed()
         assertFalse(runBlocking { places.observeSavedPoiIds(tripId).first() }.contains("poi-card"))
         compose.onNodeWithTag("place-card-collection").performClick()
-        compose.waitUntil(5_000) { "poi-card" in placeModel.state.value.savedPoiIds }
+        compose.waitUntil(5_000) {
+            "poi-card" in runBlocking { places.observeSavedPoiIds(tripId).first() }
+        }
 
         compose.onNodeWithTag("section-ITINERARY").performClick()
         compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()

@@ -800,13 +800,17 @@ object V1ScenarioExecutableFactory {
         actions: MutableList<com.yangchengwei.easytrip.workspace.TripWorkspaceAction>,
         ready: TripWorkspaceReadyState,
         mapState: WorkspaceMapState,
+        reset: () -> Unit = {},
         onMapRetry: () -> Unit = { actions.add(com.yangchengwei.easytrip.workspace.TripWorkspaceAction.Retry) },
         interact: V1ComposeRule.() -> Unit = {},
         verify: V1ComposeRule.() -> Unit,
     ) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.WORKSPACE),
         ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
-        actions::clear,
+        {
+            actions.clear()
+            reset()
+        },
         {
             val day = ready.days.firstOrNull()
             TripWorkspaceContent(
@@ -959,6 +963,7 @@ object V1ScenarioExecutableFactory {
             mutableListOf(),
             readyState(),
             WorkspaceMapState.Failed("地图加载失败"),
+            reset = { retryCalls = 0 },
             onMapRetry = { retryCalls++ },
             interact = { onNodeWithTag("workspace-map-retry").performClick() },
             verify = {
