@@ -48,6 +48,7 @@ import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.ui.PlaceDetailContent
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
+import com.yangchengwei.easytrip.permission.PermissionExplanationContent
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -76,6 +77,8 @@ fun TripWorkspaceScreen(
     collectionBusyPoiIds: Set<String> = emptySet(),
     collectionError: String? = null,
     onTogglePoiCollection: (PlaceCandidate) -> Unit = {},
+    onConfirmPermissionExplanation: () -> Unit = {},
+    onDismissPermissionExplanation: () -> Unit = {},
     mapHostFactory: (android.content.Context) -> AmapMapHost = { RealAmapMapHost.create(it) },
     searchReturn: WorkspaceSearchReturn? = null,
 ) {
@@ -158,6 +161,8 @@ fun TripWorkspaceScreen(
             collectionBusyPoiIds = collectionBusyPoiIds,
             collectionError = collectionError,
             onTogglePoiCollection = onTogglePoiCollection,
+            onConfirmPermissionExplanation = onConfirmPermissionExplanation,
+            onDismissPermissionExplanation = onDismissPermissionExplanation,
         )
     }
 }
@@ -188,6 +193,7 @@ fun TripWorkspaceScreen(
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
+                TripWorkspaceAction.Locate -> Unit
                 TripWorkspaceAction.Retry -> viewModel.retry()
                 is TripWorkspaceAction.SelectSection -> viewModel.selectSection(action.section)
                 is TripWorkspaceAction.SelectItineraryScope -> viewModel.selectItineraryScope(action.scope)
@@ -238,6 +244,8 @@ private fun WorkspaceOverlayContent(
     collectionBusyPoiIds: Set<String>,
     collectionError: String?,
     onTogglePoiCollection: (PlaceCandidate) -> Unit,
+    onConfirmPermissionExplanation: () -> Unit,
+    onDismissPermissionExplanation: () -> Unit,
 ) {
     when (val overlay = state.overlay) {
         WorkspaceOverlay.None, WorkspaceOverlay.LayerMenu -> Unit
@@ -461,7 +469,11 @@ private fun WorkspaceOverlayContent(
             },
             confirmButton = {},
         )
-        is WorkspaceOverlay.PermissionExplanation -> Unit
+        is WorkspaceOverlay.PermissionExplanation -> PermissionExplanationContent(
+            kind = overlay.kind,
+            onConfirm = onConfirmPermissionExplanation,
+            onDismiss = onDismissPermissionExplanation,
+        )
     }
 }
 

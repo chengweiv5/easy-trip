@@ -32,9 +32,19 @@ import com.yangchengwei.easytrip.workspace.MapPreferences
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
+import android.Manifest
+import android.app.Activity
 import android.content.Intent
+import android.content.pm.PackageManager
 import android.net.Uri
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
+import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
+import com.yangchengwei.easytrip.permission.WorkspaceEffect
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import com.yangchengwei.easytrip.trip.domain.TripService
@@ -110,6 +120,7 @@ fun AppNavigation(
     dependencies: AppNavigationDependencies? = null,
     navigationObserver: AppNavigationObserver? = null,
     mapHostFactory: ((android.content.Context) -> com.yangchengwei.easytrip.workspace.AmapMapHost)? = null,
+    onOpenApplicationSettings: ((android.content.Context) -> Unit)? = null,
 ) {
     val navController = rememberNavController()
     val navigate: (String) -> Unit = { route ->
@@ -164,6 +175,22 @@ fun AppNavigation(
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
                 val workspaceSearchReturnState: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
+                val context = androidx.compose.ui.platform.LocalContext.current
+                val activity = context as? Activity
+                val locationCoordinator = remember(entry) { LocationPermissionCoordinator(entry.savedStateHandle) }
+                val locationPermissionLauncher = rememberLauncherForActivityResult(
+                    ActivityResultContracts.RequestMultiplePermissions(),
+                ) { result ->
+                    val granted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
+                        result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
+                    locationCoordinator.onPermissionResult(
+                        isGranted = granted,
+                        shouldShowRationale = activity?.let {
+                            ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION) ||
+                                ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        } == true,
+                    )
+                }
                 val searchReturnPayload by entry.savedStateHandle.getStateFlow<Array<String>?>(WORKSPACE_SEARCH_RETURN_KEY, null).collectAsStateWithLifecycle()
                 LaunchedEffect(searchReturnPayload) {
                     if (searchReturnPayload != null) workspaceSearchReturnState.show(consumeWorkspaceSearchReturn(entry.savedStateHandle))
@@ -215,6 +242,31 @@ fun AppNavigation(
                     mapHostFactory = mapHostFactory ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
                     searchReturn = workspaceSearchReturnState.value,
                     onConsumeSearchReturn = workspaceSearchReturnState::clear,
+                    locationPermissionCoordinator = locationCoordinator,
+                    isLocationPermissionGranted = {
+                        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
+                            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                    },
+                    shouldShowLocationPermissionRationale = {
+                        activity?.let {
+                            ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION) ||
+                                ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_COARSE_LOCATION)
+                        } == true
+                    },
+                    onWorkspaceEffect = { effect ->
+                        when (effect) {
+                            WorkspaceEffect.RequestLocationPermission -> locationPermissionLauncher.launch(
+                                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+                            )
+                            WorkspaceEffect.OpenApplicationSettings -> if (onOpenApplicationSettings != null) {
+                                onOpenApplicationSettings(context)
+                            } else {
+                                context.startActivity(
+                                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")),
+                                )
+                            }
+                        }
+                    },
                 )
                 if (showConsent && application != null) {
                     SideEffect {

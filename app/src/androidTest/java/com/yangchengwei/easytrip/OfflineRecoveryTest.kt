@@ -15,10 +15,13 @@ import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
 import com.yangchengwei.easytrip.route.data.RouteLegEntity
 import com.yangchengwei.easytrip.trip.data.TripDayEntity
 import com.yangchengwei.easytrip.trip.data.TripEntity
+import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
+import androidx.lifecycle.SavedStateHandle
 import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -60,6 +63,14 @@ class OfflineRecoveryTest {
         assertEquals(5L, rows.getValue("interrupted").version)
         assertEquals(RouteStatus.SUCCESS, rows.getValue("cached").status)
         assertEquals(10, rows.getValue("cached").distanceMeters)
+    }
+
+    @Test fun reopeningWorkspaceDoesNotRequestLocationPermission() {
+        val saved = SavedStateHandle(mapOf(LocationPermissionCoordinator.HAS_REQUESTED_KEY to true))
+
+        val coordinator = LocationPermissionCoordinator(saved)
+
+        assertFalse(coordinator.effects.tryReceive().isSuccess)
     }
 
     private fun open() = Room.databaseBuilder(context, EasyTripDatabase::class.java, name).build()

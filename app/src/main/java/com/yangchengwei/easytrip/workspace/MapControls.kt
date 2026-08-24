@@ -26,11 +26,16 @@ fun MapControls(
     onOpenLayerMenu: () -> Unit,
     onCloseOverlay: () -> Unit,
     onSelectLayer: (MapLayer) -> Unit,
+    onLocate: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     Column(modifier, horizontalAlignment = Alignment.End) {
         Surface(
-            Modifier.size(48.dp).testTag("layer-menu").semantics { contentDescription = "地图图层" }.clickable(onClick = onOpenLayerMenu),
+            Modifier.size(48.dp).testTag("workspace-locate").semantics { contentDescription = "定位" }.clickable(onClick = onLocate),
+            shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp,
+        ) { Text("定位", Modifier.padding(10.dp), style = MaterialTheme.typography.labelSmall) }
+        Surface(
+            Modifier.padding(top = 8.dp).size(48.dp).testTag("layer-menu").semantics { contentDescription = "地图图层" }.clickable(onClick = onOpenLayerMenu),
             shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp,
         ) { LayerIcon() }
         if (overlay == WorkspaceOverlay.LayerMenu) {

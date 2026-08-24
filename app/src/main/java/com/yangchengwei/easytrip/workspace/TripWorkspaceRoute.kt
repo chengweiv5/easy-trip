@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
+import com.yangchengwei.easytrip.permission.WorkspaceEffect
 import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep
@@ -145,6 +147,10 @@ fun TripWorkspaceRoute(
     mapHostFactory: (android.content.Context) -> AmapMapHost = { RealAmapMapHost.create(it) },
     searchReturn: WorkspaceSearchReturn? = null,
     onConsumeSearchReturn: () -> Unit = {},
+    locationPermissionCoordinator: LocationPermissionCoordinator? = null,
+    isLocationPermissionGranted: () -> Boolean = { false },
+    shouldShowLocationPermissionRationale: () -> Boolean = { false },
+    onWorkspaceEffect: (WorkspaceEffect) -> Unit = {},
 ) {
     val page = viewModel.pageState.collectAsStateWithLifecycle().value
     val places = placeViewModel?.state?.collectAsStateWithLifecycle()?.value ?: placeState
@@ -153,6 +159,19 @@ fun TripWorkspaceRoute(
     val ready = (page as? TripWorkspacePageState.Ready)?.content
     val dispatchPlace: (PlacePoolAction) -> Unit = placeViewModel?.let { it::dispatch } ?: onPlaceAction
     val dispatchItinerary: (DayItineraryAction) -> Unit = itineraryViewModel?.let { it::dispatch } ?: onItineraryAction
+    val permissionExplanation = locationPermissionCoordinator?.explanation?.collectAsStateWithLifecycle()?.value
+
+    LaunchedEffect(locationPermissionCoordinator) {
+        locationPermissionCoordinator?.effectFlow?.collect(onWorkspaceEffect)
+    }
+    LaunchedEffect(permissionExplanation, ready?.overlay) {
+        val explanation = permissionExplanation
+        if (explanation != null && ready?.overlay != WorkspaceOverlay.PermissionExplanation(explanation)) {
+            viewModel.openOverlay(WorkspaceOverlay.PermissionExplanation(explanation))
+        } else if (explanation == null && ready?.overlay is WorkspaceOverlay.PermissionExplanation) {
+            viewModel.closeOverlay()
+        }
+    }
 
     fun dismissPendingDialogs() {
         placeViewModel?.dismissDialogs()
@@ -169,6 +188,7 @@ fun TripWorkspaceRoute(
         ) return
         dismissPendingDialogs()
         if (overlay.isAddToItineraryOverlay()) addToItineraryViewModel?.cancel()
+        if (overlay is WorkspaceOverlay.PermissionExplanation) locationPermissionCoordinator?.dismissExplanation()
         viewModel.closeOverlay()
     }
     fun leaveOrCloseOverlay() {
@@ -276,6 +296,10 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
+                TripWorkspaceAction.Locate -> locationPermissionCoordinator?.onLocateClick(
+                    isGranted = isLocationPermissionGranted(),
+                    shouldShowRationale = shouldShowLocationPermissionRationale(),
+                )
                 TripWorkspaceAction.Retry -> viewModel.retry()
                 is TripWorkspaceAction.SelectSection -> {
                     if (shouldConsumeSearchReturn(ready?.section, action.section)) onConsumeSearchReturn()
@@ -293,6 +317,8 @@ fun TripWorkspaceRoute(
         },
         onMarkerClick = viewModel::selectMarker,
         onMapPoiClick = viewModel::selectMapPoi,
+        onConfirmPermissionExplanation = { locationPermissionCoordinator?.confirmExplanation() },
+        onDismissPermissionExplanation = { locationPermissionCoordinator?.dismissExplanation() },
         placeState = places,
         onPlaceAction = { action ->
             when (action) {

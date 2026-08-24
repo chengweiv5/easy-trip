@@ -183,6 +183,7 @@ private fun WorkspaceReadyContent(
                     onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
                     onCloseOverlay = { onAction(TripWorkspaceAction.CloseOverlay) },
                     onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
+                    onLocate = { onAction(TripWorkspaceAction.Locate) },
                     modifier = Modifier.align(Alignment.TopEnd).padding(top = 62.dp, end = 20.dp),
                 )
                 MapLegend(Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 82.dp))
