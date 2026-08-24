@@ -1,19 +1,23 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import java.io.ByteArrayOutputStream
 import java.io.File
 import java.security.MessageDigest
 import java.util.Properties
 
 fun gitBytes(root: File, vararg arguments: String): ByteArray? = runCatching {
-    val output = ByteArrayOutputStream()
-    val result = providers.exec {
+    val exec = providers.exec {
         workingDir(root)
         commandLine("git", *arguments)
-        standardOutput = output
-        errorOutput = ByteArrayOutputStream()
         isIgnoreExitValue = true
-    }.result.get()
-    if (result.exitValue == 0) output.toByteArray() else null
+    }
+    val result = exec.result.get()
+    if (result.exitValue == 0) {
+        exec.standardOutput.asBytes.get()
+    } else {
+        logger.warn("Git metadata command failed with exit code ${result.exitValue}")
+        null
+    }
+}.onFailure {
+    logger.warn("Git metadata command could not run: ${it.javaClass.simpleName}")
 }.getOrNull()
 
 fun sha256(parts: List<ByteArray>): String {
