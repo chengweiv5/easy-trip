@@ -11,9 +11,9 @@
 
 ## 视觉契约
 
-两种状态均断言查询词、返回按钮、搜索框、Surface 可见，返回区 44dp、搜索框高 48dp、Surface 宽 350dp，并要求窗口宽度恰为 390dp。Loading 断言标题和 query 插值说明；NetworkFailure 断言标题、标准说明、可点击重试动作、失败节点在 Surface 内、48dp 图标及 48dp 动作高度。
+两种状态均断言查询词、返回按钮、搜索框、Surface 可见，返回区 44dp、搜索框高 48dp。390dp 窗口下 Surface 约为 350dp；其他窗口按左右各 20dp 设计边距适配为约 `windowWidthDp - 40dp`，允许 1dp 布局取整误差。Surface、返回区、搜索框必须完整位于窗口内，返回区与搜索框不得重叠。Loading 的标题和 query 插值说明必须位于 Surface 内且互不重叠；NetworkFailure 的全部关键节点必须位于 Surface 内且相邻内容不重叠，并保持 48dp 图标及 48dp 动作高度。
 
-manifest 记录实际 bitmap 像素、window dp 和目标 390dp。任何 render/assert 之前，各方法先清理自己的旧 PNG、JSON manifest、complete marker 和临时文件；因此早期断言失败不会留下旧完整证据。
+manifest 同时记录实际 bitmap 像素、实际 window dp 和设计目标 `target_window_width_dp=390`，非 390dp 设备明确属于 responsive adaptation，不伪装为目标尺寸。任何 render/assert 之前，各方法先清理自己的旧 PNG、JSON manifest、complete marker 和临时文件；因此早期断言失败不会留下旧完整证据。
 
 ## 构建 provenance
 

@@ -34,6 +34,9 @@ class PlaceSearchEvidenceTest {
         assertSharedStructure()
         compose.onNodeWithText("正在搜索地点").assertIsDisplayed()
         compose.onNodeWithText("正在查找“西湖”相关结果…").assertIsDisplayed()
+        assertTextInside("正在搜索地点", "place-search-surface")
+        assertTextInside("正在查找“西湖”相关结果…", "place-search-surface")
+        assertTextDoesNotOverlap("正在搜索地点", "正在查找“西湖”相关结果…")
         captureEvidence(evidence)
     }
 
@@ -56,6 +59,9 @@ class PlaceSearchEvidenceTest {
         assertInside("place-search-network-failure-action", "place-search-surface")
         assertSize("place-search-network-failure-icon", 48f, 48f)
         assertSize("place-search-network-failure-action", expectedHeight = 48f)
+        assertTagsDoNotOverlap("place-search-network-failure-icon", "place-search-network-failure-title")
+        assertTagsDoNotOverlap("place-search-network-failure-title", "place-search-network-failure-description")
+        assertTagsDoNotOverlap("place-search-network-failure-description", "place-search-network-failure-action")
         captureEvidence(evidence)
     }
 
@@ -81,8 +87,13 @@ class PlaceSearchEvidenceTest {
         compose.onNodeWithTag("place-search-surface").assertIsDisplayed()
         assertSize("place-search-back", 44f, 44f)
         assertSize("place-search-field", expectedHeight = 48f)
-        assertSize("place-search-surface", expectedWidth = 350f)
-        assertEquals(390, compose.activity.resources.configuration.screenWidthDp)
+        val windowWidthDp = compose.activity.resources.configuration.screenWidthDp
+        val expectedSurfaceWidth = if (windowWidthDp == 390) 350f else windowWidthDp - 40f
+        assertSize("place-search-surface", expectedWidth = expectedSurfaceWidth, tolerance = 1f)
+        assertInsideWindow("place-search-surface", windowWidthDp)
+        assertInsideWindow("place-search-back", windowWidthDp)
+        assertInsideWindow("place-search-field", windowWidthDp)
+        assertTagsDoNotOverlap("place-search-back", "place-search-field")
     }
 
     private fun assertInside(tag: String, containerTag: String) {
@@ -94,10 +105,44 @@ class PlaceSearchEvidenceTest {
         assertTrue(bounds.bottom <= container.bottom)
     }
 
-    private fun assertSize(tag: String, expectedWidth: Float? = null, expectedHeight: Float? = null) {
+    private fun assertInsideWindow(tag: String, windowWidthDp: Int) {
+        val bounds = compose.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue(bounds.left.value >= 0f)
+        assertTrue(bounds.right.value <= windowWidthDp.toFloat())
+        assertTrue(bounds.top.value >= 0f)
+        assertTrue(bounds.bottom.value <= compose.activity.resources.configuration.screenHeightDp.toFloat())
+    }
+
+    private fun assertTagsDoNotOverlap(firstTag: String, secondTag: String) {
+        val first = compose.onNodeWithTag(firstTag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val second = compose.onNodeWithTag(secondTag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue(first.right <= second.left || second.right <= first.left || first.bottom <= second.top || second.bottom <= first.top)
+    }
+
+    private fun assertTextInside(text: String, containerTag: String) {
+        val container = compose.onNodeWithTag(containerTag).getUnclippedBoundsInRoot()
+        val bounds = compose.onNodeWithText(text, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue(bounds.left >= container.left)
+        assertTrue(bounds.top >= container.top)
+        assertTrue(bounds.right <= container.right)
+        assertTrue(bounds.bottom <= container.bottom)
+    }
+
+    private fun assertTextDoesNotOverlap(firstText: String, secondText: String) {
+        val first = compose.onNodeWithText(firstText, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val second = compose.onNodeWithText(secondText, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue(first.right <= second.left || second.right <= first.left || first.bottom <= second.top || second.bottom <= first.top)
+    }
+
+    private fun assertSize(
+        tag: String,
+        expectedWidth: Float? = null,
+        expectedHeight: Float? = null,
+        tolerance: Float = 0.5f,
+    ) {
         val bounds: DpRect = compose.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
-        expectedWidth?.let { assertEquals(it, (bounds.right - bounds.left).value, 0.5f) }
-        expectedHeight?.let { assertEquals(it, (bounds.bottom - bounds.top).value, 0.5f) }
+        expectedWidth?.let { assertEquals(it, (bounds.right - bounds.left).value, tolerance) }
+        expectedHeight?.let { assertEquals(it, (bounds.bottom - bounds.top).value, tolerance) }
     }
 
     private fun captureEvidence(evidence: EvidenceCase) {
@@ -220,7 +265,7 @@ class PlaceSearchEvidenceTest {
     private fun validateIndependentInvariants(expected: ExpectedEvidence) {
         check(expected.sourceState == "CLEAN")
         check(expected.targetWindowWidthDp == 390)
-        check(expected.windowWidthDp == expected.targetWindowWidthDp)
+        check(expected.windowWidthDp > 40)
     }
 
     private fun validatePublishedEvidence(expected: ExpectedEvidence) {
