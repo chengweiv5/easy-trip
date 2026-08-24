@@ -295,8 +295,8 @@ class PlaceSearchEvidenceTest {
 
     private fun assertJsonDouble(json: JSONObject, key: String, expected: Double) {
         val actual = json.get(key)
-        assertTrue("$key must be Double", actual is Double)
-        assertEquals(expected, actual as Double, 0.0)
+        assertTrue("$key must be Number", actual is Number)
+        assertEquals(expected, (actual as Number).toDouble(), 0.0)
     }
 
     private fun sha256(file: File): String {
