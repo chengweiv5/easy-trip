@@ -103,3 +103,13 @@ XML 断言：
 - workspace 根布局显式叠加 `imePadding()`，`BoxWithConstraints.maxHeight` 因 IME 可用高度收缩；safe drawing 仍只在同一根容器应用一次。
 - RED：`WorkspaceSearchReturnTransientState` 与 `shouldConsumeSearchReturn` 缺失导致 `WorkspaceSearchReturnNavigationTest` 编译失败。
 - GREEN：`WorkspaceSearchReturnNavigationTest` 与 `compileDebugAndroidTestKotlin` 均成功。按本轮限制未操作共享模拟器，仅执行聚焦 JVM/Compose 编译检查。
+
+---
+
+## Fix round 3（2026-08-24）
+
+- 将瞬时返回状态从 `AppNavigation` 普通 `remember` 移入 workspace `NavBackStackEntry` scoped 的 `WorkspaceSearchReturnViewModel`。同一 entry 的 ViewModelStore 在 Activity configuration recreation 中保留；新 entry、新 trip 和新进程的 ViewModelStore 均为空。
+- workspace Back 在 pop 前显式清除；A/B workspace 各自使用独立 entry ViewModel，避免跨 trip 泄漏。
+- TDD RED：新增 `ViewModelProvider`/`ViewModelStoreOwner` 测试后，`WorkspaceSearchReturnViewModel` 不存在导致编译失败。
+- GREEN：entry recreation/isolation/clear 测试通过，`compileDebugKotlin` 与 `compileDebugAndroidTestKotlin` 成功。
+- 将末项 bounds 的 Kotlin `assert` 改为 JUnit `assertTrue`，避免关闭 JVM assertions 时测试失效。

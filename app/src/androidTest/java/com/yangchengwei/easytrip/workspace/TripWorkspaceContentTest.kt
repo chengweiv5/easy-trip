@@ -164,7 +164,7 @@ class TripWorkspaceContentTest {
         compose.waitForIdle()
         val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
         val visibleCard = compose.onNodeWithTag("saved-place-8").getUnclippedBoundsInRoot()
-        assert(visibleCard.bottom <= root.bottom - 24.dp)
+        assertTrue("root=$root card=$visibleCard", visibleCard.bottom <= root.bottom - 24.dp)
     }
 
     private fun setContent(

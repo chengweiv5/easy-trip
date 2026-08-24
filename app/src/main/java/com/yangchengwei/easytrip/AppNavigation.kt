@@ -63,7 +63,7 @@ internal fun publishWorkspaceSearchReturn(handle: androidx.lifecycle.SavedStateH
     handle[WORKSPACE_SEARCH_RETURN_KEY] = poiIds.takeIf { it.isNotEmpty() }?.toTypedArray()
 }
 
-internal class WorkspaceSearchReturnTransientState {
+internal class WorkspaceSearchReturnViewModel : androidx.lifecycle.ViewModel() {
     var value by mutableStateOf<com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn?>(null)
         private set
 
@@ -112,7 +112,6 @@ fun AppNavigation(
     mapHostFactory: ((android.content.Context) -> com.yangchengwei.easytrip.workspace.AmapMapHost)? = null,
 ) {
     val navController = rememberNavController()
-    val workspaceSearchReturnState = remember { WorkspaceSearchReturnTransientState() }
     val navigate: (String) -> Unit = { route ->
         navigationObserver?.onNavigate(route)
         navController.navigate(route)
@@ -164,6 +163,7 @@ fun AppNavigation(
                 var privacyReported by remember { mutableStateOf(application?.amapPrivacyShown == true) }
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
+                val workspaceSearchReturnState: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
                 val searchReturnPayload by entry.savedStateHandle.getStateFlow<Array<String>?>(WORKSPACE_SEARCH_RETURN_KEY, null).collectAsStateWithLifecycle()
                 LaunchedEffect(searchReturnPayload) {
                     if (searchReturnPayload != null) workspaceSearchReturnState.show(consumeWorkspaceSearchReturn(entry.savedStateHandle))
@@ -188,7 +188,10 @@ fun AppNavigation(
                 TripWorkspaceRoute(
                     viewModel = workspaceModel,
                     consent = token,
-                    onBack = navController::popBackStack,
+                    onBack = {
+                        workspaceSearchReturnState.clear()
+                        navController.popBackStack()
+                    },
                     onSettings = {
                         workspaceSearchReturnState.clear()
                         navigate("trips/$id/settings")
