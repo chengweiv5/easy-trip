@@ -1,6 +1,9 @@
 package com.yangchengwei.easytrip
 
+import android.os.Bundle
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
+import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.lifecycle.Lifecycle
@@ -26,44 +29,29 @@ import org.junit.Rule
 import org.junit.Test
 
 class WorkspaceSearchReturnNavEntryTest {
-    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    @get:Rule val compose = createAndroidComposeRule<WorkspaceSearchReturnTestActivity>()
 
     @Test fun acknowledgedPayloadSurvivesActivityRecreationInSameEntry() {
-        val published = AtomicBoolean(false)
-        val entryRef = AtomicReference<NavBackStackEntry?>()
-        val stateRef = AtomicReference<WorkspaceSearchReturnViewModel?>()
-        compose.setContent {
-            val nav = rememberNavController()
-            NavHost(nav, "workspace/A") {
-                composable("workspace/{trip}") { entry ->
-                    val state: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
-                    entryRef.set(entry)
-                    stateRef.set(state)
-                    LaunchedEffect(entry) {
-                        if (published.compareAndSet(false, true)) {
-                            publishWorkspaceSearchReturn(entry.savedStateHandle, setOf("poi-a"))
-                            state.show(consumeWorkspaceSearchReturn(entry.savedStateHandle))
-                        }
-                    }
-                }
-            }
-        }
-        compose.waitUntil(timeoutMillis = 5_000) { stateRef.get()?.value != null }
+        WorkspaceSearchReturnTestHolder.reset()
+        compose.activity.setContent { RecreateHarness() }
+        compose.waitUntil(timeoutMillis = 5_000) { WorkspaceSearchReturnTestHolder.state.get()?.value != null }
         val oldActivity = compose.activity
-        val oldEntryId = entryRef.get()!!.id
-        val oldRoute = entryRef.get()!!.destination.route
-        val oldState = stateRef.get()!!
-        entryRef.set(null)
-        stateRef.set(null)
+        val oldEntryId = WorkspaceSearchReturnTestHolder.entry.get()!!.id
+        val oldRoute = WorkspaceSearchReturnTestHolder.entry.get()!!.destination.route
+        val oldState = WorkspaceSearchReturnTestHolder.state.get()!!
+        WorkspaceSearchReturnTestHolder.entry.set(null)
+        WorkspaceSearchReturnTestHolder.state.set(null)
 
         compose.activityRule.scenario.recreate()
 
         compose.waitUntil(timeoutMillis = 10_000) {
-            compose.activity !== oldActivity && entryRef.get() != null && stateRef.get() != null
+            compose.activity !== oldActivity &&
+                WorkspaceSearchReturnTestHolder.entry.get() != null &&
+                WorkspaceSearchReturnTestHolder.state.get() != null
         }
         compose.runOnIdle {
-            val recreatedEntry = entryRef.get()!!
-            val recreatedState = stateRef.get()!!
+            val recreatedEntry = WorkspaceSearchReturnTestHolder.entry.get()!!
+            val recreatedState = WorkspaceSearchReturnTestHolder.state.get()!!
             assertEquals(oldEntryId, recreatedEntry.id)
             assertEquals(oldRoute, recreatedEntry.destination.route)
             assertSame(oldState, recreatedState)
@@ -163,6 +151,43 @@ class WorkspaceSearchReturnNavEntryTest {
             val factory = object : ViewModelProvider.Factory {
                 @Suppress("UNCHECKED_CAST")
                 override fun <T : ViewModel> create(modelClass: Class<T>): T = ClearedProbe() as T
+            }
+        }
+    }
+}
+
+class WorkspaceSearchReturnTestActivity : ComponentActivity() {
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+        setContent { RecreateHarness() }
+    }
+}
+
+private object WorkspaceSearchReturnTestHolder {
+    val published = AtomicBoolean(false)
+    val entry = AtomicReference<NavBackStackEntry?>()
+    val state = AtomicReference<WorkspaceSearchReturnViewModel?>()
+
+    fun reset() {
+        published.set(false)
+        entry.set(null)
+        state.set(null)
+    }
+}
+
+@Composable
+private fun RecreateHarness() {
+    val nav = rememberNavController()
+    NavHost(nav, "workspace/A") {
+        composable("workspace/{trip}") { entry ->
+            val state: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
+            WorkspaceSearchReturnTestHolder.entry.set(entry)
+            WorkspaceSearchReturnTestHolder.state.set(state)
+            LaunchedEffect(entry) {
+                if (WorkspaceSearchReturnTestHolder.published.compareAndSet(false, true)) {
+                    publishWorkspaceSearchReturn(entry.savedStateHandle, setOf("poi-a"))
+                    state.show(consumeWorkspaceSearchReturn(entry.savedStateHandle))
+                }
             }
         }
     }
