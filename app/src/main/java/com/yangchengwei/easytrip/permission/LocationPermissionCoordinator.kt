@@ -8,6 +8,11 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.receiveAsFlow
 
+fun isLocationGranted(fineGranted: Boolean, coarseGranted: Boolean): Boolean = fineGranted || coarseGranted
+
+fun shouldShowLocationRationale(fineRationale: Boolean, coarseRationale: Boolean): Boolean =
+    fineRationale || coarseRationale
+
 sealed interface WorkspaceEffect {
     data object RequestLocationPermission : WorkspaceEffect
     data object OpenApplicationSettings : WorkspaceEffect

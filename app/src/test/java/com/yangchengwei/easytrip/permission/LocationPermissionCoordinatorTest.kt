@@ -10,6 +10,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class LocationPermissionCoordinatorTest {
+    @Test fun coarseOrFineGrantSatisfiesLocationPermission() {
+        assertTrue(isLocationGranted(fineGranted = false, coarseGranted = true))
+        assertTrue(isLocationGranted(fineGranted = true, coarseGranted = false))
+        assertFalse(isLocationGranted(fineGranted = false, coarseGranted = false))
+    }
+
+    @Test fun eitherPermissionRationaleAllowsRetry() {
+        assertTrue(shouldShowLocationRationale(fineRationale = false, coarseRationale = true))
+        assertTrue(shouldShowLocationRationale(fineRationale = true, coarseRationale = false))
+        assertFalse(shouldShowLocationRationale(fineRationale = false, coarseRationale = false))
+    }
+
     @Test fun enteringWorkspaceDoesNotRequestLocation() {
         val coordinator = LocationPermissionCoordinator(SavedStateHandle())
 

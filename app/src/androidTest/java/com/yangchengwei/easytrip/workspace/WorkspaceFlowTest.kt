@@ -25,6 +25,7 @@ import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.place.domain.SavedPlace
@@ -60,6 +61,10 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = { backCount++ },
                 onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                isLocationPermissionGranted = { false },
+                shouldShowLocationPermissionRationale = { false },
+                onWorkspaceEffect = {},
                 placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
                 onPlaceAction = {},
                 itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
@@ -129,6 +134,10 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                isLocationPermissionGranted = { false },
+                shouldShowLocationPermissionRationale = { false },
+                onWorkspaceEffect = {},
                 placeViewModel = placeModel,
             )
         }
@@ -158,6 +167,10 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = { backCount++ },
                 onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                isLocationPermissionGranted = { false },
+                shouldShowLocationPermissionRationale = { false },
+                onWorkspaceEffect = {},
                 placeViewModel = placeModel,
             )
         }
@@ -184,6 +197,10 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                isLocationPermissionGranted = { false },
+                shouldShowLocationPermissionRationale = { false },
+                onWorkspaceEffect = {},
                 placeViewModel = placeModel,
             )
         }

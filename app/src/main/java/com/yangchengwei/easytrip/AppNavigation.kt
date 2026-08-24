@@ -45,6 +45,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
 import com.yangchengwei.easytrip.permission.WorkspaceEffect
+import com.yangchengwei.easytrip.permission.isLocationGranted
+import com.yangchengwei.easytrip.permission.shouldShowLocationRationale
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import com.yangchengwei.easytrip.trip.domain.TripService
@@ -181,13 +183,16 @@ fun AppNavigation(
                 val locationPermissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions(),
                 ) { result ->
-                    val granted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true ||
-                        result[Manifest.permission.ACCESS_COARSE_LOCATION] == true
                     locationCoordinator.onPermissionResult(
-                        isGranted = granted,
+                        isGranted = isLocationGranted(
+                            fineGranted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true,
+                            coarseGranted = result[Manifest.permission.ACCESS_COARSE_LOCATION] == true,
+                        ),
                         shouldShowRationale = activity?.let {
-                            ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION) ||
-                                ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_COARSE_LOCATION)
+                            shouldShowLocationRationale(
+                                fineRationale = ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION),
+                                coarseRationale = ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_COARSE_LOCATION),
+                            )
                         } == true,
                     )
                 }
@@ -244,13 +249,17 @@ fun AppNavigation(
                     onConsumeSearchReturn = workspaceSearchReturnState::clear,
                     locationPermissionCoordinator = locationCoordinator,
                     isLocationPermissionGranted = {
-                        ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED ||
-                            ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
+                        isLocationGranted(
+                            fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED,
+                            coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED,
+                        )
                     },
                     shouldShowLocationPermissionRationale = {
                         activity?.let {
-                            ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION) ||
-                                ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_COARSE_LOCATION)
+                            shouldShowLocationRationale(
+                                fineRationale = ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION),
+                                coarseRationale = ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_COARSE_LOCATION),
+                            )
                         } == true
                     },
                     onWorkspaceEffect = { effect ->
