@@ -80,6 +80,14 @@ class WholeTripItineraryMapperTest {
     }
 
     @Test
+    fun `day color index is stable and cycles independently of list position`() {
+        assertEquals(0, wholeTripDayColorIndex(1))
+        assertEquals(1, wholeTripDayColorIndex(2))
+        assertEquals(0, wholeTripDayColorIndex(6))
+        assertEquals(1, wholeTripDayColorIndex(7))
+    }
+
+    @Test
     fun `uses existing Chinese summaries for every route error kind`() {
         val items = (0..4).map { index -> item("item-$index", "地点 $index", "地址 $index", null, null) }
         val kinds = listOf(

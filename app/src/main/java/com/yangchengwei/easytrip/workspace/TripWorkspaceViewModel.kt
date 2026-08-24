@@ -32,8 +32,6 @@ import kotlinx.coroutines.launch
 
 enum class WorkspaceTab { PLACES, ITINERARY }
 
-enum class WorkspaceSheetLevel { COLLAPSED, HALF, EXPANDED }
-
 internal fun restoreWorkspaceTab(raw: String?): WorkspaceTab =
     WorkspaceTab.entries.firstOrNull { it.name == raw } ?: WorkspaceTab.PLACES
 
@@ -206,7 +204,7 @@ class TripWorkspaceViewModel(
             mapScope = currentMapScope,
             selectedDayId = selected,
             wholeTripDays = mapWholeTripDays(currentTrip.days, currentSnapshots),
-            sheetLevel = WorkspaceSheetLevel.valueOf(values[5] as String),
+            sheetLevel = restoreWorkspaceSheetLevel(values[5] as String?),
             map = model,
             selectedMarker = selectedMarker,
             selectedMarkerPoi = selectedMarker?.savedPlaceId?.let { savedPlaceId -> currentPlaces.firstOrNull { it.id == savedPlaceId }?.let { MapPoiUi(it.amapPoiId, it.name, it.address, it.point) } },

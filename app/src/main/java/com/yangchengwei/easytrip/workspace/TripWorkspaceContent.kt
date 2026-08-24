@@ -121,79 +121,56 @@ private fun WorkspaceReadyContent(
     modifier: Modifier,
     searchReturn: WorkspaceSearchReturn?,
 ) {
-    val coroutineScope = rememberCoroutineScope()
-    val scaffoldState = rememberBottomSheetScaffoldState(
-        bottomSheetState = rememberStandardBottomSheetState(
-            initialValue = state.sheetLevel.toSheetValue(),
-            skipHiddenState = false,
-        ),
-    )
-    LaunchedEffect(state.sheetLevel) {
-        when (state.sheetLevel) {
-            WorkspaceSheetLevel.COLLAPSED -> scaffoldState.bottomSheetState.hide()
-            WorkspaceSheetLevel.HALF -> scaffoldState.bottomSheetState.partialExpand()
-            WorkspaceSheetLevel.EXPANDED -> scaffoldState.bottomSheetState.expand()
-        }
-    }
-    LaunchedEffect(scaffoldState.bottomSheetState) {
-        snapshotFlow { scaffoldState.bottomSheetState.currentValue to scaffoldState.bottomSheetState.targetValue }
-            .distinctUntilChanged()
-            .collect { (current, target) ->
-                settledWorkspaceSheetLevel(current, target, state.sheetLevel)?.let { onAction(TripWorkspaceAction.SetSheetLevel(it)) }
-            }
-    }
-    BoxWithConstraints(modifier.windowInsetsPadding(WindowInsets.safeDrawing).imePadding()) {
-        val desiredSheetHeight = if (searchReturn == null) 396.dp else 412.dp
-        val placeSheetHeight = minOf(desiredSheetHeight, maxHeight)
-        BottomSheetScaffold(
-            modifier = Modifier.fillMaxSize(),
-            scaffoldState = scaffoldState,
-            sheetPeekHeight = when {
-                state.sheetLevel == WorkspaceSheetLevel.COLLAPSED -> 0.dp
-                else -> placeSheetHeight
-            },
-            sheetDragHandle = null,
-            sheetContent = {
-                Column(
-                    Modifier.fillMaxWidth()
-                        .height(placeSheetHeight)
-                        .padding(horizontal = 20.dp)
-                        .testTag("workspace-sheet"),
-                ) {
-                    if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle"))
-                    when (state.section) {
-                        WorkspaceSection.PLACE_POOL -> if (placeContent != null) placeContent() else PlacePoolContent(
-                            state = placeState.copy(
-                                rows = placeState.rows.map { row ->
-                                    row.copy(recentlyCollected = row.recentlyCollected || row.place.amapPoiId in searchReturn?.recentlyCollectedPoiIds.orEmpty())
-                                },
-                            ),
-                            modifier = Modifier.weight(1f),
-                            showSearch = false,
-                            onAction = onPlaceAction,
-                            onSearch = { onAction(TripWorkspaceAction.OpenSearch) },
-                            showDialogs = false,
-                        )
-                        WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
-                            days = state.days,
-                            selected = state.itineraryScope,
-                            wholeTripDays = state.wholeTripDays,
-                            onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
-                            onAddDay = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
-                            dayContent = {
-                                if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
-                                    state = itineraryState,
-                                    onAction = onItineraryAction,
-                                    showDialogs = false,
-                                )
-                            },
-                        )
-                    }
+    WorkspaceBottomSheet(
+        value = state.sheetLevel,
+        onValueChange = { onAction(TripWorkspaceAction.SetSheetLevel(it)) },
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).imePadding(),
+        header = {
+            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+                WorkspaceSheetHandle()
+                if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) {
+                    WorkspaceTabs(
+                        selected = state.section,
+                        onSelect = { onAction(TripWorkspaceAction.SelectSection(it)) },
+                    )
                 }
-            },
-        ) { padding ->
-        Column(Modifier.fillMaxSize().padding(padding)) {
-            Box(Modifier.weight(1f).fillMaxWidth().testTag("workspace-map")) {
+            }
+        },
+        content = {
+            Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+                when (state.section) {
+                    WorkspaceSection.PLACE_POOL -> if (placeContent != null) placeContent() else PlacePoolContent(
+                        state = placeState.copy(
+                            rows = placeState.rows.map { row ->
+                                row.copy(recentlyCollected = row.recentlyCollected || row.place.amapPoiId in searchReturn?.recentlyCollectedPoiIds.orEmpty())
+                            },
+                        ),
+                        modifier = Modifier.weight(1f),
+                        showSearch = false,
+                        onAction = onPlaceAction,
+                        onSearch = { onAction(TripWorkspaceAction.OpenSearch) },
+                        showDialogs = false,
+                    )
+                    WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
+                        days = state.days,
+                        selected = state.itineraryScope,
+                        wholeTripDays = state.wholeTripDays,
+                        onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
+                        onAddDay = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
+                        modifier = Modifier.weight(1f),
+                        dayContent = {
+                            if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
+                                state = itineraryState,
+                                onAction = onItineraryAction,
+                                showDialogs = false,
+                            )
+                        },
+                    )
+                }
+            }
+        },
+        background = {
+            Box(Modifier.fillMaxSize().testTag("workspace-map")) {
                 if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) mapContent()
                 if (mapState != WorkspaceMapState.Ready) {
                     WorkspaceMapFallback(mapState, { onAction(TripWorkspaceAction.OpenPrivacySettings) }, onMapRetry)
@@ -213,34 +190,8 @@ private fun WorkspaceReadyContent(
                     Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 20.dp),
                 )
             }
-            Spacer(Modifier.height(10.dp))
-            Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp).testTag("section-controls").selectableGroup()) {
-                WorkspaceSection.entries.forEach { section ->
-                    SelectablePill(
-                        selected = state.section == section,
-                        onClick = { onAction(TripWorkspaceAction.SelectSection(section)) },
-                        label = { Text(if (section == WorkspaceSection.PLACE_POOL) "地点池" else "行程") },
-                        modifier = Modifier.weight(1f).testTag("section-${section.name}"),
-                        role = Role.Tab,
-                    )
-                }
-            }
-            if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) {
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp), shadowElevation = 4.dp) {
-                    WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle").pointerInput(scaffoldState.bottomSheetState) {
-                        var dragDistance = 0f
-                        detectVerticalDragGestures(onDragStart = { dragDistance = 0f }, onVerticalDrag = { _, amount -> dragDistance += amount }, onDragEnd = {
-                            if (dragDistance < -24f) coroutineScope.launch {
-                                onAction(TripWorkspaceAction.SetSheetLevel(WorkspaceSheetLevel.HALF))
-                                scaffoldState.bottomSheetState.partialExpand()
-                            }
-                        })
-                    })
-                }
-            } else Spacer(Modifier.height(10.dp))
-            }
-        }
-    }
+        },
+    )
 }
 
 @Composable

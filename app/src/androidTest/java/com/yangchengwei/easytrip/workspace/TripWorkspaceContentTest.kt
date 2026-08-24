@@ -78,6 +78,26 @@ class TripWorkspaceContentTest {
         )
     }
 
+    @Test fun workspaceTabsUseIndicatorAndTabSemantics() {
+        setContent(ready(), WorkspaceMapState.Ready)
+
+        compose.onNodeWithTag("workspace-tabs").assertExists()
+        compose.onNodeWithTag("workspace-tab-indicator-PLACE_POOL").assertIsDisplayed()
+        compose.onNodeWithText("地点池").assertIsSelected().assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+        compose.onNodeWithText("行程").assertIsNotSelected().assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
+    }
+
+    @Test fun allSheetLevelsKeepMapSubtreeAndUseDistinctConstrainedHeights() {
+        val heights = WorkspaceSheetLevel.entries.map { level ->
+            setContent(ready(level), WorkspaceMapState.Ready)
+            compose.waitForIdle()
+            compose.onNodeWithTag("workspace-map").assertExists()
+            compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().height
+        }
+
+        assertTrue("heights=$heights", heights[0] < heights[1] && heights[1] < heights[2])
+    }
+
     @Test fun halfSheetMatchesDesignProportionAndStaysBelowTopSafeArea() {
         setContent(ready(), WorkspaceMapState.Ready)
         compose.waitForIdle()
@@ -192,5 +212,7 @@ class TripWorkspaceContentTest {
         }
     }
 
-    private fun ready() = TripWorkspacePageState.Ready(TripWorkspaceUiState(tripName = "北京").toReadyState())
+    private fun ready(level: WorkspaceSheetLevel = WorkspaceSheetLevel.HALF) = TripWorkspacePageState.Ready(
+        TripWorkspaceUiState(tripName = "北京", sheetLevel = level).toReadyState(),
+    )
 }
