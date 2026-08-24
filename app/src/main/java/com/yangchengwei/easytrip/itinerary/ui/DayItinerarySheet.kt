@@ -39,7 +39,8 @@ sealed interface DayItineraryAction {
     data class UpdateArrivalTime(val value: String) : DayItineraryAction
     data class UpdateStayMinutes(val value: String) : DayItineraryAction
     data object SaveEdit : DayItineraryAction
-    data class OverrideMode(val mode: TransportMode) : DayItineraryAction
+    data class SelectMode(val mode: TransportMode) : DayItineraryAction
+    data object SaveMode : DayItineraryAction
     data object ConfirmDelete : DayItineraryAction
     data object DismissDialogs : DayItineraryAction
 }
@@ -111,14 +112,19 @@ fun DayItineraryContent(
             },
         )
     }
-    if (showDialogs) state.moveItemId?.let {
+    if (showDialogs) state.crossDayMove?.let { move ->
         AlertDialog(
-            onDismissRequest = { onAction(DayItineraryAction.DismissDialogs) },
+            onDismissRequest = { if (!move.isMoving) onAction(DayItineraryAction.DismissDialogs) },
             title = { Text("移动到…") },
             text = {
                 Column {
+                    move.moveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     state.days.filter { it.id != state.selectedDayId }.forEach { day ->
-                        TextButton({ onAction(DayItineraryAction.MoveToDay(day.id)) }, Modifier.testTag("move-to-${day.id}")) { Text("Day ${day.index + 1}") }
+                        TextButton(
+                            { onAction(DayItineraryAction.MoveToDay(day.id)) },
+                            Modifier.testTag("move-to-${day.id}"),
+                            enabled = !move.isMoving,
+                        ) { Text("Day ${day.index + 1}") }
                     }
                 }
             },
@@ -149,14 +155,19 @@ fun DayItineraryContent(
             },
         )
     }
-    if (showDialogs) state.modeLegId?.let {
+    if (showDialogs) state.modeEditor?.let { editor ->
         AlertDialog(
-            onDismissRequest = { onAction(DayItineraryAction.DismissDialogs) },
+            onDismissRequest = { if (!editor.isSaving) onAction(DayItineraryAction.DismissDialogs) },
             title = { Text("选择交通方式") },
             text = {
                 Column {
+                    editor.saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                     TransportMode.entries.forEach { mode ->
-                        TextButton({ onAction(DayItineraryAction.OverrideMode(mode)) }, Modifier.testTag("mode-option-${mode.name}")) {
+                        TextButton(
+                            { onAction(DayItineraryAction.SelectMode(mode)) },
+                            Modifier.testTag("mode-option-${mode.name}"),
+                            enabled = !editor.isSaving,
+                        ) {
                             Text(when (mode) {
                                 TransportMode.WALK -> "步行"
                                 TransportMode.TAXI -> "打车"
@@ -167,7 +178,12 @@ fun DayItineraryContent(
                     }
                 }
             },
-            confirmButton = {},
+            confirmButton = {
+                TextButton(
+                    { onAction(DayItineraryAction.SaveMode) },
+                    enabled = !editor.isSaving,
+                ) { Text(if (editor.isSaving) "保存中…" else "保存") }
+            },
         )
     }
 }

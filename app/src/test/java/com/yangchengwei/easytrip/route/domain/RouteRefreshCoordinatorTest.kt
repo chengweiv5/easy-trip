@@ -74,6 +74,15 @@ class RouteRefreshCoordinatorTest {
         assertEquals(RouteStatus.SUCCESS, repository.current.status); assertEquals(1, planner.calls)
     }
 
+    @Test fun `retry targets only requested failed leg`() = runTest {
+        val repository = FakeRepository(leg(status = RouteStatus.FAILED, errorKind = RouteErrorKind.NO_ROUTE))
+        val coordinator = DefaultRouteRefreshCoordinator(repository, FakePlanner { RoutePlanOutcome.Success(result(4)) }, FakeNetworkMonitor(true))
+
+        assertTrue(coordinator.retry("leg"))
+
+        assertEquals(listOf("leg"), repository.retryIds)
+    }
+
     @Test fun `selected override is used instead of recommendation`() = runTest {
         val repository = FakeRepository(leg(recommended = TransportMode.TRANSIT))
         val planner = FakePlanner { RoutePlanOutcome.Success(result(4)) }
@@ -199,7 +208,7 @@ private class FakePlanner(private val block: suspend (RouteLegWithEndpoints) -> 
     override suspend fun plan(leg: RouteLegWithEndpoints): RoutePlanOutcome { calls++; requests += leg; return block(leg) }
 }
 private class FakeRepository(initial: RouteLegWithEndpoints, private val requeueGate: CompletableDeferred<Unit>? = null, private var requeueFailure: Throwable? = null, private var refreshFailure: Throwable? = null) : RouteLegRepository {
-    private val state = MutableStateFlow(listOf(initial)); val current get() = state.value.single(); var requeueCalls = 0
+    private val state = MutableStateFlow(listOf(initial)); val current get() = state.value.single(); var requeueCalls = 0; val retryIds = mutableListOf<String>()
     override fun observeDay(dayId: String) = throw UnsupportedOperationException()
     override fun observePending(): Flow<List<RouteLegWithEndpoints>> = state
     override suspend fun requeueTransientFailures(): Int { requeueCalls++; requeueFailure?.let { requeueFailure=null; throw it }; requeueGate?.await(); var count=0; state.update { values -> values.map { if(it.status==RouteStatus.FAILED&&it.errorKind==RouteErrorKind.TRANSIENT){count++;it.copy(status=RouteStatus.PENDING,version=it.version+1)}else it } }; return count }
@@ -224,7 +233,7 @@ private class FakeRepository(initial: RouteLegWithEndpoints, private val requeue
         if (it.status != RouteStatus.CALCULATING) null else it.copy(status=RouteStatus.FAILED,errorKind=failure.kind,errorCode=failure.code)
     }
     override suspend fun overrideMode(legId: String, mode: TransportMode, online: Boolean): Boolean { val item=get(legId)?:return false; return mutate(legId,item.version){it.copy(version=it.version+1,selectedMode=mode,status=if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK,distanceMeters=null,errorKind=null,errorCode=null)} }
-    override suspend fun retry(legId: String, online: Boolean): Boolean { val item=get(legId)?:return false; return mutate(legId,item.version){it.copy(version=it.version+1,status=if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK,distanceMeters=null,errorKind=null,errorCode=null)} }
+    override suspend fun retry(legId: String, online: Boolean): Boolean { retryIds += legId; val item=get(legId)?:return false; return mutate(legId,item.version){it.copy(version=it.version+1,status=if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK,distanceMeters=null,errorKind=null,errorCode=null)} }
     override suspend fun recoverInterruptedCalculations(online: Boolean): Int {
         var count = 0
         state.update { values -> values.map { item ->

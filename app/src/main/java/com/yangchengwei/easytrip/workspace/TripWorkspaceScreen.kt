@@ -278,12 +278,29 @@ private fun WorkspaceOverlayContent(
                 },
             )
         }
-        is WorkspaceOverlay.SelectMoveTargetDay -> AlertDialog(
-            onDismissRequest = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
-            title = { Text("移动到…") },
-            text = { Column { itineraryState.days.filter { it.id != itineraryState.selectedDayId }.forEach { day -> CompactSecondaryButton({ onItineraryAction(DayItineraryAction.MoveToDay(day.id)); onClose() }) { Text("Day ${day.index + 1}") } } } },
-            confirmButton = {},
-        )
+        is WorkspaceOverlay.SelectMoveTargetDay -> itineraryState.crossDayMove?.let { move ->
+            AlertDialog(
+                onDismissRequest = {
+                    if (!move.isMoving) {
+                        onItineraryAction(DayItineraryAction.DismissDialogs)
+                        onClose()
+                    }
+                },
+                title = { Text("移动到…") },
+                text = {
+                    Column {
+                        move.moveError?.let { Text(it) }
+                        itineraryState.days.filter { it.id != itineraryState.selectedDayId }.forEach { day ->
+                            CompactSecondaryButton(
+                                { onItineraryAction(DayItineraryAction.MoveToDay(day.id)) },
+                                enabled = !move.isMoving,
+                            ) { Text("Day ${day.index + 1}") }
+                        }
+                    }
+                },
+                confirmButton = {},
+            )
+        }
         WorkspaceOverlay.SelectAddPlaces -> AlertDialog(
             onDismissRequest = onClose,
             confirmButton = {},
@@ -351,12 +368,34 @@ private fun WorkspaceOverlayContent(
                 )
             },
         )
-        is WorkspaceOverlay.EditRouteLeg -> AlertDialog(
-            onDismissRequest = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
-            title = { Text("选择交通方式") },
-            text = { Column { TransportMode.entries.forEach { mode -> CompactSecondaryButton({ onItineraryAction(DayItineraryAction.OverrideMode(mode)); onClose() }) { Text(mode.label()) } } } },
-            confirmButton = {},
-        )
+        is WorkspaceOverlay.EditRouteLeg -> itineraryState.modeEditor?.let { editor ->
+            AlertDialog(
+                onDismissRequest = {
+                    if (!editor.isSaving) {
+                        onItineraryAction(DayItineraryAction.DismissDialogs)
+                        onClose()
+                    }
+                },
+                title = { Text("选择交通方式") },
+                text = {
+                    Column {
+                        editor.saveError?.let { Text(it) }
+                        TransportMode.entries.forEach { mode ->
+                            CompactSecondaryButton(
+                                { onItineraryAction(DayItineraryAction.SelectMode(mode)) },
+                                enabled = !editor.isSaving,
+                            ) { Text(mode.label()) }
+                        }
+                    }
+                },
+                confirmButton = {
+                    CompactPrimaryButton(
+                        { onItineraryAction(DayItineraryAction.SaveMode) },
+                        enabled = !editor.isSaving,
+                    ) { Text(if (editor.isSaving) "保存中…" else "保存") }
+                },
+            )
+        }
         is WorkspaceOverlay.Confirmation -> {
             val itineraryDelete = itineraryState.deleteConfirmation
             if (itineraryDelete != null) {

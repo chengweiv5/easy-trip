@@ -74,6 +74,23 @@ class ItineraryEditingTest {
         compose.onNodeWithText("从地点池添加地点，开始安排这一天").assertIsDisplayed()
     }
 
+    @Test fun waitingForNetworkKeepsAllPlaceActions() {
+        val model = DayItineraryViewModel(
+            "trip",
+            FakeTrips(),
+            FakeItineraries(),
+            FakeLegs(waiting = true),
+            FakeCoordinator(),
+        )
+        compose.setContent { DayItinerarySheet(model) }
+        compose.waitUntil(5_000) { model.state.value.items.size == 3 }
+
+        compose.onNodeWithText("等待联网").assertIsDisplayed()
+        listOf("timing-i1", "move-i1", "delete-i1", "item-i2").forEach {
+            compose.onNodeWithTag(it, useUnmergedTree = true).assertHasClickAction()
+        }
+    }
+
     @Test fun duplicateDragCrossDayTimingOverrideAndRetry() {
         val trips = FakeTrips()
         val itineraries = FakeItineraries()
@@ -138,6 +155,7 @@ class ItineraryEditingTest {
 
         compose.onNodeWithTag("mode-leg-1").performClick()
         compose.onNodeWithTag("mode-option-WALK").performClick()
+        compose.onNodeWithText("保存").performClick()
         compose.waitUntil(5_000) { coordinator.overrides.isNotEmpty() }
         assertEquals("leg-1" to TransportMode.WALK, coordinator.overrides.single())
 
@@ -217,9 +235,9 @@ class ItineraryEditingTest {
         override suspend fun removePlaceOccurrences(placeId: String) = Unit
     }
 
-    private class FakeLegs : RouteLegRepository {
+    private class FakeLegs(private val waiting: Boolean = false) : RouteLegRepository {
         override fun observeDay(dayId: String) = if (dayId == "day-1") flowOf(listOf(
-            leg("leg-1", "i1", "i2", RouteStatus.SUCCESS, TransportMode.TAXI, 1050, 300),
+            leg("leg-1", "i1", "i2", if (waiting) RouteStatus.WAITING_NETWORK else RouteStatus.SUCCESS, TransportMode.TAXI, 1050, 300),
             leg("leg-2", "i2", "i3", RouteStatus.FAILED, TransportMode.WALK, null, null),
         )) else flowOf(emptyList())
         override fun observePending() = flowOf(emptyList<com.yangchengwei.easytrip.route.domain.RouteLegWithEndpoints>())

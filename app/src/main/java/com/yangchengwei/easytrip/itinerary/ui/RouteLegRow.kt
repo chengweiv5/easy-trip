@@ -29,7 +29,7 @@ import com.yangchengwei.easytrip.core.model.TransportMode
 fun RouteLegRow(leg: RouteLegUi, onMode: () -> Unit, onRetry: () -> Unit) {
     RouteLegContent(leg, Modifier.fillMaxWidth().testTag("leg-${leg.id}")) {
         TextButton(onMode, Modifier.testTag("mode-${leg.id}")) { Text("交通方式") }
-        if (leg.status == RouteStatus.FAILED) {
+        if (leg.state is RouteLegUiState.Failed) {
             TextButton(onRetry, Modifier.testTag("retry-${leg.id}")) { Text("重试") }
         }
     }
@@ -49,15 +49,17 @@ private fun RouteLegContent(
     modifier: Modifier,
     actions: @Composable () -> Unit,
 ) {
-    val detail = when (leg.status) {
-        RouteStatus.WAITING_NETWORK -> "等待联网"
-        RouteStatus.PENDING -> "等待计算"
-        RouteStatus.CALCULATING -> "计算中"
-        RouteStatus.SUCCESS -> listOfNotNull(
-            leg.distanceMeters?.let(::formatDistance),
-            leg.durationSeconds?.let(::formatDuration),
-        ).joinToString(" · ")
-        RouteStatus.FAILED -> leg.error ?: "路线规划失败"
+    val detail = when (val state = leg.state) {
+        RouteLegUiState.WaitingForNetwork -> "等待联网"
+        is RouteLegUiState.Failed -> state.message
+        is RouteLegUiState.Ready -> when (leg.status) {
+            RouteStatus.PENDING -> "等待计算"
+            RouteStatus.CALCULATING -> "计算中"
+            else -> listOfNotNull(
+                state.distanceMeters?.let(::formatDistance),
+                leg.durationSeconds?.let(::formatDuration),
+            ).joinToString(" · ")
+        }
     }
     Row(
         modifier.padding(start = 28.dp),

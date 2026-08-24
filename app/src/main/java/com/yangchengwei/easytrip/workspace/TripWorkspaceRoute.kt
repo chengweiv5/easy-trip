@@ -56,6 +56,8 @@ fun canDismissWorkspaceOverlay(
 ): Boolean = when {
     overlay == WorkspaceOverlay.AddTripDay && itinerary.isAppendingDay -> false
     overlay is WorkspaceOverlay.EditItineraryItem && itinerary.editDraft?.isSaving == true -> false
+    overlay is WorkspaceOverlay.SelectMoveTargetDay && itinerary.crossDayMove?.isMoving == true -> false
+    overlay is WorkspaceOverlay.EditRouteLeg && itinerary.modeEditor?.isSaving == true -> false
     overlay is WorkspaceOverlay.Confirmation &&
         itinerary.deleteConfirmation?.isDeleting == true &&
         !hasPlaceDeleteConfirmation -> false
@@ -243,7 +245,13 @@ fun TripWorkspaceRoute(
             )
         }
     }
-    LaunchedEffect(itinerary.editDraft, itinerary.deleteConfirmation, ready?.overlay) {
+    LaunchedEffect(
+        itinerary.editDraft,
+        itinerary.crossDayMove,
+        itinerary.deleteConfirmation,
+        itinerary.modeEditor,
+        ready?.overlay,
+    ) {
         val overlay = ready?.overlay ?: WorkspaceOverlay.None
         when {
             itinerary.editDraft != null || itinerary.deleteConfirmation != null -> {
@@ -251,6 +259,8 @@ fun TripWorkspaceRoute(
                 if (desired != null && desired != overlay) viewModel.openOverlay(desired)
             }
             overlay is WorkspaceOverlay.EditItineraryItem -> viewModel.closeOverlay()
+            overlay is WorkspaceOverlay.SelectMoveTargetDay && itinerary.crossDayMove == null -> viewModel.closeOverlay()
+            overlay is WorkspaceOverlay.EditRouteLeg && itinerary.modeEditor == null -> viewModel.closeOverlay()
             overlay is WorkspaceOverlay.Confirmation && places.pendingCollectionRemoval == null && places.deleting == null ->
                 viewModel.closeOverlay()
         }

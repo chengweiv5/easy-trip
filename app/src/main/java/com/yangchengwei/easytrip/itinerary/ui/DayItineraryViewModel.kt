@@ -34,14 +34,17 @@ data class DayItineraryUiState(
     val legs: List<RouteLegUi> = emptyList(),
     val previewOrder: List<String> = emptyList(),
     val editDraft: ItineraryEditDraft? = null,
-    val moveItemId: String? = null,
+    val crossDayMove: CrossDayMoveDraft? = null,
     val deleteConfirmation: ItineraryDeleteConfirmation? = null,
-    val modeLegId: String? = null,
+    val modeEditor: RouteModeEditDraft? = null,
     val isAppendingDay: Boolean = false,
     val appendDayError: String? = null,
     val appendDayCompletionToken: Long? = null,
     val error: String? = null,
-)
+) {
+    val moveItemId: String? get() = crossDayMove?.itemId
+    val modeLegId: String? get() = modeEditor?.legId
+}
 
 @OptIn(ExperimentalCoroutinesApi::class)
 class DayItineraryViewModel(
@@ -61,6 +64,8 @@ class DayItineraryViewModel(
     private var nextAppendDayCompletionToken = 0L
     private var nextEditGeneration = 0L
     private var nextDeleteGeneration = 0L
+    private var nextMoveGeneration = 0L
+    private var nextModeGeneration = 0L
     val state: StateFlow<DayItineraryUiState> = mutable.asStateFlow()
 
     init {
@@ -151,11 +156,38 @@ class DayItineraryViewModel(
         }
     }
 
-    fun requestCrossDay(itemId: String) { mutable.value = mutable.value.copy(moveItemId = itemId) }
+    fun requestCrossDay(itemId: String) {
+        if (state.value.items.none { it.id == itemId }) return
+        mutable.value = mutable.value.copy(
+            crossDayMove = CrossDayMoveDraft(itemId = itemId, generation = ++nextMoveGeneration),
+        )
+    }
+
     fun moveToDay(dayId: String) {
-        val item = state.value.moveItemId ?: return
-        mutable.value = mutable.value.copy(moveItemId = null)
-        viewModelScope.launch { runCatching { itineraries.moveItem(item, dayId, 0) }.onFailure(::showError) }
+        val draft = state.value.crossDayMove ?: return
+        if (draft.isMoving) return
+        val started = draft.copy(targetDayId = dayId, isMoving = true, moveError = null)
+        mutable.value = mutable.value.copy(crossDayMove = started)
+        viewModelScope.launch {
+            try {
+                itineraries.moveItem(started.itemId, dayId, 0)
+                if (mutable.value.crossDayMove.matches(started)) {
+                    mutable.value = mutable.value.copy(crossDayMove = null)
+                }
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Throwable) {
+                val current = mutable.value.crossDayMove
+                if (current.matches(started)) {
+                    mutable.value = mutable.value.copy(
+                        crossDayMove = current?.copy(
+                            isMoving = false,
+                            moveError = failure.message ?: "移动失败",
+                        ),
+                    )
+                }
+            }
+        }
     }
 
     fun requestDelete(itemId: String): Boolean {
@@ -248,14 +280,55 @@ class DayItineraryViewModel(
     }
 
     fun setRouteCoordinator(value: RouteRefreshCoordinator?) { coordinator = value }
-    fun requestMode(legId: String) { mutable.value = mutable.value.copy(modeLegId = legId) }
-    fun overrideMode(mode: TransportMode) {
-        val leg = state.value.modeLegId ?: return
-        mutable.value = mutable.value.copy(modeLegId = null)
+
+    fun requestMode(legId: String): Boolean {
+        val leg = state.value.legs.firstOrNull { it.id == legId } ?: return false
+        mutable.value = mutable.value.copy(
+            modeEditor = RouteModeEditDraft(
+                legId = legId,
+                selectedMode = leg.mode,
+                generation = ++nextModeGeneration,
+            ),
+        )
+        return true
+    }
+
+    fun selectMode(mode: TransportMode) {
+        val editor = mutable.value.modeEditor ?: return
+        if (editor.isSaving) return
+        mutable.value = mutable.value.copy(modeEditor = editor.copy(selectedMode = mode, saveError = null))
+    }
+
+    fun overrideMode() {
+        val editor = state.value.modeEditor ?: return
+        if (editor.isSaving) return
+        val started = editor.copy(isSaving = true, saveError = null)
+        mutable.value = mutable.value.copy(modeEditor = started)
         viewModelScope.launch {
-            runCatching { coordinator?.overrideMode(leg, mode) ?: false }
-                .onSuccess { if (!it) showError(IllegalStateException("联网并同意高德隐私政策后才能更新交通方式")) }
-                .onFailure(::showError)
+            try {
+                val saved = coordinator?.overrideMode(started.legId, started.selectedMode) ?: false
+                val current = mutable.value.modeEditor
+                if (current.matches(started)) {
+                    mutable.value = mutable.value.copy(
+                        modeEditor = if (saved) null else current?.copy(
+                            isSaving = false,
+                            saveError = "联网并同意高德隐私政策后才能更新交通方式",
+                        ),
+                    )
+                }
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Throwable) {
+                val current = mutable.value.modeEditor
+                if (current.matches(started)) {
+                    mutable.value = mutable.value.copy(
+                        modeEditor = current?.copy(
+                            isSaving = false,
+                            saveError = failure.message ?: "更新交通方式失败",
+                        ),
+                    )
+                }
+            }
         }
     }
 
@@ -268,12 +341,17 @@ class DayItineraryViewModel(
     }
 
     fun dismissDialogs() {
-        if (mutable.value.editDraft?.isSaving == true || mutable.value.deleteConfirmation?.isDeleting == true) return
+        if (
+            mutable.value.editDraft?.isSaving == true ||
+            mutable.value.crossDayMove?.isMoving == true ||
+            mutable.value.deleteConfirmation?.isDeleting == true ||
+            mutable.value.modeEditor?.isSaving == true
+        ) return
         mutable.value = mutable.value.copy(
             editDraft = null,
-            moveItemId = null,
+            crossDayMove = null,
             deleteConfirmation = null,
-            modeLegId = null,
+            modeEditor = null,
         )
     }
 
@@ -293,7 +371,8 @@ class DayItineraryViewModel(
             is DayItineraryAction.UpdateArrivalTime -> updateArrivalTime(action.value)
             is DayItineraryAction.UpdateStayMinutes -> updateStayMinutes(action.value)
             DayItineraryAction.SaveEdit -> saveTiming()
-            is DayItineraryAction.OverrideMode -> overrideMode(action.mode)
+            is DayItineraryAction.SelectMode -> selectMode(action.mode)
+            DayItineraryAction.SaveMode -> overrideMode()
             DayItineraryAction.ConfirmDelete -> confirmDelete()
             DayItineraryAction.DismissDialogs -> dismissDialogs()
         }
@@ -306,9 +385,9 @@ class DayItineraryViewModel(
             legs = emptyList(),
             previewOrder = emptyList(),
             editDraft = null,
-            moveItemId = null,
+            crossDayMove = null,
             deleteConfirmation = null,
-            modeLegId = null,
+            modeEditor = null,
         )
     }
 
@@ -329,6 +408,12 @@ class DayItineraryViewModel(
 
     private fun ItineraryDeleteConfirmation?.matches(started: ItineraryDeleteConfirmation): Boolean =
         this?.itemId == started.itemId && this.generation == started.generation
+
+    private fun CrossDayMoveDraft?.matches(started: CrossDayMoveDraft): Boolean =
+        this?.itemId == started.itemId && this.generation == started.generation
+
+    private fun RouteModeEditDraft?.matches(started: RouteModeEditDraft): Boolean =
+        this?.legId == started.legId && this.generation == started.generation
 
     private fun showError(t: Throwable) { mutable.value = mutable.value.copy(error = t.message ?: "操作失败") }
 

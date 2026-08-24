@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import com.yangchengwei.easytrip.core.model.TransportMode
 import java.time.LocalTime
 
 data class ItineraryEditDraft(
@@ -23,6 +24,22 @@ data class ItineraryEditDraft(
                 (stayMinutesText.isBlank() || parsedMinutes != null && parsedMinutes >= 0)
         }
 }
+
+data class CrossDayMoveDraft(
+    val itemId: String,
+    val targetDayId: String? = null,
+    val isMoving: Boolean = false,
+    val moveError: String? = null,
+    val generation: Long = 0,
+)
+
+data class RouteModeEditDraft(
+    val legId: String,
+    val selectedMode: TransportMode,
+    val isSaving: Boolean = false,
+    val saveError: String? = null,
+    val generation: Long = 0,
+)
 
 data class ItineraryDeleteConfirmation(
     val itemId: String,

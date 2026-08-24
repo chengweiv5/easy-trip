@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
 import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
@@ -9,6 +10,7 @@ import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.route.data.RouteLegEntity
 import com.yangchengwei.easytrip.route.domain.RouteLegRepository
+import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
 import com.yangchengwei.easytrip.route.domain.RouteLegWithEndpoints
 import com.yangchengwei.easytrip.route.domain.RoutePlanOutcome
 import com.yangchengwei.easytrip.route.domain.RouteResult
@@ -18,6 +20,7 @@ import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
+import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.coroutines.CancellationException
@@ -207,12 +210,128 @@ class DayItineraryViewModelTest {
         assertNull(model.state.value.editDraft?.saveError)
     }
 
-    private fun model(repository: Itineraries) = DayItineraryViewModel(
+    @Test fun `route legs expose explicit ready waiting and failed states`() = runTest(dispatcher) {
+        val model = model(
+            Itineraries(),
+            legs = Legs(
+                listOf(
+                    legEntity("ready", RouteStatus.SUCCESS, distance = 1200, duration = 300),
+                    legEntity("waiting", RouteStatus.WAITING_NETWORK),
+                    legEntity("failed", RouteStatus.FAILED),
+                ),
+            ),
+        )
+        advanceUntilIdle()
+
+        assertEquals(RouteLegUiState.Ready(TransportMode.TAXI, 5, 1200), model.state.value.legs[0].state)
+        assertEquals(RouteLegUiState.WaitingForNetwork, model.state.value.legs[1].state)
+        assertEquals(RouteLegUiState.Failed("路线规划失败"), model.state.value.legs[2].state)
+    }
+
+    @Test fun `failed same day reorder rolls preview back to official order`() = runTest(dispatcher) {
+        val repository = Itineraries().apply { moveFailure = IllegalStateException("排序失败") }
+        val model = model(repository)
+        advanceUntilIdle()
+
+        model.previewMove("item-beta", 0)
+        assertEquals(listOf("item-beta", "item-alpha"), model.state.value.previewOrder)
+        model.commitMove("item-beta", 0)
+        advanceUntilIdle()
+
+        assertEquals(listOf("item-alpha", "item-beta"), model.state.value.previewOrder)
+        assertEquals("排序失败", model.state.value.error)
+    }
+
+    @Test fun `cross day failure keeps target and error for retry then closes after success`() = runTest(dispatcher) {
+        val repository = Itineraries().apply { moveFailure = IllegalStateException("移动失败") }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestCrossDay("item-alpha")
+
+        model.moveToDay("day-2")
+        advanceUntilIdle()
+
+        assertEquals("item-alpha", model.state.value.crossDayMove?.itemId)
+        assertEquals("day-2", model.state.value.crossDayMove?.targetDayId)
+        assertEquals("移动失败", model.state.value.crossDayMove?.moveError)
+        repository.moveFailure = null
+        model.moveToDay("day-2")
+        advanceUntilIdle()
+        assertNull(model.state.value.crossDayMove)
+    }
+
+    @Test fun `transport mode request rejects missing leg`() = runTest(dispatcher) {
+        val model = model(Itineraries())
+        advanceUntilIdle()
+
+        assertFalse(model.requestMode("missing"))
+        assertNull(model.state.value.modeEditor)
+    }
+
+    @Test fun `transport mode failure keeps editor draft and retry closes only after success`() = runTest(dispatcher) {
+        val coordinator = Coordinator().apply { overrideResult = false }
+        val model = model(
+            Itineraries(),
+            coordinator,
+            Legs(listOf(legEntity("leg-alpha", RouteStatus.SUCCESS))),
+        )
+        advanceUntilIdle()
+        model.requestMode("leg-alpha")
+        model.selectMode(TransportMode.WALK)
+
+        model.overrideMode()
+        advanceUntilIdle()
+
+        assertEquals("leg-alpha", model.state.value.modeEditor?.legId)
+        assertEquals(TransportMode.WALK, model.state.value.modeEditor?.selectedMode)
+        assertEquals("联网并同意高德隐私政策后才能更新交通方式", model.state.value.modeEditor?.saveError)
+        coordinator.overrideResult = true
+        model.overrideMode()
+        advanceUntilIdle()
+        assertNull(model.state.value.modeEditor)
+    }
+
+    @Test fun `transport mode pending blocks duplicate and stale completion cannot alter new leg`() = runTest(dispatcher) {
+        val coordinator = Coordinator().apply { overrideGate = CompletableDeferred() }
+        val model = model(
+            Itineraries(),
+            coordinator,
+            Legs(
+                listOf(
+                    legEntity("leg-alpha", RouteStatus.SUCCESS),
+                    legEntity("leg-beta", RouteStatus.SUCCESS),
+                ),
+            ),
+        )
+        advanceUntilIdle()
+        model.requestMode("leg-alpha")
+        model.selectMode(TransportMode.WALK)
+        model.overrideMode()
+        model.overrideMode()
+        dispatcher.scheduler.runCurrent()
+        assertEquals(listOf("leg-alpha" to TransportMode.WALK), coordinator.overrides)
+        assertTrue(model.state.value.modeEditor!!.isSaving)
+
+        model.requestMode("leg-beta")
+        model.selectMode(TransportMode.DRIVE)
+        coordinator.overrideGate!!.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("leg-beta", model.state.value.modeEditor?.legId)
+        assertEquals(TransportMode.DRIVE, model.state.value.modeEditor?.selectedMode)
+        assertFalse(model.state.value.modeEditor!!.isSaving)
+    }
+
+    private fun model(
+        repository: Itineraries,
+        coordinator: RouteRefreshCoordinator? = null,
+        legs: RouteLegRepository = Legs(),
+    ) = DayItineraryViewModel(
         "trip",
         Trips(),
         repository,
-        Legs(),
-        null,
+        legs,
+        coordinator,
         selectedDays = flowOf("day-1"),
     )
 
@@ -221,6 +340,7 @@ class DayItineraryViewModelTest {
         var timingFailure: Throwable? = null
         var deleteGate: CompletableDeferred<Unit>? = null
         var deleteFailure: Throwable? = null
+        var moveFailure: Throwable? = null
         val timingCalls = mutableListOf<Timing>()
         val deleteCalls = mutableListOf<String>()
         override fun observeDay(dayId: String) = flowOf(
@@ -234,7 +354,9 @@ class DayItineraryViewModelTest {
             ),
         )
         override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int) = "new"
-        override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
+        override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) {
+            moveFailure?.let { throw it }
+        }
         override suspend fun deleteItem(itemId: String) {
             deleteCalls += itemId
             deleteGate?.await()
@@ -261,8 +383,21 @@ class DayItineraryViewModelTest {
         override suspend fun deleteTrip(tripId: String) = Unit
     }
 
-    private class Legs : RouteLegRepository {
-        override fun observeDay(dayId: String) = flowOf(emptyList<RouteLegEntity>())
+    private class Coordinator : RouteRefreshCoordinator {
+        var overrideResult = true
+        var overrideGate: CompletableDeferred<Unit>? = null
+        val overrides = mutableListOf<Pair<String, TransportMode>>()
+        override fun start(scope: kotlinx.coroutines.CoroutineScope) = Unit
+        override suspend fun retry(legId: String) = true
+        override suspend fun overrideMode(legId: String, mode: TransportMode): Boolean {
+            overrides += legId to mode
+            overrideGate?.await()
+            return overrideResult
+        }
+    }
+
+    private class Legs(private val values: List<RouteLegEntity> = emptyList()) : RouteLegRepository {
+        override fun observeDay(dayId: String) = flowOf(values)
         override fun observePending(): Flow<List<RouteLegWithEndpoints>> = flowOf(emptyList())
         override suspend fun get(legId: String) = null
         override suspend fun requeueTransientFailures() = 0
@@ -276,6 +411,24 @@ class DayItineraryViewModelTest {
         override suspend fun overrideMode(legId: String, mode: TransportMode, online: Boolean) = false
         override suspend fun retry(legId: String, online: Boolean) = false
     }
+
+    private fun legEntity(
+        id: String,
+        status: RouteStatus,
+        distance: Int? = null,
+        duration: Int? = null,
+    ) = RouteLegEntity(
+        id = id,
+        tripDayId = "day-1",
+        fromItemId = "item-alpha",
+        toItemId = "item-beta",
+        recommendedMode = TransportMode.TAXI,
+        status = status,
+        distanceMeters = distance,
+        durationSeconds = duration,
+        version = 1,
+        updatedAt = Instant.EPOCH,
+    )
 
     private data class Timing(val itemId: String, val time: LocalTime?, val minutes: Int?)
 }

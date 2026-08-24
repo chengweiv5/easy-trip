@@ -17,6 +17,17 @@ data class ItineraryItemUi(
     val stayMinutes: Int?,
 )
 
+sealed interface RouteLegUiState {
+    data class Ready(
+        val mode: TransportMode,
+        val durationMinutes: Int?,
+        val distanceMeters: Int?,
+    ) : RouteLegUiState
+
+    data object WaitingForNetwork : RouteLegUiState
+    data class Failed(val message: String) : RouteLegUiState
+}
+
 data class RouteLegUi(
     val id: String,
     val fromItemId: String,
@@ -26,7 +37,14 @@ data class RouteLegUi(
     val distanceMeters: Int?,
     val durationSeconds: Int?,
     val error: String?,
-)
+) {
+    val state: RouteLegUiState
+        get() = when (status) {
+            RouteStatus.WAITING_NETWORK -> RouteLegUiState.WaitingForNetwork
+            RouteStatus.FAILED -> RouteLegUiState.Failed(error ?: "路线规划失败")
+            else -> RouteLegUiState.Ready(mode, durationSeconds?.let { (it + 59) / 60 }, distanceMeters)
+        }
+}
 
 data class WholeTripDayUi(
     val dayId: String,

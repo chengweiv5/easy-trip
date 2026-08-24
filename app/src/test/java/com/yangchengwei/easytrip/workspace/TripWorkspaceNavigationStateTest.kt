@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.workspace
 
 import androidx.lifecycle.SavedStateHandle
 import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
@@ -11,8 +12,10 @@ import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.CrossDayMoveDraft
 import com.yangchengwei.easytrip.itinerary.ui.ItineraryDeleteConfirmation
 import com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft
+import com.yangchengwei.easytrip.itinerary.ui.RouteModeEditDraft
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
@@ -171,11 +174,19 @@ class TripWorkspaceNavigationStateTest {
         val saving = DayItineraryUiState(
             editDraft = ItineraryEditDraft("item", "09:00", "30", isSaving = true),
         )
+        val moving = DayItineraryUiState(
+            crossDayMove = CrossDayMoveDraft("item", isMoving = true),
+        )
+        val savingMode = DayItineraryUiState(
+            modeEditor = RouteModeEditDraft("leg", TransportMode.WALK, isSaving = true),
+        )
         val deleting = DayItineraryUiState(
             deleteConfirmation = ItineraryDeleteConfirmation("item", "故宫", isDeleting = true),
         )
 
         assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.EditItineraryItem("item"), AddToItineraryUiState(), saving))
+        assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.SelectMoveTargetDay("item"), AddToItineraryUiState(), moving))
+        assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.EditRouteLeg(1L), AddToItineraryUiState(), savingMode))
         assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.Confirmation(confirmationModel()), AddToItineraryUiState(), deleting))
         assertEquals(true, canDismissWorkspaceOverlay(WorkspaceOverlay.LayerMenu, AddToItineraryUiState(), saving))
         assertEquals(
