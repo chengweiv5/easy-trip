@@ -125,6 +125,7 @@ private fun WorkspaceReadyContent(
         value = state.sheetLevel,
         onValueChange = { onAction(TripWorkspaceAction.SetSheetLevel(it)) },
         modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).imePadding(),
+        searchReturn = searchReturn != null,
         header = {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                 WorkspaceSheetHandle()

@@ -36,6 +36,25 @@ internal fun workspaceSheetFraction(level: WorkspaceSheetLevel): Float = when (l
     WorkspaceSheetLevel.EXPANDED -> 0.9f
 }
 
+internal fun workspaceSheetHeightDp(
+    availableHeightDp: Float,
+    level: WorkspaceSheetLevel,
+    searchReturn: Boolean,
+): Float {
+    val expandedHeight = availableHeightDp * workspaceSheetFraction(WorkspaceSheetLevel.EXPANDED)
+    val collapsedHeight = minOf(34f, expandedHeight / 3f)
+    val levelGap = minOf(12f, (expandedHeight - collapsedHeight) / 2f)
+    val halfHeight = maxOf(
+        availableHeightDp * workspaceSheetFraction(WorkspaceSheetLevel.HALF) + if (searchReturn) 16f else 0f,
+        240f,
+    ).coerceIn(collapsedHeight + levelGap, expandedHeight - levelGap)
+    return when (level) {
+        WorkspaceSheetLevel.COLLAPSED -> collapsedHeight
+        WorkspaceSheetLevel.HALF -> halfHeight
+        WorkspaceSheetLevel.EXPANDED -> expandedHeight
+    }
+}
+
 @Composable
 fun WorkspaceBottomSheet(
     value: WorkspaceSheetLevel,
@@ -44,16 +63,16 @@ fun WorkspaceBottomSheet(
     content: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     background: @Composable BoxScope.() -> Unit = {},
+    searchReturn: Boolean = false,
 ) {
     Box(modifier.fillMaxSize()) {
         background()
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-            val collapsedHeight = 34.dp
-            val targetHeight = when (value) {
-                WorkspaceSheetLevel.COLLAPSED -> collapsedHeight
-                WorkspaceSheetLevel.HALF -> maxHeight * workspaceSheetFraction(value)
-                WorkspaceSheetLevel.EXPANDED -> maxHeight * workspaceSheetFraction(value)
-            }.coerceAtMost(maxHeight)
+            val targetHeight = workspaceSheetHeightDp(
+                availableHeightDp = maxHeight.value,
+                level = value,
+                searchReturn = searchReturn,
+            ).dp
             var dragOffset by remember { mutableFloatStateOf(0f) }
             LaunchedEffect(value) { dragOffset = 0f }
             Surface(
