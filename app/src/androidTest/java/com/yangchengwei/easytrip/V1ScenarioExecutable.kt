@@ -3,11 +3,19 @@ package com.yangchengwei.easytrip
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipeUp
 import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.RouteStatus
@@ -67,6 +75,7 @@ import com.yangchengwei.easytrip.workspace.MapUiModel
 import com.yangchengwei.easytrip.workspace.TripWorkspaceContent
 import com.yangchengwei.easytrip.workspace.TripWorkspacePageState
 import com.yangchengwei.easytrip.workspace.TripWorkspaceReadyState
+import com.yangchengwei.easytrip.workspace.TripWorkspaceScreen
 import com.yangchengwei.easytrip.workspace.WorkspaceMapState
 import com.yangchengwei.easytrip.workspace.WorkspaceOverlay
 import com.yangchengwei.easytrip.workspace.WorkspaceSection
@@ -143,9 +152,9 @@ object V1ScenarioExecutableFactory {
         19 -> selectPlaces(fixtureId)
         20 -> targetDay(fixtureId, targetMissing = false, submitting = false)
         21 -> addComplete(fixtureId)
-        22 -> workspaceSheet(fixtureId, WorkspaceSheetLevel.COLLAPSED)
-        23 -> workspaceSheet(fixtureId, WorkspaceSheetLevel.HALF)
-        24 -> workspaceSheet(fixtureId, WorkspaceSheetLevel.EXPANDED)
+        22 -> workspaceSheet(fixtureId, 22)
+        23 -> workspaceSheet(fixtureId, 23)
+        24 -> workspaceSheet(fixtureId, 24)
         25 -> deleteTripDay(fixtureId)
         26 -> emptyPlacePool(fixtureId)
         27 -> searchState(fixtureId, PlaceSearchPhase.Empty, "没有找到相关地点")
@@ -516,14 +525,73 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    private fun workspaceSheet(id: String, level: WorkspaceSheetLevel): V1ScenarioExecutable {
+    private fun workspaceSheet(id: String, scenarioNumber: Int): V1ScenarioExecutable {
+        val level = when (scenarioNumber) {
+            22 -> WorkspaceSheetLevel.COLLAPSED
+            23 -> WorkspaceSheetLevel.HALF
+            24 -> WorkspaceSheetLevel.EXPANDED
+            else -> error("Unsupported workspace sheet scenario: $scenarioNumber")
+        }
         val actions = mutableListOf<com.yangchengwei.easytrip.workspace.TripWorkspaceAction>()
-        return workspaceScenario(
-            id,
-            actions,
-            readyState(sheetLevel = level),
-            WorkspaceMapState.Ready,
-            verify = { onNodeWithTag("workspace-map").assertIsDisplayed(); onNodeWithTag("workspace-top-bar").assertIsDisplayed() },
+        var currentLevel by mutableStateOf(level)
+        val heights = mutableMapOf<WorkspaceSheetLevel, Float>()
+        val contentVisibility = mutableMapOf<WorkspaceSheetLevel, Boolean>()
+        val gestureTarget = when (level) {
+            WorkspaceSheetLevel.COLLAPSED -> WorkspaceSheetLevel.HALF
+            WorkspaceSheetLevel.HALF -> WorkspaceSheetLevel.EXPANDED
+            WorkspaceSheetLevel.EXPANDED -> WorkspaceSheetLevel.HALF
+        }
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.WORKSPACE),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
+            reset = {
+                actions.clear()
+                heights.clear()
+                contentVisibility.clear()
+                currentLevel = level
+            },
+            content = {
+                val ready = readyState(sheetLevel = currentLevel)
+                TripWorkspaceContent(
+                    pageState = TripWorkspacePageState.Ready(ready),
+                    mapState = WorkspaceMapState.Ready,
+                    onAction = { action ->
+                        actions += action
+                        if (action is com.yangchengwei.easytrip.workspace.TripWorkspaceAction.SetSheetLevel) {
+                            currentLevel = action.level
+                        }
+                    },
+                    placeState = PlacePoolUiState(),
+                    onPlaceAction = {},
+                    itineraryState = DayItineraryUiState(days = ready.days, selectedDayId = ready.days.first().id),
+                    onItineraryAction = {},
+                    mapContent = {},
+                )
+            },
+            interact = {
+                WorkspaceSheetLevel.entries.forEach { target ->
+                    runOnIdle { currentLevel = target }
+                    waitForIdle()
+                    heights[target] = onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().let { it.bottom.value - it.top.value }
+                    contentVisibility[target] = runCatching { onNodeWithText("行程").assertIsDisplayed() }.isSuccess
+                }
+                runOnIdle { currentLevel = level; actions.clear() }
+                waitForIdle()
+                onNodeWithTag("workspace-sheet-handle").performTouchInput {
+                    if (level == WorkspaceSheetLevel.EXPANDED) swipeDown() else swipeUp()
+                }
+            },
+            verify = {
+                check(heights.getValue(WorkspaceSheetLevel.COLLAPSED) < heights.getValue(WorkspaceSheetLevel.HALF))
+                check(heights.getValue(WorkspaceSheetLevel.HALF) < heights.getValue(WorkspaceSheetLevel.EXPANDED))
+                check(contentVisibility == mapOf(
+                    WorkspaceSheetLevel.COLLAPSED to false,
+                    WorkspaceSheetLevel.HALF to true,
+                    WorkspaceSheetLevel.EXPANDED to true,
+                ))
+                check(actions == listOf(com.yangchengwei.easytrip.workspace.TripWorkspaceAction.SetSheetLevel(gestureTarget)))
+                onNodeWithTag("workspace-map").assertIsDisplayed()
+            },
         )
     }
 
@@ -569,17 +637,41 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    private fun undoSuccess(id: String) = ComposeScenario(
-        ScenarioFixture(id, ScenarioScreen.PLACE_POOL),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
-        content = {
-            Column {
-                Text("已撤销本次新增，收藏地点仍保留。")
-                com.yangchengwei.easytrip.place.ui.PlacePoolContent(PlacePoolUiState(), onAction = {})
-            }
-        },
-        verify = { onNodeWithText("已撤销本次新增，收藏地点仍保留。").assertIsDisplayed(); onNodeWithText("地点池还是空的").assertIsDisplayed() },
-    )
+    private fun undoSuccess(id: String): V1ScenarioExecutable {
+        var closed = false
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.PLACE_POOL),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
+            reset = { closed = false },
+            content = {
+                val ready = readyState(overlay = WorkspaceOverlay.AddToItineraryResult)
+                TripWorkspaceScreen(
+                    pageState = TripWorkspacePageState.Ready(ready),
+                    consent = null,
+                    onAction = {},
+                    onMarkerClick = {},
+                    onMapPoiClick = {},
+                    placeState = PlacePoolUiState(),
+                    onPlaceAction = {},
+                    itineraryState = DayItineraryUiState(days = ready.days, selectedDayId = ready.days.first().id),
+                    addToItineraryState = AddToItineraryUiState(
+                        step = AddToItineraryStep.COMPLETED,
+                        result = AddPlacesOutcome.Success("day-1", listOf("item-1")),
+                        undoBatches = emptyList(),
+                    ),
+                    onItineraryAction = {},
+                    onCloseOverlay = { closed = true },
+                    onDismissMapPlace = {},
+                )
+            },
+            interact = {
+                onNodeWithText("已撤销本次新增，收藏地点仍保留。").assertIsDisplayed()
+                onNodeWithText("撤销").assertIsNotEnabled()
+                onNodeWithText("关闭").performClick()
+            },
+            verify = { check(closed) },
+        )
+    }
 
     private fun validCreate(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<CreateTripAction>()

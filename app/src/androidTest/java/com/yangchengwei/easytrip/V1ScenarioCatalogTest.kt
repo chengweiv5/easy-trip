@@ -1,11 +1,40 @@
 package com.yangchengwei.easytrip
 
+import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.runner.RunWith
+import org.junit.runners.Parameterized
 
-class V1ScenarioCatalogTest {
+@RunWith(Parameterized::class)
+class V1ScenarioCatalogTest(private val scenario: V1Scenario) {
+    @get:Rule
+    val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test
+    fun executesProductionScenario() {
+        scenario.executable.setup()
+        scenario.executable.render(compose)
+        compose.waitForIdle()
+        scenario.executable.actions(compose)
+        compose.waitForIdle()
+        scenario.executable.assertions(compose)
+    }
+
+    companion object {
+        @JvmStatic
+        @Parameterized.Parameters(name = "{0}")
+        fun scenarios(): List<Array<V1Scenario>> = V1ScenarioFixtures.scenarios.map { arrayOf(it) }
+    }
+}
+
+@RunWith(AndroidJUnit4::class)
+class V1ScenarioMetadataTest {
     @Test
     fun containsEveryExistingNumberedFrameWithoutInventingFive() {
         val numbers = V1ScenarioFixtures.scenarios.map { it.number }.toSet()
