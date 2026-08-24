@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -125,6 +126,19 @@ class V1ScenarioMetadataTest {
         )
 
         assertEquals(expected, V1ScenarioFixtures.scenarios.associate { it.number to it.executable.fixture.screen })
+    }
+
+    @Test
+    fun workspaceSheetScenariosRejectSwappedFixtureIdentities() {
+        val scenarios = V1ScenarioFixtures.scenarios.associateBy(V1Scenario::number)
+
+        listOf(22 to 23, 23 to 24, 24 to 22).forEach { (scenarioNumber, fixtureSourceNumber) ->
+            val fixtureSource = scenarios.getValue(fixtureSourceNumber)
+
+            assertThrows(IllegalArgumentException::class.java) {
+                V1ScenarioExecutableFactory.create(scenarioNumber, fixtureSource.frameId, fixtureSource.executable.fixture.id).setup()
+            }
+        }
     }
 
     @Test

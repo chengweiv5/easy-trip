@@ -105,7 +105,7 @@ object V1ScenarioFixtures {
         frameId = frameId,
         journey = journey,
         matrix = matrix,
-        executable = V1ScenarioExecutableFactory.create(number, fixture),
+        executable = V1ScenarioExecutableFactory.create(number, frameId, fixture),
         assertions = listOf(
             ScenarioAssertion(BlockerCategory.FUNCTIONAL_STATE, expected),
             ScenarioAssertion(blocker, "$name 不触发 ${blocker.name.lowercase()} blocker"),

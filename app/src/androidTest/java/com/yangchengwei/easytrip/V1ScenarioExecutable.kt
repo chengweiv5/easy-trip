@@ -130,8 +130,21 @@ private class ComposeScenario(
     override fun assertions(compose: V1ComposeRule) = compose.verify()
 }
 
+data class WorkspaceSheetScenarioSpec(
+    val number: Int,
+    val frameId: String,
+    val fixtureId: String,
+    val level: WorkspaceSheetLevel,
+) {
+    fun requireIdentity(number: Int, frameId: String, fixtureId: String) {
+        require(number == this.number) { "Workspace sheet scenario must be ${this.number}, was $number" }
+        require(frameId == this.frameId) { "Workspace sheet scenario ${this.number} must use frame ${this.frameId}, was $frameId" }
+        require(fixtureId == this.fixtureId) { "Workspace sheet scenario ${this.number} must use fixture ${this.fixtureId}, was $fixtureId" }
+    }
+}
+
 object V1ScenarioExecutableFactory {
-    fun create(number: Int, fixtureId: String): V1ScenarioExecutable = when (number) {
+    fun create(number: Int, frameId: String, fixtureId: String): V1ScenarioExecutable = when (number) {
         1 -> existingTrips(fixtureId)
         2 -> placePool(fixtureId)
         3 -> searchResults(fixtureId)
@@ -152,9 +165,9 @@ object V1ScenarioExecutableFactory {
         19 -> selectPlaces(fixtureId)
         20 -> targetDay(fixtureId, targetMissing = false, submitting = false)
         21 -> addComplete(fixtureId)
-        22 -> workspaceSheet(fixtureId, 22)
-        23 -> workspaceSheet(fixtureId, 23)
-        24 -> workspaceSheet(fixtureId, 24)
+        22 -> workspaceSheet(number, frameId, fixtureId, WorkspaceSheetScenarioSpec(22, "kCc5z", "workspace-drawer-collapsed", WorkspaceSheetLevel.COLLAPSED))
+        23 -> workspaceSheet(number, frameId, fixtureId, WorkspaceSheetScenarioSpec(23, "sWTB3", "workspace-drawer-half", WorkspaceSheetLevel.HALF))
+        24 -> workspaceSheet(number, frameId, fixtureId, WorkspaceSheetScenarioSpec(24, "f2ieZ6", "workspace-drawer-expanded", WorkspaceSheetLevel.EXPANDED))
         25 -> deleteTripDay(fixtureId)
         26 -> emptyPlacePool(fixtureId)
         27 -> searchState(fixtureId, PlaceSearchPhase.Empty, "没有找到相关地点")
@@ -525,13 +538,13 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    private fun workspaceSheet(id: String, scenarioNumber: Int): V1ScenarioExecutable {
-        val level = when (scenarioNumber) {
-            22 -> WorkspaceSheetLevel.COLLAPSED
-            23 -> WorkspaceSheetLevel.HALF
-            24 -> WorkspaceSheetLevel.EXPANDED
-            else -> error("Unsupported workspace sheet scenario: $scenarioNumber")
-        }
+    private fun workspaceSheet(
+        scenarioNumber: Int,
+        frameId: String,
+        fixtureId: String,
+        spec: WorkspaceSheetScenarioSpec,
+    ): V1ScenarioExecutable {
+        val level = spec.level
         val actions = mutableListOf<com.yangchengwei.easytrip.workspace.TripWorkspaceAction>()
         var currentLevel by mutableStateOf(level)
         val heights = mutableMapOf<WorkspaceSheetLevel, Float>()
@@ -542,9 +555,10 @@ object V1ScenarioExecutableFactory {
             WorkspaceSheetLevel.EXPANDED -> WorkspaceSheetLevel.HALF
         }
         return ComposeScenario(
-            ScenarioFixture(id, ScenarioScreen.WORKSPACE),
+            ScenarioFixture(fixtureId, ScenarioScreen.WORKSPACE),
             ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
             reset = {
+                spec.requireIdentity(scenarioNumber, frameId, fixtureId)
                 actions.clear()
                 heights.clear()
                 contentVisibility.clear()
@@ -582,6 +596,7 @@ object V1ScenarioExecutableFactory {
                 }
             },
             verify = {
+                spec.requireIdentity(scenarioNumber, frameId, fixtureId)
                 check(heights.getValue(WorkspaceSheetLevel.COLLAPSED) < heights.getValue(WorkspaceSheetLevel.HALF))
                 check(heights.getValue(WorkspaceSheetLevel.HALF) < heights.getValue(WorkspaceSheetLevel.EXPANDED))
                 check(contentVisibility == mapOf(
