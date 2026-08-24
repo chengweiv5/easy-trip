@@ -75,8 +75,10 @@ adb -s "$SERIAL" shell am instrument -w -e class com.yangchengwei.easytrip.amap.
 status=${PIPESTATUS[0]}
 set -e
 adb -s "$SERIAL" logcat -d >"$EVIDENCE_DIR/logcat.txt"
-adb -s "$SERIAL" exec-out screencap -p >"$EVIDENCE_DIR/final.png"
 [[ $status -eq 0 ]] || exit "$status"
+adb -s "$SERIAL" exec-out run-as com.yangchengwei.easytrip cat files/amap-smoke-loaded.png >"$EVIDENCE_DIR/map-loaded.png"
+[[ -s "$EVIDENCE_DIR/map-loaded.png" ]] || { printf 'loaded map screenshot missing\n' >&2; exit 14; }
 grep -q 'OK (1 test)' "$EVIDENCE_DIR/instrumentation.txt" || { printf 'instrumentation did not report success\n' >&2; exit 14; }
 grep -q 'AMAP_SMOKE.*map_loaded=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'map-loaded evidence missing\n' >&2; exit 14; }
+grep -q 'AMAP_SMOKE.*screenshot_ready=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'screenshot evidence missing\n' >&2; exit 14; }
 grep -q 'AMAP_SMOKE.*lifecycle_cleanup=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'lifecycle cleanup evidence missing\n' >&2; exit 14; }

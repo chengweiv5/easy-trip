@@ -34,8 +34,8 @@ case "\$*" in
   *ro.build.version.sdk*) printf '36\n' ;;
   *ro.product.cpu.abi*) printf 'x86_64\n' ;;
   *dumpsys\\ SurfaceFlinger*) printf 'GLES: Google SwiftShader\n' ;;
-  *logcat\\ -d*) [[ "$mode" == marker-missing ]] || printf 'I AMAP_SMOKE: map_loaded=true\nI AMAP_SMOKE: lifecycle_cleanup=true\n' ;;
-  *exec-out\\ screencap*) printf 'png' ;;
+  *logcat\\ -d*) [[ "$mode" == marker-missing ]] || printf 'I AMAP_SMOKE: map_loaded=true\nI AMAP_SMOKE: screenshot_ready=true\nI AMAP_SMOKE: lifecycle_cleanup=true\n' ;;
+  *exec-out\\ run-as*) printf 'png' ;;
   *am\\ instrument*) printf 'OK (1 test)\n' ;;
   *) exit 0 ;;
 esac

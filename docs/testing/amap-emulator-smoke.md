@@ -22,7 +22,7 @@ AMAP_EVIDENCE_DIR="$PWD/build/amap-smoke" scripts/run-amap-smoke.sh
 - `sys.boot_completed=1`
 - 禁用 snapshot load/save 的 cold boot
 
-任一组合不符会 fail-fast，不安装 APK。环境证据写入合法 JSON `build/amap-smoke/environment.json`；`emulator.log`、`instrumentation.txt`、`logcat.txt` 和 `final.png` 位于同目录。Gradle 安装与 instrumentation 都显式绑定 `emulator-5588`。清理只终止脚本保存的 emulator PID，PID 已退出时不会通过 serial 杀设备。
+任一组合不符会 fail-fast，不安装 APK。环境证据写入合法 JSON `build/amap-smoke/environment.json`；`emulator.log`、`instrumentation.txt`、`logcat.txt` 和 `map-loaded.png` 位于同目录。Gradle 安装与 instrumentation 都显式绑定 `emulator-5588`。清理只终止脚本保存的 emulator PID，PID 已退出时不会通过 serial 杀设备。
 
 ## Smoke 行为
 

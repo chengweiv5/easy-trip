@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.amap
 
 import android.content.pm.PackageManager
+import android.graphics.Bitmap
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
 import android.util.Log
@@ -36,8 +37,8 @@ class AmapMapViewAttachSmokeTest {
                 mapView = MapView(activity)
                 activity.attach(mapView)
                 mapView.onCreate(null)
-                mapView.onResume()
                 mapView.map.setOnMapLoadedListener(AMap.OnMapLoadedListener { loaded.countDown() })
+                mapView.onResume()
                 assertTrue(mapView.isAttachedToWindow)
             }
             assertTrue("AMap did not report map-loaded within 20 seconds", loaded.await(20, TimeUnit.SECONDS))
@@ -48,6 +49,12 @@ class AmapMapViewAttachSmokeTest {
                 ParcelFileDescriptor.AutoCloseInputStream(it).readBytes().isNotEmpty()
             }
             assertTrue(processAlive)
+            val screenshot = instrumentation.uiAutomation.takeScreenshot()
+            assertTrue(screenshot.width > 0 && screenshot.height > 0)
+            context.openFileOutput("amap-smoke-loaded.png", android.content.Context.MODE_PRIVATE).use {
+                screenshot.compress(Bitmap.CompressFormat.PNG, 100, it)
+            }
+            Log.i("AMAP_SMOKE", "screenshot_ready=true")
             scenario.onActivity {
                 assertTrue(mapView.isAttachedToWindow)
                 mapView.onPause()
