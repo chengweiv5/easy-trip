@@ -10,7 +10,7 @@ The automated gate blocks functional/state errors, data inconsistency, crashes, 
 - Variant: `d1sTtb` belongs to scenario `01` and does not create scenario `05`.
 - Journeys: `RqVLv`, `IpuKg`, `V7cr3b`, `o4Wcz`, `q08to1`, `xP91E`, `y3rP1`.
 - Matrices: `hVIMZ`, `xENWi`, `eHTbI`, `CW0vn`, `a5GvBo`, `fIkSG`.
-- `V1ScenarioFixtures` is the typed registry for fixtures, reachable paths, assertions, and real JUnit test references. `V1FullUiAcceptanceTest` reflects every reference and rejects missing, non-`@Test`, or catalog-self-check methods.
+- `V1ScenarioFixtures` binds each entry to a typed `V1ScenarioExecutable` with fixture, reachable path, setup, production rendering, actions, and assertions. `V1FullUiAcceptanceTest` parameterizes over all 47 entries and executes that contract directly; `V1ScenarioCatalogTest` verifies catalog completeness and screen bindings without reflection.
 
 ## Scenario directory
 
@@ -31,7 +31,7 @@ The automated gate blocks functional/state errors, data inconsistency, crashes, 
 | 13 | `oW9mK` | 删除旅行确认 | trip-with-delete-impact | focused confirmation test | 我的旅行 → 删除 | impact copy | PENDING |
 | 14 | `DxZ2a` | 状态规范 | component-states | `ConfirmationDialogTest#narrowLargeFontDialogKeepsActionsReachableWithFullImpactList` | 验收目录 → 状态矩阵 | clipping | PENDING |
 | 15 | `p7U8B` | 无旅行日 | trip-without-days | `ItineraryEditingTest#emptyDayShowsEmptyState` | 工作台 → 行程 | crash-free | PENDING |
-| 16 | `ijpZD` | 工作台更多菜单 | existing-trip | `TripWorkspaceContentTest#readyKeepsSearchSettingsBackAndItineraryActions` | 工作台 → 更多 | reachability | PENDING |
+| 16 | `ijpZD` | 工作台设置直达 | existing-trip | typed executable | 工作台 → 设置 | production UI has a direct settings action, not a more menu | PENDING |
 | 17 | `shoPV` | 地图图层 | map-ready | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 工作台 → 地图图层 | interaction | PENDING |
 | 18 | `zvO9Z` | 添加旅行日 | dated-trip | `V1AcceptanceTest#threeDayTripPersistsRepeatedPlacesEdgesOverridesAndMapScopes` | 行程 → 添加一天 | data consistency | PENDING |
 | 19 | `Pqdkf` | 从地点池添加地点 | saved-place-and-days | V1 acceptance | 地点池 → 地点 → 加入行程 | interaction | PENDING |
