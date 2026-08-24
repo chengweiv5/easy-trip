@@ -74,6 +74,22 @@ class AddToItineraryStateTest {
         assertTrue(viewModel.state.value.undoCreatedItemIds.isEmpty())
     }
 
+    @Test fun `from pool draft restores target selection step before target is chosen`() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val original = model(FakeItineraries(), saved)
+        ready(original)
+        original.startFromPool()
+        original.togglePlace("hotel")
+        original.continueToTargetDay()
+
+        val restored = model(FakeItineraries(), saved)
+
+        assertEquals(AddToItineraryEditingTarget.FromPlacePool, restored.state.value.editingTarget)
+        assertEquals(listOf("hotel"), restored.state.value.selectedPlaceIds)
+        assertNull(restored.state.value.targetDayId)
+        assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, restored.state.value.step)
+    }
+
     @Test fun `restored draft cannot submit before first validity snapshot`() = runTest(dispatcher) {
         val saved = SavedStateHandle(
             mapOf(
@@ -105,6 +121,29 @@ class AddToItineraryStateTest {
         assertNull(viewModel.state.value.targetDayId)
         assertEquals(listOf("hotel"), viewModel.state.value.selectedPlaceIds)
         assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, viewModel.state.value.step)
+    }
+
+    @Test fun `reconcile drops undo batches for days that no longer exist`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(listOf(Result.success("day-1-hotel"), Result.success("day-2-museum"))),
+        )
+        val viewModel = model(repository)
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.submit()
+        advanceUntilIdle()
+        viewModel.startFromPool()
+        viewModel.togglePlace("museum")
+        viewModel.selectTargetDay("day-2")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        viewModel.reconcile(listOf("day-2"), setOf("hotel", "museum", "park"))
+
+        assertEquals(
+            listOf(UndoCreatedItemsBatch("day-2", listOf("day-2-museum"))),
+            viewModel.state.value.undoBatches,
+        )
     }
 
     @Test fun `duplicate submit invokes add once`() = runTest(dispatcher) {

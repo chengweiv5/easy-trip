@@ -27,6 +27,25 @@ fun WorkspaceOverlay.isAddToItineraryOverlay(): Boolean =
 fun canDismissAddOverlay(overlay: WorkspaceOverlay, addToItinerary: AddToItineraryUiState): Boolean =
     !overlay.isAddToItineraryOverlay() || (!addToItinerary.isSubmitting && !addToItinerary.isUndoing)
 
+internal fun addOverlayToPresent(
+    workspaceOverlay: WorkspaceOverlay,
+    addToItinerary: AddToItineraryUiState,
+): WorkspaceOverlay? {
+    val desired = when {
+        addToItinerary.result is com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.PartialSuccess ||
+            addToItinerary.result is com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.TargetDayMissing ->
+            WorkspaceOverlay.AddToItineraryResult
+        addToItinerary.step == AddToItineraryStep.SELECT_PLACES -> WorkspaceOverlay.SelectAddPlaces
+        addToItinerary.step == AddToItineraryStep.SELECT_TARGET_DAY -> WorkspaceOverlay.SelectAddTargetDay
+        addToItinerary.step == AddToItineraryStep.COMPLETED -> WorkspaceOverlay.AddToItineraryResult
+        else -> null
+    }
+    return desired?.takeIf {
+        workspaceOverlay == WorkspaceOverlay.None ||
+            workspaceOverlay.isAddToItineraryOverlay() && workspaceOverlay != desired
+    }
+}
+
 fun workspaceBackDecision(
     overlay: WorkspaceOverlay,
     addToItinerary: AddToItineraryUiState,
@@ -95,15 +114,8 @@ fun TripWorkspaceRoute(
             places.rows.mapTo(mutableSetOf()) { it.place.id },
         )
     }
-    LaunchedEffect(addToItinerary.step, addToItinerary.result) {
-        when {
-            addToItinerary.result is com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.PartialSuccess ||
-                addToItinerary.result is com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.TargetDayMissing ->
-                viewModel.openOverlay(WorkspaceOverlay.AddToItineraryResult)
-            addToItinerary.step == AddToItineraryStep.SELECT_PLACES -> viewModel.openOverlay(WorkspaceOverlay.SelectAddPlaces)
-            addToItinerary.step == AddToItineraryStep.SELECT_TARGET_DAY -> viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
-            addToItinerary.step == AddToItineraryStep.COMPLETED -> viewModel.openOverlay(WorkspaceOverlay.AddToItineraryResult)
-        }
+    LaunchedEffect(addToItinerary.step, addToItinerary.result, ready?.overlay) {
+        addOverlayToPresent(ready?.overlay ?: WorkspaceOverlay.None, addToItinerary)?.let(viewModel::openOverlay)
     }
 
     LaunchedEffect(places.pendingCollectionRemoval) {

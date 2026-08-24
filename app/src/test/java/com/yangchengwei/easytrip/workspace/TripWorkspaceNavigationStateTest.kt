@@ -102,6 +102,19 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(WorkspaceBackDecision.LeaveWorkspace, workspaceBackDecision(WorkspaceOverlay.None, AddToItineraryUiState()))
     }
 
+    @Test fun `add overlay waits behind unrelated overlay and restores after it closes`() {
+        val addState = AddToItineraryUiState(
+            editingTarget = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.FromPlacePool,
+            step = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep.SELECT_TARGET_DAY,
+        )
+
+        assertNull(addOverlayToPresent(WorkspaceOverlay.LayerMenu, addState))
+        assertEquals(
+            WorkspaceOverlay.SelectAddTargetDay,
+            addOverlayToPresent(WorkspaceOverlay.None, addState),
+        )
+    }
+
     @Test fun backClosesOverlayBeforeLeavingWorkspace() = runTest(dispatcher) {
         val model = model(Trips(days("one", "two")))
         advanceUntilIdle()

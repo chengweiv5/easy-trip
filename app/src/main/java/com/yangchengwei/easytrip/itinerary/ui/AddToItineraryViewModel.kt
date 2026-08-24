@@ -169,6 +169,7 @@ class AddToItineraryViewModel(
         savedState[SELECTED_PLACE_IDS] = null
         savedState[TARGET_DAY_ID] = null
         savedState[EDITING_TARGET] = null
+        savedState[STEP] = null
         mutableState.value = AddToItineraryUiState(validityInitialized = mutableState.value.validityInitialized)
     }
 
@@ -214,6 +215,7 @@ class AddToItineraryViewModel(
                 selectedPlaceIds = selected,
                 targetDayId = target,
                 validityInitialized = true,
+                undoBatches = current.undoBatches.filter { it.dayId in validDayIds },
                 step = if (current.targetDayId != null && target == null && selected.isNotEmpty()) {
                     AddToItineraryStep.SELECT_TARGET_DAY
                 } else {
@@ -246,15 +248,19 @@ class AddToItineraryViewModel(
         val selected = savedState.get<ArrayList<String>>(SELECTED_PLACE_IDS)?.toList().orEmpty()
         val target = savedState.get<String>(TARGET_DAY_ID)
         val editing = decodeEditingTarget(savedState[EDITING_TARGET])
+        val step = savedState.get<String>(STEP)
+            ?.let { raw -> AddToItineraryStep.entries.firstOrNull { it.name == raw } }
+            ?.takeIf { editing != null && it != AddToItineraryStep.IDLE && it != AddToItineraryStep.COMPLETED }
+            ?: when {
+                editing == null -> AddToItineraryStep.IDLE
+                target != null -> AddToItineraryStep.SELECT_TARGET_DAY
+                else -> AddToItineraryStep.SELECT_PLACES
+            }
         return AddToItineraryUiState(
             selectedPlaceIds = selected,
             targetDayId = target,
             editingTarget = editing,
-            step = when {
-                editing == null -> AddToItineraryStep.IDLE
-                target != null -> AddToItineraryStep.SELECT_TARGET_DAY
-                else -> AddToItineraryStep.SELECT_PLACES
-            },
+            step = step,
         )
     }
 
@@ -262,6 +268,7 @@ class AddToItineraryViewModel(
         savedState[SELECTED_PLACE_IDS] = ArrayList(state.selectedPlaceIds)
         savedState[TARGET_DAY_ID] = state.targetDayId
         savedState[EDITING_TARGET] = encodeEditingTarget(state.editingTarget)
+        savedState[STEP] = state.step.name
     }
 
     private fun encodeEditingTarget(target: AddToItineraryEditingTarget?): String? = when (target) {
@@ -291,6 +298,7 @@ class AddToItineraryViewModel(
         const val SELECTED_PLACE_IDS = "workspace.addToItinerary.selectedPlaceIds"
         const val TARGET_DAY_ID = "workspace.addToItinerary.targetDayId"
         const val EDITING_TARGET = "workspace.addToItinerary.editingTarget"
+        const val STEP = "workspace.addToItinerary.step"
         const val FROM_PLACE_POOL = "from-place-pool"
     }
 }
