@@ -113,3 +113,5 @@ XML 断言：
 - TDD RED：新增 `ViewModelProvider`/`ViewModelStoreOwner` 测试后，`WorkspaceSearchReturnViewModel` 不存在导致编译失败。
 - GREEN：entry recreation/isolation/clear 测试通过，`compileDebugKotlin` 与 `compileDebugAndroidTestKotlin` 成功。
 - 将末项 bounds 的 Kotlin `assert` 改为 JUnit `assertTrue`，避免关闭 JVM assertions 时测试失效。
+
+Fix round 4：新增 `WorkspaceSearchReturnNavEntryTest`，使用真实 Compose `NavHost`、`NavBackStackEntry` 及 entry scoped `ViewModelStore` 覆盖 payload ack 后状态持有、`ActivityScenario.recreate()`、pop 后重进为空、A/B entry 隔离；测试源码 RED 后已通过 `compileDebugAndroidTestKotlin`，待设备执行该 class。
