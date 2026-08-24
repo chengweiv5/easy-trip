@@ -3,5 +3,8 @@
         <activity
             android:name=".WorkspaceSearchReturnTestActivity"
             android:exported="false" />
+        <activity
+            android:name="com.yangchengwei.easytrip.amap.AmapAttachSmokeActivity"
+            android:exported="false" />
     </application>
 </manifest>
