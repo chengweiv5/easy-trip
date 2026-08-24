@@ -66,11 +66,36 @@ class PlacePoolViewModelTest {
 
         assertEquals(
             listOf(
-                SavedPlaceRowUi("a", "A", "address", null, emptyList(), 0, false),
-                SavedPlaceRowUi("b", "B", "address", null, emptyList(), 2, true),
+                SavedPlaceRowUi(place("a"), 0, false),
+                SavedPlaceRowUi(place("b"), 2, true),
             ),
             model.state.value.rows,
         )
+    }
+
+    @Test fun itineraryUsageChangeRefreshesRowsWithoutPlaceChange() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), mapOf("a" to 0))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+
+        repository.setUsage("a", 2)
+        advanceUntilIdle()
+
+        assertEquals(2, model.state.value.rows.single().itineraryOccurrenceCount)
+        assertEquals(true, model.state.value.rows.single().scheduled)
+    }
+
+    @Test fun rowsStayEmptyUntilUsageSnapshotIsKnown() = runTest(dispatcher) {
+        val repository = DelayedRowsRepository(place("a"))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+
+        assertEquals(emptyList<SavedPlaceRowUi>(), model.state.value.rows)
+        repository.publishUsage(0)
+        advanceUntilIdle()
+
+        assertEquals("a", model.state.value.rows.single().place.id)
+        assertEquals(false, model.state.value.rows.single().scheduled)
     }
 
     @Test fun failedDetailSaveKeepsDraft() = runTest(dispatcher) {
@@ -101,18 +126,46 @@ class PlacePoolViewModelTest {
 
     private class PoolRepository(
         places: List<SavedPlace>,
-        private val usageCounts: Map<String, Int>,
+        usageCounts: Map<String, Int>,
         private val updateFailure: Throwable? = null,
     ) : SavedPlaceRepository {
         private val places = MutableStateFlow(places)
+        private val usageCounts = MutableStateFlow(
+            places.associate { place -> place.id to (usageCounts[place.id] ?: 0) },
+        )
+
+        fun setUsage(placeId: String, count: Int) {
+            usageCounts.value = usageCounts.value + (placeId to count)
+        }
         override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
         override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
+        override fun observeUsageCounts(tripId: String): Flow<Map<String, Int>> = usageCounts
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
             updateFailure?.let { throw it }
         }
-        override suspend fun usageCount(placeId: String) = usageCounts[placeId] ?: 0
+        override suspend fun usageCount(placeId: String) = usageCounts.value[placeId] ?: 0
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
+    private class DelayedRowsRepository(place: SavedPlace) : SavedPlaceRepository {
+        private val places = MutableStateFlow(listOf(place))
+        private val usageCounts = MutableStateFlow<Map<String, Int>?>(null)
+
+        fun publishUsage(count: Int) {
+            usageCounts.value = mapOf(places.value.single().id to count)
+        }
+
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
+        override fun observeUsageCounts(tripId: String): Flow<Map<String, Int>> = kotlinx.coroutines.flow.flow {
+            usageCounts.collect { counts -> if (counts != null) emit(counts) }
+        }
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = usageCounts.value?.get(placeId) ?: 0
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 

@@ -39,6 +39,9 @@ class RoomSavedPlaceRepository(
     override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> =
         dao.observeSavedPoiIds(tripId).map(List<String>::toSet)
 
+    override fun observeUsageCounts(tripId: String): Flow<Map<String, Int>> =
+        dao.observeUsageCounts(tripId).map { rows -> rows.associate { it.placeId to it.usageCount } }
+
     override suspend fun save(tripId: String, candidate: PlaceCandidate): SavePlaceResult = database.withTransaction {
         dao.placeId(tripId, candidate.poiId)?.let { return@withTransaction SavePlaceResult.AlreadySaved(it) }
         val point = requireNotNull(candidate.point) { "无法收藏缺少坐标的地点" }

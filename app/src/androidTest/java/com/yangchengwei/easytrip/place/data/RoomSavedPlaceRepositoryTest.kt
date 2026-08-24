@@ -7,11 +7,17 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.itinerary.data.ItineraryItemEntity
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -71,6 +77,23 @@ class RoomSavedPlaceRepositoryTest {
         val tags = places.observeTags(trip).first().associateBy { it.name }
         val filtered = places.observePlaces(trip, setOf(tags.getValue("food").id, tags.getValue("night").id)).first()
         assertEquals(listOf(both.id), filtered.map { it.id })
+    }
+
+    @Test fun usageCountsRefreshWhenOnlyItineraryItemsChange() = runTest {
+        val trip = trips.createTrip(CreateTrip("Trip", 1))
+        val day = trips.observeTrip(trip).first()!!.days.single()
+        val saved = places.save(trip, candidate("used")) as SavePlaceResult.Saved
+        val next = async(start = CoroutineStart.UNDISPATCHED) {
+            places.observeUsageCounts(trip).first { it[saved.id] == 1 }
+        }
+
+        withContext(Dispatchers.IO) {
+            database.itineraryDao().insertItem(
+                ItineraryItemEntity("item", day.id, trip, saved.id, 0),
+            )
+        }
+
+        assertEquals(1, withTimeout(5_000) { next.await() }.getValue(saved.id))
     }
 
     private fun candidate(id: String) = PlaceCandidate(id, "Name $id", "Address $id", GeoPoint(39.9, 116.4), "010")

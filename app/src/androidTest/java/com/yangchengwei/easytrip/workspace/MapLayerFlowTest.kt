@@ -12,6 +12,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -82,6 +83,7 @@ class MapLayerFlowTest {
 
         compose.onNodeWithTag("layer-menu").performClick()
         compose.onNodeWithText("地图图层").assertIsDisplayed()
+        compose.onNodeWithTag("layer-menu-close").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
         compose.runOnIdle { overlay = WorkspaceOverlay.PlaceDetail(1) }
         compose.onNodeWithText("地图图层").assertDoesNotExist()
     }

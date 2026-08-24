@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
@@ -40,7 +41,13 @@ fun MapControls(
                 Column(Modifier.padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                         Text("地图图层", style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-                        Text("关闭", Modifier.clickable(onClick = onCloseOverlay))
+                        Text(
+                            "关闭",
+                            Modifier.defaultMinSize(48.dp, 48.dp)
+                                .testTag("layer-menu-close")
+                                .clickable(onClick = onCloseOverlay)
+                                .padding(horizontal = 8.dp, vertical = 12.dp),
+                        )
                     }
                     MapLayer.entries.forEach { option ->
                         Column(

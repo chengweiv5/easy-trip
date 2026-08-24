@@ -1,6 +1,8 @@
 package com.yangchengwei.easytrip.place.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.items
@@ -117,7 +119,9 @@ fun PlacePoolContent(
         } else {
             androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth()) {
                 if (state.tags.isNotEmpty()) item {
-                    androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth()) {
+                    androidx.compose.foundation.layout.Row(
+                        Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).testTag("place-pool-tags"),
+                    ) {
                         state.tags.forEach { tag ->
                             com.yangchengwei.easytrip.core.ui.component.SelectablePill(
                                 selected = tag.id in state.selectedTagIds,
@@ -130,8 +134,7 @@ fun PlacePoolContent(
                 }
                 items(state.rows.size) { index ->
                     val row = state.rows[index]
-                    val place = state.search.savedPlaces.first { it.id == row.id }
-                    SavedPlaceRow(row, { onEdit(place) }, { onDelete(place) })
+                    SavedPlaceRow(row, { onEdit(row.place) }, { onDelete(row.place) })
                 }
             }
         }

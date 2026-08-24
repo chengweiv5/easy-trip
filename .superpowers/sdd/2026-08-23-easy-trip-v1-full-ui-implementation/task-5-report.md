@@ -61,12 +61,19 @@ GREEN 阶段验证：
 - `.superpowers/sdd/2026-08-23-easy-trip-v1-full-ui-implementation/progress.md`
 - Graphify 正式产物。
 
+## Fix round 1
+
+- 新增 Room 聚合 Flow，同时观察 `saved_places` 与 `itinerary_items`；仅行程项变化时 usage count 也会刷新，不修改 schema。
+- 地点行由地点与 usage 快照组合后原子发布；usage 尚未知时不显示“仅收藏”，避免把未知状态伪装为 0。
+- `SavedPlaceRowUi` 直接携带稳定的 `SavedPlace`，Content 不再跨 `rows` 与 `search.savedPlaces` 执行 `first { id }` 拼接。
+- 行程状态字段改为 `scheduled`，与 Task 7 的用户多选 `selectedPlaceIds` 保持独立语义。
+- 图层菜单关闭控件扩展为至少 48×48dp；标签栏改为横向滚动，窄屏与 2× 字体下末尾标签可达。
+- RED 覆盖独立 itinerary usage 变化、usage 首帧未知、异步地点列表错位、关闭控件 bounds、窄屏大字体标签可达；首轮 Compose RED 共 3 项，分别暴露 Room 双 Flow 时序、标签栏无滚动语义和关闭控件无 48dp 目标。
+- GREEN：`PlacePoolViewModelTest` 6/6；Task 5 Compose/Workspace 目标套件 19/19；`RoomSavedPlaceRepositoryTest` 5/5，其中真实 Room 测试证明仅插入 `itinerary_items` 即触发 count 0→1；`testDebugUnitTest lintDebug assembleDebug` 成功。
+
 ## 关注点
 
 - 最终物理设备验收因安装授权被拒绝而待办。
-- usage count 当前逐项查询；地点先以缓存值或 0 展示，随后更新真实次数，可能短暂显示“仅收藏”。
-- 仅 itinerary usage 变化而地点 Flow 不发射时，地点行次数不会主动刷新；后续行程任务接入时应统一触发刷新。
-- 地点行点击仍从 `search.savedPlaces` 取领域对象；极短暂的 Flow 不一致窗口理论上可能导致找不到对应项。
 - 搜索 Surface 自动测试锁定最小高度与语义；不透明背景和接近全宽主要由组件实现及 Compose 布局验证保证。
 
 ## Graphify

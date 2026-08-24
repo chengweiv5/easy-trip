@@ -20,14 +20,16 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class SavedPlaceRowUi(
-    val id: String,
-    val name: String,
-    val address: String,
-    val note: String?,
-    val tags: List<String>,
+    val place: SavedPlace,
     val itineraryOccurrenceCount: Int,
-    val selected: Boolean,
-)
+    val scheduled: Boolean,
+) {
+    val id get() = place.id
+    val name get() = place.name
+    val address get() = place.address
+    val note get() = place.note.ifBlank { null }
+    val tags get() = place.tags.map(PlaceTag::name)
+}
 
 data class PlaceDetailDraft(val note: String, val tags: Set<String>)
 
@@ -192,33 +194,18 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     private fun observePlaces() {
         placesJob?.cancel()
         placesJob = viewModelScope.launch {
-            repository.observePlaces(tripId, mutableState.value.selectedTagIds).collect { places ->
-                reducer.setSavedPlaces(places)
-                val previousCounts = mutableState.value.rows.associate { it.id to it.itineraryOccurrenceCount }
-                val rows = places.map { place ->
-                    val count = previousCounts[place.id] ?: 0
-                    SavedPlaceRowUi(
-                        id = place.id,
-                        name = place.name,
-                        address = place.address,
-                        note = place.note.ifBlank { null },
-                        tags = place.tags.map(PlaceTag::name),
-                        itineraryOccurrenceCount = count,
-                        selected = count > 0,
-                    )
-                }
-                mutableState.update { it.copy(rows = rows) }
-                places.forEach { place ->
-                    val count = service.deletionUsageCount(place.id)
-                    mutableState.update { current ->
-                        current.copy(
-                            rows = current.rows.map { row ->
-                                if (row.id == place.id) row.copy(itineraryOccurrenceCount = count, selected = count > 0) else row
+            repository.observePlacesWithUsage(tripId, mutableState.value.selectedTagIds)
+                .collect { placesWithUsage ->
+                    val places = placesWithUsage.map { it.first }
+                    reducer.setSavedPlaces(places)
+                    mutableState.update {
+                        it.copy(
+                            rows = placesWithUsage.map { (place, count) ->
+                                SavedPlaceRowUi(place, count, count > 0)
                             },
                         )
                     }
                 }
-            }
         }
         if (allPlacesJob == null) {
             allPlacesJob = viewModelScope.launch {

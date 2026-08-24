@@ -332,6 +332,7 @@ class WorkspaceFlowTest {
         override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
         override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
         override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("poi"))
+        override fun observeUsageCounts(tripId: String) = flowOf(mapOf("saved" to 0))
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = usage.await()

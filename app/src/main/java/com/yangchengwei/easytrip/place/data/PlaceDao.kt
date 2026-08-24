@@ -6,6 +6,8 @@ import androidx.room.OnConflictStrategy
 import androidx.room.Query
 import kotlinx.coroutines.flow.Flow
 
+data class PlaceUsageRow(val placeId: String, val usageCount: Int)
+
 data class PlaceSnapshotRow(
     val placeId: String,
     val tripId: String,
@@ -50,5 +52,13 @@ interface PlaceDao {
     @Insert suspend fun insertCrossRefs(values: List<SavedPlaceTagCrossRef>)
     @Query("DELETE FROM tags WHERE tripId=:tripId AND id NOT IN (SELECT tagId FROM saved_place_tags WHERE tripId=:tripId)") suspend fun deleteOrphanTags(tripId: String)
     @Query("SELECT COUNT(*) FROM itinerary_items WHERE savedPlaceId=:placeId") suspend fun usageCount(placeId: String): Int
+    @Query("""
+        SELECT p.id AS placeId, COUNT(i.id) AS usageCount
+        FROM saved_places p
+        LEFT JOIN itinerary_items i ON i.savedPlaceId = p.id AND i.tripId = p.tripId
+        WHERE p.tripId = :tripId
+        GROUP BY p.id
+    """)
+    fun observeUsageCounts(tripId: String): Flow<List<PlaceUsageRow>>
     @Query("DELETE FROM saved_places WHERE id=:placeId") suspend fun deletePlace(placeId: String): Int
 }

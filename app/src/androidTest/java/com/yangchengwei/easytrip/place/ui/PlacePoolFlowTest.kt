@@ -8,6 +8,11 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeLeft
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
@@ -47,6 +52,48 @@ class PlacePoolFlowTest {
         compose.onNodeWithText("标签（逗号分隔）").assertIsDisplayed()
         compose.onNodeWithText("加入行程").assertDoesNotExist()
         compose.onNodeWithText("已加入行程").assertDoesNotExist()
+    }
+
+    @Test fun mismatchedSearchPlacesDoNotCrashRowActions() {
+        val rowPlace = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "row", "trip", "poi-row", "独立地点", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        var editedId: String? = null
+        compose.setContent {
+            EasyTripTheme {
+                PlacePoolContent(
+                    state = PlacePoolUiState(
+                        search = PlaceSearchState(savedPlaces = emptyList()),
+                        rows = listOf(SavedPlaceRowUi(rowPlace, 0, false)),
+                    ),
+                    showSearch = false,
+                    onAction = { action -> if (action is PlacePoolAction.Edit) editedId = action.place.id },
+                )
+            }
+        }
+
+        compose.onNodeWithText("编辑").performClick()
+        assertEquals("row", editedId)
+    }
+
+    @Test fun tagsRemainReachableAtNarrowWidthAndLargeFont() {
+        val tags = (1..8).map { com.yangchengwei.easytrip.place.domain.PlaceTag("$it", "很长标签$it") }
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(3f, 2f)) {
+                EasyTripTheme {
+                    PlacePoolContent(
+                        state = PlacePoolUiState(tags = tags, rows = emptyList()),
+                        showSearch = true,
+                        onAction = {},
+                    )
+                }
+            }
+        }
+
+        repeat(4) {
+            compose.onNodeWithTag("place-pool-tags").performTouchInput { swipeLeft() }
+        }
+        compose.onNodeWithTag("tag-8").assertIsDisplayed()
     }
 
     @Test fun emptyPoolProvidesSearchAction() {
