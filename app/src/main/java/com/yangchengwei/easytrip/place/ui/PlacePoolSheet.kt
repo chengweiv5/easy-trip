@@ -117,7 +117,10 @@ fun PlacePoolContent(
                 com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(onSearch) { Text("搜索地点") }
             }
         } else {
-            androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth()) {
+            androidx.compose.foundation.lazy.LazyColumn(
+                Modifier.fillMaxWidth().weight(1f).testTag("workspace-place-list"),
+                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
+            ) {
                 if (state.tags.isNotEmpty()) item {
                     androidx.compose.foundation.layout.Row(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).testTag("place-pool-tags"),

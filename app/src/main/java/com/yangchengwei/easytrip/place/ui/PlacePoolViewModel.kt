@@ -23,6 +23,7 @@ data class SavedPlaceRowUi(
     val place: SavedPlace,
     val itineraryOccurrenceCount: Int,
     val scheduled: Boolean,
+    val recentlyCollected: Boolean = false,
 ) {
     val id get() = place.id
     val name get() = place.name
@@ -48,6 +49,7 @@ data class PlacePoolUiState(
     val pendingCollectionRemoval: PendingCollectionRemoval? = null,
     val collectionBusyPoiIds: Set<String> = emptySet(),
     val collectionError: String? = null,
+    val recentlyCollectedPoiIds: Set<String> = emptySet(),
 )
 
 class PlacePoolViewModel(private val tripId: String, private val repository: SavedPlaceRepository, searchSource: PlaceSearchDataSource?, private val service: PlaceService = PlaceService(repository)) : ViewModel() {

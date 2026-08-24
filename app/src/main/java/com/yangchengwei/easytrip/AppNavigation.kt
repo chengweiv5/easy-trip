@@ -10,6 +10,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
@@ -138,6 +139,7 @@ fun AppNavigation(
                 var privacyReported by remember { mutableStateOf(application?.amapPrivacyShown == true) }
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
+                val searchReturn by entry.savedStateHandle.getStateFlow<Array<String>?>("searchReturnPoiIds", null).collectAsStateWithLifecycle()
                 val token = application?.amapConsentToken?.takeIf { it.isActive() }
                 val itineraryModel: DayItineraryViewModel = viewModel(
                     factory = DayItineraryViewModel.Factory(
@@ -165,6 +167,7 @@ fun AppNavigation(
                     placeViewModel = placeModel,
                     itineraryViewModel = itineraryModel,
                     mapHostFactory = mapHostFactory ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
+                    searchReturn = searchReturn?.let { com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn(it.toSet()) },
                 )
                 if (showConsent && application != null) {
                     SideEffect {
@@ -231,7 +234,13 @@ fun AppNavigation(
                         entry.savedStateHandle,
                     ),
                 )
-                PlaceSearchRoute(model, navController::popBackStack)
+                PlaceSearchRoute(model) {
+                    navController.previousBackStackEntry?.savedStateHandle?.set(
+                        "searchReturnPoiIds",
+                        model.recentlyCollectedPoiIds().toTypedArray(),
+                    )
+                    navController.popBackStack()
+                }
             }
         }
         composable(TRIP_SETTINGS_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) {

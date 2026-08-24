@@ -9,10 +9,13 @@ import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeDrawing
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.selection.selectableGroup
@@ -67,6 +70,7 @@ fun TripWorkspaceContent(
     placeContent: (@Composable () -> Unit)? = null,
     dayItineraryContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
+    searchReturn: WorkspaceSearchReturn? = null,
 ) {
     when (pageState) {
         TripWorkspacePageState.Loading -> WorkspacePageMessage("旅行加载中")
@@ -85,6 +89,7 @@ fun TripWorkspaceContent(
             placeContent,
             dayItineraryContent,
             modifier,
+            searchReturn,
         )
     }
 }
@@ -112,6 +117,7 @@ private fun WorkspaceReadyContent(
     placeContent: (@Composable () -> Unit)?,
     dayItineraryContent: (@Composable () -> Unit)?,
     modifier: Modifier,
+    searchReturn: WorkspaceSearchReturn?,
 ) {
     val coroutineScope = rememberCoroutineScope()
     val scaffoldState = rememberBottomSheetScaffoldState(
@@ -134,17 +140,31 @@ private fun WorkspaceReadyContent(
                 settledWorkspaceSheetLevel(current, target, state.sheetLevel)?.let { onAction(TripWorkspaceAction.SetSheetLevel(it)) }
             }
     }
+    val placeSheetHeight = if (searchReturn == null) 396.dp else 412.dp
     BottomSheetScaffold(
-        modifier = modifier,
+        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
         scaffoldState = scaffoldState,
-        sheetPeekHeight = if (state.sheetLevel == WorkspaceSheetLevel.COLLAPSED) 0.dp else 220.dp,
+        sheetPeekHeight = when {
+            state.sheetLevel == WorkspaceSheetLevel.COLLAPSED -> 0.dp
+            else -> placeSheetHeight
+        },
         sheetDragHandle = null,
         sheetContent = {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).testTag("workspace-sheet")) {
+            Column(
+                Modifier.fillMaxWidth()
+                    .height(placeSheetHeight)
+                    .padding(horizontal = 20.dp)
+                    .testTag("workspace-sheet"),
+            ) {
                 if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle"))
                 when (state.section) {
                     WorkspaceSection.PLACE_POOL -> if (placeContent != null) placeContent() else PlacePoolContent(
-                        state = placeState,
+                        state = placeState.copy(
+                            rows = placeState.rows.map { row ->
+                                row.copy(recentlyCollected = row.recentlyCollected || row.place.amapPoiId in searchReturn?.recentlyCollectedPoiIds.orEmpty())
+                            },
+                        ),
+                        modifier = Modifier.weight(1f),
                         showSearch = false,
                         onAction = onPlaceAction,
                         onSearch = { onAction(TripWorkspaceAction.OpenSearch) },

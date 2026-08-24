@@ -32,7 +32,11 @@ fun SavedPlaceRow(
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(place.name, style = MaterialTheme.typography.titleMedium)
                     Text(
-                        if (place.scheduled) "已排入 ${place.itineraryOccurrenceCount} 次" else "仅收藏",
+                        when {
+                            place.recentlyCollected -> "刚刚收藏 · 待安排行程"
+                            place.scheduled -> "已排入 ${place.itineraryOccurrenceCount} 次"
+                            else -> "仅收藏"
+                        },
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.testTag("place-status-${place.id}"),

@@ -122,6 +122,21 @@ class PlaceSearchViewModelTest {
         advanceUntilIdle()
 
         assertEquals(listOf("poi-1", "poi-2"), repository.saved.map { it.poiId })
+        assertEquals(setOf("poi-1", "poi-2"), model.recentlyCollectedPoiIds())
+    }
+
+    @Test fun preexistingPlacesAreNotReportedAsRecentlyCollected() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-existing", "已有地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val model = PlaceSearchViewModel(
+            "trip",
+            FakeSavedPlaces(listOf(saved)),
+            ImmediateSearchSource(emptyList()),
+            SavedStateHandle(),
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(emptySet<String>(), model.recentlyCollectedPoiIds())
     }
 
     @Test fun searchActionsNeverCreateItineraryItems() {

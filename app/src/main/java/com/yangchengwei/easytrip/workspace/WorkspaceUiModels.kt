@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.workspace
 
+data class WorkspaceSearchReturn(val recentlyCollectedPoiIds: Set<String>)
+
 data class TripWorkspaceReadyState(
     val tripName: String,
     val days: List<com.yangchengwei.easytrip.trip.domain.TripDay>,

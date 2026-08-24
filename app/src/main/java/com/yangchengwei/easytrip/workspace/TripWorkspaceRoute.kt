@@ -33,6 +33,7 @@ fun TripWorkspaceRoute(
     collectionError: String? = null,
     onTogglePoiCollection: ((PlaceCandidate) -> Unit)? = null,
     mapHostFactory: (android.content.Context) -> AmapMapHost = { RealAmapMapHost.create(it) },
+    searchReturn: WorkspaceSearchReturn? = null,
 ) {
     val page = viewModel.pageState.collectAsStateWithLifecycle().value
     val places = placeViewModel?.state?.collectAsStateWithLifecycle()?.value ?: placeState
@@ -172,6 +173,7 @@ fun TripWorkspaceRoute(
             placeViewModel?.toggleCollection(candidate) ?: onPlaceAction(PlacePoolAction.ToggleCollection(candidate))
         },
         mapHostFactory = mapHostFactory,
+        searchReturn = searchReturn,
     )
 }
 

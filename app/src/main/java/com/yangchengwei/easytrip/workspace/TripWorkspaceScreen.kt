@@ -64,6 +64,7 @@ fun TripWorkspaceScreen(
     collectionError: String? = null,
     onTogglePoiCollection: (PlaceCandidate) -> Unit = {},
     mapHostFactory: (android.content.Context) -> AmapMapHost = { RealAmapMapHost.create(it) },
+    searchReturn: WorkspaceSearchReturn? = null,
 ) {
     var mapAttempt by remember { mutableIntStateOf(0) }
     var mapState by remember(consent) { mutableStateOf(if (consent == null) WorkspaceMapState.ConsentRequired else WorkspaceMapState.Loading) }
@@ -90,6 +91,7 @@ fun TripWorkspaceScreen(
         onItineraryAction = onItineraryAction,
         placeContent = placeContent,
         dayItineraryContent = dayItineraryContent,
+        searchReturn = searchReturn,
         mapContent = {
             val token = consent
             if (token != null && ready != null) key(mapAttempt) {

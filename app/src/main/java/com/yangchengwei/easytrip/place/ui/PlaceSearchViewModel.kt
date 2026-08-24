@@ -53,6 +53,9 @@ class PlaceSearchViewModel(
     private val mutableState = MutableStateFlow(PlaceSearchUiState(search = reducer.state.value))
     val state: StateFlow<PlaceSearchUiState> = mutableState.asStateFlow()
     private var savedByPoiId: Map<String, SavedPlace> = emptyMap()
+    private val recentlyCollectedPoiIds = mutableSetOf<String>()
+
+    fun recentlyCollectedPoiIds(): Set<String> = recentlyCollectedPoiIds.toSet()
 
     init {
         viewModelScope.launch {
@@ -100,8 +103,14 @@ class PlaceSearchViewModel(
                 val saved = savedByPoiId[poiId]
                 val usageCount = saved?.let { service.deletionUsageCount(it.id) }
                 when (decideCollectionToggle(candidate, saved, usageCount)) {
-                    CollectionDecision.Save -> repository.save(tripId, candidate)
-                    is CollectionDecision.RemoveNow -> service.deletePlaceAndReferences(saved!!.id)
+                    CollectionDecision.Save -> {
+                        repository.save(tripId, candidate)
+                        recentlyCollectedPoiIds += poiId
+                    }
+                    is CollectionDecision.RemoveNow -> {
+                        service.deletePlaceAndReferences(saved!!.id)
+                        recentlyCollectedPoiIds -= poiId
+                    }
                     is CollectionDecision.Confirm -> mutableState.value = mutableState.value.copy(
                         pendingCollectionRemoval = PendingCollectionRemoval(candidate, saved!!, usageCount!!),
                     )
@@ -124,6 +133,7 @@ class PlaceSearchViewModel(
         viewModelScope.launch {
             try {
                 service.deletePlaceAndReferences(pending.place.id)
+                recentlyCollectedPoiIds -= poiId
                 mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null, collectionError = null)
             } catch (error: CancellationException) {
                 throw error
