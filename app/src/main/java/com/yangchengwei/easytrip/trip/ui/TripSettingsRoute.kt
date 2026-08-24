@@ -21,4 +21,3 @@ fun TripSettingsRoute(viewModel: TripSettingsViewModel, onBack: () -> Unit) {
         onConfirmDeleteDay = viewModel::confirmDelete,
     )
 }
-
