@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
@@ -141,7 +142,7 @@ private fun WorkspaceReadyContent(
                 settledWorkspaceSheetLevel(current, target, state.sheetLevel)?.let { onAction(TripWorkspaceAction.SetSheetLevel(it)) }
             }
     }
-    BoxWithConstraints(modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
+    BoxWithConstraints(modifier.windowInsetsPadding(WindowInsets.safeDrawing).imePadding()) {
         val desiredSheetHeight = if (searchReturn == null) 396.dp else 412.dp
         val placeSheetHeight = minOf(desiredSheetHeight, maxHeight)
         BottomSheetScaffold(

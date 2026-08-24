@@ -101,7 +101,7 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
                 TripWorkspaceAction.Retry -> viewModel.retry()
                 is TripWorkspaceAction.SelectSection -> {
-                    onConsumeSearchReturn()
+                    if (shouldConsumeSearchReturn(ready?.section, action.section)) onConsumeSearchReturn()
                     viewModel.selectSection(action.section)
                 }
                 is TripWorkspaceAction.SelectItineraryScope -> viewModel.selectItineraryScope(action.scope)
@@ -180,6 +180,8 @@ fun TripWorkspaceRoute(
         searchReturn = searchReturn,
     )
 }
+
+internal fun shouldConsumeSearchReturn(current: WorkspaceSection?, selected: WorkspaceSection) = current != selected
 
 private fun confirmation(title: String, message: String, confirmLabel: String) = ConfirmationUiModel(
     title = title,

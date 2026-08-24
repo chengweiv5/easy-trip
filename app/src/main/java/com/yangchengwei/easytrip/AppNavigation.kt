@@ -63,6 +63,19 @@ internal fun publishWorkspaceSearchReturn(handle: androidx.lifecycle.SavedStateH
     handle[WORKSPACE_SEARCH_RETURN_KEY] = poiIds.takeIf { it.isNotEmpty() }?.toTypedArray()
 }
 
+internal class WorkspaceSearchReturnTransientState {
+    var value by mutableStateOf<com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn?>(null)
+        private set
+
+    fun show(searchReturn: com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn?) {
+        value = searchReturn
+    }
+
+    fun clear() {
+        value = null
+    }
+}
+
 internal fun consumeWorkspaceSearchReturn(handle: androidx.lifecycle.SavedStateHandle): com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn? {
     val poiIds = handle.get<Array<String>>(WORKSPACE_SEARCH_RETURN_KEY)?.toSet().orEmpty()
     handle[WORKSPACE_SEARCH_RETURN_KEY] = null
@@ -99,6 +112,7 @@ fun AppNavigation(
     mapHostFactory: ((android.content.Context) -> com.yangchengwei.easytrip.workspace.AmapMapHost)? = null,
 ) {
     val navController = rememberNavController()
+    val workspaceSearchReturnState = remember { WorkspaceSearchReturnTransientState() }
     val navigate: (String) -> Unit = { route ->
         navigationObserver?.onNavigate(route)
         navController.navigate(route)
@@ -151,9 +165,8 @@ fun AppNavigation(
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
                 val searchReturnPayload by entry.savedStateHandle.getStateFlow<Array<String>?>(WORKSPACE_SEARCH_RETURN_KEY, null).collectAsStateWithLifecycle()
-                var searchReturn by remember(entry) { mutableStateOf<com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn?>(null) }
                 LaunchedEffect(searchReturnPayload) {
-                    if (searchReturnPayload != null) searchReturn = consumeWorkspaceSearchReturn(entry.savedStateHandle)
+                    if (searchReturnPayload != null) workspaceSearchReturnState.show(consumeWorkspaceSearchReturn(entry.savedStateHandle))
                 }
                 val token = application?.amapConsentToken?.takeIf { it.isActive() }
                 val itineraryModel: DayItineraryViewModel = viewModel(
@@ -177,19 +190,19 @@ fun AppNavigation(
                     consent = token,
                     onBack = navController::popBackStack,
                     onSettings = {
-                        searchReturn = null
+                        workspaceSearchReturnState.clear()
                         navigate("trips/$id/settings")
                     },
                     onPrivacySettings = { if (application != null) { showConsent = true; policyRead = false } },
                     onOpenSearch = {
-                        searchReturn = null
+                        workspaceSearchReturnState.clear()
                         navigate(tripSearchRoute(id))
                     },
                     placeViewModel = placeModel,
                     itineraryViewModel = itineraryModel,
                     mapHostFactory = mapHostFactory ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
-                    searchReturn = searchReturn,
-                    onConsumeSearchReturn = { searchReturn = null },
+                    searchReturn = workspaceSearchReturnState.value,
+                    onConsumeSearchReturn = workspaceSearchReturnState::clear,
                 )
                 if (showConsent && application != null) {
                     SideEffect {

@@ -92,3 +92,14 @@ XML 断言：
 - Batch 2 目标 suite 因新增 2 个 `PlaceSearchContentTest` 用例现为 24/24 PASS。首次合并运行出现 `PlacePoolFlowTest.searchSaveEditAndFilterThroughPlacePool` 单次 5 秒超时；该用例隔离重跑 PASS，完整 24 项随即重跑 PASS，未发现生产回归，未为偶发环境时序改代码。
 - `testDebugUnitTest lintDebug assembleDebug`：BUILD SUCCESSFUL。
 - Fix round 1 设备证据：`/tmp/easy-trip-batch2-visual-fix-round1/01-production.xml/.jpg` 与 `02-small-window.xml/.jpg`；后者使用临时 `wm size 900x600` 后已 reset。
+
+---
+
+## Fix round 2（2026-08-24）
+
+- 新增 NavGraph 生命周期内的 `WorkspaceSearchReturnTransientState`：由 `AppNavigation` 的 `remember` 持有，配置变化重组保留；新建 host/进程得到空实例，不重放已 ack 的 `SavedStateHandle` payload。
+- payload 仍先由 previous back stack entry 发布，workspace collect 后立即 ack；随后展示来自非持久 transient state。
+- 只有实际从当前 section 切到不同 section 才清除；重复点击当前地点池不清。进入新搜索或设置仍清除。
+- workspace 根布局显式叠加 `imePadding()`，`BoxWithConstraints.maxHeight` 因 IME 可用高度收缩；safe drawing 仍只在同一根容器应用一次。
+- RED：`WorkspaceSearchReturnTransientState` 与 `shouldConsumeSearchReturn` 缺失导致 `WorkspaceSearchReturnNavigationTest` 编译失败。
+- GREEN：`WorkspaceSearchReturnNavigationTest` 与 `compileDebugAndroidTestKotlin` 均成功。按本轮限制未操作共享模拟器，仅执行聚焦 JVM/Compose 编译检查。
