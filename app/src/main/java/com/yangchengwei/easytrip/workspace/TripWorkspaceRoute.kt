@@ -46,14 +46,29 @@ internal fun addOverlayToPresent(
     }
 }
 
+fun canDismissWorkspaceOverlay(
+    overlay: WorkspaceOverlay,
+    addToItinerary: AddToItineraryUiState,
+    itinerary: DayItineraryUiState = DayItineraryUiState(),
+    hasPlaceDeleteConfirmation: Boolean = false,
+): Boolean = when {
+    overlay == WorkspaceOverlay.AddTripDay && itinerary.isAppendingDay -> false
+    overlay is WorkspaceOverlay.EditItineraryItem && itinerary.editDraft?.isSaving == true -> false
+    overlay is WorkspaceOverlay.Confirmation &&
+        itinerary.deleteConfirmation?.isDeleting == true &&
+        !hasPlaceDeleteConfirmation -> false
+    else -> canDismissAddOverlay(overlay, addToItinerary)
+}
+
 fun workspaceBackDecision(
     overlay: WorkspaceOverlay,
     addToItinerary: AddToItineraryUiState,
     isAppendingDay: Boolean = false,
+    itinerary: DayItineraryUiState = DayItineraryUiState(isAppendingDay = isAppendingDay),
+    hasPlaceDeleteConfirmation: Boolean = false,
 ): WorkspaceBackDecision = when {
     overlay == WorkspaceOverlay.None -> WorkspaceBackDecision.LeaveWorkspace
-    overlay == WorkspaceOverlay.AddTripDay && isAppendingDay -> WorkspaceBackDecision.Ignore
-    !canDismissAddOverlay(overlay, addToItinerary) -> WorkspaceBackDecision.Ignore
+    !canDismissWorkspaceOverlay(overlay, addToItinerary, itinerary, hasPlaceDeleteConfirmation) -> WorkspaceBackDecision.Ignore
     else -> WorkspaceBackDecision.CloseOverlay
 }
 
@@ -109,13 +124,26 @@ fun TripWorkspaceRoute(
     }
     fun closeOverlay() {
         val overlay = ready?.overlay ?: WorkspaceOverlay.None
-        if (!canDismissAddOverlay(overlay, addToItinerary) || overlay == WorkspaceOverlay.AddTripDay && itinerary.isAppendingDay) return
+        if (!canDismissWorkspaceOverlay(
+                overlay,
+                addToItinerary,
+                itinerary,
+                hasPlaceDeleteConfirmation = places.pendingCollectionRemoval != null || places.deleting != null,
+            )
+        ) return
         dismissPendingDialogs()
         if (overlay.isAddToItineraryOverlay()) addToItineraryViewModel?.cancel()
         viewModel.closeOverlay()
     }
     fun leaveOrCloseOverlay() {
-        when (workspaceBackDecision(ready?.overlay ?: WorkspaceOverlay.None, addToItinerary, itinerary.isAppendingDay)) {
+        when (
+            workspaceBackDecision(
+                ready?.overlay ?: WorkspaceOverlay.None,
+                addToItinerary,
+                itinerary = itinerary,
+                hasPlaceDeleteConfirmation = places.pendingCollectionRemoval != null || places.deleting != null,
+            )
+        ) {
             WorkspaceBackDecision.Ignore -> Unit
             WorkspaceBackDecision.CloseOverlay -> closeOverlay()
             WorkspaceBackDecision.LeaveWorkspace -> {

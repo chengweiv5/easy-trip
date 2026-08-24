@@ -3,12 +3,16 @@ package com.yangchengwei.easytrip.workspace
 import androidx.lifecycle.SavedStateHandle
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.ItineraryDeleteConfirmation
+import com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
@@ -114,6 +118,74 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(
             WorkspaceBackDecision.CloseOverlay,
             workspaceBackDecision(WorkspaceOverlay.LayerMenu, AddToItineraryUiState(), isAppendingDay = true),
+        )
+    }
+
+    private fun confirmationModel() = ConfirmationUiModel(
+        title = "确认",
+        message = "确认操作",
+        deletedItems = emptyList(),
+        retainedItems = emptyList(),
+        confirmLabel = "确认",
+        dismissLabel = "取消",
+        destructive = true,
+        reversible = false,
+    )
+
+    @Test fun itineraryMutationBackPolicyLocksOnlyItsMatchingBusyOverlay() {
+        val saving = DayItineraryUiState(
+            editDraft = ItineraryEditDraft("item", "09:00", "30", isSaving = true),
+        )
+        val deleting = DayItineraryUiState(
+            deleteConfirmation = ItineraryDeleteConfirmation("item", "故宫", isDeleting = true),
+        )
+
+        assertEquals(
+            WorkspaceBackDecision.Ignore,
+            workspaceBackDecision(WorkspaceOverlay.EditItineraryItem("item"), AddToItineraryUiState(), itinerary = saving),
+        )
+        assertEquals(
+            WorkspaceBackDecision.Ignore,
+            workspaceBackDecision(
+                WorkspaceOverlay.Confirmation(confirmationModel()),
+                AddToItineraryUiState(),
+                itinerary = deleting,
+            ),
+        )
+        assertEquals(
+            WorkspaceBackDecision.CloseOverlay,
+            workspaceBackDecision(WorkspaceOverlay.LayerMenu, AddToItineraryUiState(), itinerary = saving),
+        )
+        assertEquals(
+            WorkspaceBackDecision.CloseOverlay,
+            workspaceBackDecision(
+                WorkspaceOverlay.Confirmation(confirmationModel()),
+                AddToItineraryUiState(),
+                itinerary = deleting,
+                hasPlaceDeleteConfirmation = true,
+            ),
+        )
+    }
+
+    @Test fun itineraryMutationClosePolicyMatchesBackPolicy() {
+        val saving = DayItineraryUiState(
+            editDraft = ItineraryEditDraft("item", "09:00", "30", isSaving = true),
+        )
+        val deleting = DayItineraryUiState(
+            deleteConfirmation = ItineraryDeleteConfirmation("item", "故宫", isDeleting = true),
+        )
+
+        assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.EditItineraryItem("item"), AddToItineraryUiState(), saving))
+        assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.Confirmation(confirmationModel()), AddToItineraryUiState(), deleting))
+        assertEquals(true, canDismissWorkspaceOverlay(WorkspaceOverlay.LayerMenu, AddToItineraryUiState(), saving))
+        assertEquals(
+            true,
+            canDismissWorkspaceOverlay(
+                WorkspaceOverlay.Confirmation(confirmationModel()),
+                AddToItineraryUiState(),
+                deleting,
+                hasPlaceDeleteConfirmation = true,
+            ),
         )
     }
 
