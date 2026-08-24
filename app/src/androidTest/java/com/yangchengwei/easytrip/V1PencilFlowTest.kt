@@ -76,6 +76,7 @@ class V1PencilFlowTest {
                     ),
                     routeLegRepository = RoomRouteLegRepository(database.routeLegDao()),
                     mapPreferences = InMemoryMapPreferences(),
+                    locationPermissionRequestStore = com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore(),
                 ),
                 navigationObserver = AppNavigationObserver(routes::add),
                 mapHostFactory = ::TestMapHost,

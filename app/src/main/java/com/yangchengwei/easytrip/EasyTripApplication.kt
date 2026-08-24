@@ -18,6 +18,7 @@ class EasyTripApplication : Application() {
     val routeLegRepository get() = container.routeLegRepository
     val networkMonitor get() = container.networkMonitor
     val mapPreferences get() = container.mapPreferences
+    val locationPermissionRequestStore get() = container.locationPermissionRequestStore
     val deleteImpactProvider get() = container.deleteImpactProvider
 
     private val preferences by lazy { getSharedPreferences("privacy", MODE_PRIVATE) }

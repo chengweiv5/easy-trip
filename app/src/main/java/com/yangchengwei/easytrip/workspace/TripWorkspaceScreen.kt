@@ -80,6 +80,7 @@ fun TripWorkspaceScreen(
     onConfirmPermissionExplanation: () -> Unit = {},
     onDismissPermissionExplanation: () -> Unit = {},
     mapHostFactory: (android.content.Context) -> AmapMapHost = { RealAmapMapHost.create(it) },
+    locateRequest: Int = 0,
     searchReturn: WorkspaceSearchReturn? = null,
 ) {
     var mapAttempt by remember { mutableIntStateOf(0) }
@@ -118,6 +119,7 @@ fun TripWorkspaceScreen(
                     consent = token,
                     onMapPoiClick = onMapPoiClick,
                     layer = ready.mapLayer,
+                    locateRequest = locateRequest,
                     modifier = Modifier.fillMaxSize(),
                     hostFactory = mapHostFactory,
                     onLayerError = { _, retainedLayer ->

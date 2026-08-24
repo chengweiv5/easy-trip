@@ -47,6 +47,38 @@ class AmapComposeMapTest {
         assertEquals(null, Poi("无编号地点", point, null).toMapPoiUi()!!.poiId)
     }
 
+    @Test fun locateRequestInvokesMapHostCurrentLocation() {
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        val located = CountDownLatch(1)
+        rule.scenario.onActivity { activity ->
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    locateRequest = 1,
+                    hostFactory = { ctx ->
+                        object : AmapMapHost {
+                            override val view: View = View(ctx)
+                            override fun onCreate() = Unit
+                            override fun onResume() = Unit
+                            override fun onPause() = Unit
+                            override fun onDestroy() = Unit
+                            override fun showCurrentLocation() {
+                                located.countDown()
+                            }
+                        }
+                    },
+                )
+            }
+        }
+
+        assertTrue(located.await(5, TimeUnit.SECONDS))
+    }
+
     @Test fun fakeHostDeliversMapPoiToComposeCallback() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
         val gate = AmapPrivacyGate.create(context)

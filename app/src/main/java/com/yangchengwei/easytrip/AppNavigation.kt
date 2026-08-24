@@ -44,9 +44,9 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
+import com.yangchengwei.easytrip.permission.LocationPermissionRequestStore
+import com.yangchengwei.easytrip.permission.LocationPermissionSnapshot
 import com.yangchengwei.easytrip.permission.WorkspaceEffect
-import com.yangchengwei.easytrip.permission.isLocationGranted
-import com.yangchengwei.easytrip.permission.shouldShowLocationRationale
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import com.yangchengwei.easytrip.trip.domain.TripService
@@ -99,6 +99,7 @@ data class AppNavigationDependencies(
     val itineraryRepository: ItineraryRepository,
     val routeLegRepository: RouteLegRepository,
     val mapPreferences: MapPreferences,
+    val locationPermissionRequestStore: LocationPermissionRequestStore,
     val routeCoordinator: RouteRefreshCoordinator? = null,
 )
 
@@ -161,6 +162,7 @@ fun AppNavigation(
                     it.itineraryRepository,
                     it.routeLegRepository,
                     it.mapPreferences,
+                    it.locationPermissionRequestStore,
                     it.routeCoordinatorOrNull(),
                 )
             }
@@ -179,22 +181,27 @@ fun AppNavigation(
                 val workspaceSearchReturnState: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
                 val context = androidx.compose.ui.platform.LocalContext.current
                 val activity = context as? Activity
-                val locationCoordinator = remember(entry) { LocationPermissionCoordinator(entry.savedStateHandle) }
+                val locationCoordinator = remember(entry) {
+                    LocationPermissionCoordinator(entry.savedStateHandle, workspaceDependencies.locationPermissionRequestStore)
+                }
+                fun locationPermissionSnapshot(grants: Map<String, Boolean>? = null) =
+                    LocationPermissionSnapshot.from(
+                        permissions = setOf(
+                            Manifest.permission.ACCESS_FINE_LOCATION,
+                            Manifest.permission.ACCESS_COARSE_LOCATION,
+                        ),
+                        isGranted = { permission ->
+                            grants?.get(permission) == true || grants == null &&
+                                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+                        },
+                        shouldShowRationale = { permission ->
+                            activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, permission) } == true
+                        },
+                    )
                 val locationPermissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions(),
                 ) { result ->
-                    locationCoordinator.onPermissionResult(
-                        isGranted = isLocationGranted(
-                            fineGranted = result[Manifest.permission.ACCESS_FINE_LOCATION] == true,
-                            coarseGranted = result[Manifest.permission.ACCESS_COARSE_LOCATION] == true,
-                        ),
-                        shouldShowRationale = activity?.let {
-                            shouldShowLocationRationale(
-                                fineRationale = ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION),
-                                coarseRationale = ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_COARSE_LOCATION),
-                            )
-                        } == true,
-                    )
+                    locationCoordinator.onPermissionResult(locationPermissionSnapshot(result))
                 }
                 val searchReturnPayload by entry.savedStateHandle.getStateFlow<Array<String>?>(WORKSPACE_SEARCH_RETURN_KEY, null).collectAsStateWithLifecycle()
                 LaunchedEffect(searchReturnPayload) {
@@ -248,25 +255,13 @@ fun AppNavigation(
                     searchReturn = workspaceSearchReturnState.value,
                     onConsumeSearchReturn = workspaceSearchReturnState::clear,
                     locationPermissionCoordinator = locationCoordinator,
-                    isLocationPermissionGranted = {
-                        isLocationGranted(
-                            fineGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED,
-                            coarseGranted = ContextCompat.checkSelfPermission(context, Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED,
-                        )
-                    },
-                    shouldShowLocationPermissionRationale = {
-                        activity?.let {
-                            shouldShowLocationRationale(
-                                fineRationale = ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_FINE_LOCATION),
-                                coarseRationale = ActivityCompat.shouldShowRequestPermissionRationale(it, Manifest.permission.ACCESS_COARSE_LOCATION),
-                            )
-                        } == true
-                    },
+                    locationPermissionSnapshot = ::locationPermissionSnapshot,
                     onWorkspaceEffect = { effect ->
                         when (effect) {
                             WorkspaceEffect.RequestLocationPermission -> locationPermissionLauncher.launch(
                                 arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
                             )
+                            WorkspaceEffect.ShowCurrentLocation -> Unit
                             WorkspaceEffect.OpenApplicationSettings -> if (onOpenApplicationSettings != null) {
                                 onOpenApplicationSettings(context)
                             } else {

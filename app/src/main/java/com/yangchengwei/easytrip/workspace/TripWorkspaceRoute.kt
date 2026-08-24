@@ -3,8 +3,13 @@ package com.yangchengwei.easytrip.workspace
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
+import com.yangchengwei.easytrip.permission.LocationPermissionSnapshot
 import com.yangchengwei.easytrip.permission.WorkspaceEffect
 import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
@@ -148,8 +153,7 @@ fun TripWorkspaceRoute(
     searchReturn: WorkspaceSearchReturn? = null,
     onConsumeSearchReturn: () -> Unit = {},
     locationPermissionCoordinator: LocationPermissionCoordinator,
-    isLocationPermissionGranted: () -> Boolean,
-    shouldShowLocationPermissionRationale: () -> Boolean,
+    locationPermissionSnapshot: () -> LocationPermissionSnapshot,
     onWorkspaceEffect: (WorkspaceEffect) -> Unit,
 ) {
     val page = viewModel.pageState.collectAsStateWithLifecycle().value
@@ -160,9 +164,12 @@ fun TripWorkspaceRoute(
     val dispatchPlace: (PlacePoolAction) -> Unit = placeViewModel?.let { it::dispatch } ?: onPlaceAction
     val dispatchItinerary: (DayItineraryAction) -> Unit = itineraryViewModel?.let { it::dispatch } ?: onItineraryAction
     val permissionExplanation = locationPermissionCoordinator.explanation.collectAsStateWithLifecycle().value
+    var locateRequest by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(locationPermissionCoordinator) {
-        locationPermissionCoordinator.effectFlow.collect(onWorkspaceEffect)
+        locationPermissionCoordinator.effectFlow.collect { effect ->
+            if (effect == WorkspaceEffect.ShowCurrentLocation) locateRequest++ else onWorkspaceEffect(effect)
+        }
     }
     LaunchedEffect(permissionExplanation, ready?.overlay) {
         val explanation = permissionExplanation
@@ -296,10 +303,7 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
-                TripWorkspaceAction.Locate -> locationPermissionCoordinator.onLocateClick(
-                    isGranted = isLocationPermissionGranted(),
-                    shouldShowRationale = shouldShowLocationPermissionRationale(),
-                )
+                TripWorkspaceAction.Locate -> locationPermissionCoordinator.onLocateClick(locationPermissionSnapshot())
                 TripWorkspaceAction.Retry -> viewModel.retry()
                 is TripWorkspaceAction.SelectSection -> {
                     if (shouldConsumeSearchReturn(ready?.section, action.section)) onConsumeSearchReturn()
@@ -389,6 +393,7 @@ fun TripWorkspaceRoute(
             placeViewModel?.toggleCollection(candidate) ?: onPlaceAction(PlacePoolAction.ToggleCollection(candidate))
         },
         mapHostFactory = mapHostFactory,
+        locateRequest = locateRequest,
         searchReturn = searchReturn,
     )
 }

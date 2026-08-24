@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
@@ -145,6 +146,7 @@ interface AmapMapHost {
     fun onDestroy()
     fun zoomIn() = Unit
     fun zoomOut() = Unit
+    fun showCurrentLocation() = Unit
     fun render(
         model: MapUiModel,
         layer: MapLayer,
@@ -187,6 +189,14 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     }
     override fun zoomIn() = mapView.map.animateCamera(CameraUpdateFactory.zoomIn())
     override fun zoomOut() = mapView.map.animateCamera(CameraUpdateFactory.zoomOut())
+    override fun showCurrentLocation() {
+        mapView.map.isMyLocationEnabled = true
+        mapView.map.myLocation?.let { location ->
+            mapView.map.animateCamera(
+                CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 16f),
+            )
+        }
+    }
     override fun render(
         model: MapUiModel,
         layer: MapLayer,
@@ -325,6 +335,7 @@ fun AmapComposeMap(
     consent: AmapConsentToken,
     onMapPoiClick: (MapPoiUi) -> Unit = {},
     layer: MapLayer = MapLayer.STANDARD,
+    locateRequest: Int = 0,
     modifier: Modifier = Modifier,
     hostFactory: (android.content.Context) -> AmapMapHost = ::RealAmapMapHost,
     onLayerError: (Throwable, MapLayer) -> Unit = { _, _ -> },
@@ -360,6 +371,9 @@ fun AmapComposeMap(
         }.getOrNull()
     }
     if (host == null || mapFailure != null) return
+    LaunchedEffect(host, locateRequest) {
+        if (locateRequest > 0) host.showCurrentLocation()
+    }
     DisposableEffect(lifecycleOwner, host) {
         val lifecycleError: (Throwable) -> Unit = { error ->
             mapFailure = error
