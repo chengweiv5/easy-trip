@@ -11,6 +11,8 @@ import com.yangchengwei.easytrip.itinerary.domain.Edge
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
+import com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException
+import com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException
 import com.yangchengwei.easytrip.itinerary.domain.adjacencyDiff
 import com.yangchengwei.easytrip.place.data.SavedPlaceEntity
 import com.yangchengwei.easytrip.route.data.RouteLegDao
@@ -37,7 +39,7 @@ class RoomItineraryRepository(
     private val recommendMode: (SavedPlaceEntity, SavedPlaceEntity, TravelMode) -> TransportMode = ::defaultRecommendMode,
 ) : ItineraryRepository {
     override fun observeDay(dayId: String): Flow<DayItinerary> = itineraryDao.observeDayRows(dayId).map { rows ->
-        require(rows.isNotEmpty()) { "Unknown day: $dayId" }
+        if (rows.isEmpty()) throw TargetDayNotFoundException(dayId)
         DayItinerary(dayId, rows.first().tripId, rows.mapNotNull { row ->
             val itemId = row.itemId ?: return@mapNotNull null
             ItineraryItem(
@@ -55,9 +57,9 @@ class RoomItineraryRepository(
     }
 
     override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int): String = database.withTransaction {
-        val tripId = requireNotNull(itineraryDao.tripIdForDay(dayId)) { "Unknown day: $dayId" }
-        val place = requireNotNull(itineraryDao.savedPlace(savedPlaceId)) { "Unknown place: $savedPlaceId" }
-        require(place.tripId == tripId) { "Place and day belong to different trips" }
+        val tripId = itineraryDao.tripIdForDay(dayId) ?: throw TargetDayNotFoundException(dayId)
+        val place = itineraryDao.savedPlace(savedPlaceId) ?: throw RecoverablePlaceAddException(savedPlaceId)
+        if (place.tripId != tripId) throw RecoverablePlaceAddException(savedPlaceId)
         val old = itineraryDao.items(dayId)
         require(targetIndex in 0..old.size) { "Invalid target index: $targetIndex" }
         park(old)

@@ -8,6 +8,9 @@ data class ItineraryPlace(val id: String, val name: String, val address: String,
 data class ItineraryItem(val id: String, val place: ItineraryPlace, val arrivalTime: LocalTime?, val stayMinutes: Int?)
 data class DayItinerary(val dayId: String, val tripId: String, val items: List<ItineraryItem>)
 
+class TargetDayNotFoundException(dayId: String) : IllegalArgumentException("Unknown day: $dayId")
+class RecoverablePlaceAddException(placeId: String) : IllegalArgumentException("Cannot add place: $placeId")
+
 interface ItineraryRepository {
     fun observeDay(dayId: String): Flow<DayItinerary>
     suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int): String
