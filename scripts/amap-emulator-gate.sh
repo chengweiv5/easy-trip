@@ -4,17 +4,20 @@ set -euo pipefail
 serial=
 command_line=
 evidence=
+serial_count=0
+command_line_count=0
+evidence_count=0
 while (($#)); do
   (($# >= 2)) || { printf 'missing value for %s\n' "$1" >&2; exit 64; }
   case "$1" in
-    --serial) serial=$2 ;;
-    --command-line) command_line=$2 ;;
-    --evidence) evidence=$2 ;;
+    --serial) serial=$2; ((serial_count += 1)) ;;
+    --command-line) command_line=$2; ((command_line_count += 1)) ;;
+    --evidence) evidence=$2; ((evidence_count += 1)) ;;
     *) printf 'unknown argument: %s\n' "$1" >&2; exit 64 ;;
   esac
   shift 2
 done
-[[ -n "$serial" && -n "$command_line" && -n "$evidence" ]] || { printf 'serial, command-line and evidence are required\n' >&2; exit 64; }
+[[ $serial_count -eq 1 && $command_line_count -eq 1 && $evidence_count -eq 1 && -n "$serial" && -n "$command_line" && -n "$evidence" ]] || { printf 'serial, command-line and evidence are each required exactly once\n' >&2; exit 64; }
 
 read -r -a command_args <<<"$command_line"
 [[ ${command_args[0]:-} == emulator ]] || { printf 'invalid emulator executable\n' >&2; exit 3; }

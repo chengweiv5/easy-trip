@@ -4,24 +4,49 @@ set -euo pipefail
 ROOT=$(cd "$(dirname "$0")/.." && pwd)
 AVD=trail_map_api36
 SERIAL=emulator-5588
-EVIDENCE_DIR=${AMAP_EVIDENCE_DIR:-"$ROOT/build/amap-smoke"}
+EVIDENCE_ROOT=${AMAP_EVIDENCE_DIR:-"$ROOT/build/amap-smoke"}
+RUN_ID=$(date -u +%Y%m%dT%H%M%SZ)-$$-$RANDOM
+EVIDENCE_DIR="$EVIDENCE_ROOT/$RUN_ID"
 LOCK_DIR=${TMPDIR:-/tmp}/easy-trip-android-device-$SERIAL.lock
 COMMAND="emulator -avd $AVD -port 5588 -gpu swiftshader -no-snapshot-load -no-snapshot-save"
 BOOT_TIMEOUT_SECONDS=${AMAP_BOOT_TIMEOUT_SECONDS:-180}
 emulator_pid=
+emulator_identity=
 owned_lock=false
+cleaned=false
+
+process_identity() {
+  "${AMAP_PS_BIN:-ps}" -p "$1" -o ppid= -o lstart= -o command= 2>/dev/null | tr -s ' ' | sed 's/^ //'
+}
 
 cleanup() {
+  [[ "$cleaned" == false ]] || return 0
+  cleaned=true
   if [[ "$emulator_pid" =~ ^[0-9]+$ ]] && kill -0 "$emulator_pid" 2>/dev/null; then
-    kill "$emulator_pid" 2>/dev/null || true
-    wait "$emulator_pid" 2>/dev/null || true
+    current_identity=$(process_identity "$emulator_pid")
+    if [[ -n "$emulator_identity" && "$current_identity" == "$emulator_identity" && "$current_identity" == *"$AVD"* && "$current_identity" == *"-port 5588"* ]]; then
+      kill "$emulator_pid" 2>/dev/null || true
+      wait "$emulator_pid" 2>/dev/null || true
+    else
+      printf 'warning: emulator PID identity changed; refusing to kill pid %s\n' "$emulator_pid" >&2
+    fi
   fi
   if [[ "$owned_lock" == true ]]; then
     rm -f "$LOCK_DIR/owner" 2>/dev/null || true
     rmdir "$LOCK_DIR" 2>/dev/null || true
+    owned_lock=false
   fi
 }
-trap cleanup EXIT INT TERM
+
+handle_signal() {
+  local status=$1
+  trap - EXIT INT TERM
+  cleanup
+  exit "$status"
+}
+trap cleanup EXIT
+trap 'handle_signal 130' INT
+trap 'handle_signal 143' TERM
 
 api_key=$(python3 - "$ROOT/local.properties" <<'PY'
 import sys
@@ -53,6 +78,9 @@ mkdir -p "$EVIDENCE_DIR"
 read -r -a emulator_args <<<"$COMMAND"
 "${emulator_args[@]}" >"$EVIDENCE_DIR/emulator.log" 2>&1 &
 emulator_pid=$!
+emulator_identity=$(process_identity "$emulator_pid" || true)
+[[ -n "$emulator_identity" && "$emulator_identity" == *"$AVD"* && "$emulator_identity" == *"-port 5588"* ]] || { printf 'unable to establish emulator process identity\n' >&2; exit 13; }
+printf 'emulator_pid=%s\nemulator_identity=%s\n' "$emulator_pid" "$emulator_identity" >>"$LOCK_DIR/owner"
 deadline=$((SECONDS + BOOT_TIMEOUT_SECONDS))
 while ((SECONDS < deadline)); do
   kill -0 "$emulator_pid" 2>/dev/null || { printf 'emulator process exited during startup\n' >&2; exit 13; }
@@ -82,3 +110,4 @@ grep -q 'OK (1 test)' "$EVIDENCE_DIR/instrumentation.txt" || { printf 'instrumen
 grep -q 'AMAP_SMOKE.*map_loaded=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'map-loaded evidence missing\n' >&2; exit 14; }
 grep -q 'AMAP_SMOKE.*screenshot_ready=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'screenshot evidence missing\n' >&2; exit 14; }
 grep -q 'AMAP_SMOKE.*lifecycle_cleanup=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'lifecycle cleanup evidence missing\n' >&2; exit 14; }
+printf 'AMAP_SMOKE_COMPLETE run=%s\n' "$EVIDENCE_DIR" | tee "$EVIDENCE_DIR/complete.txt"

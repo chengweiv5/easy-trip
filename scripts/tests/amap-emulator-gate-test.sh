@@ -55,6 +55,9 @@ expect_rejected "duplicate renderer" 3 --serial emulator-5554 --command-line "em
 expect_rejected "duplicate port" 3 --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-save" --evidence "$TMP/bad.json"
 expect_rejected "duplicate snapshot flag" 3 --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-load -no-snapshot-save" --evidence "$TMP/bad.json"
 expect_rejected "conflicting snapshot flag" 3 --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -snapshot-load -no-snapshot-load -no-snapshot-save" --evidence "$TMP/bad.json"
+expect_rejected "duplicate serial option" 64 "${args[@]}" --serial emulator-5554
+expect_rejected "duplicate command option" 64 "${args[@]}" --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-save"
+expect_rejected "duplicate evidence option" 64 "${args[@]}" --evidence "$TMP/duplicate.json"
 expect_rejected "unknown parameter" 64 "${args[@]}" --surprise value
 
 printf 'PASS: amap emulator gate fixtures\n'
