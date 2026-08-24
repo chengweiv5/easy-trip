@@ -71,8 +71,16 @@ GREEN 阶段验证：
 - RED 覆盖独立 itinerary usage 变化、usage 首帧未知、异步地点列表错位、关闭控件 bounds、窄屏大字体标签可达；首轮 Compose RED 共 3 项，分别暴露 Room 双 Flow 时序、标签栏无滚动语义和关闭控件无 48dp 目标。
 - GREEN：`PlacePoolViewModelTest` 6/6；Task 5 Compose/Workspace 目标套件 19/19；`RoomSavedPlaceRepositoryTest` 5/5，其中真实 Room 测试证明仅插入 `itinerary_items` 即触发 count 0→1；`testDebugUnitTest lintDebug assembleDebug` 成功。
 
+## Fix round 2：Room 测试调度竞态
+
+- 根据 `batch-2-room-timeout-diagnosis.md` 的既有 RED 证据，确认失败来自 `runTest` 虚拟 timeout 与 Room 真实后台 executor 的调度域不一致；未另改测试制造 RED。
+- 仅将 `RoomSavedPlaceRepositoryTest.usageCountsRefreshWhenOnlyItineraryItemsChange` 的等待区切到 `Dispatchers.Default.limitedParallelism(1)`，生产 DAO/repository 未修改。
+- GREEN：完整 `RoomSavedPlaceRepositoryTest` 连续 3/3 次通过（每次 5/5）；Batch 2 目标 instrumentation suite 连续 2/2 次通过（每次 22/22）；`testDebugUnitTest lintDebug assembleDebug` 成功。
+- Batch 2 自动化门禁恢复为通过，但功能旅程与视觉验收尚未运行，因此 Batch 2 gate 仍为进行中。
+
 ## 关注点
 
+- Batch 2 功能旅程与视觉验收尚未运行，不能把 Batch 2 gate 标记为 complete。
 - 最终物理设备验收因安装授权被拒绝而待办。
 - 搜索 Surface 自动测试锁定最小高度与语义；不透明背景和接近全宽主要由组件实现及 Compose 布局验证保证。
 

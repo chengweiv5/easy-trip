@@ -93,7 +93,10 @@ class RoomSavedPlaceRepositoryTest {
             )
         }
 
-        assertEquals(1, withTimeout(5_000) { next.await() }.getValue(saved.id))
+        val usageCounts = withContext(Dispatchers.Default.limitedParallelism(1)) {
+            withTimeout(5_000) { next.await() }
+        }
+        assertEquals(1, usageCounts.getValue(saved.id))
     }
 
     private fun candidate(id: String) = PlaceCandidate(id, "Name $id", "Address $id", GeoPoint(39.9, 116.4), "010")
