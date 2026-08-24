@@ -10,6 +10,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -57,6 +58,36 @@ class PlacePoolViewModelTest {
         assertEquals(3, model.state.value.deletionUsageCount)
     }
 
+    @Test fun placePoolDistinguishesSavedOnlyFromScheduled() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a"), place("b")), mapOf("a" to 0, "b" to 2))
+        val model = PlacePoolViewModel("trip", repository, null)
+
+        advanceUntilIdle()
+
+        assertEquals(
+            listOf(
+                SavedPlaceRowUi("a", "A", "address", null, emptyList(), 0, false),
+                SavedPlaceRowUi("b", "B", "address", null, emptyList(), 2, true),
+            ),
+            model.state.value.rows,
+        )
+    }
+
+    @Test fun failedDetailSaveKeepsDraft() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), emptyMap(), updateFailure = IllegalStateException("保存失败"))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.edit(place("a"))
+
+        model.updateDetails("傍晚散步", setOf("景点"))
+        advanceUntilIdle()
+
+        assertEquals("a", model.state.value.editing?.id)
+        assertEquals("傍晚散步", model.state.value.detailDraft?.note)
+        assertEquals(setOf("景点"), model.state.value.detailDraft?.tags)
+        assertEquals("保存失败", model.state.value.detailSaveError)
+    }
+
     private fun place(id: String) = SavedPlace(
         id,
         "trip",
@@ -67,6 +98,23 @@ class PlacePoolViewModelTest {
         "",
         emptyList(),
     )
+
+    private class PoolRepository(
+        places: List<SavedPlace>,
+        private val usageCounts: Map<String, Int>,
+        private val updateFailure: Throwable? = null,
+    ) : SavedPlaceRepository {
+        private val places = MutableStateFlow(places)
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+            updateFailure?.let { throw it }
+        }
+        override suspend fun usageCount(placeId: String) = usageCounts[placeId] ?: 0
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
 
     private class DelayedRepository : SavedPlaceRepository {
         private val usage = mutableMapOf<String, CompletableDeferred<Int>>()

@@ -11,10 +11,13 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import androidx.lifecycle.SavedStateHandle
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
@@ -45,6 +48,43 @@ import org.junit.Test
 
 class MapLayerFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun mapLegendWrapsContentAndHasTextLabels() {
+        compose.setContent { EasyTripTheme { MapLegend() } }
+
+        compose.onNodeWithTag("map-legend").assertIsDisplayed()
+        compose.onNodeWithText("已排入").assertIsDisplayed()
+        compose.onNodeWithText("仅收藏").assertIsDisplayed()
+        compose.onNodeWithTag("legend-scheduled-shape").assertIsDisplayed()
+        compose.onNodeWithTag("legend-saved-shape").assertIsDisplayed()
+    }
+
+    @Test fun searchSurfaceIsFullWidthAndOpaque() {
+        compose.setContent { EasyTripTheme { SearchSurface(onClick = {}) } }
+
+        compose.onNodeWithTag("workspace-search-surface").assertHeightIsAtLeast(46.dp)
+        compose.onNodeWithText("搜索餐厅、景点或地址").assertIsDisplayed()
+    }
+
+    @Test fun layerMenuUsesExclusiveWorkspaceOverlay() {
+        var overlay by mutableStateOf<WorkspaceOverlay>(WorkspaceOverlay.None)
+        compose.setContent {
+            EasyTripTheme {
+                MapControls(
+                    layer = MapLayer.STANDARD,
+                    overlay = overlay,
+                    onOpenLayerMenu = { overlay = WorkspaceOverlay.LayerMenu },
+                    onCloseOverlay = { overlay = WorkspaceOverlay.None },
+                    onSelectLayer = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("layer-menu").performClick()
+        compose.onNodeWithText("地图图层").assertIsDisplayed()
+        compose.runOnIdle { overlay = WorkspaceOverlay.PlaceDetail(1) }
+        compose.onNodeWithText("地图图层").assertDoesNotExist()
+    }
 
     @Test fun layerControlsAreExclusiveAndSelectionSurvivesTripSwitch() {
         val preferences = FakeMapPreferences()

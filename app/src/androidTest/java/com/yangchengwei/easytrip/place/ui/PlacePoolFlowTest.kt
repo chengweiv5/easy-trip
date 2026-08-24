@@ -3,10 +3,12 @@ package com.yangchengwei.easytrip.place.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
@@ -20,6 +22,50 @@ import org.junit.Test
 
 class PlacePoolFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun placeDetailAllowsCollectionNoteAndTagsOnly() {
+        val place = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "detail", "trip", "poi-detail", "西湖天地", "上城区南山路", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                PlaceDetailContent(
+                    place = place,
+                    draft = PlaceDetailDraft("", emptySet()),
+                    saving = false,
+                    error = null,
+                    onNoteChange = {},
+                    onTagsChange = {},
+                    onToggleCollection = {},
+                    onSave = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("取消收藏").assertIsDisplayed()
+        compose.onNodeWithText("备注").assertIsDisplayed()
+        compose.onNodeWithText("标签（逗号分隔）").assertIsDisplayed()
+        compose.onNodeWithText("加入行程").assertDoesNotExist()
+        compose.onNodeWithText("已加入行程").assertDoesNotExist()
+    }
+
+    @Test fun emptyPoolProvidesSearchAction() {
+        var searchRequested = false
+        compose.setContent {
+            EasyTripTheme {
+                PlacePoolContent(
+                    state = PlacePoolUiState(),
+                    showSearch = false,
+                    onAction = {},
+                    onSearch = { searchRequested = true },
+                )
+            }
+        }
+
+        compose.onNodeWithText("还没有收藏地点").assertIsDisplayed()
+        compose.onNodeWithText("搜索地点").performClick()
+        assertEquals(true, searchRequested)
+    }
 
     @Test fun savedSearchResultWithNoUsageRemovesImmediately() {
         val app = compose.activity.application as com.yangchengwei.easytrip.EasyTripApplication

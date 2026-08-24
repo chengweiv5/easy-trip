@@ -1,0 +1,37 @@
+package com.yangchengwei.easytrip.workspace
+
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
+
+@Composable
+fun MapLegend(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier.wrapContentWidth().testTag("map-legend"),
+        shape = RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 2.dp,
+    ) {
+        Row(
+            modifier = Modifier.wrapContentWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Surface(Modifier.size(10.dp).testTag("legend-scheduled-shape"), CircleShape, MaterialTheme.colorScheme.primary) {}
+            Text("已排入", style = MaterialTheme.typography.labelSmall)
+            Surface(Modifier.size(10.dp).testTag("legend-saved-shape"), CircleShape, MaterialTheme.colorScheme.secondary) {}
+            Text("仅收藏", style = MaterialTheme.typography.labelSmall)
+        }
+    }
+}

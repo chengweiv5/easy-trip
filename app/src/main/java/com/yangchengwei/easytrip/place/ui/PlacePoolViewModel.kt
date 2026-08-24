@@ -15,14 +15,32 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+
+data class SavedPlaceRowUi(
+    val id: String,
+    val name: String,
+    val address: String,
+    val note: String?,
+    val tags: List<String>,
+    val itineraryOccurrenceCount: Int,
+    val selected: Boolean,
+)
+
+data class PlaceDetailDraft(val note: String, val tags: Set<String>)
 
 data class PlacePoolUiState(
     val search: PlaceSearchState = PlaceSearchState(),
+    val rows: List<SavedPlaceRowUi> = emptyList(),
     val tags: List<PlaceTag> = emptyList(),
     val selectedTagIds: Set<String> = emptySet(),
     val savedPoiIds: Set<String> = emptySet(),
     val editing: SavedPlace? = null,
+    val detailDraft: PlaceDetailDraft? = null,
+    val detailSaving: Boolean = false,
+    val detailSaveError: String? = null,
     val deleting: SavedPlace? = null,
     val deletionUsageCount: Int = 0,
     val pendingCollectionRemoval: PendingCollectionRemoval? = null,
@@ -36,18 +54,15 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     val state: StateFlow<PlacePoolUiState> = mutableState.asStateFlow()
 
     init {
-        viewModelScope.launch { reducer.state.collect { mutableState.value = mutableState.value.copy(search = it) } }
+        viewModelScope.launch { reducer.state.collect { search -> mutableState.update { it.copy(search = search) } } }
         viewModelScope.launch {
-            repository.observeTags(tripId).collect { tags ->
-                val validIds = tags.mapTo(mutableSetOf(), PlaceTag::id)
-                val previous = mutableState.value.selectedTagIds
-                val selected = previous.intersect(validIds)
-                mutableState.value = mutableState.value.copy(tags = tags, selectedTagIds = selected)
-                if (selected != previous) observePlaces()
-            }
-        }
-        viewModelScope.launch {
-            repository.observeSavedPoiIds(tripId).collect { mutableState.value = mutableState.value.copy(savedPoiIds = it) }
+            combine(repository.observeTags(tripId), repository.observeSavedPoiIds(tripId)) { tags, savedPoiIds -> tags to savedPoiIds }
+                .collect { (tags, savedPoiIds) ->
+                    val previous = mutableState.value.selectedTagIds
+                    val selected = previous.intersect(tags.mapTo(mutableSetOf(), PlaceTag::id))
+                    mutableState.update { it.copy(tags = tags, selectedTagIds = selected, savedPoiIds = savedPoiIds) }
+                    if (selected != previous) observePlaces()
+                }
         }
         observePlaces()
     }
@@ -101,9 +116,36 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     fun dismissCollectionRemoval() {
         mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null, collectionError = null)
     }
-    fun edit(value: SavedPlace) { mutableState.value = mutableState.value.copy(editing = value) }
-    fun dismissEdit() { mutableState.value = mutableState.value.copy(editing = null) }
-    fun updateDetails(note: String, tags: Set<String>) { val place = mutableState.value.editing ?: return; viewModelScope.launch { repository.updateDetails(place.id, note, tags); dismissEdit() } }
+    fun edit(value: SavedPlace) {
+        mutableState.value = mutableState.value.copy(
+            editing = value,
+            detailDraft = PlaceDetailDraft(value.note, value.tags.mapTo(mutableSetOf(), PlaceTag::name)),
+            detailSaveError = null,
+        )
+    }
+    fun updateDetailDraft(note: String, tags: Set<String>) {
+        if (mutableState.value.editing == null) return
+        mutableState.value = mutableState.value.copy(detailDraft = PlaceDetailDraft(note, tags), detailSaveError = null)
+    }
+    fun dismissEdit() { mutableState.value = mutableState.value.copy(editing = null, detailDraft = null, detailSaving = false, detailSaveError = null) }
+    fun updateDetails(note: String, tags: Set<String>) {
+        val place = mutableState.value.editing ?: return
+        updateDetailDraft(note, tags)
+        mutableState.value = mutableState.value.copy(detailSaving = true)
+        viewModelScope.launch {
+            try {
+                repository.updateDetails(place.id, note, tags)
+                dismissEdit()
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                mutableState.value = mutableState.value.copy(
+                    detailSaving = false,
+                    detailSaveError = error.message ?: "保存失败，请重试",
+                )
+            }
+        }
+    }
     private var deletePreparationJob: Job? = null
     private var deletePreparationId = 0L
     fun requestDelete(place: SavedPlace) {
@@ -137,6 +179,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             is PlacePoolAction.Edit -> edit(action.place)
             is PlacePoolAction.Delete -> requestDelete(action.place)
             is PlacePoolAction.ToggleCollection -> toggleCollection(action.candidate)
+            is PlacePoolAction.UpdateDraft -> updateDetailDraft(action.note, action.tags)
             is PlacePoolAction.UpdateDetails -> updateDetails(action.note, action.tags)
             PlacePoolAction.ConfirmCollectionRemoval -> confirmCollectionRemoval()
             PlacePoolAction.ConfirmDelete -> confirmDelete()
@@ -149,7 +192,33 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     private fun observePlaces() {
         placesJob?.cancel()
         placesJob = viewModelScope.launch {
-            repository.observePlaces(tripId, mutableState.value.selectedTagIds).collect(reducer::setSavedPlaces)
+            repository.observePlaces(tripId, mutableState.value.selectedTagIds).collect { places ->
+                reducer.setSavedPlaces(places)
+                val previousCounts = mutableState.value.rows.associate { it.id to it.itineraryOccurrenceCount }
+                val rows = places.map { place ->
+                    val count = previousCounts[place.id] ?: 0
+                    SavedPlaceRowUi(
+                        id = place.id,
+                        name = place.name,
+                        address = place.address,
+                        note = place.note.ifBlank { null },
+                        tags = place.tags.map(PlaceTag::name),
+                        itineraryOccurrenceCount = count,
+                        selected = count > 0,
+                    )
+                }
+                mutableState.update { it.copy(rows = rows) }
+                places.forEach { place ->
+                    val count = service.deletionUsageCount(place.id)
+                    mutableState.update { current ->
+                        current.copy(
+                            rows = current.rows.map { row ->
+                                if (row.id == place.id) row.copy(itineraryOccurrenceCount = count, selected = count > 0) else row
+                            },
+                        )
+                    }
+                }
+            }
         }
         if (allPlacesJob == null) {
             allPlacesJob = viewModelScope.launch {

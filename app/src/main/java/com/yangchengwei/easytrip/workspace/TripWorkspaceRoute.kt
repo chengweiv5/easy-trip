@@ -68,6 +68,11 @@ fun TripWorkspaceRoute(
             )
         }
     }
+    LaunchedEffect(places.editing, ready?.overlay) {
+        if (places.editing == null && ready?.overlay is WorkspaceOverlay.PlaceDetail && ready.selectedMapPoi == null && ready.selectedMarker == null) {
+            viewModel.closeOverlay()
+        }
+    }
     LaunchedEffect(places.deleting) {
         places.deleting?.let { place ->
             viewModel.openOverlay(

@@ -3,12 +3,14 @@ package com.yangchengwei.easytrip.place.ui
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Text
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
@@ -18,12 +20,14 @@ fun PlacePoolSheet(
     viewModel: PlacePoolViewModel,
     modifier: Modifier = Modifier,
     showSearch: Boolean = true,
+    onSearch: () -> Unit = {},
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
     PlacePoolContent(
         state = state,
         modifier = modifier,
         showSearch = showSearch,
+        onSearch = onSearch,
         onSetQuery = viewModel::setQuery,
         onToggleTag = viewModel::toggleTag,
         onEdit = viewModel::edit,
@@ -44,6 +48,7 @@ sealed interface PlacePoolAction {
     data class Edit(val place: com.yangchengwei.easytrip.place.domain.SavedPlace) : PlacePoolAction
     data class Delete(val place: com.yangchengwei.easytrip.place.domain.SavedPlace) : PlacePoolAction
     data class ToggleCollection(val candidate: com.yangchengwei.easytrip.place.amap.PlaceCandidate) : PlacePoolAction
+    data class UpdateDraft(val note: String, val tags: Set<String>) : PlacePoolAction
     data class UpdateDetails(val note: String, val tags: Set<String>) : PlacePoolAction
     data object ConfirmCollectionRemoval : PlacePoolAction
     data object ConfirmDelete : PlacePoolAction
@@ -56,12 +61,14 @@ fun PlacePoolContent(
     modifier: Modifier = Modifier,
     showSearch: Boolean = true,
     onAction: (PlacePoolAction) -> Unit,
+    onSearch: () -> Unit = {},
     showDialogs: Boolean = true,
 ) {
     PlacePoolContent(
         state = state,
         modifier = modifier,
         showSearch = showSearch,
+        onSearch = onSearch,
         onSetQuery = { onAction(PlacePoolAction.SetQuery(it)) },
         onToggleTag = { onAction(PlacePoolAction.ToggleTag(it)) },
         onEdit = { onAction(PlacePoolAction.Edit(it)) },
@@ -82,6 +89,7 @@ fun PlacePoolContent(
     state: PlacePoolUiState,
     modifier: Modifier = Modifier,
     showSearch: Boolean = true,
+    onSearch: () -> Unit = {},
     onSetQuery: (String) -> Unit,
     onToggleTag: (String) -> Unit,
     onEdit: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
@@ -97,15 +105,36 @@ fun PlacePoolContent(
 ) {
     Column(modifier.padding(16.dp)) {
         if (showSearch) PlaceSearchField(state.search.query, onSetQuery)
-        SavedPlacesContent(
-            places = state.search.savedPlaces,
-            tags = state.tags,
-            selectedTagIds = state.selectedTagIds,
-            onToggleTag = onToggleTag,
-            onEdit = onEdit,
-            onDelete = onDelete,
-            modifier = Modifier.fillMaxWidth(),
-        )
+        if (state.rows.isEmpty() && !showSearch) {
+            androidx.compose.foundation.layout.Column(
+                Modifier.fillMaxWidth().padding(vertical = 40.dp),
+                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
+            ) {
+                Text("还没有收藏地点", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+                Text("先搜索想去的地点，收藏后再安排到每天的行程。")
+                com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(onSearch) { Text("搜索地点") }
+            }
+        } else {
+            androidx.compose.foundation.lazy.LazyColumn(Modifier.fillMaxWidth()) {
+                if (state.tags.isNotEmpty()) item {
+                    androidx.compose.foundation.layout.Row(Modifier.fillMaxWidth()) {
+                        state.tags.forEach { tag ->
+                            com.yangchengwei.easytrip.core.ui.component.SelectablePill(
+                                selected = tag.id in state.selectedTagIds,
+                                onClick = { onToggleTag(tag.id) },
+                                label = { Text(tag.name) },
+                                modifier = Modifier.testTag("tag-${tag.id}"),
+                            )
+                        }
+                    }
+                }
+                items(state.rows.size) { index ->
+                    val row = state.rows[index]
+                    val place = state.search.savedPlaces.first { it.id == row.id }
+                    SavedPlaceRow(row, { onEdit(place) }, { onDelete(place) })
+                }
+            }
+        }
         if (showSearch) {
             PlaceSearchResults(
                 state = state.search,

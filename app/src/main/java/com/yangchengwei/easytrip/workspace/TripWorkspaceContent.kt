@@ -18,8 +18,6 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SheetValue
@@ -149,6 +147,7 @@ private fun WorkspaceReadyContent(
                         state = placeState,
                         showSearch = false,
                         onAction = onPlaceAction,
+                        onSearch = { onAction(TripWorkspaceAction.OpenSearch) },
                         showDialogs = false,
                     )
                     WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
@@ -175,25 +174,19 @@ private fun WorkspaceReadyContent(
                     WorkspaceMapFallback(mapState, { onAction(TripWorkspaceAction.OpenPrivacySettings) }, onMapRetry)
                 }
                 WorkspaceTopBar(state.tripName, onAction)
-                Box(Modifier.align(Alignment.TopEnd).padding(top = 62.dp, end = 20.dp)) {
-                    Surface(
-                        Modifier.size(48.dp).testTag("layer-menu").semantics { contentDescription = "地图图层" }.clickable { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
-                        shape = RoundedCornerShape(24.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp,
-                    ) { LayerIcon() }
-                    DropdownMenu(state.overlay == WorkspaceOverlay.LayerMenu, { onAction(TripWorkspaceAction.CloseOverlay) }) {
-                        MapLayer.entries.forEach { layer ->
-                            DropdownMenuItem(
-                                text = { Text(if (state.mapLayer == layer) "✓ ${layer.label()}" else layer.label()) },
-                                onClick = {
-                                    onAction(TripWorkspaceAction.SelectMapLayer(layer))
-                                    onAction(TripWorkspaceAction.CloseOverlay)
-                                },
-                                modifier = Modifier.testTag("layer-${layer.name}"),
-                            )
-                        }
-                    }
-                }
-                WorkspaceSearchLauncher({ onAction(TripWorkspaceAction.OpenSearch) }, Modifier.align(Alignment.BottomEnd).padding(20.dp).fillMaxWidth(.25f))
+                MapControls(
+                    layer = state.mapLayer,
+                    overlay = state.overlay,
+                    onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
+                    onCloseOverlay = { onAction(TripWorkspaceAction.CloseOverlay) },
+                    onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
+                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 62.dp, end = 20.dp),
+                )
+                MapLegend(Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 82.dp))
+                SearchSurface(
+                    { onAction(TripWorkspaceAction.OpenSearch) },
+                    Modifier.align(Alignment.BottomCenter).padding(horizontal = 20.dp, vertical = 20.dp),
+                )
             }
             Spacer(Modifier.height(10.dp))
             Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp).testTag("section-controls").selectableGroup()) {
@@ -238,7 +231,7 @@ private fun WorkspaceTopBar(tripName: String, onAction: (TripWorkspaceAction) ->
     }
 }
 
-@Composable private fun LayerIcon() {
+@Composable internal fun LayerIcon() {
     Canvas(Modifier.fillMaxSize().padding(12.dp)) {
         val stroke = 1.5.dp.toPx()
         fun layer(centerY: Float) {

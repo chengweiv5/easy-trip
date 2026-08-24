@@ -39,7 +39,7 @@ import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.EditTimingDialog
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
-import com.yangchengwei.easytrip.place.ui.EditSavedPlaceDialog
+import com.yangchengwei.easytrip.place.ui.PlaceDetailContent
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
 
@@ -216,10 +216,21 @@ private fun WorkspaceOverlayContent(
             when {
                 state.selectedMapPoi != null -> MapPoiDialog(state.selectedMapPoi, isPoiSaved, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
                 state.selectedMarker != null -> MarkerDialog(state.selectedMarker, state.selectedMarkerPoi, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
-                placeState.editing != null -> EditSavedPlaceDialog(
-                    placeState.editing,
-                    { onPlaceAction(PlacePoolAction.DismissDialogs); onClose() },
-                    { note, tags -> onPlaceAction(PlacePoolAction.UpdateDetails(note, tags)); onClose() },
+                placeState.editing != null && placeState.detailDraft != null -> AlertDialog(
+                    onDismissRequest = { onPlaceAction(PlacePoolAction.DismissDialogs); onClose() },
+                    confirmButton = {},
+                    text = {
+                        PlaceDetailContent(
+                            place = placeState.editing,
+                            draft = placeState.detailDraft,
+                            saving = placeState.detailSaving,
+                            error = placeState.detailSaveError,
+                            onNoteChange = { onPlaceAction(PlacePoolAction.UpdateDraft(it, placeState.detailDraft.tags)) },
+                            onTagsChange = { onPlaceAction(PlacePoolAction.UpdateDraft(placeState.detailDraft.note, it)) },
+                            onToggleCollection = { onPlaceAction(PlacePoolAction.Delete(placeState.editing)) },
+                            onSave = { onPlaceAction(PlacePoolAction.UpdateDetails(placeState.detailDraft.note, placeState.detailDraft.tags)) },
+                        )
+                    },
                 )
             }
         }

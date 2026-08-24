@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.workspace
 
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -105,7 +106,8 @@ class WorkspaceFlowTest {
         compose.waitUntil { workspace.state.value.selectedMapPoi == null }
 
         compose.onNodeWithText("编辑").performClick()
-        compose.onNodeWithText("编辑 新编辑地点").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
+        compose.onNodeWithText("取消收藏").assertIsDisplayed()
         compose.onNodeWithText("旧地图地点").assertDoesNotExist()
     }
 
@@ -123,7 +125,7 @@ class WorkspaceFlowTest {
                 placeViewModel = placeModel,
             )
         }
-        compose.waitUntil(5_000) { placeModel.state.value.search.savedPlaces.isNotEmpty() }
+        compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
         compose.onNodeWithTag("delete-place-saved").performClick()
         pressBack()
         compose.waitUntil { backCount == 1 }
@@ -149,7 +151,7 @@ class WorkspaceFlowTest {
                 placeViewModel = placeModel,
             )
         }
-        compose.waitUntil(5_000) { placeModel.state.value.search.savedPlaces.isNotEmpty() }
+        compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
         compose.onNodeWithTag("delete-place-saved").performClick()
         compose.onNodeWithTag("confirmation-confirm").assertDoesNotExist()
 
@@ -254,14 +256,14 @@ class WorkspaceFlowTest {
         }
         compose.waitUntil(5_000) { model.state.value.map.viewportRequest != null }
         compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(52.dp)
-        compose.onNodeWithTag("workspace-search-launcher").assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("workspace-search-surface").assertHeightIsAtLeast(48.dp)
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("收起").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("半屏").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("展开").fetchSemanticsNodes().size)
         compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         val mapBottom = compose.onNodeWithTag("workspace-map").getUnclippedBoundsInRoot().bottom
-        val searchTop = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().top
+        val searchTop = compose.onNodeWithTag("workspace-search-surface").getUnclippedBoundsInRoot().top
         val navigationTop = compose.onNodeWithTag("section-controls").getUnclippedBoundsInRoot().top
         assert(searchTop < mapBottom)
         assert(mapBottom <= navigationTop)
