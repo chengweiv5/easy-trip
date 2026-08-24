@@ -18,20 +18,27 @@ done
 
 read -r -a command_args <<<"$command_line"
 [[ ${command_args[0]:-} == emulator ]] || { printf 'invalid emulator executable\n' >&2; exit 3; }
-avd_arg= gpu_arg= port_arg= snapshot_load=false snapshot_save=false
+avd_arg= gpu_arg= port_arg=
+avd_count=0 gpu_count=0 port_count=0 snapshot_load_count=0 snapshot_save_count=0
 for ((i=1; i<${#command_args[@]}; i++)); do
   case "${command_args[i]}" in
     -avd|-gpu|-port)
       ((i + 1 < ${#command_args[@]})) || { printf 'missing command value\n' >&2; exit 3; }
       value=${command_args[++i]}
-      case "${command_args[i-1]}" in -avd) avd_arg=$value ;; -gpu) gpu_arg=$value ;; -port) port_arg=$value ;; esac
+      case "${command_args[i-1]}" in
+        -avd) avd_arg=$value; ((avd_count += 1)) ;;
+        -gpu) gpu_arg=$value; ((gpu_count += 1)) ;;
+        -port) port_arg=$value; ((port_count += 1)) ;;
+      esac
       ;;
-    -no-snapshot-load) snapshot_load=true ;;
-    -no-snapshot-save) snapshot_save=true ;;
+    -no-snapshot-load) ((snapshot_load_count += 1)) ;;
+    -no-snapshot-save) ((snapshot_save_count += 1)) ;;
+    -snapshot|-snapshot-load|-snapshot-save) printf 'conflicting snapshot argument: %s\n' "${command_args[i]}" >&2; exit 3 ;;
     *) printf 'unexpected emulator argument: %s\n' "${command_args[i]}" >&2; exit 3 ;;
   esac
 done
-[[ "$avd_arg" == trail_map_api36 && "$gpu_arg" == swiftshader && "$snapshot_load" == true && "$snapshot_save" == true ]] || { printf 'emulator command mismatch\n' >&2; exit 3; }
+[[ $avd_count -eq 1 && $gpu_count -eq 1 && $port_count -eq 1 && $snapshot_load_count -eq 1 && $snapshot_save_count -eq 1 ]] || { printf 'emulator arguments must occur exactly once\n' >&2; exit 3; }
+[[ "$avd_arg" == trail_map_api36 && "$gpu_arg" == swiftshader ]] || { printf 'emulator command mismatch\n' >&2; exit 3; }
 [[ "$serial" =~ ^emulator-([0-9]+)$ && "$port_arg" == "${BASH_REMATCH[1]}" ]] || { printf 'serial/port mismatch\n' >&2; exit 3; }
 
 devices=$(adb devices | grep -E '^emulator-[0-9]+[[:space:]]+device$' | cut -f1 || true)

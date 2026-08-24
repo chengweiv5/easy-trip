@@ -14,7 +14,7 @@ AMAP_EVIDENCE_DIR="$PWD/build/amap-smoke" scripts/run-amap-smoke.sh
 
 ## 门禁与互斥
 
-脚本通过 `${TMPDIR:-/tmp}/easy-trip-android-device-emulator-5588.lock` 实施跨项目设备全局互斥，锁覆盖启动、安装和 instrumentation；owner metadata 记录 PID、时间与 serial，只有 owner PID 已不存在时才自动回收 stale lock。发现任何已连接设备时立即停止，避免操作共享模拟器。启动后、安装 APK 前，门禁记录并校验：
+脚本通过 `${TMPDIR:-/tmp}/easy-trip-android-device-emulator-5588.lock` 实施跨项目设备全局互斥，锁覆盖启动、安装和 instrumentation；owner metadata 记录 PID、时间与 serial。检测到锁时一律 fail-fast，不自动回收或删除，即使记录的 owner PID 已不存在也如此；确认没有任务仍持有设备后，才可人工删除 stale lock。发现任何已连接设备时立即停止，避免操作共享模拟器。启动后、安装 APK 前，门禁记录并校验：
 
 - AVD、API、ABI、唯一 serial
 - 完整 emulator 命令行
@@ -22,11 +22,11 @@ AMAP_EVIDENCE_DIR="$PWD/build/amap-smoke" scripts/run-amap-smoke.sh
 - `sys.boot_completed=1`
 - 禁用 snapshot load/save 的 cold boot
 
-任一组合不符会 fail-fast，不安装 APK。环境证据写入合法 JSON `build/amap-smoke/environment.json`；`emulator.log`、`instrumentation.txt`、`logcat.txt` 和 `final.png` 位于同目录。Gradle 安装与 instrumentation 都显式绑定 `emulator-5588`。
+任一组合不符会 fail-fast，不安装 APK。环境证据写入合法 JSON `build/amap-smoke/environment.json`；`emulator.log`、`instrumentation.txt`、`logcat.txt` 和 `final.png` 位于同目录。Gradle 安装与 instrumentation 都显式绑定 `emulator-5588`。清理只终止脚本保存的 emulator PID，PID 已退出时不会通过 serial 杀设备。
 
 ## Smoke 行为
 
-测试显式调用隐私展示与同意接口，在 Activity window 中附着真实 `MapView`。map-loaded 必须在 20 秒内成功；成功后继续稳定存活至少 5 秒并确认 PID 存在，随后执行 `onPause`、`onDestroy` 并移除 View。instrumentation 输出记录 map-loaded 与 lifecycle cleanup marker。
+测试显式调用隐私展示与同意接口，在 Activity window 中附着真实 `MapView`。map-loaded 必须在 20 秒内成功；成功后继续稳定存活至少 5 秒并确认 PID 存在，随后执行 `onPause`、`onDestroy` 并移除 View。测试通过本身覆盖完整断言，另外通过 logcat 的 `AMAP_SMOKE` tag 记录 map-loaded 与 lifecycle cleanup marker。
 
 ## 停止与恢复
 

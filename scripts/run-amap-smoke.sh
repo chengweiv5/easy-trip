@@ -8,11 +8,14 @@ EVIDENCE_DIR=${AMAP_EVIDENCE_DIR:-"$ROOT/build/amap-smoke"}
 LOCK_DIR=${TMPDIR:-/tmp}/easy-trip-android-device-$SERIAL.lock
 COMMAND="emulator -avd $AVD -port 5588 -gpu swiftshader -no-snapshot-load -no-snapshot-save"
 BOOT_TIMEOUT_SECONDS=${AMAP_BOOT_TIMEOUT_SECONDS:-180}
-owned_emulator=false
+emulator_pid=
 owned_lock=false
 
 cleanup() {
-  if [[ "$owned_emulator" == true ]]; then adb -s "$SERIAL" emu kill >/dev/null 2>&1 || true; fi
+  if [[ "$emulator_pid" =~ ^[0-9]+$ ]] && kill -0 "$emulator_pid" 2>/dev/null; then
+    kill "$emulator_pid" 2>/dev/null || true
+    wait "$emulator_pid" 2>/dev/null || true
+  fi
   if [[ "$owned_lock" == true ]]; then
     rm -f "$LOCK_DIR/owner" 2>/dev/null || true
     rmdir "$LOCK_DIR" 2>/dev/null || true
@@ -35,13 +38,8 @@ PY
 
 if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   owner=$(test -f "$LOCK_DIR/owner" && grep -E '^pid=' "$LOCK_DIR/owner" | cut -d= -f2 || true)
-  if [[ "$owner" =~ ^[0-9]+$ ]] && ! kill -0 "$owner" 2>/dev/null; then
-    rm -rf "$LOCK_DIR"
-    mkdir "$LOCK_DIR"
-  else
-    printf 'Android device is locked: %s%s\n' "$LOCK_DIR" "${owner:+ (pid $owner)}" >&2
-    exit 10
-  fi
+  printf 'Android device is locked: %s%s; verify ownership and remove it manually if stale\n' "$LOCK_DIR" "${owner:+ (pid $owner)}" >&2
+  exit 10
 fi
 owned_lock=true
 printf 'pid=%s\nstarted=%s\nserial=%s\n' "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$SERIAL" >"$LOCK_DIR/owner"
@@ -54,13 +52,15 @@ attached=$(adb devices | grep -E '^[^[:space:]]+[[:space:]]+device$' || true)
 mkdir -p "$EVIDENCE_DIR"
 read -r -a emulator_args <<<"$COMMAND"
 "${emulator_args[@]}" >"$EVIDENCE_DIR/emulator.log" 2>&1 &
-owned_emulator=true
+emulator_pid=$!
 deadline=$((SECONDS + BOOT_TIMEOUT_SECONDS))
 while ((SECONDS < deadline)); do
-  [[ "$(adb -s "$SERIAL" get-state 2>/dev/null || true)" == device ]] && break
+  kill -0 "$emulator_pid" 2>/dev/null || { printf 'emulator process exited during startup\n' >&2; exit 13; }
+  if [[ "$(adb -s "$SERIAL" get-state 2>/dev/null || true)" == device && "$(adb -s "$SERIAL" shell getprop ro.boot.qemu.avd_name 2>/dev/null | tr -d '\r')" == "$AVD" ]]; then break; fi
   sleep 1
 done
-[[ "$(adb -s "$SERIAL" get-state 2>/dev/null || true)" == device ]] || { printf 'emulator registration timed out\n' >&2; exit 13; }
+kill -0 "$emulator_pid" 2>/dev/null || { printf 'emulator process exited during startup\n' >&2; exit 13; }
+[[ "$(adb -s "$SERIAL" get-state 2>/dev/null || true)" == device && "$(adb -s "$SERIAL" shell getprop ro.boot.qemu.avd_name 2>/dev/null | tr -d '\r')" == "$AVD" ]] || { printf 'owned emulator registration timed out\n' >&2; exit 13; }
 while ((SECONDS < deadline)); do
   [[ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]] && break
   sleep 1
@@ -78,5 +78,5 @@ adb -s "$SERIAL" logcat -d >"$EVIDENCE_DIR/logcat.txt"
 adb -s "$SERIAL" exec-out screencap -p >"$EVIDENCE_DIR/final.png"
 [[ $status -eq 0 ]] || exit "$status"
 grep -q 'OK (1 test)' "$EVIDENCE_DIR/instrumentation.txt" || { printf 'instrumentation did not report success\n' >&2; exit 14; }
-grep -q 'AMAP_SMOKE map_loaded=true' "$EVIDENCE_DIR/instrumentation.txt" || { printf 'map-loaded evidence missing\n' >&2; exit 14; }
-grep -q 'AMAP_SMOKE lifecycle_cleanup=true' "$EVIDENCE_DIR/instrumentation.txt" || { printf 'lifecycle cleanup evidence missing\n' >&2; exit 14; }
+grep -q 'AMAP_SMOKE.*map_loaded=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'map-loaded evidence missing\n' >&2; exit 14; }
+grep -q 'AMAP_SMOKE.*lifecycle_cleanup=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'lifecycle cleanup evidence missing\n' >&2; exit 14; }

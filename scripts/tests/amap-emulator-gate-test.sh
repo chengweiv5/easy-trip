@@ -46,6 +46,11 @@ expect_rejected "AVD command prefix collision" --serial emulator-5554 --command-
 expect_rejected "renderer command prefix collision" --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader_indirect -no-snapshot-load -no-snapshot-save" --evidence "$TMP/bad.json"
 expect_rejected "snapshot load omission" --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-save" --evidence "$TMP/bad.json"
 expect_rejected "snapshot save omission" --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load" --evidence "$TMP/bad.json"
+expect_rejected "duplicate AVD" --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-save" --evidence "$TMP/bad.json"
+expect_rejected "duplicate renderer" --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -gpu swiftshader -no-snapshot-load -no-snapshot-save" --evidence "$TMP/bad.json"
+expect_rejected "duplicate port" --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-save" --evidence "$TMP/bad.json"
+expect_rejected "duplicate snapshot flag" --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -no-snapshot-load -no-snapshot-load -no-snapshot-save" --evidence "$TMP/bad.json"
+expect_rejected "conflicting snapshot flag" --serial emulator-5554 --command-line "emulator -avd trail_map_api36 -port 5554 -gpu swiftshader -snapshot-load -no-snapshot-load -no-snapshot-save" --evidence "$TMP/bad.json"
 expect_rejected "unknown parameter" "${args[@]}" --surprise value
 
 printf 'PASS: amap emulator gate fixtures\n'

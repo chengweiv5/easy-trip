@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.amap
 import android.content.pm.PackageManager
 import android.os.ParcelFileDescriptor
 import android.os.SystemClock
+import android.util.Log
 import androidx.test.core.app.ActivityScenario
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -40,7 +41,7 @@ class AmapMapViewAttachSmokeTest {
                 assertTrue(mapView.isAttachedToWindow)
             }
             assertTrue("AMap did not report map-loaded within 20 seconds", loaded.await(20, TimeUnit.SECONDS))
-            println("AMAP_SMOKE map_loaded=true")
+            Log.i("AMAP_SMOKE", "map_loaded=true")
             SystemClock.sleep(5_000)
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             val processAlive = instrumentation.uiAutomation.executeShellCommand("pidof ${context.packageName}").use {
@@ -52,7 +53,7 @@ class AmapMapViewAttachSmokeTest {
                 mapView.onPause()
                 mapView.onDestroy()
                 it.detach(mapView)
-                println("AMAP_SMOKE lifecycle_cleanup=true")
+                Log.i("AMAP_SMOKE", "lifecycle_cleanup=true")
             }
         }
     }
