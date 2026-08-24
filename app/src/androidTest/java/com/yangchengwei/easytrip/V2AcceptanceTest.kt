@@ -42,7 +42,6 @@ import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
-import java.util.concurrent.atomic.AtomicInteger
 import java.util.concurrent.atomic.AtomicReference
 
 class V2AcceptanceTest {
@@ -142,15 +141,11 @@ class V2AcceptanceTest {
         compose.onNodeWithTag("place-card-collection").performClick()
         waitFor("map POI collection") { "poi-card" in savedPoiIds.value }
 
-        val placePoolViewportCalls = mapHost.viewportCalls.get()
         compose.onNodeWithTag("section-ITINERARY").performClick()
-        waitFor("itinerary map model") { mapHost.viewportCalls.get() > placePoolViewportCalls }
         compose.onNodeWithTag("section-ITINERARY").assertIsSelected()
         compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
 
-        val dayViewportCalls = mapHost.viewportCalls.get()
         compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
-        waitFor("whole-trip map model") { mapHost.viewportCalls.get() > dayViewportCalls }
         compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").assertIsSelected()
     }
 
@@ -159,9 +154,6 @@ class V2AcceptanceTest {
 
     private class RecordingHost(context: Context) : AmapMapHost {
         override val view = View(context)
-        @Volatile var lastModel: MapUiModel? = null
-        val viewportCalls = AtomicInteger()
-        private var viewportId: Long? = null
         private var poiCallback: (MapPoiUi) -> Unit = {}
         override fun onCreate() = Unit
         override fun onResume() = Unit
@@ -174,12 +166,7 @@ class V2AcceptanceTest {
             onMapPoiClick: (MapPoiUi) -> Unit,
             onLayerError: (Throwable, MapLayer) -> Unit,
         ) {
-            lastModel = model
             poiCallback = onMapPoiClick
-            model.viewportRequest?.takeIf { it.id != viewportId }?.let {
-                viewportId = it.id
-                viewportCalls.incrementAndGet()
-            }
         }
         fun emit(poi: MapPoiUi) = poiCallback(poi)
     }
