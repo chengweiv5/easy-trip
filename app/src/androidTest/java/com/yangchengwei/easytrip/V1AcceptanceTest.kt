@@ -82,7 +82,9 @@ class V1AcceptanceTest {
         val single = MapUiModelMapper.map(MapScope.SINGLE_DAY, emptyList(), days, snapshots, firstDay)
         val whole = MapUiModelMapper.map(MapScope.WHOLE_TRIP, emptyList(), days, snapshots)
         assertTrue(single.markers.isNotEmpty())
+        assertTrue(single.markers.flatMap { it.occurrences }.all { it.dayId == firstDay })
         assertTrue(whole.markers.any { it.occurrences.size >= 6 })
+        assertEquals(days.map { it.id }.toSet(), whole.markers.flatMap { it.occurrences }.map { it.dayId }.toSet())
 
         database.close()
         database = open()

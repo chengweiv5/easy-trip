@@ -65,6 +65,27 @@ class OfflineRecoveryTest {
         assertEquals(10, rows.getValue("cached").distanceMeters)
     }
 
+    @Test fun onlineRecoveryRequeuesInterruptedWorkWithoutTouchingSuccess() = runTest {
+        val now = Instant.EPOCH
+        database.tripDao().insertTrip(TripEntity("trip", "Trip", TimeMode.DRAFT, null, TravelMode.FLEXIBLE, now, now))
+        database.tripDao().insertDay(TripDayEntity("day", "trip", 0))
+        database.savedPlaceDao().insertPlace(SavedPlaceEntity("a", "trip", "a", "A", "", 1.0, 2.0))
+        database.savedPlaceDao().insertPlace(SavedPlaceEntity("b", "trip", "b", "B", "", 3.0, 4.0))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity("i1", "day", "trip", "a", 0))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity("i2", "day", "trip", "b", 1000))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity("i3", "day", "trip", "a", 2000))
+        database.routeLegDao().insert(RouteLegEntity("interrupted", "day", "i1", "i2", TransportMode.WALK, status = RouteStatus.CALCULATING, version = 4, updatedAt = now))
+        database.routeLegDao().insert(RouteLegEntity("cached", "day", "i2", "i3", TransportMode.WALK, status = RouteStatus.SUCCESS, distanceMeters = 10, durationSeconds = 20, polyline = "v1|1.0,2.0;3.0,4.0", version = 2, updatedAt = now))
+
+        val repository = RoomRouteLegRepository(database.routeLegDao())
+        assertEquals(1, repository.recoverInterruptedCalculations(online = true))
+        val rows = database.routeLegDao().legs("day").associateBy { it.id }
+        assertEquals(RouteStatus.PENDING, rows.getValue("interrupted").status)
+        assertEquals(5L, rows.getValue("interrupted").version)
+        assertEquals(RouteStatus.SUCCESS, rows.getValue("cached").status)
+        assertEquals(10, rows.getValue("cached").distanceMeters)
+    }
+
     @Test fun reopeningWorkspaceDoesNotRequestLocationPermission() {
         val saved = SavedStateHandle(mapOf(LocationPermissionCoordinator.HAS_REQUESTED_KEY to true))
 

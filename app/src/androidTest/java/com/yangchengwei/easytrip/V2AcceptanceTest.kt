@@ -7,10 +7,12 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -116,6 +118,7 @@ class V2AcceptanceTest {
         compose.onNodeWithContentDescription("搜索地点").assertHasClickAction().performClick()
         compose.onNodeWithTag("place-search-field").performTextInput("博物馆")
         compose.waitUntil(5_000) { searchModel.state.value.search.results.size == 2 }
+        compose.onAllNodesWithText("加入行程").assertCountEquals(0)
 
         compose.onNodeWithTag("place-search-bookmark-touch-museum").performClick()
         compose.waitUntil(5_000) { "museum" in searchModel.state.value.savedPoiIds }

@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip
 import android.content.Context
 import android.view.View
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -84,7 +85,7 @@ class V1PencilFlowTest {
         }
 
         compose.onNodeWithText("还没有旅行计划").assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").performClick()
+        compose.onNodeWithTag("create-trip").assertHasClickAction().performClick()
         compose.onNodeWithTag("create-name").performTextInput("杭州周末")
         compose.onNodeWithTag("create-day-count").performTextInput("2")
         compose.onNodeWithTag("create-time-DATED").performClick()
