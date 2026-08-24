@@ -57,13 +57,18 @@ class AmapPlaceDataSource(context: Context, private val consent: AmapConsentToke
             }
             override fun clear() = search.setOnPoiSearchListener(null)
             override fun start() = search.searchPOIAsyn()
-        }) { (result, code) ->
+        }) { callback ->
             consent.validateActive()
-            if (code != AMapException.CODE_AMAP_SUCCESS) throw AmapServiceException("POI_SEARCH", code, "AMap POI search failed")
-            val raw = result?.pois.orEmpty().map { item ->
-                RawPlace(item.poiId.orEmpty(), item.title.orEmpty(), item.snippet.orEmpty(), item.latLonPoint?.let { GeoPoint(it.latitude, it.longitude) }, item.cityCode)
-            }
-            parsePlaces(raw, result?.searchSuggestionCitys.orEmpty().map { it.cityName })
+            parsePoiSearchResponse(callback)
         }
     }
+}
+
+internal fun parsePoiSearchResponse(callback: Pair<PoiResult?, Int>): List<PlaceCandidate> {
+    val (result, code) = callback
+    if (code != AMapException.CODE_AMAP_SUCCESS) throw AmapServiceException("POI_SEARCH", code, "AMap POI search failed")
+    val raw = result?.pois.orEmpty().map { item ->
+        RawPlace(item.poiId.orEmpty(), item.title.orEmpty(), item.snippet.orEmpty(), item.latLonPoint?.let { GeoPoint(it.latitude, it.longitude) }, item.cityCode)
+    }
+    return parsePlaces(raw)
 }

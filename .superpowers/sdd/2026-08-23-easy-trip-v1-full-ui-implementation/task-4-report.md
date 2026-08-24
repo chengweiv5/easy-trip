@@ -53,19 +53,23 @@ GREEN 阶段最终验证：
 - `task-4-evidence/loading.png`
 - `task-4-evidence/failure.png`
 
-后续真实设备门禁已通过：同意高德隐私政策后，真实 API 搜索结果可见，可连续收藏多个地点，返回地点池后收藏结果均可见。真实 API 的空结果回调可能同时携带 `suggestions`；该响应已验证为正常空态，不再误报网络失败。早先模拟器上的 AMap `GLSurfaceView` / EGL 崩溃仅保留为模拟器环境记录，不再阻塞 Task 4 设备验收。
+后续在同一 AVD 上完成生产流程门禁：同意高德隐私政策后，真实 API 搜索结果可见，可连续收藏多个地点，返回地点池后收藏结果均可见。真实 API 的空结果回调可能同时携带 `suggestions`；该响应已验证为正常空态，不再误报网络失败。执行设备为 `emulator-5554`，Gradle 报告名称为 `easy_trip_p60pro(AVD) - 12`，不是物理真机。按 ledger 既有 ruling，该模拟器门禁允许当前批次继续；最终物理设备验收仍待办。早先 AMap `GLSurfaceView` / EGL 崩溃仅保留为模拟器环境记录。
 
 ## 修改文件
 
-- `app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt`
-- `app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt`
-- `app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchScreen.kt`
-- `app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContent.kt`
-- `app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchRoute.kt`
-- `app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModel.kt`
-- `app/src/test/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducerTest.kt`
-- `app/src/test/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModelTest.kt`
-- `app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt`
+本轮收尾提交范围：
+
+- `app/src/main/java/com/yangchengwei/easytrip/place/amap/AmapPlaceDataSource.kt`
+- `app/src/main/java/com/yangchengwei/easytrip/place/amap/PlaceContracts.kt`
+- `app/src/test/java/com/yangchengwei/easytrip/place/amap/AmapPlaceDataSourceTest.kt`
+- `app/src/test/java/com/yangchengwei/easytrip/place/amap/PlaceContractsTest.kt`
+- `.superpowers/sdd/2026-08-23-easy-trip-v1-full-ui-implementation/task-4-report.md`
+- `.superpowers/sdd/2026-08-23-easy-trip-v1-full-ui-implementation/progress.md`
+- `graphify-out/.graphify_labels.json`
+- `graphify-out/GRAPH_REPORT.md`
+- `graphify-out/graph.html`
+- `graphify-out/graph.json`
+- `graphify-out/manifest.json`
 
 ## Fix round 1
 
@@ -122,6 +126,16 @@ Fix round GREEN 验证：
 - 验证：`./gradlew testDebugUnitTest --tests "com.yangchengwei.easytrip.place.amap.PlaceContractsTest" --tests "com.yangchengwei.easytrip.place.ui.PlaceSearch*" --tests "com.yangchengwei.easytrip.place.ui.CollectionTogglePolicyTest"`：成功；`ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest,com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepositoryTest,com.yangchengwei.easytrip.place.ui.PlacePoolFlowTest`：13/13 成功；`./gradlew testDebugUnitTest lintDebug assembleDebug`：成功。
 - 中间提交 `4d41d7c`（`Map empty POI responses to empty state`）只覆盖无 suggestions 空结果；最终提交见“提交”章节，未 push。
 
+## Device gate review fix round 1
+
+修复独立审查指出的验收表述与生产回调边界缺口：
+
+- 将 `emulator-5554` / `easy_trip_p60pro(AVD) - 12` 明确记录为 AVD，不再称为真实设备或物理真机；模拟器生产流程门禁按既有 ruling 通过，最终物理设备验收仍待办。
+- 提取并测试生产 callback 解析边界：成功码、空 POI、非空 suggestions 返回空列表；非成功码仍抛出 `AmapServiceException(operation = "POI_SEARCH")`，不会被空态吞掉。
+- 删除 `parsePlaces` 未使用的 `suggestions` 参数，保持空列表映射职责清晰。
+- 本轮没有把 `/tmp/task4-current.png` 或 XML 作为搜索流程证据；该画面是日程页，不支持搜索验收结论。
+- 验证命令与结果：`./gradlew testDebugUnitTest --tests "com.yangchengwei.easytrip.place.amap.*" --tests "com.yangchengwei.easytrip.place.ui.PlaceSearch*" --tests "com.yangchengwei.easytrip.place.ui.CollectionTogglePolicyTest"` 成功；`./gradlew testDebugUnitTest lintDebug assembleDebug` 成功；`graphify update .` 成功并更新正式图谱产物。
+
 ## Graphify
 
 已运行 `graphify update .`。仅纳入项目正式图谱产物；未纳入缓存。
@@ -129,8 +143,8 @@ Fix round GREEN 验证：
 ## 自审与关注点
 
 - 搜索生产入口及 API 已不存在结果选择、SavedState 回传、自动返回或加入行程旁路。
-- 真实设备已覆盖真实结果、连续收藏、返回地点池与携带 suggestions 的空结果，Task 4 device gate 完成。
-- 无剩余 Task 4 阻塞项。
+- AVD 已覆盖真实 API 结果、连续收藏、返回地点池与携带 suggestions 的空结果，Task 4 模拟器生产流程门禁完成。
+- 最终物理设备验收仍待办；按既有 ruling 不阻塞当前批次推进。
 
 ## 提交
 
