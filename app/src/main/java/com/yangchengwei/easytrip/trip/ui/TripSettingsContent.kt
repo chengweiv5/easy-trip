@@ -48,6 +48,7 @@ fun TripSettingsContent(
     onCancelDateRange: () -> Unit,
     onConfirmDateRange: () -> Unit,
     onRequestDeleteDay: (DayUi) -> Unit,
+    onRetryDeleteDay: () -> Unit,
     onCancelDeleteDay: () -> Unit,
     onConfirmDeleteDay: () -> Unit,
 ) {
@@ -97,6 +98,10 @@ fun TripSettingsContent(
                         enabled = state.days.size > 1,
                     ) { Text("删除", color = Color.Red) }
                 }
+            }
+            if (state.pendingDayDeletion == null && state.dayDeletionRetry != null && state.dayDeleteError != null) {
+                Text(state.dayDeleteError, color = Color.Red)
+                TextButton(onRetryDeleteDay) { Text("重试检查") }
             }
         }
     }

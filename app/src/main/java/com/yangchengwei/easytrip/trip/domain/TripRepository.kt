@@ -49,7 +49,6 @@ interface TripRepository {
     suspend fun setTravelMode(tripId: String, mode: TravelMode)
     suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String
     suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int)
-    suspend fun deleteDay(dayId: String)
-    suspend fun deleteDay(command: DayDeletion) = deleteDay(command.dayId)
+    suspend fun deleteDay(command: DayDeletion)
     suspend fun deleteTrip(tripId: String)
 }

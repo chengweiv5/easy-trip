@@ -156,7 +156,7 @@ class TripFlowTest {
         override suspend fun setTravelMode(tripId: String, mode: TravelMode) { trip.value=trip.value!!.copy(travelMode=mode); publish() }
         override suspend fun insertDay(tripId:String,anchorDayId:String?,side:InsertSide):String { val d=trip.value!!.days.toMutableList();val id=id();val a=anchorDayId?.let{v->d.indexOfFirst{it.id==v}}?:d.size;d.add((a+if(side==InsertSide.AFTER)1 else 0).coerceIn(0,d.size),TripDay(id,0));setDays(d);return id }
         override suspend fun moveDay(tripId:String,dayId:String,targetIndex:Int){moveCalls += MoveCall(dayId,targetIndex);val d=trip.value!!.days.toMutableList();val day=d.removeAt(d.indexOfFirst{it.id==dayId});d.add(targetIndex,day);setDays(d)}
-        override suspend fun deleteDay(dayId:String){deletedDays++;setDays(trip.value!!.days.filterNot{it.id==dayId})}
+        override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion){deletedDays++;setDays(trip.value!!.days.filterNot{it.id==command.dayId})}
         override suspend fun deleteTrip(tripId:String){deletedTrips += tripId;trip.value=null;trips.value=emptyList()}
         private fun setDays(d:List<TripDay>){trip.value=trip.value!!.copy(days=d.mapIndexed{i,x->x.copy(index=i)});publish()}
         private fun publish(){trip.value?.let{trips.value=listOf(TripSummary(it.id,it.name,it.startDate,it.travelMode,it.days.size))}}

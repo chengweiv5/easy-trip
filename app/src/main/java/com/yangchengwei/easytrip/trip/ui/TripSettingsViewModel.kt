@@ -36,6 +36,7 @@ data class TripSettingsUiState(
     val days: List<DayUi> = emptyList(),
     val dateRange: DateRangeChangeUiState = DateRangeChangeUiState(),
     val pendingDayDeletion: PendingDayDeletion? = null,
+    val dayDeletionRetry: DayUi? = null,
     val dayDeleteInProgress: Boolean = false,
     val dayDeleteError: String? = null,
 )
@@ -187,12 +188,18 @@ class TripSettingsViewModel(
         if (mutableState.value.days.size <= 1) return
         val generation = ++deleteGeneration
         deleteImpactJob?.cancel()
+        mutableState.value = mutableState.value.copy(
+            pendingDayDeletion = null,
+            dayDeletionRetry = day,
+            dayDeleteError = null,
+        )
         deleteImpactJob = viewModelScope.launch {
             try {
                 val impact = impacts.day(day.id)
                 if (generation == deleteGeneration) {
                     mutableState.value = mutableState.value.copy(
                         pendingDayDeletion = PendingDayDeletion(day, impact),
+                        dayDeletionRetry = null,
                         dayDeleteError = null,
                     )
                 }
@@ -205,11 +212,18 @@ class TripSettingsViewModel(
             }
         }
     }
+    fun retryDelete() {
+        mutableState.value.dayDeletionRetry?.let(::requestDelete)
+    }
     fun cancelDelete() {
         if (!mutableState.value.dayDeleteInProgress) {
             deleteGeneration++
             deleteImpactJob?.cancel()
-            mutableState.value = mutableState.value.copy(pendingDayDeletion = null, dayDeleteError = null)
+            mutableState.value = mutableState.value.copy(
+                pendingDayDeletion = null,
+                dayDeletionRetry = null,
+                dayDeleteError = null,
+            )
         }
     }
     fun confirmDelete() {
@@ -229,13 +243,16 @@ class TripSettingsViewModel(
                 )
                 mutableState.value = mutableState.value.copy(
                     pendingDayDeletion = null,
+                    dayDeletionRetry = null,
                     dayDeleteInProgress = false,
                     dayDeleteError = null,
                 )
             } catch (_: Throwable) {
                 mutableState.value = mutableState.value.copy(
+                    pendingDayDeletion = null,
+                    dayDeletionRetry = day,
                     dayDeleteInProgress = false,
-                    dayDeleteError = "删除失败，请重试",
+                    dayDeleteError = "删除失败，请重新检查影响",
                 )
             }
         }

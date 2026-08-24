@@ -171,7 +171,7 @@ class DayItinerarySelectionTest {
             return nextId
         }
         override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
-        override suspend fun deleteDay(dayId: String) = Unit
+        override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion) = Unit
         override suspend fun deleteTrip(tripId: String) = Unit
     }
 

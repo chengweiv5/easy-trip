@@ -78,21 +78,21 @@ interface TripDao {
     }
 
     @Transaction
-    suspend fun deleteAndReorderDay(dayId:String,now:Instant){
-        val tripId=requireNotNull(tripIdForDay(dayId)){"Unknown day: $dayId"}
-        val ordered=days(tripId); require(ordered.size>1){"Cannot delete the last trip day"}; park(ordered); require(deleteDayRow(dayId)==1); reorder(ordered.filterNot{it.id==dayId}); require(touch(tripId,now)==1)
-    }
-
-    @Transaction
     suspend fun deleteAndReorderDay(
         dayId:String,
         expectedItineraryItems:Int,
         expectedRouteLegs:Int,
         now:Instant,
     ){
+        val tripId=requireNotNull(tripIdForDay(dayId)){"Unknown day: $dayId"}
+        val ordered=days(tripId)
+        require(ordered.size>1){"Cannot delete the last trip day"}
         require(itemCountForDays(listOf(dayId))==expectedItineraryItems){"Day itinerary items changed after preview"}
         require(legCountForDays(listOf(dayId))==expectedRouteLegs){"Day route legs changed after preview"}
-        deleteAndReorderDay(dayId,now)
+        park(ordered)
+        require(deleteDayRow(dayId)==1)
+        reorder(ordered.filterNot{it.id==dayId})
+        require(touch(tripId,now)==1)
     }
 
     private suspend fun park(values:List<TripDayEntity>){ values.forEachIndexed{i,d->require(position(d.id,Long.MIN_VALUE+i)==1)} }

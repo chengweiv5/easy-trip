@@ -97,7 +97,7 @@ class TripDateRangeServiceTest {
         override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit
         override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day"
         override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
-        override suspend fun deleteDay(dayId: String) = Unit
+        override suspend fun deleteDay(command: DayDeletion) = Unit
         override suspend fun deleteTrip(tripId: String) = Unit
     }
 

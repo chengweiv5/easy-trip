@@ -17,6 +17,7 @@ fun TripSettingsRoute(viewModel: TripSettingsViewModel, onBack: () -> Unit) {
         onCancelDateRange = viewModel::cancelDateRangeChange,
         onConfirmDateRange = viewModel::confirmDateRangeChange,
         onRequestDeleteDay = viewModel::requestDelete,
+        onRetryDeleteDay = viewModel::retryDelete,
         onCancelDeleteDay = viewModel::cancelDelete,
         onConfirmDeleteDay = viewModel::confirmDelete,
     )

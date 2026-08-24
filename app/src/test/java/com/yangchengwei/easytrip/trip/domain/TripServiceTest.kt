@@ -92,7 +92,7 @@ class TripServiceTest {
         service.createTrip(CreateTrip("Kyoto", 3, TravelMode.FLEXIBLE))
         val originalIds = repository.trip!!.days.map { it.id }
 
-        service.deleteDay(originalIds[1])
+        service.deleteDay(DayDeletion(originalIds[1], 0, 0))
 
         assertEquals(listOf(originalIds[0], originalIds[2]), repository.trip!!.days.map { it.id })
     }
@@ -192,8 +192,8 @@ class TripServiceTest {
             trip = trip!!.copy(days = days.mapIndexed { i, item -> item.copy(index = i) })
         }
 
-        override suspend fun deleteDay(dayId: String) {
-            trip = trip!!.copy(days = trip!!.days.filterNot { it.id == dayId }.mapIndexed { i, day -> day.copy(index = i) })
+        override suspend fun deleteDay(command: DayDeletion) {
+            trip = trip!!.copy(days = trip!!.days.filterNot { it.id == command.dayId }.mapIndexed { i, day -> day.copy(index = i) })
         }
 
         override suspend fun deleteTrip(tripId: String) {

@@ -157,35 +157,76 @@ class TripSettingsViewModelTest {
         assertEquals(null, model.state.value.dateRange.error)
     }
 
-    @Test fun failedDayDeleteKeepsRedConfirmationForRetry() = runTest(dispatcher) {
+    @Test fun failedDayDeleteRequiresFreshPreviewAndConfirmation() = runTest(dispatcher) {
         val repository = FakeRepository().apply { deleteFailure = IllegalStateException() }
-        val model = model(repository)
+        val impacts = FakeImpacts()
+        val model = model(repository, impacts)
         advanceUntilIdle()
         model.requestDelete(model.state.value.days.last())
         advanceUntilIdle()
 
         model.confirmDelete()
         advanceUntilIdle()
-        assertEquals("删除失败，请重试", model.state.value.dayDeleteError)
-        assertEquals("day-3", model.state.value.pendingDayDeletion?.day?.id)
+        assertEquals("删除失败，请重新检查影响", model.state.value.dayDeleteError)
+        assertEquals(null, model.state.value.pendingDayDeletion)
+        assertEquals("day-3", model.state.value.dayDeletionRetry?.id)
 
         repository.deleteFailure = null
+        impacts.impact = DayDeleteImpact(2, 3, 0)
+        model.retryDelete()
+        advanceUntilIdle()
+        assertEquals(1, repository.deleteCalls)
+        assertEquals(2, impacts.dayCalls)
+        assertEquals(2, model.state.value.pendingDayDeletion?.impact?.itineraryItems)
+        assertEquals(null, model.state.value.dayDeleteError)
+
         model.confirmDelete()
         advanceUntilIdle()
-        assertEquals(null, model.state.value.pendingDayDeletion)
         assertEquals(2, repository.deleteCalls)
+        assertEquals(null, model.state.value.pendingDayDeletion)
     }
 
-    private fun model(repository: FakeRepository) = TripSettingsViewModel(
+    @Test fun failedDayPreviewKeepsVisibleRetryTarget() = runTest(dispatcher) {
+        val impacts = FakeImpacts().apply { failure = IllegalStateException() }
+        val model = model(FakeRepository(), impacts)
+        advanceUntilIdle()
+        model.requestDelete(model.state.value.days.last())
+        advanceUntilIdle()
+
+        assertEquals("无法检查删除影响，请重试", model.state.value.dayDeleteError)
+        assertEquals(null, model.state.value.pendingDayDeletion)
+        assertEquals("day-3", model.state.value.dayDeletionRetry?.id)
+
+        impacts.failure = null
+        model.retryDelete()
+        advanceUntilIdle()
+        assertEquals(2, impacts.dayCalls)
+        assertEquals("day-3", model.state.value.pendingDayDeletion?.day?.id)
+        assertEquals(null, model.state.value.dayDeleteError)
+    }
+
+    private fun model(
+        repository: FakeRepository,
+        impacts: DeleteImpactProvider = FakeImpacts(),
+    ) = TripSettingsViewModel(
         SavedStateHandle(mapOf("tripId" to "trip")),
         TripService(repository),
         repository,
-        object : DeleteImpactProvider {
-            override suspend fun trip(tripId: String) = TripDeleteImpact(0, 0, 0, 0, 0)
-            override suspend fun day(dayId: String) = DayDeleteImpact(1, 1, 0)
-        },
+        impacts,
         TripDateRangeService(repository),
     )
+
+    private class FakeImpacts : DeleteImpactProvider {
+        var impact = DayDeleteImpact(1, 1, 0)
+        var failure: Throwable? = null
+        var dayCalls = 0
+        override suspend fun trip(tripId: String) = TripDeleteImpact(0, 0, 0, 0, 0)
+        override suspend fun day(dayId: String): DayDeleteImpact {
+            dayCalls++
+            failure?.let { throw it }
+            return impact
+        }
+    }
 
     private class FakeRepository(
         var counts: DateRangeDeletionCounts = DateRangeDeletionCounts(0, 0, 0),
@@ -208,7 +249,7 @@ class TripSettingsViewModelTest {
             return counts
         }
         override suspend fun applyDateRange(command: DateRangeApply) { applyCalls++; applyBlock?.await(); applyFailure?.let { throw it } }
-        override suspend fun deleteDay(dayId: String) { deleteCalls++; deleteFailure?.let { throw it } }
+        override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion) { deleteCalls++; deleteFailure?.let { throw it } }
         override suspend fun createTrip(command: CreateTrip) = "trip"
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit

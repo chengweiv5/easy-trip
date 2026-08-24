@@ -188,7 +188,7 @@ class RoomTripRepositoryTest {
             repository.observeTrip(tripId).first()!!.days.map { it.id },
         )
 
-        repository.deleteDay(originalIds[1])
+        repository.deleteDay(com.yangchengwei.easytrip.trip.domain.DayDeletion(originalIds[1], 0, 0))
         val remaining = repository.observeTrip(tripId).first()!!.days.map { it.id }
         assertEquals(listOf(insertedId, originalIds[2], originalIds[0]), remaining)
         assertNotEquals(originalIds[1], remaining[1])
@@ -236,7 +236,7 @@ class RoomTripRepositoryTest {
         assertThrows(IllegalArgumentException::class.java) { kotlinx.coroutines.runBlocking { repository.moveDay(first, "missing", 0) } }
         assertThrows(IllegalArgumentException::class.java) { kotlinx.coroutines.runBlocking { repository.moveDay(first, repository.observeTrip(first).first()!!.days[0].id, -1) } }
         assertThrows(IllegalArgumentException::class.java) { kotlinx.coroutines.runBlocking { repository.moveDay(first, repository.observeTrip(first).first()!!.days[0].id, 2) } }
-        assertThrows(IllegalArgumentException::class.java) { kotlinx.coroutines.runBlocking { repository.deleteDay("missing") } }
+        assertThrows(IllegalArgumentException::class.java) { kotlinx.coroutines.runBlocking { repository.deleteDay(com.yangchengwei.easytrip.trip.domain.DayDeletion("missing", 0, 0)) } }
         assertThrows(IllegalArgumentException::class.java) { kotlinx.coroutines.runBlocking { repository.renameTrip("missing", "X") } }
         assertThrows(IllegalArgumentException::class.java) { kotlinx.coroutines.runBlocking { repository.setStartDate("missing", null) } }
         assertThrows(IllegalArgumentException::class.java) { kotlinx.coroutines.runBlocking { repository.setTravelMode("missing", TravelMode.FLEXIBLE) } }
@@ -277,7 +277,7 @@ class RoomTripRepositoryTest {
             assertEquals(3, listEvents.receiveUntil("trip list count 3") { it.single().dayCount == 3 }.single().dayCount)
             repository.moveDay(tripId, dayId, 0)
             assertEquals(dayId, tripEvents.receiveUntil("moved day") { it?.days?.firstOrNull()?.id == dayId }!!.days.first().id)
-            repository.deleteDay(dayId)
+            repository.deleteDay(com.yangchengwei.easytrip.trip.domain.DayDeletion(dayId, 0, 0))
             assertEquals(2, tripEvents.receiveUntil("deleted day") { it?.days?.size == 2 && it.days.none { day -> day.id == dayId } }!!.days.size)
             assertEquals(2, listEvents.receiveUntil("trip list count 2") { it.single().dayCount == 2 }.single().dayCount)
             tripEvents.cancel(); listEvents.cancel()
@@ -285,7 +285,7 @@ class RoomTripRepositoryTest {
     }
 
     @Test
-    fun deletingLastDayIsAllowedAndTravelModeAndRecentOrderingUpdate() = runTest {
+    fun deletingLastDayIsRejectedAndTravelModeAndRecentOrderingUpdate() = runTest {
         val first = repository.createTrip(CreateTrip("First", 1))
         clock.advance()
         val second = repository.createTrip(CreateTrip("Second", 1))
@@ -295,8 +295,13 @@ class RoomTripRepositoryTest {
         repository.setTravelMode(first, TravelMode.SELF_DRIVE)
         assertEquals(first, repository.observeTrips().first().first().id)
         assertEquals(TravelMode.SELF_DRIVE, repository.observeTrip(first).first()!!.travelMode)
-        repository.deleteDay(repository.observeTrip(first).first()!!.days.single().id)
-        assertEquals(emptyList<String>(), repository.observeTrip(first).first()!!.days.map { it.id })
+        val onlyDay = repository.observeTrip(first).first()!!.days.single().id
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                repository.deleteDay(com.yangchengwei.easytrip.trip.domain.DayDeletion(onlyDay, 0, 0))
+            }
+        }
+        assertEquals(listOf(onlyDay), repository.observeTrip(first).first()!!.days.map { it.id })
         repository.deleteTrip(first)
         assertEquals(null, repository.observeTrip(first).first())
     }

@@ -157,10 +157,6 @@ class RoomTripRepository(
         dao.moveAndReorderDay(tripId, dayId, targetIndex, clock.instant())
     }
 
-    override suspend fun deleteDay(dayId: String) {
-        dao.deleteAndReorderDay(dayId, clock.instant())
-    }
-
     override suspend fun deleteDay(command: DayDeletion) {
         dao.deleteAndReorderDay(
             command.dayId,

@@ -3,8 +3,10 @@ package com.yangchengwei.easytrip.trip.ui
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import com.yangchengwei.easytrip.core.model.TravelMode
 import java.time.LocalDate
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -23,7 +25,7 @@ class TripSettingsContentTest {
                 ),
                 onBack = {}, onRename = {}, onTravelMode = {}, onDateDraft = { _, _ -> },
                 onSubmitDateRange = {}, onCancelDateRange = {}, onConfirmDateRange = {},
-                onRequestDeleteDay = {}, onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+                onRequestDeleteDay = {}, onRetryDeleteDay = {}, onCancelDeleteDay = {}, onConfirmDeleteDay = {},
             )
         }
 
@@ -47,11 +49,33 @@ class TripSettingsContentTest {
                 ),
                 onBack = {}, onRename = {}, onTravelMode = {}, onDateDraft = { _, _ -> },
                 onSubmitDateRange = {}, onCancelDateRange = {}, onConfirmDateRange = {},
-                onRequestDeleteDay = {}, onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+                onRequestDeleteDay = {}, onRetryDeleteDay = {}, onCancelDeleteDay = {}, onConfirmDeleteDay = {},
             )
         }
 
         compose.onNodeWithText("将删除 2 个行程项和 1 个路线段；7 个收藏地点会保留。此操作不可撤销，后续旅行日日期编号和路线将变化。").assertIsDisplayed()
+    }
+
+    @Test fun failedDayPreviewShowsBodyErrorAndExplicitRetry() {
+        var retries = 0
+        compose.setContent {
+            TripSettingsContent(
+                state = TripSettingsUiState(
+                    tripId = "trip",
+                    days = listOf(DayUi("day-1", "2026-10-01"), DayUi("day-2", "2026-10-02")),
+                    dayDeleteError = "无法检查删除影响，请重试",
+                    dayDeletionRetry = DayUi("day-2", "2026-10-02"),
+                ),
+                onBack = {}, onRename = {}, onTravelMode = {}, onDateDraft = { _, _ -> },
+                onSubmitDateRange = {}, onCancelDateRange = {}, onConfirmDateRange = {},
+                onRequestDeleteDay = {}, onRetryDeleteDay = { retries++ },
+                onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+            )
+        }
+
+        compose.onNodeWithText("无法检查删除影响，请重试").assertIsDisplayed()
+        compose.onNodeWithText("重试检查").assertIsDisplayed().performClick()
+        assertEquals(1, retries)
     }
 
     @Test fun shrinkConfirmationListsCompleteDangerImpact() {
@@ -70,7 +94,7 @@ class TripSettingsContentTest {
                 ),
                 onBack = {}, onRename = {}, onTravelMode = {}, onDateDraft = { _, _ -> },
                 onSubmitDateRange = {}, onCancelDateRange = {}, onConfirmDateRange = {},
-                onRequestDeleteDay = {}, onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+                onRequestDeleteDay = {}, onRetryDeleteDay = {}, onCancelDeleteDay = {}, onConfirmDeleteDay = {},
             )
         }
 
