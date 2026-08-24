@@ -8,7 +8,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Easy Trip 持续开发诊断日志：https://bytedance.my.larkoffice.com/docx/FGQEdxStTo4Ei2xXxvompRpWyPf。开发过程中遇到单步骤超过约20分钟、重复失败/重试、测试或设备关键阻塞、审查FAIL、Agent异常停止时，使用 lark-doc 追加：影响、环境、事实/推断/未知、证据路径、根因状态、下一步和可并行任务。不要记录普通成功流水；日志写入不得中断主任务。\"}}'",
+            "command": "printf '%s\\n' '{\"hookSpecificOutput\":{\"hookEventName\":\"SessionStart\",\"additionalContext\":\"Easy Trip 持续开发诊断日志：https://bytedance.my.larkoffice.com/docx/FGQEdxStTo4Ei2xXxvompRpWyPf。开发过程中遇到单步骤超过约20分钟、重复失败/重试、测试或设备关键阻塞、审查FAIL、Agent异常停止时，使用 lark-doc 追加：影响、环境、事实/推断/未知、证据路径、根因状态、下一步和可并行任务。不要记录普通成功流水；日志写入不得中断主任务。批次门禁不要求逐屏截图、像素对比或 Pencil 视觉对比；截图仅作可选诊断证据，不阻断批次。功能/状态错误、数据不一致、崩溃、流程不可达、严重裁切和关键交互失效才阻断；间距、字体及细小视觉差异留到最终物理真机验收。\"}}'",
             "timeout": 5,
             "statusMessage": "加载 Easy Trip 诊断日志规则"
           }

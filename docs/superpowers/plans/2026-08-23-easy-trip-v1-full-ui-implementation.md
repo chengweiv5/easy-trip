@@ -1140,19 +1140,11 @@ require(scenarios.first { it.number == 1 }.variants.any { it.frameId == "d1sTtb"
 ./gradlew assembleDebug
 ```
 
-- [ ] **Step 6: 完成真机视觉证据**
+- [ ] **Step 6: 建立最终物理真机 UI 验收清单（非批次门禁）**
 
-每个场景在 `docs/testing/v1-full-ui-scenario-matrix.md` 记录：frameId、fixture、测试方法、真机入口、Pencil 截图、设备截图、设备尺寸、字体缩放、允许差异、未解决差异和结论。
+每个场景在 `docs/testing/v1-full-ui-scenario-matrix.md` 保留 frameId、fixture、测试方法和真机入口，作为最终物理真机验收清单。批次门禁不要求逐屏 Pencil/设备/diff 截图，也不因间距、字体或细小视觉差异失败；截图仅在诊断严重裁切、关键交互不可达或崩溃时按需采集。
 
-截图命名：
-
-```text
-v1-01-K9h3r-pencil.png
-v1-01-K9h3r-device.png
-v1-01-K9h3r-diff.png
-```
-
-至少验证基准设备、小屏、默认字体、放大字体、长旅行名、长地点名、长日期列表、手势导航和进程恢复。
+最终物理真机验收由用户统一判断 UI 一致性。自动化阶段仍须覆盖基准设备与代表性小屏/放大字体下的关键内容可达性、严重裁切、长旅行名、长地点名、长日期列表、手势导航和进程恢复。
 
 - [ ] **Step 7: 清理被替换 UI 并跑完整回归**
 
