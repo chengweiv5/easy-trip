@@ -189,6 +189,61 @@ class TripWorkspaceNavigationStateTest {
         )
     }
 
+    @Test fun itineraryOverlayAppearsOnlyForEstablishedContext() {
+        val edit = com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft("item-1", "", "")
+        val deletion = com.yangchengwei.easytrip.itinerary.ui.ItineraryDeleteConfirmation("item-1", "酒店")
+
+        assertNull(itineraryOverlayToPresent(null, null))
+        assertEquals(
+            WorkspaceOverlay.EditItineraryItem("item-1"),
+            itineraryOverlayToPresent(edit, null),
+        )
+        assertEquals(
+            "移出酒店？",
+            (itineraryOverlayToPresent(null, deletion) as WorkspaceOverlay.Confirmation).model.title,
+        )
+    }
+
+    @Test fun itineraryOverlayReplacesStaleContextAfterNewContextIsEstablished() {
+        val edit = com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft("item-2", "", "")
+        val deletion = com.yangchengwei.easytrip.itinerary.ui.ItineraryDeleteConfirmation("item-2", "博物馆")
+
+        assertEquals(
+            WorkspaceOverlay.EditItineraryItem("item-2"),
+            itineraryOverlayUpdate(
+                WorkspaceOverlay.EditItineraryItem("item-1"),
+                edit,
+                null,
+            ),
+        )
+        assertEquals(
+            "移出博物馆？",
+            (itineraryOverlayUpdate(
+                WorkspaceOverlay.Confirmation(
+                    com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel(
+                        title = "移出酒店？",
+                        message = "仅从当天行程移出，收藏仍保留。",
+                        confirmLabel = "确认移出",
+                        dismissLabel = "取消",
+                        deletedItems = emptyList(),
+                        retainedItems = emptyList(),
+                        destructive = true,
+                        reversible = false,
+                    ),
+                ),
+                null,
+                deletion,
+            ) as WorkspaceOverlay.Confirmation).model.title,
+        )
+        assertNull(
+            itineraryOverlayUpdate(
+                WorkspaceOverlay.EditItineraryItem("item-1"),
+                null,
+                null,
+            ),
+        )
+    }
+
     @Test fun appendCompletionClosesOnlyTheAppendOverlay() {
         assertEquals(
             AppendDayCompletionDecision.CloseOverlayAndConsume(1L),

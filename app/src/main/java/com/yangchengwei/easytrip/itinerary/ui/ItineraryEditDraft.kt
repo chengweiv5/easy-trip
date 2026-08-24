@@ -8,6 +8,7 @@ data class ItineraryEditDraft(
     val stayMinutesText: String,
     val isSaving: Boolean = false,
     val saveError: String? = null,
+    val generation: Long = 0,
 ) {
     val arrivalTime: LocalTime?
         get() = arrivalTimeText.takeIf(String::isNotBlank)?.let { runCatching { LocalTime.parse(it) }.getOrNull() }
@@ -28,4 +29,5 @@ data class ItineraryDeleteConfirmation(
     val placeName: String,
     val isDeleting: Boolean = false,
     val deleteError: String? = null,
+    val generation: Long = 0,
 )

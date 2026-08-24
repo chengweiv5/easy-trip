@@ -20,6 +20,7 @@ import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import java.time.LocalDate
 import java.time.LocalTime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
@@ -141,6 +142,69 @@ class DayItineraryViewModelTest {
         advanceUntilIdle()
 
         assertNull(model.state.value.deleteConfirmation)
+    }
+
+    @Test fun `stale save completion cannot clear newer editor for same item`() = runTest(dispatcher) {
+        val repository = Itineraries()
+        val gate = CompletableDeferred<Unit>()
+        repository.timingGate = gate
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTiming("item-alpha")
+        model.updateArrivalTime("08:30")
+        model.saveTiming()
+        dispatcher.scheduler.runCurrent()
+
+        assertTrue(model.requestTiming("item-alpha"))
+        model.updateArrivalTime("10:15")
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("item-alpha", model.state.value.editDraft?.itemId)
+        assertEquals("10:15", model.state.value.editDraft?.arrivalTimeText)
+        assertFalse(model.state.value.editDraft!!.isSaving)
+    }
+
+    @Test fun `stale delete failure cannot modify newer confirmation`() = runTest(dispatcher) {
+        val repository = Itineraries()
+        val gate = CompletableDeferred<Unit>()
+        repository.deleteGate = gate
+        repository.deleteFailure = IllegalStateException("旧删除失败")
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestDelete("item-alpha")
+        model.confirmDelete()
+        dispatcher.scheduler.runCurrent()
+
+        assertTrue(model.requestDelete("item-beta"))
+        gate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals("item-beta", model.state.value.deleteConfirmation?.itemId)
+        assertNull(model.state.value.deleteConfirmation?.deleteError)
+        assertFalse(model.state.value.deleteConfirmation!!.isDeleting)
+    }
+
+    @Test fun `request edit and delete reject missing item`() = runTest(dispatcher) {
+        val model = model(Itineraries())
+        advanceUntilIdle()
+
+        assertFalse(model.requestTiming("missing"))
+        assertFalse(model.requestDelete("missing"))
+        assertNull(model.state.value.editDraft)
+        assertNull(model.state.value.deleteConfirmation)
+    }
+
+    @Test fun `cancellation is rethrown without becoming save error`() = runTest(dispatcher) {
+        val repository = Itineraries().apply { timingFailure = CancellationException("cancelled") }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTiming("item-alpha")
+
+        model.saveTiming()
+        advanceUntilIdle()
+
+        assertNull(model.state.value.editDraft?.saveError)
     }
 
     private fun model(repository: Itineraries) = DayItineraryViewModel(

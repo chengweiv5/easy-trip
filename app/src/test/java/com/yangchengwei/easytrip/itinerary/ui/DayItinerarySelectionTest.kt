@@ -130,9 +130,9 @@ class DayItinerarySelectionTest {
         assertEquals(emptyList<ItineraryItemUi>(), model.state.value.items)
         assertEquals(emptyList<RouteLegUi>(), model.state.value.legs)
         assertEquals(emptyList<String>(), model.state.value.previewOrder)
-        assertNull(model.state.value.timingItemId)
+        assertNull(model.state.value.editDraft)
         assertNull(model.state.value.moveItemId)
-        assertNull(model.state.value.deleteItemId)
+        assertNull(model.state.value.deleteConfirmation)
         assertNull(model.state.value.modeLegId)
     }
 

@@ -39,7 +39,6 @@ sealed interface DayItineraryAction {
     data class UpdateArrivalTime(val value: String) : DayItineraryAction
     data class UpdateStayMinutes(val value: String) : DayItineraryAction
     data object SaveEdit : DayItineraryAction
-    data class SaveTiming(val time: java.time.LocalTime?, val minutes: Int?) : DayItineraryAction
     data class OverrideMode(val mode: TransportMode) : DayItineraryAction
     data object ConfirmDelete : DayItineraryAction
     data object DismissDialogs : DayItineraryAction

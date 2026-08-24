@@ -12,6 +12,8 @@ import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
+import com.yangchengwei.easytrip.itinerary.ui.ItineraryDeleteConfirmation
+import com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
@@ -70,6 +72,38 @@ fun workspaceBackDecision(
     overlay == WorkspaceOverlay.None -> WorkspaceBackDecision.LeaveWorkspace
     !canDismissWorkspaceOverlay(overlay, addToItinerary, itinerary, hasPlaceDeleteConfirmation) -> WorkspaceBackDecision.Ignore
     else -> WorkspaceBackDecision.CloseOverlay
+}
+
+internal fun itineraryOverlayToPresent(
+    editDraft: ItineraryEditDraft?,
+    deleteConfirmation: ItineraryDeleteConfirmation?,
+): WorkspaceOverlay? = when {
+    editDraft != null -> WorkspaceOverlay.EditItineraryItem(editDraft.itemId)
+    deleteConfirmation != null -> WorkspaceOverlay.Confirmation(
+        confirmation(
+            "移出${deleteConfirmation.placeName}？",
+            "仅从当天行程移出，收藏仍保留。",
+            "确认移出",
+        ),
+    )
+    else -> null
+}
+
+internal fun itineraryOverlayUpdate(
+    current: WorkspaceOverlay,
+    editDraft: ItineraryEditDraft?,
+    deleteConfirmation: ItineraryDeleteConfirmation?,
+): WorkspaceOverlay? {
+    val desired = itineraryOverlayToPresent(editDraft, deleteConfirmation)
+    return when {
+        desired != null && (
+            current == WorkspaceOverlay.None ||
+                current is WorkspaceOverlay.EditItineraryItem ||
+                current is WorkspaceOverlay.Confirmation
+            ) -> desired
+        desired == null && current is WorkspaceOverlay.EditItineraryItem -> null
+        else -> current
+    }
 }
 
 internal sealed interface AppendDayCompletionDecision {
@@ -209,12 +243,16 @@ fun TripWorkspaceRoute(
             )
         }
     }
-    LaunchedEffect(itinerary.editDraft) {
-        if (itinerary.editDraft == null && ready?.overlay is WorkspaceOverlay.EditItineraryItem) viewModel.closeOverlay()
-    }
-    LaunchedEffect(itinerary.deleteConfirmation) {
-        if (itinerary.deleteConfirmation == null && ready?.overlay is WorkspaceOverlay.Confirmation && places.pendingCollectionRemoval == null && places.deleting == null) {
-            viewModel.closeOverlay()
+    LaunchedEffect(itinerary.editDraft, itinerary.deleteConfirmation, ready?.overlay) {
+        val overlay = ready?.overlay ?: WorkspaceOverlay.None
+        when {
+            itinerary.editDraft != null || itinerary.deleteConfirmation != null -> {
+                val desired = itineraryOverlayUpdate(overlay, itinerary.editDraft, itinerary.deleteConfirmation)
+                if (desired != null && desired != overlay) viewModel.openOverlay(desired)
+            }
+            overlay is WorkspaceOverlay.EditItineraryItem -> viewModel.closeOverlay()
+            overlay is WorkspaceOverlay.Confirmation && places.pendingCollectionRemoval == null && places.deleting == null ->
+                viewModel.closeOverlay()
         }
     }
 
@@ -283,7 +321,6 @@ fun TripWorkspaceRoute(
                 is DayItineraryAction.RequestTiming -> {
                     dismissPendingDialogs()
                     dispatchItinerary(action)
-                    viewModel.openOverlay(WorkspaceOverlay.EditItineraryItem(action.itemId))
                 }
                 is DayItineraryAction.RequestCrossDay -> {
                     dismissPendingDialogs()
@@ -293,16 +330,6 @@ fun TripWorkspaceRoute(
                 is DayItineraryAction.RequestDelete -> {
                     dismissPendingDialogs()
                     dispatchItinerary(action)
-                    val placeName = itinerary.items.firstOrNull { it.id == action.itemId }?.name.orEmpty()
-                    viewModel.openOverlay(
-                        WorkspaceOverlay.Confirmation(
-                            confirmation(
-                                "移出${placeName.ifBlank { "该地点" }}？",
-                                "仅从当天行程移出，收藏仍保留。",
-                                "确认移出",
-                            ),
-                        ),
-                    )
                 }
                 is DayItineraryAction.RequestMode -> {
                     dismissPendingDialogs()

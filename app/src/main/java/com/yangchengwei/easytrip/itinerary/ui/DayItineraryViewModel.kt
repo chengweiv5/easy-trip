@@ -13,7 +13,7 @@ import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
-import java.time.LocalTime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -33,10 +33,8 @@ data class DayItineraryUiState(
     val items: List<ItineraryItemUi> = emptyList(),
     val legs: List<RouteLegUi> = emptyList(),
     val previewOrder: List<String> = emptyList(),
-    val timingItemId: String? = null,
     val editDraft: ItineraryEditDraft? = null,
     val moveItemId: String? = null,
-    val deleteItemId: String? = null,
     val deleteConfirmation: ItineraryDeleteConfirmation? = null,
     val modeLegId: String? = null,
     val isAppendingDay: Boolean = false,
@@ -61,6 +59,8 @@ class DayItineraryViewModel(
     private var externalSelectedDayId: String? = null
     private val mutable = MutableStateFlow(DayItineraryUiState())
     private var nextAppendDayCompletionToken = 0L
+    private var nextEditGeneration = 0L
+    private var nextDeleteGeneration = 0L
     val state: StateFlow<DayItineraryUiState> = mutable.asStateFlow()
 
     init {
@@ -158,12 +158,16 @@ class DayItineraryViewModel(
         viewModelScope.launch { runCatching { itineraries.moveItem(item, dayId, 0) }.onFailure(::showError) }
     }
 
-    fun requestDelete(itemId: String) {
-        val item = state.value.items.firstOrNull { it.id == itemId } ?: return
+    fun requestDelete(itemId: String): Boolean {
+        val item = state.value.items.firstOrNull { it.id == itemId } ?: return false
         mutable.value = mutable.value.copy(
-            deleteItemId = itemId,
-            deleteConfirmation = ItineraryDeleteConfirmation(itemId, item.name),
+            deleteConfirmation = ItineraryDeleteConfirmation(
+                itemId = itemId,
+                placeName = item.name,
+                generation = ++nextDeleteGeneration,
+            ),
         )
+        return true
     }
 
     fun confirmDelete() {
@@ -173,31 +177,38 @@ class DayItineraryViewModel(
             deleteConfirmation = confirmation.copy(isDeleting = true, deleteError = null),
         )
         viewModelScope.launch {
-            runCatching { itineraries.deleteItem(confirmation.itemId) }
-                .onSuccess {
-                    mutable.value = mutable.value.copy(deleteItemId = null, deleteConfirmation = null)
+            try {
+                itineraries.deleteItem(confirmation.itemId)
+                if (mutable.value.deleteConfirmation.matches(confirmation)) {
+                    mutable.value = mutable.value.copy(deleteConfirmation = null)
                 }
-                .onFailure {
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Throwable) {
+                val current = mutable.value.deleteConfirmation
+                if (current.matches(confirmation)) {
                     mutable.value = mutable.value.copy(
-                        deleteConfirmation = mutable.value.deleteConfirmation?.copy(
+                        deleteConfirmation = current?.copy(
                             isDeleting = false,
-                            deleteError = it.message ?: "删除失败",
+                            deleteError = failure.message ?: "删除失败",
                         ),
                     )
                 }
+            }
         }
     }
 
-    fun requestTiming(itemId: String) {
-        val item = state.value.items.firstOrNull { it.id == itemId } ?: return
+    fun requestTiming(itemId: String): Boolean {
+        val item = state.value.items.firstOrNull { it.id == itemId } ?: return false
         mutable.value = mutable.value.copy(
-            timingItemId = itemId,
             editDraft = ItineraryEditDraft(
                 itemId = itemId,
                 arrivalTimeText = item.arrivalTime?.toString().orEmpty(),
                 stayMinutesText = item.stayMinutes?.toString().orEmpty(),
+                generation = ++nextEditGeneration,
             ),
         )
+        return true
     }
 
     fun updateArrivalTime(value: String) {
@@ -215,25 +226,25 @@ class DayItineraryViewModel(
         if (draft.isSaving || !draft.isValid) return
         mutable.value = mutable.value.copy(editDraft = draft.copy(isSaving = true, saveError = null))
         viewModelScope.launch {
-            runCatching { itineraries.updateTiming(draft.itemId, draft.arrivalTime, draft.stayMinutes) }
-                .onSuccess {
-                    mutable.value = mutable.value.copy(timingItemId = null, editDraft = null)
+            try {
+                itineraries.updateTiming(draft.itemId, draft.arrivalTime, draft.stayMinutes)
+                if (mutable.value.editDraft.matches(draft)) {
+                    mutable.value = mutable.value.copy(editDraft = null)
                 }
-                .onFailure {
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Throwable) {
+                val current = mutable.value.editDraft
+                if (current.matches(draft)) {
                     mutable.value = mutable.value.copy(
-                        editDraft = mutable.value.editDraft?.copy(
+                        editDraft = current?.copy(
                             isSaving = false,
-                            saveError = it.message ?: "保存失败",
+                            saveError = failure.message ?: "保存失败",
                         ),
                     )
                 }
+            }
         }
-    }
-
-    fun saveTiming(time: LocalTime?, minutes: Int?) {
-        updateArrivalTime(time?.toString().orEmpty())
-        updateStayMinutes(minutes?.toString().orEmpty())
-        saveTiming()
     }
 
     fun setRouteCoordinator(value: RouteRefreshCoordinator?) { coordinator = value }
@@ -259,10 +270,8 @@ class DayItineraryViewModel(
     fun dismissDialogs() {
         if (mutable.value.editDraft?.isSaving == true || mutable.value.deleteConfirmation?.isDeleting == true) return
         mutable.value = mutable.value.copy(
-            timingItemId = null,
             editDraft = null,
             moveItemId = null,
-            deleteItemId = null,
             deleteConfirmation = null,
             modeLegId = null,
         )
@@ -284,7 +293,6 @@ class DayItineraryViewModel(
             is DayItineraryAction.UpdateArrivalTime -> updateArrivalTime(action.value)
             is DayItineraryAction.UpdateStayMinutes -> updateStayMinutes(action.value)
             DayItineraryAction.SaveEdit -> saveTiming()
-            is DayItineraryAction.SaveTiming -> saveTiming(action.time, action.minutes)
             is DayItineraryAction.OverrideMode -> overrideMode(action.mode)
             DayItineraryAction.ConfirmDelete -> confirmDelete()
             DayItineraryAction.DismissDialogs -> dismissDialogs()
@@ -297,10 +305,8 @@ class DayItineraryViewModel(
             items = emptyList(),
             legs = emptyList(),
             previewOrder = emptyList(),
-            timingItemId = null,
             editDraft = null,
             moveItemId = null,
-            deleteItemId = null,
             deleteConfirmation = null,
             modeLegId = null,
         )
@@ -317,6 +323,12 @@ class DayItineraryViewModel(
             legs = legs.map { it.toRouteLegUi() },
         )
     }
+
+    private fun ItineraryEditDraft?.matches(started: ItineraryEditDraft): Boolean =
+        this?.itemId == started.itemId && this.generation == started.generation
+
+    private fun ItineraryDeleteConfirmation?.matches(started: ItineraryDeleteConfirmation): Boolean =
+        this?.itemId == started.itemId && this.generation == started.generation
 
     private fun showError(t: Throwable) { mutable.value = mutable.value.copy(error = t.message ?: "操作失败") }
 
