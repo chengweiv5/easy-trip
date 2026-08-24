@@ -800,6 +800,7 @@ object V1ScenarioExecutableFactory {
         actions: MutableList<com.yangchengwei.easytrip.workspace.TripWorkspaceAction>,
         ready: TripWorkspaceReadyState,
         mapState: WorkspaceMapState,
+        onMapRetry: () -> Unit = { actions.add(com.yangchengwei.easytrip.workspace.TripWorkspaceAction.Retry) },
         interact: V1ComposeRule.() -> Unit = {},
         verify: V1ComposeRule.() -> Unit,
     ) = ComposeScenario(
@@ -812,6 +813,7 @@ object V1ScenarioExecutableFactory {
                 pageState = TripWorkspacePageState.Ready(ready),
                 mapState = mapState,
                 onAction = actions::add,
+                onMapRetry = onMapRetry,
                 placeState = PlacePoolUiState(),
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(days = ready.days, selectedDayId = day?.id),
@@ -951,17 +953,18 @@ object V1ScenarioExecutableFactory {
     }
 
     private fun mapFailure(id: String): V1ScenarioExecutable {
-        val actions = mutableListOf<com.yangchengwei.easytrip.workspace.TripWorkspaceAction>()
+        var retryCalls = 0
         return workspaceScenario(
             id,
-            actions,
+            mutableListOf(),
             readyState(),
             WorkspaceMapState.Failed("地图加载失败"),
+            onMapRetry = { retryCalls++ },
             interact = { onNodeWithTag("workspace-map-retry").performClick() },
             verify = {
                 onNodeWithText("地图加载失败").assertIsDisplayed()
                 onNodeWithText("第1天 · 暂无行程").assertIsDisplayed()
-                check(actions == listOf(com.yangchengwei.easytrip.workspace.TripWorkspaceAction.Retry))
+                check(retryCalls == 1)
             },
         )
     }

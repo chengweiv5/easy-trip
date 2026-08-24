@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -21,15 +22,17 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun SearchSurface(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("workspace-search-surface")
-            .semantics { contentDescription = "搜索地点" }.clickable(role = Role.Button, onClick = onClick),
-        shape = RoundedCornerShape(23.dp),
-        color = Color.White,
-        shadowElevation = 2.dp,
-    ) {
-        Row(Modifier.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("搜索餐厅、景点或地址", color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Box(modifier.fillMaxWidth().testTag("workspace-search-surface")) {
+        Surface(
+            modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("workspace-search-launcher")
+                .semantics { contentDescription = "搜索地点" }.clickable(role = Role.Button, onClick = onClick),
+            shape = RoundedCornerShape(23.dp),
+            color = Color.White,
+            shadowElevation = 2.dp,
+        ) {
+            Row(Modifier.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("搜索餐厅、景点或地址", color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
         }
     }
 }

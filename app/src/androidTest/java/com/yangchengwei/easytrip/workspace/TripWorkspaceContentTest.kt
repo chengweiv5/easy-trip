@@ -47,13 +47,20 @@ class TripWorkspaceContentTest {
         compose.onNodeWithText("返回").assertIsDisplayed()
     }
 
-    @Test fun mapFailureShowsPersistentRetryAndKeepsContent() {
-        var action: TripWorkspaceAction? = null
-        setContent(ready(), WorkspaceMapState.Failed("地图加载失败"), onAction = { action = it })
+    @Test fun mapFailureInvokesOnlyTheDedicatedRetryCallbackOnce() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        var retryCalls = 0
+        setContent(
+            ready(),
+            WorkspaceMapState.Failed("地图加载失败"),
+            onAction = actions::add,
+            onMapRetry = { retryCalls++ },
+        )
         compose.onNodeWithText("地图加载失败").assertIsDisplayed()
         compose.onNodeWithText("还没有收藏地点").assertExists()
-        compose.onNodeWithText("重试地图").performClick()
-        assertEquals(TripWorkspaceAction.Retry, action)
+        compose.onNodeWithTag("workspace-map-retry").performClick()
+        assertEquals(1, retryCalls)
+        assertTrue(actions.isEmpty())
     }
 
     @Test fun readyKeepsSearchSettingsBackAndItineraryActions() {
@@ -191,6 +198,7 @@ class TripWorkspaceContentTest {
         page: TripWorkspacePageState,
         map: WorkspaceMapState,
         onAction: (TripWorkspaceAction) -> Unit = {},
+        onMapRetry: () -> Unit = { onAction(TripWorkspaceAction.Retry) },
         placeState: com.yangchengwei.easytrip.place.ui.PlacePoolUiState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
         searchReturn: WorkspaceSearchReturn? = null,
     ) {
@@ -200,6 +208,7 @@ class TripWorkspaceContentTest {
                     pageState = page,
                     mapState = map,
                     onAction = onAction,
+                    onMapRetry = onMapRetry,
                     placeState = placeState,
                     onPlaceAction = {},
                     itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
