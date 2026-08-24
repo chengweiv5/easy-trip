@@ -55,8 +55,19 @@ const val CREATE_TRIP_ROUTE = "trips/create"
 const val TRIP_WORKSPACE_ROUTE = "trips/{tripId}"
 const val TRIP_SETTINGS_ROUTE = "trips/{tripId}/settings"
 const val TRIP_SEARCH_ROUTE = "trips/{tripId}/search"
+internal const val WORKSPACE_SEARCH_RETURN_KEY = "searchReturnPoiIds"
 
 fun tripSearchRoute(tripId: String): String = "trips/$tripId/search"
+
+internal fun publishWorkspaceSearchReturn(handle: androidx.lifecycle.SavedStateHandle, poiIds: Set<String>) {
+    handle[WORKSPACE_SEARCH_RETURN_KEY] = poiIds.takeIf { it.isNotEmpty() }?.toTypedArray()
+}
+
+internal fun consumeWorkspaceSearchReturn(handle: androidx.lifecycle.SavedStateHandle): com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn? {
+    val poiIds = handle.get<Array<String>>(WORKSPACE_SEARCH_RETURN_KEY)?.toSet().orEmpty()
+    handle[WORKSPACE_SEARCH_RETURN_KEY] = null
+    return poiIds.takeIf { it.isNotEmpty() }?.let { com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn(it) }
+}
 
 data class AppNavigationDependencies(
     val savedPlaceRepository: SavedPlaceRepository,
@@ -139,7 +150,11 @@ fun AppNavigation(
                 var privacyReported by remember { mutableStateOf(application?.amapPrivacyShown == true) }
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
-                val searchReturn by entry.savedStateHandle.getStateFlow<Array<String>?>("searchReturnPoiIds", null).collectAsStateWithLifecycle()
+                val searchReturnPayload by entry.savedStateHandle.getStateFlow<Array<String>?>(WORKSPACE_SEARCH_RETURN_KEY, null).collectAsStateWithLifecycle()
+                var searchReturn by remember(entry) { mutableStateOf<com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn?>(null) }
+                LaunchedEffect(searchReturnPayload) {
+                    if (searchReturnPayload != null) searchReturn = consumeWorkspaceSearchReturn(entry.savedStateHandle)
+                }
                 val token = application?.amapConsentToken?.takeIf { it.isActive() }
                 val itineraryModel: DayItineraryViewModel = viewModel(
                     factory = DayItineraryViewModel.Factory(
@@ -161,13 +176,20 @@ fun AppNavigation(
                     viewModel = workspaceModel,
                     consent = token,
                     onBack = navController::popBackStack,
-                    onSettings = { navigate("trips/$id/settings") },
+                    onSettings = {
+                        searchReturn = null
+                        navigate("trips/$id/settings")
+                    },
                     onPrivacySettings = { if (application != null) { showConsent = true; policyRead = false } },
-                    onOpenSearch = { navigate(tripSearchRoute(id)) },
+                    onOpenSearch = {
+                        searchReturn = null
+                        navigate(tripSearchRoute(id))
+                    },
                     placeViewModel = placeModel,
                     itineraryViewModel = itineraryModel,
                     mapHostFactory = mapHostFactory ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
-                    searchReturn = searchReturn?.let { com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn(it.toSet()) },
+                    searchReturn = searchReturn,
+                    onConsumeSearchReturn = { searchReturn = null },
                 )
                 if (showConsent && application != null) {
                     SideEffect {
@@ -235,10 +257,9 @@ fun AppNavigation(
                     ),
                 )
                 PlaceSearchRoute(model) {
-                    navController.previousBackStackEntry?.savedStateHandle?.set(
-                        "searchReturnPoiIds",
-                        model.recentlyCollectedPoiIds().toTypedArray(),
-                    )
+                    navController.previousBackStackEntry?.savedStateHandle?.let {
+                        publishWorkspaceSearchReturn(it, model.recentlyCollectedPoiIds())
+                    }
                     navController.popBackStack()
                 }
             }

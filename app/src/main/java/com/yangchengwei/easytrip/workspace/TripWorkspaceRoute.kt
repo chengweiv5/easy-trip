@@ -34,6 +34,7 @@ fun TripWorkspaceRoute(
     onTogglePoiCollection: ((PlaceCandidate) -> Unit)? = null,
     mapHostFactory: (android.content.Context) -> AmapMapHost = { RealAmapMapHost.create(it) },
     searchReturn: WorkspaceSearchReturn? = null,
+    onConsumeSearchReturn: () -> Unit = {},
 ) {
     val page = viewModel.pageState.collectAsStateWithLifecycle().value
     val places = placeViewModel?.state?.collectAsStateWithLifecycle()?.value ?: placeState
@@ -99,7 +100,10 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
                 TripWorkspaceAction.Retry -> viewModel.retry()
-                is TripWorkspaceAction.SelectSection -> viewModel.selectSection(action.section)
+                is TripWorkspaceAction.SelectSection -> {
+                    onConsumeSearchReturn()
+                    viewModel.selectSection(action.section)
+                }
                 is TripWorkspaceAction.SelectItineraryScope -> viewModel.selectItineraryScope(action.scope)
                 is TripWorkspaceAction.SelectMapLayer -> viewModel.selectMapLayer(action.layer)
                 is TripWorkspaceAction.SetSheetLevel -> viewModel.setSheetLevel(action.level)

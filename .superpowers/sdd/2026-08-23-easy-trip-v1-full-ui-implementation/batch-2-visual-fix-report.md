@@ -67,3 +67,28 @@ XML 断言：
 - Gate 仍为 **in progress**：真实网络失败和加载中状态尚未稳定采集，未伪造生产状态。
 - 物理设备验收仍待用户授权；本轮证据来自 API 36 AVD。
 - XML 对 Compose LazyColumn 没有输出 `scrollable=true`；滚动能力由 instrumentation 直接滚动到离屏节点证明。
+
+---
+
+## Fix round 1（2026-08-24）
+
+### Findings 修复
+
+1. `searchReturnPoiIds` 改为 exactly-once 事件：搜索页通过统一回调发布；workspace 在 `LaunchedEffect` 中从当前 back stack entry 的 `SavedStateHandle` 读取并立即写 `null` ack，之后只保留本次组合生命周期内的瞬时 UI 状态。空收藏返回写 `null`，不会进入 412dp 状态。进入下一次搜索、进入设置或切换 workspace tab 时清除瞬时状态，恢复普通 396dp；进程恢复不会重放已 ack 事件。
+2. sheet 改为约束感知：v1.0 基线高度仍为普通 396dp、搜索返回 412dp；实际高度为 `minOf(desired, maxHeight)`，不提前实现 Task 11 三档 sheet。280dp 高、2×字体下列表仍能滚到最后一项。
+3. 新增最小 Navigation 协调器测试，直接使用与 `AppNavigation` 相同的 `publishWorkspaceSearchReturn` / `consumeWorkspaceSearchReturn`，覆盖旧事件不重复、空返回普通态、再次搜索只返回新 payload。`PlaceSearchRoute` 的页面返回和系统 Back 均走同一个 `onBack` 回调，并各有 instrumentation 覆盖。
+4. 测试增强：普通/返回高度分别约 396/412dp；safe inset 改为相对 root 检查并限制不出现双 padding；滚动到最后一项验证底部 24dp；覆盖 280dp 高与 2×字体。
+
+### RED 记录
+
+- `WorkspaceSearchReturnNavigationTest` 首次编译失败：`publishWorkspaceSearchReturn`、`consumeWorkspaceSearchReturn`、`WORKSPACE_SEARCH_RETURN_KEY` 均不存在。
+- 280dp/2×字体用例在旧固定 396dp 实现下失败；修复前首次运行同时被生产 helper 尚未实现的编译 RED 阻断，随后单独执行确认旧固定高度链路不满足新约束。
+- 系统 Back 测试在修复前失败并抛出 `NoActivityResumedException: Pressed back and killed the app`，证明 `PlaceSearchRoute` 未消费系统返回。
+
+### GREEN
+
+- `WorkspaceSearchReturnNavigationTest`：3/3 PASS。
+- `TripWorkspaceContentTest` + `PlaceSearchContentTest`：16/16 PASS，包含页面返回、系统返回、小窗大字体及最后项滚动。
+- Batch 2 目标 suite 因新增 2 个 `PlaceSearchContentTest` 用例现为 24/24 PASS。首次合并运行出现 `PlacePoolFlowTest.searchSaveEditAndFilterThroughPlacePool` 单次 5 秒超时；该用例隔离重跑 PASS，完整 24 项随即重跑 PASS，未发现生产回归，未为偶发环境时序改代码。
+- `testDebugUnitTest lintDebug assembleDebug`：BUILD SUCCESSFUL。
+- Fix round 1 设备证据：`/tmp/easy-trip-batch2-visual-fix-round1/01-production.xml/.jpg` 与 `02-small-window.xml/.jpg`；后者使用临时 `wm size 900x600` 后已 reset。

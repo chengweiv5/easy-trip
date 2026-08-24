@@ -6,6 +6,7 @@ import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -140,53 +141,55 @@ private fun WorkspaceReadyContent(
                 settledWorkspaceSheetLevel(current, target, state.sheetLevel)?.let { onAction(TripWorkspaceAction.SetSheetLevel(it)) }
             }
     }
-    val placeSheetHeight = if (searchReturn == null) 396.dp else 412.dp
-    BottomSheetScaffold(
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing),
-        scaffoldState = scaffoldState,
-        sheetPeekHeight = when {
-            state.sheetLevel == WorkspaceSheetLevel.COLLAPSED -> 0.dp
-            else -> placeSheetHeight
-        },
-        sheetDragHandle = null,
-        sheetContent = {
-            Column(
-                Modifier.fillMaxWidth()
-                    .height(placeSheetHeight)
-                    .padding(horizontal = 20.dp)
-                    .testTag("workspace-sheet"),
-            ) {
-                if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle"))
-                when (state.section) {
-                    WorkspaceSection.PLACE_POOL -> if (placeContent != null) placeContent() else PlacePoolContent(
-                        state = placeState.copy(
-                            rows = placeState.rows.map { row ->
-                                row.copy(recentlyCollected = row.recentlyCollected || row.place.amapPoiId in searchReturn?.recentlyCollectedPoiIds.orEmpty())
+    BoxWithConstraints(modifier.windowInsetsPadding(WindowInsets.safeDrawing)) {
+        val desiredSheetHeight = if (searchReturn == null) 396.dp else 412.dp
+        val placeSheetHeight = minOf(desiredSheetHeight, maxHeight)
+        BottomSheetScaffold(
+            modifier = Modifier.fillMaxSize(),
+            scaffoldState = scaffoldState,
+            sheetPeekHeight = when {
+                state.sheetLevel == WorkspaceSheetLevel.COLLAPSED -> 0.dp
+                else -> placeSheetHeight
+            },
+            sheetDragHandle = null,
+            sheetContent = {
+                Column(
+                    Modifier.fillMaxWidth()
+                        .height(placeSheetHeight)
+                        .padding(horizontal = 20.dp)
+                        .testTag("workspace-sheet"),
+                ) {
+                    if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) WorkspaceSheetHandle(Modifier.testTag("workspace-sheet-handle"))
+                    when (state.section) {
+                        WorkspaceSection.PLACE_POOL -> if (placeContent != null) placeContent() else PlacePoolContent(
+                            state = placeState.copy(
+                                rows = placeState.rows.map { row ->
+                                    row.copy(recentlyCollected = row.recentlyCollected || row.place.amapPoiId in searchReturn?.recentlyCollectedPoiIds.orEmpty())
+                                },
+                            ),
+                            modifier = Modifier.weight(1f),
+                            showSearch = false,
+                            onAction = onPlaceAction,
+                            onSearch = { onAction(TripWorkspaceAction.OpenSearch) },
+                            showDialogs = false,
+                        )
+                        WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
+                            days = state.days,
+                            selected = state.itineraryScope,
+                            wholeTripDays = state.wholeTripDays,
+                            onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
+                            dayContent = {
+                                if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
+                                    state = itineraryState,
+                                    onAction = onItineraryAction,
+                                    showDialogs = false,
+                                )
                             },
-                        ),
-                        modifier = Modifier.weight(1f),
-                        showSearch = false,
-                        onAction = onPlaceAction,
-                        onSearch = { onAction(TripWorkspaceAction.OpenSearch) },
-                        showDialogs = false,
-                    )
-                    WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
-                        days = state.days,
-                        selected = state.itineraryScope,
-                        wholeTripDays = state.wholeTripDays,
-                        onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
-                        dayContent = {
-                            if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
-                                state = itineraryState,
-                                onAction = onItineraryAction,
-                                showDialogs = false,
-                            )
-                        },
-                    )
+                        )
+                    }
                 }
-            }
-        },
-    ) { padding ->
+            },
+        ) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
             Box(Modifier.weight(1f).fillMaxWidth().testTag("workspace-map")) {
                 if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) mapContent()
@@ -233,6 +236,7 @@ private fun WorkspaceReadyContent(
                     })
                 }
             } else Spacer(Modifier.height(10.dp))
+            }
         }
     }
 }

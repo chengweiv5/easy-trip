@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.workspace
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -87,7 +88,38 @@ class TripWorkspaceContentTest {
 
         assertTrue("root=$root sheet=$sheet", sheet.height in 395.dp..397.dp)
         assertTrue("root=$root sheet=$sheet", sheet.bottom <= root.bottom)
-        assertTrue("root=$root topBar=$topBar", topBar.top >= root.top + 24.dp)
+        assertTrue("root=$root topBar=$topBar", topBar.top >= root.top)
+        assertTrue("root=$root topBar=$topBar", topBar.top - root.top <= 48.dp)
+    }
+
+    @Test fun constrainedHeightKeepsPlacePoolReachableAtSmallWindowAndLargeFont() {
+        val places = (1..8).map { index ->
+            com.yangchengwei.easytrip.place.domain.SavedPlace("$index", "trip", "poi-$index", "地点 $index", "地址", com.yangchengwei.easytrip.core.model.GeoPoint(39.9, 116.4), "", emptyList())
+        }
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f, 2f)) {
+                EasyTripTheme {
+                    androidx.compose.foundation.layout.Box(Modifier.height(280.dp).testTag("small-window")) {
+                        TripWorkspaceContent(
+                            pageState = ready(),
+                            mapState = WorkspaceMapState.Ready,
+                            onAction = {},
+                            placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(rows = places.map { com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(it, 0, false) }),
+                            onPlaceAction = {},
+                            itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                            onItineraryAction = {},
+                            mapContent = { Text("地图就绪") },
+                            modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("workspace-place-list").performScrollToNode(
+            SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.TestTag, "saved-place-8"),
+        )
+        compose.onNodeWithTag("saved-place-8").assertIsDisplayed()
     }
 
     @Test fun searchReturnSheetIsRaisedAndHighlightsRecentCollections() {
@@ -106,8 +138,8 @@ class TripWorkspaceContentTest {
         compose.waitForIdle()
 
         val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
-        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
-        assert(root.bottom - sheet.top >= 396.dp)
+        val returnedSheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        assertTrue("root=$root sheet=$returnedSheet", returnedSheet.height in 411.dp..413.dp)
         compose.onNodeWithText("刚刚收藏 · 待安排行程").assertExists()
         compose.onNodeWithTag("workspace-place-list").performScrollToNode(
             SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.TestTag, "saved-place-old"),
@@ -127,11 +159,11 @@ class TripWorkspaceContentTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag("workspace-place-list").performScrollToNode(
-            SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.TestTag, "saved-place-5"),
+            SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.TestTag, "saved-place-8"),
         )
         compose.waitForIdle()
         val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
-        val visibleCard = compose.onNodeWithTag("saved-place-5").getUnclippedBoundsInRoot()
+        val visibleCard = compose.onNodeWithTag("saved-place-8").getUnclippedBoundsInRoot()
         assert(visibleCard.bottom <= root.bottom - 24.dp)
     }
 

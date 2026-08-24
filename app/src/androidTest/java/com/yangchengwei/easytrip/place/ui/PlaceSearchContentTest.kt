@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.place.ui
 
 import androidx.activity.ComponentActivity
+import androidx.lifecycle.SavedStateHandle
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.requiredWidth
@@ -28,6 +29,12 @@ import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.place.domain.PlaceTag
+import com.yangchengwei.easytrip.place.domain.SavePlaceResult
+import com.yangchengwei.easytrip.place.domain.SavedPlace
+import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -87,6 +94,54 @@ class PlaceSearchContentTest {
         assertEquals(PlaceSearchAction.Submit, action)
         compose.onNodeWithText("清空搜索").performClick()
         assertEquals(PlaceSearchAction.QueryChanged(""), action)
+    }
+
+    @Test fun routeBackPublishesCurrentSessionCollectionsThroughNavigationCallback() {
+        val candidate = PlaceCandidate("poi-nav", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        val repository = TestSavedPlaces()
+        val model = PlaceSearchViewModel(
+            "trip",
+            repository,
+            object : com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) = listOf(candidate)
+            },
+            SavedStateHandle(mapOf("query" to "故宫")),
+        )
+        var returnedPoiIds: Set<String>? = null
+        compose.setContent {
+            PlaceSearchRoute(model) { returnedPoiIds = model.recentlyCollectedPoiIds() }
+        }
+        compose.waitUntil(5_000) { model.state.value.search.results.isNotEmpty() }
+        compose.onNodeWithTag("place-search-bookmark-touch-poi-nav").performClick()
+        compose.waitUntil(5_000) { "poi-nav" in model.state.value.savedPoiIds }
+
+        compose.onNodeWithContentDescription("返回地点池").performClick()
+
+        compose.waitUntil(5_000) { returnedPoiIds != null }
+        assertEquals(setOf("poi-nav"), returnedPoiIds)
+    }
+
+    @Test fun systemBackPublishesCurrentSessionCollectionsThroughSameCallback() {
+        val candidate = PlaceCandidate("poi-system", "天坛", "地址", GeoPoint(39.916, 116.397), "010")
+        val repository = TestSavedPlaces()
+        val model = PlaceSearchViewModel(
+            "trip",
+            repository,
+            object : com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) = listOf(candidate)
+            },
+            SavedStateHandle(mapOf("query" to "天坛")),
+        )
+        var returnedPoiIds: Set<String>? = null
+        compose.setContent { PlaceSearchRoute(model) { returnedPoiIds = model.recentlyCollectedPoiIds() } }
+        compose.waitUntil(5_000) { model.state.value.search.results.isNotEmpty() }
+        compose.onNodeWithTag("place-search-bookmark-touch-poi-system").performClick()
+        compose.waitUntil(5_000) { "poi-system" in model.state.value.savedPoiIds }
+
+        androidx.test.espresso.Espresso.pressBack()
+
+        compose.waitUntil(5_000) { returnedPoiIds != null }
+        assertEquals(setOf("poi-system"), returnedPoiIds)
     }
 
     @Test fun controlsUseSpecifiedVisualAndTouchBounds() {
@@ -193,5 +248,22 @@ class PlaceSearchContentTest {
 
     private fun setContent(state: PlaceSearchUiState, onAction: (PlaceSearchAction) -> Unit = {}) {
         compose.setContent { EasyTripTheme { PlaceSearchContent(state, onAction) } }
+    }
+
+    private class TestSavedPlaces : SavedPlaceRepository {
+        private val places = MutableStateFlow<List<SavedPlace>>(emptyList())
+        private val ids = MutableStateFlow<Set<String>>(emptySet())
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = ids
+        override suspend fun save(tripId: String, candidate: PlaceCandidate): SavePlaceResult {
+            val place = SavedPlace(candidate.poiId, tripId, candidate.poiId, candidate.name, candidate.address, candidate.point!!, "", emptyList())
+            places.value += place
+            ids.value += candidate.poiId
+            return SavePlaceResult.Saved(place.id)
+        }
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 }

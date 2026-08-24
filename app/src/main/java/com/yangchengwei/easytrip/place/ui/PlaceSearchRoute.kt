@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.place.ui
 
+import androidx.activity.compose.BackHandler
+
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -13,6 +15,8 @@ fun PlaceSearchRoute(
     onBack: () -> Unit,
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
+
+    BackHandler { onBack() }
 
     LaunchedEffect(state.shouldNavigateBack) {
         if (state.shouldNavigateBack) {
