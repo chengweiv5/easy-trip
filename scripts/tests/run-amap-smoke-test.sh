@@ -13,7 +13,11 @@ make_fixture() {
   cp "$ROOT/scripts/run-amap-smoke.sh" "$dir/repo/scripts/"
   cp "$ROOT/scripts/amap-emulator-gate.sh" "$dir/repo/scripts/"
   if [[ "$mode" == gate-fail || "$mode" == identity-transition || "$mode" == pid-reuse ]]; then
-    printf '#!/usr/bin/env bash\nexit 23\n' >"$dir/repo/scripts/amap-emulator-gate.sh"
+    cat >"$dir/repo/scripts/amap-emulator-gate.sh" <<EOF
+#!/usr/bin/env bash
+[[ "$mode" == pid-reuse ]] && touch "$dir/pid-reused"
+exit 23
+EOF
   fi
   printf 'AMAP_API_KEY=test-key\n' >"$dir/repo/local.properties"
   cat >"$dir/repo/gradlew" <<EOF
@@ -35,7 +39,7 @@ count=0
 [[ -f "$dir/identity-count" ]] && count=\$(cat "$dir/identity-count")
 count=\$((count + 1))
 printf '%s' "\$count" >"$dir/identity-count"
-if [[ "$mode" == pid-reuse && \$count -ge 4 ]]; then
+if [[ "$mode" == pid-reuse && -f "$dir/pid-reused" ]]; then
   printf 'Wed Jan  1 00:00:01 2025 /usr/bin/unrelated-process --serve\n'
 elif [[ "$mode" == identity-transition && \$count -ge 2 ]]; then
   printf 'Wed Jan 1 00:00:00 2025 /opt/android/emulator/qemu/darwin-x86_64/qemu-system-x86_64 -avd trail_map_api36 -port 5588 -gpu swiftshader\n'
