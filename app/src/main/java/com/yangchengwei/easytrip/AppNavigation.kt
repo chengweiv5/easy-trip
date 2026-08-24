@@ -18,6 +18,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.yangchengwei.easytrip.trip.domain.TripRepository
+import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.amap.AmapPrivacyGate
 import com.yangchengwei.easytrip.place.amap.AmapPlaceDataSource
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
@@ -103,6 +104,7 @@ data class AppNavigationDependencies(
     val locationPermissionRequestStore: LocationPermissionRequestStore,
     val routeCoordinator: RouteRefreshCoordinator? = null,
     val placeSearchDataSource: PlaceSearchDataSource? = null,
+    val mapConsentToken: AmapConsentToken? = null,
 )
 
 fun interface AppNavigationObserver {
@@ -209,7 +211,8 @@ fun AppNavigation(
                 LaunchedEffect(searchReturnPayload) {
                     if (searchReturnPayload != null) workspaceSearchReturnState.show(consumeWorkspaceSearchReturn(entry.savedStateHandle))
                 }
-                val token = application?.amapConsentToken?.takeIf { it.isActive() }
+                val token = (workspaceDependencies.mapConsentToken ?: application?.amapConsentToken)
+                    ?.takeIf { it.isActive() }
                 val addToItineraryModel: com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel = viewModel(
                     viewModelStoreOwner = entry,
                     factory = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel.Factory(

@@ -16,6 +16,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
 import androidx.room.Room
+import com.yangchengwei.easytrip.amap.TestConsentGate
 import com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.GeoPoint
@@ -42,6 +43,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 
 class V2AcceptanceTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
@@ -75,8 +77,10 @@ class V2AcceptanceTest {
         val source = object : PlaceSearchDataSource {
             override suspend fun search(keyword: String, city: String?) = listOf(museum, park)
         }
+        val consentGate = TestConsentGate().apply { show() }
+        val consent = requireNotNull(consentGate.decide(true))
         val navigationRoutes = java.util.concurrent.CopyOnWriteArrayList<String>()
-        lateinit var host: RecordingHost
+        val host = AtomicReference<RecordingHost?>()
         fun waitFor(stage: String, condition: () -> Boolean) {
             try {
                 compose.waitUntil(10_000, condition)
@@ -98,9 +102,10 @@ class V2AcceptanceTest {
                     mapPreferences = com.yangchengwei.easytrip.workspace.InMemoryMapPreferences(),
                     locationPermissionRequestStore = InMemoryLocationPermissionRequestStore(),
                     placeSearchDataSource = source,
+                    mapConsentToken = consent,
                 ),
                 navigationObserver = AppNavigationObserver(navigationRoutes::add),
-                mapHostFactory = { RecordingHost(it).also { created -> host = created } },
+                mapHostFactory = { RecordingHost(it).also(host::set) },
             )
         }
 
@@ -128,22 +133,24 @@ class V2AcceptanceTest {
         compose.onNodeWithContentDescription("取消收藏公园").assertIsDisplayed()
         compose.onNodeWithTag("place-search-back").performClick()
         waitFor("workspace UI after search return") { hasTag("workspace-top-bar") }
+        waitFor("map host initialization") { host.get() != null }
+        val mapHost = requireNotNull(host.get())
 
-        compose.runOnIdle { host.emit(MapPoiUi("poi-card", "故宫", "北京市东城区", GeoPoint(39.916, 116.397))) }
+        compose.runOnIdle { mapHost.emit(MapPoiUi("poi-card", "故宫", "北京市东城区", GeoPoint(39.916, 116.397))) }
         compose.onNodeWithText("故宫").assertIsDisplayed()
         assertFalse("poi-card" in savedPoiIds.value)
         compose.onNodeWithTag("place-card-collection").performClick()
         waitFor("map POI collection") { "poi-card" in savedPoiIds.value }
 
-        val placePoolViewportCalls = host.viewportCalls.get()
+        val placePoolViewportCalls = mapHost.viewportCalls.get()
         compose.onNodeWithTag("section-ITINERARY").performClick()
-        waitFor("itinerary map model") { host.viewportCalls.get() > placePoolViewportCalls }
+        waitFor("itinerary map model") { mapHost.viewportCalls.get() > placePoolViewportCalls }
         compose.onNodeWithTag("section-ITINERARY").assertIsSelected()
         compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
 
-        val dayViewportCalls = host.viewportCalls.get()
+        val dayViewportCalls = mapHost.viewportCalls.get()
         compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
-        waitFor("whole-trip map model") { host.viewportCalls.get() > dayViewportCalls }
+        waitFor("whole-trip map model") { mapHost.viewportCalls.get() > dayViewportCalls }
         compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").assertIsSelected()
     }
 
