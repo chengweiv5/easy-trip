@@ -33,10 +33,15 @@ GREEN：完整选择恢复和严格异常分类均通过聚焦 JVM 测试；`com
 
 - 新增真实 in-memory Room 测试 `AddPlacesRoomIntegrationTest`，覆盖重复地点与末尾顺序、类型化 partial success、未知 RouteLeg 写入异常传播和事务回滚、目标日异常映射、中途删除恢复完整选择、Undo 保留 SavedPlace/历史 occurrence，以及跨天无 RouteLeg。
 - `./gradlew compileDebugAndroidTestKotlin`：通过。
-- 按要求未操作共享设备，`AddPlacesRoomIntegrationTest` 尚待后续设备 agent 执行 connected gate；因此 Task 6 仍不能标记为完整完成。
+- 后续独占设备运行 `AddPlacesRoomIntegrationTest`：7/7 PASS，已完成 connected Room gate。
+
+## 最终状态
+
+- **Task 6 complete**：静态审查/JVM gate 与 Android Room runtime 7/7 均通过。
+- 实现提交：`c76e3a3126283426c0820f2065f8360e39b621b2`。
+- 该提交晚于 Batch 2 功能范围，只为后续任务 ledger 连续性记录；Batch 2 gate 不依赖 Task 6。
 
 ## 未包含与风险
 
-- Task 6 尚未完成 connected Room gate。目标日级联、跨天 RouteLeg 与 SavedPlace 持久化断言已编译，但尚未在 Android Room runtime 执行。
 - 整批加入和撤销不是单事务；当前契约是逐项原子、允许部分成功。并发追加时不能保证整批连续不穿插。
 - `CancellationException` 与所有未声明为可恢复的异常继续传播。

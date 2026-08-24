@@ -2,9 +2,9 @@
 
 ## Status
 
-**BLOCKED**
+**PASS**
 
-Batch 2 自动化 gate 未通过。按“发现失败，准确报告并停止”的要求，已停止后续 APK 安装、生产旅程 B、截图采集和 Pencil 视觉对比；未修改生产代码，未修改 `progress.md`，未 commit。
+Batch 2 最终 gate 已通过。下文完整保留最初自动化失败、API 31 EGL 阻塞、API 36 恢复、视觉修复及生命周期修复时间线；最终结论见文末“最终收口”。本次收口只更新报告、ledger 与 Graphify 正式图谱，不修改生产功能，不操作设备。
 
 - 工作目录：`/Users/bytedance/Code/easy-trip/.claude/worktrees/easy-trip-v1-full-ui-run`
 - 验证提交：`20fae8ce6208bec43a52dce49a115fc41e1506d6`
@@ -281,3 +281,54 @@ To use the real time, wrap 'withTimeout' in
 `GJo79` 网络失败与 `s1OvvX` 加载中仍待生产证据；Batch 2 总 gate 保持 **in progress**。
 
 详见 `batch-2-visual-fix-report.md`。
+
+---
+
+## 最终收口（2026-08-24）
+
+### 最终结论
+
+**Batch 2 gate：PASS**
+
+- Task 4、Task 5 已完成。
+- production-real-trigger：API 36 `trail_map_api36` + SwiftShader 上的生产 `MainActivity` 旅程 B 已通过，覆盖真实搜索、同页连续收藏、返回地点池、详情备注/标签持久化、空地点池、地图图层菜单和真实无结果状态。证据根目录：`/tmp/easy-trip-batch2-journey-b/`。
+- controlled-state-render：真实网络失败与加载中不适合为了截图主动破坏网络或延长请求，故 `GJo79`、`s1OvvX` 使用受控状态渲染补证。它们明确不是 production-real-trigger，不替代上述真实生产旅程。
+- 主要 frame 已按 v1.0 基线审查。剩余细小视觉偏差经用户裁决为非阻断，不再阻塞 Batch 2。
+- 最终物理真机验收仍待办；现有功能与视觉证据来自 AVD，不能表述为物理真机通过。
+
+### 历史失败与修复时间线
+
+1. `20fae8ce6208bec43a52dce49a115fc41e1506d6`：JVM/lint/assemble 通过，但 Batch 2 instrumentation 22 项中 `RoomSavedPlaceRepositoryTest.usageCountsRefreshWhenOnlyItineraryItemsChange` 因虚拟时间与 Room executor 调度域不一致超时，gate 保持 BLOCKED。
+2. `6b91132`：仅修测试调度竞态，Room class 连续 3/3、Batch 2 目标 suite 连续 2/2（每次 22/22）通过；生产 DAO/repository 未改。
+3. API 31 `easy_trip_p60pro`：生产工作台在 AMap `GLSurfaceView` 创建 EGL context 时崩溃；失败证据保留于 `/tmp/easy-trip-batch2-final/`，未把环境阻塞误报成业务通过。
+4. API 36 `trail_map_api36` + SwiftShader：生产旅程 B 恢复并通过；证据保留于 `/tmp/easy-trip-batch2-journey-b/`。
+5. `2be3950`、`f82d0cc`、`457a380` 及后续修复：完成地点池高度/安全区/滚动、搜索返回 exactly-once 与生命周期修复。早期 plain `remember` 会在配置重建丢状态并跨 workspace 泄漏，该失败记录保留在 `batch-2-visual-fix-round2-device.md`。
+6. `2fa1ac1bf011b07b1c24e43e939398bfbf75a6a0`：真实 NavHost 生命周期 instrumentation 最终独占设备运行 3/3 PASS；其原始 XML 曾位于 connected 结果目录，但后续 Evidence run 会覆盖该固定目录，因此本报告不把当前 XML 误称为 Nav 结果，3/3 以该次原始 Gradle 日志/运行记录为准。
+7. `4482a372fee8cec6e8eb7b5b1b460683875d932e`（clean commit）：`PlaceSearchEvidenceTest` 直接 instrumentation 2/2 PASS，当前原始 XML 为 `app/build/outputs/androidTest-results/connected/debug/TEST-trail_map_api36(AVD) - 16-_app-.xml`；该最后一次 run 已覆盖此前 Nav XML。
+8. `c76e3a3126283426c0820f2065f8360e39b621b2`：后集成 Task 6 的 `AddPlacesRoomIntegrationTest` 7/7 PASS。该结果支持 Task 6 完成，但不属于、也不作为 Batch 2 gate 的依赖。
+
+### 受控证据与 hash 链
+
+证据根目录：`/tmp/easy-trip-batch2-controlled/`。
+
+| frame | 类型 | PNG | PNG SHA-256 | manifest SHA-256 | complete 内容（manifest SHA-256） |
+|---|---|---|---|---|---|
+| `GJo79` 网络失败 | controlled-state-render；`not_production_real_trigger=true` | `v1-38-GJo79-network-failure-controlled.png` | `0493fe4dbb421d9ce5e4b0e65450250d9378d49ee8357f67c6dfb165b6535a2f` | `490e69957973bcaf0c0f330cdb11a0bb6b9b54206959f77f96028007d340c7a0` | `490e69957973bcaf0c0f330cdb11a0bb6b9b54206959f77f96028007d340c7a0` |
+| `s1OvvX` 加载中 | controlled-state-render；`not_production_real_trigger=true` | `v1-44-s1OvvX-loading-controlled.png` | `e25b5cfde71be2c29e99a6dabd2430554c892f2818869b8e9f559732cf2a616e` | `ae6d30c62b67141500adbf18fc316a0cb399ceff8532328294f46c75e4f679d0` | `ae6d30c62b67141500adbf18fc316a0cb399ceff8532328294f46c75e4f679d0` |
+
+两份 manifest 都记录 `git_sha=4482a372fee8cec6e8eb7b5b1b460683875d932e`、`source_state=CLEAN`、API 36、目标宽度 390dp；PNG hash 与 manifest 一致，`.complete` 内容与对应 manifest SHA-256 一致。
+
+### 最终自动化
+
+```bash
+./gradlew testDebugUnitTest lintDebug assembleDebug
+```
+
+结果：**PASS**，`BUILD SUCCESSFUL in 24s`；JVM 汇总 `252 tests / 0 failures / 0 errors / 0 skipped`，lint 与 debug APK assemble 均通过。
+
+按要求未重复占用设备：Nav 3/3、Evidence 2/2、Task 6 Room 7/7 均引用刚完成的原始运行记录。connected XML 使用固定输出目录，当前只保留最后一次 Evidence 2/2，不能用于反推前三者同时存在。
+
+### 未决项
+
+- 最终物理真机验收待用户在设备端完成安装授权后执行；此前 `FMR0224725012307` 返回 `INSTALL_FAILED_ABORTED: User rejected permissions`。
+- 此待办不阻断本次基于自动化、API 36 AVD 生产旅程、v1.0 视觉审查及用户非阻断裁决的 Batch 2 PASS。
