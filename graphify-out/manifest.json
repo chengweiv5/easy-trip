@@ -54,9 +54,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditingTest.kt": {
-    "mtime": 1787597085.2183456,
-    "seen": 1787597101.358459,
-    "ast_hash": "af642db3ac849d370274c5c42b616131",
+    "mtime": 1787601137.5827093,
+    "seen": 1787601153.006903,
+    "ast_hash": "5ba8e93620885ea75a3e6733ac66eb5e",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/place/data/RoomSavedPlaceRepositoryTest.kt": {
@@ -240,9 +240,9 @@
     "semantic_hash": "2647883925e8392ebde944d05b91c511"
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItinerarySheet.kt": {
-    "mtime": 1787593121.8615222,
-    "seen": 1787593139.8260748,
-    "ast_hash": "59b4d8c5e12d7d288c39956d47151914",
+    "mtime": 1787601137.583626,
+    "seen": 1787601153.006952,
+    "ast_hash": "9c1ea422182a7176ac23bee676677276",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModel.kt": {
@@ -1632,9 +1632,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspacePermissionFlowTest.kt": {
-    "mtime": 1787598581.6136177,
-    "seen": 1787598597.876587,
-    "ast_hash": "6804dab6e34223bc35c439d0fe1ef87e",
+    "mtime": 1787601137.5831194,
+    "seen": 1787601153.0069199,
+    "ast_hash": "7d3bf6b7204f51f1e89bc59ace32722c",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/permission/LocationPermissionCoordinator.kt": {
@@ -1662,21 +1662,21 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1FullUiAcceptanceTest.kt": {
-    "mtime": 1787600395.6271293,
-    "seen": 1787600409.9094138,
-    "ast_hash": "97ffd50ee7bafcd8357365aaaed62d4f",
+    "mtime": 1787601137.581899,
+    "seen": 1787601153.0068538,
+    "ast_hash": "9e0cab62a6b456f2d50145686b105ea7",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioFixtures.kt": {
-    "mtime": 1787600395.6295133,
-    "seen": 1787600409.909417,
-    "ast_hash": "9886bce998fe6ca784fceb8e35de5e99",
+    "mtime": 1787601137.5823004,
+    "seen": 1787601153.006856,
+    "ast_hash": "5a7b82f2feb126e43f178df77d64d06f",
     "semantic_hash": ""
   },
   "docs/testing/v1-full-ui-scenario-matrix.md": {
-    "mtime": 1787600395.6310291,
-    "seen": 1787600409.909893,
-    "ast_hash": "fada49434624c6ba12383109aa1b580c",
+    "mtime": 1787601137.5840554,
+    "seen": 1787601153.007082,
+    "ast_hash": "29f7acd1eb8964ec34a14b3d7c5ab39f",
     "semantic_hash": ""
   }
 }
