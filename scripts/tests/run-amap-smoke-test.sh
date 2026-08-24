@@ -31,10 +31,13 @@ while true; do sleep 1; done
 EOF
   cat >"$dir/bin/fake-ps" <<EOF
 #!/usr/bin/env bash
-if [[ "$mode" == pid-reuse && -f "$dir/identity-recorded" ]]; then
+count=0
+[[ -f "$dir/identity-count" ]] && count=\$(cat "$dir/identity-count")
+count=\$((count + 1))
+printf '%s' "\$count" >"$dir/identity-count"
+if [[ "$mode" == pid-reuse && \$count -ge 4 ]]; then
   printf '1 Mon Jan 1 00:00:01 2024 unrelated-process\n'
 else
-  touch "$dir/identity-recorded"
   printf '1 Mon Jan 1 00:00:00 2024 emulator -avd trail_map_api36 -port 5588 -gpu swiftshader\n'
 fi
 EOF
@@ -45,13 +48,27 @@ case "\$*" in
   devices*) printf 'List of devices attached\n'; [[ -f "$dir/emulator.started" ]] && printf 'emulator-5588\tdevice\n' ;;
   *get-state*) [[ "$mode" == timeout ]] && exit 1; printf 'device\n' ;;
   *ro.boot.qemu.avd_name*) printf 'trail_map_api36\n' ;;
-  *sys.boot_completed*) printf '1\n' ;;
+  *sys.boot_completed*)
+    if [[ "$mode" == boot-exit ]]; then
+      pid=\$(grep -Eo 'pid=[0-9]+' "$dir/emulator.started" | cut -d= -f2)
+      kill "\$pid" 2>/dev/null || true
+      printf '0\n'
+    else
+      printf '1\n'
+    fi
+    ;;
   *ro.build.version.sdk*) printf '36\n' ;;
   *ro.product.cpu.abi*) printf 'x86_64\n' ;;
   *dumpsys\\ SurfaceFlinger*) printf 'GLES: Google SwiftShader\n' ;;
-  *logcat\\ -d*) [[ "$mode" == marker-missing ]] || printf 'I AMAP_SMOKE: map_loaded=true\nI AMAP_SMOKE: screenshot_ready=true\nI AMAP_SMOKE: lifecycle_cleanup=true\n' ;;
-  *exec-out\\ run-as*)
+  *logcat\\ -d*) printf 'high-volume unrelated diagnostic noise without smoke markers\n' ;;
+  *exec-out\\ run-as*\\.png*)
     if [[ "$mode" == corrupt-png ]]; then printf 'not-a-png'; else printf '\211PNG\r\n\032\nfixture'; fi
+    ;;
+  *exec-out\\ run-as*\\.json*)
+    if [[ "$mode" != marker-missing ]]; then
+      token=\$(printf '%s' "\$*" | grep -Eo 'amap-[A-Za-z0-9._-]+')
+      printf '{"run_token":"%s","map_loaded_at":1000,"stable_alive_at":6000,"screenshot_ready":true,"lifecycle_cleanup":true}\n' "\$token"
+    fi
     ;;
   *am\\ instrument*) [[ "$mode" == instrumentation-fail ]] && exit 25; printf 'OK (1 test)\n' ;;
   *) exit 0 ;;
@@ -87,6 +104,12 @@ run_status timeout
 [[ $RUN_STATUS -eq 13 ]] || fail "timeout returned $RUN_STATUS"
 grep -q 'get-state' "$TMP/timeout/adb.calls" || fail 'timeout did not poll device state'
 
+make_fixture boot-exit
+run_status boot-exit
+[[ $RUN_STATUS -eq 13 ]] || fail "boot process exit returned $RUN_STATUS"
+grep -q 'owned emulator process exited before boot completed' "$TMP/boot-exit/output" || fail 'boot process exit lacked precise error'
+! grep -q 'boot timed out' "$TMP/boot-exit/output" || fail 'boot process exit was misreported as timeout'
+
 for mode in gate-fail gradle-fail instrumentation-fail marker-missing; do
   make_fixture "$mode"
   run_status "$mode"
@@ -96,12 +119,13 @@ for mode in gate-fail gradle-fail instrumentation-fail marker-missing; do
   [[ -z "$(find "$TMP/$mode/evidence" -mindepth 2 -name complete.txt -type f -print -quit)" ]] || fail "$mode marked failed run complete"
 done
 grep -q 'am instrument' "$TMP/marker-missing/adb.calls" || fail 'marker fixture never ran instrumentation'
-grep -q 'logcat -d' "$TMP/marker-missing/adb.calls" || fail 'marker fixture never reached marker validation'
+grep -q 'logcat -d' "$TMP/marker-missing/adb.calls" || fail 'marker fixture never archived logcat'
+grep -q 'exec-out run-as.*\.json' "$TMP/marker-missing/adb.calls" || fail 'marker fixture never read app status'
 
 make_fixture corrupt-png
 run_status corrupt-png
 [[ $RUN_STATUS -eq 14 ]] || fail "corrupt PNG returned $RUN_STATUS"
-grep -q 'not a valid PNG' "$TMP/corrupt-png/output" || fail 'corrupt PNG did not fail validation precisely'
+grep -q 'app evidence invalid or incomplete' "$TMP/corrupt-png/output" || fail 'corrupt PNG did not fail validation precisely'
 grep -q 'exec-out run-as' "$TMP/corrupt-png/adb.calls" || fail 'corrupt PNG fixture did not export screenshot'
 
 make_fixture pid-reuse

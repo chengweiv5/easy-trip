@@ -15,6 +15,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import org.json.JSONObject
 import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 
@@ -23,6 +24,15 @@ class AmapMapViewAttachSmokeTest {
     @Test
     fun realMapViewAttachesLoadsAndSurvives() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
+        val runToken = InstrumentationRegistry.getArguments().getString("amapRunToken").orEmpty()
+        check(runToken.matches(Regex("[A-Za-z0-9._-]+"))) { "amapRunToken is required" }
+        val status = linkedMapOf<String, Any>("run_token" to runToken)
+        fun persistStatus() {
+            context.openFileOutput("amap-smoke-$runToken.json", android.content.Context.MODE_PRIVATE).use {
+                it.write(JSONObject(status).toString().toByteArray())
+            }
+        }
+        persistStatus()
         val info = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
         check(info.metaData?.getString("com.amap.api.v2.apikey").orEmpty().isNotBlank()) { "AMAP_API_KEY is required" }
         AmapPrivacyGate.create(context).apply {
@@ -42,6 +52,8 @@ class AmapMapViewAttachSmokeTest {
                 assertTrue(mapView.isAttachedToWindow)
             }
             assertTrue("AMap did not report map-loaded within 20 seconds", loaded.await(20, TimeUnit.SECONDS))
+            status["map_loaded_at"] = System.currentTimeMillis()
+            persistStatus()
             Log.i("AMAP_SMOKE", "map_loaded=true")
             SystemClock.sleep(5_000)
             val instrumentation = InstrumentationRegistry.getInstrumentation()
@@ -49,17 +61,23 @@ class AmapMapViewAttachSmokeTest {
                 ParcelFileDescriptor.AutoCloseInputStream(it).readBytes().isNotEmpty()
             }
             assertTrue(processAlive)
+            status["stable_alive_at"] = System.currentTimeMillis()
+            persistStatus()
             val screenshot = instrumentation.uiAutomation.takeScreenshot()
             assertTrue(screenshot.width > 0 && screenshot.height > 0)
-            context.openFileOutput("amap-smoke-loaded.png", android.content.Context.MODE_PRIVATE).use {
+            context.openFileOutput("amap-smoke-$runToken.png", android.content.Context.MODE_PRIVATE).use {
                 screenshot.compress(Bitmap.CompressFormat.PNG, 100, it)
             }
+            status["screenshot_ready"] = true
+            persistStatus()
             Log.i("AMAP_SMOKE", "screenshot_ready=true")
             scenario.onActivity {
                 assertTrue(mapView.isAttachedToWindow)
                 mapView.onPause()
                 mapView.onDestroy()
                 it.detach(mapView)
+                status["lifecycle_cleanup"] = true
+                persistStatus()
                 Log.i("AMAP_SMOKE", "lifecycle_cleanup=true")
             }
         }

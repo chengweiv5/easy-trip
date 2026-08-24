@@ -6,6 +6,7 @@ AVD=trail_map_api36
 SERIAL=emulator-5588
 EVIDENCE_ROOT=${AMAP_EVIDENCE_DIR:-"$ROOT/build/amap-smoke"}
 RUN_ID=$(date -u +%Y%m%dT%H%M%SZ)-$$-$RANDOM
+RUN_TOKEN="amap-$RUN_ID"
 EVIDENCE_DIR="$EVIDENCE_ROOT/$RUN_ID"
 LOCK_DIR=${TMPDIR:-/tmp}/easy-trip-android-device-$SERIAL.lock
 COMMAND="emulator -avd $AVD -port 5588 -gpu swiftshader -no-snapshot-load -no-snapshot-save"
@@ -14,6 +15,7 @@ emulator_pid=
 emulator_identity=
 owned_lock=false
 cleaned=false
+lock_token=
 
 process_identity() {
   "${AMAP_PS_BIN:-ps}" -p "$1" -o ppid= -o lstart= -o command= 2>/dev/null | tr -s ' ' | sed 's/^ //'
@@ -26,14 +28,34 @@ cleanup() {
     current_identity=$(process_identity "$emulator_pid")
     if [[ -n "$emulator_identity" && "$current_identity" == "$emulator_identity" && "$current_identity" == *"$AVD"* && "$current_identity" == *"-port 5588"* ]]; then
       kill "$emulator_pid" 2>/dev/null || true
-      wait "$emulator_pid" 2>/dev/null || true
+      for _ in 1 2 3 4 5; do
+        kill -0 "$emulator_pid" 2>/dev/null || break
+        sleep 0.2
+      done
+      if kill -0 "$emulator_pid" 2>/dev/null; then
+        current_identity=$(process_identity "$emulator_pid")
+        if [[ "$current_identity" == "$emulator_identity" ]]; then
+          kill -KILL "$emulator_pid" 2>/dev/null || true
+          for _ in 1 2 3 4 5; do
+            kill -0 "$emulator_pid" 2>/dev/null || break
+            sleep 0.2
+          done
+        else
+          printf 'warning: emulator PID identity changed after TERM; refusing KILL pid %s\n' "$emulator_pid" >&2
+        fi
+      fi
     else
       printf 'warning: emulator PID identity changed; refusing to kill pid %s\n' "$emulator_pid" >&2
     fi
   fi
   if [[ "$owned_lock" == true ]]; then
-    rm -f "$LOCK_DIR/owner" 2>/dev/null || true
-    rmdir "$LOCK_DIR" 2>/dev/null || true
+    current_lock_token=$(grep -E '^token=' "$LOCK_DIR/owner" 2>/dev/null | cut -d= -f2- || true)
+    if [[ -n "$lock_token" && "$current_lock_token" == "$lock_token" ]]; then
+      rm -f "$LOCK_DIR/owner" 2>/dev/null || true
+      rmdir "$LOCK_DIR" 2>/dev/null || true
+    else
+      printf 'warning: lock ownership changed; refusing to release %s\n' "$LOCK_DIR" >&2
+    fi
     owned_lock=false
   fi
 }
@@ -67,7 +89,8 @@ if ! mkdir "$LOCK_DIR" 2>/dev/null; then
   exit 10
 fi
 owned_lock=true
-printf 'pid=%s\nstarted=%s\nserial=%s\n' "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$SERIAL" >"$LOCK_DIR/owner"
+lock_token="$RUN_TOKEN-$RANDOM"
+printf 'token=%s\npid=%s\nstarted=%s\nserial=%s\n' "$lock_token" "$$" "$(date -u +%Y-%m-%dT%H:%M:%SZ)" "$SERIAL" >"$LOCK_DIR/owner"
 command -v adb >/dev/null
 command -v emulator >/dev/null
 emulator -list-avds | grep -Fxq "$AVD" || { printf 'approved AVD is missing: %s\n' "$AVD" >&2; exit 11; }
@@ -90,31 +113,47 @@ done
 kill -0 "$emulator_pid" 2>/dev/null || { printf 'emulator process exited during startup\n' >&2; exit 13; }
 [[ "$(adb -s "$SERIAL" get-state 2>/dev/null || true)" == device && "$(adb -s "$SERIAL" shell getprop ro.boot.qemu.avd_name 2>/dev/null | tr -d '\r')" == "$AVD" ]] || { printf 'owned emulator registration timed out\n' >&2; exit 13; }
 while ((SECONDS < deadline)); do
+  if ! kill -0 "$emulator_pid" 2>/dev/null; then
+    printf 'owned emulator process exited before boot completed\n' >&2
+    exit 13
+  fi
+  current_identity=$(process_identity "$emulator_pid")
+  [[ "$current_identity" == "$emulator_identity" ]] || { printf 'owned emulator process identity changed before boot completed\n' >&2; exit 13; }
   [[ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]] && break
   sleep 1
 done
+if ! kill -0 "$emulator_pid" 2>/dev/null; then
+  printf 'owned emulator process exited before boot completed\n' >&2
+  exit 13
+fi
+[[ "$(process_identity "$emulator_pid")" == "$emulator_identity" ]] || { printf 'owned emulator process identity changed before boot completed\n' >&2; exit 13; }
 [[ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]] || { printf 'emulator boot timed out\n' >&2; exit 13; }
 
 "$ROOT/scripts/amap-emulator-gate.sh" --serial "$SERIAL" --command-line "$COMMAND" --evidence "$EVIDENCE_DIR/environment.json"
 ANDROID_SERIAL="$SERIAL" "$ROOT/gradlew" :app:installDebug :app:installDebugAndroidTest
 adb -s "$SERIAL" logcat -c
 set +e
-adb -s "$SERIAL" shell am instrument -w -e class com.yangchengwei.easytrip.amap.AmapMapViewAttachSmokeTest com.yangchengwei.easytrip.test/androidx.test.runner.AndroidJUnitRunner | tee "$EVIDENCE_DIR/instrumentation.txt"
+adb -s "$SERIAL" shell am instrument -w -e amapRunToken "$RUN_TOKEN" -e class com.yangchengwei.easytrip.amap.AmapMapViewAttachSmokeTest com.yangchengwei.easytrip.test/androidx.test.runner.AndroidJUnitRunner | tee "$EVIDENCE_DIR/instrumentation.txt"
 status=${PIPESTATUS[0]}
 set -e
 adb -s "$SERIAL" logcat -d >"$EVIDENCE_DIR/logcat.txt"
 [[ $status -eq 0 ]] || exit "$status"
-adb -s "$SERIAL" exec-out run-as com.yangchengwei.easytrip cat files/amap-smoke-loaded.png >"$EVIDENCE_DIR/map-loaded.png"
-python3 - "$EVIDENCE_DIR/map-loaded.png" <<'PY' || { printf 'loaded map screenshot is not a valid PNG\n' >&2; exit 14; }
-import os, sys
-path = sys.argv[1]
-with open(path, "rb") as image:
+adb -s "$SERIAL" exec-out run-as com.yangchengwei.easytrip cat "files/amap-smoke-$RUN_TOKEN.png" >"$EVIDENCE_DIR/map-loaded.png"
+adb -s "$SERIAL" exec-out run-as com.yangchengwei.easytrip cat "files/amap-smoke-$RUN_TOKEN.json" >"$EVIDENCE_DIR/status.json"
+python3 - "$EVIDENCE_DIR/map-loaded.png" "$EVIDENCE_DIR/status.json" "$RUN_TOKEN" <<'PY' || { printf 'AMap smoke app evidence invalid or incomplete\n' >&2; exit 14; }
+import json, os, sys
+png_path, status_path, token = sys.argv[1:]
+with open(png_path, "rb") as image:
     signature = image.read(8)
-if signature != b"\x89PNG\r\n\x1a\n" or os.path.getsize(path) <= 8:
+if signature != b"\x89PNG\r\n\x1a\n" or os.path.getsize(png_path) <= 8:
+    raise SystemExit(1)
+with open(status_path, encoding="utf-8") as source:
+    status = json.load(source)
+required = ("map_loaded_at", "stable_alive_at", "screenshot_ready", "lifecycle_cleanup")
+if status.get("run_token") != token or not all(status.get(key) for key in required):
+    raise SystemExit(1)
+if status["stable_alive_at"] - status["map_loaded_at"] < 5000:
     raise SystemExit(1)
 PY
 grep -q 'OK (1 test)' "$EVIDENCE_DIR/instrumentation.txt" || { printf 'instrumentation did not report success\n' >&2; exit 14; }
-grep -q 'AMAP_SMOKE.*map_loaded=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'map-loaded evidence missing\n' >&2; exit 14; }
-grep -q 'AMAP_SMOKE.*screenshot_ready=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'screenshot evidence missing\n' >&2; exit 14; }
-grep -q 'AMAP_SMOKE.*lifecycle_cleanup=true' "$EVIDENCE_DIR/logcat.txt" || { printf 'lifecycle cleanup evidence missing\n' >&2; exit 14; }
 printf 'AMAP_SMOKE_COMPLETE run=%s\n' "$EVIDENCE_DIR" | tee "$EVIDENCE_DIR/complete.txt"
