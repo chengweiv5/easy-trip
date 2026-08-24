@@ -1,10 +1,39 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.io.ByteArrayOutputStream
+import java.io.File
+import java.security.MessageDigest
 import java.util.Properties
+
+fun gitBytes(root: File, vararg arguments: String): ByteArray? = runCatching {
+    val output = ByteArrayOutputStream()
+    val result = providers.exec {
+        workingDir(root)
+        commandLine("git", *arguments)
+        standardOutput = output
+        errorOutput = ByteArrayOutputStream()
+        isIgnoreExitValue = true
+    }.result.get()
+    if (result.exitValue == 0) output.toByteArray() else null
+}.getOrNull()
+
+fun sha256(parts: List<ByteArray>): String {
+    val digest = MessageDigest.getInstance("SHA-256")
+    parts.forEach(digest::update)
+    return digest.digest().joinToString("") { "%02x".format(it) }
+}
 
 val localProperties = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
 val amapApiKey = localProperties.getProperty("AMAP_API_KEY", "")
+val gitShaBytes = gitBytes(rootDir, "rev-parse", "HEAD")
+val buildGitSha = gitShaBytes?.decodeToString()?.trim()?.takeIf { it.isNotEmpty() } ?: "UNAVAILABLE"
+val gitStatus = gitBytes(rootDir, "status", "--porcelain=v1", "-z")
+val sourceState = when {
+    gitShaBytes == null || gitStatus == null -> "UNAVAILABLE"
+    gitStatus.isEmpty() -> "CLEAN"
+    else -> "DIRTY:${sha256(listOf(gitStatus))}"
+}
 
 plugins {
     alias(libs.plugins.android.application)
@@ -29,6 +58,8 @@ android {
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["AMAP_API_KEY"] = amapApiKey
+        buildConfigField("String", "GIT_SHA", "\"$buildGitSha\"")
+        buildConfigField("String", "SOURCE_STATE", "\"$sourceState\"")
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlin {
