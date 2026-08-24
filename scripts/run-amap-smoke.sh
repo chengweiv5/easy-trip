@@ -18,23 +18,31 @@ cleaned=false
 lock_token=
 
 process_identity() {
-  "${AMAP_PS_BIN:-ps}" -p "$1" -o ppid= -o lstart= -o command= 2>/dev/null | tr -s ' ' | sed 's/^ //'
+  local snapshot weekday month day time year command
+  snapshot=$(LC_ALL=C "${AMAP_PS_BIN:-ps}" -p "$1" -o lstart= -o command= 2>/dev/null | tr -s ' ' | sed 's/^ //') || return 1
+  read -r weekday month day time year command <<<"$snapshot"
+  [[ -n "$command" && "$snapshot" == *"$AVD"* && "$snapshot" == *"-port 5588"* ]] || return 1
+  printf '%s %s %s %s %s\n' "$weekday" "$month" "$day" "$time" "$year"
+}
+
+same_process_identity() {
+  [[ -n "$1" && "$1" == "$2" ]]
 }
 
 cleanup() {
   [[ "$cleaned" == false ]] || return 0
   cleaned=true
   if [[ "$emulator_pid" =~ ^[0-9]+$ ]] && kill -0 "$emulator_pid" 2>/dev/null; then
-    current_identity=$(process_identity "$emulator_pid")
-    if [[ -n "$emulator_identity" && "$current_identity" == "$emulator_identity" && "$current_identity" == *"$AVD"* && "$current_identity" == *"-port 5588"* ]]; then
+    current_identity=$(process_identity "$emulator_pid" || true)
+    if same_process_identity "$emulator_identity" "$current_identity"; then
       kill "$emulator_pid" 2>/dev/null || true
       for _ in 1 2 3 4 5; do
         kill -0 "$emulator_pid" 2>/dev/null || break
         sleep 0.2
       done
       if kill -0 "$emulator_pid" 2>/dev/null; then
-        current_identity=$(process_identity "$emulator_pid")
-        if [[ "$current_identity" == "$emulator_identity" ]]; then
+        current_identity=$(process_identity "$emulator_pid" || true)
+        if same_process_identity "$emulator_identity" "$current_identity"; then
           kill -KILL "$emulator_pid" 2>/dev/null || true
           for _ in 1 2 3 4 5; do
             kill -0 "$emulator_pid" 2>/dev/null || break
@@ -102,7 +110,7 @@ read -r -a emulator_args <<<"$COMMAND"
 "${emulator_args[@]}" >"$EVIDENCE_DIR/emulator.log" 2>&1 &
 emulator_pid=$!
 emulator_identity=$(process_identity "$emulator_pid" || true)
-[[ -n "$emulator_identity" && "$emulator_identity" == *"$AVD"* && "$emulator_identity" == *"-port 5588"* ]] || { printf 'unable to establish emulator process identity\n' >&2; exit 13; }
+[[ -n "$emulator_identity" ]] || { printf 'unable to establish emulator process identity\n' >&2; exit 13; }
 printf 'emulator_pid=%s\nemulator_identity=%s\n' "$emulator_pid" "$emulator_identity" >>"$LOCK_DIR/owner"
 deadline=$((SECONDS + BOOT_TIMEOUT_SECONDS))
 while ((SECONDS < deadline)); do
@@ -117,8 +125,8 @@ while ((SECONDS < deadline)); do
     printf 'owned emulator process exited before boot completed\n' >&2
     exit 13
   fi
-  current_identity=$(process_identity "$emulator_pid")
-  [[ "$current_identity" == "$emulator_identity" ]] || { printf 'owned emulator process identity changed before boot completed\n' >&2; exit 13; }
+  current_identity=$(process_identity "$emulator_pid" || true)
+  same_process_identity "$emulator_identity" "$current_identity" || { printf 'owned emulator process identity changed before boot completed\n' >&2; exit 13; }
   [[ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]] && break
   sleep 1
 done
@@ -126,7 +134,8 @@ if ! kill -0 "$emulator_pid" 2>/dev/null; then
   printf 'owned emulator process exited before boot completed\n' >&2
   exit 13
 fi
-[[ "$(process_identity "$emulator_pid")" == "$emulator_identity" ]] || { printf 'owned emulator process identity changed before boot completed\n' >&2; exit 13; }
+current_identity=$(process_identity "$emulator_pid" || true)
+same_process_identity "$emulator_identity" "$current_identity" || { printf 'owned emulator process identity changed before boot completed\n' >&2; exit 13; }
 [[ "$(adb -s "$SERIAL" shell getprop sys.boot_completed 2>/dev/null | tr -d '\r')" == 1 ]] || { printf 'emulator boot timed out\n' >&2; exit 13; }
 
 "$ROOT/scripts/amap-emulator-gate.sh" --serial "$SERIAL" --command-line "$COMMAND" --evidence "$EVIDENCE_DIR/environment.json"

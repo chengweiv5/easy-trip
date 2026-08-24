@@ -12,7 +12,7 @@ make_fixture() {
   printf 'stale' >"$dir/evidence/map-loaded.png"
   cp "$ROOT/scripts/run-amap-smoke.sh" "$dir/repo/scripts/"
   cp "$ROOT/scripts/amap-emulator-gate.sh" "$dir/repo/scripts/"
-  if [[ "$mode" == gate-fail || "$mode" == pid-reuse ]]; then
+  if [[ "$mode" == gate-fail || "$mode" == identity-transition || "$mode" == pid-reuse ]]; then
     printf '#!/usr/bin/env bash\nexit 23\n' >"$dir/repo/scripts/amap-emulator-gate.sh"
   fi
   printf 'AMAP_API_KEY=test-key\n' >"$dir/repo/local.properties"
@@ -36,9 +36,11 @@ count=0
 count=\$((count + 1))
 printf '%s' "\$count" >"$dir/identity-count"
 if [[ "$mode" == pid-reuse && \$count -ge 4 ]]; then
-  printf '1 Mon Jan 1 00:00:01 2024 unrelated-process\n'
+  printf 'Wed Jan  1 00:00:01 2025 /usr/bin/unrelated-process --serve\n'
+elif [[ "$mode" == identity-transition && \$count -ge 2 ]]; then
+  printf 'Wed Jan 1 00:00:00 2025 /opt/android/emulator/qemu/darwin-x86_64/qemu-system-x86_64 -avd trail_map_api36 -port 5588 -gpu swiftshader\n'
 else
-  printf '1 Mon Jan 1 00:00:00 2024 emulator -avd trail_map_api36 -port 5588 -gpu swiftshader\n'
+  printf 'Wed Jan  1 00:00:00 2025 /opt/android/emulator/emulator -avd trail_map_api36 -port 5588 -gpu swiftshader\n'
 fi
 EOF
   cat >"$dir/bin/adb" <<EOF
@@ -127,6 +129,12 @@ run_status corrupt-png
 [[ $RUN_STATUS -eq 14 ]] || fail "corrupt PNG returned $RUN_STATUS"
 grep -q 'app evidence invalid or incomplete' "$TMP/corrupt-png/output" || fail 'corrupt PNG did not fail validation precisely'
 grep -q 'exec-out run-as' "$TMP/corrupt-png/adb.calls" || fail 'corrupt PNG fixture did not export screenshot'
+
+make_fixture identity-transition
+run_status identity-transition
+[[ $RUN_STATUS -eq 23 ]] || fail "legitimate identity transition returned $RUN_STATUS"
+! grep -q 'identity changed before boot completed' "$TMP/identity-transition/output" || fail 'legitimate emulator exec transition was rejected'
+! grep -q 'refusing to kill' "$TMP/identity-transition/output" || fail 'cleanup rejected legitimate emulator exec transition'
 
 make_fixture pid-reuse
 run_status pid-reuse
