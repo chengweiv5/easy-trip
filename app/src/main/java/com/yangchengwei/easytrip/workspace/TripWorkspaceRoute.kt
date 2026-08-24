@@ -49,10 +49,27 @@ internal fun addOverlayToPresent(
 fun workspaceBackDecision(
     overlay: WorkspaceOverlay,
     addToItinerary: AddToItineraryUiState,
+    isAppendingDay: Boolean = false,
 ): WorkspaceBackDecision = when {
     overlay == WorkspaceOverlay.None -> WorkspaceBackDecision.LeaveWorkspace
+    overlay == WorkspaceOverlay.AddTripDay && isAppendingDay -> WorkspaceBackDecision.Ignore
     !canDismissAddOverlay(overlay, addToItinerary) -> WorkspaceBackDecision.Ignore
     else -> WorkspaceBackDecision.CloseOverlay
+}
+
+internal sealed interface AppendDayCompletionDecision {
+    data object None : AppendDayCompletionDecision
+    data class Consume(val token: Long) : AppendDayCompletionDecision
+    data class CloseOverlayAndConsume(val token: Long) : AppendDayCompletionDecision
+}
+
+internal fun appendDayCompletionDecision(
+    overlay: WorkspaceOverlay,
+    completionToken: Long?,
+): AppendDayCompletionDecision = when {
+    completionToken == null -> AppendDayCompletionDecision.None
+    overlay == WorkspaceOverlay.AddTripDay -> AppendDayCompletionDecision.CloseOverlayAndConsume(completionToken)
+    else -> AppendDayCompletionDecision.Consume(completionToken)
 }
 
 @Composable
@@ -92,13 +109,13 @@ fun TripWorkspaceRoute(
     }
     fun closeOverlay() {
         val overlay = ready?.overlay ?: WorkspaceOverlay.None
-        if (!canDismissAddOverlay(overlay, addToItinerary)) return
+        if (!canDismissAddOverlay(overlay, addToItinerary) || overlay == WorkspaceOverlay.AddTripDay && itinerary.isAppendingDay) return
         dismissPendingDialogs()
         if (overlay.isAddToItineraryOverlay()) addToItineraryViewModel?.cancel()
         viewModel.closeOverlay()
     }
     fun leaveOrCloseOverlay() {
-        when (workspaceBackDecision(ready?.overlay ?: WorkspaceOverlay.None, addToItinerary)) {
+        when (workspaceBackDecision(ready?.overlay ?: WorkspaceOverlay.None, addToItinerary, itinerary.isAppendingDay)) {
             WorkspaceBackDecision.Ignore -> Unit
             WorkspaceBackDecision.CloseOverlay -> closeOverlay()
             WorkspaceBackDecision.LeaveWorkspace -> {
@@ -116,6 +133,21 @@ fun TripWorkspaceRoute(
     }
     LaunchedEffect(addToItinerary.step, addToItinerary.result, ready?.overlay) {
         addOverlayToPresent(ready?.overlay ?: WorkspaceOverlay.None, addToItinerary)?.let(viewModel::openOverlay)
+    }
+    LaunchedEffect(itinerary.appendDayCompletionToken) {
+        when (
+            val decision = appendDayCompletionDecision(
+                ready?.overlay ?: WorkspaceOverlay.None,
+                itinerary.appendDayCompletionToken,
+            )
+        ) {
+            AppendDayCompletionDecision.None -> Unit
+            is AppendDayCompletionDecision.Consume -> itineraryViewModel?.consumeAppendDayCompletion(decision.token)
+            is AppendDayCompletionDecision.CloseOverlayAndConsume -> {
+                viewModel.closeOverlay()
+                itineraryViewModel?.consumeAppendDayCompletion(decision.token)
+            }
+        }
     }
 
     LaunchedEffect(places.pendingCollectionRemoval) {

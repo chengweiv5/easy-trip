@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.itinerary.ui
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -14,6 +15,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.SelectablePill
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.workspace.ItineraryScope
@@ -52,12 +54,15 @@ fun ItineraryScopeRail(
             )
         }
         item(key = "ADD_DAY") {
-            SelectablePill(
-                selected = false,
+            CompactSecondaryButton(
                 onClick = onAddDay,
-                label = { Text("添加") },
-                modifier = Modifier.fillMaxWidth().testTag("itinerary-add-day"),
-            )
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .heightIn(min = 48.dp)
+                    .testTag("itinerary-add-day"),
+            ) {
+                Text("添加")
+            }
         }
     }
 }

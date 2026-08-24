@@ -41,6 +41,7 @@ data class DayItineraryUiState(
     val modeLegId: String? = null,
     val isAppendingDay: Boolean = false,
     val appendDayError: String? = null,
+    val appendDayCompletionToken: Long? = null,
     val error: String? = null,
 )
 
@@ -59,6 +60,7 @@ class DayItineraryViewModel(
     private var hasExternalSelection = false
     private var externalSelectedDayId: String? = null
     private val mutable = MutableStateFlow(DayItineraryUiState())
+    private var nextAppendDayCompletionToken = 0L
     val state: StateFlow<DayItineraryUiState> = mutable.asStateFlow()
 
     init {
@@ -108,12 +110,28 @@ class DayItineraryViewModel(
     }
 
     fun appendTripDay() {
-        if (mutable.value.isAppendingDay) return
+        if (mutable.value.isAppendingDay || mutable.value.appendDayCompletionToken != null) return
         mutable.value = mutable.value.copy(isAppendingDay = true, appendDayError = null)
         viewModelScope.launch {
             runCatching { tripService.appendTripDay(tripId) }
-                .onFailure { mutable.value = mutable.value.copy(appendDayError = it.message ?: "新增旅行日失败") }
-            mutable.value = mutable.value.copy(isAppendingDay = false)
+                .onSuccess {
+                    mutable.value = mutable.value.copy(
+                        isAppendingDay = false,
+                        appendDayCompletionToken = ++nextAppendDayCompletionToken,
+                    )
+                }
+                .onFailure {
+                    mutable.value = mutable.value.copy(
+                        isAppendingDay = false,
+                        appendDayError = it.message ?: "新增旅行日失败",
+                    )
+                }
+        }
+    }
+
+    fun consumeAppendDayCompletion(token: Long) {
+        if (mutable.value.appendDayCompletionToken == token) {
+            mutable.value = mutable.value.copy(appendDayCompletionToken = null)
         }
     }
 

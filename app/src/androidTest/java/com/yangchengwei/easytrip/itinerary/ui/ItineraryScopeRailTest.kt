@@ -11,9 +11,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -80,7 +85,11 @@ class ItineraryScopeRailTest {
         val addTop = compose.onNodeWithTag("itinerary-add-day").fetchSemanticsNode().positionInRoot.y
         assertTrue(wholeTop < firstTop && firstTop < secondTop && secondTop < addTop)
 
-        compose.onNodeWithTag("itinerary-add-day").assertIsNotSelected().performClick()
+        compose.onNodeWithTag("itinerary-add-day")
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Selected))
+            .performClick()
         assertEquals(1, addClicks)
         assertEquals(ItineraryScope.WholeTrip, selected)
     }

@@ -102,6 +102,36 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(WorkspaceBackDecision.LeaveWorkspace, workspaceBackDecision(WorkspaceOverlay.None, AddToItineraryUiState()))
     }
 
+    @Test fun appendDayBackPolicyLocksOnlyItsBusyOverlay() {
+        assertEquals(
+            WorkspaceBackDecision.Ignore,
+            workspaceBackDecision(WorkspaceOverlay.AddTripDay, AddToItineraryUiState(), isAppendingDay = true),
+        )
+        assertEquals(
+            WorkspaceBackDecision.CloseOverlay,
+            workspaceBackDecision(WorkspaceOverlay.AddTripDay, AddToItineraryUiState(), isAppendingDay = false),
+        )
+        assertEquals(
+            WorkspaceBackDecision.CloseOverlay,
+            workspaceBackDecision(WorkspaceOverlay.LayerMenu, AddToItineraryUiState(), isAppendingDay = true),
+        )
+    }
+
+    @Test fun appendCompletionClosesOnlyTheAppendOverlay() {
+        assertEquals(
+            AppendDayCompletionDecision.CloseOverlayAndConsume(1L),
+            appendDayCompletionDecision(WorkspaceOverlay.AddTripDay, completionToken = 1L),
+        )
+        assertEquals(
+            AppendDayCompletionDecision.Consume(1L),
+            appendDayCompletionDecision(WorkspaceOverlay.LayerMenu, completionToken = 1L),
+        )
+        assertEquals(
+            AppendDayCompletionDecision.None,
+            appendDayCompletionDecision(WorkspaceOverlay.AddTripDay, completionToken = null),
+        )
+    }
+
     @Test fun `add overlay waits behind unrelated overlay and restores after it closes`() {
         val addState = AddToItineraryUiState(
             editingTarget = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.FromPlacePool,

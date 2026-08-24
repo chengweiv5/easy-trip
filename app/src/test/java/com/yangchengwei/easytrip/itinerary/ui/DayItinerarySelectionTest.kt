@@ -79,7 +79,19 @@ class DayItinerarySelectionTest {
         pending.complete(Unit)
         advanceUntilIdle()
         assertEquals(false, model.state.value.isAppendingDay)
+        assertEquals(1L, model.state.value.appendDayCompletionToken)
         assertEquals("day-1", model.state.value.selectedDayId)
+
+        model.appendTripDay()
+        advanceUntilIdle()
+        assertEquals(1, trips.insertCalls)
+
+        model.consumeAppendDayCompletion(1L)
+        assertNull(model.state.value.appendDayCompletionToken)
+        model.appendTripDay()
+        advanceUntilIdle()
+        assertEquals(2L, model.state.value.appendDayCompletionToken)
+        assertEquals(2, trips.insertCalls)
     }
 
     @Test fun `append failure remains visible and can retry`() = runTest(dispatcher) {
@@ -97,6 +109,7 @@ class DayItinerarySelectionTest {
         model.appendTripDay()
         advanceUntilIdle()
         assertNull(model.state.value.appendDayError)
+        assertEquals(1L, model.state.value.appendDayCompletionToken)
         assertEquals(2, trips.insertCalls)
     }
 
