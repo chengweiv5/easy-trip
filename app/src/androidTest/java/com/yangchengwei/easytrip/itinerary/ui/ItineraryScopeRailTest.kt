@@ -10,11 +10,13 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -24,6 +26,7 @@ import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.workspace.ItineraryScope
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -54,6 +57,77 @@ class ItineraryScopeRailTest {
         compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").assertIsNotSelected()
         compose.onNodeWithTag("itinerary-scope-day-2").assertIsSelected()
         assertEquals(ItineraryScope.Day("day-2"), selected)
+    }
+
+    @Test
+    fun railOrdersWholeTripIndexedDaysThenNonScopeAddAction() {
+        var selected: ItineraryScope by mutableStateOf(ItineraryScope.WholeTrip)
+        var addClicks = 0
+        compose.setContent {
+            ItineraryScopeRail(
+                days = listOf(TripDay("day-2", 1), TripDay("day-1", 0)),
+                selected = selected,
+                onSelect = { selected = it },
+                onAddDay = { addClicks++ },
+                modifier = Modifier.height(220.dp),
+            )
+        }
+
+        compose.onNodeWithTag("itinerary-scope-rail").performScrollToNode(hasText("添加"))
+        val wholeTop = compose.onNodeWithText("全程").fetchSemanticsNode().positionInRoot.y
+        val firstTop = compose.onNodeWithText("第一天").fetchSemanticsNode().positionInRoot.y
+        val secondTop = compose.onNodeWithText("第二天").fetchSemanticsNode().positionInRoot.y
+        val addTop = compose.onNodeWithTag("itinerary-add-day").fetchSemanticsNode().positionInRoot.y
+        assertTrue(wholeTop < firstTop && firstTop < secondTop && secondTop < addTop)
+
+        compose.onNodeWithTag("itinerary-add-day").assertIsNotSelected().performClick()
+        assertEquals(1, addClicks)
+        assertEquals(ItineraryScope.WholeTrip, selected)
+    }
+
+    @Test
+    fun tripWithoutDaysStillShowsAddAction() {
+        compose.setContent {
+            ItineraryScopeRail(
+                days = emptyList(),
+                selected = ItineraryScope.WholeTrip,
+                onSelect = {},
+                onAddDay = {},
+            )
+        }
+
+        compose.onNodeWithTag("itinerary-add-day").assertIsDisplayed()
+        compose.onAllNodesWithTag("itinerary-scope-day-1").assertCountEquals(0)
+    }
+
+    @Test
+    fun addTripDayContentReportsBusyAndErrorWithoutOwningState() {
+        var confirms = 0
+        var closes = 0
+        compose.setContent {
+            AddTripDayContent(
+                isAppending = false,
+                error = "新增失败",
+                onConfirm = { confirms++ },
+                onClose = { closes++ },
+            )
+        }
+
+        compose.onNodeWithText("新增失败").assertIsDisplayed()
+        compose.onNodeWithText("添加一天").performClick()
+        compose.onNodeWithText("取消").performClick()
+        assertEquals(1, confirms)
+        assertEquals(1, closes)
+
+        compose.setContent {
+            AddTripDayContent(
+                isAppending = true,
+                error = null,
+                onConfirm = { confirms++ },
+                onClose = { closes++ },
+            )
+        }
+        compose.onNodeWithText("添加中…").assertIsDisplayed()
     }
 
     @Test

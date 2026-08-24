@@ -38,6 +38,7 @@ import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationDialog
 import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.AddTripDayContent
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
 import com.yangchengwei.easytrip.itinerary.ui.SelectPlacesContent
 import com.yangchengwei.easytrip.itinerary.ui.SelectTargetDayContent
@@ -364,8 +365,20 @@ private fun WorkspaceOverlayContent(
             },
         )
         is WorkspaceOverlay.Feedback -> AlertDialog(onDismissRequest = onClose, title = { Text(overlay.model.message) }, confirmButton = { CompactSecondaryButton(onClose) { Text("关闭") } })
-        is WorkspaceOverlay.PermissionExplanation,
-        WorkspaceOverlay.AddTripDay -> Unit
+        WorkspaceOverlay.AddTripDay -> AlertDialog(
+            onDismissRequest = { if (!itineraryState.isAppendingDay) onClose() },
+            title = { Text("添加旅行日") },
+            text = {
+                AddTripDayContent(
+                    isAppending = itineraryState.isAppendingDay,
+                    error = itineraryState.appendDayError,
+                    onConfirm = { onItineraryAction(DayItineraryAction.AppendTripDay) },
+                    onClose = onClose,
+                )
+            },
+            confirmButton = {},
+        )
+        is WorkspaceOverlay.PermissionExplanation -> Unit
     }
 }
 

@@ -23,6 +23,7 @@ fun ItineraryScopeRail(
     days: List<TripDay>,
     selected: ItineraryScope,
     onSelect: (ItineraryScope) -> Unit,
+    onAddDay: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     LazyColumn(
@@ -48,6 +49,14 @@ fun ItineraryScopeRail(
                 selected = selected == ItineraryScope.Day(day.id),
                 tag = "itinerary-scope-${day.id}",
                 onClick = { onSelect(ItineraryScope.Day(day.id)) },
+            )
+        }
+        item(key = "ADD_DAY") {
+            SelectablePill(
+                selected = false,
+                onClick = onAddDay,
+                label = { Text("添加") },
+                modifier = Modifier.fillMaxWidth().testTag("itinerary-add-day"),
             )
         }
     }

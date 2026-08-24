@@ -49,6 +49,31 @@ class TripServiceTest {
     }
 
     @Test
+    fun appendingDayUsesNullAnchorAndAfterSide() = runTest {
+        val repository = FakeTripRepository()
+        val service = TripService(repository)
+        val tripId = service.createTrip(CreateTrip("Kyoto", 2, TravelMode.FLEXIBLE))
+        val originalIds = repository.trip!!.days.map(TripDay::id)
+
+        val appendedId = service.appendTripDay(tripId)
+
+        assertEquals(listOf(originalIds[0], originalIds[1], appendedId), repository.trip!!.days.map(TripDay::id))
+        assertEquals(null, repository.lastInsertAnchor)
+        assertEquals(InsertSide.AFTER, repository.lastInsertSide)
+    }
+
+    @Test
+    fun appendingToTripWithoutDaysCreatesFirstDay() = runTest {
+        val repository = FakeTripRepository().apply {
+            trip = TripWithDays("trip", "Empty", null, TravelMode.FLEXIBLE, emptyList())
+        }
+
+        val appendedId = TripService(repository).appendTripDay("trip")
+
+        assertEquals(listOf(appendedId), repository.trip!!.days.map(TripDay::id))
+    }
+
+    @Test
     fun movingFirstDayToEndKeepsDayIds() = runTest {
         val repository = FakeTripRepository()
         val service = TripService(repository)
@@ -107,6 +132,8 @@ class TripServiceTest {
         var renamedTo: String? = null
         var travelModeSetTo: TravelMode? = null
         var deletedTripId: String? = null
+        var lastInsertAnchor: String? = "unset"
+        var lastInsertSide: InsertSide? = null
         var trip: TripWithDays? = null
         private var nextId = 1
         private val trips = MutableStateFlow<List<TripSummary>>(emptyList())
@@ -144,6 +171,8 @@ class TripServiceTest {
         }
 
         override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String {
+            lastInsertAnchor = anchorDayId
+            lastInsertSide = side
             val newId = id()
             val days = trip!!.days.toMutableList()
             val anchorIndex = anchorDayId?.let { id -> days.indexOfFirst { it.id == id } } ?: days.size

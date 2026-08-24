@@ -12,6 +12,7 @@ import com.yangchengwei.easytrip.route.domain.RouteLegRepository
 import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
+import com.yangchengwei.easytrip.trip.domain.TripService
 import java.time.LocalTime
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -36,6 +37,8 @@ data class DayItineraryUiState(
     val moveItemId: String? = null,
     val deleteItemId: String? = null,
     val modeLegId: String? = null,
+    val isAppendingDay: Boolean = false,
+    val appendDayError: String? = null,
     val error: String? = null,
 )
 
@@ -48,6 +51,7 @@ class DayItineraryViewModel(
     private var coordinator: RouteRefreshCoordinator?,
     savedPlaces: Flow<List<SavedPlace>> = emptyFlow(),
     selectedDays: Flow<String?> = emptyFlow(),
+    private val tripService: TripService = TripService(trips),
 ) : ViewModel() {
     private val selectedDay = MutableStateFlow<String?>(null)
     private var hasExternalSelection = false
@@ -99,6 +103,16 @@ class DayItineraryViewModel(
         val day = state.value.selectedDayId ?: return
         val index = state.value.items.size
         viewModelScope.launch { runCatching { itineraries.addItem(day, placeId, index) }.onFailure(::showError) }
+    }
+
+    fun appendTripDay() {
+        if (mutable.value.isAppendingDay) return
+        mutable.value = mutable.value.copy(isAppendingDay = true, appendDayError = null)
+        viewModelScope.launch {
+            runCatching { tripService.appendTripDay(tripId) }
+                .onFailure { mutable.value = mutable.value.copy(appendDayError = it.message ?: "新增旅行日失败") }
+            mutable.value = mutable.value.copy(isAppendingDay = false)
+        }
     }
 
     fun previewMove(itemId: String, target: Int) {
@@ -164,6 +178,7 @@ class DayItineraryViewModel(
 
     fun dispatch(action: DayItineraryAction) {
         when (action) {
+            DayItineraryAction.AppendTripDay -> appendTripDay()
             DayItineraryAction.AddPlaces -> Unit
             is DayItineraryAction.AddPlace -> addPlace(action.placeId)
             is DayItineraryAction.PreviewMove -> previewMove(action.itemId, action.target)

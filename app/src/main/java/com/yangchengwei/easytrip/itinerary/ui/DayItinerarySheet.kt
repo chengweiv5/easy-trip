@@ -25,6 +25,7 @@ fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Mod
 }
 
 sealed interface DayItineraryAction {
+    data object AppendTripDay : DayItineraryAction
     data object AddPlaces : DayItineraryAction
     data class AddPlace(val placeId: String) : DayItineraryAction
     data class PreviewMove(val itemId: String, val target: Int) : DayItineraryAction

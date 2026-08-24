@@ -16,6 +16,7 @@ import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.InsertSide
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
+import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import java.time.LocalDate
@@ -23,6 +24,7 @@ import java.time.LocalTime
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
@@ -61,6 +63,43 @@ class DayItinerarySelectionTest {
         assertEquals(listOf("item-2"), model.state.value.items.map(ItineraryItemUi::id))
     }
 
+    @Test fun `append stays busy blocks duplicate and keeps current selection`() = runTest(dispatcher) {
+        val trips = Trips(listOf(TripDay("day-1", 0)))
+        val pending = CompletableDeferred<Unit>()
+        trips.insertGate = pending
+        val model = model(trips, MutableStateFlow("day-1"))
+        advanceUntilIdle()
+
+        model.appendTripDay()
+        model.appendTripDay()
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(true, model.state.value.isAppendingDay)
+        assertEquals(1, trips.insertCalls)
+        pending.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(false, model.state.value.isAppendingDay)
+        assertEquals("day-1", model.state.value.selectedDayId)
+    }
+
+    @Test fun `append failure remains visible and can retry`() = runTest(dispatcher) {
+        val trips = Trips(emptyList())
+        trips.insertFailure = IllegalStateException("新增失败")
+        val model = model(trips, MutableStateFlow(null))
+        advanceUntilIdle()
+
+        model.appendTripDay()
+        advanceUntilIdle()
+
+        assertEquals("新增失败", model.state.value.appendDayError)
+        assertEquals(false, model.state.value.isAppendingDay)
+        trips.insertFailure = null
+        model.appendTripDay()
+        advanceUntilIdle()
+        assertNull(model.state.value.appendDayError)
+        assertEquals(2, trips.insertCalls)
+    }
+
     @Test fun `hidden external selection clears editing and dialog state`() = runTest(dispatcher) {
         val selected = MutableStateFlow<String?>("day-2")
         val model = model(Trips(listOf(TripDay("day-1", 0), TripDay("day-2", 1))), selected)
@@ -91,19 +130,31 @@ class DayItinerarySelectionTest {
         Legs(),
         null,
         selectedDays = selected,
+        tripService = TripService(trips),
     )
 
     private fun trip(days: List<TripDay>) = TripWithDays("trip", "Trip", LocalDate.of(2026, 8, 23), TravelMode.FLEXIBLE, days)
 
     private inner class Trips(days: List<TripDay>) : TripRepository {
         val value = MutableStateFlow<TripWithDays?>(trip(days))
+        var insertGate: CompletableDeferred<Unit>? = null
+        var insertFailure: Throwable? = null
+        var insertCalls = 0
         override fun observeTrip(tripId: String) = value
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit
-        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day"
+        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String {
+            insertCalls++
+            insertGate?.await()
+            insertFailure?.let { throw it }
+            val nextId = "day-${value.value!!.days.size + 1}"
+            val days = value.value!!.days + TripDay(nextId, value.value!!.days.size)
+            value.value = trip(days)
+            return nextId
+        }
         override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
         override suspend fun deleteDay(dayId: String) = Unit
         override suspend fun deleteTrip(tripId: String) = Unit

@@ -6,7 +6,6 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.createSavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.core.model.TravelMode
-import com.yangchengwei.easytrip.trip.domain.InsertSide
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
 import java.time.LocalDate
@@ -58,12 +57,6 @@ class TripSettingsViewModel(
     }
 
     fun rename(name: String) { viewModelScope.launch { service.renameTrip(tripId, name) } }
-    fun insertBefore(dayId: String) { viewModelScope.launch { service.insertDay(tripId, dayId, InsertSide.BEFORE) } }
-    fun insertAfter(dayId: String) { viewModelScope.launch { service.insertDay(tripId, dayId, InsertSide.AFTER) } }
-    fun appendDay() { viewModelScope.launch { service.insertDay(tripId, null, InsertSide.BEFORE) } }
-    fun move(dayId: String, target: Int) {
-        if (target in mutableState.value.days.indices) viewModelScope.launch { service.moveDay(tripId, dayId, target) }
-    }
     fun setStartDate(value: LocalDate?) { viewModelScope.launch { service.setStartDate(tripId, value) } }
     fun setTravelMode(value: TravelMode) { viewModelScope.launch { service.setTravelMode(tripId, value) } }
     fun requestDelete(day: DayUi) {

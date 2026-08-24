@@ -179,6 +179,7 @@ private fun WorkspaceReadyContent(
                             selected = state.itineraryScope,
                             wholeTripDays = state.wholeTripDays,
                             onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
+                            onAddDay = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
                             dayContent = {
                                 if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
                                     state = itineraryState,

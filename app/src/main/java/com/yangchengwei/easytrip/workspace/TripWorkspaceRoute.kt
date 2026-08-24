@@ -208,6 +208,7 @@ fun TripWorkspaceRoute(
         onRetryPartialAdd = { addToItineraryViewModel?.retryPartial() },
         onItineraryAction = { action ->
             when (action) {
+                DayItineraryAction.AppendTripDay -> dispatchItinerary(action)
                 DayItineraryAction.AddPlaces -> itinerary.selectedDayId?.let {
                     addToItineraryViewModel?.startForDay(it)
                 }

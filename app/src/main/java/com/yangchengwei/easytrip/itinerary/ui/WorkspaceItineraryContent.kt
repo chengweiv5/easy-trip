@@ -19,12 +19,14 @@ fun WorkspaceItineraryContent(
     onSelect: (ItineraryScope) -> Unit,
     dayContent: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    onAddDay: () -> Unit = {},
 ) {
     Row(modifier) {
         ItineraryScopeRail(
             days = days,
             selected = selected,
             onSelect = onSelect,
+            onAddDay = onAddDay,
             modifier = Modifier.fillMaxHeight(),
         )
         VerticalDivider()
