@@ -1,0 +1,63 @@
+# SDD ledger — plan: docs/superpowers/plans/2026-08-23-easy-trip-v1-full-ui-implementation.md
+
+Baseline: 397018f; `./gradlew testDebugUnitTest` BUILD SUCCESSFUL.
+
+## Preflight dependency scan
+
+| Task pair / task | Shared file or interface | Finding |
+|---|---|---|
+| 1 → 2 | TripListScreen, TripListViewModel, TripList tests | Task 1 removes dialog state; Task 2 builds list effects and visuals on the migrated list. Sequential and compatible. |
+| 1 → 3/4/12/13 | AppNavigation route constants | Task 1 establishes canonical routes consumed by later workspace/search/settings tasks. Compatible. |
+| 2 → 3 | ConfirmationUiModel | Task 3 consumes the shared confirmation model created by Task 2. Compatible. |
+| 3 → 5/7/13 | WorkspaceOverlay, TripWorkspaceContent/ViewModel | Later tasks extend the sealed overlay and coordinated state. Compatible if all variants are centralized in Task 3. |
+| 3 ↔ 13 | PermissionKind and FeedbackUiModel | Plan references both in Task 3 but defines permission behavior in Task 13. Ruling required. |
+| 4 → 5 | Search route and Room-backed collection | Task 5 consumes search return behavior and place data. Compatible. |
+| 5 → 7 | PlacePoolViewModel and selection rows | Task 7 adds selection state to the distinct SavedPlaceRow established in Task 5. Compatible. |
+| 6 → 7 | AddPlacesOutcome | Task 7 consumes use-case result types from Task 6. Compatible. |
+| 7 → 8 | WorkspaceOverlay and day navigation | Task 8 adds AddTripDay behavior to centralized state from Task 7. Compatible. |
+| 8 → 12 | TripSettingsContent | Task 8 removes Add Day; Task 12 replaces settings content while preserving that invariant. Compatible. |
+| 9 → 10 | DayItineraryViewModel and edit tests | Task 10 extends the editor from Task 9 with route-leg behavior. Compatible. |
+| 10 → 11 | WorkspaceItineraryContent | Task 11 adds whole-trip read-only mode and sheet states after single-day behavior is stable. Compatible. |
+| 3/11 → 13 | TripWorkspaceRoute/Content/ViewModel | Task 13 extends existing coordinator with permission effects, not a second coordinator. Compatible. |
+| 1–13 → 14 | V1Scenario fixture assertions | Task 14 validates accumulated behavior and does not redefine production interfaces. Compatible. |
+| Task 1 | Tests vs files | Test intent matches full-page migration and state extraction. |
+| Task 2 | Tests vs files | Test intent matches list visual/state and deletion impact. |
+| Task 3 | Tests vs files | Internal mismatch: referenced types not yet defined. Ruling below. |
+| Tasks 4–14 | Tests vs files | Internally consistent; repository method details must follow existing interfaces and spec. |
+
+Ruling: Task 3 defines minimal `PermissionKind` and `FeedbackUiModel` in workspace UI models because its sealed overlay must compile; Task 13 implements permission classification/effects without redefining those types — if wrong, Task 13 may need a small type move/refactor.
+Ruling: Plan examples use Long IDs to match current app conventions unless current symbols prove otherwise; implementers must inspect existing signatures and preserve them — if wrong, interface names in briefs require correction before implementation.
+Ruling: Per-batch device gate is binding. If no device is available after Tasks 1–2, execution stops before Task 3 rather than pretending the batch is complete — cost if wrong: slower overall delivery but preserves approved acceptance discipline.
+Ruling superseded by user authorization: continue autonomously through all five batches after each passes automated checks plus agent-run emulator interaction and Pencil screenshot comparison. Notify the user once, after all five batches pass, for final physical-device acceptance. Stop earlier only for an irreversible/destructive external action, required user device unlock/authorization, a security-sensitive decision, or a design/product conflict that cannot be resolved from the approved formula/spec — cost if wrong: physical-device-only issues may be discovered at final acceptance, but reproducible emulator evidence remains recorded per batch.
+
+Task 1: fix round 1/5 (3 addressed, 1 open — real ViewModel-driven validation transition test; commits 80fde1c..f67d252)
+Task 1: fix round 2/5 (1 addressed, 0 open — commit f67d252..0e3b73e)
+Task 1: complete (commits 397018f..0e3b73e, review clean)
+Concern retained for batch gate: IME evidence is real focus/input + 500dp viewport + visible/clickable submit; instrumentation cannot reliably inspect system IME visibility.
+Task 2: fix round 1/5 (3 addressed, 0 open — commit 80d14bc..aa6c00e)
+Task 2: complete (commits 0e3b73e..aa6c00e, review clean)
+
+Batch 1 gate: in progress.
+Batch 1 functional device flow: passed on emulator-5554 — cold-start empty → create validation → valid create → decline AMap consent → workspace → list → reopen → delete impact confirmation → delete → empty. Evidence under `/tmp/easy-trip-batch1-*.png` and `.xml`.
+Batch 1 visual gate: failed initial comparison for `zIbEu`, `K9h3r`, `dzhkC`, `yIGiQ`, `oW9mK`, and `d1sTtb`; visual fix dispatched from baseline `aa6c00e`. Input concern included: days starts at `0`, so typing `3` appends to `30`.
+Batch 1 visual fix attempt 1: no code produced — implementer hit `context_length_exceeded` while loading high-resolution visual evidence. Ruling: retry with a fresh implementer using Pencil node properties and resized/local evidence only; raw 1220×2700 screenshots are controller evidence, not mandatory model input.
+Batch 1 visual fix attempt 2: implementer isolation started at wrong baseline `1734a44` and target-worktree access was correctly denied. Ruling: continue entirely inside the agent-owned worktree after switching it to detached baseline `aa6c00e`; controller cherry-picked agent commit `e5b46cd` as `f3d5903`.
+Batch 1 visual fix review: FAIL (Spec FAIL, Quality FAIL) — 4 Important: list structures still semantic placeholders vs `zIbEu`/`K9h3r`/`d1sTtb`; create page only changed CTA height; confirmation dialog fixed 334dp width lacks small-screen height/scroll proof; metadata Row can overflow while its test only checks root width. 2 Minor: days-input test does not use real ViewModel/RED; report SHA missing. Functional state/Room/delete semantics preserved.
+Batch 1 visual fix round 1/5: complete — agent `1ffee51`, controller `b505ffd`; 4 Important and 2 Minor addressed. Metadata-only correction `482e5cd`.
+Batch 1 visual fix scoped re-review: PASS (Spec PASS, Quality PASS), no open findings.
+Batch 1 final automated gate: PASS — `testDebugUnitTest lintDebug assembleDebug` BUILD SUCCESSFUL; `connectedDebugAndroidTest` ran 22/22 on both `easy_trip_p60pro` and `trail_map_api36` with 0 failures.
+Batch 1 final emulator flow and visual gate: PASS on `emulator-5554` — latest APK cold-start empty → create validation → valid create → decline AMap consent → workspace → list → reopen/return → deletion impact confirmation → delete → empty. Final evidence: `/tmp/easy-trip-batch1-final-{empty,create,validation,workspace,list-created,delete-confirm,deleted-empty}.png` plus matching XML dumps. Manual comparison passed for `zIbEu`, `dzhkC`, `yIGiQ`, `K9h3r`, `oW9mK`, and `d1sTtb`; no visual fix round 2 required.
+Batch 1 gate: complete.
+Task 3: initial implementation `5212e04`; independent review FAIL (Spec FAIL, Quality FAIL) — 1 Critical: actual map/place/itinerary overlays still use parallel nullable state outside `WorkspaceOverlay`; 2 Important: Route does not compose child state and Content subtree still collects child ViewModel flows, and Back tests do not cover real Route/system/top-bar call chains.
+Task 3: fix round 1/5 `fb80ceb`; scoped re-review still FAIL — original Critical PARTIAL (closing map detail leaves stale selectedMapPoi/selectedMarkerKey payload, so a later PlaceDetail can render old content); original two Important FIXED (production Route/Content boundary and real Back call-chain tests). New Important: place deletion confirmation opens before async `deleting` state is ready, so fast confirm can close without deleting.
+Task 3: fix round 2/5 `4f9bc88`; scoped re-review still FAIL — stale map payload Critical FIXED; async delete confirmation Important PARTIAL. Remaining race: in-flight impact query is neither cancelled nor identity-checked, so Back/explicit close/overlay switch or a newer delete request can be overwritten by an old completion and reopen stale confirmation.
+Task 3: fix round 3/5 `b3f1fa7`; final scoped re-review PASS (Spec PASS, Quality PASS) — async deletion preparation now uses Job cancellation plus monotonic request identity; Back, explicit close, overlay replacement, cancellation, and A/B out-of-order completions cannot publish stale confirmation. No open findings.
+Task 3: complete (commits `5212e04`, `fb80ceb`, `4f9bc88`, `b3f1fa7`; review clean).
+Task 4: initial implementation `5d10195`; independent review FAIL (Spec FAIL, Quality FAIL) — 4 Important: removal confirmation permits duplicate concurrent submit; deprecated search wrapper exposes silently broken production actions; legacy search-result callback/SavedState APIs remain callable; clear button hit target is only 32dp. 2 Minor: restore test does not prove automatic search/stale isolation; responsive Compose tests do not inspect real bounds. AMap `createContext failed: EGL_SUCCESS` has no evidence of being introduced by Task 4 and does not block code review, but blocks complete device acceptance for real results/empty/continuous-collection states.
+Task 4: fix round 1/5 `391f871`; scoped re-review: Code Quality PASS, Spec still FAIL only for one Minor PARTIAL — all 4 Important plus SavedState Minor FIXED; 280dp/2× tests still do not read Results action and Empty/Failure body/button bounds or prove containment/non-overlap. AMap EGL remains unrelated to code gate but blocks complete device acceptance.
+Task 4: fix round 2/5 `faa8a85`; scoped re-review: Code Quality PASS, Spec still FAIL only for Minor #6 PARTIAL. Three states now use real bounds and containment checks, but Empty/Failure still lack icon-title-description-action adjacent-pair non-overlap assertions, and action targets assert height only rather than both width and height >=48dp.
+Task 4: fix round 3/5 `d1172c7`; final scoped re-review PASS (Spec PASS, Quality PASS) — Empty/Failure use real icon—title—description—action bounds at 280dp / 2× font, all adjacent pairs are non-overlapping and contained; Results/Empty/Failure actions are at least 48dp on both axes. No open findings.
+Task 4 code gate: complete (commits `5d10195`, `391f871`, `faa8a85`, `d1172c7`; review clean).
+Task 4 device gate: complete. Real-device production flow passed with AMap consent: real search results rendered, multiple places were collected sequentially without leaving search, collected places remained visible after returning to the place pool, and a real empty response carrying suggestions rendered Empty rather than NetworkFailure. Earlier emulator AMap/EGL crashes are retained as environment history only and no longer block acceptance.
+Task 4 final verification: focused PlaceContracts/Search JVM tests PASS; `PlaceSearchContentTest`, `RoomSavedPlaceRepositoryTest`, and `PlacePoolFlowTest` 13/13 PASS on `easy_trip_p60pro`; `testDebugUnitTest lintDebug assembleDebug` BUILD SUCCESSFUL.
+Task 4: complete (commits `5d10195`, `391f871`, `faa8a85`, `d1172c7`, `4d41d7c`, `351ff08`, plus final closeout commit; code review clean, device gate passed).

@@ -1,10 +1,8 @@
 package com.yangchengwei.easytrip.place.amap
 
-import com.yangchengwei.easytrip.amap.AmapServiceException
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertThrows
 import org.junit.Test
 
 class PlaceContractsTest {
@@ -23,8 +21,7 @@ class PlaceContractsTest {
         assertEquals(emptyList<PlaceCandidate>(), parsePlaces(emptyList(), emptyList()))
     }
 
-    @Test fun emptyPlacesWithSuggestionsAreStructuredFailure() {
-        val error = assertThrows(AmapServiceException::class.java) { parsePlaces(emptyList(), listOf("北京")) }
-        assertEquals("POI_EMPTY", error.operation)
+    @Test fun emptyPlacesWithSuggestionsReturnEmptyResults() {
+        assertEquals(emptyList<PlaceCandidate>(), parsePlaces(emptyList(), listOf("北京")))
     }
 }

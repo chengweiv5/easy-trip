@@ -53,7 +53,7 @@ GREEN 阶段最终验证：
 - `task-4-evidence/loading.png`
 - `task-4-evidence/failure.png`
 
-生产环境结果态、空态和连续收藏未能通过真实高德数据手工验证：同意隐私后 AMap `GLSurfaceView` 在该模拟器以 `java.lang.RuntimeException: createContext failed: EGL_SUCCESS` 崩溃。对应状态与连续收藏已由 Compose/JVM/Room 自动化测试覆盖。
+后续真实设备门禁已通过：同意高德隐私政策后，真实 API 搜索结果可见，可连续收藏多个地点，返回地点池后收藏结果均可见。真实 API 的空结果回调可能同时携带 `suggestions`；该响应已验证为正常空态，不再误报网络失败。早先模拟器上的 AMap `GLSurfaceView` / EGL 崩溃仅保留为模拟器环境记录，不再阻塞 Task 4 设备验收。
 
 ## 修改文件
 
@@ -116,19 +116,22 @@ Fix round GREEN 验证：
 
 - 根因：高德 SDK 成功码回调在 `pois` 为空时进入 `parsePlaces`；旧实现无论 `suggestions` 是否为空都抛出 `POI_EMPTY`，随后 `PlaceSearchReducer` 将该异常映射为 `NetworkFailure`，因此绕过了其已有的“空列表 → `PlaceSearchPhase.Empty`”分支。
 - RED：新增最小生产边界测试 `emptyPlacesWithoutSuggestionsReturnEmptyResults`；旧实现抛出 `AmapServiceException`，聚焦测试 1/1 按预期失败。
-- GREEN：仅在候选为空且存在 suggestions 时保留 `POI_EMPTY` 结构化失败；候选和 suggestions 都为空时返回空列表。网络错误码路径及有 suggestions 的失败语义未修改。
-- 验证：`PlaceContractsTest` 通过；`PlaceContractsTest`、Task 4 `PlaceSearch*` 与 `CollectionTogglePolicyTest` 联合 JVM 测试通过。
-- 提交说明：本轮使用 `Map empty POI responses to empty state`，SHA 以该本地提交为准；未 push。
+- 初版 GREEN 仅在候选和 suggestions 都为空时返回空列表，候选为空但存在 suggestions 时仍保留 `POI_EMPTY`；真实 API 验证证明这一假设不成立，因为正常空结果也可能携带 suggestions。
+- 最终修复：高德成功码回调中，只要过滤后没有有效地点就返回空列表，由 `PlaceSearchReducer` 进入 `PlaceSearchPhase.Empty`；高德非成功码仍由 `AmapPlaceDataSource` 在解析前映射为 `POI_SEARCH` 网络失败，不受影响。
+- 测试覆盖：`emptyPlacesWithoutSuggestionsReturnEmptyResults` 与 `emptyPlacesWithSuggestionsReturnEmptyResults` 同时锁定两种正常空结果。
+- 验证：`./gradlew testDebugUnitTest --tests "com.yangchengwei.easytrip.place.amap.PlaceContractsTest" --tests "com.yangchengwei.easytrip.place.ui.PlaceSearch*" --tests "com.yangchengwei.easytrip.place.ui.CollectionTogglePolicyTest"`：成功；`ANDROID_SERIAL=emulator-5554 ./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest,com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepositoryTest,com.yangchengwei.easytrip.place.ui.PlacePoolFlowTest`：13/13 成功；`./gradlew testDebugUnitTest lintDebug assembleDebug`：成功。
+- 中间提交 `4d41d7c`（`Map empty POI responses to empty state`）只覆盖无 suggestions 空结果；最终提交见“提交”章节，未 push。
 
 ## Graphify
 
-已运行 `graphify update .`。`graphify-out` 生成物未纳入 Task 4 提交。
+已运行 `graphify update .`。仅纳入项目正式图谱产物；未纳入缓存。
 
 ## 自审与关注点
 
 - 搜索生产入口及 API 已不存在结果选择、SavedState 回传、自动返回或加入行程旁路。
-- 真实结果态和连续收藏的模拟器手工证据仍受 AMap/EGL 环境阻塞；不能声明完整设备 gate 通过，且现有证据不足以将该问题归因于 Task 4。
+- 真实设备已覆盖真实结果、连续收藏、返回地点池与携带 suggestions 的空结果，Task 4 device gate 完成。
+- 无剩余 Task 4 阻塞项。
 
 ## 提交
 
-首轮提交：`5d10195f449affbac14b60a3a5782067e2456443`（`Support continuous collection from place search`）。Fix round 1 最终 SHA 以本报告所在本地提交为准。
+Task 4 提交链：`5d10195`、`391f871`、`faa8a85`、`d1172c7`、`4d41d7c`、`351ff08`，以及本报告所在最终收尾提交；均未 push。
