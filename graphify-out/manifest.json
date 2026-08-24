@@ -240,15 +240,15 @@
     "semantic_hash": "2647883925e8392ebde944d05b91c511"
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItinerarySheet.kt": {
-    "mtime": 1787584951.7078366,
-    "seen": 1787587181.022839,
-    "ast_hash": "c8d1aa5686e35ea5c4f11e7757d63a4d",
+    "mtime": 1787588939.0985515,
+    "seen": 1787588990.565838,
+    "ast_hash": "a4e6ec9da027e2014400199486f3cdc3",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModel.kt": {
-    "mtime": 1787584951.7080047,
-    "seen": 1787587181.02284,
-    "ast_hash": "cdeebd7f70acfef2db758cb6b3d8166a",
+    "mtime": 1787588939.099263,
+    "seen": 1787588990.565839,
+    "ast_hash": "b6ae6c608417076821fed898589c0159",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DaySelector.kt": {
@@ -438,10 +438,10 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/domain/TripService.kt": {
-    "mtime": 1787495599.254816,
-    "seen": 1787545418.4194539,
-    "ast_hash": "dc76c00e5c452672cfb510b914e75b05",
-    "semantic_hash": "dc76c00e5c452672cfb510b914e75b05"
+    "mtime": 1787588939.1014874,
+    "seen": 1787588990.565871,
+    "ast_hash": "32db319b248be5f43362d3abda740ed8",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/RoomDayContentCounter.kt": {
     "mtime": 1787495599.2560623,
@@ -468,10 +468,10 @@
     "semantic_hash": "37f252f78240313e0fc950c0de7bd429"
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsViewModel.kt": {
-    "mtime": 1787495599.2576308,
-    "seen": 1787545418.419461,
-    "ast_hash": "dd9e4df583eae5f3a85889cd626bd7ce",
-    "semantic_hash": "dd9e4df583eae5f3a85889cd626bd7ce"
+    "mtime": 1787588939.101878,
+    "seen": 1787588990.565878,
+    "ast_hash": "516b7111fc9edd1247e17cb24b3a280f",
+    "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/AmapComposeMap.kt": {
     "mtime": 1787495599.2580545,
@@ -492,9 +492,9 @@
     "semantic_hash": "2657e665276c353325e422507451d5b7"
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt": {
-    "mtime": 1787584951.7092633,
-    "seen": 1787587181.022888,
-    "ast_hash": "fef2705783f0fc55dec53b6cb9840a0d",
+    "mtime": 1787588939.1044796,
+    "seen": 1787588990.5658848,
+    "ast_hash": "af3bf8e66620d0f9acdbfce76899681d",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceViewModel.kt": {
@@ -582,10 +582,10 @@
     "semantic_hash": "b4b2ef6456cbb704589bae7f28465f66"
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/domain/TripServiceTest.kt": {
-    "mtime": 1787495599.2781613,
-    "seen": 1787545418.4194822,
-    "ast_hash": "50f92b7ecb447d81ed22842f54f49f11",
-    "semantic_hash": "50f92b7ecb447d81ed22842f54f49f11"
+    "mtime": 1787588939.1056082,
+    "seen": 1787588990.565908,
+    "ast_hash": "e4fc8bd62ab8acc6c744324ab3b0cba2",
+    "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/MapLifecycleControllerTest.kt": {
     "mtime": 1787495599.2807677,
@@ -828,9 +828,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryScopeRailTest.kt": {
-    "mtime": 1787495599.2196121,
-    "seen": 1787545418.419395,
-    "ast_hash": "540ccdc88cda03a5d5e75dd57c1ac302",
+    "mtime": 1787588939.0974555,
+    "seen": 1787588990.5657952,
+    "ast_hash": "202000744420d1a775f2a5fa66363764",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContentTest.kt": {
@@ -846,9 +846,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryScopeRail.kt": {
-    "mtime": 1787495599.2390954,
-    "seen": 1787545418.4194298,
-    "ast_hash": "62c95828567571026605da23b8feeeb9",
+    "mtime": 1787588939.0999017,
+    "seen": 1787588990.565841,
+    "ast_hash": "0032e4e8eb7fa1a4e04047798ee5ff5e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryUiModels.kt": {
@@ -864,9 +864,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/WorkspaceItineraryContent.kt": {
-    "mtime": 1787495599.2408466,
-    "seen": 1787545418.419434,
-    "ast_hash": "66b2d381f40867f5a1c063234abade07",
+    "mtime": 1787588939.1003225,
+    "seen": 1787588990.565846,
+    "ast_hash": "3457c5d6028c1c4205e3d04f7112a021",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/CollectionTogglePolicy.kt": {
@@ -888,9 +888,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/itinerary/ui/DayItinerarySelectionTest.kt": {
-    "mtime": 1787495599.2733738,
-    "seen": 1787545418.419473,
-    "ast_hash": "ae59f6165869d353b97c1f2b2bb635e6",
+    "mtime": 1787588939.1049778,
+    "seen": 1787588990.565897,
+    "ast_hash": "6d3e482a79fd9db05d731e4375877457",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryMapperTest.kt": {
@@ -1056,9 +1056,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContent.kt": {
-    "mtime": 1787567930.6713052,
-    "seen": 1787581264.274987,
-    "ast_hash": "c95f58c6efc4167deb26b28e2a48750c",
+    "mtime": 1787588939.1027243,
+    "seen": 1787588990.5658839,
+    "ast_hash": "f9020c9a46de365e7682b205ab14abb8",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceMapFallback.kt": {
@@ -1236,9 +1236,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceRoute.kt": {
-    "mtime": 1787588085.3535936,
-    "seen": 1787588096.984409,
-    "ast_hash": "fe64df4a578f074a1835455626da7a5e",
+    "mtime": 1787588939.1039138,
+    "seen": 1787588990.5658848,
+    "ast_hash": "17f096aedc5be85b16121dea8af89c9f",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt": {
@@ -1545,6 +1545,12 @@
     "mtime": 1787587467.4685047,
     "seen": 1787587487.51213,
     "ast_hash": "f4a5e43b4d7e3ba126ffa3e8b0ed439b",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/AddTripDayContent.kt": {
+    "mtime": 1787588939.0977993,
+    "seen": 1787588990.5658371,
+    "ast_hash": "18b3a43cf1237139292cd112a3afd93a",
     "semantic_hash": ""
   }
 }
