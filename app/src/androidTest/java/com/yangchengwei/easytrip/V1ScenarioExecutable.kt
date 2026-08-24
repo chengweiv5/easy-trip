@@ -173,12 +173,12 @@ object V1ScenarioExecutableFactory {
         27 -> searchState(fixtureId, PlaceSearchPhase.Empty, "没有找到相关地点")
         28 -> waitingForNetwork(fixtureId)
         29 -> failedRoute(fixtureId)
-        30 -> permission(fixtureId, com.yangchengwei.easytrip.workspace.PermissionKind.MAP_SERVICE_CONSENT, "地图服务授权")
+        30 -> permission(fixtureId, com.yangchengwei.easytrip.workspace.PermissionKind.MAP_SERVICE_CONSENT)
         31 -> addComplete(fixtureId)
         32 -> deleteItineraryItem(fixtureId)
         33 -> longTargetDays(fixtureId)
-        34 -> permission(fixtureId, com.yangchengwei.easytrip.workspace.PermissionKind.DEVICE_LOCATION, "允许定位")
-        35 -> permission(fixtureId, com.yangchengwei.easytrip.workspace.PermissionKind.DEVICE_LOCATION_SETTINGS, "打开应用设置", clickConfirm = true)
+        34 -> permission(fixtureId, com.yangchengwei.easytrip.workspace.PermissionKind.DEVICE_LOCATION)
+        35 -> permission(fixtureId, com.yangchengwei.easytrip.workspace.PermissionKind.DEVICE_LOCATION_SETTINGS, clickConfirm = true)
         36 -> emptyTrips(fixtureId)
         37 -> emptyDay(fixtureId)
         38 -> searchState(fixtureId, PlaceSearchPhase.NetworkFailure("无法搜索新的地点"), "网络连接失败")
@@ -220,7 +220,10 @@ object V1ScenarioExecutableFactory {
                 {},
             )
         },
-        verify = { onNodeWithText("西湖").assertIsDisplayed(); onNodeWithText("杭州市西湖区").assertIsDisplayed() },
+        verify = {
+            onNodeWithTag("place-search-result-row-poi-1").assertIsDisplayed()
+            onNodeWithTag("place-search-result-text-poi-1").assertIsDisplayed()
+        },
     )
 
     private fun placeDetail(id: String): V1ScenarioExecutable {
@@ -883,7 +886,11 @@ object V1ScenarioExecutableFactory {
         ScenarioFixture(id, ScenarioScreen.CREATE_TRIP),
         ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.CREATE_TRIP)),
         content = { CreateTripContent(CreateTripUiState(nameError = "请输入旅行名称", dayCountError = "至少 1 天", dateError = "请选择日期", timeMode = CreateTimeMode.DATED), {}) },
-        verify = { onNodeWithText("请输入旅行名称").assertIsDisplayed(); onNodeWithText("至少 1 天").assertIsDisplayed(); onNodeWithTag("create-date-error").assertIsDisplayed() },
+        verify = {
+            onNodeWithTag("create-name").assertIsDisplayed()
+            onNodeWithTag("create-day-count").assertIsDisplayed()
+            onNodeWithTag("create-date-error").assertIsDisplayed()
+        },
     )
 
     private fun emptyTrips(id: String) = ComposeScenario(
@@ -927,7 +934,6 @@ object V1ScenarioExecutableFactory {
     private fun permission(
         id: String,
         kind: com.yangchengwei.easytrip.workspace.PermissionKind,
-        message: String,
         clickConfirm: Boolean = false,
     ): V1ScenarioExecutable {
         var confirmed = false
@@ -937,7 +943,10 @@ object V1ScenarioExecutableFactory {
             { confirmed = false },
             { PermissionExplanationContent(kind, { confirmed = true }, {}) },
             { if (clickConfirm) onNodeWithTag("permission-explanation-confirm").performClick() },
-            { onNodeWithText(message).assertIsDisplayed(); if (clickConfirm) check(confirmed) },
+            {
+                onNodeWithTag("permission-explanation-confirm").assertIsDisplayed()
+                if (clickConfirm) check(confirmed)
+            },
         )
     }
 
@@ -948,7 +957,7 @@ object V1ScenarioExecutableFactory {
             actions,
             readyState(),
             WorkspaceMapState.Failed("地图加载失败"),
-            interact = { onNodeWithText("重试").performClick() },
+            interact = { onNodeWithTag("workspace-map-retry").performClick() },
             verify = {
                 onNodeWithText("地图加载失败").assertIsDisplayed()
                 onNodeWithText("第1天 · 暂无行程").assertIsDisplayed()

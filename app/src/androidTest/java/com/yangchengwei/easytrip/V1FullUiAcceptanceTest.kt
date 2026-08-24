@@ -13,10 +13,13 @@ class V1FullUiAcceptanceTest(private val scenario: V1Scenario) {
 
     @Test
     fun executesDeclaredStateAndBehavior() {
-        scenario.executable.setup()
-        scenario.executable.render(compose)
-        scenario.executable.actions(compose)
-        scenario.executable.assertions(compose)
+        val executable = scenario.createExecutable()
+        executable.setup()
+        executable.render(compose)
+        compose.waitForIdle()
+        executable.actions(compose)
+        compose.waitForIdle()
+        executable.assertions(compose)
     }
     override fun toString(): String = "${scenario.number.toString().padStart(2, '0')} ${scenario.name}"
 

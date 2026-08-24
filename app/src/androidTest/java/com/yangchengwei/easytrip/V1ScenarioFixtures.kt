@@ -6,11 +6,13 @@ data class V1Scenario(
     val frameId: String,
     val journey: String?,
     val matrix: String?,
-    val executable: V1ScenarioExecutable,
+    private val executableFactory: () -> V1ScenarioExecutable,
     val assertions: List<ScenarioAssertion>,
     val variants: List<V1ScenarioVariant> = emptyList(),
     val physicalDeviceUiStatus: PhysicalDeviceUiStatus = PhysicalDeviceUiStatus.PENDING,
-)
+) {
+    fun createExecutable(): V1ScenarioExecutable = executableFactory()
+}
 
 data class V1ScenarioVariant(
     val parentNumber: Int,
@@ -105,7 +107,7 @@ object V1ScenarioFixtures {
         frameId = frameId,
         journey = journey,
         matrix = matrix,
-        executable = V1ScenarioExecutableFactory.create(number, frameId, fixture),
+        executableFactory = { V1ScenarioExecutableFactory.create(number, frameId, fixture) },
         assertions = listOf(
             ScenarioAssertion(BlockerCategory.FUNCTIONAL_STATE, expected),
             ScenarioAssertion(blocker, "$name 不触发 ${blocker.name.lowercase()} blocker"),

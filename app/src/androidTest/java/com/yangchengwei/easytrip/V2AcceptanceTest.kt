@@ -12,8 +12,8 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -115,7 +115,8 @@ class V2AcceptanceTest {
         compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
         compose.onNodeWithTag("section-ITINERARY").assertExists()
         compose.onNodeWithTag("itinerary-scope-rail").assertDoesNotExist()
-        compose.onNodeWithContentDescription("搜索地点").assertHasClickAction().performClick()
+        compose.onNodeWithTag("workspace-search-surface").assertHasClickAction().performClick()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("place-search-field").fetchSemanticsNodes().size == 1 }
         compose.onNodeWithTag("place-search-field").performTextInput("博物馆")
         compose.waitUntil(5_000) { searchModel.state.value.search.results.size == 2 }
         compose.onAllNodesWithText("加入行程").assertCountEquals(0)

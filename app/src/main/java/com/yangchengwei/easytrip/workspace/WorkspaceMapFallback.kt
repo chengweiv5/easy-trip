@@ -36,7 +36,7 @@ fun WorkspaceMapFallback(
             }
             is WorkspaceMapState.Failed -> {
                 Text(state.message)
-                TextButton(onRetry) { Text("重试地图") }
+                TextButton(onRetry, Modifier.testTag("workspace-map-retry")) { Text("重试地图") }
             }
             WorkspaceMapState.Ready -> Unit
         }

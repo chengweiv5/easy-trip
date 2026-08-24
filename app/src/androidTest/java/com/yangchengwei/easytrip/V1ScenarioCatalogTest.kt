@@ -5,6 +5,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotSame
 import org.junit.Assert.assertThrows
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -19,12 +20,13 @@ class V1ScenarioCatalogTest(private val scenario: V1Scenario) {
 
     @Test
     fun executesProductionScenario() {
-        scenario.executable.setup()
-        scenario.executable.render(compose)
+        val executable = scenario.createExecutable()
+        executable.setup()
+        executable.render(compose)
         compose.waitForIdle()
-        scenario.executable.actions(compose)
+        executable.actions(compose)
         compose.waitForIdle()
-        scenario.executable.assertions(compose)
+        executable.assertions(compose)
     }
 
     companion object {
@@ -60,16 +62,24 @@ class V1ScenarioMetadataTest {
     @Test
     fun everyScenarioHasTypedExecutableFixturePathAndAssertions() {
         V1ScenarioFixtures.scenarios.forEach { scenario ->
+            val executable = scenario.createExecutable()
             assertTrue("scenario ${scenario.number} frame", scenario.frameId.isNotBlank())
-            assertTrue("scenario ${scenario.number} fixture", scenario.executable.fixture.id.isNotBlank())
-            assertTrue("scenario ${scenario.number} path", scenario.executable.reachablePath.steps.isNotEmpty())
+            assertTrue("scenario ${scenario.number} fixture", executable.fixture.id.isNotBlank())
+            assertTrue("scenario ${scenario.number} path", executable.reachablePath.steps.isNotEmpty())
             assertEquals(
                 "scenario ${scenario.number} path target",
-                scenario.executable.fixture.screen,
-                scenario.executable.reachablePath.steps.last(),
+                executable.fixture.screen,
+                executable.reachablePath.steps.last(),
             )
             assertTrue("scenario ${scenario.number} assertions", scenario.assertions.isNotEmpty())
             assertEquals(PhysicalDeviceUiStatus.PENDING, scenario.physicalDeviceUiStatus)
+        }
+    }
+
+    @Test
+    fun eachSuiteGetsAnIndependentExecutableFixture() {
+        V1ScenarioFixtures.scenarios.forEach { scenario ->
+            assertNotSame(scenario.createExecutable(), scenario.createExecutable())
         }
     }
 
@@ -125,7 +135,7 @@ class V1ScenarioMetadataTest {
             48 to ScenarioScreen.ITEM_EDITOR,
         )
 
-        assertEquals(expected, V1ScenarioFixtures.scenarios.associate { it.number to it.executable.fixture.screen })
+        assertEquals(expected, V1ScenarioFixtures.scenarios.associate { it.number to it.createExecutable().fixture.screen })
     }
 
     @Test
@@ -136,7 +146,7 @@ class V1ScenarioMetadataTest {
             val fixtureSource = scenarios.getValue(fixtureSourceNumber)
 
             assertThrows(IllegalArgumentException::class.java) {
-                V1ScenarioExecutableFactory.create(scenarioNumber, fixtureSource.frameId, fixtureSource.executable.fixture.id).setup()
+                V1ScenarioExecutableFactory.create(scenarioNumber, fixtureSource.frameId, fixtureSource.createExecutable().fixture.id).setup()
             }
         }
     }
