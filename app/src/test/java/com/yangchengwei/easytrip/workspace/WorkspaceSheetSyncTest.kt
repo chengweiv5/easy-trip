@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.material3.SheetValue
+import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -20,24 +21,55 @@ class WorkspaceSheetSyncTest {
         assertEquals(WorkspaceSheetLevel.HALF, restoreWorkspaceSheetLevel("FULL"))
     }
 
-    @Test fun `regular window keeps design heights and search return lift`() {
-        assertEquals(34f, workspaceSheetHeightDp(792f, WorkspaceSheetLevel.COLLAPSED, false))
-        assertEquals(396f, workspaceSheetHeightDp(792f, WorkspaceSheetLevel.HALF, false))
-        assertEquals(412f, workspaceSheetHeightDp(792f, WorkspaceSheetLevel.HALF, true))
-        assertEquals(712.8f, workspaceSheetHeightDp(792f, WorkspaceSheetLevel.EXPANDED, false))
+    @Test fun `regular window produces ordered anchors and search return lift`() {
+        assertEquals(
+            WorkspaceSheetAnchors(34.dp, 396.dp, 712.8.dp),
+            workspaceSheetAnchors(792.dp, searchReturn = false),
+        )
+        assertEquals(412.dp, workspaceSheetAnchors(792.dp, searchReturn = true).half)
     }
 
-    @Test fun `small window gives half sheet minimum content height while keeping levels distinct`() {
-        assertEquals(34f, workspaceSheetHeightDp(280f, WorkspaceSheetLevel.COLLAPSED, false))
-        assertEquals(240f, workspaceSheetHeightDp(280f, WorkspaceSheetLevel.HALF, false))
-        assertEquals(252f, workspaceSheetHeightDp(280f, WorkspaceSheetLevel.EXPANDED, false))
+    @Test fun `small window produces ordered anchors within available height`() {
+        val anchors = workspaceSheetAnchors(280.dp, searchReturn = false)
+
+        assertTrue(anchors.collapsed < anchors.half)
+        assertTrue(anchors.half < anchors.expanded)
+        assertTrue(anchors.expanded <= 280.dp)
     }
 
     @Test fun `tiny window degrades within maximum available sheet height`() {
-        WorkspaceSheetLevel.entries.forEach { level ->
-            val height = workspaceSheetHeightDp(48f, level, searchReturn = true)
-            assertTrue("level=$level height=$height", height in 0f..43.2f)
-        }
+        val anchors = workspaceSheetAnchors(48.dp, searchReturn = true)
+
+        assertTrue(anchors.collapsed < anchors.half)
+        assertTrue(anchors.half < anchors.expanded)
+        assertTrue(anchors.expanded <= 48.dp)
+    }
+
+    @Test fun `drag threshold is interpreted in pixels supplied by density`() {
+        assertEquals(
+            WorkspaceSheetLevel.HALF,
+            resolveWorkspaceSheetDrag(WorkspaceSheetLevel.COLLAPSED, -49f, 48f),
+        )
+        assertEquals(
+            WorkspaceSheetLevel.COLLAPSED,
+            resolveWorkspaceSheetDrag(WorkspaceSheetLevel.COLLAPSED, -47f, 48f),
+        )
+    }
+
+    @Test fun `drag moves only one adjacent level`() {
+        assertEquals(
+            WorkspaceSheetLevel.HALF,
+            resolveWorkspaceSheetDrag(WorkspaceSheetLevel.COLLAPSED, -500f, 24f),
+        )
+        assertEquals(
+            WorkspaceSheetLevel.HALF,
+            resolveWorkspaceSheetDrag(WorkspaceSheetLevel.EXPANDED, 500f, 24f),
+        )
+    }
+
+    @Test fun `drag offset is clamped to legal anchor range`() {
+        assertEquals(-300f, clampWorkspaceSheetDragOffsetPx(400f, 40f, 700f, -999f))
+        assertEquals(360f, clampWorkspaceSheetDragOffsetPx(400f, 40f, 700f, 999f))
     }
 
     @Test fun `transitioning sheet does not overwrite requested level`() {

@@ -4,12 +4,14 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToNode
@@ -19,6 +21,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -113,14 +116,36 @@ class TripWorkspaceContentTest {
     }
 
     @Test fun allSheetLevelsKeepMapSubtreeAndUseDistinctConstrainedHeights() {
-        val heights = WorkspaceSheetLevel.entries.map { level ->
-            setContent(ready(level), WorkspaceMapState.Ready)
+        val level = mutableStateOf(WorkspaceSheetLevel.COLLAPSED)
+        setContentForLevel(level)
+        val heights = WorkspaceSheetLevel.entries.map { nextLevel ->
+            compose.runOnIdle { level.value = nextLevel }
             compose.waitForIdle()
             compose.onNodeWithTag("workspace-map").assertExists()
             compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().height
         }
 
         assertTrue("heights=$heights", heights[0] < heights[1] && heights[1] < heights[2])
+    }
+
+    @Test fun collapsedSheetKeepsHandleAndHidesBusinessContent() {
+        setContent(ready(WorkspaceSheetLevel.COLLAPSED), WorkspaceMapState.Ready)
+
+        compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
+        compose.onAllNodesWithText("还没有收藏地点").assertCountEquals(0)
+    }
+
+    @Test fun sheetAlwaysStaysInsideWorkspaceRoot() {
+        val level = mutableStateOf(WorkspaceSheetLevel.COLLAPSED)
+        setContentForLevel(level)
+        WorkspaceSheetLevel.entries.forEach { nextLevel ->
+            compose.runOnIdle { level.value = nextLevel }
+            compose.waitForIdle()
+
+            val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
+            val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+            assertTrue("level=$nextLevel root=$root sheet=$sheet", sheet.top >= root.top && sheet.bottom <= root.bottom)
+        }
     }
 
     @Test fun halfSheetMatchesDesignProportionAndStaysBelowTopSafeArea() {
@@ -210,6 +235,24 @@ class TripWorkspaceContentTest {
         val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
         val visibleCard = compose.onNodeWithTag("saved-place-8").getUnclippedBoundsInRoot()
         assertTrue("root=$root card=$visibleCard", visibleCard.bottom <= root.bottom - 24.dp)
+    }
+
+    private fun setContentForLevel(level: androidx.compose.runtime.State<WorkspaceSheetLevel>) {
+        compose.setContent {
+            EasyTripTheme {
+                TripWorkspaceContent(
+                    pageState = ready(level.value),
+                    mapState = WorkspaceMapState.Ready,
+                    onAction = {},
+                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                    onPlaceAction = {},
+                    itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                    onItineraryAction = {},
+                    mapContent = { Text("地图就绪") },
+                    modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                )
+            }
+        }
     }
 
     private fun setContent(

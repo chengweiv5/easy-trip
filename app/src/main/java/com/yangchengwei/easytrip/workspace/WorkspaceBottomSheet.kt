@@ -20,7 +20,9 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
@@ -36,24 +38,59 @@ internal fun workspaceSheetFraction(level: WorkspaceSheetLevel): Float = when (l
     WorkspaceSheetLevel.EXPANDED -> 0.9f
 }
 
-internal fun workspaceSheetHeightDp(
-    availableHeightDp: Float,
-    level: WorkspaceSheetLevel,
-    searchReturn: Boolean,
-): Float {
-    val expandedHeight = availableHeightDp * workspaceSheetFraction(WorkspaceSheetLevel.EXPANDED)
-    val collapsedHeight = minOf(34f, expandedHeight / 3f)
-    val levelGap = minOf(12f, (expandedHeight - collapsedHeight) / 2f)
-    val halfHeight = maxOf(
-        availableHeightDp * workspaceSheetFraction(WorkspaceSheetLevel.HALF) + if (searchReturn) 16f else 0f,
-        240f,
-    ).coerceIn(collapsedHeight + levelGap, expandedHeight - levelGap)
-    return when (level) {
-        WorkspaceSheetLevel.COLLAPSED -> collapsedHeight
-        WorkspaceSheetLevel.HALF -> halfHeight
-        WorkspaceSheetLevel.EXPANDED -> expandedHeight
+internal data class WorkspaceSheetAnchors(
+    val collapsed: Dp,
+    val half: Dp,
+    val expanded: Dp,
+) {
+    operator fun get(level: WorkspaceSheetLevel): Dp = when (level) {
+        WorkspaceSheetLevel.COLLAPSED -> collapsed
+        WorkspaceSheetLevel.HALF -> half
+        WorkspaceSheetLevel.EXPANDED -> expanded
     }
 }
+
+internal fun workspaceSheetAnchors(
+    availableHeight: Dp,
+    searchReturn: Boolean,
+): WorkspaceSheetAnchors {
+    val expanded = availableHeight * workspaceSheetFraction(WorkspaceSheetLevel.EXPANDED)
+    val collapsed = minOf(34.dp, expanded / 3f)
+    val levelGap = minOf(12.dp, (expanded - collapsed) / 2f)
+    val half = maxOf(
+        availableHeight * workspaceSheetFraction(WorkspaceSheetLevel.HALF) + if (searchReturn) 16.dp else 0.dp,
+        240.dp,
+    ).coerceIn(collapsed + levelGap, expanded - levelGap)
+    return WorkspaceSheetAnchors(collapsed, half, expanded)
+}
+
+internal fun resolveWorkspaceSheetDrag(
+    current: WorkspaceSheetLevel,
+    dragDeltaPx: Float,
+    thresholdPx: Float,
+): WorkspaceSheetLevel = when {
+    dragDeltaPx < -thresholdPx -> when (current) {
+        WorkspaceSheetLevel.COLLAPSED -> WorkspaceSheetLevel.HALF
+        WorkspaceSheetLevel.HALF -> WorkspaceSheetLevel.EXPANDED
+        WorkspaceSheetLevel.EXPANDED -> current
+    }
+    dragDeltaPx > thresholdPx -> when (current) {
+        WorkspaceSheetLevel.EXPANDED -> WorkspaceSheetLevel.HALF
+        WorkspaceSheetLevel.HALF -> WorkspaceSheetLevel.COLLAPSED
+        WorkspaceSheetLevel.COLLAPSED -> current
+    }
+    else -> current
+}
+
+internal fun clampWorkspaceSheetDragOffsetPx(
+    currentHeightPx: Float,
+    collapsedHeightPx: Float,
+    expandedHeightPx: Float,
+    requestedOffsetPx: Float,
+): Float = requestedOffsetPx.coerceIn(
+    currentHeightPx - expandedHeightPx,
+    currentHeightPx - collapsedHeightPx,
+)
 
 @Composable
 fun WorkspaceBottomSheet(
@@ -67,11 +104,13 @@ fun WorkspaceBottomSheet(
 ) {
     Box(modifier.fillMaxSize()) {
         androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-            val targetHeight = workspaceSheetHeightDp(
-                availableHeightDp = maxHeight.value,
-                level = value,
-                searchReturn = searchReturn,
-            ).dp
+            val anchors = workspaceSheetAnchors(maxHeight, searchReturn)
+            val targetHeight = anchors[value]
+            val density = LocalDensity.current
+            val dragThresholdPx = with(density) { 24.dp.toPx() }
+            val currentHeightPx = with(density) { targetHeight.toPx() }
+            val collapsedHeightPx = with(density) { anchors.collapsed.toPx() }
+            val expandedHeightPx = with(density) { anchors.expanded.toPx() }
             background(targetHeight)
             var dragOffset by remember { mutableFloatStateOf(0f) }
             LaunchedEffect(value) { dragOffset = 0f }
@@ -90,23 +129,18 @@ fun WorkspaceBottomSheet(
                     Box(
                         Modifier
                             .fillMaxWidth()
-                            .pointerInput(value) {
+                            .pointerInput(value, anchors, density) {
                                 detectVerticalDragGestures(
-                                    onVerticalDrag = { _, amount -> dragOffset += amount },
+                                    onVerticalDrag = { _, amount ->
+                                        dragOffset = clampWorkspaceSheetDragOffsetPx(
+                                            currentHeightPx = currentHeightPx,
+                                            collapsedHeightPx = collapsedHeightPx,
+                                            expandedHeightPx = expandedHeightPx,
+                                            requestedOffsetPx = dragOffset + amount,
+                                        )
+                                    },
                                     onDragEnd = {
-                                        val next = when {
-                                            dragOffset < -24f -> when (value) {
-                                                WorkspaceSheetLevel.COLLAPSED -> WorkspaceSheetLevel.HALF
-                                                WorkspaceSheetLevel.HALF -> WorkspaceSheetLevel.EXPANDED
-                                                WorkspaceSheetLevel.EXPANDED -> value
-                                            }
-                                            dragOffset > 24f -> when (value) {
-                                                WorkspaceSheetLevel.EXPANDED -> WorkspaceSheetLevel.HALF
-                                                WorkspaceSheetLevel.HALF -> WorkspaceSheetLevel.COLLAPSED
-                                                WorkspaceSheetLevel.COLLAPSED -> value
-                                            }
-                                            else -> value
-                                        }
+                                        val next = resolveWorkspaceSheetDrag(value, dragOffset, dragThresholdPx)
                                         dragOffset = 0f
                                         if (next != value) onValueChange(next)
                                     },
