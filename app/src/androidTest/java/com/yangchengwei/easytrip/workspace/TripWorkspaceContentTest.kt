@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import androidx.compose.ui.test.assertIsDisplayed
@@ -115,6 +117,27 @@ class TripWorkspaceContentTest {
             val overlay = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
             assertTrue("tag=$tag overlay=$overlay sheet=$sheet", overlay.bottom <= sheet.top)
         }
+    }
+
+    @Test fun searchTracksSheetTopDuringActiveDrag() {
+        setContent(ready(), WorkspaceMapState.Ready)
+        compose.waitForIdle()
+        val initialSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
+        val initialSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
+
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y - 80f))
+            advanceEventTime(100)
+        }
+        compose.waitForIdle()
+        val draggedSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
+        val draggedSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
+        assertTrue("initial=$initialSheetTop dragged=$draggedSheetTop", draggedSheetTop < initialSheetTop)
+        assertTrue(
+            "initialSearch=$initialSearchBottom draggedSearch=$draggedSearchBottom sheet=$draggedSheetTop",
+            draggedSearchBottom < initialSearchBottom && draggedSearchBottom <= draggedSheetTop,
+        )
     }
 
     @Test fun overlayPositionsMoveBetweenHalfAndExpandedLevels() {

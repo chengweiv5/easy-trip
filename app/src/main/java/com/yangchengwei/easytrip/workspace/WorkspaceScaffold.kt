@@ -10,6 +10,12 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
@@ -27,8 +33,18 @@ internal fun workspaceLayoutMetrics(
     anchors: WorkspaceSheetAnchors,
     level: WorkspaceSheetLevel,
     overlayGap: Dp = 20.dp,
+): WorkspaceLayoutMetrics = workspaceLayoutMetrics(
+    availableHeight = availableHeight,
+    visibleSheetHeight = anchors[level],
+    overlayGap = overlayGap,
+)
+
+internal fun workspaceLayoutMetrics(
+    availableHeight: Dp,
+    visibleSheetHeight: Dp,
+    overlayGap: Dp = 20.dp,
 ): WorkspaceLayoutMetrics {
-    val sheetHeight = anchors[level].coerceAtMost(availableHeight)
+    val sheetHeight = visibleSheetHeight.coerceIn(0.dp, availableHeight)
     val sheetTop = (availableHeight - sheetHeight).coerceAtLeast(0.dp)
     return WorkspaceLayoutMetrics(
         availableHeight = availableHeight,
@@ -56,7 +72,13 @@ internal fun WorkspaceScaffold(
             .imePadding(),
     ) {
         val anchors = workspaceSheetAnchors(maxHeight, searchReturn)
-        val metrics = workspaceLayoutMetrics(maxHeight, anchors, sheetLevel)
+        val density = LocalDensity.current
+        var visibleSheetHeightPx by remember { mutableFloatStateOf(with(density) { anchors[sheetLevel].toPx() }) }
+        LaunchedEffect(sheetLevel, anchors, density) {
+            visibleSheetHeightPx = with(density) { anchors[sheetLevel].toPx() }
+        }
+        val visibleSheetHeight = with(density) { visibleSheetHeightPx.toDp() }
+        val metrics = workspaceLayoutMetrics(maxHeight, visibleSheetHeight)
         Box(Modifier.fillMaxSize()) {
             map(metrics)
             topOverlay(metrics)
@@ -65,6 +87,7 @@ internal fun WorkspaceScaffold(
             value = sheetLevel,
             anchors = anchors,
             onValueChange = onSheetLevelChange,
+            onVisibleHeightChangePx = { visibleSheetHeightPx = it },
             header = sheetHeader,
             content = sheetContent,
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),

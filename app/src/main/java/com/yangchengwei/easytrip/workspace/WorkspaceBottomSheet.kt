@@ -95,6 +95,7 @@ internal fun WorkspaceBottomSheet(
     value: WorkspaceSheetLevel,
     anchors: WorkspaceSheetAnchors,
     onValueChange: (WorkspaceSheetLevel) -> Unit,
+    onVisibleHeightChangePx: (Float) -> Unit,
     header: @Composable () -> Unit,
     content: @Composable () -> Unit,
     modifier: Modifier = Modifier,
@@ -106,7 +107,10 @@ internal fun WorkspaceBottomSheet(
     val collapsedHeightPx = with(density) { anchors.collapsed.toPx() }
     val expandedHeightPx = with(density) { anchors.expanded.toPx() }
     var dragOffset by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(value) { dragOffset = 0f }
+    LaunchedEffect(value, currentHeightPx) {
+        dragOffset = 0f
+        onVisibleHeightChangePx(currentHeightPx)
+    }
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -130,13 +134,22 @@ internal fun WorkspaceBottomSheet(
                                     expandedHeightPx = expandedHeightPx,
                                     requestedOffsetPx = dragOffset + amount,
                                 )
+                                onVisibleHeightChangePx(currentHeightPx - dragOffset)
                             },
                             onDragEnd = {
                                 val next = resolveWorkspaceSheetDrag(value, dragOffset, dragThresholdPx)
                                 dragOffset = 0f
-                                if (next != value) onValueChange(next)
+                                if (next != value) {
+                                    onVisibleHeightChangePx(with(density) { anchors[next].toPx() })
+                                    onValueChange(next)
+                                } else {
+                                    onVisibleHeightChangePx(currentHeightPx)
+                                }
                             },
-                            onDragCancel = { dragOffset = 0f },
+                            onDragCancel = {
+                                dragOffset = 0f
+                                onVisibleHeightChangePx(currentHeightPx)
+                            },
                         )
                     }
                     .testTag("workspace-sheet-handle"),

@@ -20,6 +20,18 @@ class WorkspaceLayoutMetricsTest {
         assertEquals(416.dp, metrics.overlayBottomInset)
     }
 
+    @Test fun `live visible sheet height drives every overlay metric`() {
+        val metrics = workspaceLayoutMetrics(
+            availableHeight = 792.dp,
+            visibleSheetHeight = 476.dp,
+            overlayGap = 20.dp,
+        )
+
+        assertEquals(476.dp, metrics.sheetHeight)
+        assertEquals(316.dp, metrics.sheetTop)
+        assertEquals(496.dp, metrics.overlayBottomInset)
+    }
+
     @Test fun `layout metrics never emit negative viewport`() {
         val metrics = workspaceLayoutMetrics(
             availableHeight = 320.dp,
