@@ -57,7 +57,8 @@ graphify update .
 
 ## Commit SHA
 
-提交后补充。
+- 实现提交：`5be71dd`（`Refine workspace visual primitives`）
+- 本报告补记通过后续独立提交完成，不修改实现提交。
 
 ## 遗留关注点
 
