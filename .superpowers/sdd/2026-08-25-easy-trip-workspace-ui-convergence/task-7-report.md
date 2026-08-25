@@ -77,6 +77,10 @@
 - `git diff --check`：PASS，无输出。
 - `.superpowers/brainstorm/` 保持未跟踪，不纳入提交。
 
+## SHA
+
+- Fix round 1/5：`2956c6b`。
+
 ## 关注点
 
 - Mate 60 Pro 真机验收仍是唯一未完成门禁。

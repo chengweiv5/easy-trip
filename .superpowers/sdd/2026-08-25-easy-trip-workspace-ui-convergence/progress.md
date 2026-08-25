@@ -65,7 +65,7 @@ Task 7: fix round 1/5 (2 addressed, 0 open).
 - Final gate: 331/331 JVM tests, lint and app/test APK assembly PASS; `ItineraryEditingTest` 7/7, workspace device suite 53/53, catalog 47/47, and full UI acceptance 47/47 PASS with zero skipped/failed on `easy_trip_p60pro(AVD)`.
 - Mate 60 Pro physical-device acceptance remains PENDING/BLOCKED because only emulator-5554 was connected.
 
-Task 7 fix round 1/5 commit: pending.
+Task 7 fix round 1/5 commit: `2956c6b`.
 check: `git diff --check` PASS.
 report: `.superpowers/sdd/2026-08-25-easy-trip-workspace-ui-convergence/task-7-report.md`.
 
