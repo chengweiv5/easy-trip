@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.place.ui
 
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -67,6 +68,7 @@ fun PlacePoolContent(
     onAction: (PlacePoolAction) -> Unit,
     onSearch: () -> Unit = {},
     showDialogs: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(16.dp),
 ) {
     PlacePoolContent(
         state = state,
@@ -86,6 +88,7 @@ fun PlacePoolContent(
         onConfirmDelete = { onAction(PlacePoolAction.ConfirmDelete) },
         onStartAdd = { onAction(PlacePoolAction.StartAddToItinerary) },
         showDialogs = showDialogs,
+        contentPadding = contentPadding,
     )
 }
 
@@ -108,8 +111,9 @@ fun PlacePoolContent(
     onConfirmDelete: () -> Unit,
     onStartAdd: () -> Unit,
     showDialogs: Boolean = true,
+    contentPadding: PaddingValues = PaddingValues(16.dp),
 ) {
-    Column(modifier.padding(16.dp)) {
+    Column(modifier.padding(contentPadding)) {
         if (showSearch) PlaceSearchField(state.search.query, onSetQuery)
         if (state.rows.isEmpty() && !showSearch) {
             androidx.compose.foundation.layout.Column(
