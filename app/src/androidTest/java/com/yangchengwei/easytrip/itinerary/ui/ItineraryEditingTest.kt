@@ -73,6 +73,7 @@ class ItineraryEditingTest {
         compose.waitUntil(5_000) { model.state.value.legs.any { it.status == RouteStatus.FAILED } }
 
         compose.onNodeWithTag("leg-leg-2").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("no route").assertIsDisplayed()
         compose.onNodeWithTag("retry-leg-2").assertIsDisplayed().assertHasClickAction().performClick()
         compose.waitUntil(5_000) { coordinator.retries == listOf("leg-2") }
     }

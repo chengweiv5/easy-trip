@@ -2,56 +2,59 @@
 
 ## 状态
 
-代码与模拟器自动化验收完成；Mate 60 Pro 真机验收为 `PENDING/BLOCKED`，因为执行期间仅连接 `emulator-5554`（`Android_SDK_built_for_arm64`），没有连接可独占的 Mate 60 Pro 真机。
+代码与 AVD 自动化验收完成；Mate 60 Pro 真机验收为 `PENDING/BLOCKED`。执行期间仅连接 `emulator-5554`，没有连接可独占的 Mate 60 Pro 真机。
+
+## Fix round 1/5
+
+### 系统返回 RED / 根因 / GREEN
+
+- RED：真实 `BackHandler` 已注册且 `OnBackPressedDispatcher` 存在 enabled callback；打开 `LayerMenu` 后调用 Espresso `pressBack()`，却直接触发 `onBack` 离开工作台。
+- 根因：Activity 已把事件正确分发给 Compose；`leaveOrCloseOverlay()` 与 `closeOverlay()` 读取的是 `collectAsStateWithLifecycle()` 产生的组合快照 `ready?.overlay`。事件发生在组合快照更新前时，它仍为 `None`，与 `viewModel.state.value.overlay` 中已打开的 `LayerMenu` 不一致。
+- 修复：两个返回决策点读取 `viewModel.state.value.overlay`；不改变 reducer、SavedState 或导航契约。系统返回和顶部返回继续共用 `leaveOrCloseOverlay()`，保持“先关 overlay，再离开工作台”的优先级。
+- GREEN：测试确认 callback 已启用；第一次系统返回关闭 overlay 且不离开，第二次系统返回离开；顶部返回重复同一优先级路径。
+
+### RouteLeg RED / 根因 / GREEN
+
+- RED：滚动到 `leg-leg-2` 后，`no route` 在 merged 与 unmerged semantics tree 中均不存在。
+- 诊断：`leg-leg-2`、错误说明和 retry 的 bounds 均完整位于 LazyColumn viewport 内；实际文本是“路线规划失败”。因此不是滚动目标、语义合并、行高或永久裁剪问题。
+- 根因：fixture 的失败路线使用 legacy `errorCode = "no route"` 且 `errorKind = null`，而 `RouteLegEntity.toRouteLegUi()` 只映射 typed `errorKind`，丢弃了 `errorCode`。
+- 修复：UI mapper 以 typed error summary 为优先，在 typed error 缺失时 fallback 到 `errorCode`；新增 JVM 回归测试。未改变 Repository、路线 reducer 或布局。
+- GREEN：测试先 `performScrollTo()` 到 RouteLeg，再同时断言 `no route` 与 retry 可见并真实点击 retry；完整 `ItineraryEditingTest` 7/7 PASS。
+
+### 其他契约补强
+
+- 长行程名测试不仅检查 back/more/search 的 44dp 物理点击区域，还真实点击三者并验证对应回调各触发一次。
+- `waitingForNetworkKeepsAllPlaceActions` 保持真实“上移/下移” custom actions，以及 timing/move/delete 操作语义；没有把整卡改成 clickable。
 
 ## 修改文件
 
+- `app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceRoute.kt`
+  - 返回决策使用 ViewModel 当前 overlay，消除组合快照时序差。
+- `app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryUiModels.kt`
+  - typed route error 缺失时保留 legacy `errorCode`。
 - `app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceFlowTest.kt`
-  - 新增真实 `AppNavigation`/`NavHost` 搜索返回与 section 切换回归。
-  - 新增长行程名下返回、更多、搜索物理点击区域回归。
-  - 新增地图失败时本地 tabs 与关键操作可达回归。
-  - 使用真实 `workspace-sheet`、`workspace-tabs` 和 `workspace-search-launcher` 语义与边界。
-  - 顶部返回优先级测试改用稳定 tag；sheet 拖拽使用明确超过阈值的手势。
+  - 恢复真实系统返回与顶部返回双路径覆盖；长标题操作改为真实点击并验证回调。
 - `app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditingTest.kt`
-  - 失败 RouteLeg 先滚动到 `leg-leg-2`，再断言整条 RouteLeg 与重试按钮可见。
-  - 等待联网场景断言真实“上移/下移” custom actions 及 timing/move/delete 按钮。
-- `app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioExecutable.kt`
-  - 场景 16 使用当前 `workspace-more` 设置入口。
-  - Sheet 场景使用明确超过 24dp 阈值的拖拽手势。
-- `docs/testing/workspace-ui-conflicts.md`
-  - 补充 UI-01、UI-05 自动化证据和最终真机待验状态。
-- `.superpowers/sdd/2026-08-23-easy-trip-v1-full-ui-implementation/progress.md`
-  - 记录目录与完整验收重新验证结果。
-- `.superpowers/sdd/2026-08-25-easy-trip-workspace-ui-convergence/progress.md`
-  - 记录 Task 7 自动化完成和真机阻塞状态。
+  - 滚动 RouteLeg 后同时验证 `no route` 与 retry。
+- `app/src/test/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModelTest.kt`
+  - 增加 legacy route error 映射回归。
 
-未修改生产 reducer、SavedState、Repository、地图生命周期或权限流程。
-
-## RED / GREEN
-
-- `ItineraryEditingTest` RED：7 tests，5 PASS、2 FAIL。
-  - `failedRouteShowsErrorAndRetryAction`：RouteLeg 存在但不在初始 viewport。
-  - `waitingForNetworkKeepsAllPlaceActions`：错误要求行程卡根节点提供 OnClick。
-- `ItineraryEditingTest` GREEN：7/7 PASS。
-- 工作台聚焦初次 RED：13 tests，11 PASS、2 FAIL；定位到过期文本 selector 与默认 swipe 未稳定跨越阈值。
-- 工作台聚焦 GREEN：13/13 PASS。
-- 场景目录初次 RED：47 tests，45 PASS、2 FAIL；场景 16 使用过期“设置”文本，场景 22 默认 swipe 未产生目标 action。
-- 场景目录 GREEN：47/47 PASS。
+未修改业务 reducer、SavedState、Repository、地图生命周期或权限流程。
 
 ## 最终命令结果
 
-- `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.workspace.WorkspaceFlowTest,com.yangchengwei.easytrip.workspace.WorkspaceSearchTabsTest`
-  - 13 tests，13 PASS，0 skipped，0 failed。
+- `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest`
+  - 331 JVM tests，331 PASS，0 skipped，0 failed；lint PASS；app APK 与 androidTest APK assemble PASS。
 - `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.itinerary.ui.ItineraryEditingTest`
   - 7 tests，7 PASS，0 skipped，0 failed。
-- `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest`
-  - 330 JVM tests，330 PASS，0 skipped，0 failed；lint PASS；app APK 与 androidTest APK assemble PASS。
-- `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.workspace.TripWorkspaceContentTest,com.yangchengwei.easytrip.workspace.WorkspaceChromeTest,com.yangchengwei.easytrip.workspace.WorkspaceSearchTabsTest,com.yangchengwei.easytrip.workspace.WorkspaceFlowTest,com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest,com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest,com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest`
+- 工作台设备套件（`TripWorkspaceContentTest`、`WorkspaceChromeTest`、`WorkspaceSearchTabsTest`、`WorkspaceFlowTest`、`WorkspacePlacePoolLayoutTest`、`ItineraryScopeRailTest`、`WholeTripItineraryContentTest`）
   - 53 tests，53 PASS，0 skipped，0 failed。
 - `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.V1ScenarioCatalogTest`
   - 47 tests，47 PASS，0 skipped，0 failed。
 - `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.V1FullUiAcceptanceTest`
   - 47 tests，47 PASS，0 skipped，0 failed。
+
+所有 connected tests 串行执行，均获得非零完整结果。
 
 ## 设备
 
@@ -67,7 +70,6 @@
 ## Graphify
 
 - 源码读取前已执行规定查询：`graphify query "WorkspaceFlow V1ScenarioCatalogTest V1FullUiAcceptanceTest ItineraryEditingTest device checklist"`。
-- 调试期间使用 scoped query 定位 Workspace sheet、RouteLeg 与 scenario fixture。
 - 完成修改后执行 `graphify update .`。
 
 ## Diff check
@@ -75,12 +77,7 @@
 - `git diff --check`：PASS，无输出。
 - `.superpowers/brainstorm/` 保持未跟踪，不纳入提交。
 
-## SHA
-
-- 实施与验收提交：`61f0cc1`。
-
 ## 关注点
 
 - Mate 60 Pro 真机验收仍是唯一未完成门禁。
-- UI-01 的“更多”图标最终产品语义仍未统一，但当前行为保持 `OpenSettings`，且自动化可达。
-- UI-05 的 RouteLeg/卡片密度仍属于非阻断真机视觉项；关键操作语义和可达性已自动化验证。
+- AVD 结果只证明自动化功能与状态契约，不替代真实设备物理验收。

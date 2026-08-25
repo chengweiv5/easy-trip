@@ -58,3 +58,14 @@ Task 7: complete pending physical-device acceptance.
 - Static gate: 330 JVM tests, 0 failed/skipped; lint and app/test APK assembly PASS.
 - Mate 60 Pro physical-device acceptance: PENDING/BLOCKED because only emulator-5554 was connected.
 
+Task 7: fix round 1/5 (2 addressed, 0 open).
+- Restored real system `BackHandler` coverage and retained top-back coverage. RED proved the callback was enabled and Activity dispatch worked; the route read a stale collected overlay snapshot. The minimal route fix reads `viewModel.state.value.overlay`, so system and top back both close the overlay before leaving.
+- Restored the failed-route explanation contract. RED plus merged/unmerged semantics bounds proved there was no clipping: the UI mapper discarded legacy `errorCode` when typed `errorKind` was absent. The mapper now prefers typed summaries and falls back to `errorCode`, with JVM coverage; the device test scrolls to the RouteLeg and verifies both `no route` and retry.
+- Long-title back/more/search controls are physically sized, actually clicked, and their callbacks verified.
+- Final gate: 331/331 JVM tests, lint and app/test APK assembly PASS; `ItineraryEditingTest` 7/7, workspace device suite 53/53, catalog 47/47, and full UI acceptance 47/47 PASS with zero skipped/failed on `easy_trip_p60pro(AVD)`.
+- Mate 60 Pro physical-device acceptance remains PENDING/BLOCKED because only emulator-5554 was connected.
+
+Task 7 fix round 1/5 commit: pending.
+check: `git diff --check` PASS.
+report: `.superpowers/sdd/2026-08-25-easy-trip-workspace-ui-convergence/task-7-report.md`.
+

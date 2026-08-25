@@ -185,7 +185,7 @@ fun TripWorkspaceRoute(
         itineraryViewModel?.dismissDialogs()
     }
     fun closeOverlay() {
-        val overlay = ready?.overlay ?: WorkspaceOverlay.None
+        val overlay = viewModel.state.value.overlay
         if (!canDismissWorkspaceOverlay(
                 overlay,
                 addToItinerary,
@@ -201,7 +201,7 @@ fun TripWorkspaceRoute(
     fun leaveOrCloseOverlay() {
         when (
             workspaceBackDecision(
-                ready?.overlay ?: WorkspaceOverlay.None,
+                viewModel.state.value.overlay,
                 addToItinerary,
                 itinerary = itinerary,
                 hasPlaceDeleteConfirmation = places.pendingCollectionRemoval != null || places.deleting != null,

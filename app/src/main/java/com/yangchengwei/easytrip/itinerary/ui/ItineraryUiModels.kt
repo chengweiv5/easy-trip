@@ -89,7 +89,7 @@ internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(
     status = status,
     distanceMeters = distanceMeters,
     durationSeconds = durationSeconds,
-    error = errorKind.toRouteErrorSummary(),
+    error = errorKind.toRouteErrorSummary() ?: errorCode,
 )
 
 internal fun RouteErrorKind?.toRouteErrorSummary() = when (this) {

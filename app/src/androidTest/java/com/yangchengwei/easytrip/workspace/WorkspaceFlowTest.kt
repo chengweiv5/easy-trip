@@ -129,24 +129,40 @@ class WorkspaceFlowTest {
     @Test fun longTripNameKeepsBackMoreAndSearchPhysicallyClickable() {
         val longName = "这是一段足够长以验证标题省略不会挤压两侧操作按钮的旅行名称"
         val model = TripWorkspaceViewModel("trip", LongNameTrips(longName), Places(), Itineraries(), Legs(), SavedStateHandle())
+        var backCount = 0
+        var settingsCount = 0
+        var searchCount = 0
         compose.setContent {
             TripWorkspaceScreen(
                 viewModel = model,
                 consent = null,
-                onBack = {},
-                onSettings = {},
+                onBack = { backCount++ },
+                onSettings = { settingsCount++ },
+                onOpenSearch = { searchCount++ },
                 placeContent = { Text("地点内容") },
                 dayItineraryContent = { Text("行程内容") },
             )
         }
 
-        val back = compose.onNodeWithTag("workspace-back").assertIsDisplayed().assertHasClickAction().getUnclippedBoundsInRoot()
-        val more = compose.onNodeWithTag("workspace-more").assertIsDisplayed().assertHasClickAction().getUnclippedBoundsInRoot()
-        val search = compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed().assertHasClickAction().getUnclippedBoundsInRoot()
+        val backNode = compose.onNodeWithTag("workspace-back").assertIsDisplayed().assertHasClickAction()
+        val moreNode = compose.onNodeWithTag("workspace-more").assertIsDisplayed().assertHasClickAction()
+        val searchNode = compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed().assertHasClickAction()
+        val back = backNode.getUnclippedBoundsInRoot()
+        val more = moreNode.getUnclippedBoundsInRoot()
+        val search = searchNode.getUnclippedBoundsInRoot()
         assert(back.right - back.left >= 44.dp && back.bottom - back.top >= 44.dp)
         assert(more.right - more.left >= 44.dp && more.bottom - more.top >= 44.dp)
         assert(search.right - search.left >= 44.dp && search.bottom - search.top >= 44.dp)
         assert(back.right <= more.left)
+
+        backNode.performClick()
+        moreNode.performClick()
+        searchNode.performClick()
+        compose.runOnIdle {
+            assertEquals(1, backCount)
+            assertEquals(1, settingsCount)
+            assertEquals(1, searchCount)
+        }
     }
 
     @Test fun mapFailureKeepsLocalTabsAndActionsReachable() {
@@ -173,7 +189,7 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("地点内容").assertIsDisplayed()
     }
 
-    @Test fun topBackClosesOverlayBeforeLeaving() {
+    @Test fun routeBackClosesOverlayBeforeLeavingAndTopBackUsesSamePriority() {
         val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         var backCount = 0
         compose.setContent {
@@ -194,13 +210,32 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { model.pageState.value is TripWorkspacePageState.Ready }
 
         compose.onNodeWithTag("layer-menu").performClick()
-        compose.waitUntil(5_000) { model.state.value.overlay == WorkspaceOverlay.LayerMenu }
-        compose.onNodeWithTag("workspace-back").performClick()
-        compose.waitUntil(5_000) { model.state.value.overlay == WorkspaceOverlay.None }
+        compose.waitUntil(5_000) {
+            (model.pageState.value as? TripWorkspacePageState.Ready)?.content?.overlay == WorkspaceOverlay.LayerMenu
+        }
+        compose.onNodeWithTag("layer-menu-panel").assertIsDisplayed()
+        compose.runOnIdle {
+            assert(compose.activity.onBackPressedDispatcher.hasEnabledCallbacks())
+        }
+        pressBack()
+        compose.waitUntil(5_000) {
+            (model.pageState.value as? TripWorkspacePageState.Ready)?.content?.overlay == WorkspaceOverlay.None
+        }
         assertEquals(0, backCount)
-
-        compose.onNodeWithTag("workspace-back").performClick()
+        pressBack()
         compose.waitUntil(5_000) { backCount == 1 }
+
+        compose.onNodeWithTag("layer-menu").performClick()
+        compose.waitUntil(5_000) {
+            (model.pageState.value as? TripWorkspacePageState.Ready)?.content?.overlay == WorkspaceOverlay.LayerMenu
+        }
+        compose.onNodeWithTag("workspace-back").performClick()
+        compose.waitUntil(5_000) {
+            (model.pageState.value as? TripWorkspacePageState.Ready)?.content?.overlay == WorkspaceOverlay.None
+        }
+        assertEquals(1, backCount)
+        compose.onNodeWithTag("workspace-back").performClick()
+        compose.waitUntil(5_000) { backCount == 2 }
     }
 
     @Test fun resultOverlayPrioritizesUndoFailureAndExplainsMissingTargetCleanup() {

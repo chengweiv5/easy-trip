@@ -228,6 +228,12 @@ class DayItineraryViewModelTest {
         assertEquals(RouteLegUiState.Failed("路线规划失败"), model.state.value.legs[2].state)
     }
 
+    @Test fun `route leg uses legacy error code when typed error is unavailable`() {
+        val route = legEntity("legacy-failed", RouteStatus.FAILED).copy(errorCode = "no route")
+
+        assertEquals(RouteLegUiState.Failed("no route"), route.toRouteLegUi().state)
+    }
+
     @Test fun `failed same day reorder rolls preview back to official order`() = runTest(dispatcher) {
         val repository = Itineraries().apply { moveFailure = IllegalStateException("排序失败") }
         val model = model(repository)
