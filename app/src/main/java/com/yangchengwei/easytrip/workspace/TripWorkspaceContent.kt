@@ -111,9 +111,11 @@ private fun WorkspaceReadyContent(
             }
         },
         sheetContent = {
-            Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
+            Column(Modifier.fillMaxSize()) {
                 when (state.section) {
-                    WorkspaceSection.PLACE_POOL -> if (placeContent != null) placeContent() else PlacePoolContent(
+                    WorkspaceSection.PLACE_POOL -> if (placeContent != null) {
+                        Box(Modifier.weight(1f).padding(horizontal = 20.dp)) { placeContent() }
+                    } else PlacePoolContent(
                         state = placeState.copy(
                             rows = placeState.rows.map { row ->
                                 row.copy(recentlyCollected = row.recentlyCollected || row.place.amapPoiId in searchReturn?.recentlyCollectedPoiIds.orEmpty())
@@ -124,7 +126,7 @@ private fun WorkspaceReadyContent(
                         onAction = onPlaceAction,
                         onSearch = { onAction(TripWorkspaceAction.OpenSearch) },
                         showDialogs = false,
-                        contentPadding = PaddingValues(bottom = 24.dp),
+                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
                     )
                     WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
                         days = state.days,
@@ -133,6 +135,7 @@ private fun WorkspaceReadyContent(
                         onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
                         onAddDay = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
                         modifier = Modifier.weight(1f),
+                        contentPadding = PaddingValues(horizontal = 20.dp),
                         dayContent = {
                             if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
                                 state = itineraryState,

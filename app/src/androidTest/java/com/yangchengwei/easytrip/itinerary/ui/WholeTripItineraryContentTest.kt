@@ -1,6 +1,13 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -8,13 +15,17 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import com.yangchengwei.easytrip.core.model.RouteStatus
+import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TransportMode
+import com.yangchengwei.easytrip.trip.domain.TripDay
+import com.yangchengwei.easytrip.workspace.ItineraryScope
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -64,6 +75,32 @@ class WholeTripItineraryContentTest {
         )
         compose.onNodeWithTag("item-first").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
         compose.onNodeWithTag("item-second").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
+        val forbiddenPrefixes = listOf("timing-", "move-", "delete-", "mode-", "retry-")
+        val allTags = compose.onRoot(useUnmergedTree = true).fetchSemanticsNode().allTags()
+        assertTrue(allTags.none { tag -> forbiddenPrefixes.any(tag::startsWith) })
+    }
+
+    @Test
+    fun wholeTripFitsWorkspaceWidthAndRemainsReadOnly() {
+        val day = WholeTripDayUi("day-1", 1, listOf(item("first", "早餐店")), emptyList())
+        compose.setContent {
+            Box(Modifier.width(360.dp).height(220.dp).testTag("workspace-sheet")) {
+                WorkspaceItineraryContent(
+                    days = listOf(TripDay("day-1", 0)),
+                    selected = ItineraryScope.WholeTrip,
+                    wholeTripDays = listOf(day),
+                    onSelect = {},
+                    dayContent = {},
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                )
+            }
+        }
+
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        val content = compose.onNodeWithTag("whole-trip-content").getUnclippedBoundsInRoot()
+        assertTrue("sheet=$sheet content=$content", content.left >= sheet.left && content.right <= sheet.right)
+        assertEquals(sheet.right - 20.dp, content.right)
         val forbiddenPrefixes = listOf("timing-", "move-", "delete-", "mode-", "retry-")
         val allTags = compose.onRoot(useUnmergedTree = true).fetchSemanticsNode().allTags()
         assertTrue(allTags.none { tag -> forbiddenPrefixes.any(tag::startsWith) })

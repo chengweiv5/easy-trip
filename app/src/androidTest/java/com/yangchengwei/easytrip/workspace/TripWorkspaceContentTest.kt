@@ -29,6 +29,8 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
+import com.yangchengwei.easytrip.itinerary.ui.WholeTripDayUi
+import com.yangchengwei.easytrip.trip.domain.TripDay
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -441,6 +443,30 @@ class TripWorkspaceContentTest {
         compose.onNodeWithText("原收藏").assertExists()
     }
 
+    @Test fun halfSheetKeepsScopeRailAndSelectedDayReachable() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        setContent(itineraryReady(WorkspaceSheetLevel.HALF, ItineraryScope.Day("day-1")), WorkspaceMapState.Ready, actions::add)
+
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        val rail = compose.onNodeWithTag("itinerary-scope-rail").getUnclippedBoundsInRoot()
+        val day = compose.onNodeWithTag("day-content").getUnclippedBoundsInRoot()
+        assertTrue("sheet=$sheet rail=$rail", rail.left >= sheet.left && rail.right <= sheet.right)
+        assertTrue("sheet=$sheet day=$day", day.left >= sheet.left && day.right <= sheet.right)
+        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
+        assertEquals(TripWorkspaceAction.SelectItineraryScope(ItineraryScope.WholeTrip), actions.last())
+    }
+
+    @Test fun expandedSheetKeepsWholeTripContentReachable() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        setContent(itineraryReady(WorkspaceSheetLevel.EXPANDED, ItineraryScope.WholeTrip), WorkspaceMapState.Ready, actions::add)
+
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        val wholeTrip = compose.onNodeWithTag("whole-trip-content").getUnclippedBoundsInRoot()
+        assertTrue("sheet=$sheet content=$wholeTrip", wholeTrip.left >= sheet.left && wholeTrip.right <= sheet.right)
+        compose.onNodeWithTag("itinerary-scope-day-1").performClick()
+        assertEquals(TripWorkspaceAction.SelectItineraryScope(ItineraryScope.Day("day-1")), actions.last())
+    }
+
     @Test fun placePoolListScrollsAndKeepsSecondCardAboveBottomInset() {
         val places = (1..8).map { index ->
             com.yangchengwei.easytrip.place.domain.SavedPlace("$index", "trip", "poi-$index", "地点 $index", "地址 $index", com.yangchengwei.easytrip.core.model.GeoPoint(39.9 + index / 1000.0, 116.4), "", emptyList())
@@ -499,12 +525,26 @@ class TripWorkspaceContentTest {
                     itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                     onItineraryAction = {},
                     mapContent = { Text("地图就绪") },
+                    dayItineraryContent = { Text("单日内容", Modifier.testTag("day-content")) },
                     modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     searchReturn = searchReturn,
                 )
             }
         }
     }
+
+    private fun itineraryReady(level: WorkspaceSheetLevel, scope: ItineraryScope) = TripWorkspacePageState.Ready(
+        TripWorkspaceUiState(
+            tripName = "北京",
+            days = listOf(TripDay("day-1", 0)),
+            section = WorkspaceSection.ITINERARY,
+            itineraryScope = scope,
+            mapScope = WorkspaceSection.ITINERARY.toMapScope(scope),
+            selectedDayId = scope.selectedDayId(),
+            wholeTripDays = listOf(WholeTripDayUi("day-1", 1, emptyList(), emptyList())),
+            sheetLevel = level,
+        ).toReadyState(),
+    )
 
     private fun ready(level: WorkspaceSheetLevel = WorkspaceSheetLevel.HALF) = TripWorkspacePageState.Ready(
         TripWorkspaceUiState(tripName = "北京", sheetLevel = level).toReadyState(),

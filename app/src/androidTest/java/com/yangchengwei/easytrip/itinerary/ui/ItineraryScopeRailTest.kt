@@ -2,8 +2,10 @@ package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -20,6 +22,7 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
@@ -113,10 +116,12 @@ class ItineraryScopeRailTest {
     fun addTripDayContentReportsBusyAndErrorWithoutOwningState() {
         var confirms = 0
         var closes = 0
+        var isAppending by mutableStateOf(false)
+        var error by mutableStateOf<String?>("新增失败")
         compose.setContent {
             AddTripDayContent(
-                isAppending = false,
-                error = "新增失败",
+                isAppending = isAppending,
+                error = error,
                 onConfirm = { confirms++ },
                 onClose = { closes++ },
             )
@@ -128,13 +133,9 @@ class ItineraryScopeRailTest {
         assertEquals(1, confirms)
         assertEquals(1, closes)
 
-        compose.setContent {
-            AddTripDayContent(
-                isAppending = true,
-                error = null,
-                onConfirm = { confirms++ },
-                onClose = { closes++ },
-            )
+        compose.runOnIdle {
+            isAppending = true
+            error = null
         }
         compose.onNodeWithText("添加中…").assertIsDisplayed()
     }
@@ -158,6 +159,31 @@ class ItineraryScopeRailTest {
         val after = compose.onNodeWithTag("right-sentinel").fetchSemanticsNode().positionInRoot
 
         assertEquals(before, after)
+    }
+
+    @Test
+    fun scopeRailAndDayContentStayInsideSheetBounds() {
+        compose.setContent {
+            Box(Modifier.width(360.dp).height(220.dp).testTag("workspace-sheet")) {
+                WorkspaceItineraryContent(
+                    days = days(),
+                    selected = ItineraryScope.Day("day-1"),
+                    wholeTripDays = emptyList(),
+                    onSelect = {},
+                    dayContent = { Box(Modifier.fillMaxSize().testTag("day-content")) },
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(horizontal = 20.dp),
+                )
+            }
+        }
+
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        val rail = compose.onNodeWithTag("itinerary-scope-rail").getUnclippedBoundsInRoot()
+        val day = compose.onNodeWithTag("day-content").getUnclippedBoundsInRoot()
+        assertTrue("sheet=$sheet rail=$rail", rail.left >= sheet.left && rail.right <= sheet.right)
+        assertTrue("sheet=$sheet day=$day", day.left >= sheet.left && day.right <= sheet.right)
+        assertEquals(sheet.left + 20.dp, rail.left)
+        assertEquals(sheet.right - 20.dp, day.right)
     }
 
     @Test
