@@ -72,3 +72,9 @@ Task 7: whole-branch review fix wave (expanded overlay bounds + dead-code cleanu
 - One invalid-package workspace invocation failed with three class-loading initialization errors; corrected package names were rerun as the complete 54-test suite and passed. No product assertion failed.
 - Mate 60 Pro physical-device acceptance remains PENDING/BLOCKED because only emulator-5554 was connected.
 - Report: `.superpowers/sdd/2026-08-25-easy-trip-workspace-ui-convergence/task-7-report.md`.
+- Final re-review: expanded-overlay overlap is fixed, but a new load-bearing boundary defect remains: at availableHeight 395dp → 396dp the expanded anchor drops from 355.5dp to 182dp because the 214dp top-band cap switches discontinuously.
+- Final review residual: at availableHeight 395dp → 396dp the expanded anchor drops from 355.5dp to 182dp because the 214dp top-band cap switches discontinuously.
+- Ruling: park this real issue as the already user-approved deferred small-window/split-screen enhancement; it does not block the normal-portrait automated scope. Cost if wrong: split-window heights near the threshold can collapse HALF/EXPANDED content until the later responsive pass.
+- Automated implementation: complete.
+- Mate 60 Pro physical-device acceptance: DEFERRED by user on 2026-08-25; it does not block this stage.
+- Task 7: complete (commits e13546f..9f2203b, automated review complete; physical-device acceptance deferred by user).
