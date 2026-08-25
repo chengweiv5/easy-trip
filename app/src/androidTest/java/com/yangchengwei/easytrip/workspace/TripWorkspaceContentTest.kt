@@ -156,7 +156,11 @@ class TripWorkspaceContentTest {
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
         val topBar = compose.onNodeWithTag("workspace-top-bar").getUnclippedBoundsInRoot()
 
-        assertTrue("root=$root sheet=$sheet", sheet.height in 395.dp..397.dp)
+        val anchors = workspaceSheetAnchors(root.height, searchReturn = false)
+        assertTrue(
+            "root=$root sheet=$sheet anchors=$anchors",
+            kotlin.math.abs((sheet.height - anchors.half).value) <= 1f,
+        )
         assertTrue("root=$root sheet=$sheet", sheet.bottom <= root.bottom)
         assertTrue("root=$root topBar=$topBar", topBar.top >= root.top)
         assertTrue("root=$root topBar=$topBar", topBar.top - root.top <= 48.dp)
@@ -197,19 +201,38 @@ class TripWorkspaceContentTest {
             com.yangchengwei.easytrip.place.domain.SavedPlace("new", "trip", "poi-new", "新收藏", "地址", com.yangchengwei.easytrip.core.model.GeoPoint(39.9, 116.4), "", emptyList()),
             com.yangchengwei.easytrip.place.domain.SavedPlace("old", "trip", "poi-old", "原收藏", "地址", com.yangchengwei.easytrip.core.model.GeoPoint(39.91, 116.4), "", emptyList()),
         )
-        setContent(
-            ready(),
-            WorkspaceMapState.Ready,
-            placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
-                rows = places.map { com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(it, 0, false) },
-            ),
-            searchReturn = WorkspaceSearchReturn(setOf("poi-new")),
-        )
+        val searchReturn = mutableStateOf<WorkspaceSearchReturn?>(null)
+        compose.setContent {
+            EasyTripTheme {
+                TripWorkspaceContent(
+                    pageState = ready(),
+                    mapState = WorkspaceMapState.Ready,
+                    onAction = {},
+                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+                        rows = places.map { com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(it, 0, false) },
+                    ),
+                    onPlaceAction = {},
+                    itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                    onItineraryAction = {},
+                    mapContent = { Text("地图就绪") },
+                    modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    searchReturn = searchReturn.value,
+                )
+            }
+        }
+        compose.waitForIdle()
+        val regularHalfHeight = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().height
+        compose.runOnIdle { searchReturn.value = WorkspaceSearchReturn(setOf("poi-new")) }
         compose.waitForIdle()
 
         val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
         val returnedSheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
-        assertTrue("root=$root sheet=$returnedSheet", returnedSheet.height in 411.dp..413.dp)
+        val anchors = workspaceSheetAnchors(root.height, searchReturn = true)
+        assertTrue(
+            "root=$root regular=$regularHalfHeight returned=$returnedSheet anchors=$anchors",
+            returnedSheet.height > regularHalfHeight &&
+                kotlin.math.abs((returnedSheet.height - anchors.half).value) <= 1f,
+        )
         compose.onNodeWithText("刚刚收藏 · 待安排行程").assertExists()
         compose.onNodeWithTag("workspace-place-list").performScrollToNode(
             SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.TestTag, "saved-place-old"),

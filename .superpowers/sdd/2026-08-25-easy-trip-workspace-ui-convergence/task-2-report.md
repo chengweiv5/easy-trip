@@ -41,7 +41,56 @@
   - `allSheetLevelsKeepMapSubtreeAndUseDistinctConstrainedHeights`
   - `sheetAlwaysStaysInsideWorkspaceRoot`
 
-完整 `TripWorkspaceContentTest` 共 13 项，7 项通过、6 项失败。修复测试自身重复 `setContent` 后，直接相关 3 项均通过；剩余 4 个独立既有失败可稳定复现，见关注点。
+首次完整 `TripWorkspaceContentTest` 共 13 项，9 项通过、4 项失败。修复测试自身重复 `setContent` 后，直接相关 3 项均通过；固定高度断言迁移前仍有 4 项失败，见关注点。
+
+## Fix round 1/5
+
+### 测试迁移
+
+- `halfSheetMatchesDesignProportionAndStaysBelowTopSafeArea` 不再写死 395–397dp，改为根据当前 root 高度计算 `workspaceSheetAnchors(...).half`，并保留 Sheet 与顶部安全区的边界断言。
+- `searchReturnSheetIsRaisedAndHighlightsRecentCollections` 在同一 Compose 树中先测普通 HALF，再注入搜索返回状态；断言搜索返回 HALF 高于普通 HALF，且等于当前 root 对应的 search-return anchor。
+- 未修改生产实现。
+
+### RED 证据
+
+```bash
+./gradlew connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.workspace.TripWorkspaceContentTest
+```
+
+迁移前结果：13 项中 4 项失败。两个本轮目标失败分别为：
+
+- 普通 HALF 实际约 455dp，不满足旧 395–397dp 固定范围。
+- 搜索返回 HALF 实际约 471dp，不满足旧 411–413dp 固定范围。
+
+另有 Tab indicator 与地点池底部 inset 两项既有失败。
+
+### GREEN / 完整回归
+
+```bash
+./gradlew testDebugUnitTest \
+  --tests 'com.yangchengwei.easytrip.workspace.WorkspaceSheetSyncTest'
+```
+
+结果：`BUILD SUCCESSFUL`。
+
+```bash
+./gradlew compileDebugAndroidTestKotlin
+```
+
+结果：`BUILD SUCCESSFUL`。
+
+```bash
+./gradlew connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.workspace.TripWorkspaceContentTest
+```
+
+最终结果：13 项中 11 项通过、2 项失败。本轮迁移的普通 HALF 和搜索返回 HALF 测试均通过。
+
+剩余失败严格限于后续任务范围：
+
+1. `workspaceTabsUseIndicatorAndTabSemantics`：Task 4 承接 Tab indicator。
+2. `placePoolListScrollsAndKeepsSecondCardAboveBottomInset`：Task 5 承接 place pool bottom inset。
 
 ## 自审
 
@@ -57,11 +106,9 @@
 
 ## 关注点
 
-完整 Compose 类回归中仍有 4 个既有视觉/测试环境断言失败：
+最终完整 Compose 类回归仍有 2 个后续任务已明确承接的失败：
 
-1. `halfSheetMatchesDesignProportionAndStaysBelowTopSafeArea`：模拟器安全区后的可用高度为 909.8dp，当前比例规则得到约 455dp，而测试写死 395–397dp。
-2. `searchReturnSheetIsRaisedAndHighlightsRecentCollections`：同理得到约 471dp，而测试写死 411–413dp。
-3. `placePoolListScrollsAndKeepsSecondCardAboveBottomInset`：末项距 root 底部约 16dp，旧断言要求 24dp。
-4. `workspaceTabsUseIndicatorAndTabSemantics`：3dp 指示条在当前模拟器上 `assertIsDisplayed` 失败。
+1. `placePoolListScrollsAndKeepsSecondCardAboveBottomInset`：末项距 root 底部约 16dp，旧断言要求 24dp，由 Task 5 承接。
+2. `workspaceTabsUseIndicatorAndTabSemantics`：3dp 指示条在当前模拟器上 `assertIsDisplayed` 失败，由 Task 4 承接。
 
-这些失败不由本任务锚点/手势修改引入；其中固定高度断言与“从当前窗口计算”的新规格冲突，未通过增加生产布局特例规避。
+普通 HALF 与搜索返回 HALF 的固定高度断言已迁移为当前 root 与 anchor 的关系断言，不再要求设备相关固定 dp 值。
