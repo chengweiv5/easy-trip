@@ -1828,5 +1828,11 @@
     "seen": 1787667277.490538,
     "ast_hash": "7a7b7ac959f721d061ce3ee1a574c514",
     "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-25-easy-trip-workspace-ui-convergence/post-merge-test-fix-report.md": {
+    "mtime": 1787667625.9543543,
+    "seen": 1787667661.5895832,
+    "ast_hash": "3d074d35b4a37625a047136c893ea28a",
+    "semantic_hash": ""
   }
 }
