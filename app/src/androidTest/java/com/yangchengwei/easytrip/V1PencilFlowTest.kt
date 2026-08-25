@@ -108,7 +108,7 @@ class V1PencilFlowTest {
         assertEquals(Instant.ofEpochMilli(initialDate).atZone(ZoneOffset.UTC).toLocalDate(), saved!!.startDate)
         assertEquals(2, saved.days.size)
 
-        compose.onNodeWithText("返回").performClick()
+        compose.onNodeWithTag("workspace-back").performClick()
         compose.onNodeWithTag("trip-$tripId").assertIsDisplayed().performClick()
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         compose.runOnIdle { assertEquals(listOf("trips/create", "trips/$tripId", "trips/$tripId"), routes) }

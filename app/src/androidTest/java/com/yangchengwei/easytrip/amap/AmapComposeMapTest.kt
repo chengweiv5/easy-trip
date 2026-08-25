@@ -352,6 +352,7 @@ class AmapComposeMapTest {
         val callbacks = mutableListOf<(Throwable, MapLayer) -> Unit>()
         val firstRender = CountDownLatch(1)
         val secondRender = CountDownLatch(1)
+        val secondReady = CountDownLatch(1)
         var layerErrors = 0
         var readyCount = 0
         rule.scenario.onActivity { activity ->
@@ -374,7 +375,10 @@ class AmapComposeMapTest {
                             }
                         } },
                         onLayerError = { _, _ -> layerErrors++ },
-                        onMapReady = { readyCount++ },
+                        onMapReady = {
+                            readyCount++
+                            if (readyCount == 2) secondReady.countDown()
+                        },
                     )
                 }
             }
@@ -383,6 +387,7 @@ class AmapComposeMapTest {
         assertEquals(1, readyCount)
         rule.scenario.onActivity { ownerState.value = TestOwner() }
         assertTrue(secondRender.await(5, TimeUnit.SECONDS))
+        assertTrue(secondReady.await(5, TimeUnit.SECONDS))
         assertEquals(2, readyCount)
         rule.scenario.onActivity { callbacks.first()(IllegalStateException("late"), MapLayer.STANDARD) }
         assertEquals(0, layerErrors)

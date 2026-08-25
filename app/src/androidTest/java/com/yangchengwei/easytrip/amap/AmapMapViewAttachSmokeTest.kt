@@ -13,6 +13,7 @@ import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
+import org.junit.Assume.assumeTrue
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.json.JSONObject
@@ -25,7 +26,8 @@ class AmapMapViewAttachSmokeTest {
     fun realMapViewAttachesLoadsAndSurvives() {
         val context = ApplicationProvider.getApplicationContext<android.content.Context>()
         val runToken = InstrumentationRegistry.getArguments().getString("amapRunToken").orEmpty()
-        check(runToken.matches(Regex("[A-Za-z0-9._-]+"))) { "amapRunToken is required" }
+        assumeTrue("AmapMapViewAttachSmokeTest requires the dedicated smoke runner", runToken.isNotEmpty())
+        check(runToken.matches(Regex("[A-Za-z0-9._-]+"))) { "amapRunToken must contain only letters, digits, dots, underscores, or hyphens" }
         val status = linkedMapOf<String, Any>("run_token" to runToken)
         fun persistStatus() {
             context.openFileOutput("amap-smoke-$runToken.json", android.content.Context.MODE_PRIVATE).use {

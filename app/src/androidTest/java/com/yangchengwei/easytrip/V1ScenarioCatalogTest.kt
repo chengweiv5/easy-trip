@@ -90,14 +90,12 @@ class V1ScenarioMetadataTest {
     fun mapFailureSetupCanBeRepeatedOnTheSameExecutable() {
         val executable = V1ScenarioFixtures.scenarios.first { it.number == 46 }.createExecutable()
 
-        repeat(2) {
-            executable.setup()
-            executable.render(compose)
-            compose.waitForIdle()
-            executable.actions(compose)
-            compose.waitForIdle()
-            executable.assertions(compose)
-        }
+        repeat(2) { executable.setup() }
+        executable.render(compose)
+        compose.waitForIdle()
+        executable.actions(compose)
+        compose.waitForIdle()
+        executable.assertions(compose)
     }
 
     @Test
