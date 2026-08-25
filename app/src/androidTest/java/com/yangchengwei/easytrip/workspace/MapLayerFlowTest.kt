@@ -6,6 +6,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -83,7 +84,7 @@ class MapLayerFlowTest {
 
         compose.onNodeWithTag("layer-menu").performClick()
         compose.onNodeWithText("地图图层").assertIsDisplayed()
-        compose.onNodeWithTag("layer-menu-close").assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithTag("layer-menu-close").assertWidthIsAtLeast(40.dp).assertHeightIsAtLeast(40.dp)
         compose.runOnIdle { overlay = WorkspaceOverlay.PlaceDetail(1) }
         compose.onNodeWithText("地图图层").assertDoesNotExist()
     }
@@ -110,14 +111,15 @@ class MapLayerFlowTest {
         assertEquals(0, compose.onAllNodesWithTag("layer-STANDARD").fetchSemanticsNodes().size)
 
         compose.onNodeWithTag("layer-menu").performClick()
-        compose.onNodeWithText("✓ 卫星").assertIsDisplayed()
-        compose.onNodeWithTag("layer-SATELLITE_ROAD").performClick()
+        compose.onNodeWithText("卫星").assertIsDisplayed()
+        compose.onNodeWithTag("layer-SATELLITE_ROAD").assertIsSelected().performClick()
 
         val second = model("trip-2", preferences)
         compose.runOnIdle { current = second }
         compose.waitUntil(5_000) { second.state.value.mapLayer == MapLayer.SATELLITE_ROAD }
         compose.onNodeWithTag("layer-menu").performClick()
-        compose.onNodeWithText("✓ 卫星").assertIsDisplayed()
+        compose.onNodeWithText("卫星").assertIsDisplayed()
+        compose.onNodeWithTag("layer-SATELLITE_ROAD").assertIsSelected()
         assertEquals(MapLayer.SATELLITE_ROAD, preferences.layer.value)
     }
 

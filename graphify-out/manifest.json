@@ -684,9 +684,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/MapLayerFlowTest.kt": {
-    "mtime": 1787597085.2226593,
-    "seen": 1787611431.0398788,
-    "ast_hash": "2dc32eb0101a1640847bb8c63675ba97",
+    "mtime": 1787640950.5017045,
+    "seen": 1787640995.609609,
+    "ast_hash": "eae15951397019aa1805b21d67ba4457",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt": {
@@ -1008,9 +1008,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/EasyTripTokens.kt": {
-    "mtime": 1787495599.2339842,
-    "seen": 1787611431.039901,
-    "ast_hash": "f3a979ad6acf2e9da78ec786b565a8f4",
+    "mtime": 1787640272.2921457,
+    "seen": 1787640748.743273,
+    "ast_hash": "18b2e539bd3b48b3599aef33ca63b767",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/Shape.kt": {
@@ -1314,9 +1314,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/MapControls.kt": {
-    "mtime": 1787598581.6163871,
-    "seen": 1787611431.039953,
-    "ast_hash": "65fe7e0c867e2b4d239a8345342f140d",
+    "mtime": 1787640507.3383465,
+    "seen": 1787640748.743337,
+    "ast_hash": "f542f25e098f71983d330d364bbf3772",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/MapLegend.kt": {
@@ -1326,9 +1326,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/SearchSurface.kt": {
-    "mtime": 1787607434.2257268,
-    "seen": 1787611431.0399559,
-    "ast_hash": "b491f124b2d2322e1db4b1ff30258316",
+    "mtime": 1787640357.864105,
+    "seen": 1787640748.7433422,
+    "ast_hash": "bfaa7deedee23d7168304b622a680c81",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-23-easy-trip-v1-full-ui-implementation/task-5-report.md": {
@@ -1689,6 +1689,60 @@
     "mtime": 1787608071.8003821,
     "seen": 1787611431.039854,
     "ast_hash": "10618c9db419fb9c0043401888f9852f",
+    "semantic_hash": ""
+  },
+  "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceChromeTest.kt": {
+    "mtime": 1787639917.4460313,
+    "seen": 1787640748.7432508,
+    "ast_hash": "8c51c268e40113569f41d215c40c8bef",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceIcons.kt": {
+    "mtime": 1787640644.6690578,
+    "seen": 1787640748.743346,
+    "ast_hash": "63f2c67f1ecbd375ac7053ea73b5c96d",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/11380-1787635997/content/mate60pro-workspace-confirmation-v2.html": {
+    "mtime": 1787636811.7080576,
+    "seen": 1787640748.743388,
+    "ast_hash": "b12c5e011167f0378d14dc2974b2363b",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/11380-1787635997/content/mate60pro-workspace-confirmation.html": {
+    "mtime": 1787636670.5781434,
+    "seen": 1787640748.743389,
+    "ast_hash": "c0d06e67241d40fc1b01e850699989b3",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/11380-1787635997/content/waiting-ui-spec.html": {
+    "mtime": 1787637738.1250455,
+    "seen": 1787640748.743389,
+    "ast_hash": "ebca794df177476833c5e3b30a0d0c75",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/11380-1787635997/content/workspace-convergence-strategies.html": {
+    "mtime": 1787636228.8569543,
+    "seen": 1787640748.7433898,
+    "ast_hash": "c435f39afb483967080d0f3a3b60a850",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-08-25-easy-trip-workspace-ui-convergence.md": {
+    "mtime": 1787639283.6516857,
+    "seen": 1787640748.743413,
+    "ast_hash": "85554c11bf90a0d637a32b529bd18e00",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-08-25-easy-trip-workspace-ui-convergence-design.md": {
+    "mtime": 1787637885.0707576,
+    "seen": 1787640748.7434182,
+    "ast_hash": "5a65f761a3243a26af49a4a2b067d6b2",
+    "semantic_hash": ""
+  },
+  ".superpowers/brainstorm/11380-1787635997/content/mate60pro-workspace/Pd9LX.png": {
+    "mtime": 1787636658.2971182,
+    "seen": 1787640748.743422,
+    "ast_hash": "2cbcbe116f8af5d2bdc5eaffe0631cd4",
     "semantic_hash": ""
   }
 }

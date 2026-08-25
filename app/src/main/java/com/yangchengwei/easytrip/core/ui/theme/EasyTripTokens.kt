@@ -14,6 +14,8 @@ data class EasyTripSpacing(
     val medium: Dp = 16.dp,
     val large: Dp = 20.dp,
     val xLarge: Dp = 24.dp,
+    val workspaceOverlayGap: Dp = 20.dp,
+    val workspaceControlGap: Dp = 4.dp,
 )
 
 @Immutable
@@ -23,6 +25,11 @@ data class EasyTripSizes(
     val iconButtonSize: Dp = 48.dp,
     val iconSize: Dp = 22.dp,
     val topBarHeight: Dp = 62.dp,
+    val workspaceTopBarHeight: Dp = 52.dp,
+    val workspaceSearchHeight: Dp = 46.dp,
+    val workspacePrimaryTouchTarget: Dp = 44.dp,
+    val workspaceDenseTouchTarget: Dp = 40.dp,
+    val workspaceIconSize: Dp = 22.dp,
 )
 
 @Immutable
