@@ -1,48 +1,24 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.safeDrawing
-import androidx.compose.foundation.layout.windowInsetsPadding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.wrapContentHeight
-import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.BottomSheetScaffold
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberBottomSheetScaffoldState
-import androidx.compose.material3.rememberStandardBottomSheetState
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.rememberCoroutineScope
-import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.SelectablePill
@@ -53,10 +29,7 @@ import com.yangchengwei.easytrip.itinerary.ui.WorkspaceItineraryContent
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
 import com.yangchengwei.easytrip.place.ui.PlacePoolContent
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
-import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.launch
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TripWorkspaceContent(
     pageState: TripWorkspacePageState,
@@ -104,7 +77,6 @@ private fun WorkspacePageMessage(message: String, action: String? = null, onActi
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkspaceReadyContent(
     state: TripWorkspaceReadyState,
@@ -121,12 +93,12 @@ private fun WorkspaceReadyContent(
     modifier: Modifier,
     searchReturn: WorkspaceSearchReturn?,
 ) {
-    WorkspaceBottomSheet(
-        value = state.sheetLevel,
-        onValueChange = { onAction(TripWorkspaceAction.SetSheetLevel(it)) },
-        modifier = modifier.windowInsetsPadding(WindowInsets.safeDrawing).imePadding(),
+    WorkspaceScaffold(
+        sheetLevel = state.sheetLevel,
         searchReturn = searchReturn != null,
-        header = {
+        onSheetLevelChange = { onAction(TripWorkspaceAction.SetSheetLevel(it)) },
+        modifier = modifier,
+        sheetHeader = {
             Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
                 WorkspaceSheetHandle()
                 if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) {
@@ -137,7 +109,7 @@ private fun WorkspaceReadyContent(
                 }
             }
         },
-        content = {
+        sheetContent = {
             Column(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
                 when (state.section) {
                     WorkspaceSection.PLACE_POOL -> if (placeContent != null) placeContent() else PlacePoolContent(
@@ -170,7 +142,7 @@ private fun WorkspaceReadyContent(
                 }
             }
         },
-        background = { sheetHeight ->
+        map = { metrics ->
             Box(Modifier.fillMaxSize().testTag("workspace-map")) {
                 if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) mapContent()
                 if (mapState != WorkspaceMapState.Ready) {
@@ -178,27 +150,31 @@ private fun WorkspaceReadyContent(
                         mapState,
                         { onAction(TripWorkspaceAction.OpenPrivacySettings) },
                         onMapRetry,
-                        Modifier.padding(bottom = sheetHeight),
+                        Modifier.padding(bottom = metrics.sheetHeight),
                     )
                 }
-                WorkspaceTopBar(state.tripName, onAction)
-                MapControls(
-                    layer = state.mapLayer,
-                    overlay = state.overlay,
-                    onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
-                    onCloseOverlay = { onAction(TripWorkspaceAction.CloseOverlay) },
-                    onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
-                    onLocate = { onAction(TripWorkspaceAction.Locate) },
-                    modifier = Modifier.align(Alignment.TopEnd).padding(top = 62.dp, end = 20.dp),
-                )
-                MapLegend(Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = 82.dp))
-                SearchSurface(
-                    { onAction(TripWorkspaceAction.OpenSearch) },
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(start = 20.dp, end = 20.dp, bottom = sheetHeight + 20.dp),
-                )
             }
+        },
+        topOverlay = { metrics ->
+            WorkspaceTopBar(state.tripName, onAction)
+            MapControls(
+                layer = state.mapLayer,
+                overlay = state.overlay,
+                onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
+                onCloseOverlay = { onAction(TripWorkspaceAction.CloseOverlay) },
+                onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
+                onLocate = { onAction(TripWorkspaceAction.Locate) },
+                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
+            )
+            MapLegend(
+                Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
+            )
+            SearchSurface(
+                { onAction(TripWorkspaceAction.OpenSearch) },
+                Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(start = 20.dp, end = 20.dp, bottom = metrics.overlayBottomInset),
+            )
         },
     )
 }
@@ -235,13 +211,6 @@ internal fun WorkspaceSheetHandle(modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().height(24.dp), contentAlignment = Alignment.Center) {
         Surface(Modifier.fillMaxWidth(.1f).height(4.dp), shape = RoundedCornerShape(2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .4f)) {}
     }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-private fun WorkspaceSheetLevel.toSheetValue() = when (this) {
-    WorkspaceSheetLevel.COLLAPSED -> SheetValue.Hidden
-    WorkspaceSheetLevel.HALF -> SheetValue.PartiallyExpanded
-    WorkspaceSheetLevel.EXPANDED -> SheetValue.Expanded
 }
 
 internal fun MapLayer.label() = when (this) {

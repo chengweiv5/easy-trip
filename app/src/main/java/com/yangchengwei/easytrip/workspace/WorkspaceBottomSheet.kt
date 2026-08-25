@@ -2,9 +2,7 @@ package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
@@ -93,65 +91,57 @@ internal fun clampWorkspaceSheetDragOffsetPx(
 )
 
 @Composable
-fun WorkspaceBottomSheet(
+internal fun WorkspaceBottomSheet(
     value: WorkspaceSheetLevel,
+    anchors: WorkspaceSheetAnchors,
     onValueChange: (WorkspaceSheetLevel) -> Unit,
     header: @Composable () -> Unit,
     content: @Composable () -> Unit,
     modifier: Modifier = Modifier,
-    background: @Composable BoxScope.(bottomInset: androidx.compose.ui.unit.Dp) -> Unit = {},
-    searchReturn: Boolean = false,
 ) {
-    Box(modifier.fillMaxSize()) {
-        androidx.compose.foundation.layout.BoxWithConstraints(Modifier.fillMaxSize()) {
-            val anchors = workspaceSheetAnchors(maxHeight, searchReturn)
-            val targetHeight = anchors[value]
-            val density = LocalDensity.current
-            val dragThresholdPx = with(density) { 24.dp.toPx() }
-            val currentHeightPx = with(density) { targetHeight.toPx() }
-            val collapsedHeightPx = with(density) { anchors.collapsed.toPx() }
-            val expandedHeightPx = with(density) { anchors.expanded.toPx() }
-            background(targetHeight)
-            var dragOffset by remember { mutableFloatStateOf(0f) }
-            LaunchedEffect(value) { dragOffset = 0f }
-            Surface(
-                modifier = Modifier
+    val targetHeight = anchors[value]
+    val density = LocalDensity.current
+    val dragThresholdPx = with(density) { 24.dp.toPx() }
+    val currentHeightPx = with(density) { targetHeight.toPx() }
+    val collapsedHeightPx = with(density) { anchors.collapsed.toPx() }
+    val expandedHeightPx = with(density) { anchors.expanded.toPx() }
+    var dragOffset by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(value) { dragOffset = 0f }
+    Surface(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(targetHeight)
+            .offset { IntOffset(0, dragOffset.roundToInt()) }
+            .testTag("workspace-sheet"),
+        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 4.dp,
+    ) {
+        Column {
+            Box(
+                Modifier
                     .fillMaxWidth()
-                    .height(targetHeight)
-                    .align(Alignment.BottomCenter)
-                    .offset { IntOffset(0, dragOffset.roundToInt()) }
-                    .testTag("workspace-sheet"),
-                shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-                color = MaterialTheme.colorScheme.surface,
-                shadowElevation = 4.dp,
-            ) {
-                Column {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .pointerInput(value, anchors, density) {
-                                detectVerticalDragGestures(
-                                    onVerticalDrag = { _, amount ->
-                                        dragOffset = clampWorkspaceSheetDragOffsetPx(
-                                            currentHeightPx = currentHeightPx,
-                                            collapsedHeightPx = collapsedHeightPx,
-                                            expandedHeightPx = expandedHeightPx,
-                                            requestedOffsetPx = dragOffset + amount,
-                                        )
-                                    },
-                                    onDragEnd = {
-                                        val next = resolveWorkspaceSheetDrag(value, dragOffset, dragThresholdPx)
-                                        dragOffset = 0f
-                                        if (next != value) onValueChange(next)
-                                    },
-                                    onDragCancel = { dragOffset = 0f },
+                    .pointerInput(value, anchors, density) {
+                        detectVerticalDragGestures(
+                            onVerticalDrag = { _, amount ->
+                                dragOffset = clampWorkspaceSheetDragOffsetPx(
+                                    currentHeightPx = currentHeightPx,
+                                    collapsedHeightPx = collapsedHeightPx,
+                                    expandedHeightPx = expandedHeightPx,
+                                    requestedOffsetPx = dragOffset + amount,
                                 )
-                            }
-                            .testTag("workspace-sheet-handle"),
-                    ) { header() }
-                    if (value != WorkspaceSheetLevel.COLLAPSED) content()
-                }
-            }
+                            },
+                            onDragEnd = {
+                                val next = resolveWorkspaceSheetDrag(value, dragOffset, dragThresholdPx)
+                                dragOffset = 0f
+                                if (next != value) onValueChange(next)
+                            },
+                            onDragCancel = { dragOffset = 0f },
+                        )
+                    }
+                    .testTag("workspace-sheet-handle"),
+            ) { header() }
+            if (value != WorkspaceSheetLevel.COLLAPSED) content()
         }
     }
 }

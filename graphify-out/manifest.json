@@ -978,9 +978,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContentTest.kt": {
-    "mtime": 1787643306.0507276,
-    "seen": 1787643570.433276,
-    "ast_hash": "3dc31da173ac94c27ffe45c11b8071b5",
+    "mtime": 1787643957.7818875,
+    "seen": 1787644646.839628,
+    "ast_hash": "7a527d77b7120ee62b8e3e8f97c6a1d9",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/EasyTripButton.kt": {
@@ -1050,9 +1050,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContent.kt": {
-    "mtime": 1787609801.331005,
-    "seen": 1787611431.039957,
-    "ast_hash": "97a470d2e264ac573ea51690db6b9347",
+    "mtime": 1787644634.8426232,
+    "seen": 1787644646.839714,
+    "ast_hash": "b0b8453313cd905091b5c1d42ef68be2",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceMapFallback.kt": {
@@ -1572,9 +1572,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceBottomSheet.kt": {
-    "mtime": 1787641511.4484746,
-    "seen": 1787642594.044242,
-    "ast_hash": "0698aef32153de07663b97b71bf7a25a",
+    "mtime": 1787644551.199168,
+    "seen": 1787644646.8397162,
+    "ast_hash": "cb4e2e01e0974069e27b69af27c2e118",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceTabs.kt": {
@@ -1755,6 +1755,18 @@
     "mtime": 1787643500.074162,
     "seen": 1787643570.43342,
     "ast_hash": "343e60233567de1096d55c5fcdc4ef65",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceScaffold.kt": {
+    "mtime": 1787644556.5650182,
+    "seen": 1787644646.83972,
+    "ast_hash": "92313086f5dd28e0d1f4d3e3923ad435",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/yangchengwei/easytrip/workspace/WorkspaceLayoutMetricsTest.kt": {
+    "mtime": 1787643879.4660792,
+    "seen": 1787644646.839755,
+    "ast_hash": "28c1388ba391342b553035a0c5a25905",
     "semantic_hash": ""
   }
 }

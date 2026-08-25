@@ -106,6 +106,44 @@ class TripWorkspaceContentTest {
         assertTrue("launcher=$launcher sheet=$sheet", launcher.bottom <= sheet.top)
     }
 
+    @Test fun searchLegendAndMapControlsStayAboveCurrentSheet() {
+        setContent(ready(), WorkspaceMapState.Ready)
+        compose.waitForIdle()
+
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        listOf("workspace-search-launcher", "map-legend", "workspace-locate", "layer-menu").forEach { tag ->
+            val overlay = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            assertTrue("tag=$tag overlay=$overlay sheet=$sheet", overlay.bottom <= sheet.top)
+        }
+    }
+
+    @Test fun overlayPositionsMoveBetweenHalfAndExpandedLevels() {
+        val level = mutableStateOf(WorkspaceSheetLevel.HALF)
+        setContentForLevel(level)
+        compose.waitForIdle()
+        val halfPositions = listOf("workspace-search-launcher", "map-legend", "workspace-locate").associateWith { tag ->
+            compose.onNodeWithTag(tag).getUnclippedBoundsInRoot().bottom
+        }
+
+        compose.runOnIdle { level.value = WorkspaceSheetLevel.EXPANDED }
+        compose.waitForIdle()
+        val expandedSheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        halfPositions.forEach { (tag, halfBottom) ->
+            val expandedBottom = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot().bottom
+            assertTrue("tag=$tag half=$halfBottom expanded=$expandedBottom", expandedBottom < halfBottom)
+            assertTrue("tag=$tag expanded=$expandedBottom sheet=$expandedSheet", expandedBottom <= expandedSheet.top)
+        }
+    }
+
+    @Test fun mapFailureRetryRemainsAboveSheet() {
+        setContent(ready(), WorkspaceMapState.Failed("地图加载失败"))
+        compose.waitForIdle()
+
+        val retry = compose.onNodeWithTag("workspace-map-retry").getUnclippedBoundsInRoot()
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        assertTrue("retry=$retry sheet=$sheet", retry.bottom <= sheet.top)
+    }
+
     @Test fun workspaceTabsUseIndicatorAndTabSemantics() {
         setContent(ready(), WorkspaceMapState.Ready)
 
