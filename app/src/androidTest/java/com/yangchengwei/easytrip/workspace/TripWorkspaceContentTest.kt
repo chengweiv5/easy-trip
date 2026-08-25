@@ -140,6 +140,64 @@ class TripWorkspaceContentTest {
         )
     }
 
+    @Test fun dragCancelReturnsSheetAndSearchToCurrentLevelTogether() {
+        setContent(ready(), WorkspaceMapState.Ready)
+        compose.waitForIdle()
+        val initialSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
+        val initialSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
+
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y - 80f))
+            advanceEventTime(100)
+            cancel()
+        }
+        compose.waitForIdle()
+
+        assertEquals(initialSheetTop, compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top)
+        assertEquals(initialSearchBottom, compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom)
+    }
+
+    @Test fun dragEndBelowThresholdReturnsSheetAndSearchToCurrentLevelTogether() {
+        setContent(ready(), WorkspaceMapState.Ready)
+        compose.waitForIdle()
+        val initialSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
+        val initialSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
+
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y - 10f))
+            advanceEventTime(100)
+            up()
+        }
+        compose.waitForIdle()
+
+        assertEquals(initialSheetTop, compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top)
+        assertEquals(initialSearchBottom, compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom)
+    }
+
+    @Test fun rejectedLevelChangeKeepsSheetAndSearchAtControlledLevel() {
+        val requestedLevels = mutableListOf<WorkspaceSheetLevel>()
+        setContent(ready(), WorkspaceMapState.Ready, onAction = { action ->
+            if (action is TripWorkspaceAction.SetSheetLevel) requestedLevels += action.level
+        })
+        compose.waitForIdle()
+        val initialSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
+        val initialSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
+
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y - 200f))
+            advanceEventTime(100)
+            up()
+        }
+        compose.waitForIdle()
+
+        assertEquals(listOf(WorkspaceSheetLevel.EXPANDED), requestedLevels)
+        assertEquals(initialSheetTop, compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top)
+        assertEquals(initialSearchBottom, compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom)
+    }
+
     @Test fun overlayPositionsMoveBetweenHalfAndExpandedLevels() {
         val level = mutableStateOf(WorkspaceSheetLevel.HALF)
         setContentForLevel(level)

@@ -10,7 +10,6 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
@@ -73,11 +72,10 @@ internal fun WorkspaceScaffold(
     ) {
         val anchors = workspaceSheetAnchors(maxHeight, searchReturn)
         val density = LocalDensity.current
-        var visibleSheetHeightPx by remember { mutableFloatStateOf(with(density) { anchors[sheetLevel].toPx() }) }
-        LaunchedEffect(sheetLevel, anchors, density) {
-            visibleSheetHeightPx = with(density) { anchors[sheetLevel].toPx() }
+        var dragOffsetPx by remember(sheetLevel, anchors, density) { mutableFloatStateOf(0f) }
+        val visibleSheetHeight = with(density) { anchors[sheetLevel].toPx() - dragOffsetPx }.let { heightPx ->
+            with(density) { heightPx.toDp() }
         }
-        val visibleSheetHeight = with(density) { visibleSheetHeightPx.toDp() }
         val metrics = workspaceLayoutMetrics(maxHeight, visibleSheetHeight)
         Box(Modifier.fillMaxSize()) {
             map(metrics)
@@ -87,7 +85,8 @@ internal fun WorkspaceScaffold(
             value = sheetLevel,
             anchors = anchors,
             onValueChange = onSheetLevelChange,
-            onVisibleHeightChangePx = { visibleSheetHeightPx = it },
+            dragOffsetPx = dragOffsetPx,
+            onDragOffsetChange = { dragOffsetPx = it },
             header = sheetHeader,
             content = sheetContent,
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),

@@ -10,11 +10,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -95,7 +90,8 @@ internal fun WorkspaceBottomSheet(
     value: WorkspaceSheetLevel,
     anchors: WorkspaceSheetAnchors,
     onValueChange: (WorkspaceSheetLevel) -> Unit,
-    onVisibleHeightChangePx: (Float) -> Unit,
+    dragOffsetPx: Float,
+    onDragOffsetChange: (Float) -> Unit,
     header: @Composable () -> Unit,
     content: @Composable () -> Unit,
     modifier: Modifier = Modifier,
@@ -106,16 +102,11 @@ internal fun WorkspaceBottomSheet(
     val currentHeightPx = with(density) { targetHeight.toPx() }
     val collapsedHeightPx = with(density) { anchors.collapsed.toPx() }
     val expandedHeightPx = with(density) { anchors.expanded.toPx() }
-    var dragOffset by remember { mutableFloatStateOf(0f) }
-    LaunchedEffect(value, currentHeightPx) {
-        dragOffset = 0f
-        onVisibleHeightChangePx(currentHeightPx)
-    }
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .height(targetHeight)
-            .offset { IntOffset(0, dragOffset.roundToInt()) }
+            .offset { IntOffset(0, dragOffsetPx.roundToInt()) }
             .testTag("workspace-sheet"),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -126,29 +117,27 @@ internal fun WorkspaceBottomSheet(
                 Modifier
                     .fillMaxWidth()
                     .pointerInput(value, anchors, density) {
+                        var gestureDragOffsetPx = 0f
                         detectVerticalDragGestures(
+                            onDragStart = { gestureDragOffsetPx = 0f },
                             onVerticalDrag = { _, amount ->
-                                dragOffset = clampWorkspaceSheetDragOffsetPx(
+                                gestureDragOffsetPx = clampWorkspaceSheetDragOffsetPx(
                                     currentHeightPx = currentHeightPx,
                                     collapsedHeightPx = collapsedHeightPx,
                                     expandedHeightPx = expandedHeightPx,
-                                    requestedOffsetPx = dragOffset + amount,
+                                    requestedOffsetPx = gestureDragOffsetPx + amount,
                                 )
-                                onVisibleHeightChangePx(currentHeightPx - dragOffset)
+                                onDragOffsetChange(gestureDragOffsetPx)
                             },
                             onDragEnd = {
-                                val next = resolveWorkspaceSheetDrag(value, dragOffset, dragThresholdPx)
-                                dragOffset = 0f
-                                if (next != value) {
-                                    onVisibleHeightChangePx(with(density) { anchors[next].toPx() })
-                                    onValueChange(next)
-                                } else {
-                                    onVisibleHeightChangePx(currentHeightPx)
-                                }
+                                val next = resolveWorkspaceSheetDrag(value, gestureDragOffsetPx, dragThresholdPx)
+                                gestureDragOffsetPx = 0f
+                                onDragOffsetChange(0f)
+                                if (next != value) onValueChange(next)
                             },
                             onDragCancel = {
-                                dragOffset = 0f
-                                onVisibleHeightChangePx(currentHeightPx)
+                                gestureDragOffsetPx = 0f
+                                onDragOffsetChange(0f)
                             },
                         )
                     }

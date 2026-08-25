@@ -80,3 +80,31 @@
 ### 自审
 
 未修改业务状态、导航、Repository、权限、地图生命周期、Task 4 Tab 或 Task 5 bottom inset；未触碰 `.superpowers/brainstorm/`。
+
+## Fix round 2/5：受控跨档回调一致性
+
+### Finding
+
+round 1 中 `WorkspaceBottomSheet` 私有持有 `dragOffset`，而 `WorkspaceScaffold` 另持有 `visibleSheetHeightPx`。跨过阈值的 drag end 会先清除 Sheet 的私有 offset，却在等待受控 `onValueChange` 前将 overlays 提前发布到新档锚点；父级延迟或拒绝更新时，两者会分离。
+
+### RED
+
+新增三项触摸测试：cancel 回当前档、未跨阈值 end 回当前档、跨阈值但父级不接纳请求时仍保持受控当前档。旧实现的拒绝更新测试确认失败：Sheet 已回 HALF，但搜索仍提前移动到 EXPANDED 边界（`expected 434.9091.dp but was 70.90909.dp`）。
+
+### 实现
+
+- 将 `dragOffsetPx` 提升到 `WorkspaceScaffold`，作为 Sheet offset 与 `WorkspaceLayoutMetrics.visibleSheetHeight` 的唯一共享进度状态。
+- Sheet 和 metrics 都由 `anchors[sheetLevel] - dragOffsetPx` 推导；不再维护 `visibleSheetHeightPx` 这个副本。
+- drag end 先清共享 offset 回受控当前档，再仅请求 `onValueChange(next)`；不提前发布下一档 metrics。父级接纳时，新的 `sheetLevel` 触发受控重组；拒绝或延迟时，Sheet 与 overlays 继续停在同一当前档。
+- 保留 clamp、24dp threshold 与相邻一档 settle；未更改业务回调语义、anchors 计算或 insets 应用位置。
+
+### 验证
+
+- 四项拖动 Compose 测试（active drag、cancel、低于阈值 end、拒绝跨档请求）：全部通过，BUILD SUCCESSFUL。
+- `WorkspaceLayoutMetricsTest` + `WorkspaceSheetSyncTest`：通过，BUILD SUCCESSFUL。
+- 完整 `TripWorkspaceContentTest`：20 项中 18 项通过；仅剩既知 Task 4 `workspaceTabsUseIndicatorAndTabSemantics` 与 Task 5 `placePoolListScrollsAndKeepsSecondCardAboveBottomInset` 失败，未修改。
+- `git diff --check`：通过。
+
+### 自审
+
+实时 Sheet/overlay 边界只有 Scaffold 的 `dragOffsetPx` 一份状态；手势局部累计值仅在 pointerInput 协程中用于阈值判定，每次更新都发布至该单一状态，终止路径清零后同步回当前受控档。未触碰 `.superpowers/brainstorm/`。
