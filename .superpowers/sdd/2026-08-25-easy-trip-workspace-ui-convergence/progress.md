@@ -52,20 +52,23 @@ Task 6: complete (commits 96301c1..e13546f, review clean)
 - Ruling: failedRouteShowsErrorAndRetryAction is a direct DayItinerarySheet viewport assertion unrelated to the workspace shell; Task 7 may correct the test to scroll to the RouteLeg before asserting visibility. Cost if wrong: a genuine initial-viewport requirement could be weakened.
 - Ruling: waitingForNetworkKeepsAllPlaceActions incorrectly expects the itinerary row root to expose OnClick although production exposes reorder custom actions and explicit timing/move/delete buttons; Task 7 may align the assertion with actual accessibility semantics, not make the whole card clickable. Cost if wrong: a desired whole-card interaction would remain absent pending product confirmation.
 
-Task 7: complete pending physical-device acceptance.
-- Added real NavHost navigation regression plus long-title physical hit-target and map-failure reachability coverage; no production reducer, SavedState, repository, map lifecycle, or permission-flow changes.
-- Corrected the two adjudicated itinerary contracts and stale scenario selectors/gesture injection; `ItineraryEditingTest` 7/7 PASS, workspace navigation focus 13/13 PASS, workspace device suite 53/53 PASS, `V1ScenarioCatalogTest` 47/47 PASS, and `V1FullUiAcceptanceTest` 47/47 PASS on `easy_trip_p60pro(AVD)`.
-- Static gate: 330 JVM tests, 0 failed/skipped; lint and app/test APK assembly PASS.
+Task 7: fix round 1/5 (4 addressed, 0 open; commits ea4fa79..cb75df8)
+Task 7: automated portion complete (commits e13546f..cb75df8, review clean)
+- Restored real system BackHandler coverage, RouteLeg error-copy assertion, and physical click/callback coverage for long-title chrome.
+- Fixed stale overlay observation in system back handling and legacy route error fallback without changing reducer priority or repository contracts.
+- Tests: 331/331 JVM PASS; ItineraryEditingTest 7/7 PASS; workspace navigation 13/13 PASS; workspace suite 53/53 PASS; V1ScenarioCatalogTest 47/47 PASS; V1FullUiAcceptanceTest 47/47 PASS; 0 skipped/failed; lint and app/test APK assembly PASS.
 - Mate 60 Pro physical-device acceptance: PENDING/BLOCKED because only emulator-5554 was connected.
-
-Task 7: fix round 1/5 (2 addressed, 0 open).
-- Restored real system `BackHandler` coverage and retained top-back coverage. RED proved the callback was enabled and Activity dispatch worked; the route read a stale collected overlay snapshot. The minimal route fix reads `viewModel.state.value.overlay`, so system and top back both close the overlay before leaving.
-- Restored the failed-route explanation contract. RED plus merged/unmerged semantics bounds proved there was no clipping: the UI mapper discarded legacy `errorCode` when typed `errorKind` was absent. The mapper now prefers typed summaries and falls back to `errorCode`, with JVM coverage; the device test scrolls to the RouteLeg and verifies both `no route` and retry.
-- Long-title back/more/search controls are physically sized, actually clicked, and their callbacks verified.
-- Final gate: 331/331 JVM tests, lint and app/test APK assembly PASS; `ItineraryEditingTest` 7/7, workspace device suite 53/53, catalog 47/47, and full UI acceptance 47/47 PASS with zero skipped/failed on `easy_trip_p60pro(AVD)`.
-- Mate 60 Pro physical-device acceptance remains PENDING/BLOCKED because only emulator-5554 was connected.
 
 Task 7 fix round 1/5 commit: `2956c6b`.
 check: `git diff --check` PASS.
 report: `.superpowers/sdd/2026-08-25-easy-trip-workspace-ui-convergence/task-7-report.md`.
 
+Task 7: whole-branch review fix wave (expanded overlay bounds + dead-code cleanup).
+- RED: a 792dp-equivalent EXPANDED workspace placed search at 13.09..59.27dp while TopBar ended at 52dp; the original map controls/legend calculation could also place overlays at or above root top. Existing tests only checked `overlay.bottom <= sheet.top` and therefore missed TopBar/root violations.
+- Root cause: the 90% expanded anchor left only 79.2dp above the sheet, insufficient for TopBar, search, the 58dp control offset, and control height.
+- GREEN: cap regular-window expanded height at `availableHeight - 214.dp` (792dp => 578dp), retaining the map band and all search/locate/layer/legend controls. The new bounds test requires every overlay to remain horizontally inside root, below TopBar, and above Sheet.
+- Removed unused `settledWorkspaceSheetLevel`, its `SheetValue` import and helper-only tests; removed the obsolete local `LayerIcon` after confirming production uses `WorkspaceLayerIcon`.
+- Final gate: 329/329 JVM tests, lint and app/test APK assembly PASS; `ItineraryEditingTest` 7/7, workspace device suite 54/54, catalog 47/47, and full UI acceptance 47/47 PASS with zero skipped/failed on `easy_trip_p60pro(AVD)`.
+- One invalid-package workspace invocation failed with three class-loading initialization errors; corrected package names were rerun as the complete 54-test suite and passed. No product assertion failed.
+- Mate 60 Pro physical-device acceptance remains PENDING/BLOCKED because only emulator-5554 was connected.
+- Report: `.superpowers/sdd/2026-08-25-easy-trip-workspace-ui-convergence/task-7-report.md`.

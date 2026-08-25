@@ -26,6 +26,20 @@
 - 长行程名测试不仅检查 back/more/search 的 44dp 物理点击区域，还真实点击三者并验证对应回调各触发一次。
 - `waitingForNetworkKeepsAllPlaceActions` 保持真实“上移/下移” custom actions，以及 timing/move/delete 操作语义；没有把整卡改成 clickable。
 
+## Whole-branch review fix wave
+
+### EXPANDED 浮层 RED / 根因 / GREEN
+
+- RED：新增 792dp 等价窗口的真实 Compose bounds 测试。原 90% EXPANDED 锚点下，TopBar bottom 为 52dp，搜索 bounds 为 13.09..59.27dp，搜索与 TopBar 重叠；地图控件与图例还会到达 root 顶边或负坐标。旧测试只检查 `overlay.bottom <= sheet.top`，无法捕获该问题。
+- 根因：792dp 高度的 90% Sheet 只留下 79.2dp 地图带，无法同时容纳 TopBar、搜索、58dp 控件避让和地图控件高度。
+- 修复：正常窗口将 expanded anchor 限制为 `availableHeight - 214.dp`，792dp 时为 578dp；不隐藏定位、图层或图例，保持地图持续可见且关键地图操作可达。小窗口继续沿用既有有序退化逻辑。
+- GREEN：测试逐一要求搜索、定位、图层和图例横向位于 root 内，top 不高于 TopBar bottom，bottom 不进入 Sheet；聚焦 1/1 与完整 `TripWorkspaceContentTest` 25/25 PASS。
+
+### 死代码清理
+
+- 删除无生产调用的 `settledWorkspaceSheetLevel`、对应 `SheetValue` import 和仅覆盖该 helper 的两个测试。
+- 删除 `TripWorkspaceContent.kt` 的旧 `LayerIcon`，确认现有图层按钮使用 `WorkspaceLayerIcon`。
+
 ## 修改文件
 
 - `app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceRoute.kt`
@@ -44,17 +58,17 @@
 ## 最终命令结果
 
 - `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest`
-  - 331 JVM tests，331 PASS，0 skipped，0 failed；lint PASS；app APK 与 androidTest APK assemble PASS。
+  - 329 JVM tests，329 PASS，0 skipped，0 failed；lint PASS；app APK 与 androidTest APK assemble PASS。JVM 总数减少 2 是删除仅覆盖无调用 helper 的测试。
 - `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.itinerary.ui.ItineraryEditingTest`
   - 7 tests，7 PASS，0 skipped，0 failed。
 - 工作台设备套件（`TripWorkspaceContentTest`、`WorkspaceChromeTest`、`WorkspaceSearchTabsTest`、`WorkspaceFlowTest`、`WorkspacePlacePoolLayoutTest`、`ItineraryScopeRailTest`、`WholeTripItineraryContentTest`）
-  - 53 tests，53 PASS，0 skipped，0 failed。
+  - 54 tests，54 PASS，0 skipped，0 failed。新增 1 项正常 792dp EXPANDED bounds 回归。
 - `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.V1ScenarioCatalogTest`
   - 47 tests，47 PASS，0 skipped，0 failed。
 - `./gradlew connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.V1FullUiAcceptanceTest`
   - 47 tests，47 PASS，0 skipped，0 failed。
 
-所有 connected tests 串行执行，均获得非零完整结果。
+所有有效 connected tests 串行执行，均获得非零完整结果。工作台套件首次命令中三个类使用了错误包名，产生 class-loading initializationError；修正为实际包名后完整 54/54 通过，该次命令没有产品断言失败。
 
 ## 设备
 

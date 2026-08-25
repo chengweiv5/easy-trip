@@ -49,7 +49,10 @@ internal fun workspaceSheetAnchors(
     availableHeight: Dp,
     searchReturn: Boolean,
 ): WorkspaceSheetAnchors {
-    val expanded = availableHeight * workspaceSheetFraction(WorkspaceSheetLevel.EXPANDED)
+    val expanded = minOf(
+        availableHeight * workspaceSheetFraction(WorkspaceSheetLevel.EXPANDED),
+        if (availableHeight >= 396.dp) availableHeight - 214.dp else availableHeight,
+    )
     val collapsed = minOf(34.dp, expanded / 3f)
     val levelGap = minOf(12.dp, (expanded - collapsed) / 2f)
     val half = maxOf(

@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.workspace
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
@@ -297,6 +298,40 @@ class TripWorkspaceContentTest {
             val expandedBottom = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot().bottom
             assertTrue("tag=$tag half=$halfBottom expanded=$expandedBottom", expandedBottom < halfBottom)
             assertTrue("tag=$tag expanded=$expandedBottom sheet=$expandedSheet", expandedBottom <= expandedSheet.top)
+        }
+    }
+
+    @Test fun expandedRegularWindowKeepsEssentialOverlaysBetweenTopBarAndSheet() {
+        compose.setContent {
+            EasyTripTheme {
+                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(792.dp)) {
+                    TripWorkspaceContent(
+                        pageState = ready(WorkspaceSheetLevel.EXPANDED),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = {},
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { Text("地图就绪") },
+                        modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
+        val topBar = compose.onNodeWithTag("workspace-top-bar").getUnclippedBoundsInRoot()
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        listOf("workspace-search-launcher", "workspace-locate", "layer-menu", "map-legend").forEach { tag ->
+            val overlay = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            assertTrue(
+                "tag=$tag root=$root overlay=$overlay",
+                overlay.left >= root.left && overlay.right <= root.right,
+            )
+            assertTrue("tag=$tag topBar=$topBar overlay=$overlay", overlay.top >= topBar.bottom)
+            assertTrue("tag=$tag sheet=$sheet overlay=$overlay", overlay.bottom <= sheet.top)
         }
     }
 

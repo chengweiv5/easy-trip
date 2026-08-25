@@ -1,13 +1,10 @@
 package com.yangchengwei.easytrip.workspace
 
-import androidx.compose.material3.SheetValue
 import androidx.compose.ui.unit.dp
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
-@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 class WorkspaceSheetSyncTest {
     @Test fun `sheet accepts only three levels and restores valid values`() {
         assertEquals(WorkspaceSheetLevel.COLLAPSED, restoreWorkspaceSheetLevel("COLLAPSED"))
@@ -23,7 +20,7 @@ class WorkspaceSheetSyncTest {
 
     @Test fun `regular window produces ordered anchors and search return lift`() {
         assertEquals(
-            WorkspaceSheetAnchors(34.dp, 396.dp, 712.8.dp),
+            WorkspaceSheetAnchors(34.dp, 396.dp, 578.dp),
             workspaceSheetAnchors(792.dp, searchReturn = false),
         )
         assertEquals(412.dp, workspaceSheetAnchors(792.dp, searchReturn = true).half)
@@ -70,17 +67,5 @@ class WorkspaceSheetSyncTest {
     @Test fun `drag offset is clamped to legal anchor range`() {
         assertEquals(-300f, clampWorkspaceSheetDragOffsetPx(400f, 40f, 700f, -999f))
         assertEquals(360f, clampWorkspaceSheetDragOffsetPx(400f, 40f, 700f, 999f))
-    }
-
-    @Test fun `transitioning sheet does not overwrite requested level`() {
-        assertNull(settledWorkspaceSheetLevel(SheetValue.PartiallyExpanded, SheetValue.Hidden, WorkspaceSheetLevel.HALF))
-        assertNull(settledWorkspaceSheetLevel(SheetValue.Hidden, SheetValue.PartiallyExpanded, WorkspaceSheetLevel.HALF))
-        assertNull(settledWorkspaceSheetLevel(SheetValue.PartiallyExpanded, SheetValue.PartiallyExpanded, WorkspaceSheetLevel.COLLAPSED))
-    }
-
-    @Test fun `settled sheet maps to workspace level`() {
-        assertEquals(WorkspaceSheetLevel.COLLAPSED, settledWorkspaceSheetLevel(SheetValue.Hidden, SheetValue.Hidden, WorkspaceSheetLevel.HALF))
-        assertEquals(WorkspaceSheetLevel.HALF, settledWorkspaceSheetLevel(SheetValue.PartiallyExpanded, SheetValue.PartiallyExpanded, WorkspaceSheetLevel.HALF))
-        assertEquals(WorkspaceSheetLevel.EXPANDED, settledWorkspaceSheetLevel(SheetValue.Expanded, SheetValue.Expanded, WorkspaceSheetLevel.HALF))
     }
 }

@@ -1,6 +1,5 @@
 package com.yangchengwei.easytrip.workspace
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
@@ -18,7 +17,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
@@ -188,19 +186,6 @@ private fun WorkspaceReadyContent(
             )
         },
     )
-}
-
-@Composable internal fun LayerIcon() {
-    Canvas(Modifier.fillMaxSize().padding(12.dp)) {
-        val stroke = 1.5.dp.toPx()
-        fun layer(centerY: Float) {
-            val path = androidx.compose.ui.graphics.Path().apply {
-                moveTo(size.width / 2f, centerY - size.height * .18f); lineTo(size.width, centerY); lineTo(size.width / 2f, centerY + size.height * .18f); lineTo(0f, centerY); close()
-            }
-            drawPath(path, Color(0xFF2D5E3A), style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
-        }
-        layer(size.height * .36f); layer(size.height * .62f)
-    }
 }
 
 @Composable

@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -533,15 +532,4 @@ private fun TransportMode.label() = when (this) {
     TransportMode.TAXI -> "打车"
     TransportMode.DRIVE -> "驾车"
     TransportMode.TRANSIT -> "公交"
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-internal fun settledWorkspaceSheetLevel(current: SheetValue, target: SheetValue, requested: WorkspaceSheetLevel): WorkspaceSheetLevel? {
-    if (current != target) return null
-    if (requested == WorkspaceSheetLevel.COLLAPSED && current == SheetValue.PartiallyExpanded) return null
-    return when (current) {
-        SheetValue.Hidden -> WorkspaceSheetLevel.COLLAPSED
-        SheetValue.PartiallyExpanded -> WorkspaceSheetLevel.HALF
-        SheetValue.Expanded -> WorkspaceSheetLevel.EXPANDED
-    }
 }
