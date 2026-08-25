@@ -10,6 +10,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.input.pointer.pointerInput
@@ -102,6 +104,8 @@ internal fun WorkspaceBottomSheet(
     val currentHeightPx = with(density) { targetHeight.toPx() }
     val collapsedHeightPx = with(density) { anchors.collapsed.toPx() }
     val expandedHeightPx = with(density) { anchors.expanded.toPx() }
+    val currentOnValueChange by rememberUpdatedState(onValueChange)
+    val currentOnDragOffsetChange by rememberUpdatedState(onDragOffsetChange)
     Surface(
         modifier = modifier
             .fillMaxWidth()
@@ -127,17 +131,17 @@ internal fun WorkspaceBottomSheet(
                                     expandedHeightPx = expandedHeightPx,
                                     requestedOffsetPx = gestureDragOffsetPx + amount,
                                 )
-                                onDragOffsetChange(gestureDragOffsetPx)
+                                currentOnDragOffsetChange(gestureDragOffsetPx)
                             },
                             onDragEnd = {
                                 val next = resolveWorkspaceSheetDrag(value, gestureDragOffsetPx, dragThresholdPx)
                                 gestureDragOffsetPx = 0f
-                                onDragOffsetChange(0f)
-                                if (next != value) onValueChange(next)
+                                currentOnDragOffsetChange(0f)
+                                if (next != value) currentOnValueChange(next)
                             },
                             onDragCancel = {
                                 gestureDragOffsetPx = 0f
-                                onDragOffsetChange(0f)
+                                currentOnDragOffsetChange(0f)
                             },
                         )
                     }

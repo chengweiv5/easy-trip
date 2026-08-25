@@ -108,3 +108,29 @@ round 1 中 `WorkspaceBottomSheet` 私有持有 `dragOffset`，而 `WorkspaceSca
 ### 自审
 
 实时 Sheet/overlay 边界只有 Scaffold 的 `dragOffsetPx` 一份状态；手势局部累计值仅在 pointerInput 协程中用于阈值判定，每次更新都发布至该单一状态，终止路径清零后同步回当前受控档。未触碰 `.superpowers/brainstorm/`。
+
+## Fix round 3/5：延迟接纳与回调新鲜度
+
+### Finding
+
+- 缺少跨档请求先保持 HALF、父级稍后接纳后再同步切到 EXPANDED 的端到端覆盖。
+- `pointerInput(value, anchors, density)` 捕获了创建时的 `onValueChange` 与 `onDragOffsetChange`，活动手势中父级替换 callback 时仍可能调用旧实例。
+
+### RED
+
+新增 `activeGestureUsesLatestLevelChangeCallback`：开始跨阈值拖动后替换父级 callback，再结束同一手势。旧实现按预期失败，实际调用旧 callback，断言为 `expected [1] but was [0]`。新增 `delayedLevelAcceptanceKeepsGeometryTogetherBeforeAndAfterParentUpdate` 在现有 round 2 实现上立即通过；它仍是有效回归测试，因为分别验证请求后父级未接纳时 Sheet/search 留在 HALF，以及稍后接纳后两者同步进入 EXPANDED。
+
+### 实现
+
+`WorkspaceBottomSheet` 对 `onValueChange` 和 `onDragOffsetChange` 使用 `rememberUpdatedState`，pointerInput key 仍只有 `value`、`anchors`、`density`，所以 callback identity 更新不会重启活动手势，而拖动事件始终调用最新 callback。
+
+### 验证
+
+- 六项相关拖动测试：全部通过，BUILD SUCCESSFUL。
+- `WorkspaceLayoutMetricsTest` + `WorkspaceSheetSyncTest`：通过，BUILD SUCCESSFUL。
+- 完整 `TripWorkspaceContentTest`：22 项中 20 项通过；仅剩既知 Task 4 Tab indicator 与 Task 5 place pool bottom inset 两项失败。
+- `git diff --check`：通过。
+
+### 自审
+
+未改变 anchors 单次计算、active drag 同步、一步一档、业务 action、safeDrawing/IME；未修改 Task 4/5，也未触碰 `.superpowers/brainstorm/`。

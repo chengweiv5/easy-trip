@@ -198,6 +198,87 @@ class TripWorkspaceContentTest {
         assertEquals(initialSearchBottom, compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom)
     }
 
+    @Test fun delayedLevelAcceptanceKeepsGeometryTogetherBeforeAndAfterParentUpdate() {
+        val level = mutableStateOf(WorkspaceSheetLevel.HALF)
+        val requestedLevel = mutableStateOf<WorkspaceSheetLevel?>(null)
+        compose.setContent {
+            EasyTripTheme {
+                TripWorkspaceContent(
+                    pageState = ready(level.value),
+                    mapState = WorkspaceMapState.Ready,
+                    onAction = { action ->
+                        if (action is TripWorkspaceAction.SetSheetLevel) requestedLevel.value = action.level
+                    },
+                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                    onPlaceAction = {},
+                    itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                    onItineraryAction = {},
+                    mapContent = { Text("地图就绪") },
+                    modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                )
+            }
+        }
+        compose.waitForIdle()
+        val initialSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
+        val initialSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
+
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y - 200f))
+            advanceEventTime(100)
+            up()
+        }
+        compose.waitForIdle()
+
+        assertEquals(WorkspaceSheetLevel.EXPANDED, requestedLevel.value)
+        assertEquals(initialSheetTop, compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top)
+        assertEquals(initialSearchBottom, compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom)
+
+        compose.runOnIdle { level.value = requestedLevel.value!! }
+        compose.waitForIdle()
+        val expandedSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
+        val expandedSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
+        assertTrue("half=$initialSheetTop expanded=$expandedSheetTop", expandedSheetTop < initialSheetTop)
+        assertTrue(
+            "half=$initialSearchBottom expanded=$expandedSearchBottom sheet=$expandedSheetTop",
+            expandedSearchBottom < initialSearchBottom && expandedSearchBottom <= expandedSheetTop,
+        )
+    }
+
+    @Test fun activeGestureUsesLatestLevelChangeCallback() {
+        val calls = mutableListOf<Int>()
+        val callback = mutableStateOf<(WorkspaceSheetLevel) -> Unit>({ calls += 0 })
+        compose.setContent {
+            EasyTripTheme {
+                WorkspaceScaffold(
+                    sheetLevel = WorkspaceSheetLevel.HALF,
+                    searchReturn = false,
+                    onSheetLevelChange = callback.value,
+                    modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    map = {},
+                    topOverlay = {},
+                    sheetHeader = { Text("拖动") },
+                    sheetContent = {},
+                )
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y - 200f))
+            advanceEventTime(100)
+        }
+        compose.runOnIdle { callback.value = { calls += 1 } }
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+            advanceEventTime(100)
+            up()
+        }
+        compose.waitForIdle()
+
+        assertEquals(listOf(1), calls)
+    }
+
     @Test fun overlayPositionsMoveBetweenHalfAndExpandedLevels() {
         val level = mutableStateOf(WorkspaceSheetLevel.HALF)
         setContentForLevel(level)
