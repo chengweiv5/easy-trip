@@ -535,26 +535,6 @@ private fun TransportMode.label() = when (this) {
     TransportMode.TRANSIT -> "公交"
 }
 
-@Composable
-fun WorkspaceSearchLauncher(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(
-        modifier.height(48.dp).testTag("workspace-search-launcher").semantics { contentDescription = "搜索地点" }.clickable(role = Role.Button, onClick = onClick),
-        contentAlignment = androidx.compose.ui.Alignment.Center,
-    ) {
-        Surface(Modifier.fillMaxWidth().height(46.dp), shape = androidx.compose.foundation.shape.RoundedCornerShape(23.dp), color = Color.White, shadowElevation = 2.dp) {
-            Canvas(Modifier.fillMaxSize().padding(13.dp)) {
-                val color = Color(0xFF2D5E3A)
-                val stroke = 2.dp.toPx()
-                val radius = size.minDimension * .28f
-                val center = androidx.compose.ui.geometry.Offset(size.width * .43f, size.height * .43f)
-                drawCircle(color, radius, center, style = androidx.compose.ui.graphics.drawscope.Stroke(stroke))
-                val diagonal = radius * .7f
-                drawLine(color, center + androidx.compose.ui.geometry.Offset(diagonal, diagonal), center + androidx.compose.ui.geometry.Offset(radius * 1.55f, radius * 1.55f), strokeWidth = stroke, cap = androidx.compose.ui.graphics.StrokeCap.Round)
-            }
-        }
-    }
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 internal fun settledWorkspaceSheetLevel(current: SheetValue, target: SheetValue, requested: WorkspaceSheetLevel): WorkspaceSheetLevel? {
     if (current != target) return null

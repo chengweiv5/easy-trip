@@ -39,16 +39,16 @@ fun MapControls(
     Column(modifier, horizontalAlignment = Alignment.End) {
         Surface(
             Modifier.size(controlSize).testTag("workspace-locate").semantics { contentDescription = "定位" }.clickable(onClick = onLocate),
-            shape = RoundedCornerShape(controlSize / 2), color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp,
+            shape = RoundedCornerShape(controlSize / 2), color = MaterialTheme.colorScheme.surface, shadowElevation = EasyTripTheme.elevation.floating,
         ) { Box(contentAlignment = Alignment.Center) { WorkspaceLocateIcon(Modifier.size(iconSize)) } }
         Surface(
             Modifier.padding(top = controlGap).size(controlSize).testTag("layer-menu").semantics { contentDescription = "地图图层" }.clickable(onClick = onOpenLayerMenu),
-            shape = RoundedCornerShape(controlSize / 2), color = MaterialTheme.colorScheme.surface, shadowElevation = 2.dp,
+            shape = RoundedCornerShape(controlSize / 2), color = MaterialTheme.colorScheme.surface, shadowElevation = EasyTripTheme.elevation.floating,
         ) { Box(contentAlignment = Alignment.Center) { WorkspaceLayerIcon(Modifier.size(iconSize)) } }
         if (overlay == WorkspaceOverlay.LayerMenu) {
             Surface(
                 Modifier.padding(top = controlGap).widthIn(max = 280.dp).testTag("layer-menu-panel"),
-                shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 4.dp,
+                shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = EasyTripTheme.elevation.dialog,
             ) {
                 Column(Modifier.padding(16.dp)) {
                     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {

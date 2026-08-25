@@ -42,6 +42,7 @@ data class SearchResultSelection(
 
 data class TripWorkspaceUiState(
     val tripName: String = "",
+    val dateLabel: String? = null,
     val days: List<TripDay> = emptyList(),
     val section: WorkspaceSection = WorkspaceSection.PLACE_POOL,
     val itineraryScope: ItineraryScope = ItineraryScope.WholeTrip,
@@ -198,6 +199,7 @@ class TripWorkspaceViewModel(
         val selectedMarker = model.markers.firstOrNull { it.key == values[6] as String? }
         return TripWorkspaceUiState(
             tripName = currentTrip.name,
+            dateLabel = workspaceDateLabel(currentTrip.startDate, currentTrip.days.size),
             days = currentTrip.days,
             section = currentSection,
             itineraryScope = currentItineraryScope,
@@ -213,6 +215,13 @@ class TripWorkspaceViewModel(
             mapLayer = values[10] as MapLayer,
             overlay = values[12] as WorkspaceOverlay,
         )
+    }
+
+    private fun workspaceDateLabel(startDate: java.time.LocalDate?, dayCount: Int): String? {
+        if (startDate == null || dayCount <= 0) return null
+        fun java.time.LocalDate.label() = "${monthValue}月${dayOfMonth}日"
+        if (dayCount == 1) return startDate.label()
+        return "${startDate.label()} — ${startDate.plusDays(dayCount.toLong() - 1).label()}"
     }
 
     fun selectSection(value: WorkspaceSection) {

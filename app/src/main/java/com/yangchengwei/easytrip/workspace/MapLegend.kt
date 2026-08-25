@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.shape.CircleShape
@@ -14,6 +15,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 
 @Composable
 fun MapLegend(modifier: Modifier = Modifier) {
@@ -21,10 +23,10 @@ fun MapLegend(modifier: Modifier = Modifier) {
         modifier = modifier.wrapContentWidth().testTag("map-legend"),
         shape = RoundedCornerShape(14.dp),
         color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 2.dp,
+        shadowElevation = EasyTripTheme.elevation.floating,
     ) {
         Row(
-            modifier = Modifier.wrapContentWidth(),
+            modifier = Modifier.wrapContentWidth().padding(horizontal = 12.dp, vertical = 8.dp),
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {

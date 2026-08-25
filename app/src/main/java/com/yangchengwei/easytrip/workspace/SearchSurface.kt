@@ -22,14 +22,14 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 
 @Composable
-fun SearchSurface(onClick: () -> Unit, modifier: Modifier = Modifier) {
+fun WorkspaceSearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
     Box(modifier.fillMaxWidth().testTag("workspace-search-surface")) {
         Surface(
             modifier = Modifier.fillMaxWidth().height(EasyTripTheme.sizes.workspaceSearchHeight).testTag("workspace-search-launcher")
                 .semantics { contentDescription = "搜索地点" }.clickable(role = Role.Button, onClick = onClick),
             shape = RoundedCornerShape(23.dp),
             color = MaterialTheme.colorScheme.surface,
-            shadowElevation = 2.dp,
+            shadowElevation = EasyTripTheme.elevation.floating,
         ) {
             Row(Modifier.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
                 WorkspaceSearchIcon(Modifier.size(EasyTripTheme.sizes.workspaceIconSize))

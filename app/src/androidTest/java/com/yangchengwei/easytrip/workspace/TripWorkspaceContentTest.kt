@@ -13,6 +13,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performScrollToNode
@@ -49,8 +50,8 @@ class TripWorkspaceContentTest {
         compose.onNodeWithText("同意高德隐私政策后显示地图").assertIsDisplayed()
         compose.onNodeWithText("地点池").assertIsDisplayed()
         compose.onNodeWithText("还没有收藏地点").assertExists()
-        compose.onNodeWithText("设置").assertIsDisplayed()
-        compose.onNodeWithText("返回").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-more").assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithTag("workspace-back").assertIsDisplayed().assertHasClickAction()
     }
 
     @Test fun mapFailureRetryIsAboveSheetAndInvokesDedicatedCallbackOnce() {
@@ -81,8 +82,8 @@ class TripWorkspaceContentTest {
         setContent(ready(), WorkspaceMapState.Ready, actions::add)
         compose.waitForIdle()
         actions.clear()
-        compose.onNodeWithText("返回").performClick()
-        compose.onNodeWithText("设置").performClick()
+        compose.onNodeWithTag("workspace-back").performClick()
+        compose.onNodeWithTag("workspace-more").performClick()
         compose.onNodeWithContentDescription("搜索地点").performClick()
         compose.onNodeWithText("地点池").assertIsSelected().assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).performClick()
         compose.onNodeWithText("行程").assertIsNotSelected().assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab)).performClick()
@@ -310,7 +311,7 @@ class TripWorkspaceContentTest {
         setContent(ready(), WorkspaceMapState.Ready)
 
         compose.onNodeWithTag("workspace-tabs").assertExists()
-        compose.onNodeWithTag("workspace-tab-indicator-PLACE_POOL").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-tab-indicator-PLACE_POOL", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithText("地点池").assertIsSelected().assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
         compose.onNodeWithText("行程").assertIsNotSelected().assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, Role.Tab))
     }

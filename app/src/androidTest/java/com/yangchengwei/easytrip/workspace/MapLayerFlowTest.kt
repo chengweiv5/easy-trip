@@ -62,7 +62,7 @@ class MapLayerFlowTest {
     }
 
     @Test fun searchSurfaceIsFullWidthAndOpaque() {
-        compose.setContent { EasyTripTheme { SearchSurface(onClick = {}) } }
+        compose.setContent { EasyTripTheme { WorkspaceSearchBar(onClick = {}) } }
 
         compose.onNodeWithTag("workspace-search-surface").assertHeightIsAtLeast(46.dp)
         compose.onNodeWithText("搜索餐厅、景点或地址").assertIsDisplayed()

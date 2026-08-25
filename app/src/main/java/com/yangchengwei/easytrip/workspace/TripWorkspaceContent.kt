@@ -156,7 +156,13 @@ private fun WorkspaceReadyContent(
             }
         },
         topOverlay = { metrics ->
-            WorkspaceTopBar(state.tripName, onAction)
+            WorkspaceTopBar(
+                title = state.tripName,
+                dateLabel = state.dateLabel,
+                onBack = { onAction(TripWorkspaceAction.Back) },
+                onMore = { onAction(TripWorkspaceAction.OpenSettings) },
+                modifier = Modifier.padding(horizontal = 20.dp),
+            )
             MapControls(
                 layer = state.mapLayer,
                 overlay = state.overlay,
@@ -169,7 +175,7 @@ private fun WorkspaceReadyContent(
             MapLegend(
                 Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
             )
-            SearchSurface(
+            WorkspaceSearchBar(
                 { onAction(TripWorkspaceAction.OpenSearch) },
                 Modifier
                     .align(Alignment.BottomCenter)
@@ -177,20 +183,6 @@ private fun WorkspaceReadyContent(
             )
         },
     )
-}
-
-@Composable
-private fun WorkspaceTopBar(tripName: String, onAction: (TripWorkspaceAction) -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 20.dp).testTag("workspace-top-bar"),
-        shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = 3.dp,
-    ) {
-        Row(Modifier.fillMaxSize().padding(horizontal = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            CompactSecondaryButton({ onAction(TripWorkspaceAction.Back) }) { Text("返回") }
-            Text(tripName, style = MaterialTheme.typography.titleMedium, modifier = Modifier.weight(1f))
-            CompactSecondaryButton({ onAction(TripWorkspaceAction.OpenSettings) }) { Text("设置") }
-        }
-    }
 }
 
 @Composable internal fun LayerIcon() {

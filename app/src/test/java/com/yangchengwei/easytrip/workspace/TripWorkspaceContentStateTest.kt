@@ -77,6 +77,20 @@ class TripWorkspaceContentStateTest {
         assertEquals("北京", (model.pageState.value as TripWorkspacePageState.Ready).content.tripName)
     }
 
+    @Test fun readyTripExposesWorkspaceDateLabel() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips)
+        trips.value.value = TripWithDays(
+            "trip",
+            "北京",
+            LocalDate.of(2026, 8, 23),
+            TravelMode.FLEXIBLE,
+            listOf(TripDay("day-1", 0), TripDay("day-2", 1), TripDay("day-3", 2)),
+        )
+        advanceUntilIdle()
+        assertEquals("8月23日 — 8月25日", (model.pageState.value as TripWorkspacePageState.Ready).content.dateLabel)
+    }
+
     @Test fun placesFailureAfterReadyBecomesError() = runTest(dispatcher) {
         val trips = Trips()
         val places = Places()

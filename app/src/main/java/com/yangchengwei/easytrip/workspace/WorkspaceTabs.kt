@@ -39,17 +39,19 @@ fun WorkspaceTabs(
             Column(
                 Modifier
                     .weight(1f)
+                    .height(44.dp)
                     .clickable(role = Role.Tab) { onSelect(section) }
                     .semantics { this.selected = isSelected }
                     .testTag("section-${section.name}"),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {
-                Text(
-                    text = if (section == WorkspaceSection.PLACE_POOL) "地点池" else "行程",
-                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
-                    modifier = Modifier.padding(vertical = 10.dp),
-                )
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                    Text(
+                        text = if (section == WorkspaceSection.PLACE_POOL) "地点池" else "行程",
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                    )
+                }
                 Box(
                     Modifier
                         .fillMaxWidth()

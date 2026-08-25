@@ -15,10 +15,12 @@ data class TripWorkspaceReadyState(
     val selectedMarkerPoi: MapPoiUi?,
     val selectedMapPoi: MapPoiUi?,
     val overlay: WorkspaceOverlay,
+    val dateLabel: String? = null,
 )
 
 internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
     tripName = tripName,
+    dateLabel = dateLabel,
     days = days,
     section = section,
     itineraryScope = itineraryScope,
