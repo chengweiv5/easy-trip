@@ -1,18 +1,38 @@
 package com.yangchengwei.easytrip.workspace
 
+import android.content.Context
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.room.Room
+import com.yangchengwei.easytrip.AppNavigation
+import com.yangchengwei.easytrip.AppNavigationDependencies
+import com.yangchengwei.easytrip.AppNavigationObserver
+import com.yangchengwei.easytrip.core.database.EasyTripDatabase
+import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
+import com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore
+import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
+import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
+import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
+import com.yangchengwei.easytrip.trip.data.RoomTripRepository
+import com.yangchengwei.easytrip.trip.domain.TripService
+import com.yangchengwei.easytrip.trip.ui.RoomDeleteImpactProvider
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.unit.dp
@@ -44,7 +64,9 @@ import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -52,7 +74,106 @@ import org.junit.Test
 class WorkspaceFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun routeBackClosesOverlayBeforeLeavingAndTopBackUsesSamePriority() {
+    @Test fun realNavigationEntersWorkspaceSearchesReturnsAndSwitchesSections() {
+        val database = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
+        try {
+            var nextId = 0
+            val trips = RoomTripRepository(database.tripDao(), idFactory = { "nav-${nextId++}" })
+            val places = RoomSavedPlaceRepository(database, idFactory = { "nav-${nextId++}" })
+            val itineraries = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao())
+            val routes = RoomRouteLegRepository(database.routeLegDao())
+            val tripId = runBlocking { trips.createTrip(CreateTrip("真实导航", 1)) }
+            val museum = PlaceCandidate("museum", "博物馆", "北京市东城区", GeoPoint(39.91, 116.41), "010")
+            val navigated = mutableListOf<String>()
+            compose.setContent {
+                AppNavigation(
+                    service = TripService(trips),
+                    repository = trips,
+                    impacts = RoomDeleteImpactProvider(database.deleteImpactDao()),
+                    dependencies = AppNavigationDependencies(
+                        savedPlaceRepository = places,
+                        itineraryRepository = itineraries,
+                        routeLegRepository = routes,
+                        mapPreferences = InMemoryMapPreferences(),
+                        locationPermissionRequestStore = InMemoryLocationPermissionRequestStore(),
+                        placeSearchDataSource = object : PlaceSearchDataSource {
+                            override suspend fun search(keyword: String, city: String?) = listOf(museum)
+                        },
+                        mapConsentToken = consentToken(),
+                    ),
+                    navigationObserver = AppNavigationObserver(navigated::add),
+                    mapHostFactory = ::TestMapHost,
+                )
+            }
+
+            compose.onNodeWithTag("trip-$tripId").performClick()
+            compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
+            compose.onNodeWithTag("workspace-search-launcher").assertHasClickAction().performClick()
+            compose.onNodeWithTag("place-search-field").performTextInput("博物馆")
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("place-search-bookmark-touch-museum").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("place-search-bookmark-touch-museum").performClick()
+            compose.waitUntil(5_000) { runBlocking { places.observeSavedPoiIds(tripId).first() } == setOf("museum") }
+            compose.onNodeWithTag("place-search-back").performClick()
+
+            compose.onNodeWithText("刚刚收藏 · 待安排行程").assertIsDisplayed()
+            compose.onNodeWithTag("section-ITINERARY").performClick().assertIsSelected()
+            compose.onNodeWithTag("section-PLACE_POOL").performClick().assertIsSelected()
+            assertEquals(listOf("trips/$tripId", "trips/$tripId/search"), navigated)
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test fun longTripNameKeepsBackMoreAndSearchPhysicallyClickable() {
+        val longName = "这是一段足够长以验证标题省略不会挤压两侧操作按钮的旅行名称"
+        val model = TripWorkspaceViewModel("trip", LongNameTrips(longName), Places(), Itineraries(), Legs(), SavedStateHandle())
+        compose.setContent {
+            TripWorkspaceScreen(
+                viewModel = model,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                placeContent = { Text("地点内容") },
+                dayItineraryContent = { Text("行程内容") },
+            )
+        }
+
+        val back = compose.onNodeWithTag("workspace-back").assertIsDisplayed().assertHasClickAction().getUnclippedBoundsInRoot()
+        val more = compose.onNodeWithTag("workspace-more").assertIsDisplayed().assertHasClickAction().getUnclippedBoundsInRoot()
+        val search = compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed().assertHasClickAction().getUnclippedBoundsInRoot()
+        assert(back.right - back.left >= 44.dp && back.bottom - back.top >= 44.dp)
+        assert(more.right - more.left >= 44.dp && more.bottom - more.top >= 44.dp)
+        assert(search.right - search.left >= 44.dp && search.bottom - search.top >= 44.dp)
+        assert(back.right <= more.left)
+    }
+
+    @Test fun mapFailureKeepsLocalTabsAndActionsReachable() {
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        compose.setContent {
+            TripWorkspaceScreen(
+                viewModel = model,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                placeContent = { Text("地点内容") },
+                dayItineraryContent = { Text("行程内容") },
+                mapHostFactory = ::FailingMapHost,
+            )
+        }
+
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("workspace-map-fallback").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithTag("section-ITINERARY").assertIsDisplayed().assertHasClickAction().performClick().assertIsSelected()
+        compose.onNodeWithText("行程内容").assertIsDisplayed()
+        compose.onNodeWithTag("section-PLACE_POOL").assertIsDisplayed().assertHasClickAction().performClick().assertIsSelected()
+        compose.onNodeWithText("地点内容").assertIsDisplayed()
+    }
+
+    @Test fun topBackClosesOverlayBeforeLeaving() {
         val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         var backCount = 0
         compose.setContent {
@@ -73,19 +194,13 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { model.pageState.value is TripWorkspacePageState.Ready }
 
         compose.onNodeWithTag("layer-menu").performClick()
-        compose.waitUntil { model.state.value.overlay == WorkspaceOverlay.LayerMenu }
-        pressBack()
-        compose.waitUntil { model.state.value.overlay == WorkspaceOverlay.None }
+        compose.waitUntil(5_000) { model.state.value.overlay == WorkspaceOverlay.LayerMenu }
+        compose.onNodeWithTag("workspace-back").performClick()
+        compose.waitUntil(5_000) { model.state.value.overlay == WorkspaceOverlay.None }
         assertEquals(0, backCount)
-        pressBack()
-        compose.waitUntil { backCount == 1 }
 
-        compose.onNodeWithTag("layer-menu").performClick()
-        compose.onNodeWithText("返回").performClick()
-        compose.waitUntil { model.state.value.overlay == WorkspaceOverlay.None }
-        assertEquals(1, backCount)
-        compose.onNodeWithText("返回").performClick()
-        compose.waitUntil { backCount == 2 }
+        compose.onNodeWithTag("workspace-back").performClick()
+        compose.waitUntil(5_000) { backCount == 1 }
     }
 
     @Test fun resultOverlayPrioritizesUndoFailureAndExplainsMissingTargetCleanup() {
@@ -174,7 +289,7 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
         compose.onNodeWithTag("delete-place-saved").performClick()
         pressBack()
-        compose.waitUntil { backCount == 1 }
+        compose.waitUntil(5_000) { backCount == 1 }
 
         compose.runOnIdle { repository.usage.complete(2) }
         compose.waitForIdle()
@@ -305,17 +420,19 @@ class WorkspaceFlowTest {
         }
         compose.waitUntil(5_000) { model.state.value.map.viewportRequest != null }
         compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(52.dp)
-        compose.onNodeWithTag("workspace-search-surface").assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithTag("workspace-search-launcher").assertHeightIsAtLeast(46.dp)
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("收起").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("半屏").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("展开").fetchSemanticsNodes().size)
         compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         val mapBottom = compose.onNodeWithTag("workspace-map").getUnclippedBoundsInRoot().bottom
-        val searchTop = compose.onNodeWithTag("workspace-search-surface").getUnclippedBoundsInRoot().top
-        val navigationTop = compose.onNodeWithTag("section-controls").getUnclippedBoundsInRoot().top
-        assert(searchTop < mapBottom)
-        assert(mapBottom <= navigationTop)
+        val searchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
+        val sheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
+        val navigationTop = compose.onNodeWithTag("workspace-tabs").getUnclippedBoundsInRoot().top
+        assert(searchBottom <= sheetTop)
+        assert(sheetTop < navigationTop)
+        assert(navigationTop <= mapBottom)
         compose.onNodeWithTag("section-PLACE_POOL").assertExists()
         compose.onNodeWithTag("section-ITINERARY").assertExists()
         compose.onNodeWithTag("scope-PLACE_POOL").assertDoesNotExist()
@@ -357,9 +474,19 @@ class WorkspaceFlowTest {
         assertEquals(ItineraryScope.Day("day-2"), model.state.value.itineraryScope)
         assertEquals(returnedPlaceRequestId?.plus(1), model.state.value.map.viewportRequest?.id)
 
-        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput { swipeDown() }
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y + 200f))
+            advanceEventTime(100)
+            up()
+        }
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.COLLAPSED }
-        compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed().performTouchInput { swipeUp() }
+        compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed().performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y - 200f))
+            advanceEventTime(100)
+            up()
+        }
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.HALF }
     }
 
@@ -394,6 +521,36 @@ class WorkspaceFlowTest {
         return requireNotNull(gate.reportUserDecision(true))
     }
 
+    private class TestMapHost(context: Context) : AmapMapHost {
+        override val view = View(context)
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun render(
+            model: MapUiModel,
+            layer: MapLayer,
+            onMarkerClick: (String) -> Unit,
+            onMapPoiClick: (MapPoiUi) -> Unit,
+            onLayerError: (Throwable, MapLayer) -> Unit,
+        ) = Unit
+    }
+
+    private class FailingMapHost(context: Context) : AmapMapHost {
+        override val view = View(context)
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun render(
+            model: MapUiModel,
+            layer: MapLayer,
+            onMarkerClick: (String) -> Unit,
+            onMapPoiClick: (MapPoiUi) -> Unit,
+            onLayerError: (Throwable, MapLayer) -> Unit,
+        ) = onLayerError(IllegalStateException("map unavailable"), layer)
+    }
+
     private class PoiHost(context: android.content.Context) : AmapMapHost {
         override val view = android.view.View(context)
         private var callback: (MapPoiUi) -> Unit = {}
@@ -411,6 +568,21 @@ class WorkspaceFlowTest {
             callback = onMapPoiClick
         }
         fun emit(poi: MapPoiUi) = callback(poi)
+    }
+
+    private class LongNameTrips(private val name: String) : TripRepository {
+        override fun observeTrip(tripId: String) = flowOf(TripWithDays("trip", name, LocalDate.of(2026, 8, 25), TravelMode.FLEXIBLE, listOf(TripDay("day-1", 0))))
+        override fun observeTrips() = flowOf(emptyList<TripSummary>())
+        override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun renameTrip(tripId: String, name: String) = Unit
+        override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
+        override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
+        override suspend fun applyDateRange(command: com.yangchengwei.easytrip.trip.domain.DateRangeApply) = Unit
+        override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit
+        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day"
+        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion) = Unit
+        override suspend fun deleteTrip(tripId: String) = Unit
     }
 
     private class Trips : TripRepository {

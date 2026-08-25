@@ -17,6 +17,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
@@ -71,8 +72,8 @@ class ItineraryEditingTest {
         compose.setContent { DayItinerarySheet(model) }
         compose.waitUntil(5_000) { model.state.value.legs.any { it.status == RouteStatus.FAILED } }
 
-        compose.onNodeWithText("no route").assertIsDisplayed()
-        compose.onNodeWithTag("retry-leg-2").assertHasClickAction().performClick()
+        compose.onNodeWithTag("leg-leg-2").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("retry-leg-2").assertIsDisplayed().assertHasClickAction().performClick()
         compose.waitUntil(5_000) { coordinator.retries == listOf("leg-2") }
     }
 
@@ -132,8 +133,12 @@ class ItineraryEditingTest {
         compose.waitUntil(5_000) { model.state.value.items.size == 3 }
 
         compose.onNodeWithText("等待联网").assertIsDisplayed()
-        listOf("timing-i1", "move-i1", "delete-i1", "item-i2").forEach {
-            compose.onNodeWithTag(it, useUnmergedTree = true).assertHasClickAction()
+        compose.onNodeWithTag("item-i2")
+            .assert(SemanticsMatcher("has both reorder actions") { node ->
+                node.config[SemanticsActions.CustomActions].map { it.label } == listOf("上移", "下移")
+            })
+        listOf("timing-i2", "move-i2", "delete-i2").forEach { tag ->
+            compose.onNodeWithTag(tag, useUnmergedTree = true).assertHasClickAction()
         }
     }
 

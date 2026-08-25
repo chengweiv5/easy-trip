@@ -4,6 +4,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertIsDisplayed
@@ -515,7 +516,7 @@ object V1ScenarioExecutableFactory {
     private fun workspaceSettings(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<com.yangchengwei.easytrip.workspace.TripWorkspaceAction>()
         return workspaceScenario(id, actions, readyState(), WorkspaceMapState.Ready,
-            interact = { onNodeWithText("设置").performClick() },
+            interact = { onNodeWithTag("workspace-more").performClick() },
             verify = {
                 onNodeWithTag("workspace-top-bar").assertIsDisplayed()
                 check(actions == listOf(com.yangchengwei.easytrip.workspace.TripWorkspaceAction.OpenSettings))
@@ -595,7 +596,11 @@ object V1ScenarioExecutableFactory {
                 runOnIdle { currentLevel = level; actions.clear() }
                 waitForIdle()
                 onNodeWithTag("workspace-sheet-handle").performTouchInput {
-                    if (level == WorkspaceSheetLevel.EXPANDED) swipeDown() else swipeUp()
+                    down(center)
+                    val delta = if (level == WorkspaceSheetLevel.EXPANDED) 200f else -200f
+                    moveTo(Offset(center.x, center.y + delta))
+                    advanceEventTime(100)
+                    up()
                 }
             },
             verify = {
