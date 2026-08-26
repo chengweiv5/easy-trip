@@ -29,7 +29,26 @@
 - `PlaceSearchContentTest`：19/19 通过。
 - `graphify update .`：完成，4533 nodes / 9683 edges。
 
+## Fix round 1
+
+### 修复
+
+- 兼容 wrapper 将 `Dismiss` 和 `CancelEdit` 贯通到宿主关闭回调，`Delete` 使用独立删除回调，不再落入 no-op 或借用收藏语义。
+- workspace 详情显式使用 `PlaceDetailSource.PlacePool`，编辑态提供取消和删除，不显示收藏操作；删除继续分发真实 `SavedPlace`。
+- 抽取 `PlaceDetailDialog`，在 `detailSaving` 时同时屏蔽 `AlertDialog.onDismissRequest` 和 panel 内关闭、取消、删除，覆盖系统返回键与外部点击。
+- 移除 `PlaceDetailDraft.placeId` 的空字符串默认值；所有构造点均传递真实 `SavedPlace.id`。
+
+### RED / GREEN
+
+- RED：新增 wrapper action 贯通、PLACE_POOL 来源能力和 saving 宿主返回键门禁测试后，因 wrapper 参数和 `PlaceDetailDialog` 尚不存在而编译失败。
+- GREEN：`PlaceDetailPanelTest` 9/9 通过。
+- GREEN：`PlacePoolFlowTest#placeDetailAllowsCollectionNoteAndTagsOnly` 与 `WorkspaceFlowTest#mapDetailBackThenPlaceEditRendersNewTarget` 2/2 通过；workspace 旧断言曾要求 PLACE_POOL 显示“取消收藏”，已按来源能力矩阵修正为取消且不显示收藏。
+- GREEN：`PlacePoolViewModelTest` 与 `PlaceSearchViewModelTest` 通过。
+- GREEN：应用、AndroidTest、UnitTest Kotlin 编译通过。
+- GREEN：`graphify update .` 完成，4547 nodes / 9714 edges。
+
 ## 关注点
 
-- 额外运行 `PlacePoolFlowTest` 时，旧用例修正后仍在 `searchSaveEditAndFilterThroughPlacePool` 出现 instrumentation 进程崩溃；该非 brief focused 套件未通过。brief 指定的 Compose focused 测试、两个 ViewModel JVM 测试和必要编译均通过。
+- 先前 `PlacePoolFlowTest.searchSaveEditAndFilterThroughPlacePool` 整类运行时发生一次 instrumentation 进程崩溃；同 commit、同 AVD 串行复跑该用例 1/1 通过，runner result code 0。现无产品崩溃、选择器或 OOM 的直接证据，详见 `task-4-place-pool-flow-diagnostic.md`，未据此修改产品代码。
+- 逐字标签输入与校验留给 Task 5，本轮未越界调整。
 - 未修改 `diagrams/`，未实现 Task 8 的 PLACE_POOL 单地点加入行程。

@@ -250,7 +250,7 @@ class PlacePoolFlowTest {
             EasyTripTheme {
                 PlaceDetailContent(
                     place = place,
-                    draft = PlaceDetailDraft("", emptySet()),
+                    draft = PlaceDetailDraft("", emptySet(), place.id),
                     saving = false,
                     error = null,
                     onNoteChange = {},

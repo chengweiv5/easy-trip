@@ -144,6 +144,13 @@ fun PlaceDetailPanel(
             )
             editState.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                if (source == PlaceDetailSource.PlacePool) {
+                    CompactSecondaryButton(
+                        onClick = { onAction(PlaceDetailPanelAction.Delete) },
+                        enabled = !saving,
+                        modifier = Modifier.weight(1f),
+                    ) { Text("删除") }
+                }
                 CompactSecondaryButton(
                     onClick = { onAction(PlaceDetailPanelAction.CancelEdit) },
                     enabled = !saving,

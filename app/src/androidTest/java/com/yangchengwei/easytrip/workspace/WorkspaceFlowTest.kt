@@ -313,7 +313,8 @@ class WorkspaceFlowTest {
 
         compose.onNodeWithText("编辑").performClick()
         compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
-        compose.onNodeWithText("取消收藏").assertIsDisplayed()
+        compose.onNodeWithText("取消").assertIsDisplayed()
+        compose.onNodeWithText("取消收藏").assertDoesNotExist()
         compose.onNodeWithText("旧地图地点").assertDoesNotExist()
     }
 

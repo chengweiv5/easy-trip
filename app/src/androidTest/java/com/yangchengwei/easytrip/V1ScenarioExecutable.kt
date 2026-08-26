@@ -235,7 +235,7 @@ object V1ScenarioExecutableFactory {
             ScenarioFixture(id, ScenarioScreen.PLACE_DETAIL),
             ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.PLACE_DETAIL)),
             { saved = false },
-            { PlaceDetailContent(savedPlace(), PlaceDetailDraft("湖边散步", setOf("自然")), false, null, {}, {}, {}, { saved = true }) },
+            { PlaceDetailContent(savedPlace(), PlaceDetailDraft("湖边散步", setOf("自然"), "place-1"), false, null, {}, {}, {}, { saved = true }) },
             { onNodeWithText("保存").performClick() },
             { onNodeWithTag("place-detail-title").assertIsDisplayed(); check(saved) },
         )

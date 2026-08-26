@@ -44,7 +44,8 @@ import com.yangchengwei.easytrip.itinerary.ui.SelectTargetDayContent
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.EditItineraryItemContent
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
-import com.yangchengwei.easytrip.place.ui.PlaceDetailContent
+import com.yangchengwei.easytrip.place.ui.PlaceDetailDialog
+import com.yangchengwei.easytrip.place.ui.PlaceDetailSource
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
 import com.yangchengwei.easytrip.permission.PermissionExplanationContent
@@ -254,21 +255,22 @@ private fun WorkspaceOverlayContent(
             when {
                 state.selectedMapPoi != null -> MapPoiDialog(state.selectedMapPoi, isPoiSaved, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
                 state.selectedMarker != null -> MarkerDialog(state.selectedMarker, state.selectedMarkerPoi, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
-                placeState.editing != null && placeState.detailDraft != null -> AlertDialog(
-                    onDismissRequest = { onPlaceAction(PlacePoolAction.DismissDialogs); onClose() },
-                    confirmButton = {},
-                    text = {
-                        PlaceDetailContent(
-                            place = placeState.editing,
-                            draft = placeState.detailDraft,
-                            saving = placeState.detailSaving,
-                            error = placeState.detailSaveError,
-                            onNoteChange = { onPlaceAction(PlacePoolAction.UpdateDraft(it, placeState.detailDraft.tags)) },
-                            onTagsChange = { onPlaceAction(PlacePoolAction.UpdateDraft(placeState.detailDraft.note, it)) },
-                            onToggleCollection = { onPlaceAction(PlacePoolAction.Delete(placeState.editing)) },
-                            onSave = { onPlaceAction(PlacePoolAction.UpdateDetails(placeState.detailDraft.note, placeState.detailDraft.tags)) },
-                        )
+                placeState.editing != null && placeState.detailDraft != null -> PlaceDetailDialog(
+                    place = placeState.editing,
+                    draft = placeState.detailDraft,
+                    saving = placeState.detailSaving,
+                    error = placeState.detailSaveError,
+                    source = PlaceDetailSource.PlacePool,
+                    onNoteChange = { onPlaceAction(PlacePoolAction.UpdateDraft(it, placeState.detailDraft.tags)) },
+                    onTagsChange = { onPlaceAction(PlacePoolAction.UpdateDraft(placeState.detailDraft.note, it)) },
+                    onDismiss = {
+                        if (!placeState.detailSaving) {
+                            onPlaceAction(PlacePoolAction.DismissDialogs)
+                            onClose()
+                        }
                     },
+                    onDelete = { onPlaceAction(PlacePoolAction.Delete(placeState.editing)) },
+                    onSave = { onPlaceAction(PlacePoolAction.UpdateDetails(placeState.detailDraft.note, placeState.detailDraft.tags)) },
                 )
             }
         }

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.place.ui
 
+import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import com.yangchengwei.easytrip.place.domain.SavedPlace
@@ -7,7 +8,7 @@ import com.yangchengwei.easytrip.place.domain.SavedPlace
 @Composable
 fun PlaceDetailContent(
     place: SavedPlace,
-    draft: PlaceDetailDraft,
+    draft: PlaceDetailDraft?,
     saving: Boolean,
     error: String?,
     onNoteChange: (String) -> Unit,
@@ -15,23 +16,65 @@ fun PlaceDetailContent(
     onToggleCollection: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    source: PlaceDetailSource = PlaceDetailSource.Search,
+    onDismiss: () -> Unit = {},
+    onDelete: () -> Unit = {},
 ) {
     PlaceDetailPanel(
         candidate = place.toCandidate(),
         savedPlace = place,
-        editState = PlaceDetailEditState(place.id, draft.note, draft.tags, isSaving = saving, errorMessage = error),
-        source = PlaceDetailSource.Search,
+        editState = draft?.let {
+            PlaceDetailEditState(place.id, it.note, it.tags, isSaving = saving, errorMessage = error)
+        },
+        source = source,
         collectionBusy = false,
         collectionError = null,
         onAction = { action ->
             when (action) {
                 is PlaceDetailPanelAction.NoteChanged -> onNoteChange(action.value)
                 is PlaceDetailPanelAction.TagsChanged -> onTagsChange(action.value)
+                PlaceDetailPanelAction.Dismiss,
+                PlaceDetailPanelAction.CancelEdit -> onDismiss()
                 PlaceDetailPanelAction.ToggleCollection -> onToggleCollection()
+                PlaceDetailPanelAction.Delete -> onDelete()
                 PlaceDetailPanelAction.SaveEdit -> onSave()
-                else -> Unit
+                PlaceDetailPanelAction.StartEdit -> Unit
             }
         },
         modifier = modifier,
+    )
+}
+
+@Composable
+fun PlaceDetailDialog(
+    place: SavedPlace,
+    draft: PlaceDetailDraft?,
+    saving: Boolean,
+    error: String?,
+    source: PlaceDetailSource,
+    onNoteChange: (String) -> Unit,
+    onTagsChange: (Set<String>) -> Unit,
+    onDismiss: () -> Unit,
+    onDelete: () -> Unit,
+    onSave: () -> Unit,
+) {
+    AlertDialog(
+        onDismissRequest = { if (!saving) onDismiss() },
+        confirmButton = {},
+        text = {
+            PlaceDetailContent(
+                place = place,
+                draft = draft,
+                saving = saving,
+                error = error,
+                source = source,
+                onNoteChange = onNoteChange,
+                onTagsChange = onTagsChange,
+                onToggleCollection = {},
+                onDismiss = onDismiss,
+                onDelete = onDelete,
+                onSave = onSave,
+            )
+        },
     )
 }

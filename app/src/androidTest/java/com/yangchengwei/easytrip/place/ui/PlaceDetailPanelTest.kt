@@ -12,6 +12,9 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
+import androidx.compose.runtime.mutableStateOf
+import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
@@ -70,6 +73,81 @@ class PlaceDetailPanelTest {
         compose.onNodeWithText("保存中").assertIsNotEnabled()
         compose.onNodeWithText("取消").assertIsNotEnabled()
         compose.onNodeWithTag("place-detail-dismiss").assertIsNotEnabled()
+    }
+
+    @Test fun compatibilityWrapperForwardsDismissAndCancel() {
+        val actions = mutableListOf<String>()
+        compose.setContent {
+            EasyTripTheme {
+                PlaceDetailContent(
+                    place = savedPlace(),
+                    draft = PlaceDetailDraft("备注", emptySet(), "saved-1"),
+                    saving = false,
+                    error = null,
+                    source = PlaceDetailSource.PlacePool,
+                    onNoteChange = {},
+                    onTagsChange = {},
+                    onToggleCollection = {},
+                    onSave = {},
+                    onDismiss = { actions += "dismiss" },
+                    onDelete = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("place-detail-dismiss").performClick()
+        compose.onNodeWithText("取消").performClick()
+
+        compose.runOnIdle { assert(actions == listOf("dismiss", "dismiss")) }
+    }
+
+    @Test fun compatibilityWrapperUsesPlacePoolCapabilities() {
+        compose.setContent {
+            EasyTripTheme {
+                PlaceDetailContent(
+                    place = savedPlace(),
+                    draft = PlaceDetailDraft("备注", emptySet(), "saved-1"),
+                    saving = false,
+                    error = null,
+                    source = PlaceDetailSource.PlacePool,
+                    onNoteChange = {},
+                    onTagsChange = {},
+                    onToggleCollection = {},
+                    onSave = {},
+                    onDismiss = {},
+                    onDelete = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("取消").assertIsDisplayed()
+        compose.onNodeWithText("删除").assertIsDisplayed()
+        compose.onAllNodesWithText("取消收藏").assertCountEquals(0)
+    }
+
+    @Test fun savingHostDialogIgnoresSystemBack() {
+        val dismissed = mutableStateOf(false)
+        compose.setContent {
+            EasyTripTheme {
+                PlaceDetailDialog(
+                    place = savedPlace(),
+                    draft = PlaceDetailDraft("备注", emptySet(), "saved-1"),
+                    saving = true,
+                    error = null,
+                    source = PlaceDetailSource.PlacePool,
+                    onNoteChange = {},
+                    onTagsChange = {},
+                    onDismiss = { dismissed.value = true },
+                    onDelete = {},
+                    onSave = {},
+                )
+            }
+        }
+
+        pressBack()
+
+        compose.runOnIdle { assert(!dismissed.value) }
+        compose.onNodeWithText("保存中").assertIsDisplayed()
     }
 
     @Test fun panelTitleHasHeadingSemantics() {

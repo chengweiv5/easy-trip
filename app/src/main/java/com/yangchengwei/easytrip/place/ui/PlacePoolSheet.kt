@@ -196,8 +196,10 @@ fun PlacePoolContent(
                                 PlaceDetailPanelAction.CancelEdit -> onDismissEdit()
                                 is PlaceDetailPanelAction.NoteChanged -> onUpdateDraft(action.value, draft.tags)
                                 is PlaceDetailPanelAction.TagsChanged -> onUpdateDraft(draft.note, action.value)
+                                PlaceDetailPanelAction.Delete -> onDelete(place)
                                 PlaceDetailPanelAction.SaveEdit -> onUpdateDetails(draft.note, draft.tags)
-                                else -> Unit
+                                PlaceDetailPanelAction.StartEdit,
+                                PlaceDetailPanelAction.ToggleCollection -> Unit
                             }
                         },
                     )

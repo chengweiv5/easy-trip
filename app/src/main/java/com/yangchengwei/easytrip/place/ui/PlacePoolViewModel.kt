@@ -32,7 +32,7 @@ data class SavedPlaceRowUi(
     val tags get() = place.tags.map(PlaceTag::name)
 }
 
-data class PlaceDetailDraft(val note: String, val tags: Set<String>, val placeId: String = "")
+data class PlaceDetailDraft(val note: String, val tags: Set<String>, val placeId: String)
 
 data class PlacePoolUiState(
     val search: PlaceSearchState = PlaceSearchState(),
