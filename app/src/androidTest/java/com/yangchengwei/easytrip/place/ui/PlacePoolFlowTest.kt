@@ -5,11 +5,14 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -263,31 +266,79 @@ class PlacePoolFlowTest {
 
         compose.onNodeWithText("取消收藏").assertIsDisplayed()
         compose.onNodeWithText("备注").assertIsDisplayed()
-        compose.onNodeWithText("标签（逗号分隔）").assertIsDisplayed()
+        compose.onNodeWithText("新标签").assertIsDisplayed()
         compose.onNodeWithText("加入行程").assertDoesNotExist()
         compose.onNodeWithText("已加入行程").assertDoesNotExist()
     }
 
-    @Test fun mismatchedSearchPlacesDoNotCrashRowActions() {
-        val rowPlace = com.yangchengwei.easytrip.place.domain.SavedPlace(
-            "row", "trip", "poi-row", "独立地点", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+    @Test fun rowActionsUseFixedTargetsExposeNamedSemanticsAndDispatchCurrentIds() {
+        val first = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "first", "trip", "poi-first", "非常非常长的地点名称用于验证操作区不会被挤出屏幕", "非常非常长的地点地址用于验证地址最多两行且操作仍可点击", GeoPoint(39.9, 116.4), "", emptyList(),
         )
-        var editedId: String? = null
+        val second = first.copy(id = "second", amapPoiId = "poi-second", name = "灵隐寺")
+        val actions = mutableListOf<PlacePoolAction>()
         compose.setContent {
-            EasyTripTheme {
-                PlacePoolContent(
-                    state = PlacePoolUiState(
-                        search = PlaceSearchState(savedPlaces = emptyList()),
-                        rows = listOf(SavedPlaceRowUi(rowPlace, 0, false)),
-                    ),
-                    showSearch = false,
-                    onAction = { action -> if (action is PlacePoolAction.Edit) editedId = action.place.id },
-                )
+            CompositionLocalProvider(LocalDensity provides Density(3f, 2f)) {
+                EasyTripTheme {
+                    PlacePoolContent(
+                        state = PlacePoolUiState(rows = listOf(SavedPlaceRowUi(first, 0, false), SavedPlaceRowUi(second, 0, false))),
+                        showSearch = false,
+                        onAction = actions::add,
+                    )
+                }
             }
         }
 
-        compose.onNodeWithText("编辑").performClick()
-        assertEquals("row", editedId)
+        val quickAdd = compose.onNodeWithContentDescription("添加非常非常长的地点名称用于验证操作区不会被挤出屏幕到行程")
+        val more = compose.onNodeWithContentDescription("非常非常长的地点名称用于验证操作区不会被挤出屏幕，更多操作")
+        quickAdd.assertIsDisplayed().assertHasClickAction()
+        more.assertIsDisplayed().assertHasClickAction()
+        val quickAddBounds = quickAdd.getUnclippedBoundsInRoot()
+        val moreBounds = more.getUnclippedBoundsInRoot()
+        assertEquals(40.dp, quickAddBounds.right - quickAddBounds.left)
+        assertEquals(40.dp, quickAddBounds.bottom - quickAddBounds.top)
+        assertEquals(40.dp, moreBounds.right - moreBounds.left)
+        assertEquals(40.dp, moreBounds.bottom - moreBounds.top)
+
+        quickAdd.performClick()
+        compose.onNodeWithTag("more-place-second").performClick()
+        compose.onNodeWithTag("menu-edit-place-second", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("more-place-second").performClick()
+        compose.onNodeWithTag("menu-delete-place-second", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("start-add-to-itinerary").performClick()
+
+        assertEquals(
+            listOf(
+                PlacePoolAction.StartAddSingle("first"),
+                PlacePoolAction.Edit(second),
+                PlacePoolAction.Delete(second),
+                PlacePoolAction.StartAddToItinerary,
+            ),
+            actions,
+        )
+        compose.onNodeWithText("编辑").assertDoesNotExist()
+        compose.onNodeWithText("删除").assertDoesNotExist()
+    }
+
+    @Test fun publicSheetWithoutCoordinatorHidesAddEntrypoints() {
+        val model = PlacePoolViewModel("trip", object : com.yangchengwei.easytrip.place.domain.SavedPlaceRepository {
+            private val place = com.yangchengwei.easytrip.place.domain.SavedPlace(
+                "place", "trip", "poi", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+            )
+            override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
+            override fun observeTags(tripId: String) = flowOf(emptyList<com.yangchengwei.easytrip.place.domain.PlaceTag>())
+            override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("poi"))
+            override suspend fun save(tripId: String, candidate: PlaceCandidate) = com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved("place")
+            override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+            override suspend fun usageCount(placeId: String) = 0
+            override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(0, 0)
+            override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+        }, null)
+        compose.setContent { EasyTripTheme { PlacePoolSheet(model, showSearch = false) } }
+        compose.waitUntil(5_000) { model.state.value.rows.isNotEmpty() }
+
+        compose.onNodeWithTag("quick-add-place-place").assertDoesNotExist()
+        compose.onNodeWithTag("start-add-to-itinerary").assertDoesNotExist()
     }
 
     @Test fun tagsRemainReachableAtNarrowWidthAndLargeFont() {
@@ -398,9 +449,10 @@ class PlacePoolFlowTest {
         compose.setContent { PlacePoolSheet(model, showSearch = false) }
         compose.waitUntil(5_000) { model.state.value.rows.size == 1 }
 
-        compose.onNodeWithText("编辑").performClick()
+        compose.onNodeWithTag("more-place-$placeId").performClick()
+        compose.onNodeWithTag("menu-edit-place-$placeId", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
-        compose.onAllNodesWithText("删除")[1].performClick()
+        compose.onNodeWithTag("place-detail-delete").performClick()
 
         compose.runOnIdle {
             assertEquals(null, model.state.value.editing)
@@ -423,14 +475,19 @@ class PlacePoolFlowTest {
         val tripId = runBlocking { app.tripRepository.createTrip(CreateTrip("取消编辑删除旅行", 1)) }
         val repository = RoomSavedPlaceRepository(app.database, idFactory = sequence("place-${System.nanoTime()}"))
         val candidate = PlaceCandidate("poi-cancel-delete", "保留地点", "北京市东城区", GeoPoint(39.9, 116.4), "010")
-        runBlocking { repository.save(tripId, candidate) }
+        val placeId = runBlocking {
+            (repository.save(tripId, candidate) as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+        }
+        val dayId = runBlocking { app.tripRepository.observeTrip(tripId).first()!!.days.single().id }
+        runBlocking { app.itineraryRepository.addItem(dayId, placeId, 0) }
         val model = PlacePoolViewModel(tripId, repository, null)
         compose.setContent { PlacePoolSheet(model, showSearch = false) }
         compose.waitUntil(5_000) { model.state.value.rows.size == 1 }
 
-        compose.onNodeWithText("编辑").performClick()
+        compose.onNodeWithTag("more-place-$placeId").performClick()
+        compose.onNodeWithTag("menu-edit-place-$placeId", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
-        compose.onAllNodesWithText("删除")[1].performClick()
+        compose.onNodeWithTag("place-detail-delete").performClick()
 
         compose.waitUntil(5_000) { model.state.value.deleting != null }
         compose.runOnIdle {
@@ -467,9 +524,14 @@ class PlacePoolFlowTest {
         compose.waitUntil(5_000) { model.state.value.search.savedPlaces.size == 1 }
         compose.onAllNodesWithText("收藏")[0].performClick()
         compose.waitUntil(5_000) { model.state.value.savedPoiIds.size == 2 }
-        compose.onAllNodesWithText("编辑")[0].performClick()
+        val editedPlaceId = model.state.value.rows.first().id
+        compose.onNodeWithTag("more-place-$editedPlaceId").performClick()
+        compose.onNodeWithTag("menu-edit-place-$editedPlaceId", useUnmergedTree = true).performClick()
         compose.onNodeWithText("备注").performTextInput("必去")
-        compose.onNodeWithText("标签（逗号分隔）").performTextInput("文化, 宫殿")
+        compose.onNodeWithTag("place-detail-tags-input").performTextInput("文化")
+        compose.onNodeWithText("添加").performClick()
+        compose.onNodeWithTag("place-detail-tags-input").performTextInput("宫殿")
+        compose.onNodeWithText("添加").performClick()
         compose.onNodeWithText("保存").performClick()
         compose.waitUntil(5_000) { model.state.value.tags.size == 2 }
         val cultureTagId = model.state.value.tags.single { it.name == "文化" }.id

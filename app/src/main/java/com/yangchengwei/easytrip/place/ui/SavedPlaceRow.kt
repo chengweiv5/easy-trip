@@ -1,29 +1,43 @@
 package com.yangchengwei.easytrip.place.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 
 @Composable
 fun SavedPlaceRow(
     place: SavedPlaceRowUi,
+    onQuickAdd: (() -> Unit)?,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    var menuExpanded by remember(place.id) { mutableStateOf(false) }
     Surface(modifier.fillMaxWidth().testTag("saved-place-${place.id}"), color = MaterialTheme.colorScheme.surface) {
         Row(
             Modifier.fillMaxWidth().padding(vertical = 12.dp),
@@ -36,7 +50,7 @@ fun SavedPlaceRow(
                         place.name,
                         modifier = Modifier.weight(1f).widthIn(min = 0.dp),
                         style = MaterialTheme.typography.titleMedium,
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                     Text(
@@ -60,10 +74,65 @@ fun SavedPlaceRow(
                 place.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
                 if (place.tags.isNotEmpty()) Text(place.tags.joinToString(" · "), style = MaterialTheme.typography.labelSmall)
             }
-            Column {
-                CompactSecondaryButton(onEdit, modifier = Modifier.testTag("edit-place-${place.id}")) { Text("编辑") }
-                CompactSecondaryButton(onDelete, modifier = Modifier.testTag("delete-place-${place.id}")) { Text("删除") }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                onQuickAdd?.let { quickAdd ->
+                    Box(
+                        Modifier
+                            .size(40.dp)
+                            .testTag("quick-add-place-${place.id}")
+                            .semantics { contentDescription = "添加${place.name}到行程" }
+                            .clickable(onClick = quickAdd),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        PlusIcon(Modifier.size(22.dp))
+                    }
+                }
+                Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                    Box(
+                        Modifier
+                            .size(40.dp)
+                            .testTag("more-place-${place.id}")
+                            .semantics { contentDescription = "${place.name}，更多操作" }
+                            .clickable { menuExpanded = !menuExpanded },
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        MoreIcon(Modifier.size(22.dp))
+                    }
+                    DropdownMenu(expanded = menuExpanded, onDismissRequest = { menuExpanded = false }) {
+                        DropdownMenuItem(
+                            text = { Text("编辑") },
+                            onClick = { menuExpanded = false; onEdit() },
+                            modifier = Modifier.testTag("menu-edit-place-${place.id}"),
+                        )
+                        DropdownMenuItem(
+                            text = { Text("删除", color = MaterialTheme.colorScheme.error) },
+                            onClick = { menuExpanded = false; onDelete() },
+                            modifier = Modifier.testTag("menu-delete-place-${place.id}"),
+                        )
+                    }
+                }
             }
+        }
+    }
+}
+
+@Composable
+private fun PlusIcon(modifier: Modifier = Modifier) {
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Canvas(modifier) {
+        val strokeWidth = size.minDimension / 9f
+        drawLine(color, Offset(size.width / 2f, size.height * .2f), Offset(size.width / 2f, size.height * .8f), strokeWidth)
+        drawLine(color, Offset(size.width * .2f, size.height / 2f), Offset(size.width * .8f, size.height / 2f), strokeWidth)
+    }
+}
+
+@Composable
+private fun MoreIcon(modifier: Modifier = Modifier) {
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Canvas(modifier) {
+        val radius = size.minDimension / 11f
+        listOf(.25f, .5f, .75f).forEach { fraction ->
+            drawCircle(color, radius, Offset(size.width / 2f, size.height * fraction))
         }
     }
 }

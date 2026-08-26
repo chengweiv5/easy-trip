@@ -53,7 +53,11 @@ import com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft
 import com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi
 import com.yangchengwei.easytrip.itinerary.ui.RouteLegUi
 import com.yangchengwei.easytrip.itinerary.ui.RouteModeEditDraft
+import com.yangchengwei.easytrip.itinerary.domain.AddPlacesToDayUseCase
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
+import com.yangchengwei.easytrip.itinerary.domain.UndoAddedItemsUseCase
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel
 import org.junit.Assert.assertTrue
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
@@ -253,6 +257,79 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { backCount == 2 }
     }
 
+    @Test fun placeQuickAddOpensTargetDayOnlyForValidPlaceWithAvailableDay() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = Itineraries()
+        val add = AddToItineraryViewModel(
+            "trip",
+            AddPlacesToDayUseCase(repository),
+            UndoAddedItemsUseCase(repository),
+            SavedStateHandle(),
+        )
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+                    rows = listOf(com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(SavedPlace("p", "trip", "poi", "酒店", "地址", GeoPoint(1.0, 2.0), "", emptyList()), 0, false)),
+                ),
+                addToItineraryViewModel = add,
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+
+        compose.onNodeWithTag("quick-add-place-p").performClick()
+
+        compose.waitUntil(5_000) {
+            add.state.value.step == AddToItineraryStep.SELECT_TARGET_DAY &&
+                workspace.state.value.overlay == WorkspaceOverlay.SelectAddTargetDay
+        }
+        assertEquals(listOf("p"), add.state.value.selectedPlaceIds)
+    }
+
+    @Test fun invalidPlaceAndNoDayQuickAddDoNotOpenTargetDay() {
+        fun render(trips: TripRepository, rowId: String) : Pair<TripWorkspaceViewModel, AddToItineraryViewModel> {
+            val workspace = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), SavedStateHandle())
+            val repository = Itineraries()
+            val add = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), SavedStateHandle())
+            compose.setContent {
+                TripWorkspaceRoute(
+                    viewModel = workspace,
+                    consent = null,
+                    onBack = {},
+                    onSettings = {},
+                    locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                    locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                    onWorkspaceEffect = {},
+                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+                        rows = listOf(com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(SavedPlace(rowId, "trip", "poi-$rowId", "地点$rowId", "地址", GeoPoint(1.0, 2.0), "", emptyList()), 0, false)),
+                    ),
+                    addToItineraryViewModel = add,
+                )
+            }
+            compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+            return workspace to add
+        }
+
+        val invalidRepository = Itineraries()
+        val invalidAdd = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(invalidRepository), UndoAddedItemsUseCase(invalidRepository), SavedStateHandle())
+        invalidAdd.reconcile(listOf("day-1"), setOf("p"))
+        invalidAdd.startForPlace("invalid")
+        assertEquals(AddToItineraryStep.IDLE, invalidAdd.state.value.step)
+        assertEquals(null, addOverlayToPresent(WorkspaceOverlay.None, invalidAdd.state.value))
+
+        val (noDayWorkspace, noDayAdd) = render(NoDayTrips(), "p")
+        compose.onNodeWithTag("quick-add-place-p").performClick()
+        compose.waitForIdle()
+        assertEquals(AddToItineraryStep.IDLE, noDayAdd.state.value.step)
+        assertEquals(WorkspaceOverlay.None, noDayWorkspace.state.value.overlay)
+    }
+
     @Test fun resultOverlayPrioritizesUndoFailureAndExplainsMissingTargetCleanup() {
         val ready = TripWorkspaceUiState(tripName = "测试旅行").toReadyState()
         compose.setContent {
@@ -313,7 +390,8 @@ class WorkspaceFlowTest {
         pressBack()
         compose.waitUntil { workspace.state.value.selectedMapPoi == null }
 
-        compose.onNodeWithText("编辑").performClick()
+        compose.onNodeWithTag("more-place-saved").performClick()
+        compose.onNodeWithTag("menu-edit-place-saved", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
         compose.onNodeWithText("取消").assertIsDisplayed()
         compose.onNodeWithText("取消收藏").assertDoesNotExist()
@@ -885,6 +963,21 @@ class WorkspaceFlowTest {
 
     private class LongNameTrips(private val name: String) : TripRepository {
         override fun observeTrip(tripId: String) = flowOf(TripWithDays("trip", name, LocalDate.of(2026, 8, 25), TravelMode.FLEXIBLE, listOf(TripDay("day-1", 0))))
+        override fun observeTrips() = flowOf(emptyList<TripSummary>())
+        override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun renameTrip(tripId: String, name: String) = Unit
+        override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
+        override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
+        override suspend fun applyDateRange(command: com.yangchengwei.easytrip.trip.domain.DateRangeApply) = Unit
+        override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit
+        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day"
+        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion) = Unit
+        override suspend fun deleteTrip(tripId: String) = Unit
+    }
+
+    private class NoDayTrips : TripRepository {
+        override fun observeTrip(tripId: String) = flowOf(TripWithDays("trip", "空旅行", null, TravelMode.FLEXIBLE, emptyList()))
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
         override suspend fun renameTrip(tripId: String, name: String) = Unit

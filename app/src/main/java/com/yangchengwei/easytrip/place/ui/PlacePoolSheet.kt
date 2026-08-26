@@ -24,6 +24,8 @@ fun PlacePoolSheet(
     modifier: Modifier = Modifier,
     showSearch: Boolean = true,
     onSearch: () -> Unit = {},
+    onStartAdd: (() -> Unit)? = null,
+    onStartAddSingle: ((String) -> Unit)? = null,
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
     PlacePoolContent(
@@ -46,7 +48,8 @@ fun PlacePoolSheet(
         onConfirmCollectionRemoval = viewModel::confirmCollectionRemoval,
         onDismissDelete = viewModel::dismissDelete,
         onConfirmDelete = viewModel::confirmDelete,
-        onStartAdd = {},
+        onStartAdd = onStartAdd,
+        onStartAddSingle = onStartAddSingle,
     )
 }
 
@@ -99,6 +102,7 @@ fun PlacePoolContent(
         onDismissDelete = { onAction(PlacePoolAction.DismissDialogs) },
         onConfirmDelete = { onAction(PlacePoolAction.ConfirmDelete) },
         onStartAdd = { onAction(PlacePoolAction.StartAddToItinerary) },
+        onStartAddSingle = { onAction(PlacePoolAction.StartAddSingle(it)) },
         showDialogs = showDialogs,
         contentPadding = contentPadding,
     )
@@ -125,7 +129,8 @@ fun PlacePoolContent(
     onConfirmCollectionRemoval: () -> Unit,
     onDismissDelete: () -> Unit,
     onConfirmDelete: () -> Unit,
-    onStartAdd: () -> Unit,
+    onStartAdd: (() -> Unit)?,
+    onStartAddSingle: ((String) -> Unit)?,
     showDialogs: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(16.dp),
 ) {
@@ -141,7 +146,7 @@ fun PlacePoolContent(
                 com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(onSearch) { Text("搜索地点") }
             }
         } else {
-            if (!showSearch) {
+            if (!showSearch && onStartAdd != null) {
                 com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(
                     onClick = onStartAdd,
                     modifier = Modifier.fillMaxWidth().testTag("start-add-to-itinerary"),
@@ -167,7 +172,12 @@ fun PlacePoolContent(
                 }
                 items(state.rows.size) { index ->
                     val row = state.rows[index]
-                    SavedPlaceRow(row, { onEdit(row.place) }, { onDelete(row.place) })
+                    SavedPlaceRow(
+                        place = row,
+                        onQuickAdd = onStartAddSingle?.let { callback -> { callback(row.place.id) } },
+                        onEdit = { onEdit(row.place) },
+                        onDelete = { onDelete(row.place) },
+                    )
                 }
             }
         }

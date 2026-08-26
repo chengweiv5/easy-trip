@@ -378,6 +378,10 @@ fun TripWorkspaceRoute(
                     dismissPendingDialogs()
                     addToItineraryViewModel?.startFromPool()
                 }
+                is PlacePoolAction.StartAddSingle -> {
+                    dismissPendingDialogs()
+                    addToItineraryViewModel?.startForPlace(action.placeId)
+                }
                 PlacePoolAction.DismissDialogs -> closeOverlay()
                 else -> dispatchPlace(action)
             }

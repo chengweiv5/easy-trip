@@ -163,7 +163,7 @@ fun PlaceDetailPanel(
                     CompactSecondaryButton(
                         onClick = { onAction(PlaceDetailPanelAction.Delete) },
                         enabled = !saving,
-                        modifier = Modifier.weight(1f),
+                        modifier = Modifier.weight(1f).testTag("place-detail-delete"),
                     ) { Text("删除") }
                 }
                 CompactSecondaryButton(
