@@ -42,3 +42,12 @@ GREEN 阶段覆盖：
 - 更多菜单仍使用字体 glyph；该组件位于独立文件，按任务边界未扩大改动范围。
 - Graphify 更新报告两个既有 Kotlin 文件存在部分语法提取警告：`NetworkMonitor.kt`、`RoutePlanner.kt`；与本任务无关。
 - 未进行物理真机验收；按批次约定留到候选批次统一执行。
+
+## Fix round 1
+
+- 使用 `rememberUpdatedState` 持有 `onPreview`、`onCommit`、`onDraggingChange` 的最新值；`pointerInput` keys 保持为 `itemId`、`count`、`reorderStepPx`，父重组替换 callback 不会重启活动手势。
+- 新增活动拖动期间替换 callback 的行为测试。旧实现明确 RED：拖动后续事件仍调用旧 callback；修复后 preview 与 commit 均调用新 callback。
+- 新增取消拖动回归测试：先跨过一步产生 preview，再取消，确认 preview 恢复 `startIndex` 且不 commit。旧实现已通过该测试。
+- `ItineraryTimelineContentTest` 与 `ItineraryEditingTest`：22/22 通过，设备 `easy_trip_p60pro(AVD) - 12`。
+- `./gradlew testDebugUnitTest lintDebug`：通过。
+- 未处理独立文件中的 more 字体 glyph，保持本轮修复范围最小。

@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
@@ -273,6 +275,86 @@ class ItineraryTimelineContentTest {
         compose.runOnIdle {
             assertEquals(0, previews.last())
             assertEquals(listOf(0), commits)
+        }
+    }
+
+    @Test
+    fun activeDragUsesLatestCallbacksAfterRecomposition() {
+        val oldPreviews = mutableListOf<Int>()
+        val newPreviews = mutableListOf<Int>()
+        val oldCommits = mutableListOf<Int>()
+        val newCommits = mutableListOf<Int>()
+        lateinit var replaceCallbacks: () -> Unit
+        compose.setContent {
+            val callbackVersion = remember { mutableIntStateOf(0) }
+            replaceCallbacks = { callbackVersion.intValue = 1 }
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                    index = 1,
+                    count = 3,
+                    onPreview = if (callbackVersion.intValue == 0) {
+                        { oldPreviews.add(it) }
+                    } else {
+                        { newPreviews.add(it) }
+                    },
+                    onCommit = if (callbackVersion.intValue == 0) {
+                        { oldCommits.add(it) }
+                    } else {
+                        { newCommits.add(it) }
+                    },
+                    onMenuAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("drag-handle-i1", useUnmergedTree = true).performTouchInput {
+            val start = center
+            down(start)
+            advanceEventTime(700)
+            compose.runOnIdle { replaceCallbacks() }
+            moveTo(Offset(start.x, start.y - 500f), 500)
+            up()
+        }
+
+        compose.runOnIdle {
+            assertTrue(oldPreviews.isEmpty())
+            assertTrue(oldCommits.isEmpty())
+            assertEquals(0, newPreviews.last())
+            assertEquals(listOf(0), newCommits)
+        }
+    }
+
+    @Test
+    fun cancelRestoresStartIndexWithoutCommit() {
+        val previews = mutableListOf<Int>()
+        val commits = mutableListOf<Int>()
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1f)) {
+                EasyTripTheme {
+                    ItineraryItemRow(
+                        item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                        index = 1,
+                        count = 3,
+                        onPreview = previews::add,
+                        onCommit = commits::add,
+                        onMenuAction = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("drag-handle-i1", useUnmergedTree = true).performTouchInput {
+            val start = center
+            down(start)
+            advanceEventTime(700)
+            moveTo(Offset(start.x, start.y - 130f), 500)
+            cancel()
+        }
+
+        compose.runOnIdle {
+            assertEquals(listOf(0, 1), previews)
+            assertTrue(commits.isEmpty())
         }
     }
 

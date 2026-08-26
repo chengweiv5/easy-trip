@@ -92,6 +92,9 @@ private fun ItineraryDragHandle(
 ) {
     var drag by remember(itemId) { mutableFloatStateOf(0f) }
     val currentIndex by rememberUpdatedState(index)
+    val currentOnPreview by rememberUpdatedState(onPreview)
+    val currentOnCommit by rememberUpdatedState(onCommit)
+    val currentOnDraggingChange by rememberUpdatedState(onDraggingChange)
     val reorderStepPx = with(LocalDensity.current) { ReorderStep.toPx() }
     val handleColor = MaterialTheme.colorScheme.onSurfaceVariant
     Box(
@@ -105,22 +108,22 @@ private fun ItineraryDragHandle(
                     onDragStart = {
                         drag = 0f
                         startIndex = currentIndex
-                        onDraggingChange(true)
+                        currentOnDraggingChange(true)
                     },
                     onDrag = { change, amount ->
                         change.consume()
                         drag += amount.y
-                        onPreview((startIndex + (drag / reorderStepPx).toInt()).coerceIn(0, count - 1))
+                        currentOnPreview((startIndex + (drag / reorderStepPx).toInt()).coerceIn(0, count - 1))
                     },
                     onDragEnd = {
-                        onCommit((startIndex + (drag / reorderStepPx).toInt()).coerceIn(0, count - 1))
+                        currentOnCommit((startIndex + (drag / reorderStepPx).toInt()).coerceIn(0, count - 1))
                         drag = 0f
-                        onDraggingChange(false)
+                        currentOnDraggingChange(false)
                     },
                     onDragCancel = {
                         drag = 0f
-                        onPreview(startIndex)
-                        onDraggingChange(false)
+                        currentOnPreview(startIndex)
+                        currentOnDraggingChange(false)
                     },
                 )
             },
