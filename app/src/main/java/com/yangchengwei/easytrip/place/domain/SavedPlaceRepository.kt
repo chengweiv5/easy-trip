@@ -8,6 +8,7 @@ import kotlinx.coroutines.flow.map
 
 data class PlaceTag(val id: String, val name: String)
 data class SavedPlace(val id: String, val tripId: String, val amapPoiId: String, val name: String, val address: String, val point: GeoPoint, val note: String, val tags: List<PlaceTag>)
+data class PlaceDeletionImpact(val itineraryItemCount: Int, val routeLegCount: Int)
 sealed interface SavePlaceResult {
     data class Saved(val id: String) : SavePlaceResult
     data class AlreadySaved(val existingId: String) : SavePlaceResult
@@ -28,5 +29,6 @@ interface SavedPlaceRepository {
     suspend fun save(tripId: String, candidate: PlaceCandidate): SavePlaceResult
     suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>)
     suspend fun usageCount(placeId: String): Int
+    suspend fun deletionImpact(placeId: String): PlaceDeletionImpact
     suspend fun deletePlaceAndReferences(placeId: String)
 }

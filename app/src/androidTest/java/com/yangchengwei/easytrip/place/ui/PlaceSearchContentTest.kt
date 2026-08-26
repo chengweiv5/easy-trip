@@ -584,6 +584,7 @@ class PlaceSearchContentTest {
         }
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 }

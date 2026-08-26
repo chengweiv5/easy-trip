@@ -335,8 +335,8 @@ class PlaceSearchViewModel(
             mutableState.value = mutableState.value.copy(collectionError = null, collectionErrorPoiId = null)
             try {
                 val saved = savedByPoiId[poiId]
-                val usageCount = saved?.let { service.deletionUsageCount(it.id) }
-                when (decideCollectionToggle(candidate, saved, usageCount)) {
+                val impact = saved?.let { service.deletionImpact(it.id) }
+                when (decideCollectionToggle(candidate, saved, impact)) {
                     CollectionDecision.Save -> {
                         repository.save(tripId, candidate)
                         recentlyCollectedPoiIds += poiId
@@ -346,7 +346,7 @@ class PlaceSearchViewModel(
                         recentlyCollectedPoiIds -= poiId
                     }
                     is CollectionDecision.Confirm -> mutableState.value = mutableState.value.copy(
-                        pendingCollectionRemoval = PendingCollectionRemoval(candidate, saved!!, usageCount!!),
+                        pendingCollectionRemoval = PendingCollectionRemoval(candidate, saved!!, impact!!),
                     )
                 }
             } catch (error: CancellationException) {

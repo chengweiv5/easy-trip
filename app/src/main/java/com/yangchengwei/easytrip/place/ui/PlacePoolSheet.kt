@@ -225,7 +225,7 @@ fun PlacePoolContent(
             AlertDialog(
                 onDismissRequest = onDismissCollectionRemoval,
                 title = { Text("取消收藏 ${pending.place.name}？") },
-                text = { Text("将同时删除 ${pending.usageCount} 次行程安排及受影响路线。") },
+                text = { Text("将同时删除 ${pending.impact.itineraryItemCount} 次行程安排和 ${pending.impact.routeLegCount} 段路线。") },
                 confirmButton = { TextButton(onConfirmCollectionRemoval) { Text("确认取消收藏") } },
                 dismissButton = { TextButton(onDismissCollectionRemoval) { Text("取消") } },
             )
@@ -234,7 +234,7 @@ fun PlacePoolContent(
             AlertDialog(
                 onDismissRequest = onDismissDelete,
                 title = { Text("删除 ${place.name}？") },
-                text = { Text("将同时删除 ${state.deletionUsageCount} 次行程安排及受影响路线。") },
+                text = { Text("将同时删除 ${state.deletionImpact?.itineraryItemCount} 次行程安排和 ${state.deletionImpact?.routeLegCount} 段路线。") },
                 confirmButton = { TextButton(onConfirmDelete) { Text("确认删除地点") } },
                 dismissButton = { TextButton(onDismissDelete) { Text("取消") } },
             )

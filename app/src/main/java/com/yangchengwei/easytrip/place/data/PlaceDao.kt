@@ -53,6 +53,14 @@ interface PlaceDao {
     @Query("DELETE FROM tags WHERE tripId=:tripId AND id NOT IN (SELECT tagId FROM saved_place_tags WHERE tripId=:tripId)") suspend fun deleteOrphanTags(tripId: String)
     @Query("SELECT COUNT(*) FROM itinerary_items WHERE savedPlaceId=:placeId") suspend fun usageCount(placeId: String): Int
     @Query("""
+        SELECT COUNT(DISTINCT l.id)
+        FROM route_legs l
+        JOIN itinerary_items fromItem ON fromItem.id = l.fromItemId AND fromItem.tripDayId = l.tripDayId
+        JOIN itinerary_items toItem ON toItem.id = l.toItemId AND toItem.tripDayId = l.tripDayId
+        WHERE fromItem.savedPlaceId = :placeId OR toItem.savedPlaceId = :placeId
+    """)
+    suspend fun incidentRouteLegCount(placeId: String): Int
+    @Query("""
         SELECT p.id AS placeId, COUNT(i.id) AS usageCount
         FROM saved_places p
         LEFT JOIN itinerary_items i ON i.savedPlaceId = p.id AND i.tripId = p.tripId

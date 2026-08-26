@@ -6,8 +6,12 @@ import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.core.model.RouteStatus
+import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.itinerary.data.ItineraryItemEntity
+import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
+import com.yangchengwei.easytrip.route.data.RouteLegEntity
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
@@ -18,6 +22,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeout
+import java.time.Instant
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
@@ -159,6 +164,47 @@ class RoomSavedPlaceRepositoryTest {
             withTimeout(5_000) { next.await() }
         }
         assertEquals(1, usageCounts.getValue(saved.id))
+    }
+
+    @Test fun deletionImpactIsZeroForUnusedPlaceAndDoesNotMutateIt() = runTest {
+        val trip = trips.createTrip(CreateTrip("Trip", 1))
+        val saved = places.save(trip, candidate("unused")) as SavePlaceResult.Saved
+
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(0, 0), places.deletionImpact(saved.id))
+        assertEquals(saved.id, places.observePlaces(trip, emptySet()).first().single().id)
+    }
+
+    @Test fun deletionImpactCountsEveryItineraryOccurrence() = runTest {
+        val trip = trips.createTrip(CreateTrip("Trip", 1))
+        val day = trips.observeTrip(trip).first()!!.days.single()
+        val saved = places.save(trip, candidate("used")) as SavePlaceResult.Saved
+        repeat(3) { index -> database.itineraryDao().insertItem(ItineraryItemEntity("item-$index", day.id, trip, saved.id, index * 1_000L)) }
+
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(3, 0), places.deletionImpact(saved.id))
+        assertEquals(3, database.itineraryDao().countBySavedPlace(saved.id))
+    }
+
+    @Test fun deletionImpactCountsDistinctIncidentLegsWithoutDoubleCountingBothEndpoints() = runTest {
+        val trip = trips.createTrip(CreateTrip("Trip", 1))
+        val day = trips.observeTrip(trip).first()!!.days.single()
+        val saved = places.save(trip, candidate("used")) as SavePlaceResult.Saved
+        val other = places.save(trip, candidate("other")) as SavePlaceResult.Saved
+        val first = ItineraryItemEntity("first", day.id, trip, saved.id, 0)
+        val second = ItineraryItemEntity("second", day.id, trip, saved.id, 1_000)
+        val third = ItineraryItemEntity("third", day.id, trip, other.id, 2_000)
+        listOf(first, second, third).forEach { database.itineraryDao().insertItem(it) }
+        insertLeg("both-ends", day.id, first.id, second.id)
+        insertLeg("one-end", day.id, second.id, third.id)
+
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(2, 2), places.deletionImpact(saved.id))
+        assertEquals(3, database.itineraryEditingDao().items(day.id).size)
+        assertEquals(2, database.routeLegDao().legs(day.id).size)
+    }
+
+    private suspend fun insertLeg(id: String, dayId: String, from: String, to: String) {
+        database.routeLegDao().insert(
+            RouteLegEntity(id, dayId, from, to, TransportMode.WALK, status = RouteStatus.PENDING, updatedAt = Instant.EPOCH),
+        )
     }
 
     private fun candidate(id: String) = PlaceCandidate(id, "Name $id", "Address $id", GeoPoint(39.9, 116.4), "010")

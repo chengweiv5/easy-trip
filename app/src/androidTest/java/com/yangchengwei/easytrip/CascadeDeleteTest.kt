@@ -48,7 +48,7 @@ class CascadeDeleteTest {
         repeat(2) { itineraries.addItem(days[1].id, removed, it) }
 
         val service = PlaceService(places)
-        assertEquals(5, service.deletionUsageCount(removed))
+        assertEquals(5, service.deletionImpact(removed).itineraryItemCount)
         service.deletePlaceAndReferences(removed)
 
         assertEquals(listOf(firstA, firstC), database.itineraryEditingDao().items(days[0].id).map { it.id })

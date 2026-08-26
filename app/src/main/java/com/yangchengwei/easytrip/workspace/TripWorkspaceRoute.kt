@@ -261,7 +261,7 @@ fun TripWorkspaceRoute(
                 WorkspaceOverlay.Confirmation(
                     confirmation(
                         title = "取消收藏 ${pending.place.name}？",
-                        message = "将同时删除 ${pending.usageCount} 次行程安排及受影响路线。",
+                        message = "将同时删除 ${pending.impact.itineraryItemCount} 次行程安排和 ${pending.impact.routeLegCount} 段路线。",
                         confirmLabel = "确认取消收藏",
                     ),
                 ),
@@ -279,7 +279,7 @@ fun TripWorkspaceRoute(
                 WorkspaceOverlay.Confirmation(
                     confirmation(
                         title = "删除 ${place.name}？",
-                        message = "将同时删除 ${places.deletionUsageCount} 次行程安排及受影响路线。",
+                        message = "将同时删除 ${places.deletionImpact?.itineraryItemCount} 次行程安排和 ${places.deletionImpact?.routeLegCount} 段路线。",
                         confirmLabel = "确认删除地点",
                     ),
                 ),

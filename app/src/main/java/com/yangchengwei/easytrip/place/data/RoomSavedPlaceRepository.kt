@@ -5,6 +5,7 @@ import androidx.room.withTransaction
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.place.domain.SavedPlace
@@ -75,6 +76,10 @@ class RoomSavedPlaceRepository(
     }
 
     override suspend fun usageCount(placeId: String): Int { requireNotNull(dao.place(placeId)) { "Unknown place: $placeId" }; return dao.usageCount(placeId) }
+    override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact = database.withTransaction {
+        requireNotNull(dao.place(placeId)) { "Unknown place: $placeId" }
+        PlaceDeletionImpact(dao.usageCount(placeId), dao.incidentRouteLegCount(placeId))
+    }
     override suspend fun deletePlaceAndReferences(placeId: String) = database.withTransaction {
         requireNotNull(dao.place(placeId)) { "Unknown place: $placeId" }
         com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository(

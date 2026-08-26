@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
+import com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact
 import com.yangchengwei.easytrip.place.domain.PlaceService
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavedPlace
@@ -50,7 +51,7 @@ data class PlacePoolUiState(
     val detailSaving: Boolean = false,
     val detailSaveError: String? = null,
     val deleting: SavedPlace? = null,
-    val deletionUsageCount: Int = 0,
+    val deletionImpact: PlaceDeletionImpact? = null,
     val pendingCollectionRemoval: PendingCollectionRemoval? = null,
     val collectionBusyPoiIds: Set<String> = emptySet(),
     val collectionError: String? = null,
@@ -87,12 +88,12 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             mutableState.value = mutableState.value.copy(collectionError = null)
             try {
                 val saved = savedByPoiId[candidate.poiId]
-                val usageCount = saved?.let { service.deletionUsageCount(it.id) }
-                when (decideCollectionToggle(candidate, saved, usageCount)) {
+                val impact = saved?.let { service.deletionImpact(it.id) }
+                when (decideCollectionToggle(candidate, saved, impact)) {
                     CollectionDecision.Save -> repository.save(tripId, candidate)
                     is CollectionDecision.RemoveNow -> service.deletePlaceAndReferences(saved!!.id)
                     is CollectionDecision.Confirm -> mutableState.value = mutableState.value.copy(
-                        pendingCollectionRemoval = PendingCollectionRemoval(candidate, saved!!, usageCount!!),
+                        pendingCollectionRemoval = PendingCollectionRemoval(candidate, saved!!, impact!!),
                     )
                 }
             } catch (error: CancellationException) {
@@ -214,12 +215,16 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             detailSaving = false,
             detailSaveError = null,
             deleting = null,
-            deletionUsageCount = 0,
+            deletionImpact = null,
         )
         deletePreparationJob = viewModelScope.launch {
-            val usageCount = service.deletionUsageCount(place.id)
+            val impact = service.deletionImpact(place.id)
             if (requestId == deletePreparationId) {
-                mutableState.value = mutableState.value.copy(deleting = place, deletionUsageCount = usageCount)
+                if (impact.itineraryItemCount == 0 && impact.routeLegCount == 0) {
+                    service.deletePlaceAndReferences(place.id)
+                } else {
+                    mutableState.value = mutableState.value.copy(deleting = place, deletionImpact = impact)
+                }
                 deletePreparationJob = null
             }
         }
@@ -228,9 +233,23 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         deletePreparationJob?.cancel()
         deletePreparationJob = null
         deletePreparationId++
-        mutableState.value = mutableState.value.copy(deleting = null, deletionUsageCount = 0)
+        mutableState.value = mutableState.value.copy(deleting = null, deletionImpact = null)
     }
-    fun confirmDelete() { val place = mutableState.value.deleting ?: return; viewModelScope.launch { service.deletePlaceAndReferences(place.id); dismissDelete() } }
+    fun confirmDelete() {
+        val place = mutableState.value.deleting ?: return
+        deletePreparationId++
+        mutableState.value = mutableState.value.copy(deleting = null)
+        viewModelScope.launch {
+            try {
+                service.deletePlaceAndReferences(place.id)
+                mutableState.value = mutableState.value.copy(deletionImpact = null)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                mutableState.value = mutableState.value.copy(deleting = place)
+            }
+        }
+    }
     fun dismissDialogs() {
         dismissEdit()
         dismissDelete()

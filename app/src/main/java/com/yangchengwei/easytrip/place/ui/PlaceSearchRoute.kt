@@ -50,7 +50,7 @@ fun PlaceSearchRoute(
                 if (!busy) viewModel.dispatch(PlaceSearchAction.DismissRemovalConfirmation)
             },
             title = { Text("取消收藏 ${pending.place.name}？") },
-            text = { Text("将同时删除 ${pending.usageCount} 次行程安排及受影响路线。") },
+            text = { Text("将同时删除 ${pending.impact.itineraryItemCount} 次行程安排和 ${pending.impact.routeLegCount} 段路线。") },
             confirmButton = {
                 TextButton(
                     onClick = { viewModel.dispatch(PlaceSearchAction.ConfirmRemoval) },

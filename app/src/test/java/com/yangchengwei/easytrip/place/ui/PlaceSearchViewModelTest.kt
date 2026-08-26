@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
+import com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.place.domain.SavedPlace
@@ -294,7 +295,7 @@ class PlaceSearchViewModelTest {
         val pending = PendingCollectionRemoval(
             candidate("poi-1"),
             SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList()),
-            1,
+            PlaceDeletionImpact(1, 1),
         )
         val state = PlaceSearchUiState(
             displayMode = SearchDisplayMode.MapDetail("poi-1"),
@@ -456,7 +457,7 @@ class PlaceSearchViewModelTest {
         val pending = PendingCollectionRemoval(
             candidate("poi-1"),
             SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList()),
-            1,
+            PlaceDeletionImpact(1, 1),
         )
         var state = model.state.value.copy(
             pendingCollectionRemoval = pending,
@@ -480,6 +481,24 @@ class PlaceSearchViewModelTest {
         assertTrue(state.shouldNavigateBack)
     }
 
+    @Test fun nonZeroRemovalImpactShowsExactCounts() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val repository = FakeSavedPlaces(listOf(saved), usageCount = 2, routeLegCount = 3)
+        val model = PlaceSearchViewModel(
+            "trip",
+            repository,
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            SavedStateHandle(mapOf("query" to "地点")),
+        )
+        advanceUntilIdle()
+
+        model.dispatch(PlaceSearchAction.ToggleCollection("poi-1"))
+        advanceUntilIdle()
+
+        assertEquals(PlaceDeletionImpact(2, 3), model.state.value.pendingCollectionRemoval?.impact)
+        assertEquals(emptyList<String>(), repository.deleted)
+    }
+
     @Test fun repeatedConfirmRemovalDeletesOnlyOnce() = runTest(dispatcher) {
         val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
         val repository = FakeSavedPlaces(listOf(saved), usageCount = 1)
@@ -493,6 +512,7 @@ class PlaceSearchViewModelTest {
         model.dispatch(PlaceSearchAction.ToggleCollection("poi-1"))
         advanceUntilIdle()
 
+        assertEquals(PlaceDeletionImpact(1, 0), model.state.value.pendingCollectionRemoval?.impact)
         model.dispatch(PlaceSearchAction.ConfirmRemoval)
         model.dispatch(PlaceSearchAction.ConfirmRemoval)
         advanceUntilIdle()
@@ -679,6 +699,7 @@ class PlaceSearchViewModelTest {
         }
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleteGate.await()
         }
@@ -698,6 +719,7 @@ class PlaceSearchViewModelTest {
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.AlreadySaved(places.value.single().id)
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 1
+        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleteAttempts += 1
             if (deleteAttempts == 1) error("首次取消失败")
@@ -717,6 +739,7 @@ class PlaceSearchViewModelTest {
         }
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 
@@ -732,6 +755,7 @@ class PlaceSearchViewModelTest {
         }
         fun complete(placeId: String) = completions.getValue(placeId).complete(Unit)
         override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 
@@ -739,6 +763,7 @@ class PlaceSearchViewModelTest {
         initialPlaces: List<SavedPlace> = emptyList(),
         private val usageCount: Int = 0,
         private val updateFailure: Throwable? = null,
+        private val routeLegCount: Int = 0,
     ) : SavedPlaceRepository {
         val saved = mutableListOf<PlaceCandidate>()
         val deleted = mutableListOf<String>()
@@ -759,6 +784,7 @@ class PlaceSearchViewModelTest {
             updateFailure?.let { throw it }
         }
         override suspend fun usageCount(placeId: String) = usageCount
+        override suspend fun deletionImpact(placeId: String) = PlaceDeletionImpact(usageCount(placeId), routeLegCount)
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleted += placeId
             if (deleted.count { it == placeId } > 1) error("Unknown place")
