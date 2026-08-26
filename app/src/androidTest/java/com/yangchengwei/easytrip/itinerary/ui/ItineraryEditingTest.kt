@@ -89,7 +89,8 @@ class ItineraryEditingTest {
         compose.setContent { DayItinerarySheet(model) }
         compose.waitUntil(5_000) { model.state.value.items.size == 3 }
 
-        compose.onNodeWithTag("delete-i2").performClick()
+        compose.onNodeWithTag("more-i2", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-delete-i2", useUnmergedTree = true).performClick()
         compose.onNodeWithText("仅从当天行程移出，收藏仍保留；相邻路线将重新计算。").assertIsDisplayed()
     }
 
@@ -138,7 +139,8 @@ class ItineraryEditingTest {
             .assert(SemanticsMatcher("has both reorder actions") { node ->
                 node.config[SemanticsActions.CustomActions].map { it.label } == listOf("上移", "下移")
             })
-        listOf("timing-i2", "move-i2", "delete-i2").forEach { tag ->
+        compose.onNodeWithTag("more-i2", useUnmergedTree = true).assertHasClickAction().performClick()
+        listOf("menu-timing-i2", "menu-move-i2", "menu-delete-i2").forEach { tag ->
             compose.onNodeWithTag(tag, useUnmergedTree = true).assertHasClickAction()
         }
     }
@@ -189,15 +191,13 @@ class ItineraryEditingTest {
         compose.onNodeWithTag("leg-leg-2").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
         compose.onNodeWithText("↓").assertDoesNotExist()
         compose.onNodeWithTag("item-i2")
-            .assertContentDescriptionEquals("酒店，第 2 项，共 3 项")
+            .assertContentDescriptionEquals("酒店，第 2 项，共 3 项", "拖动酒店调整顺序")
             .assert(SemanticsMatcher("has both reorder actions") { node ->
                 node.config[SemanticsActions.CustomActions].map { it.label } == listOf("上移", "下移")
             })
         val itemNode = compose.onNodeWithTag("item-i2", useUnmergedTree = true).fetchSemanticsNode()
         assertEquals(true, itemNode.config.isMergingSemanticsOfDescendants)
-        listOf("timing-i2", "move-i2", "delete-i2").forEach { tag ->
-            compose.onNodeWithTag(tag, useUnmergedTree = true).assertIsDisplayed().assertHasClickAction()
-        }
+        compose.onNodeWithTag("more-i2", useUnmergedTree = true).assertIsDisplayed().assertHasClickAction()
         compose.onAllNodesWithText("酒店地址")[0].assertIsDisplayed()
         compose.onNodeWithText("1.1 公里", substring = true).assertIsDisplayed()
         compose.onNodeWithText("5 分钟", substring = true).assertIsDisplayed()
@@ -235,12 +235,14 @@ class ItineraryEditingTest {
         compose.waitUntil(5_000) { itineraries.moves.size == 2 }
         assertEquals(Move("i2", "day-1", 2), itineraries.moves.last())
 
-        compose.onNodeWithTag("move-i3").performClick()
+        compose.onNodeWithTag("more-i3", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-move-i3", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("move-to-day-2").performClick()
         compose.waitUntil(5_000) { itineraries.moves.size == 3 }
         assertEquals(Move("i3", "day-2", 0), itineraries.moves.last())
 
-        compose.onNodeWithTag("timing-i1").performClick()
+        compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-timing-i1", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("arrival-time-input").performTextClearance()
         compose.onNodeWithTag("arrival-time-input").performTextInput("09:30")
         compose.onNodeWithTag("stay-minutes-input").performTextClearance()
@@ -249,7 +251,8 @@ class ItineraryEditingTest {
         compose.waitUntil(5_000) { itineraries.timings.isNotEmpty() }
         assertEquals(Timing("i1", LocalTime.of(9, 30), 480), itineraries.timings.single())
 
-        compose.onNodeWithTag("delete-i1").performClick()
+        compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-delete-i1", useUnmergedTree = true).performClick()
         compose.onNodeWithText("确认移出").performClick()
         compose.waitUntil(5_000) { itineraries.deletes == listOf("i1") }
     }

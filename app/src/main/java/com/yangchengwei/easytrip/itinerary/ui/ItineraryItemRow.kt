@@ -33,59 +33,70 @@ import androidx.compose.ui.unit.dp
 import kotlin.math.roundToInt
 
 @Composable
-fun ItineraryItemRow(
+internal fun ItineraryItemRow(
     item: ItineraryItemUi,
     index: Int,
     count: Int,
     onPreview: (Int) -> Unit,
     onCommit: (Int) -> Unit,
-    onTiming: () -> Unit,
-    onCrossDay: () -> Unit,
-    onDelete: () -> Unit,
+    onMenuAction: (ItineraryItemMenuAction) -> Unit,
+    modifier: Modifier = Modifier,
 ) {
     var drag by remember(item.id) { mutableFloatStateOf(0f) }
     var isDragging by remember(item.id) { mutableStateOf(false) }
+    var menuExpanded by remember(item.id) { mutableStateOf(false) }
     val currentIndex by rememberUpdatedState(index)
-    Column {
-        ItineraryPlaceContent(
-            item = item,
-            displayOrder = index + 1,
-            modifier = Modifier
-                .fillMaxWidth()
-                .semanticsActions(item.name, index, count, onCommit)
-                .pointerInput(item.id, count) {
-                    var startIndex = currentIndex
-                    detectDragGesturesAfterLongPress(
-                        onDragStart = {
-                            drag = 0f
-                            startIndex = currentIndex
-                            isDragging = true
-                        },
-                        onDrag = { change, amount ->
-                            change.consume()
-                            drag += amount.y
-                            onPreview((startIndex + (drag / 120f).roundToInt()).coerceIn(0, count - 1))
-                        },
-                        onDragEnd = {
-                            onCommit((startIndex + (drag / 120f).roundToInt()).coerceIn(0, count - 1))
-                            drag = 0f
-                            isDragging = false
-                        },
-                        onDragCancel = {
-                            drag = 0f
-                            isDragging = false
-                        },
-                    )
-                },
-            containerColor = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-            elevation = if (isDragging) 12.dp else 0.dp,
-        )
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-            androidx.compose.material3.TextButton(onClick = onTiming, modifier = Modifier.testTag("timing-${item.id}")) { Text("时间") }
-            androidx.compose.material3.TextButton(onClick = onCrossDay, modifier = Modifier.testTag("move-${item.id}")) { Text("移动到…") }
-            androidx.compose.material3.TextButton(onClick = onDelete, modifier = Modifier.testTag("delete-${item.id}")) { Text("删除") }
-        }
-    }
+    ItineraryPlaceContent(
+        item = item,
+        displayOrder = index + 1,
+        modifier = modifier
+            .fillMaxWidth()
+            .semanticsActions(item.name, index, count, onCommit)
+            .pointerInput(item.id, count) {
+                var startIndex = currentIndex
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        drag = 0f
+                        startIndex = currentIndex
+                        isDragging = true
+                    },
+                    onDrag = { change, amount ->
+                        change.consume()
+                        drag += amount.y
+                        onPreview((startIndex + (drag / 120f).roundToInt()).coerceIn(0, count - 1))
+                    },
+                    onDragEnd = {
+                        onCommit((startIndex + (drag / 120f).roundToInt()).coerceIn(0, count - 1))
+                        drag = 0f
+                        isDragging = false
+                    },
+                    onDragCancel = {
+                        drag = 0f
+                        isDragging = false
+                    },
+                )
+            },
+        leadingAction = {
+            Text(
+                text = "≡",
+                modifier = Modifier
+                    .testTag("drag-handle-${item.id}")
+                    .semantics { contentDescription = "拖动${item.name}调整顺序" },
+                style = MaterialTheme.typography.titleLarge,
+            )
+        },
+        trailingAction = {
+            ItineraryItemMenu(
+                itemId = item.id,
+                itemName = item.name,
+                expanded = menuExpanded,
+                onExpandedChange = { menuExpanded = it },
+                onAction = onMenuAction,
+            )
+        },
+        containerColor = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
+        elevation = if (isDragging) 12.dp else 0.dp,
+    )
 }
 
 @Composable

@@ -11,7 +11,9 @@ import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
 import com.yangchengwei.easytrip.itinerary.ui.CrossDayMoveDraft
 import com.yangchengwei.easytrip.itinerary.ui.ItineraryDeleteConfirmation
 import com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft
@@ -198,6 +200,39 @@ class TripWorkspaceNavigationStateTest {
                 hasPlaceDeleteConfirmation = true,
             ),
         )
+    }
+
+    @Test fun timingMenuActionCreatesOnlyEditDraft() = runTest(dispatcher) {
+        val model = itineraryModel()
+        advanceUntilIdle()
+
+        model.dispatch(DayItineraryAction.RequestTiming("item-1"))
+
+        assertEquals("item-1", model.state.value.editDraft?.itemId)
+        assertNull(model.state.value.crossDayMove)
+        assertNull(model.state.value.deleteConfirmation)
+    }
+
+    @Test fun moveMenuActionCreatesOnlyCrossDayDraft() = runTest(dispatcher) {
+        val model = itineraryModel()
+        advanceUntilIdle()
+
+        model.dispatch(DayItineraryAction.RequestCrossDay("item-1"))
+
+        assertEquals("item-1", model.state.value.crossDayMove?.itemId)
+        assertNull(model.state.value.editDraft)
+        assertNull(model.state.value.deleteConfirmation)
+    }
+
+    @Test fun deleteMenuActionCreatesOnlyDeleteConfirmation() = runTest(dispatcher) {
+        val model = itineraryModel()
+        advanceUntilIdle()
+
+        model.dispatch(DayItineraryAction.RequestDelete("item-1"))
+
+        assertEquals("item-1", model.state.value.deleteConfirmation?.itemId)
+        assertNull(model.state.value.editDraft)
+        assertNull(model.state.value.crossDayMove)
     }
 
     @Test fun itineraryOverlayAppearsOnlyForEstablishedContext() {
@@ -461,6 +496,14 @@ class TripWorkspaceNavigationStateTest {
         handle: SavedStateHandle = SavedStateHandle(),
         itineraries: ItineraryRepository = Itineraries(),
     ) = TripWorkspaceViewModel("trip", trips, Places(), itineraries, Legs(), handle)
+
+    private fun itineraryModel() = DayItineraryViewModel(
+        tripId = "trip",
+        trips = Trips(days("one", "two")),
+        itineraries = Itineraries(mapOf("one" to listOf(item("item-1", 39.9)))),
+        routeLegs = Legs(),
+        coordinator = null,
+    )
 
     private fun item(id: String, latitude: Double) = ItineraryItem(
         id,

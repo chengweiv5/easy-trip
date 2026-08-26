@@ -86,9 +86,15 @@ fun DayItineraryContent(
                     state.previewOrder.size,
                     { onAction(DayItineraryAction.PreviewMove(id, it)) },
                     { onAction(DayItineraryAction.CommitMove(id, it)) },
-                    { onAction(DayItineraryAction.RequestTiming(id)) },
-                    { onAction(DayItineraryAction.RequestCrossDay(id)) },
-                    { onAction(DayItineraryAction.RequestDelete(id)) },
+                    { action ->
+                        onAction(
+                            when (action) {
+                                ItineraryItemMenuAction.EditTiming -> DayItineraryAction.RequestTiming(id)
+                                ItineraryItemMenuAction.MoveToOtherDay -> DayItineraryAction.RequestCrossDay(id)
+                                ItineraryItemMenuAction.Delete -> DayItineraryAction.RequestDelete(id)
+                            },
+                        )
+                    },
                 )
                 val next = state.previewOrder.getOrNull(index + 1)
                 state.legs.firstOrNull { it.fromItemId == id && it.toItemId == next }?.let { leg ->

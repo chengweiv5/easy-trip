@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -15,6 +16,7 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.performClick
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import java.time.LocalTime
@@ -96,6 +98,97 @@ class ItineraryTimelineContentTest {
         val editable = compose.onNodeWithTag("item-editable").getUnclippedBoundsInRoot()
         assertEquals(readOnly.right - readOnly.left, editable.right - editable.left)
         assertEquals(readOnly.bottom - readOnly.top, editable.bottom - editable.top)
+    }
+
+    @Test
+    fun itemShowsOnlyHandleAndMoreAsPermanentActions() {
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                    index = 0,
+                    count = 1,
+                    onPreview = {},
+                    onCommit = {},
+                    onMenuAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("drag-handle-i1", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("more-i1", useUnmergedTree = true).assertIsDisplayed()
+        compose.onAllNodesWithTag("timing-i1", useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithTag("move-i1", useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithTag("delete-i1", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test
+    fun itemMenuDispatchesTimingMoveAndDeleteForCurrentItem() {
+        val actions = mutableListOf<ItineraryItemMenuAction>()
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                    index = 0,
+                    count = 1,
+                    onPreview = {},
+                    onCommit = {},
+                    onMenuAction = actions::add,
+                )
+            }
+        }
+
+        listOf(
+            "menu-timing-i1" to ItineraryItemMenuAction.EditTiming,
+            "menu-move-i1" to ItineraryItemMenuAction.MoveToOtherDay,
+            "menu-delete-i1" to ItineraryItemMenuAction.Delete,
+        ).forEach { (tag, expected) ->
+            compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
+            compose.onNodeWithTag(tag, useUnmergedTree = true).performClick()
+            compose.runOnIdle { assertEquals(expected, actions.last()) }
+        }
+    }
+
+    @Test
+    fun dismissingMenuDoesNotDispatchBusinessAction() {
+        val actions = mutableListOf<ItineraryItemMenuAction>()
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                    index = 0,
+                    count = 1,
+                    onPreview = {},
+                    onCommit = {},
+                    onMenuAction = actions::add,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("编辑时间与停留时长").assertIsDisplayed()
+        compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
+        compose.onAllNodesWithText("编辑时间与停留时长").assertCountEquals(0)
+        compose.runOnIdle { assertTrue(actions.isEmpty()) }
+    }
+
+    @Test
+    fun moreMenuDescriptionContainsPlaceName() {
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                    index = 0,
+                    count = 1,
+                    onPreview = {},
+                    onCommit = {},
+                    onMenuAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("more-i1", useUnmergedTree = true)
+            .assertContentDescriptionEquals("灵隐寺，更多行程项操作")
     }
 
     @Test
