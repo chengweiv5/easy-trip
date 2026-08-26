@@ -47,10 +47,10 @@ class WorkspacePlacePoolLayoutTest {
         }
 
         val row = compose.onNodeWithTag("saved-place-place").getUnclippedBoundsInRoot()
-        val edit = compose.onNodeWithTag("edit-place-place").getUnclippedBoundsInRoot()
-        val delete = compose.onNodeWithTag("delete-place-place").getUnclippedBoundsInRoot()
-        assertTrue("row=$row edit=$edit", edit.right <= row.right)
-        assertTrue("row=$row delete=$delete", delete.right <= row.right)
+        val quickAdd = compose.onNodeWithTag("quick-add-place-place").getUnclippedBoundsInRoot()
+        val more = compose.onNodeWithTag("more-place-place").getUnclippedBoundsInRoot()
+        assertTrue("row=$row quickAdd=$quickAdd", quickAdd.right <= row.right)
+        assertTrue("row=$row more=$more", more.right <= row.right)
     }
 
     @Test fun workspacePlacePoolUsesOnlySheetHorizontalInset() {

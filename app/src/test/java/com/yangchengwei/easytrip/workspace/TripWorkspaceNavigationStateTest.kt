@@ -344,16 +344,17 @@ class TripWorkspaceNavigationStateTest {
         )
     }
 
-    @Test fun `add overlay waits behind unrelated overlay and restores after it closes`() {
+    @Test fun `old target-day draft cannot open from no overlay but active add flow can advance`() {
         val addState = AddToItineraryUiState(
             editingTarget = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.FromPlacePool,
             step = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep.SELECT_TARGET_DAY,
         )
 
+        assertNull(addOverlayToPresent(WorkspaceOverlay.None, addState))
         assertNull(addOverlayToPresent(WorkspaceOverlay.LayerMenu, addState))
         assertEquals(
             WorkspaceOverlay.SelectAddTargetDay,
-            addOverlayToPresent(WorkspaceOverlay.None, addState),
+            addOverlayToPresent(WorkspaceOverlay.SelectAddPlaces, addState),
         )
     }
 

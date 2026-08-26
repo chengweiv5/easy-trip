@@ -34,6 +34,51 @@ class AddToItineraryStateTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun `single place start reports only a fresh valid unlocked launch`() = runTest(dispatcher) {
+        val viewModel = model(FakeItineraries())
+        ready(viewModel)
+
+        assertTrue(viewModel.startForPlace("hotel"))
+        assertEquals(listOf("hotel"), viewModel.state.value.selectedPlaceIds)
+        assertEquals(AddToItineraryEditingTarget.FromPlacePool, viewModel.state.value.editingTarget)
+        assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, viewModel.state.value.step)
+
+        assertFalse(viewModel.startForPlace("missing"))
+        assertFalse(viewModel.startForPlace("museum"))
+        assertEquals(listOf("hotel"), viewModel.state.value.selectedPlaceIds)
+    }
+
+    @Test fun `failed single place start keeps old bulk draft and locked draft unchanged`() = runTest(dispatcher) {
+        val bulk = model(FakeItineraries())
+        ready(bulk)
+        bulk.startFromPool()
+        bulk.togglePlace("museum")
+        bulk.continueToTargetDay()
+
+        assertFalse(bulk.startForPlace("missing"))
+        assertEquals(listOf("museum"), bulk.state.value.selectedPlaceIds)
+
+        val locked = model(FakeItineraries(suspendAdd = true))
+        ready(locked)
+        selectForSubmit(locked)
+        locked.submit()
+        assertTrue(locked.state.value.isSubmitting)
+        assertFalse(locked.startForPlace("museum"))
+        assertEquals(listOf("hotel"), locked.state.value.selectedPlaceIds)
+    }
+
+    @Test fun `pool and day starts report whether the requested flow launched`() = runTest(dispatcher) {
+        val viewModel = model(FakeItineraries())
+        ready(viewModel)
+
+        assertTrue(viewModel.startFromPool())
+        assertTrue(viewModel.startForDay("day-2"))
+        assertEquals(AddToItineraryEditingTarget.ForDay("day-2"), viewModel.state.value.editingTarget)
+
+        assertFalse(viewModel.startForDay("missing"))
+        assertEquals(AddToItineraryEditingTarget.ForDay("day-2"), viewModel.state.value.editingTarget)
+    }
+
     @Test fun `selection list is ordered truth and continue advances real view model`() = runTest(dispatcher) {
         val viewModel = model(FakeItineraries())
         ready(viewModel)
@@ -504,37 +549,35 @@ class AddToItineraryStateTest {
         assertEquals(listOf("created-museum"), viewModel.state.value.undoCreatedItemIds)
     }
 
-    @Test fun `start for place opens fresh direct target-day selection`() = runTest(dispatcher) {
+    @Test fun `start for place rejects an active target-day draft`() = runTest(dispatcher) {
         val viewModel = model(FakeItineraries())
         ready(viewModel)
         viewModel.startFromPool()
         viewModel.togglePlace("museum")
         viewModel.selectTargetDay("day-1")
 
-        viewModel.startForPlace("hotel")
+        assertFalse(viewModel.startForPlace("hotel"))
 
-        assertEquals(listOf("hotel"), viewModel.state.value.selectedPlaceIds)
-        assertNull(viewModel.state.value.targetDayId)
-        assertEquals(AddToItineraryEditingTarget.FromPlacePool, viewModel.state.value.editingTarget)
+        assertEquals(listOf("museum"), viewModel.state.value.selectedPlaceIds)
+        assertEquals("day-1", viewModel.state.value.targetDayId)
         assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, viewModel.state.value.step)
     }
 
-    @Test fun `start for place clears completed result and undo from older flow`() = runTest(dispatcher) {
+    @Test fun `start for place rejects completed result and preserves undo`() = runTest(dispatcher) {
         val viewModel = model(FakeItineraries())
         ready(viewModel)
         selectForSubmit(viewModel)
         viewModel.submit()
         advanceUntilIdle()
 
-        viewModel.startForPlace("museum")
+        assertFalse(viewModel.startForPlace("museum"))
 
-        assertEquals(listOf("museum"), viewModel.state.value.selectedPlaceIds)
-        assertNull(viewModel.state.value.result)
-        assertTrue(viewModel.state.value.undoCreatedItemIds.isEmpty())
-        assertNull(viewModel.state.value.errorMessage)
+        assertTrue(viewModel.state.value.selectedPlaceIds.isEmpty())
+        assertTrue(viewModel.state.value.result is AddPlacesOutcome.Success)
+        assertEquals(listOf("created-hotel"), viewModel.state.value.undoCreatedItemIds)
     }
 
-    @Test fun `start for place clears failure from older flow`() = runTest(dispatcher) {
+    @Test fun `start for place rejects failure draft and preserves its error`() = runTest(dispatcher) {
         val viewModel = model(FakeItineraries(throwOnAdd = true))
         ready(viewModel)
         selectForSubmit(viewModel)
@@ -542,9 +585,9 @@ class AddToItineraryStateTest {
         advanceUntilIdle()
         assertEquals("加入行程失败，请重试", viewModel.state.value.errorMessage)
 
-        viewModel.startForPlace("museum")
+        assertFalse(viewModel.startForPlace("museum"))
 
-        assertNull(viewModel.state.value.errorMessage)
+        assertEquals("加入行程失败，请重试", viewModel.state.value.errorMessage)
     }
 
     @Test fun `start for place rejects ids absent from latest validity`() = runTest(dispatcher) {

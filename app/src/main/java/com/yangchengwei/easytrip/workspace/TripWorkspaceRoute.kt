@@ -52,8 +52,7 @@ internal fun addOverlayToPresent(
         else -> null
     }
     return desired?.takeIf {
-        workspaceOverlay == WorkspaceOverlay.None ||
-            workspaceOverlay.isAddToItineraryOverlay() && workspaceOverlay != desired
+        workspaceOverlay.isAddToItineraryOverlay() && workspaceOverlay != desired
     }
 }
 
@@ -376,11 +375,15 @@ fun TripWorkspaceRoute(
                 }
                 PlacePoolAction.StartAddToItinerary -> {
                     dismissPendingDialogs()
-                    addToItineraryViewModel?.startFromPool()
+                    if (addToItineraryViewModel?.startFromPool() == true) {
+                        viewModel.openOverlay(WorkspaceOverlay.SelectAddPlaces)
+                    }
                 }
                 is PlacePoolAction.StartAddSingle -> {
                     dismissPendingDialogs()
-                    addToItineraryViewModel?.startForPlace(action.placeId)
+                    if (addToItineraryViewModel?.startForPlace(action.placeId) == true) {
+                        viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
+                    }
                 }
                 PlacePoolAction.DismissDialogs -> closeOverlay()
                 else -> dispatchPlace(action)
@@ -398,7 +401,9 @@ fun TripWorkspaceRoute(
             when (action) {
                 DayItineraryAction.AppendTripDay -> dispatchItinerary(action)
                 DayItineraryAction.AddPlaces -> itinerary.selectedDayId?.let {
-                    addToItineraryViewModel?.startForDay(it)
+                    if (addToItineraryViewModel?.startForDay(it) == true) {
+                        viewModel.openOverlay(WorkspaceOverlay.SelectAddPlaces)
+                    }
                 }
                 is DayItineraryAction.RequestTiming -> {
                     dismissPendingDialogs()

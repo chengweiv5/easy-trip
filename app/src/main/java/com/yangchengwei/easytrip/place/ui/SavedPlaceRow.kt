@@ -132,7 +132,7 @@ private fun MoreIcon(modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val radius = size.minDimension / 11f
         listOf(.25f, .5f, .75f).forEach { fraction ->
-            drawCircle(color, radius, Offset(size.width / 2f, size.height * fraction))
+            drawCircle(color, radius, Offset(size.width * fraction, size.height / 2f))
         }
     }
 }

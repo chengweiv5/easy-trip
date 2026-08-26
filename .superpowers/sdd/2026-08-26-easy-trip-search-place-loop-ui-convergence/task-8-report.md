@@ -41,6 +41,27 @@ Before implementation, the new row test failed because the named quick-add seman
 - Android test XML/report directory: `app/build/outputs/androidTest-results/connected/debug/` and `app/build/reports/androidTests/connected/debug/`
 - Crash evidence observed in the generated XML (`Process crashed`) and connected-test logcat (`signal 9 (Killed)`).
 
+## Fix round 1
+
+- Bound overlay opening to the explicit Boolean result of the current start command. `startForPlace` now succeeds only from an idle, unlocked draft with a current place and at least one travel day; failed starts preserve old bulk/restored/locked drafts and cannot expose them.
+- Disabled automatic opening from `WorkspaceOverlay.None`; the state observer now only advances an already-active add-to-itinerary overlay. Explicit pool, single-place, and selected-day entry points open their initial overlay only when their start command succeeds.
+- Added coverage for old bulk target-day state, restored target-day state, repeated single-place starts, locked drafts, invalid places, no-day trips, and the selected-day entry point.
+- Added stable place IDs as `LazyColumn` keys so row-local menu state remains attached across reorder, and changed the more icon to horizontal dots.
+- Updated workspace/layout tests to use the real more menu rather than removed direct edit/delete tags. A repository-wide test search found no stale `edit-place-*` or `delete-place-*` selectors.
+- Delete danger styling was verified in source as `MaterialTheme.colorScheme.error`; no pixel/color assertion was added because Compose semantics do not expose the resolved text color reliably here.
+
+### Fix round 1 TDD and verification
+
+- RED: Boolean start-result test failed to compile while pool/day start APIs returned `Unit`; GREEN after returning explicit results and consuming them in the route.
+- RED: menu reorder test lost `menu-delete-place-first`; GREEN after keying lazy rows by place ID.
+- RED: selected-day route regression initially found no add button because the test remained on the place-pool section; after entering the itinerary section it passed and verified the `ForDay(day-1)` flow and `SelectAddPlaces` overlay.
+- `WorkspaceFlowTest`: 21/21 passed as a full class.
+- Workspace affected quick-add/delete group: 7/7 passed.
+- `WorkspacePlacePoolLayoutTest` plus affected place-pool tests: 4/4 passed.
+- Related JVM classes (`AddToItineraryStateTest`, `TripWorkspaceNavigationStateTest`): passed.
+- `:app:compileDebugKotlin`, `:app:compileDebugAndroidTestKotlin`, and `:app:assembleDebug`: passed.
+- `PlacePoolFlowTest` full-class rerun again exceeded 600 seconds without reporting an assertion failure and was moved to background task `b6k5ed6iq`; targeted affected tests passed independently.
+
 ## Scope
 
 No push was performed. `diagrams/` and the existing design file were not modified or staged.

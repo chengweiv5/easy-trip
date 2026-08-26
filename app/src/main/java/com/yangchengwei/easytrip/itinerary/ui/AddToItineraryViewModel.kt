@@ -58,15 +58,16 @@ class AddToItineraryViewModel(
     private var undoGeneration = 0L
     private var undoJob: Job? = null
 
-    fun startFromPool() {
-        if (draftLocked()) return
+    fun startFromPool(): Boolean {
+        if (draftLocked()) return false
         updateDraft {
             it.copy(editingTarget = AddToItineraryEditingTarget.FromPlacePool, step = AddToItineraryStep.SELECT_PLACES)
         }
+        return true
     }
 
-    fun startForDay(dayId: String) {
-        if (draftLocked() || dayId !in validDayIds) return
+    fun startForDay(dayId: String): Boolean {
+        if (draftLocked() || dayId !in validDayIds) return false
         updateDraft {
             it.copy(
                 targetDayId = dayId,
@@ -74,10 +75,11 @@ class AddToItineraryViewModel(
                 step = AddToItineraryStep.SELECT_PLACES,
             )
         }
+        return true
     }
 
-    fun startForPlace(placeId: String) {
-        if (draftLocked() || placeId !in validPlaceIds || validDayIds.isEmpty()) return
+    fun startForPlace(placeId: String): Boolean {
+        if (draftLocked() || mutableState.value.step != AddToItineraryStep.IDLE || placeId !in validPlaceIds || validDayIds.isEmpty()) return false
         updateDraft {
             it.copy(
                 selectedPlaceIds = listOf(placeId),
@@ -89,6 +91,7 @@ class AddToItineraryViewModel(
                 errorMessage = null,
             )
         }
+        return true
     }
 
     fun togglePlace(placeId: String) {

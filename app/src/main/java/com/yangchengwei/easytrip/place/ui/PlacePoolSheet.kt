@@ -170,7 +170,7 @@ fun PlacePoolContent(
                         }
                     }
                 }
-                items(state.rows.size) { index ->
+                items(state.rows.size, key = { state.rows[it].place.id }) { index ->
                     val row = state.rows[index]
                     SavedPlaceRow(
                         place = row,

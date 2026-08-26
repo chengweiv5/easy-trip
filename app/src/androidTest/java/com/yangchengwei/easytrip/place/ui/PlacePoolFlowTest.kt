@@ -23,6 +23,7 @@ import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.foundation.layout.height
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -318,6 +319,30 @@ class PlacePoolFlowTest {
         )
         compose.onNodeWithText("编辑").assertDoesNotExist()
         compose.onNodeWithText("删除").assertDoesNotExist()
+    }
+
+    @Test fun menuStateStaysWithPlaceAcrossLazyRowReorder() {
+        val first = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "first", "trip", "poi-first", "第一个地点", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        val second = first.copy(id = "second", amapPoiId = "poi-second", name = "第二个地点")
+        val rows = mutableStateOf(listOf(SavedPlaceRowUi(first, 0, false), SavedPlaceRowUi(second, 0, false)))
+        val actions = mutableListOf<PlacePoolAction>()
+        compose.setContent {
+            EasyTripTheme {
+                PlacePoolContent(
+                    state = PlacePoolUiState(rows = rows.value),
+                    showSearch = false,
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("more-place-first").performClick()
+        compose.runOnIdle { rows.value = rows.value.reversed() }
+        compose.onNodeWithTag("menu-delete-place-first", useUnmergedTree = true).performClick()
+
+        assertEquals(listOf(PlacePoolAction.Delete(first)), actions)
     }
 
     @Test fun publicSheetWithoutCoordinatorHidesAddEntrypoints() {

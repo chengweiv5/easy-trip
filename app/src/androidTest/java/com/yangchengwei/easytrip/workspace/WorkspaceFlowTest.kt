@@ -292,6 +292,66 @@ class WorkspaceFlowTest {
         assertEquals(listOf("p"), add.state.value.selectedPlaceIds)
     }
 
+    @Test fun selectedDayAddOpensPlaceSelection() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = Itineraries()
+        val add = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), SavedStateHandle())
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                itineraryState = DayItineraryUiState(
+                    days = listOf(TripDay("day-1", 1)),
+                    selectedDayId = "day-1",
+                ),
+                addToItineraryViewModel = add,
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+
+        compose.onNodeWithTag("add-places-to-selected-day").performClick()
+
+        compose.waitUntil(5_000) { workspace.state.value.overlay == WorkspaceOverlay.SelectAddPlaces }
+        assertEquals(com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForDay("day-1"), add.state.value.editingTarget)
+    }
+
+    @Test fun failedQuickAddDoesNotExposeOldBulkTargetDayDraft() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = Itineraries()
+        val add = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), SavedStateHandle())
+        add.reconcile(listOf("day-1"), setOf("invalid"))
+        add.startFromPool()
+        add.togglePlace("invalid")
+        add.continueToTargetDay()
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+                    rows = listOf(com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(SavedPlace("invalid", "trip", "poi", "无效地点", "地址", GeoPoint(1.0, 2.0), "", emptyList()), 0, false)),
+                ),
+                addToItineraryViewModel = add,
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+        compose.onNodeWithTag("quick-add-place-invalid").performClick()
+        compose.waitForIdle()
+
+        assertEquals(WorkspaceOverlay.None, workspace.state.value.overlay)
+        assertEquals(listOf("invalid"), add.state.value.selectedPlaceIds)
+    }
+
     @Test fun invalidPlaceAndNoDayQuickAddDoNotOpenTargetDay() {
         fun render(trips: TripRepository, rowId: String) : Pair<TripWorkspaceViewModel, AddToItineraryViewModel> {
             val workspace = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), SavedStateHandle())
@@ -416,7 +476,8 @@ class WorkspaceFlowTest {
             )
         }
         compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
-        compose.onNodeWithTag("delete-place-saved").performClick()
+        compose.onNodeWithTag("more-place-saved").performClick()
+        compose.onNodeWithTag("menu-delete-place-saved", useUnmergedTree = true).performClick()
         pressBack()
         compose.waitUntil(5_000) { backCount == 1 }
 
@@ -445,7 +506,8 @@ class WorkspaceFlowTest {
             )
         }
         compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
-        compose.onNodeWithTag("delete-place-saved").performClick()
+        compose.onNodeWithTag("more-place-saved").performClick()
+        compose.onNodeWithTag("menu-delete-place-saved", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("confirmation-confirm").assertDoesNotExist()
 
         compose.runOnIdle { repository.usage.complete(2) }
@@ -477,7 +539,8 @@ class WorkspaceFlowTest {
         }
         compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
 
-        compose.onNodeWithTag("delete-place-saved").performClick()
+        compose.onNodeWithTag("more-place-saved").performClick()
+        compose.onNodeWithTag("menu-delete-place-saved", useUnmergedTree = true).performClick()
         compose.waitUntil(5_000) { placeModel.state.value.deletionError != null }
 
         compose.onNodeWithText("影响查询失败").assertIsDisplayed()
@@ -511,7 +574,8 @@ class WorkspaceFlowTest {
             )
         }
         compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
-        compose.onNodeWithTag("delete-place-saved").performClick()
+        compose.onNodeWithTag("more-place-saved").performClick()
+        compose.onNodeWithTag("menu-delete-place-saved", useUnmergedTree = true).performClick()
         compose.runOnIdle { repository.usage.complete(2) }
         compose.waitUntil(5_000) { placeModel.state.value.deleting != null }
         compose.onNodeWithTag("confirmation-confirm").performClick()
