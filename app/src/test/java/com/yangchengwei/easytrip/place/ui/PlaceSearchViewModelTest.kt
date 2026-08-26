@@ -481,6 +481,31 @@ class PlaceSearchViewModelTest {
         assertTrue(state.shouldNavigateBack)
     }
 
+    @Test fun latestCollectionTargetWinsWhenUncancellableImpactQueriesCompleteOutOfOrder() = runTest(dispatcher) {
+        val first = SavedPlace("saved-1", "trip", "poi-1", "地点一", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val second = SavedPlace("saved-2", "trip", "poi-2", "地点二", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val repository = DelayedImpactSavedPlaces(listOf(first, second))
+        val model = PlaceSearchViewModel(
+            "trip",
+            repository,
+            ImmediateSearchSource(listOf(candidate("poi-1"), candidate("poi-2"))),
+            SavedStateHandle(mapOf("query" to "地点")),
+        )
+        advanceUntilIdle()
+
+        model.dispatch(PlaceSearchAction.ToggleCollection("poi-1"))
+        dispatcher.scheduler.runCurrent()
+        model.dispatch(PlaceSearchAction.ToggleCollection("poi-2"))
+        dispatcher.scheduler.runCurrent()
+        repository.completeImpact("saved-2", PlaceDeletionImpact(2, 2))
+        dispatcher.scheduler.runCurrent()
+        repository.completeImpact("saved-1", PlaceDeletionImpact(1, 1))
+        advanceUntilIdle()
+
+        assertEquals("poi-2", model.state.value.pendingCollectionRemoval?.candidate?.poiId)
+        assertEquals(PlaceDeletionImpact(2, 2), model.state.value.pendingCollectionRemoval?.impact)
+    }
+
     @Test fun nonZeroRemovalImpactShowsExactCounts() = runTest(dispatcher) {
         val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
         val repository = FakeSavedPlaces(listOf(saved), usageCount = 2, routeLegCount = 3)
@@ -680,6 +705,27 @@ class PlaceSearchViewModelTest {
         fun complete(keyword: String, result: PlaceCandidate) {
             pending.getValue(keyword).complete(listOf(result))
         }
+    }
+
+    private class DelayedImpactSavedPlaces(
+        initialPlaces: List<SavedPlace>,
+    ) : SavedPlaceRepository {
+        private val places = MutableStateFlow(initialPlaces)
+        private val savedIds = MutableStateFlow(initialPlaces.mapTo(mutableSetOf(), SavedPlace::amapPoiId))
+        private val impacts = mutableMapOf<String, CompletableDeferred<PlaceDeletionImpact>>()
+        fun completeImpact(placeId: String, impact: PlaceDeletionImpact) {
+            impacts.getOrPut(placeId) { CompletableDeferred() }.complete(impact)
+        }
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = savedIds
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.AlreadySaved(candidate.poiId)
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = withContext(NonCancellable) {
+            impacts.getOrPut(placeId) { CompletableDeferred() }.await()
+        }
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 
     private class BlockingSavedPlaces(

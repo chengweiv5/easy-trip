@@ -389,7 +389,11 @@ class PlacePoolFlowTest {
         val tripId = runBlocking { app.tripRepository.createTrip(CreateTrip("编辑删除旅行", 1)) }
         val repository = RoomSavedPlaceRepository(app.database, idFactory = sequence("place-${System.nanoTime()}"))
         val candidate = PlaceCandidate("poi-edit-delete", "待删除地点", "北京市东城区", GeoPoint(39.9, 116.4), "010")
-        runBlocking { repository.save(tripId, candidate) }
+        val placeId = runBlocking {
+            (repository.save(tripId, candidate) as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+        }
+        val dayId = runBlocking { app.tripRepository.observeTrip(tripId).first()!!.days.single().id }
+        runBlocking { app.itineraryRepository.addItem(dayId, placeId, 0) }
         val model = PlacePoolViewModel(tripId, repository, null)
         compose.setContent { PlacePoolSheet(model, showSearch = false) }
         compose.waitUntil(5_000) { model.state.value.rows.size == 1 }

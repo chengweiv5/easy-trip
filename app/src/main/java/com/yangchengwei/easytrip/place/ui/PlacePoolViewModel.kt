@@ -52,6 +52,8 @@ data class PlacePoolUiState(
     val detailSaveError: String? = null,
     val deleting: SavedPlace? = null,
     val deletionImpact: PlaceDeletionImpact? = null,
+    val deletionBusy: Boolean = false,
+    val deletionError: String? = null,
     val pendingCollectionRemoval: PendingCollectionRemoval? = null,
     val collectionBusyPoiIds: Set<String> = emptySet(),
     val collectionError: String? = null,
@@ -81,14 +83,22 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     fun clearSearch() = reducer.clear()
     fun toggleTag(id: String) { val selected = mutableState.value.selectedTagIds; mutableState.value = mutableState.value.copy(selectedTagIds = if (id in selected) selected - id else selected + id); observePlaces() }
     fun save(candidate: PlaceCandidate) { viewModelScope.launch { repository.save(tripId, candidate) } }
+    private var collectionGeneration = 0L
     fun toggleCollection(candidate: PlaceCandidate) {
-        if (candidate.point == null || candidate.poiId in mutableState.value.collectionBusyPoiIds) return
+        val state = mutableState.value
+        val confirmedRemovalBusy = state.pendingCollectionRemoval
+            ?.candidate
+            ?.poiId
+            ?.let { it in state.collectionBusyPoiIds } == true
+        if (candidate.point == null || candidate.poiId in state.collectionBusyPoiIds || state.deletionBusy || confirmedRemovalBusy) return
+        val generation = ++collectionGeneration
         viewModelScope.launch {
             updateCollectionBusy(candidate.poiId, true)
             mutableState.value = mutableState.value.copy(collectionError = null)
             try {
                 val saved = savedByPoiId[candidate.poiId]
                 val impact = saved?.let { service.deletionImpact(it.id) }
+                if (!isCurrentCollection(candidate.poiId, generation)) return@launch
                 when (decideCollectionToggle(candidate, saved, impact)) {
                     CollectionDecision.Save -> repository.save(tripId, candidate)
                     is CollectionDecision.RemoveNow -> service.deletePlaceAndReferences(saved!!.id)
@@ -99,7 +109,9 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                mutableState.value = mutableState.value.copy(collectionError = error.message ?: "收藏操作失败，请重试")
+                if (isCurrentCollection(candidate.poiId, generation)) {
+                    mutableState.value = mutableState.value.copy(collectionError = error.message ?: "收藏操作失败，请重试")
+                }
             } finally {
                 updateCollectionBusy(candidate.poiId, false)
             }
@@ -107,25 +119,37 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     }
     fun confirmCollectionRemoval() {
         val pending = mutableState.value.pendingCollectionRemoval ?: return
-        if (pending.candidate.poiId in mutableState.value.collectionBusyPoiIds) return
+        if (pending.candidate.poiId in mutableState.value.collectionBusyPoiIds || mutableState.value.deletionBusy) return
+        val generation = ++collectionGeneration
+        updateCollectionBusy(pending.candidate.poiId, true)
+        mutableState.value = mutableState.value.copy(collectionError = null)
         viewModelScope.launch {
-            updateCollectionBusy(pending.candidate.poiId, true)
-            mutableState.value = mutableState.value.copy(collectionError = null)
             try {
                 service.deletePlaceAndReferences(pending.place.id)
-                mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null)
+                if (isCurrentCollection(pending.candidate.poiId, generation, pending.place.id)) {
+                    mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null)
+                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                mutableState.value = mutableState.value.copy(collectionError = error.message ?: "取消收藏失败，请重试")
+                if (isCurrentCollection(pending.candidate.poiId, generation, pending.place.id)) {
+                    mutableState.value = mutableState.value.copy(collectionError = error.message ?: "取消收藏失败，请重试")
+                }
             } finally {
                 updateCollectionBusy(pending.candidate.poiId, false)
             }
         }
     }
     fun dismissCollectionRemoval() {
+        val pending = mutableState.value.pendingCollectionRemoval ?: return
+        if (pending.candidate.poiId in mutableState.value.collectionBusyPoiIds) return
+        collectionGeneration++
         mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null, collectionError = null)
     }
+    private fun isCurrentCollection(poiId: String, generation: Long, placeId: String? = null): Boolean =
+        generation == collectionGeneration &&
+            (placeId == null || mutableState.value.pendingCollectionRemoval?.place?.id == placeId) &&
+            poiId in mutableState.value.collectionBusyPoiIds
     private var detailEditGeneration = 0L
     fun edit(value: SavedPlace) {
         detailEditGeneration++
@@ -205,10 +229,11 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     private fun isCurrentDetailEdit(placeId: String, generation: Long): Boolean =
         generation == detailEditGeneration && mutableState.value.detailDraft?.placeId == placeId
     private var deletePreparationJob: Job? = null
-    private var deletePreparationId = 0L
+    private var deleteGeneration = 0L
     fun requestDelete(place: SavedPlace) {
+        if (mutableState.value.deletionBusy || mutableState.value.collectionBusyPoiIds.isNotEmpty()) return
         deletePreparationJob?.cancel()
-        val requestId = ++deletePreparationId
+        val generation = ++deleteGeneration
         mutableState.value = mutableState.value.copy(
             editing = null,
             detailDraft = null,
@@ -216,41 +241,82 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             detailSaveError = null,
             deleting = null,
             deletionImpact = null,
+            deletionError = null,
         )
         deletePreparationJob = viewModelScope.launch {
-            val impact = service.deletionImpact(place.id)
-            if (requestId == deletePreparationId) {
+            try {
+                val impact = service.deletionImpact(place.id)
+                if (!isCurrentDelete(place.id, generation, allowPreparing = true)) return@launch
                 if (impact.itineraryItemCount == 0 && impact.routeLegCount == 0) {
+                    mutableState.value = mutableState.value.copy(
+                        deleting = place,
+                        deletionImpact = impact,
+                        deletionBusy = true,
+                    )
                     service.deletePlaceAndReferences(place.id)
+                    if (isCurrentDelete(place.id, generation)) clearDeleteState()
                 } else {
                     mutableState.value = mutableState.value.copy(deleting = place, deletionImpact = impact)
                 }
-                deletePreparationJob = null
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                if (generation == deleteGeneration) {
+                    mutableState.value = mutableState.value.copy(
+                        deleting = place,
+                        deletionBusy = false,
+                        deletionError = error.message ?: "删除失败，请重试",
+                    )
+                }
+            } finally {
+                if (generation == deleteGeneration) deletePreparationJob = null
             }
         }
     }
     fun dismissDelete() {
+        if (mutableState.value.deletionBusy) return
         deletePreparationJob?.cancel()
         deletePreparationJob = null
-        deletePreparationId++
-        mutableState.value = mutableState.value.copy(deleting = null, deletionImpact = null)
+        deleteGeneration++
+        clearDeleteState()
     }
     fun confirmDelete() {
         val place = mutableState.value.deleting ?: return
-        deletePreparationId++
-        mutableState.value = mutableState.value.copy(deleting = null)
+        if (mutableState.value.deletionBusy || mutableState.value.deletionImpact == null) {
+            if (mutableState.value.deletionImpact == null) requestDelete(place)
+            return
+        }
+        val generation = ++deleteGeneration
+        mutableState.value = mutableState.value.copy(deletionBusy = true, deletionError = null)
         viewModelScope.launch {
             try {
                 service.deletePlaceAndReferences(place.id)
-                mutableState.value = mutableState.value.copy(deletionImpact = null)
+                if (isCurrentDelete(place.id, generation)) clearDeleteState()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                mutableState.value = mutableState.value.copy(deleting = place)
+                if (isCurrentDelete(place.id, generation)) {
+                    mutableState.value = mutableState.value.copy(
+                        deletionBusy = false,
+                        deletionError = error.message ?: "删除失败，请重试",
+                    )
+                }
             }
         }
     }
+    private fun isCurrentDelete(placeId: String, generation: Long, allowPreparing: Boolean = false): Boolean =
+        generation == deleteGeneration &&
+            (mutableState.value.deleting?.id == placeId || allowPreparing && mutableState.value.deleting == null)
+    private fun clearDeleteState() {
+        mutableState.value = mutableState.value.copy(
+            deleting = null,
+            deletionImpact = null,
+            deletionBusy = false,
+            deletionError = null,
+        )
+    }
     fun dismissDialogs() {
+        if (mutableState.value.deletionBusy || mutableState.value.collectionBusyPoiIds.isNotEmpty()) return
         dismissEdit()
         dismissDelete()
         dismissCollectionRemoval()

@@ -192,12 +192,13 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.Confirmation(confirmationModel()), AddToItineraryUiState(), deleting))
         assertEquals(true, canDismissWorkspaceOverlay(WorkspaceOverlay.LayerMenu, AddToItineraryUiState(), saving))
         assertEquals(
-            true,
+            false,
             canDismissWorkspaceOverlay(
                 WorkspaceOverlay.Confirmation(confirmationModel()),
                 AddToItineraryUiState(),
                 deleting,
                 hasPlaceDeleteConfirmation = true,
+                placeDeletionBusy = true,
             ),
         )
     }

@@ -125,6 +125,7 @@ class PlaceSearchViewModel(
     private var savedByPoiId: Map<String, SavedPlace> = emptyMap()
     private val recentlyCollectedPoiIds = mutableSetOf<String>()
     private var detailEditGeneration = 0L
+    private var collectionGeneration = 0L
 
     fun recentlyCollectedPoiIds(): Set<String> = recentlyCollectedPoiIds.toSet()
 
@@ -330,12 +331,14 @@ class PlaceSearchViewModel(
     private fun toggleCollection(poiId: String) {
         val candidate = reducer.state.value.results.firstOrNull { it.poiId == poiId } ?: return
         if (poiId in mutableState.value.collectionBusyPoiIds) return
+        val generation = ++collectionGeneration
         viewModelScope.launch {
             updateBusy(poiId, true)
             mutableState.value = mutableState.value.copy(collectionError = null, collectionErrorPoiId = null)
             try {
                 val saved = savedByPoiId[poiId]
                 val impact = saved?.let { service.deletionImpact(it.id) }
+                if (!isCurrentCollection(poiId, generation)) return@launch
                 when (decideCollectionToggle(candidate, saved, impact)) {
                     CollectionDecision.Save -> {
                         repository.save(tripId, candidate)
@@ -352,20 +355,26 @@ class PlaceSearchViewModel(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                mutableState.value = mutableState.value.copy(
-                    collectionError = error.message ?: "收藏操作失败，请重试",
-                    collectionErrorPoiId = poiId,
-                )
+                if (isCurrentCollection(poiId, generation)) {
+                    mutableState.value = mutableState.value.copy(
+                        collectionError = error.message ?: "收藏操作失败，请重试",
+                        collectionErrorPoiId = poiId,
+                    )
+                }
             } finally {
                 updateBusy(poiId, false)
             }
         }
     }
 
+    private fun isCurrentCollection(poiId: String, generation: Long): Boolean =
+        generation == collectionGeneration && poiId in mutableState.value.collectionBusyPoiIds
+
     private fun confirmRemoval() {
         val pending = mutableState.value.pendingCollectionRemoval ?: return
         val poiId = pending.candidate.poiId
         if (poiId in mutableState.value.collectionBusyPoiIds) return
+        val generation = ++collectionGeneration
         updateBusy(poiId, true)
         mutableState.value = mutableState.value.copy(
             collectionError = null,
@@ -374,6 +383,7 @@ class PlaceSearchViewModel(
         viewModelScope.launch {
             try {
                 service.deletePlaceAndReferences(pending.place.id)
+                if (!isCurrentRemoval(pending, generation)) return@launch
                 recentlyCollectedPoiIds -= poiId
                 mutableState.value = mutableState.value.copy(
                     pendingCollectionRemoval = null,
@@ -383,19 +393,26 @@ class PlaceSearchViewModel(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                mutableState.value = mutableState.value.copy(
-                    collectionError = error.message ?: "取消收藏失败，请重试",
-                    collectionErrorPoiId = poiId,
-                )
+                if (isCurrentRemoval(pending, generation)) {
+                    mutableState.value = mutableState.value.copy(
+                        collectionError = error.message ?: "取消收藏失败，请重试",
+                        collectionErrorPoiId = poiId,
+                    )
+                }
             } finally {
                 updateBusy(poiId, false)
             }
         }
     }
 
+    private fun isCurrentRemoval(pending: PendingCollectionRemoval, generation: Long): Boolean =
+        isCurrentCollection(pending.candidate.poiId, generation) &&
+            mutableState.value.pendingCollectionRemoval?.place?.id == pending.place.id
+
     private fun dismissRemovalConfirmation() {
         val pending = mutableState.value.pendingCollectionRemoval ?: return
         if (pending.candidate.poiId in mutableState.value.collectionBusyPoiIds) return
+        collectionGeneration++
         mutableState.value = mutableState.value.copy(
             pendingCollectionRemoval = null,
             collectionError = null,

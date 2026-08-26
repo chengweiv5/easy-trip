@@ -62,11 +62,13 @@ fun canDismissWorkspaceOverlay(
     addToItinerary: AddToItineraryUiState,
     itinerary: DayItineraryUiState = DayItineraryUiState(),
     hasPlaceDeleteConfirmation: Boolean = false,
+    placeDeletionBusy: Boolean = false,
 ): Boolean = when {
     overlay == WorkspaceOverlay.AddTripDay && itinerary.isAppendingDay -> false
     overlay is WorkspaceOverlay.EditItineraryItem && itinerary.editDraft?.isSaving == true -> false
     overlay is WorkspaceOverlay.SelectMoveTargetDay && itinerary.crossDayMove?.isMoving == true -> false
     overlay is WorkspaceOverlay.EditRouteLeg && itinerary.modeEditor?.isSaving == true -> false
+    overlay is WorkspaceOverlay.Confirmation && placeDeletionBusy -> false
     overlay is WorkspaceOverlay.Confirmation &&
         itinerary.deleteConfirmation?.isDeleting == true &&
         !hasPlaceDeleteConfirmation -> false
@@ -79,9 +81,10 @@ fun workspaceBackDecision(
     isAppendingDay: Boolean = false,
     itinerary: DayItineraryUiState = DayItineraryUiState(isAppendingDay = isAppendingDay),
     hasPlaceDeleteConfirmation: Boolean = false,
+    placeDeletionBusy: Boolean = false,
 ): WorkspaceBackDecision = when {
     overlay == WorkspaceOverlay.None -> WorkspaceBackDecision.LeaveWorkspace
-    !canDismissWorkspaceOverlay(overlay, addToItinerary, itinerary, hasPlaceDeleteConfirmation) -> WorkspaceBackDecision.Ignore
+    !canDismissWorkspaceOverlay(overlay, addToItinerary, itinerary, hasPlaceDeleteConfirmation, placeDeletionBusy) -> WorkspaceBackDecision.Ignore
     else -> WorkspaceBackDecision.CloseOverlay
 }
 
@@ -205,6 +208,7 @@ fun TripWorkspaceRoute(
                 addToItinerary,
                 itinerary,
                 hasPlaceDeleteConfirmation = places.pendingCollectionRemoval != null || places.deleting != null,
+                placeDeletionBusy = places.deletionBusy || places.collectionBusyPoiIds.isNotEmpty(),
             )
         ) return
         dismissPendingDialogs()
@@ -219,6 +223,7 @@ fun TripWorkspaceRoute(
                 addToItinerary,
                 itinerary = itinerary,
                 hasPlaceDeleteConfirmation = places.pendingCollectionRemoval != null || places.deleting != null,
+                placeDeletionBusy = places.deletionBusy || places.collectionBusyPoiIds.isNotEmpty(),
             )
         ) {
             WorkspaceBackDecision.Ignore -> Unit
@@ -286,6 +291,16 @@ fun TripWorkspaceRoute(
             )
         }
     }
+    LaunchedEffect(places.pendingCollectionRemoval, places.deleting, ready?.overlay) {
+        if (
+            places.pendingCollectionRemoval == null &&
+            places.deleting == null &&
+            itinerary.deleteConfirmation == null &&
+            ready?.overlay is WorkspaceOverlay.Confirmation
+        ) {
+            viewModel.closeOverlay()
+        }
+    }
     LaunchedEffect(
         itinerary.editDraft,
         itinerary.crossDayMove,
@@ -311,8 +326,6 @@ fun TripWorkspaceRoute(
             overlay is WorkspaceOverlay.EditItineraryItem ||
                 overlay is WorkspaceOverlay.SelectMoveTargetDay ||
                 overlay is WorkspaceOverlay.EditRouteLeg -> viewModel.closeOverlay()
-            overlay is WorkspaceOverlay.Confirmation && places.pendingCollectionRemoval == null && places.deleting == null ->
-                viewModel.closeOverlay()
         }
     }
 

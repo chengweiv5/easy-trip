@@ -222,21 +222,29 @@ fun PlacePoolContent(
             )
         }
         state.pendingCollectionRemoval?.let { pending ->
+            val busy = pending.candidate.poiId in state.collectionBusyPoiIds
             AlertDialog(
-                onDismissRequest = onDismissCollectionRemoval,
+                onDismissRequest = { if (!busy) onDismissCollectionRemoval() },
                 title = { Text("取消收藏 ${pending.place.name}？") },
                 text = { Text("将同时删除 ${pending.impact.itineraryItemCount} 次行程安排和 ${pending.impact.routeLegCount} 段路线。") },
-                confirmButton = { TextButton(onConfirmCollectionRemoval) { Text("确认取消收藏") } },
-                dismissButton = { TextButton(onDismissCollectionRemoval) { Text("取消") } },
+                confirmButton = { TextButton(onConfirmCollectionRemoval, enabled = !busy) { Text(if (busy) "取消中…" else "确认取消收藏") } },
+                dismissButton = { TextButton(onDismissCollectionRemoval, enabled = !busy) { Text("取消") } },
             )
         }
         state.deleting?.let { place ->
             AlertDialog(
-                onDismissRequest = onDismissDelete,
+                onDismissRequest = { if (!state.deletionBusy) onDismissDelete() },
                 title = { Text("删除 ${place.name}？") },
-                text = { Text("将同时删除 ${state.deletionImpact?.itineraryItemCount} 次行程安排和 ${state.deletionImpact?.routeLegCount} 段路线。") },
-                confirmButton = { TextButton(onConfirmDelete) { Text("确认删除地点") } },
-                dismissButton = { TextButton(onDismissDelete) { Text("取消") } },
+                text = {
+                    Column {
+                        state.deletionImpact?.let { impact ->
+                            Text("将同时删除 ${impact.itineraryItemCount} 次行程安排和 ${impact.routeLegCount} 段路线。")
+                        }
+                        state.deletionError?.let { Text(it) }
+                    }
+                },
+                confirmButton = { TextButton(onConfirmDelete, enabled = !state.deletionBusy) { Text(if (state.deletionBusy) "删除中…" else "确认删除地点") } },
+                dismissButton = { TextButton(onDismissDelete, enabled = !state.deletionBusy) { Text("取消") } },
             )
         }
     }

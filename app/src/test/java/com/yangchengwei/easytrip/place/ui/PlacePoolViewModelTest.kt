@@ -116,19 +116,116 @@ class PlacePoolViewModelTest {
         assertNull(model.state.value.deletionImpact)
     }
 
-    @Test fun latestDeleteRequestWinsWhenImpactQueriesCompleteOutOfOrder() = runTest(dispatcher) {
+    @Test fun latestDeleteRequestWinsWhenUncancellableImpactQueriesCompleteOutOfOrder() = runTest(dispatcher) {
         val repository = DelayedRepository()
         val model = PlacePoolViewModel("trip", repository, null)
 
         model.requestDelete(place("a"))
+        dispatcher.scheduler.runCurrent()
         model.requestDelete(place("b"))
+        dispatcher.scheduler.runCurrent()
         repository.completeImpact("b", PlaceDeletionImpact(3, 2))
-        advanceUntilIdle()
+        dispatcher.scheduler.runCurrent()
         repository.completeImpact("a", PlaceDeletionImpact(1, 1))
         advanceUntilIdle()
 
         assertEquals("b", model.state.value.deleting?.id)
         assertEquals(PlaceDeletionImpact(3, 2), model.state.value.deletionImpact)
+    }
+
+    @Test fun impactFailureKeepsDeleteContextForRetry() = runTest(dispatcher) {
+        val repository = PoolRepository(
+            listOf(place("a")),
+            emptyMap(),
+            impactFailure = IllegalStateException("影响查询失败"),
+        )
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+
+        model.requestDelete(place("a"))
+        advanceUntilIdle()
+
+        assertEquals("a", model.state.value.deleting?.id)
+        assertNull(model.state.value.deletionImpact)
+        assertEquals("影响查询失败", model.state.value.deletionError)
+    }
+
+    @Test fun zeroImpactDeleteFailureKeepsDeleteContextForRetry() = runTest(dispatcher) {
+        val repository = PoolRepository(
+            listOf(place("a")),
+            emptyMap(),
+            impact = PlaceDeletionImpact(0, 0),
+            deleteFailure = IllegalStateException("删除失败"),
+        )
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+
+        model.requestDelete(place("a"))
+        advanceUntilIdle()
+
+        assertEquals("a", model.state.value.deleting?.id)
+        assertEquals(PlaceDeletionImpact(0, 0), model.state.value.deletionImpact)
+        assertEquals("删除失败", model.state.value.deletionError)
+    }
+
+    @Test fun confirmedDeleteCannotBeDismissedOrReplacedWhileDeleteIsRunning() = runTest(dispatcher) {
+        val repository = DelayedDeleteRepository()
+        val model = PlacePoolViewModel("trip", repository, null)
+        model.requestDelete(place("a"))
+        repository.completeImpact("a", PlaceDeletionImpact(1, 0))
+        dispatcher.scheduler.runCurrent()
+
+        model.confirmDelete()
+        dispatcher.scheduler.runCurrent()
+        model.dismissDelete()
+        model.requestDelete(place("b"))
+
+        assertEquals("a", model.state.value.deleting?.id)
+        assertEquals(true, model.state.value.deletionBusy)
+        repository.completeDelete("a")
+        advanceUntilIdle()
+        assertNull(model.state.value.deleting)
+    }
+
+    @Test fun latestCollectionTargetWinsWhenUncancellableImpactQueriesCompleteOutOfOrder() = runTest(dispatcher) {
+        val repository = DelayedCollectionRepository(listOf(place("a"), place("b")))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+
+        model.toggleCollection(candidate("a"))
+        dispatcher.scheduler.runCurrent()
+        model.toggleCollection(candidate("b"))
+        dispatcher.scheduler.runCurrent()
+        repository.completeImpact("b", PlaceDeletionImpact(3, 2))
+        dispatcher.scheduler.runCurrent()
+        repository.completeImpact("a", PlaceDeletionImpact(1, 1))
+        advanceUntilIdle()
+
+        assertEquals("b", model.state.value.pendingCollectionRemoval?.place?.id)
+        assertEquals(PlaceDeletionImpact(3, 2), model.state.value.pendingCollectionRemoval?.impact)
+    }
+
+    @Test fun confirmedCollectionRemovalCannotBeDismissedOrReplacedWhileDeleteIsRunning() = runTest(dispatcher) {
+        val repository = DelayedCollectionRepository(listOf(place("a"), place("b")))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.toggleCollection(candidate("a"))
+        dispatcher.scheduler.runCurrent()
+        repository.completeImpact("a", PlaceDeletionImpact(1, 0))
+        dispatcher.scheduler.runCurrent()
+        model.confirmCollectionRemoval()
+        dispatcher.scheduler.runCurrent()
+
+        model.dismissCollectionRemoval()
+        model.toggleCollection(candidate("b"))
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals("a", model.state.value.pendingCollectionRemoval?.place?.id)
+        assertEquals(setOf("poi-a"), model.state.value.collectionBusyPoiIds)
+        assertEquals(listOf("a"), repository.requestedImpacts)
+        repository.completeDelete("a")
+        advanceUntilIdle()
+        assertNull(model.state.value.pendingCollectionRemoval)
     }
 
     @Test fun placePoolDistinguishesSavedOnlyFromScheduled() = runTest(dispatcher) {
@@ -266,7 +363,11 @@ class PlacePoolViewModelTest {
     }
 
     @Test fun deletingEditedPlaceClosesEditAndDoesNotRestoreItAfterConfirmation() = runTest(dispatcher) {
-        val repository = PoolRepository(listOf(place("a")), mapOf("a" to 1))
+        val repository = PoolRepository(
+            listOf(place("a")),
+            mapOf("a" to 1),
+            impact = PlaceDeletionImpact(1, 0),
+        )
         val model = PlacePoolViewModel("trip", repository, null)
         advanceUntilIdle()
         model.edit(place("a"))
@@ -297,11 +398,20 @@ class PlacePoolViewModelTest {
         emptyList(),
     )
 
+    private fun candidate(id: String) = PlaceCandidate(
+        "poi-$id",
+        id.uppercase(),
+        "address",
+        GeoPoint(39.9, 116.4),
+        null,
+    )
+
     private class PoolRepository(
         places: List<SavedPlace>,
         usageCounts: Map<String, Int>,
         private val updateFailure: Throwable? = null,
-        private val impact: PlaceDeletionImpact? = null,
+        private val impact: PlaceDeletionImpact = PlaceDeletionImpact(0, 0),
+        private val impactFailure: Throwable? = null,
         private val deleteFailure: Throwable? = null,
     ) : SavedPlaceRepository {
         var updateCalls = 0
@@ -324,7 +434,10 @@ class PlacePoolViewModelTest {
             updateFailure?.let { throw it }
         }
         override suspend fun usageCount(placeId: String) = usageCounts.value[placeId] ?: 0
-        override suspend fun deletionImpact(placeId: String) = impact ?: PlaceDeletionImpact(usageCount(placeId), 0)
+        override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact {
+            impactFailure?.let { throw it }
+            return impact
+        }
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleted += placeId
             deleteFailure?.let { throw it }
@@ -384,7 +497,61 @@ class PlacePoolViewModelTest {
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 0
-        override suspend fun deletionImpact(placeId: String) = impacts.getOrPut(placeId) { CompletableDeferred() }.await()
+        override suspend fun deletionImpact(placeId: String) =
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                impacts.getOrPut(placeId) { CompletableDeferred() }.await()
+            }
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
+    private class DelayedCollectionRepository(initialPlaces: List<SavedPlace>) : SavedPlaceRepository {
+        private val places = MutableStateFlow(initialPlaces)
+        private val impacts = mutableMapOf<String, CompletableDeferred<PlaceDeletionImpact>>()
+        private val deletes = mutableMapOf<String, CompletableDeferred<Unit>>()
+        val requestedImpacts = mutableListOf<String>()
+        fun completeImpact(id: String, impact: PlaceDeletionImpact) {
+            impacts.getOrPut(id) { CompletableDeferred() }.complete(impact)
+        }
+        fun completeDelete(id: String) {
+            deletes.getOrPut(id) { CompletableDeferred() }.complete(Unit)
+        }
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> =
+            MutableStateFlow(places.value.mapTo(mutableSetOf(), SavedPlace::amapPoiId))
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) =
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                requestedImpacts += placeId
+                impacts.getOrPut(placeId) { CompletableDeferred() }.await()
+            }
+        override suspend fun deletePlaceAndReferences(placeId: String) =
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                deletes.getOrPut(placeId) { CompletableDeferred() }.await()
+            }
+    }
+
+    private class DelayedDeleteRepository : SavedPlaceRepository {
+        private val impacts = mutableMapOf<String, CompletableDeferred<PlaceDeletionImpact>>()
+        private val deletes = mutableMapOf<String, CompletableDeferred<Unit>>()
+        fun completeImpact(id: String, impact: PlaceDeletionImpact) {
+            impacts.getOrPut(id) { CompletableDeferred() }.complete(impact)
+        }
+        fun completeDelete(id: String) {
+            deletes.getOrPut(id) { CompletableDeferred() }.complete(Unit)
+        }
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = emptyFlow()
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = impacts.getOrPut(placeId) { CompletableDeferred() }.await()
+        override suspend fun deletePlaceAndReferences(placeId: String) =
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                deletes.getOrPut(placeId) { CompletableDeferred() }.await()
+            }
     }
 }

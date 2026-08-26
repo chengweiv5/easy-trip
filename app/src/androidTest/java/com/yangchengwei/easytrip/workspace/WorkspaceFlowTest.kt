@@ -373,7 +373,46 @@ class WorkspaceFlowTest {
         compose.onNodeWithTag("confirmation-confirm").assertIsDisplayed().performClick()
         compose.waitUntil(5_000) { repository.deleteCalls == 1 }
         assertEquals(1, repository.deleteCalls)
+        compose.onNodeWithTag("confirmation-confirm").assertIsDisplayed()
+        compose.runOnIdle { repository.deleteGate.complete(Unit) }
+        compose.waitUntil(5_000) { placeModel.state.value.deleting == null }
         compose.onNodeWithTag("confirmation-confirm").assertDoesNotExist()
+    }
+
+    @Test fun backCannotDismissPlaceConfirmationWhileDeleteRuns() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = DelayedDeletePlaces()
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", repository, null)
+        var backCount = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = { backCount++ },
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeViewModel = placeModel,
+            )
+        }
+        compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
+        compose.onNodeWithTag("delete-place-saved").performClick()
+        compose.runOnIdle { repository.usage.complete(2) }
+        compose.waitUntil(5_000) { placeModel.state.value.deleting != null }
+        compose.onNodeWithTag("confirmation-confirm").performClick()
+        compose.waitUntil(5_000) { placeModel.state.value.deletionBusy }
+        compose.onNodeWithTag("confirmation-confirm").assertIsNotEnabled()
+        compose.onNodeWithTag("confirmation-dismiss").assertIsNotEnabled()
+
+        pressBack()
+        compose.waitForIdle()
+
+        assertEquals(0, backCount)
+        assertEquals("saved", placeModel.state.value.deleting?.id)
+        compose.onNodeWithTag("confirmation-confirm").assertIsDisplayed()
+        compose.runOnIdle { repository.deleteGate.complete(Unit) }
+        compose.waitUntil(5_000) { placeModel.state.value.deleting == null }
     }
 
     @Test fun itemMenuActionsOpenBusinessOverlaysForSameItem() {
@@ -717,6 +756,7 @@ class WorkspaceFlowTest {
 
     private class DelayedDeletePlaces : SavedPlaceRepository {
         val usage = CompletableDeferred<Int>()
+        val deleteGate = CompletableDeferred<Unit>()
         var deleteCalls = 0
         private val place = SavedPlace("saved", "trip", "poi", "待删除地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
         override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
@@ -727,7 +767,10 @@ class WorkspaceFlowTest {
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = usage.await()
         override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
-        override suspend fun deletePlaceAndReferences(placeId: String) { deleteCalls++ }
+        override suspend fun deletePlaceAndReferences(placeId: String) {
+            deleteCalls++
+            deleteGate.await()
+        }
     }
 
     private fun consentToken(): com.yangchengwei.easytrip.amap.AmapConsentToken {

@@ -444,6 +444,7 @@ private fun WorkspaceOverlayContent(
                     },
                 )
             } else {
+                val placeBusy = placeState.deletionBusy || placeState.collectionBusyPoiIds.isNotEmpty()
                 ConfirmationDialog(
                     model = overlay.model,
                     onConfirm = {
@@ -451,13 +452,15 @@ private fun WorkspaceOverlayContent(
                             placeState.pendingCollectionRemoval != null -> onPlaceAction(PlacePoolAction.ConfirmCollectionRemoval)
                             placeState.deleting != null -> onPlaceAction(PlacePoolAction.ConfirmDelete)
                         }
-                        onClose()
                     },
                     onDismiss = {
-                        onPlaceAction(PlacePoolAction.DismissDialogs)
-                        onItineraryAction(DayItineraryAction.DismissDialogs)
-                        onClose()
+                        if (!placeBusy) {
+                            onPlaceAction(PlacePoolAction.DismissDialogs)
+                            onItineraryAction(DayItineraryAction.DismissDialogs)
+                            onClose()
+                        }
                     },
+                    confirmEnabled = !placeBusy,
                 )
             }
         }
