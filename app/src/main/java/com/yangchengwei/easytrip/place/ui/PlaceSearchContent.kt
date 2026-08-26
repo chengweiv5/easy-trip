@@ -111,6 +111,7 @@ fun PlaceSearchContent(
                     onAction = onAction,
                     collectionBusy = candidate.poiId in state.collectionBusyPoiIds,
                     collectionError = state.collectionError.takeIf { state.collectionErrorPoiId == candidate.poiId },
+                    availableTagNames = state.availableTags.map { it.name },
                     detailContent = detailContent,
                     modifier = modifier,
                 )
@@ -131,6 +132,7 @@ private fun SearchMapDetail(
     onAction: (PlaceSearchAction) -> Unit,
     collectionBusy: Boolean,
     collectionError: String?,
+    availableTagNames: List<String>,
     detailContent: (@Composable (PlaceCandidate) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -186,6 +188,7 @@ private fun SearchMapDetail(
                     source = PlaceDetailSource.Search,
                     collectionBusy = collectionBusy,
                     collectionError = collectionError,
+                    availableTagNames = availableTagNames,
                     onAction = { action ->
                         when (action) {
                             PlaceDetailPanelAction.Dismiss -> onAction(PlaceSearchAction.Back)
@@ -194,6 +197,7 @@ private fun SearchMapDetail(
                             is PlaceDetailPanelAction.NoteChanged -> onAction(PlaceSearchAction.UpdateEditNote(action.value))
                             is PlaceDetailPanelAction.NewTagInputChanged -> onAction(PlaceSearchAction.UpdateNewTagInput(action.value))
                             PlaceDetailPanelAction.AddTag -> onAction(PlaceSearchAction.AddNewTag)
+                            is PlaceDetailPanelAction.AddPresetTag -> onAction(PlaceSearchAction.AddPresetTag(action.name))
                             is PlaceDetailPanelAction.RemoveTag -> onAction(PlaceSearchAction.RemoveEditTag(action.name))
                             PlaceDetailPanelAction.SaveEdit -> onAction(PlaceSearchAction.SaveEdit)
                             PlaceDetailPanelAction.CancelEdit -> onAction(PlaceSearchAction.CancelEdit)

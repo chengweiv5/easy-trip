@@ -77,6 +77,37 @@ class PlaceDetailPanelTest {
         compose.onNodeWithTag("place-detail-dismiss").assertIsNotEnabled()
     }
 
+    @Test fun availablePresetTagsCanBeAddedAndSelectedTagsRemainRemovableAtLimit() {
+        val actions = mutableListOf<PlaceDetailPanelAction>()
+        setContent(
+            source = PlaceDetailSource.PlacePool,
+            savedPlace = savedPlace(),
+            editState = PlaceDetailEditState("saved-1", "", (1..8).mapTo(mutableSetOf()) { "已选$it" }),
+            availableTagNames = listOf("已选1", "咖啡"),
+            onAction = actions::add,
+        )
+
+        compose.onNodeWithTag("place-detail-preset-tag-咖啡").assertIsNotEnabled()
+        compose.onNodeWithTag("place-detail-preset-tag-已选1").performClick()
+
+        compose.runOnIdle { assertEquals(PlaceDetailPanelAction.RemoveTag("已选1"), actions.single()) }
+    }
+
+    @Test fun availableUnselectedPresetTagDispatchesAddSelection() {
+        val actions = mutableListOf<PlaceDetailPanelAction>()
+        setContent(
+            source = PlaceDetailSource.Search,
+            savedPlace = savedPlace(),
+            editState = PlaceDetailEditState("saved-1", "", setOf("自然")),
+            availableTagNames = listOf("自然", "咖啡"),
+            onAction = actions::add,
+        )
+
+        compose.onNodeWithTag("place-detail-preset-tag-咖啡").performClick()
+
+        compose.runOnIdle { assertEquals(PlaceDetailPanelAction.AddPresetTag("咖啡"), actions.single()) }
+    }
+
     @Test fun typingTagInputPreservesEveryCharacterAndComma() {
         val input = mutableStateOf("")
         compose.setContent {
@@ -189,6 +220,8 @@ class PlaceDetailPanelTest {
         savedPlace: SavedPlace? = null,
         source: PlaceDetailSource,
         editState: PlaceDetailEditState? = null,
+        availableTagNames: List<String> = emptyList(),
+        onAction: (PlaceDetailPanelAction) -> Unit = {},
     ) {
         compose.setContent {
             EasyTripTheme {
@@ -199,7 +232,8 @@ class PlaceDetailPanelTest {
                     source = source,
                     collectionBusy = false,
                     collectionError = null,
-                    onAction = {},
+                    availableTagNames = availableTagNames,
+                    onAction = onAction,
                 )
             }
         }

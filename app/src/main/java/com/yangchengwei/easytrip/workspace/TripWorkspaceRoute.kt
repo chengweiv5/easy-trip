@@ -381,7 +381,9 @@ fun TripWorkspaceRoute(
                 }
                 is PlacePoolAction.StartAddSingle -> {
                     dismissPendingDialogs()
-                    if (addToItineraryViewModel?.startForPlace(action.placeId) == true) {
+                    if (ready?.days.isNullOrEmpty()) {
+                        viewModel.openOverlay(WorkspaceOverlay.AddTripDay)
+                    } else if (addToItineraryViewModel?.startForPlace(action.placeId) == true) {
                         viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
                     }
                 }

@@ -516,10 +516,9 @@ class PlaceSearchViewModelTest {
         assertEquals(PlaceSearchBackDecision.ExitDestination, decidePlaceSearchBack(state))
     }
 
-    @Test fun latestCollectionTargetWinsWhenUncancellableImpactQueriesCompleteOutOfOrder() = runTest(dispatcher) {
+    @Test fun differentPoiCollectionMutationsCompleteIndependentlyWhileImpactIgnoresCancellation() = runTest(dispatcher) {
         val first = SavedPlace("saved-1", "trip", "poi-1", "地点一", "地址", GeoPoint(39.9, 116.4), "", emptyList())
-        val second = SavedPlace("saved-2", "trip", "poi-2", "地点二", "地址", GeoPoint(39.9, 116.4), "", emptyList())
-        val repository = DelayedImpactSavedPlaces(listOf(first, second))
+        val repository = OverlappingCollectionSavedPlaces(first)
         val model = PlaceSearchViewModel(
             "trip",
             repository,
@@ -532,13 +531,18 @@ class PlaceSearchViewModelTest {
         dispatcher.scheduler.runCurrent()
         model.dispatch(PlaceSearchAction.ToggleCollection("poi-2"))
         dispatcher.scheduler.runCurrent()
-        repository.completeImpact("saved-2", PlaceDeletionImpact(2, 2))
-        dispatcher.scheduler.runCurrent()
-        repository.completeImpact("saved-1", PlaceDeletionImpact(1, 1))
+
+        assertEquals(listOf("poi-2"), repository.saved.map(PlaceCandidate::poiId))
+        assertEquals(setOf("poi-1"), model.state.value.collectionBusyPoiIds)
+        assertEquals(setOf("poi-2"), model.recentlyCollectedPoiIds())
+
+        repository.completeImpact(PlaceDeletionImpact(1, 2))
         advanceUntilIdle()
 
-        assertEquals("poi-2", model.state.value.pendingCollectionRemoval?.candidate?.poiId)
-        assertEquals(PlaceDeletionImpact(2, 2), model.state.value.pendingCollectionRemoval?.impact)
+        assertEquals("poi-1", model.state.value.pendingCollectionRemoval?.candidate?.poiId)
+        assertEquals(PlaceDeletionImpact(1, 2), model.state.value.pendingCollectionRemoval?.impact)
+        assertEquals(emptySet<String>(), model.state.value.collectionBusyPoiIds)
+        assertNull(model.state.value.collectionError)
     }
 
     @Test fun nonZeroRemovalImpactShowsExactCounts() = runTest(dispatcher) {
@@ -770,6 +774,27 @@ class PlaceSearchViewModelTest {
         override suspend fun deletionImpact(placeId: String) = withContext(NonCancellable) {
             impacts.getOrPut(placeId) { CompletableDeferred() }.await()
         }
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
+    private class OverlappingCollectionSavedPlaces(saved: SavedPlace) : SavedPlaceRepository {
+        private val impact = CompletableDeferred<PlaceDeletionImpact>()
+        private val places = MutableStateFlow(listOf(saved))
+        private val savedIds = MutableStateFlow(setOf(saved.amapPoiId))
+        val saved = mutableListOf<PlaceCandidate>()
+
+        fun completeImpact(value: PlaceDeletionImpact) = impact.complete(value)
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = savedIds
+        override suspend fun save(tripId: String, candidate: PlaceCandidate): SavePlaceResult {
+            saved += candidate
+            savedIds.value += candidate.poiId
+            return SavePlaceResult.Saved(candidate.poiId)
+        }
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 1
+        override suspend fun deletionImpact(placeId: String) = withContext(NonCancellable) { impact.await() }
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 

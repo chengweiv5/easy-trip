@@ -7,6 +7,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.Lifecycle
@@ -29,6 +30,7 @@ fun PlaceSearchRoute(
     val state = viewModel.state.collectAsStateWithLifecycle().value
     val resultsListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
+    val currentOnBack = rememberUpdatedState(onBack)
 
     BackHandler { viewModel.dispatch(PlaceSearchAction.Back) }
 
@@ -36,7 +38,7 @@ fun PlaceSearchRoute(
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
             viewModel.effects.collect { effect ->
                 when (effect) {
-                    PlaceSearchEffect.ExitDestination -> onBack()
+                    PlaceSearchEffect.ExitDestination -> currentOnBack.value()
                 }
             }
         }

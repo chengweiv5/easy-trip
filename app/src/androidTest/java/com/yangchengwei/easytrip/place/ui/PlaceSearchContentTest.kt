@@ -389,6 +389,21 @@ class PlaceSearchContentTest {
         assertEquals(setOf("poi-nav"), returnedPoiIds)
     }
 
+    @Test fun routeExitUsesLatestReplacedBackCallback() {
+        val model = PlaceSearchViewModel("trip", TestSavedPlaces(), null, SavedStateHandle())
+        val callbackVersion = mutableStateOf(1)
+        var calledVersion = 0
+        compose.setContent {
+            val version = callbackVersion.value
+            PlaceSearchRoute(model) { calledVersion = version }
+        }
+        compose.runOnIdle { callbackVersion.value = 2 }
+        compose.runOnIdle { model.dispatch(PlaceSearchAction.Back) }
+        compose.waitUntil(5_000) { calledVersion != 0 }
+
+        assertEquals(2, calledVersion)
+    }
+
     @Test fun repeatedBackAndRouteRecompositionInvokeExternalBackOnlyOnce() {
         val model = PlaceSearchViewModel(
             "trip",

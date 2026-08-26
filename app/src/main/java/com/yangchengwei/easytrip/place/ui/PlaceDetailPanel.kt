@@ -37,6 +37,7 @@ sealed interface PlaceDetailPanelAction {
     data class NoteChanged(val value: String) : PlaceDetailPanelAction
     data class NewTagInputChanged(val value: String) : PlaceDetailPanelAction
     data object AddTag : PlaceDetailPanelAction
+    data class AddPresetTag(val name: String) : PlaceDetailPanelAction
     data class RemoveTag(val name: String) : PlaceDetailPanelAction
     data object SaveEdit : PlaceDetailPanelAction
     data object CancelEdit : PlaceDetailPanelAction
@@ -52,6 +53,7 @@ fun PlaceDetailPanel(
     collectionError: String?,
     onAction: (PlaceDetailPanelAction) -> Unit,
     modifier: Modifier = Modifier,
+    availableTagNames: List<String> = emptyList(),
 ) {
     val saving = editState?.isSaving == true
     Column(
@@ -135,7 +137,20 @@ fun PlaceDetailPanel(
                 label = { Text("备注") },
                 modifier = Modifier.fillMaxWidth().testTag("place-detail-note-input"),
             )
-            editState.selectedTagNames.forEach { tag ->
+            availableTagNames.distinct().forEach { tag ->
+                val selected = tag in editState.selectedTagNames
+                CompactSecondaryButton(
+                    onClick = {
+                        onAction(
+                            if (selected) PlaceDetailPanelAction.RemoveTag(tag)
+                            else PlaceDetailPanelAction.AddPresetTag(tag),
+                        )
+                    },
+                    enabled = !saving && (selected || editState.selectedTagNames.size < 8),
+                    modifier = Modifier.fillMaxWidth().testTag("place-detail-preset-tag-$tag"),
+                ) { Text(if (selected) "$tag · 移除" else tag) }
+            }
+            editState.selectedTagNames.filterNot { it in availableTagNames }.forEach { tag ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(tag)
                     CompactSecondaryButton(

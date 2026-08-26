@@ -214,6 +214,7 @@ fun PlacePoolContent(
                         source = PlaceDetailSource.PlacePool,
                         collectionBusy = false,
                         collectionError = null,
+                        availableTagNames = state.tags.map { it.name },
                         onAction = { action ->
                             when (action) {
                                 PlaceDetailPanelAction.Dismiss,
@@ -221,6 +222,7 @@ fun PlacePoolContent(
                                 is PlaceDetailPanelAction.NoteChanged -> onUpdateDraft(action.value, draft.tags)
                                 is PlaceDetailPanelAction.NewTagInputChanged -> onUpdateNewTagInput(action.value)
                                 PlaceDetailPanelAction.AddTag -> onAddTag()
+                                is PlaceDetailPanelAction.AddPresetTag -> onUpdateDraft(draft.note, draft.tags + action.name)
                                 is PlaceDetailPanelAction.RemoveTag -> onRemoveTag(action.name)
                                 PlaceDetailPanelAction.Delete -> onDelete(place)
                                 PlaceDetailPanelAction.SaveEdit -> onUpdateDetails(draft.note, draft.tags)

@@ -63,6 +63,7 @@ sealed interface PlaceSearchAction {
     data class UpdateEditTags(val value: Set<String>) : PlaceSearchAction
     data class UpdateNewTagInput(val value: String) : PlaceSearchAction
     data object AddNewTag : PlaceSearchAction
+    data class AddPresetTag(val name: String) : PlaceSearchAction
     data class RemoveEditTag(val name: String) : PlaceSearchAction
     data object SaveEdit : PlaceSearchAction
     data object CancelEdit : PlaceSearchAction
@@ -75,6 +76,7 @@ data class PlaceSearchUiState(
     val displayMode: SearchDisplayMode = SearchDisplayMode.Results,
     val savedPoiIds: Set<String> = emptySet(),
     val savedPlacesByPoiId: Map<String, SavedPlace> = emptyMap(),
+    val availableTags: List<com.yangchengwei.easytrip.place.domain.PlaceTag> = emptyList(),
     val collectionBusyPoiIds: Set<String> = emptySet(),
     val pendingCollectionRemoval: PendingCollectionRemoval? = null,
     val collectionError: String? = null,
@@ -133,7 +135,7 @@ class PlaceSearchViewModel(
     private var savedByPoiId: Map<String, SavedPlace> = emptyMap()
     private val recentlyCollectedPoiIds = mutableSetOf<String>()
     private var detailEditGeneration = 0L
-    private var collectionGeneration = 0L
+    private val collectionGenerations = mutableMapOf<String, Long>()
 
     fun recentlyCollectedPoiIds(): Set<String> = recentlyCollectedPoiIds.toSet()
 
@@ -157,6 +159,11 @@ class PlaceSearchViewModel(
                 mutableState.value = mutableState.value.copy(savedPoiIds = ids)
             }
         }
+        viewModelScope.launch {
+            repository.observeTags(tripId).collect { tags ->
+                mutableState.value = mutableState.value.copy(availableTags = tags)
+            }
+        }
     }
 
     fun dispatch(action: PlaceSearchAction) {
@@ -173,6 +180,7 @@ class PlaceSearchViewModel(
             is PlaceSearchAction.UpdateEditTags -> updateEdit(tags = action.value)
             is PlaceSearchAction.UpdateNewTagInput -> updateNewTagInput(action.value)
             PlaceSearchAction.AddNewTag -> addNewTag()
+            is PlaceSearchAction.AddPresetTag -> addPresetTag(action.name)
             is PlaceSearchAction.RemoveEditTag -> removeEditTag(action.name)
             PlaceSearchAction.SaveEdit -> saveEdit()
             PlaceSearchAction.CancelEdit -> cancelEdit()
@@ -290,6 +298,14 @@ class PlaceSearchViewModel(
         }
     }
 
+    private fun addPresetTag(name: String) {
+        val draft = mutableState.value.detailDraft ?: return
+        if (draft.isSaving || draft.selectedTagNames.size >= 8 || name in draft.selectedTagNames) return
+        mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(selectedTagNames = draft.selectedTagNames + name, errorMessage = null),
+        )
+    }
+
     private fun removeEditTag(name: String) {
         val draft = mutableState.value.detailDraft ?: return
         if (draft.isSaving) return
@@ -342,7 +358,7 @@ class PlaceSearchViewModel(
     private fun toggleCollection(poiId: String) {
         val candidate = reducer.state.value.results.firstOrNull { it.poiId == poiId } ?: return
         if (poiId in mutableState.value.collectionBusyPoiIds) return
-        val generation = ++collectionGeneration
+        val generation = nextCollectionGeneration(poiId)
         viewModelScope.launch {
             updateBusy(poiId, true)
             mutableState.value = mutableState.value.copy(collectionError = null, collectionErrorPoiId = null)
@@ -378,14 +394,17 @@ class PlaceSearchViewModel(
         }
     }
 
+    private fun nextCollectionGeneration(poiId: String): Long =
+        (collectionGenerations[poiId] ?: 0L).inc().also { collectionGenerations[poiId] = it }
+
     private fun isCurrentCollection(poiId: String, generation: Long): Boolean =
-        generation == collectionGeneration && poiId in mutableState.value.collectionBusyPoiIds
+        generation == collectionGenerations[poiId] && poiId in mutableState.value.collectionBusyPoiIds
 
     private fun confirmRemoval() {
         val pending = mutableState.value.pendingCollectionRemoval ?: return
         val poiId = pending.candidate.poiId
         if (poiId in mutableState.value.collectionBusyPoiIds) return
-        val generation = ++collectionGeneration
+        val generation = nextCollectionGeneration(poiId)
         updateBusy(poiId, true)
         mutableState.value = mutableState.value.copy(
             collectionError = null,
@@ -423,7 +442,7 @@ class PlaceSearchViewModel(
     private fun dismissRemovalConfirmation() {
         val pending = mutableState.value.pendingCollectionRemoval ?: return
         if (pending.candidate.poiId in mutableState.value.collectionBusyPoiIds) return
-        collectionGeneration++
+        nextCollectionGeneration(pending.candidate.poiId)
         mutableState.value = mutableState.value.copy(
             pendingCollectionRemoval = null,
             collectionError = null,

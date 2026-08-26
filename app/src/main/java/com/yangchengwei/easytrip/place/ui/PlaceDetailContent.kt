@@ -37,6 +37,7 @@ fun PlaceDetailContent(
                 is PlaceDetailPanelAction.NoteChanged -> onNoteChange(action.value)
                 is PlaceDetailPanelAction.NewTagInputChanged -> onNewTagInputChange(action.value)
                 PlaceDetailPanelAction.AddTag -> onAddTag()
+                is PlaceDetailPanelAction.AddPresetTag -> onTagsChange(draft?.tags.orEmpty() + action.name)
                 is PlaceDetailPanelAction.RemoveTag -> onRemoveTag(action.name)
                 PlaceDetailPanelAction.Dismiss,
                 PlaceDetailPanelAction.CancelEdit -> onDismiss()

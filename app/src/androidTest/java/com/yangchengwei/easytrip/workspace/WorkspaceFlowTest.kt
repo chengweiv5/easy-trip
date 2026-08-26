@@ -352,7 +352,7 @@ class WorkspaceFlowTest {
         assertEquals(listOf("invalid"), add.state.value.selectedPlaceIds)
     }
 
-    @Test fun invalidPlaceAndNoDayQuickAddDoNotOpenTargetDay() {
+    @Test fun invalidPlaceDoesNotOpenTargetDayAndNoDayQuickAddGuidesToAddDay() {
         fun render(trips: TripRepository, rowId: String) : Pair<TripWorkspaceViewModel, AddToItineraryViewModel> {
             val workspace = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), SavedStateHandle())
             val repository = Itineraries()
@@ -387,7 +387,8 @@ class WorkspaceFlowTest {
         compose.onNodeWithTag("quick-add-place-p").performClick()
         compose.waitForIdle()
         assertEquals(AddToItineraryStep.IDLE, noDayAdd.state.value.step)
-        assertEquals(WorkspaceOverlay.None, noDayWorkspace.state.value.overlay)
+        assertEquals(WorkspaceOverlay.AddTripDay, noDayWorkspace.state.value.overlay)
+        compose.onNodeWithText("添加旅行日").assertIsDisplayed()
     }
 
     @Test fun resultOverlayPrioritizesUndoFailureAndExplainsMissingTargetCleanup() {

@@ -4,10 +4,10 @@
 
 | 门禁 | 结果 | 测试数 | 失败 | 备注 |
 | --- | --- | ---: | ---: | --- |
-| JVM `testDebugUnitTest` | PASS | 404 | 0 | 52 个 suite，0 skipped |
-| `PlaceSearchContentTest` | PASS | 19 | 0 | 首次首测进程被 signal 9；重启模拟器后整类通过 |
-| `PlaceDetailPanelTest` | PASS | 10 | 0 | 整类通过 |
-| `PlacePoolFlowTest` | PASS | 分组累计 18/18 | 0 | 不是单次整类通过；修正长列表测试为真实窄宽 280.dp、生产高度 550.dp、fontScale 2f 后，最后单测 1/1 通过 |
+| JVM `testDebugUnitTest` | PASS | 404 | 0 | 52 个 suite，0 skipped；含跨 POI 并发收藏回归 |
+| `PlaceSearchContentTest` | PASS | 20 | 0 | 含 route callback 替换回归 |
+| `PlaceDetailPanelTest` | PASS | 12 | 0 | 含预设标签多选和 8 标签上限可移除 |
+| `PlacePoolFlowTest` | PASS | 18/18 | 0 | 本轮独占 AVD 单次整类通过 |
 | `RoomSavedPlaceRepositoryTest` | PASS | 12 | 0 | 整类通过 |
 | `WorkspaceSearchReturnNavEntryTest` | PASS | 3 | 0 | 整类通过 |
 | lint / debug APK / androidTest APK | PASS | 3 tasks | 0 | `lintDebug`, `assembleDebug`, `assembleDebugAndroidTest` |
@@ -22,6 +22,10 @@
 - 详情返回只回 Results，不发布；Results 退出只发出一次外部返回回调。
 - 搜索会话只发布本次新增收藏；恢复的已有收藏不会再次发布。
 - workspace `SavedStateHandle` payload 消费后立即清空，重建不重发。
+- 无旅行日时地点池单地点 `＋` 打开既有“添加旅行日”引导，不伪装已进入目标日。
+- Search / Place Pool 共用无状态详情面板，并展示 repository `observeTags` 的预设标签多选。
+- 不同 POI 收藏操作可并发；busy、错误和 completion generation 按 poiId 隔离。
+- route effect 收集通过 `rememberUpdatedState` 调用最新 `onBack` callback。
 
 ## 真机验收
 
