@@ -369,6 +369,7 @@ class AddToItineraryStateTest {
 
         viewModel.startFromPool()
         viewModel.startForDay("day-2")
+        viewModel.startForPlace("museum")
         viewModel.togglePlace("museum")
         viewModel.selectTargetDay("day-2")
         viewModel.reconcile(listOf("day-2"), setOf("museum"))
@@ -503,6 +504,71 @@ class AddToItineraryStateTest {
         assertEquals(listOf("created-museum"), viewModel.state.value.undoCreatedItemIds)
     }
 
+    @Test fun `start for place opens fresh direct target-day selection`() = runTest(dispatcher) {
+        val viewModel = model(FakeItineraries())
+        ready(viewModel)
+        viewModel.startFromPool()
+        viewModel.togglePlace("museum")
+        viewModel.selectTargetDay("day-1")
+
+        viewModel.startForPlace("hotel")
+
+        assertEquals(listOf("hotel"), viewModel.state.value.selectedPlaceIds)
+        assertNull(viewModel.state.value.targetDayId)
+        assertEquals(AddToItineraryEditingTarget.FromPlacePool, viewModel.state.value.editingTarget)
+        assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, viewModel.state.value.step)
+    }
+
+    @Test fun `start for place clears completed result and undo from older flow`() = runTest(dispatcher) {
+        val viewModel = model(FakeItineraries())
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.submit()
+        advanceUntilIdle()
+
+        viewModel.startForPlace("museum")
+
+        assertEquals(listOf("museum"), viewModel.state.value.selectedPlaceIds)
+        assertNull(viewModel.state.value.result)
+        assertTrue(viewModel.state.value.undoCreatedItemIds.isEmpty())
+        assertNull(viewModel.state.value.errorMessage)
+    }
+
+    @Test fun `start for place clears failure from older flow`() = runTest(dispatcher) {
+        val viewModel = model(FakeItineraries(throwOnAdd = true))
+        ready(viewModel)
+        selectForSubmit(viewModel)
+        viewModel.submit()
+        advanceUntilIdle()
+        assertEquals("加入行程失败，请重试", viewModel.state.value.errorMessage)
+
+        viewModel.startForPlace("museum")
+
+        assertNull(viewModel.state.value.errorMessage)
+    }
+
+    @Test fun `start for place rejects ids absent from latest validity`() = runTest(dispatcher) {
+        val viewModel = model(FakeItineraries())
+        ready(viewModel, places = setOf("hotel"))
+
+        viewModel.startForPlace("museum")
+
+        assertTrue(viewModel.state.value.selectedPlaceIds.isEmpty())
+        assertNull(viewModel.state.value.editingTarget)
+        assertEquals(AddToItineraryStep.IDLE, viewModel.state.value.step)
+    }
+
+    @Test fun `start for place does not open flow without travel dates`() = runTest(dispatcher) {
+        val viewModel = model(FakeItineraries())
+        ready(viewModel, days = emptyList())
+
+        viewModel.startForPlace("hotel")
+
+        assertTrue(viewModel.state.value.selectedPlaceIds.isEmpty())
+        assertNull(viewModel.state.value.editingTarget)
+        assertEquals(AddToItineraryStep.IDLE, viewModel.state.value.step)
+    }
+
     @Test fun `invalid ids are rejected and all failures produce no undo token`() = runTest(dispatcher) {
         val repository = FakeItineraries(failedPlaceIds = setOf("museum"))
         val viewModel = model(repository)
@@ -552,6 +618,7 @@ class AddToItineraryStateTest {
         private val deleteFailures: MutableMap<String, Int> = mutableMapOf(),
         private val createdItemId: String? = null,
         private val addResults: ArrayDeque<Result<String>> = ArrayDeque(),
+        private val throwOnAdd: Boolean = false,
     ) : ItineraryRepository {
         val addCalls = mutableListOf<String>()
         val deletedItemIds = mutableListOf<String>()
@@ -562,6 +629,7 @@ class AddToItineraryStateTest {
             addCalls += savedPlaceId
             if (suspendAdd) awaitCancellation()
             addGate?.await()
+            if (throwOnAdd) throw IllegalStateException("add failed")
             if (addResults.isNotEmpty()) return addResults.removeFirst().getOrThrow()
             val configuredOutcome = outcome
             if (configuredOutcome is AddPlacesOutcome.TargetDayMissing) {

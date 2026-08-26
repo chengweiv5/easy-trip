@@ -76,6 +76,21 @@ class AddToItineraryViewModel(
         }
     }
 
+    fun startForPlace(placeId: String) {
+        if (draftLocked() || placeId !in validPlaceIds || validDayIds.isEmpty()) return
+        updateDraft {
+            it.copy(
+                selectedPlaceIds = listOf(placeId),
+                targetDayId = null,
+                editingTarget = AddToItineraryEditingTarget.FromPlacePool,
+                step = AddToItineraryStep.SELECT_TARGET_DAY,
+                result = null,
+                undoBatches = emptyList(),
+                errorMessage = null,
+            )
+        }
+    }
+
     fun togglePlace(placeId: String) {
         if (draftLocked() || placeId !in validPlaceIds) return
         updateDraft { current ->

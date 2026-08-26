@@ -337,7 +337,8 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             PlacePoolAction.AddTag -> addNewTag()
             is PlacePoolAction.RemoveTag -> removeTag(action.name)
             is PlacePoolAction.UpdateDetails -> updateDetails(action.note, action.tags)
-            PlacePoolAction.StartAddToItinerary -> Unit
+            PlacePoolAction.StartAddToItinerary,
+            is PlacePoolAction.StartAddSingle -> Unit
             PlacePoolAction.ConfirmCollectionRemoval -> confirmCollectionRemoval()
             PlacePoolAction.ConfirmDelete -> confirmDelete()
             PlacePoolAction.DismissDialogs -> dismissDialogs()

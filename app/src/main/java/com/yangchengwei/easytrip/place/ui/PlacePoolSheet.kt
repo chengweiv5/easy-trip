@@ -62,6 +62,7 @@ sealed interface PlacePoolAction {
     data class RemoveTag(val name: String) : PlacePoolAction
     data class UpdateDetails(val note: String, val tags: Set<String>) : PlacePoolAction
     data object StartAddToItinerary : PlacePoolAction
+    data class StartAddSingle(val placeId: String) : PlacePoolAction
     data object ConfirmCollectionRemoval : PlacePoolAction
     data object ConfirmDelete : PlacePoolAction
     data object DismissDialogs : PlacePoolAction
