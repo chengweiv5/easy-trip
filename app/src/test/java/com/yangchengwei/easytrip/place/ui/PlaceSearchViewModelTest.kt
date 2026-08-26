@@ -174,6 +174,47 @@ class PlaceSearchViewModelTest {
         assertNull(handle.get<String>("selectedPoiId"))
     }
 
+    @Test fun editingSavedPlaceCreatesDraftBoundToPlaceId() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "备注", emptyList())
+        val model = PlaceSearchViewModel(
+            "trip",
+            FakeSavedPlaces(listOf(saved)),
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            SavedStateHandle(mapOf("query" to "地点")),
+        )
+        advanceUntilIdle()
+
+        model.dispatch(PlaceSearchAction.StartEdit("saved-1"))
+
+        assertEquals("saved-1", model.state.value.detailDraft?.placeId)
+    }
+
+    @Test fun unsavedCandidateCannotStartEdit() = runTest(dispatcher) {
+        val model = modelWithResult()
+
+        model.dispatch(PlaceSearchAction.StartEdit("poi-1"))
+
+        assertNull(model.state.value.detailDraft)
+    }
+
+    @Test fun cancelEditDiscardsDraftWithoutRepositoryCall() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "备注", emptyList())
+        val repository = FakeSavedPlaces(listOf(saved))
+        val model = PlaceSearchViewModel(
+            "trip",
+            repository,
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            SavedStateHandle(mapOf("query" to "地点")),
+        )
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.StartEdit("saved-1"))
+
+        model.dispatch(PlaceSearchAction.CancelEdit)
+
+        assertNull(model.state.value.detailDraft)
+        assertEquals(0, repository.updateCalls)
+    }
+
     @Test fun backDismissesRemovalBeforeClosingDetail() {
         val pending = PendingCollectionRemoval(
             candidate("poi-1"),
@@ -493,12 +534,17 @@ class PlaceSearchViewModelTest {
             PlaceSearchAction.Retry,
             PlaceSearchAction.RecenterDetail,
             PlaceSearchAction.ToggleCollection("poi"),
+            PlaceSearchAction.StartEdit("saved"),
+            PlaceSearchAction.UpdateEditNote("note"),
+            PlaceSearchAction.UpdateEditTags(emptySet()),
+            PlaceSearchAction.SaveEdit,
+            PlaceSearchAction.CancelEdit,
             PlaceSearchAction.DismissRemovalConfirmation,
             PlaceSearchAction.ConfirmRemoval,
         )
 
         assertFalse(actions.any { it.javaClass.simpleName.contains("Itinerary") || it.javaClass.simpleName.contains("Schedule") })
-        assertEquals(9, actions.size)
+        assertEquals(14, actions.size)
     }
 
     private suspend fun kotlinx.coroutines.test.TestScope.modelWithResult(): PlaceSearchViewModel {
@@ -605,6 +651,7 @@ class PlaceSearchViewModelTest {
     ) : SavedPlaceRepository {
         val saved = mutableListOf<PlaceCandidate>()
         val deleted = mutableListOf<String>()
+        var updateCalls = 0
         private val places = MutableStateFlow(initialPlaces)
         private val savedIds = MutableStateFlow(initialPlaces.mapTo(mutableSetOf(), SavedPlace::amapPoiId))
 
@@ -616,7 +663,9 @@ class PlaceSearchViewModelTest {
             savedIds.value += candidate.poiId
             return SavePlaceResult.Saved(candidate.poiId)
         }
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+            updateCalls += 1
+        }
         override suspend fun usageCount(placeId: String) = usageCount
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleted += placeId

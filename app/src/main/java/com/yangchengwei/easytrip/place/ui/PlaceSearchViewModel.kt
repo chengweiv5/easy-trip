@@ -52,6 +52,11 @@ sealed interface PlaceSearchAction {
     data object Retry : PlaceSearchAction
     data object RecenterDetail : PlaceSearchAction
     data class ToggleCollection(val poiId: String) : PlaceSearchAction
+    data class StartEdit(val placeId: String) : PlaceSearchAction
+    data class UpdateEditNote(val value: String) : PlaceSearchAction
+    data class UpdateEditTags(val value: Set<String>) : PlaceSearchAction
+    data object SaveEdit : PlaceSearchAction
+    data object CancelEdit : PlaceSearchAction
     data object DismissRemovalConfirmation : PlaceSearchAction
     data object ConfirmRemoval : PlaceSearchAction
 }
@@ -150,6 +155,11 @@ class PlaceSearchViewModel(
             PlaceSearchAction.Retry -> reducer.retry()
             PlaceSearchAction.RecenterDetail -> recenterDetail()
             is PlaceSearchAction.ToggleCollection -> toggleCollection(action.poiId)
+            is PlaceSearchAction.StartEdit -> startEdit(action.placeId)
+            is PlaceSearchAction.UpdateEditNote -> updateEdit(note = action.value)
+            is PlaceSearchAction.UpdateEditTags -> updateEdit(tags = action.value)
+            PlaceSearchAction.SaveEdit -> saveEdit()
+            PlaceSearchAction.CancelEdit -> cancelEdit()
             PlaceSearchAction.DismissRemovalConfirmation -> dismissRemovalConfirmation()
             PlaceSearchAction.ConfirmRemoval -> confirmRemoval()
         }
@@ -209,6 +219,55 @@ class PlaceSearchViewModel(
         mutableState.value = mutableState.value.copy(
             detailMapRequestId = mutableState.value.detailMapRequestId + 1L,
         )
+    }
+
+    private fun startEdit(placeId: String) {
+        val place = savedByPoiId.values.firstOrNull { it.id == placeId } ?: return
+        mutableState.value = mutableState.value.copy(
+            detailDraft = PlaceDetailEditState(
+                placeId = place.id,
+                note = place.note,
+                selectedTagNames = place.tags.mapTo(mutableSetOf()) { it.name },
+            ),
+        )
+    }
+
+    private fun updateEdit(note: String? = null, tags: Set<String>? = null) {
+        val draft = mutableState.value.detailDraft ?: return
+        if (draft.isSaving) return
+        mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(
+                note = note ?: draft.note,
+                selectedTagNames = tags ?: draft.selectedTagNames,
+                errorMessage = null,
+            ),
+        )
+    }
+
+    private fun cancelEdit() {
+        if (mutableState.value.detailDraft?.isSaving == true) return
+        mutableState.value = mutableState.value.copy(detailDraft = null)
+    }
+
+    private fun saveEdit() {
+        val draft = mutableState.value.detailDraft ?: return
+        if (draft.isSaving) return
+        mutableState.value = mutableState.value.copy(detailDraft = draft.copy(isSaving = true, errorMessage = null))
+        viewModelScope.launch {
+            try {
+                repository.updateDetails(draft.placeId, draft.note, draft.selectedTagNames)
+                mutableState.value = mutableState.value.copy(detailDraft = null)
+            } catch (error: CancellationException) {
+                throw error
+            } catch (error: Throwable) {
+                mutableState.value = mutableState.value.copy(
+                    detailDraft = mutableState.value.detailDraft?.copy(
+                        isSaving = false,
+                        errorMessage = error.message ?: "保存失败，请重试",
+                    ),
+                )
+            }
+        }
     }
 
     private fun toggleCollection(poiId: String) {

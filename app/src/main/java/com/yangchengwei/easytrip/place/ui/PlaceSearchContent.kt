@@ -106,7 +106,9 @@ fun PlaceSearchContent(
                     consent = consent,
                     mapHostFactory = mapHostFactory,
                     onRecenter = { onAction(PlaceSearchAction.RecenterDetail) },
-                    onToggleCollection = { onAction(PlaceSearchAction.ToggleCollection(candidate.poiId)) },
+                    savedPlace = state.savedPlacesByPoiId[candidate.poiId],
+                    editState = state.detailDraft,
+                    onAction = onAction,
                     collectionBusy = candidate.poiId in state.collectionBusyPoiIds,
                     collectionError = state.collectionError.takeIf { state.collectionErrorPoiId == candidate.poiId },
                     detailContent = detailContent,
@@ -124,7 +126,9 @@ private fun SearchMapDetail(
     consent: AmapConsentToken?,
     mapHostFactory: (android.content.Context) -> AmapMapHost,
     onRecenter: () -> Unit,
-    onToggleCollection: () -> Unit,
+    savedPlace: com.yangchengwei.easytrip.place.domain.SavedPlace?,
+    editState: PlaceDetailEditState?,
+    onAction: (PlaceSearchAction) -> Unit,
     collectionBusy: Boolean,
     collectionError: String?,
     detailContent: (@Composable (PlaceCandidate) -> Unit)?,
@@ -175,44 +179,27 @@ private fun SearchMapDetail(
             if (detailContent != null) {
                 detailContent(candidate)
             } else {
-                SearchDetailFallback(candidate, collectionBusy, collectionError, onToggleCollection)
+                PlaceDetailPanel(
+                    candidate = candidate,
+                    savedPlace = savedPlace,
+                    editState = editState,
+                    source = PlaceDetailSource.Search,
+                    collectionBusy = collectionBusy,
+                    collectionError = collectionError,
+                    onAction = { action ->
+                        when (action) {
+                            PlaceDetailPanelAction.Dismiss -> onAction(PlaceSearchAction.Back)
+                            PlaceDetailPanelAction.ToggleCollection -> onAction(PlaceSearchAction.ToggleCollection(candidate.poiId))
+                            PlaceDetailPanelAction.StartEdit -> savedPlace?.let { onAction(PlaceSearchAction.StartEdit(it.id)) }
+                            is PlaceDetailPanelAction.NoteChanged -> onAction(PlaceSearchAction.UpdateEditNote(action.value))
+                            is PlaceDetailPanelAction.TagsChanged -> onAction(PlaceSearchAction.UpdateEditTags(action.value))
+                            PlaceDetailPanelAction.SaveEdit -> onAction(PlaceSearchAction.SaveEdit)
+                            PlaceDetailPanelAction.CancelEdit -> onAction(PlaceSearchAction.CancelEdit)
+                            PlaceDetailPanelAction.Delete -> Unit
+                        }
+                    },
+                )
             }
-        }
-    }
-}
-
-@Composable
-private fun SearchDetailFallback(
-    candidate: PlaceCandidate,
-    collectionBusy: Boolean,
-    collectionError: String?,
-    onToggleCollection: () -> Unit,
-) {
-    Column(
-        Modifier.fillMaxSize().padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
-    ) {
-        Text(candidate.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
-        Text(candidate.address.ifBlank { "地址暂不可用" }, color = SearchMuted)
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(48.dp)
-                .clickable(enabled = !collectionBusy, onClick = onToggleCollection)
-                .semantics {
-                    contentDescription = "收藏${candidate.name}"
-                    role = Role.Button
-                },
-            shape = RoundedCornerShape(10.dp),
-            color = SearchPrimary,
-            contentColor = Color.White,
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Text("收藏", fontWeight = FontWeight.Bold)
-            }
-        }
-        collectionError?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

@@ -37,6 +37,7 @@ fun PlacePoolSheet(
         onDelete = viewModel::requestDelete,
         onToggleCollection = viewModel::toggleCollection,
         onDismissEdit = viewModel::dismissEdit,
+        onUpdateDraft = viewModel::updateDetailDraft,
         onUpdateDetails = viewModel::updateDetails,
         onDismissCollectionRemoval = viewModel::dismissCollectionRemoval,
         onConfirmCollectionRemoval = viewModel::confirmCollectionRemoval,
@@ -81,6 +82,7 @@ fun PlacePoolContent(
         onDelete = { onAction(PlacePoolAction.Delete(it)) },
         onToggleCollection = { onAction(PlacePoolAction.ToggleCollection(it)) },
         onDismissEdit = { onAction(PlacePoolAction.DismissDialogs) },
+        onUpdateDraft = { note, tags -> onAction(PlacePoolAction.UpdateDraft(note, tags)) },
         onUpdateDetails = { note, tags -> onAction(PlacePoolAction.UpdateDetails(note, tags)) },
         onDismissCollectionRemoval = { onAction(PlacePoolAction.DismissDialogs) },
         onConfirmCollectionRemoval = { onAction(PlacePoolAction.ConfirmCollectionRemoval) },
@@ -104,6 +106,7 @@ fun PlacePoolContent(
     onDelete: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
     onToggleCollection: (com.yangchengwei.easytrip.place.amap.PlaceCandidate) -> Unit,
     onDismissEdit: () -> Unit,
+    onUpdateDraft: (String, Set<String>) -> Unit,
     onUpdateDetails: (String, Set<String>) -> Unit,
     onDismissCollectionRemoval: () -> Unit,
     onConfirmCollectionRemoval: () -> Unit,
@@ -168,7 +171,39 @@ fun PlacePoolContent(
     }
     state.collectionError?.let { Text(it, modifier = Modifier.padding(horizontal = 16.dp)) }
     if (showDialogs) {
-        state.editing?.let { EditSavedPlaceDialog(it, onDismissEdit, onUpdateDetails) }
+        state.editing?.let { place ->
+            val draft = state.detailDraft ?: return@let
+            AlertDialog(
+                onDismissRequest = { if (!state.detailSaving) onDismissEdit() },
+                confirmButton = {},
+                text = {
+                    PlaceDetailPanel(
+                        candidate = place.toCandidate(),
+                        savedPlace = place,
+                        editState = PlaceDetailEditState(
+                            placeId = draft.placeId,
+                            note = draft.note,
+                            selectedTagNames = draft.tags,
+                            isSaving = state.detailSaving,
+                            errorMessage = state.detailSaveError,
+                        ),
+                        source = PlaceDetailSource.PlacePool,
+                        collectionBusy = false,
+                        collectionError = null,
+                        onAction = { action ->
+                            when (action) {
+                                PlaceDetailPanelAction.Dismiss,
+                                PlaceDetailPanelAction.CancelEdit -> onDismissEdit()
+                                is PlaceDetailPanelAction.NoteChanged -> onUpdateDraft(action.value, draft.tags)
+                                is PlaceDetailPanelAction.TagsChanged -> onUpdateDraft(draft.note, action.value)
+                                PlaceDetailPanelAction.SaveEdit -> onUpdateDetails(draft.note, draft.tags)
+                                else -> Unit
+                            }
+                        },
+                    )
+                },
+            )
+        }
         state.pendingCollectionRemoval?.let { pending ->
             AlertDialog(
                 onDismissRequest = onDismissCollectionRemoval,

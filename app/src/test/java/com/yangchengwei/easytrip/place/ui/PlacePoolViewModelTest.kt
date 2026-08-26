@@ -98,6 +98,30 @@ class PlacePoolViewModelTest {
         assertEquals(false, model.state.value.rows.single().scheduled)
     }
 
+    @Test fun editingSavedPlaceCreatesDraftBoundToPlaceId() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), emptyMap())
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+
+        model.edit(place("a"))
+
+        assertEquals("a", model.state.value.editing?.id)
+        assertEquals("a", model.state.value.detailDraft?.placeId)
+    }
+
+    @Test fun cancelEditDiscardsDraftWithoutRepositoryCall() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), emptyMap())
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.edit(place("a"))
+
+        model.dismissEdit()
+
+        assertNull(model.state.value.editing)
+        assertNull(model.state.value.detailDraft)
+        assertEquals(0, repository.updateCalls)
+    }
+
     @Test fun failedDetailSaveKeepsDraft() = runTest(dispatcher) {
         val repository = PoolRepository(listOf(place("a")), emptyMap(), updateFailure = IllegalStateException("保存失败"))
         val model = PlacePoolViewModel("trip", repository, null)
@@ -129,6 +153,7 @@ class PlacePoolViewModelTest {
         usageCounts: Map<String, Int>,
         private val updateFailure: Throwable? = null,
     ) : SavedPlaceRepository {
+        var updateCalls = 0
         private val places = MutableStateFlow(places)
         private val usageCounts = MutableStateFlow(
             places.associate { place -> place.id to (usageCounts[place.id] ?: 0) },
@@ -143,6 +168,7 @@ class PlacePoolViewModelTest {
         override fun observeUsageCounts(tripId: String): Flow<Map<String, Int>> = usageCounts
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+            updateCalls += 1
             updateFailure?.let { throw it }
         }
         override suspend fun usageCount(placeId: String) = usageCounts.value[placeId] ?: 0

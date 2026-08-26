@@ -32,7 +32,7 @@ data class SavedPlaceRowUi(
     val tags get() = place.tags.map(PlaceTag::name)
 }
 
-data class PlaceDetailDraft(val note: String, val tags: Set<String>)
+data class PlaceDetailDraft(val note: String, val tags: Set<String>, val placeId: String = "")
 
 data class PlacePoolUiState(
     val search: PlaceSearchState = PlaceSearchState(),
@@ -123,13 +123,13 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     fun edit(value: SavedPlace) {
         mutableState.value = mutableState.value.copy(
             editing = value,
-            detailDraft = PlaceDetailDraft(value.note, value.tags.mapTo(mutableSetOf(), PlaceTag::name)),
+            detailDraft = PlaceDetailDraft(value.note, value.tags.mapTo(mutableSetOf(), PlaceTag::name), value.id),
             detailSaveError = null,
         )
     }
     fun updateDetailDraft(note: String, tags: Set<String>) {
         if (mutableState.value.editing == null) return
-        mutableState.value = mutableState.value.copy(detailDraft = PlaceDetailDraft(note, tags), detailSaveError = null)
+        mutableState.value = mutableState.value.copy(detailDraft = PlaceDetailDraft(note, tags, mutableState.value.editing!!.id), detailSaveError = null)
     }
     fun dismissEdit() { mutableState.value = mutableState.value.copy(editing = null, detailDraft = null, detailSaving = false, detailSaveError = null) }
     fun updateDetails(note: String, tags: Set<String>) {
