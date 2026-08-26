@@ -236,18 +236,50 @@ class TripWorkspaceNavigationStateTest {
     }
 
     @Test fun itineraryOverlayAppearsOnlyForEstablishedContext() {
-        val edit = com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft("item-1", "", "")
-        val deletion = com.yangchengwei.easytrip.itinerary.ui.ItineraryDeleteConfirmation("item-1", "酒店")
+        val edit = ItineraryEditDraft("item-1", "", "")
+        val deletion = ItineraryDeleteConfirmation("item-1", "酒店")
 
-        assertNull(itineraryOverlayToPresent(null, null))
+        assertNull(itineraryOverlayToPresent(null, null, null, null))
         assertEquals(
             WorkspaceOverlay.EditItineraryItem("item-1"),
-            itineraryOverlayToPresent(edit, null),
+            itineraryOverlayToPresent(edit, null, null, null),
         )
         assertEquals(
             "移出酒店？",
-            (itineraryOverlayToPresent(null, deletion) as WorkspaceOverlay.Confirmation).model.title,
+            (itineraryOverlayToPresent(null, null, deletion, null) as WorkspaceOverlay.Confirmation).model.title,
         )
+    }
+
+    @Test fun crossDayAndModeOverlaysComeFromExistingEditors() {
+        val move = CrossDayMoveDraft("item-2")
+        val mode = RouteModeEditDraft("leg-3", TransportMode.WALK)
+
+        assertEquals(
+            WorkspaceOverlay.SelectMoveTargetDay("item-2"),
+            itineraryOverlayToPresent(null, move, null, null),
+        )
+        assertEquals(
+            WorkspaceOverlay.EditRouteLeg(stableWorkspaceOverlayId("leg-3")),
+            itineraryOverlayToPresent(null, null, null, mode),
+        )
+    }
+
+    @Test fun readyLegCreatesModeEditorForSameLeg() = runTest(dispatcher) {
+        val model = itineraryModelWithLeg(com.yangchengwei.easytrip.core.model.RouteStatus.SUCCESS)
+        advanceUntilIdle()
+
+        model.dispatch(DayItineraryAction.RequestMode("leg-1"))
+
+        assertEquals("leg-1", model.state.value.modeEditor?.legId)
+    }
+
+    @Test fun failedLegDoesNotCreateModeEditor() = runTest(dispatcher) {
+        val model = itineraryModelWithLeg(com.yangchengwei.easytrip.core.model.RouteStatus.FAILED)
+        advanceUntilIdle()
+
+        model.dispatch(DayItineraryAction.RequestMode("leg-1"))
+
+        assertNull(model.state.value.modeEditor)
     }
 
     @Test fun itineraryOverlayReplacesStaleContextAfterNewContextIsEstablished() {
@@ -259,6 +291,8 @@ class TripWorkspaceNavigationStateTest {
             itineraryOverlayUpdate(
                 WorkspaceOverlay.EditItineraryItem("item-1"),
                 edit,
+                null,
+                null,
                 null,
             ),
         )
@@ -278,12 +312,16 @@ class TripWorkspaceNavigationStateTest {
                     ),
                 ),
                 null,
+                null,
                 deletion,
+                null,
             ) as WorkspaceOverlay.Confirmation).model.title,
         )
         assertNull(
             itineraryOverlayUpdate(
                 WorkspaceOverlay.EditItineraryItem("item-1"),
+                null,
+                null,
                 null,
                 null,
             ),
@@ -505,6 +543,28 @@ class TripWorkspaceNavigationStateTest {
         coordinator = null,
     )
 
+    private fun itineraryModelWithLeg(status: com.yangchengwei.easytrip.core.model.RouteStatus) = DayItineraryViewModel(
+        tripId = "trip",
+        trips = Trips(days("one", "two")),
+        itineraries = Itineraries(
+            mapOf("one" to listOf(item("item-1", 39.9), item("item-2", 40.0))),
+        ),
+        routeLegs = Legs(
+            listOf(
+                com.yangchengwei.easytrip.route.data.RouteLegEntity(
+                    id = "leg-1",
+                    tripDayId = "one",
+                    fromItemId = "item-1",
+                    toItemId = "item-2",
+                    recommendedMode = TransportMode.WALK,
+                    status = status,
+                    updatedAt = java.time.Instant.EPOCH,
+                ),
+            ),
+        ),
+        coordinator = null,
+    )
+
     private fun item(id: String, latitude: Double) = ItineraryItem(
         id,
         ItineraryPlace("place-$id", id, "", GeoPoint(latitude, 116.4)),
@@ -563,8 +623,10 @@ class TripWorkspaceNavigationStateTest {
         override suspend fun removePlaceOccurrences(placeId: String) = Unit
     }
 
-    private class Legs : RouteLegRepository {
-        override fun observeDay(dayId: String) = flowOf(emptyList<com.yangchengwei.easytrip.route.data.RouteLegEntity>())
+    private class Legs(
+        private val legs: List<com.yangchengwei.easytrip.route.data.RouteLegEntity> = emptyList(),
+    ) : RouteLegRepository {
+        override fun observeDay(dayId: String) = flowOf(legs.filter { it.tripDayId == dayId })
         override fun observePending(): Flow<List<RouteLegWithEndpoints>> = flowOf(emptyList())
         override suspend fun get(legId: String) = null
         override suspend fun requeueTransientFailures() = 0

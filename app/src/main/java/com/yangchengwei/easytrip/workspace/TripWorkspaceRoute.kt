@@ -19,8 +19,10 @@ import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
+import com.yangchengwei.easytrip.itinerary.ui.CrossDayMoveDraft
 import com.yangchengwei.easytrip.itinerary.ui.ItineraryDeleteConfirmation
 import com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft
+import com.yangchengwei.easytrip.itinerary.ui.RouteModeEditDraft
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
@@ -85,9 +87,12 @@ fun workspaceBackDecision(
 
 internal fun itineraryOverlayToPresent(
     editDraft: ItineraryEditDraft?,
+    crossDayMove: CrossDayMoveDraft?,
     deleteConfirmation: ItineraryDeleteConfirmation?,
+    modeEditor: RouteModeEditDraft?,
 ): WorkspaceOverlay? = when {
     editDraft != null -> WorkspaceOverlay.EditItineraryItem(editDraft.itemId)
+    crossDayMove != null -> WorkspaceOverlay.SelectMoveTargetDay(crossDayMove.itemId)
     deleteConfirmation != null -> WorkspaceOverlay.Confirmation(
         confirmation(
             "移出${deleteConfirmation.placeName}？",
@@ -95,22 +100,31 @@ internal fun itineraryOverlayToPresent(
             "确认移出",
         ),
     )
+    modeEditor != null -> WorkspaceOverlay.EditRouteLeg(stableWorkspaceOverlayId(modeEditor.legId))
     else -> null
 }
 
 internal fun itineraryOverlayUpdate(
     current: WorkspaceOverlay,
     editDraft: ItineraryEditDraft?,
+    crossDayMove: CrossDayMoveDraft?,
     deleteConfirmation: ItineraryDeleteConfirmation?,
+    modeEditor: RouteModeEditDraft?,
 ): WorkspaceOverlay? {
-    val desired = itineraryOverlayToPresent(editDraft, deleteConfirmation)
+    val desired = itineraryOverlayToPresent(editDraft, crossDayMove, deleteConfirmation, modeEditor)
     return when {
         desired != null && (
             current == WorkspaceOverlay.None ||
                 current is WorkspaceOverlay.EditItineraryItem ||
+                current is WorkspaceOverlay.SelectMoveTargetDay ||
+                current is WorkspaceOverlay.EditRouteLeg ||
                 current is WorkspaceOverlay.Confirmation
             ) -> desired
-        desired == null && current is WorkspaceOverlay.EditItineraryItem -> null
+        desired == null && (
+            current is WorkspaceOverlay.EditItineraryItem ||
+                current is WorkspaceOverlay.SelectMoveTargetDay ||
+                current is WorkspaceOverlay.EditRouteLeg
+            ) -> null
         else -> current
     }
 }
@@ -281,13 +295,22 @@ fun TripWorkspaceRoute(
     ) {
         val overlay = ready?.overlay ?: WorkspaceOverlay.None
         when {
-            itinerary.editDraft != null || itinerary.deleteConfirmation != null -> {
-                val desired = itineraryOverlayUpdate(overlay, itinerary.editDraft, itinerary.deleteConfirmation)
+            itinerary.editDraft != null ||
+                itinerary.crossDayMove != null ||
+                itinerary.deleteConfirmation != null ||
+                itinerary.modeEditor != null -> {
+                val desired = itineraryOverlayUpdate(
+                    overlay,
+                    itinerary.editDraft,
+                    itinerary.crossDayMove,
+                    itinerary.deleteConfirmation,
+                    itinerary.modeEditor,
+                )
                 if (desired != null && desired != overlay) viewModel.openOverlay(desired)
             }
-            overlay is WorkspaceOverlay.EditItineraryItem -> viewModel.closeOverlay()
-            overlay is WorkspaceOverlay.SelectMoveTargetDay && itinerary.crossDayMove == null -> viewModel.closeOverlay()
-            overlay is WorkspaceOverlay.EditRouteLeg && itinerary.modeEditor == null -> viewModel.closeOverlay()
+            overlay is WorkspaceOverlay.EditItineraryItem ||
+                overlay is WorkspaceOverlay.SelectMoveTargetDay ||
+                overlay is WorkspaceOverlay.EditRouteLeg -> viewModel.closeOverlay()
             overlay is WorkspaceOverlay.Confirmation && places.pendingCollectionRemoval == null && places.deleting == null ->
                 viewModel.closeOverlay()
         }
@@ -365,7 +388,6 @@ fun TripWorkspaceRoute(
                 is DayItineraryAction.RequestCrossDay -> {
                     dismissPendingDialogs()
                     dispatchItinerary(action)
-                    viewModel.openOverlay(WorkspaceOverlay.SelectMoveTargetDay(action.itemId))
                 }
                 is DayItineraryAction.RequestDelete -> {
                     dismissPendingDialogs()
@@ -374,7 +396,6 @@ fun TripWorkspaceRoute(
                 is DayItineraryAction.RequestMode -> {
                     dismissPendingDialogs()
                     dispatchItinerary(action)
-                    viewModel.openOverlay(WorkspaceOverlay.EditRouteLeg(stableWorkspaceOverlayId(action.legId)))
                 }
                 DayItineraryAction.DismissDialogs -> closeOverlay()
                 else -> dispatchItinerary(action)

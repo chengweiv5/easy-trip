@@ -36,8 +36,9 @@ fun WorkspaceItineraryContent(
         Box(Modifier.weight(1f).fillMaxHeight().padding(start = 12.dp)) {
             when (selected) {
                 ItineraryScope.WholeTrip -> WholeTripItineraryContent(
-                    wholeTripDays,
-                    Modifier.testTag("whole-trip-content"),
+                    days = wholeTripDays,
+                    onAddDay = onAddDay,
+                    modifier = Modifier.testTag("whole-trip-content"),
                 )
                 is ItineraryScope.Day -> dayContent()
             }

@@ -4,6 +4,8 @@ import android.content.Context
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
@@ -39,7 +41,17 @@ import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso.pressBack
 import androidx.lifecycle.SavedStateHandle
 import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.core.model.RouteStatus
+import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.itinerary.ui.CrossDayMoveDraft
+import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
+import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.ItineraryDeleteConfirmation
+import com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft
+import com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi
+import com.yangchengwei.easytrip.itinerary.ui.RouteLegUi
+import com.yangchengwei.easytrip.itinerary.ui.RouteModeEditDraft
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
@@ -360,6 +372,167 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { repository.deleteCalls == 1 }
         assertEquals(1, repository.deleteCalls)
         compose.onNodeWithTag("confirmation-confirm").assertDoesNotExist()
+    }
+
+    @Test fun itemMenuActionsOpenBusinessOverlaysForSameItem() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        var itineraryState by androidx.compose.runtime.mutableStateOf(
+            DayItineraryUiState(
+                days = listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
+                selectedDayId = "day-1",
+                items = listOf(ItineraryItemUi("item-1", "酒店", "", null, null)),
+                previewOrder = listOf("item-1"),
+            ),
+        )
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                itineraryState = itineraryState,
+                onItineraryAction = { action ->
+                    itineraryState = when (action) {
+                        is DayItineraryAction.RequestTiming -> itineraryState.copy(
+                            editDraft = ItineraryEditDraft(action.itemId, "", ""),
+                        )
+                        is DayItineraryAction.RequestCrossDay -> itineraryState.copy(
+                            crossDayMove = CrossDayMoveDraft(action.itemId),
+                        )
+                        is DayItineraryAction.RequestDelete -> itineraryState.copy(
+                            deleteConfirmation = ItineraryDeleteConfirmation(action.itemId, "酒店"),
+                        )
+                        DayItineraryAction.DismissDialogs -> itineraryState.copy(
+                            editDraft = null,
+                            crossDayMove = null,
+                            deleteConfirmation = null,
+                        )
+                        else -> itineraryState
+                    }
+                },
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+
+        compose.onNodeWithTag("more-item-1").performClick()
+        pressBack()
+        compose.runOnIdle {
+            assertEquals(null, itineraryState.editDraft)
+            assertEquals(null, itineraryState.crossDayMove)
+            assertEquals(null, itineraryState.deleteConfirmation)
+        }
+
+        compose.onNodeWithTag("more-item-1").performClick()
+        compose.onNodeWithTag("menu-timing-item-1", useUnmergedTree = true).performClick()
+        compose.waitUntil { itineraryState.editDraft?.itemId == "item-1" }
+        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
+        compose.onNodeWithText("取消").performClick()
+        compose.runOnIdle { itineraryState = itineraryState.copy(editDraft = null) }
+        compose.waitUntil { workspace.state.value.overlay == WorkspaceOverlay.None }
+
+        compose.onNodeWithTag("more-item-1").performClick()
+        compose.onNodeWithTag("menu-move-item-1", useUnmergedTree = true).performClick()
+        compose.waitUntil {
+            itineraryState.crossDayMove?.itemId == "item-1" &&
+                workspace.state.value.overlay == WorkspaceOverlay.SelectMoveTargetDay("item-1")
+        }
+        compose.onNodeWithText("移动到…").assertIsDisplayed()
+        pressBack()
+        compose.runOnIdle { itineraryState = itineraryState.copy(crossDayMove = null) }
+        compose.waitUntil { workspace.state.value.overlay == WorkspaceOverlay.None }
+
+        compose.onNodeWithTag("more-item-1").performClick()
+        compose.onNodeWithTag("menu-delete-item-1", useUnmergedTree = true).performClick()
+        compose.waitUntil { itineraryState.deleteConfirmation?.itemId == "item-1" }
+        compose.onNodeWithText("移出酒店？").assertIsDisplayed()
+    }
+
+    @Test fun readyLegOpensModeOverlayForSameLeg() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val items = listOf(
+            ItineraryItemUi("item-1", "酒店", "", null, null),
+            ItineraryItemUi("item-2", "景点", "", null, null),
+        )
+        var state by androidx.compose.runtime.mutableStateOf(
+            DayItineraryUiState(
+                days = listOf(TripDay("day-1", 0)),
+                selectedDayId = "day-1",
+                items = items,
+                previewOrder = items.map(ItineraryItemUi::id),
+                legs = listOf(
+                    RouteLegUi("ready", "item-1", "item-2", TransportMode.WALK, RouteStatus.SUCCESS, 800, 600, null),
+                ),
+            ),
+        )
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                itineraryState = state,
+                onItineraryAction = { action ->
+                    if (action is DayItineraryAction.RequestMode) {
+                        state = state.copy(modeEditor = RouteModeEditDraft(action.legId, TransportMode.WALK))
+                    }
+                },
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+
+        compose.onNodeWithTag("mode-ready").performClick()
+
+        compose.waitUntil {
+            state.modeEditor?.legId == "ready" &&
+                workspace.state.value.overlay == WorkspaceOverlay.EditRouteLeg(stableWorkspaceOverlayId("ready"))
+        }
+        compose.onNodeWithText("选择交通方式").assertIsDisplayed()
+    }
+
+    @Test fun failedLegRetryDoesNotOpenModeOverlay() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val items = listOf(
+            ItineraryItemUi("item-1", "酒店", "", null, null),
+            ItineraryItemUi("item-2", "景点", "", null, null),
+        )
+        var actions = emptyList<DayItineraryAction>()
+        val state = DayItineraryUiState(
+            days = listOf(TripDay("day-1", 0)),
+            selectedDayId = "day-1",
+            items = items,
+            previewOrder = items.map(ItineraryItemUi::id),
+            legs = listOf(
+                RouteLegUi("failed", "item-1", "item-2", TransportMode.WALK, RouteStatus.FAILED, null, null, "路线失败"),
+            ),
+        )
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                itineraryState = state,
+                onItineraryAction = { actions = actions + it },
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+
+        compose.onNodeWithTag("retry-failed").performClick()
+
+        assertEquals(listOf(DayItineraryAction.Retry("failed")), actions)
+        assertEquals(WorkspaceOverlay.None, workspace.state.value.overlay)
     }
 
     @Test fun mapPoiClickOpensCardBeforeCollectionAction() {

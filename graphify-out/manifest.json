@@ -96,9 +96,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceFlowTest.kt": {
-    "mtime": 1787708572.1483254,
-    "seen": 1787708968.765078,
-    "ast_hash": "03016b51611a0c376fc085d5007157e2",
+    "mtime": 1787717805.553872,
+    "seen": 1787717959.600874,
+    "ast_hash": "7b8f4cc968f1dcb0911cde96d3c9287f",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/AppContainer.kt": {
@@ -246,9 +246,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModel.kt": {
-    "mtime": 1787708572.1685696,
-    "seen": 1787708968.765103,
-    "ast_hash": "ebd86da13f7f2c9eb1944b7b118ff40d",
+    "mtime": 1787716462.4873686,
+    "seen": 1787717572.620595,
+    "ast_hash": "25be734a34d75921755dd0d24f488d55",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DaySelector.kt": {
@@ -822,15 +822,15 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryScopeRailTest.kt": {
-    "mtime": 1787708572.1386316,
-    "seen": 1787708968.765065,
-    "ast_hash": "58a13f2a5d84967d84e2d7209b6e6f19",
+    "mtime": 1787715471.5631092,
+    "seen": 1787717572.620548,
+    "ast_hash": "3aef73691e09ad88a27ee40156d2540a",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContentTest.kt": {
-    "mtime": 1787708572.1389627,
-    "seen": 1787708968.765066,
-    "ast_hash": "26e03da68449eecdaaa24bcd57a72f84",
+    "mtime": 1787715402.477901,
+    "seen": 1787717572.62055,
+    "ast_hash": "025b4b3dc64e4817df96ed5dce35a682",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlacePoolScrollbarTest.kt": {
@@ -852,15 +852,15 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContent.kt": {
-    "mtime": 1787708805.458509,
-    "seen": 1787708968.76511,
-    "ast_hash": "1544afb71b63c3a7f7667e0dfe9a324e",
+    "mtime": 1787715547.5008337,
+    "seen": 1787717572.620605,
+    "ast_hash": "c7767189632468250586d395ebb6412a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/WorkspaceItineraryContent.kt": {
-    "mtime": 1787708572.174876,
-    "seen": 1787708968.76511,
-    "ast_hash": "b0fa68f9c85a4be409654d760c3f9d4b",
+    "mtime": 1787715552.0632987,
+    "seen": 1787717572.620606,
+    "ast_hash": "e5cbe9998eded9e319354a516c3812c8",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/CollectionTogglePolicy.kt": {
@@ -912,9 +912,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/TripWorkspaceNavigationStateTest.kt": {
-    "mtime": 1787709549.762787,
-    "seen": 1787709687.112291,
-    "ast_hash": "54811cf83ef933ea204a39eb729eb125",
+    "mtime": 1787716449.4723382,
+    "seen": 1787717572.620691,
+    "ast_hash": "7aeeb0b9af5bfa63ce757da32e9e468b",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/WorkspaceNavigationTest.kt": {
@@ -1230,9 +1230,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceRoute.kt": {
-    "mtime": 1787708572.2023358,
-    "seen": 1787708968.765144,
-    "ast_hash": "6f90de42e772868a726b5bcdbdd0d3e4",
+    "mtime": 1787715973.082922,
+    "seen": 1787717572.620652,
+    "ast_hash": "84884991cd807886fa41ba7d52202a94",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt": {
@@ -1842,9 +1842,9 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-26-easy-trip-itinerary-ui-convergence/task-5-report.md": {
-    "mtime": 1787713554.1191335,
-    "seen": 1787714336.550145,
-    "ast_hash": "8720504012a1b283385318202972a3b2",
+    "mtime": 1787714343.5473936,
+    "seen": 1787717572.620714,
+    "ast_hash": "83ffa1a3538573bc2ac6b5c4c58a9767",
     "semantic_hash": ""
   }
 }

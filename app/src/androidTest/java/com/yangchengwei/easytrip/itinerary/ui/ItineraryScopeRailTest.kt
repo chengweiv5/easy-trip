@@ -141,6 +141,26 @@ class ItineraryScopeRailTest {
     }
 
     @Test
+    fun railAndWholeTripEmptyStateAddActionsUseSameCallback() {
+        var addClicks = 0
+        compose.setContent {
+            WorkspaceItineraryContent(
+                days = emptyList(),
+                selected = ItineraryScope.WholeTrip,
+                wholeTripDays = emptyList(),
+                onSelect = {},
+                dayContent = {},
+                onAddDay = { addClicks++ },
+                modifier = Modifier.height(300.dp),
+            )
+        }
+
+        compose.onNodeWithTag("itinerary-add-day").performClick()
+        compose.onNodeWithTag("whole-trip-add-day").performClick()
+        assertEquals(2, addClicks)
+    }
+
+    @Test
     fun scrollingRailRevealsLastDayWithoutMovingRightContent() {
         compose.setContent {
             WorkspaceItineraryContent(

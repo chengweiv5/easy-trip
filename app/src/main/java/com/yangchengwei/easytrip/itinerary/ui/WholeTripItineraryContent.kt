@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.itinerary.ui
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,15 +19,33 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
+import com.yangchengwei.easytrip.core.ui.component.EmptyState
 
 @Composable
 fun WholeTripItineraryContent(
     days: List<WholeTripDayUi>,
+    onAddDay: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
-    LazyColumn(modifier, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+    LazyColumn(
+        modifier = modifier.testTag("whole-trip-timeline"),
+        contentPadding = PaddingValues(bottom = 24.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
         if (days.isEmpty()) {
-            item { Text("暂无旅行日") }
+            item {
+                EmptyState(
+                    title = "暂无旅行日",
+                    message = "新增旅行日，开始规划行程",
+                    illustration = { ItineraryEmptyIllustration("暂无旅行日") },
+                    action = {
+                        TextButton(onAddDay, Modifier.testTag("whole-trip-add-day")) {
+                            Text("新增旅行日")
+                        }
+                    },
+                )
+            }
         }
         days.forEach { day ->
             item(key = "heading-${day.dayId}") {

@@ -14,7 +14,11 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
@@ -35,10 +39,14 @@ class WholeTripItineraryContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun emptyTripShowsPlaceholder() {
-        compose.setContent { WholeTripItineraryContent(emptyList()) }
+    fun noTripDaysShowsIllustrationAndAddDayAction() {
+        var addClicks = 0
+        compose.setContent { WholeTripItineraryContent(emptyList(), onAddDay = { addClicks++ }) }
 
+        compose.onNodeWithTag("itinerary-empty-illustration").assertIsDisplayed()
         compose.onNodeWithText("暂无旅行日").assertIsDisplayed()
+        compose.onNodeWithTag("whole-trip-add-day").assertHasClickAction().performClick()
+        assertEquals(1, addClicks)
     }
 
     @Test
@@ -104,6 +112,23 @@ class WholeTripItineraryContentTest {
         val forbiddenPrefixes = listOf("timing-", "move-", "delete-", "mode-", "retry-")
         val allTags = compose.onRoot(useUnmergedTree = true).fetchSemanticsNode().allTags()
         assertTrue(allTags.none { tag -> forbiddenPrefixes.any(tag::startsWith) })
+    }
+
+    @Test
+    fun longWholeTripScrollsLastDayAboveBottomPadding() {
+        val days = (1..12).map { day ->
+            WholeTripDayUi("day-$day", day, listOf(item("item-$day", "地点 $day")), emptyList())
+        }
+        compose.setContent {
+            Box(Modifier.width(360.dp).height(220.dp).testTag("whole-trip-viewport")) {
+                WholeTripItineraryContent(days, modifier = Modifier.fillMaxSize())
+            }
+        }
+
+        compose.onNodeWithTag("whole-trip-timeline").performScrollToNode(hasTestTag("item-item-12"))
+        val viewport = compose.onNodeWithTag("whole-trip-viewport").getUnclippedBoundsInRoot()
+        val lastItem = compose.onNodeWithTag("item-item-12").assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue("viewport=$viewport lastItem=$lastItem", lastItem.bottom <= viewport.bottom - 24.dp)
     }
 
     @Test

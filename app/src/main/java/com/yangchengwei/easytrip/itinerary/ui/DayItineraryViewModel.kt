@@ -283,6 +283,7 @@ class DayItineraryViewModel(
 
     fun requestMode(legId: String): Boolean {
         val leg = state.value.legs.firstOrNull { it.id == legId } ?: return false
+        if (leg.state !is RouteLegUiState.Ready) return false
         mutable.value = mutable.value.copy(
             modeEditor = RouteModeEditDraft(
                 legId = legId,
