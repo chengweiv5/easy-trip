@@ -1206,9 +1206,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModel.kt": {
-    "mtime": 1787740566.0159583,
-    "seen": 1787740815.5131462,
-    "ast_hash": "cacc6cee7c6d662711b018766e530286",
+    "mtime": 1787742081.2610214,
+    "seen": 1787742107.86028,
+    "ast_hash": "991c9bf7e5b7193d57ed4809b1ea153e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripContent.kt": {
@@ -1254,9 +1254,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModelTest.kt": {
-    "mtime": 1787740209.6889484,
-    "seen": 1787740815.5131981,
-    "ast_hash": "8e90dee028234f91846738754f18bab3",
+    "mtime": 1787742070.1390154,
+    "seen": 1787742107.860333,
+    "ast_hash": "f5ee9d4cf2d8ab4a9e8157bd7286ad48",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-23-easy-trip-v1-full-ui-implementation/batch-1-visual-fix-report.md": {
@@ -1914,9 +1914,9 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-26-easy-trip-search-place-loop-ui-convergence/task-3-report.md": {
-    "mtime": 1787740650.1104484,
-    "seen": 1787740815.513241,
-    "ast_hash": "39533c1e04dbfc7baca309e0fcd009c9",
+    "mtime": 1787742098.8142376,
+    "seen": 1787742107.860375,
+    "ast_hash": "a4d70d75483143050cc439b88b0a5e95",
     "semantic_hash": ""
   }
 }

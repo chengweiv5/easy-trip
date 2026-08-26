@@ -103,3 +103,29 @@ graphify update .
 ### 关注点
 
 - 错误归属随现有单一 `collectionError` 一起维护；新一次收藏操作会清除旧错误及其 POI 归属。
+
+## Fix round 3
+
+### 修复
+
+- `confirmRemoval()` 启动新的确认删除操作时，在进入异步删除前立即清除旧 `collectionError` 与 `collectionErrorPoiId`。
+- 首次删除失败后再次确认时，重试 busy 期间不再残留上一次错误；未调整其他收藏、删除或详情状态逻辑。
+
+### TDD 与验证
+
+先新增 ViewModel 测试，模拟第一次删除失败、第二次删除阻塞，断言第二次 `ConfirmRemoval` 启动后 busy 已设置且旧错误与归属立即清空；测试因旧错误仍存在而 RED。随后仅在 `confirmRemoval()` 启动处同步清理两个错误字段，测试 GREEN。
+
+最终命令：
+
+```bash
+./gradlew :app:testDebugUnitTest \
+  --tests com.yangchengwei.easytrip.place.ui.PlaceSearchViewModelTest
+
+graphify update .
+```
+
+结果：26 个 `PlaceSearchViewModelTest` 全部通过；知识图谱已更新。
+
+### 关注点
+
+- 本轮仅修复确认删除重试的陈旧错误状态，不扩展 Task 4 面板，不增加加入行程入口。

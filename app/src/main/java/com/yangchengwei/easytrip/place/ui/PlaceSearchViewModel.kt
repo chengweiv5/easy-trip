@@ -251,6 +251,10 @@ class PlaceSearchViewModel(
         val poiId = pending.candidate.poiId
         if (poiId in mutableState.value.collectionBusyPoiIds) return
         updateBusy(poiId, true)
+        mutableState.value = mutableState.value.copy(
+            collectionError = null,
+            collectionErrorPoiId = null,
+        )
         viewModelScope.launch {
             try {
                 service.deletePlaceAndReferences(pending.place.id)

@@ -386,6 +386,36 @@ class PlaceSearchViewModelTest {
         assertEquals(null, model.state.value.pendingCollectionRemoval)
     }
 
+    @Test fun retryingFailedRemovalImmediatelyClearsItsErrorWhileBusy() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val repository = FailingThenBlockingRemovalSavedPlaces(saved)
+        val model = PlaceSearchViewModel(
+            "trip",
+            repository,
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            SavedStateHandle(mapOf("query" to "地点")),
+        )
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.ToggleCollection("poi-1"))
+        advanceUntilIdle()
+
+        model.dispatch(PlaceSearchAction.ConfirmRemoval)
+        advanceUntilIdle()
+
+        assertEquals("首次取消失败", model.state.value.collectionError)
+        assertEquals("poi-1", model.state.value.collectionErrorPoiId)
+
+        model.dispatch(PlaceSearchAction.ConfirmRemoval)
+        dispatcher.scheduler.runCurrent()
+
+        assertNull(model.state.value.collectionError)
+        assertNull(model.state.value.collectionErrorPoiId)
+        assertTrue("poi-1" in model.state.value.collectionBusyPoiIds)
+
+        repository.deleteGate.complete(Unit)
+        advanceUntilIdle()
+    }
+
     @Test fun collectingKeepsUserOnSearchScreen() = runTest(dispatcher) {
         val repository = FakeSavedPlaces()
         val handle = SavedStateHandle(mapOf("query" to "故宫"))
@@ -529,6 +559,27 @@ class PlaceSearchViewModelTest {
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletePlaceAndReferences(placeId: String) {
+            deleteGate.await()
+        }
+    }
+
+    private class FailingThenBlockingRemovalSavedPlaces(
+        saved: SavedPlace,
+    ) : SavedPlaceRepository {
+        val deleteGate = CompletableDeferred<Unit>()
+        private val places = MutableStateFlow(listOf(saved))
+        private val savedIds = MutableStateFlow(setOf(saved.amapPoiId))
+        private var deleteAttempts = 0
+
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = savedIds
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.AlreadySaved(places.value.single().id)
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 1
+        override suspend fun deletePlaceAndReferences(placeId: String) {
+            deleteAttempts += 1
+            if (deleteAttempts == 1) error("首次取消失败")
             deleteGate.await()
         }
     }
