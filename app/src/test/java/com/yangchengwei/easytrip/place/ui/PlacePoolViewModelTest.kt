@@ -32,7 +32,11 @@ class PlacePoolViewModelTest {
     @After fun tearDown() = Dispatchers.resetMain()
 
     @Test fun zeroImpactDeleteRemovesImmediatelyWithoutConfirmation() = runTest(dispatcher) {
-        val repository = PoolRepository(listOf(place("a")), emptyMap())
+        val repository = PoolRepository(
+            listOf(place("a")),
+            emptyMap(),
+            impact = PlaceDeletionImpact(0, 0),
+        )
         val model = PlacePoolViewModel("trip", repository, null)
         advanceUntilIdle()
 
@@ -410,7 +414,7 @@ class PlacePoolViewModelTest {
         places: List<SavedPlace>,
         usageCounts: Map<String, Int>,
         private val updateFailure: Throwable? = null,
-        private val impact: PlaceDeletionImpact = PlaceDeletionImpact(0, 0),
+        private val impact: PlaceDeletionImpact? = null,
         private val impactFailure: Throwable? = null,
         private val deleteFailure: Throwable? = null,
     ) : SavedPlaceRepository {
@@ -436,7 +440,7 @@ class PlacePoolViewModelTest {
         override suspend fun usageCount(placeId: String) = usageCounts.value[placeId] ?: 0
         override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact {
             impactFailure?.let { throw it }
-            return impact
+            return requireNotNull(impact) { "Test must configure deletion impact for $placeId" }
         }
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleted += placeId
@@ -459,7 +463,8 @@ class PlacePoolViewModelTest {
         }
         fun complete(placeId: String) = completions.getValue(placeId).complete(Unit)
         override suspend fun usageCount(placeId: String) = 0
-        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
+        override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact =
+            error("Test must configure deletion impact for $placeId")
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 
@@ -480,7 +485,8 @@ class PlacePoolViewModelTest {
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = usageCounts.value?.get(placeId) ?: 0
-        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
+        override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact =
+            error("Test must configure deletion impact for $placeId")
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 

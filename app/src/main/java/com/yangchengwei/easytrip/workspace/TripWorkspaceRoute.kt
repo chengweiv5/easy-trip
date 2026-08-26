@@ -278,13 +278,15 @@ fun TripWorkspaceRoute(
             viewModel.closeOverlay()
         }
     }
-    LaunchedEffect(places.deleting) {
+    LaunchedEffect(places.deleting, places.deletionImpact) {
         places.deleting?.let { place ->
             viewModel.openOverlay(
                 WorkspaceOverlay.Confirmation(
                     confirmation(
                         title = "删除 ${place.name}？",
-                        message = "将同时删除 ${places.deletionImpact?.itineraryItemCount} 次行程安排和 ${places.deletionImpact?.routeLegCount} 段路线。",
+                        message = places.deletionImpact?.let { impact ->
+                            "将同时删除 ${impact.itineraryItemCount} 次行程安排和 ${impact.routeLegCount} 段路线。"
+                        }.orEmpty(),
                         confirmLabel = "确认删除地点",
                     ),
                 ),

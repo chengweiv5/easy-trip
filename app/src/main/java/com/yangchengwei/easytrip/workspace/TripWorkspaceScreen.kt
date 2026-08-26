@@ -461,6 +461,7 @@ private fun WorkspaceOverlayContent(
                         }
                     },
                     confirmEnabled = !placeBusy,
+                    errorMessage = placeState.deletionError,
                 )
             }
         }

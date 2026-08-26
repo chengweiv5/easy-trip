@@ -233,20 +233,24 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     fun requestDelete(place: SavedPlace) {
         if (mutableState.value.deletionBusy || mutableState.value.collectionBusyPoiIds.isNotEmpty()) return
         deletePreparationJob?.cancel()
+        val retryingImpact = mutableState.value.deleting?.id == place.id &&
+            mutableState.value.deletionImpact == null
         val generation = ++deleteGeneration
         mutableState.value = mutableState.value.copy(
             editing = null,
             detailDraft = null,
             detailSaving = false,
             detailSaveError = null,
-            deleting = null,
+            deleting = if (retryingImpact) place else null,
             deletionImpact = null,
+            deletionBusy = retryingImpact,
             deletionError = null,
         )
         deletePreparationJob = viewModelScope.launch {
             try {
                 val impact = service.deletionImpact(place.id)
                 if (!isCurrentDelete(place.id, generation, allowPreparing = true)) return@launch
+                mutableState.value = mutableState.value.copy(deletionBusy = false)
                 if (impact.itineraryItemCount == 0 && impact.routeLegCount == 0) {
                     mutableState.value = mutableState.value.copy(
                         deleting = place,

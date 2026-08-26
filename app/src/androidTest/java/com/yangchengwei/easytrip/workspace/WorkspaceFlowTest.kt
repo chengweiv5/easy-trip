@@ -11,6 +11,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -59,6 +60,7 @@ import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
+import com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.place.domain.SavedPlace
@@ -377,6 +379,40 @@ class WorkspaceFlowTest {
         compose.runOnIdle { repository.deleteGate.complete(Unit) }
         compose.waitUntil(5_000) { placeModel.state.value.deleting == null }
         compose.onNodeWithTag("confirmation-confirm").assertDoesNotExist()
+    }
+
+    @Test fun failedDeleteImpactHidesUnknownCountsAndRetriesInPlace() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = RetryImpactPlaces()
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", repository, null)
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeViewModel = placeModel,
+            )
+        }
+        compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
+
+        compose.onNodeWithTag("delete-place-saved").performClick()
+        compose.waitUntil(5_000) { placeModel.state.value.deletionError != null }
+
+        compose.onNodeWithText("影响查询失败").assertIsDisplayed()
+        compose.onNodeWithText("将同时删除 null 次行程安排和 null 段路线。").assertDoesNotExist()
+        compose.onNodeWithTag("confirmation-confirm").performClick()
+        compose.waitUntil(5_000) { repository.impactCalls == 2 }
+        compose.onNodeWithTag("confirmation-confirm").assertIsDisplayed().assertIsNotEnabled()
+        compose.onNodeWithTag("confirmation-dismiss").assertIsNotEnabled()
+
+        compose.runOnIdle { repository.impactGate.complete(PlaceDeletionImpact(2, 1)) }
+        compose.waitUntil(5_000) { placeModel.state.value.deletionImpact != null }
+        compose.onNodeWithText("将同时删除 2 次行程安排和 1 段路线。").assertIsDisplayed()
+        compose.onNodeWithTag("confirmation-confirm").assertIsEnabled()
     }
 
     @Test fun backCannotDismissPlaceConfirmationWhileDeleteRuns() {
@@ -751,6 +787,25 @@ class WorkspaceFlowTest {
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
+    private class RetryImpactPlaces : SavedPlaceRepository {
+        val impactGate = CompletableDeferred<PlaceDeletionImpact>()
+        var impactCalls = 0
+        private val place = SavedPlace("saved", "trip", "poi", "待删除地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
+        override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
+        override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("poi"))
+        override fun observeUsageCounts(tripId: String) = flowOf(mapOf("saved" to 0))
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact {
+            impactCalls++
+            if (impactCalls == 1) error("影响查询失败")
+            return impactGate.await()
+        }
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 

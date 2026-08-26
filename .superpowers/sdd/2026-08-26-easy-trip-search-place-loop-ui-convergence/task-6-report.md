@@ -55,3 +55,21 @@ GREEN：
 - `PlacePoolFlowTest#deletingFromEditClosesDetailAndDoesNotRestoreItAfterConfirmation`：通过；测试已显式创建行程引用以进入非零影响确认路径。
 - `PlacePoolFlowTest` 全类：仍有 3 个既有 UI 基线失败（旧“标签（逗号分隔）”控件断言 2 个、窄屏长列表 1 个），随后 instrumentation process crash；这些断言对应当前分步标签 UI，且不属于本轮删除状态机改动。
 - `WorkspaceFlowTest#backCannotDismissPlaceConfirmationWhileDeleteRuns` 与 `#deleteConfirmationWaitsForReadyTargetAndConfirmsOnce`：分别单独复跑通过；全类一次运行首测后设备进程崩溃。
+
+## Fix round 2
+
+### 审查问题与修复
+
+- Workspace place 删除确认不再把未知 `deletionImpact` 插值为 `null` 计数；影响查询失败或重试中隐藏影响文案。
+- Workspace `ConfirmationDialog` 传入 `deletionError`，与独立 `PlacePoolSheet` 一致展示错误。
+- 从失败状态点击确认会触发既有 impact 重试；重试期间保留确认上下文并置 busy，确认/取消/Back 均受既有门禁控制。
+- `PlacePoolViewModelTest` 与 `PlaceSearchViewModelTest` 的 fake 删除影响改为显式配置；遗漏配置立即失败，不再合成 `(0, 0)`。
+
+### TDD 证据与验证
+
+- RED：新增 `WorkspaceFlowTest#failedDeleteImpactHidesUnknownCountsAndRetriesInPlace` 后失败，错误文本未显示在 Workspace confirmation 中。
+- GREEN：传递 confirmation error、隐藏未知 impact、重试期间保留 busy 状态后，该设备测试通过。
+- `./gradlew :app:testDebugUnitTest --tests com.yangchengwei.easytrip.place.ui.PlacePoolViewModelTest --tests com.yangchengwei.easytrip.place.ui.PlaceSearchViewModelTest`：通过。
+- `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.workspace.WorkspaceFlowTest#failedDeleteImpactHidesUnknownCountsAndRetriesInPlace`：通过。
+- `git diff --check`：通过。
+- `graphify update .`：完成；仍报告两个既有 Kotlin 文件的部分 AST 解析告警。

@@ -364,7 +364,10 @@ class PlaceSearchViewModelTest {
 
     @Test fun backDuringAsyncDeletionDoesNotChangeDetailOrRequestExit() = runTest(dispatcher) {
         val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
-        val repository = BlockingSavedPlaces(listOf(saved))
+        val repository = BlockingSavedPlaces(
+            listOf(saved),
+            deletionImpact = PlaceDeletionImpact(0, 0),
+        )
         val model = PlaceSearchViewModel(
             "trip",
             repository,
@@ -508,7 +511,10 @@ class PlaceSearchViewModelTest {
 
     @Test fun nonZeroRemovalImpactShowsExactCounts() = runTest(dispatcher) {
         val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
-        val repository = FakeSavedPlaces(listOf(saved), usageCount = 2, routeLegCount = 3)
+        val repository = FakeSavedPlaces(
+            listOf(saved),
+            deletionImpact = PlaceDeletionImpact(2, 3),
+        )
         val model = PlaceSearchViewModel(
             "trip",
             repository,
@@ -526,7 +532,11 @@ class PlaceSearchViewModelTest {
 
     @Test fun repeatedConfirmRemovalDeletesOnlyOnce() = runTest(dispatcher) {
         val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
-        val repository = FakeSavedPlaces(listOf(saved), usageCount = 1)
+        val repository = FakeSavedPlaces(
+            listOf(saved),
+            usageCount = 1,
+            deletionImpact = PlaceDeletionImpact(1, 0),
+        )
         val model = PlaceSearchViewModel(
             "trip",
             repository,
@@ -549,7 +559,10 @@ class PlaceSearchViewModelTest {
 
     @Test fun retryingFailedRemovalImmediatelyClearsItsErrorWhileBusy() = runTest(dispatcher) {
         val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
-        val repository = FailingThenBlockingRemovalSavedPlaces(saved)
+        val repository = FailingThenBlockingRemovalSavedPlaces(
+            saved,
+            PlaceDeletionImpact(1, 0),
+        )
         val model = PlaceSearchViewModel(
             "trip",
             repository,
@@ -730,6 +743,7 @@ class PlaceSearchViewModelTest {
 
     private class BlockingSavedPlaces(
         initialPlaces: List<SavedPlace> = emptyList(),
+        private val deletionImpact: PlaceDeletionImpact? = null,
     ) : SavedPlaceRepository {
         val saveGate = CompletableDeferred<Unit>()
         val deleteGate = CompletableDeferred<Unit>()
@@ -745,7 +759,8 @@ class PlaceSearchViewModelTest {
         }
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 0
-        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
+        override suspend fun deletionImpact(placeId: String) =
+            requireNotNull(deletionImpact) { "Test must configure deletion impact for $placeId" }
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleteGate.await()
         }
@@ -753,6 +768,7 @@ class PlaceSearchViewModelTest {
 
     private class FailingThenBlockingRemovalSavedPlaces(
         saved: SavedPlace,
+        private val deletionImpact: PlaceDeletionImpact,
     ) : SavedPlaceRepository {
         val deleteGate = CompletableDeferred<Unit>()
         private val places = MutableStateFlow(listOf(saved))
@@ -765,7 +781,7 @@ class PlaceSearchViewModelTest {
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.AlreadySaved(places.value.single().id)
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 1
-        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
+        override suspend fun deletionImpact(placeId: String) = deletionImpact
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleteAttempts += 1
             if (deleteAttempts == 1) error("首次取消失败")
@@ -785,7 +801,8 @@ class PlaceSearchViewModelTest {
         }
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
         override suspend fun usageCount(placeId: String) = 0
-        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
+        override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact =
+            error("Test must configure deletion impact for $placeId")
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 
@@ -801,7 +818,8 @@ class PlaceSearchViewModelTest {
         }
         fun complete(placeId: String) = completions.getValue(placeId).complete(Unit)
         override suspend fun usageCount(placeId: String) = 0
-        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
+        override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact =
+            error("Test must configure deletion impact for $placeId")
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 
@@ -809,7 +827,7 @@ class PlaceSearchViewModelTest {
         initialPlaces: List<SavedPlace> = emptyList(),
         private val usageCount: Int = 0,
         private val updateFailure: Throwable? = null,
-        private val routeLegCount: Int = 0,
+        private val deletionImpact: PlaceDeletionImpact? = null,
     ) : SavedPlaceRepository {
         val saved = mutableListOf<PlaceCandidate>()
         val deleted = mutableListOf<String>()
@@ -830,7 +848,8 @@ class PlaceSearchViewModelTest {
             updateFailure?.let { throw it }
         }
         override suspend fun usageCount(placeId: String) = usageCount
-        override suspend fun deletionImpact(placeId: String) = PlaceDeletionImpact(usageCount(placeId), routeLegCount)
+        override suspend fun deletionImpact(placeId: String) =
+            requireNotNull(deletionImpact) { "Test must configure deletion impact for $placeId" }
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleted += placeId
             if (deleted.count { it == placeId } > 1) error("Unknown place")
