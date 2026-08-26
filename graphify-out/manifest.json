@@ -96,9 +96,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceFlowTest.kt": {
-    "mtime": 1787717805.553872,
-    "seen": 1787717959.600874,
-    "ast_hash": "7b8f4cc968f1dcb0911cde96d3c9287f",
+    "mtime": 1787719336.271807,
+    "seen": 1787719438.553466,
+    "ast_hash": "511c73d3903a0b5120d0925f10419c2f",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/AppContainer.kt": {
@@ -822,15 +822,15 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryScopeRailTest.kt": {
-    "mtime": 1787715471.5631092,
-    "seen": 1787717572.620548,
-    "ast_hash": "3aef73691e09ad88a27ee40156d2540a",
+    "mtime": 1787719143.45609,
+    "seen": 1787719438.5534499,
+    "ast_hash": "f76d87866fcc930ef7fec468d5a743f4",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContentTest.kt": {
-    "mtime": 1787715402.477901,
-    "seen": 1787717572.62055,
-    "ast_hash": "025b4b3dc64e4817df96ed5dce35a682",
+    "mtime": 1787719143.0392258,
+    "seen": 1787719438.553452,
+    "ast_hash": "57808f2f1935b660aaa9b8df0ef05b7f",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlacePoolScrollbarTest.kt": {
@@ -1566,9 +1566,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModelTest.kt": {
-    "mtime": 1787711725.3859513,
-    "seen": 1787712180.119672,
-    "ast_hash": "1d713a5745e603d97f6ddd7a29c003a8",
+    "mtime": 1787719142.1877997,
+    "seen": 1787719438.553568,
+    "ast_hash": "c2889cfa1fcac5ab2e35b5858b746563",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceBottomSheet.kt": {
@@ -1845,6 +1845,12 @@
     "mtime": 1787714343.5473936,
     "seen": 1787717572.620714,
     "ast_hash": "83ffa1a3538573bc2ac6b5c4c58a9767",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-26-easy-trip-itinerary-ui-convergence/task-6-report.md": {
+    "mtime": 1787718003.9599915,
+    "seen": 1787719438.553613,
+    "ast_hash": "e1a48bf03c926739b3192918e078046c",
     "semantic_hash": ""
   }
 }

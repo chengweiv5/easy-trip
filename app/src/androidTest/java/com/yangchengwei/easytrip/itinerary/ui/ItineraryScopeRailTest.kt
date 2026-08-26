@@ -141,7 +141,7 @@ class ItineraryScopeRailTest {
     }
 
     @Test
-    fun railAndWholeTripEmptyStateAddActionsUseSameCallback() {
+    fun railAddDayActionInvokesCallbackOnce() {
         var addClicks = 0
         compose.setContent {
             WorkspaceItineraryContent(
@@ -156,8 +156,26 @@ class ItineraryScopeRailTest {
         }
 
         compose.onNodeWithTag("itinerary-add-day").performClick()
+        assertEquals(1, addClicks)
+    }
+
+    @Test
+    fun wholeTripEmptyStateAddDayActionInvokesCallbackOnce() {
+        var addClicks = 0
+        compose.setContent {
+            WorkspaceItineraryContent(
+                days = emptyList(),
+                selected = ItineraryScope.WholeTrip,
+                wholeTripDays = emptyList(),
+                onSelect = {},
+                dayContent = {},
+                onAddDay = { addClicks++ },
+                modifier = Modifier.height(300.dp),
+            )
+        }
+
         compose.onNodeWithTag("whole-trip-add-day").performClick()
-        assertEquals(2, addClicks)
+        assertEquals(1, addClicks)
     }
 
     @Test

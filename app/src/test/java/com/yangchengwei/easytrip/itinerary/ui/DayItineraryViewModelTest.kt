@@ -121,6 +121,7 @@ class DayItineraryViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
         model.requestDelete("item-beta")
+        assertTrue(repository.deleteCalls.isEmpty())
 
         model.confirmDelete()
         model.confirmDelete()

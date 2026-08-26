@@ -83,7 +83,7 @@ class WholeTripItineraryContentTest {
         )
         compose.onNodeWithTag("item-first").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
         compose.onNodeWithTag("item-second").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
-        val forbiddenPrefixes = listOf("timing-", "move-", "delete-", "mode-", "retry-")
+        val forbiddenPrefixes = listOf("timing-", "move-", "delete-", "mode-", "retry-", "more-", "drag-handle-")
         val allTags = compose.onRoot(useUnmergedTree = true).fetchSemanticsNode().allTags()
         assertTrue(allTags.none { tag -> forbiddenPrefixes.any(tag::startsWith) })
     }
@@ -109,7 +109,7 @@ class WholeTripItineraryContentTest {
         val content = compose.onNodeWithTag("whole-trip-content").getUnclippedBoundsInRoot()
         assertTrue("sheet=$sheet content=$content", content.left >= sheet.left && content.right <= sheet.right)
         assertEquals(sheet.right - 20.dp, content.right)
-        val forbiddenPrefixes = listOf("timing-", "move-", "delete-", "mode-", "retry-")
+        val forbiddenPrefixes = listOf("timing-", "move-", "delete-", "mode-", "retry-", "more-", "drag-handle-")
         val allTags = compose.onRoot(useUnmergedTree = true).fetchSemanticsNode().allTags()
         assertTrue(allTags.none { tag -> forbiddenPrefixes.any(tag::startsWith) })
     }

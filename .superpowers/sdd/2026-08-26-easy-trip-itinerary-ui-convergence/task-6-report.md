@@ -27,9 +27,28 @@
 - `./gradlew testDebugUnitTest lintDebug assembleDebug assembleDebugAndroidTest`：通过。
 - `graphify update .`：完成；报告了两个既有文件的 AST 部分提取 warning。
 
+## Fix round 1/5
+
+- `DayItineraryViewModelTest` 直接观察既有 fake repository：`RequestDelete` 后明确断言 `deleteCalls` 为空，`ConfirmDelete` 后才断言仅调用一次且 item id 为 `item-beta`。
+- `WorkspaceFlowTest` 记录收到的 `DayItineraryAction`，关闭菜单后明确断言未收到 `DismissDialogs`。
+- rail 与全程空态的新增日入口改为两个独立 composition，各自断言回调恰好一次。
+- 全程只读禁止 tag 前缀补充 `more-` 与 `drag-handle-`。
+- 保留 `DayItineraryViewModel` 的 Ready mode guard 与 `TripWorkspaceRoute` 的业务状态 overlay 派生。
+- JVM 定向测试通过；Task 6 设备测试 29 tests、0 failed；完整静态门禁通过。
+
 ## 范围检查
 
-- 未修改 Repository、route generation 或 workspace shell。
+- Task 6 改动文件准确列表：
+  - `app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContent.kt`
+  - `app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/WorkspaceItineraryContent.kt`
+  - `app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModel.kt`
+  - `app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceRoute.kt`
+  - `app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContentTest.kt`
+  - `app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryScopeRailTest.kt`
+  - `app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceFlowTest.kt`
+  - `app/src/test/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModelTest.kt`
+  - `app/src/test/java/com/yangchengwei/easytrip/workspace/TripWorkspaceNavigationStateTest.kt`
+- 未修改 Repository 或 route generation；修改了 workspace shell 的 `TripWorkspaceRoute.kt`，用于按业务状态派生 overlay。
 - 未触碰 `diagrams/`。
 - 未 push。
 

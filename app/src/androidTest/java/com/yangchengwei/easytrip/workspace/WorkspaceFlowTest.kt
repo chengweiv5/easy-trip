@@ -53,6 +53,7 @@ import com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi
 import com.yangchengwei.easytrip.itinerary.ui.RouteLegUi
 import com.yangchengwei.easytrip.itinerary.ui.RouteModeEditDraft
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
+import org.junit.Assert.assertTrue
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
@@ -376,6 +377,7 @@ class WorkspaceFlowTest {
 
     @Test fun itemMenuActionsOpenBusinessOverlaysForSameItem() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val receivedActions = mutableListOf<DayItineraryAction>()
         var itineraryState by androidx.compose.runtime.mutableStateOf(
             DayItineraryUiState(
                 days = listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
@@ -395,6 +397,7 @@ class WorkspaceFlowTest {
                 onWorkspaceEffect = {},
                 itineraryState = itineraryState,
                 onItineraryAction = { action ->
+                    receivedActions += action
                     itineraryState = when (action) {
                         is DayItineraryAction.RequestTiming -> itineraryState.copy(
                             editDraft = ItineraryEditDraft(action.itemId, "", ""),
@@ -424,6 +427,7 @@ class WorkspaceFlowTest {
             assertEquals(null, itineraryState.editDraft)
             assertEquals(null, itineraryState.crossDayMove)
             assertEquals(null, itineraryState.deleteConfirmation)
+            assertTrue(receivedActions.none { it == DayItineraryAction.DismissDialogs })
         }
 
         compose.onNodeWithTag("more-item-1").performClick()
