@@ -1,7 +1,7 @@
 # Graph Report - easy-trip  (2026-08-26)
 
 ## Corpus Check
-- 311 files · ~175,827 words
+- 311 files · ~175,852 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
@@ -10,7 +10,7 @@
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `138fc2f2`
+- Built from commit: `c9894dea`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -1070,11 +1070,11 @@ Nodes (4): 8.1 来源, 8.2 只读态, 8.3 编辑态, 8. PlaceDetailPanel
 _Questions this graph is uniquely positioned to answer:_
 
 - **Why does `GeoPoint` connect `GeoPoint` to `TripWorkspaceNavigationStateTest`, `MapUiModelMapperTest`, `decideCollectionToggle`, `FakeRepository`, `PlacePoolUiState`, `DayItineraryUiState`, `PlaceSearchEvidenceTest`, `RouteStatus`, `TransportMode`, `CascadeDeleteTest.kt`, `V1ScenarioExecutable.kt`, `RoomSavedPlaceRepository`, `CreateTrip`, `PlacePoolViewModel`, `RoutePlannerTest`, `.model`, `DayItinerarySelectionTest.kt`, `AmapComposeMap`, `MapUiModel`, `AmapServiceException`, `.mapDetailBackThenPlaceEditRendersNewTarget`, `DayItineraryContent`, `reduceMapInteraction`, `PlacePoolFlowTest`, `WorkspaceFlowTest.kt`, `PoolRepository`, `FakeTrips`, `DayItinerary`, `RoomRouteLegRepositoryTest`, `SavedPlace`, `FakeSavedPlaces`, `TripWorkspaceViewModel`, `MapFacade.kt`, `TripDay`, `Legs`, `MapViewportRenderingPolicyTest`, `AppNavigation.kt`, `V2AcceptanceTest.kt`, `AmapPlaceDataSource.kt`, `parsePlaces`, `Legs`, `RoomRouteLegRepository`, `MapView`, `MapViewportControllerTest`, `AmapRouteDataSource.kt`, `TripWorkspaceContent`, `DelayedDeletePlaces`, `AddPlacesRequest`, `.realNavigationEntersWorkspaceSearchesReturnsAndSwitchesSections`, `.Content`?**
-  _High betweenness centrality (0.100) - this node is a cross-community bridge._
+  _High betweenness centrality (0.120) - this node is a cross-community bridge._
 - **Why does `TripDay` connect `TripDay` to `TripWorkspaceNavigationStateTest`, `MapUiModelMapperTest`, `TripService`, `PlacePoolUiState`, `Trips`, `DayItineraryUiState`, `V1ScenarioExecutable.kt`, `.model`, `DayItinerarySelectionTest.kt`, `FakeRepository`, `DayItineraryContent`, `WorkspaceItineraryContent`, `PlacePoolFlowTest`, `WorkspaceFlowTest.kt`, `FakeTrips`, `DayItinerary`, `CompactSecondaryButton`, `FakeRepository`, `ItineraryItemUi`, `TripWorkspaceViewModel`, `MapFacade.kt`, `FakeTripRepository`, `Legs`, `SelectablePill`, `WholeTripItineraryContent`, `GeoPoint`?**
-  _High betweenness centrality (0.049) - this node is a cross-community bridge._
-- **Why does `RouteLegRepository` connect `WorkspaceFlowTest.kt` to `FakeRepository`, `Legs`, `DayItinerarySelectionTest.kt`, `TripDay`, `Trips`, `Legs`, `Legs`, `DayItineraryViewModelTest`, `AppNavigation.kt`, `Legs`, `FakeLegs`, `DayItinerary`, `RoomRouteLegRepository`, `Legs`, `TripWorkspaceViewModel`?**
-  _High betweenness centrality (0.047) - this node is a cross-community bridge._
+  _High betweenness centrality (0.051) - this node is a cross-community bridge._
+- **Why does `TripRepository` connect `TripDay` to `TripService`, `TripSettingsViewModel`, `Trips`, `Trips`, `DayItineraryViewModelTest`, `CreateTrip`, `DayItinerarySelectionTest.kt`, `FakeRepository`, `Trips`, `Legs`, `WorkspaceFlowTest.kt`, `LongNameTrips`, `FakeRepository`, `FakeTrips`, `DateRangeDeletionCounts`, `FakeRepository`, `TripWorkspaceViewModel`, `TripSummary`, `TravelMode`, `FakeTripRepository`, `Legs`, `AppNavigation.kt`, `Legs`?**
+  _High betweenness centrality (0.045) - this node is a cross-community bridge._
 - **Are the 2 inferred relationships involving `GeoPoint` (e.g. with `.result()` and `RoutePlannerTest`) actually correct?**
   _`GeoPoint` has 2 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 5 inferred relationships involving `TripDay` (e.g. with `FakeTrips` and `.trip()`) actually correct?**
