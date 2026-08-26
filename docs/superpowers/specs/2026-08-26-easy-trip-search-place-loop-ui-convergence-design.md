@@ -83,6 +83,7 @@
 
 - 搜索结果直接加入行程。
 - 点击地图其他 POI 切换详情。
+- 从搜索详情直接加入行程；单地点加入仅位于地点池行。
 - 独立标签管理页面。
 - 修改 SavedPlace 与 ItineraryItem 的身份关系。
 - 工作台壳层、行程时间线或旅行设置重做。
@@ -119,7 +120,7 @@ SearchMapDetail
     └── 收藏、编辑、保存、取消、删除
 ```
 
-搜索地图详情是搜索流程内的显示模式，不是工作台 Sheet 档位，也不是新的顶层导航目的地。
+搜索地图详情是现有独立搜索 destination 内的显示模式，不是工作台 Sheet 档位，也不是新的顶层导航目的地。`PlaceSearchViewModel` 继续限定在该 search back-stack entry；搜索详情不提升为工作台状态，也不复用工作台 `TripWorkspaceViewModel`。地图 UI 复用现有 AMap host/lifecycle 组件，但由搜索页面自己的展示状态构造最小地图模型。
 
 ### 4.3 地点池
 
@@ -219,7 +220,7 @@ PlaceSearchAction.OpenDetail(poiId)
 ### 6.2 返回优先级
 
 1. 影响确认打开：先关闭确认。
-2. 详情编辑态且未提交：先取消编辑；若交互需要放弃提示，提示只针对真实脏草稿。
+2. 详情编辑态且未提交：执行与“取消编辑”相同的行为，丢弃未保存草稿并回到详情只读态，不额外弹确认。
 3. 搜索地图详情模式：回到搜索结果模式。
 4. 搜索结果模式：返回工作台。
 
@@ -232,6 +233,7 @@ PlaceSearchAction.OpenDetail(poiId)
 - 列表滚动位置由 `LazyListState` 的可保存状态恢复。
 - 进程恢复后候选无效时退回 Results。
 - 返回工作台仍只发布当前搜索会话的 `recentlyCollectedPoiIds` 一次。
+- `recentlyCollectedPoiIds` 是会话级高亮提示，不要求进程死亡后恢复；进程恢复后以 Repository 的真实收藏状态为准。
 
 ## 7. 地图详情布局
 
@@ -580,6 +582,7 @@ existing atomic deletePlaceAndReferences(placeId)
 - 无效 poiId 恢复到 Results。
 - 系统 Back 和顶部 Back 遵循同一优先级。
 - 返回工作台只发布一次本次会话收藏集合。
+- 未收藏 candidate 和已收藏详情均不显示加入行程；单地点加入仅从地点池 `＋` 发起。
 
 ### 16.2 地图详情
 
