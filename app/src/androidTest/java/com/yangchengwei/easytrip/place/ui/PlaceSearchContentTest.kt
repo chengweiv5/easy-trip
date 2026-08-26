@@ -5,6 +5,8 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -43,17 +45,114 @@ import org.junit.Test
 class PlaceSearchContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun resultRowsExposeBookmarkButNoScheduleAction() {
+    @Test fun resultRowOpensDetailWhileBookmarkOnlyTogglesCollection() {
         val candidate = PlaceCandidate("poi-1", "故宫博物院", "北京市东城区景山前街4号", GeoPoint(39.916, 116.397), "010")
-        var action: PlaceSearchAction? = null
+        val actions = mutableListOf<PlaceSearchAction>()
         setContent(PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results))) {
-            action = it
+            actions.add(it)
         }
 
-        compose.onNodeWithText("故宫博物院").assertIsDisplayed()
-        compose.onNodeWithContentDescription("收藏故宫博物院").assertHasClickAction().performClick()
+        compose.onNodeWithContentDescription("查看故宫博物院详情").performClick()
+        compose.onNodeWithContentDescription("收藏故宫博物院").performClick()
+
+        assertEquals(
+            listOf(PlaceSearchAction.OpenDetail("poi-1"), PlaceSearchAction.ToggleCollection("poi-1")),
+            actions,
+        )
+    }
+
+    @Test fun rowAndBookmarkHaveIndependentButtonSemantics() {
+        val candidate = PlaceCandidate("poi-1", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        setContent(PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results)))
+
+        compose.onNodeWithContentDescription("查看故宫博物院详情").assertHasClickAction()
+        compose.onNodeWithContentDescription("收藏故宫博物院").assertHasClickAction()
+        assertMinimumTouchSize("place-search-bookmark-touch-poi-1", 48f)
+    }
+
+    @Test fun detailBackRestoresQueryResultsAndListPosition() {
+        val candidates = (0..30).map {
+            PlaceCandidate("poi-$it", "地点$it", "地址$it", GeoPoint(39.916 + it, 116.397), "010")
+        }
+        val state = mutableStateOf(
+            PlaceSearchUiState(search = PlaceSearchState("故宫", candidates, phase = PlaceSearchPhase.Results)),
+        )
+        val listState = LazyListState(firstVisibleItemIndex = 18, firstVisibleItemScrollOffset = 7)
+        compose.setContent {
+            EasyTripTheme {
+                PlaceSearchContent(
+                    state = state.value,
+                    onAction = {},
+                    resultsListState = listState,
+                    detailContent = { Text("详情：${it.name}") },
+                )
+            }
+        }
+        compose.waitForIdle()
+        compose.runOnIdle {
+            state.value = state.value.copy(displayMode = SearchDisplayMode.MapDetail("poi-18"))
+        }
+        compose.onNodeWithText("详情：地点18").assertIsDisplayed()
+        compose.runOnIdle {
+            state.value = state.value.copy(displayMode = SearchDisplayMode.Results)
+        }
+        compose.onNodeWithText("地点18").assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals("故宫", state.value.search.query)
+            assertEquals(18, listState.firstVisibleItemIndex)
+            assertEquals(7, listState.firstVisibleItemScrollOffset)
+        }
+    }
+
+    @Test fun candidateWithoutCoordinatesCanOpenDetailWithoutMapFocus() {
+        val candidate = PlaceCandidate("poi-no-point", "未知地点", "地址暂不可用", null, "010")
+        val state = mutableStateOf(
+            PlaceSearchUiState(search = PlaceSearchState("未知", listOf(candidate), phase = PlaceSearchPhase.Results)),
+        )
+        var detailCandidate: PlaceCandidate? = null
+        compose.setContent {
+            EasyTripTheme {
+                PlaceSearchContent(
+                    state = state.value,
+                    onAction = {
+                        if (it is PlaceSearchAction.OpenDetail) {
+                            state.value = state.value.copy(displayMode = SearchDisplayMode.MapDetail(it.poiId))
+                        }
+                    },
+                    detailContent = { detailCandidate = it },
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("查看未知地点详情").performClick()
+        compose.waitForIdle()
+
+        compose.runOnIdle {
+            assertEquals(candidate, detailCandidate)
+            assertEquals(null, detailCandidate?.point)
+        }
+    }
+
+    @Test fun resultAndDetailExposeNoAddToItineraryAction() {
+        val candidate = PlaceCandidate("poi-1", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        val state = mutableStateOf(
+            PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results)),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                PlaceSearchContent(
+                    state = state.value,
+                    onAction = {},
+                    detailContent = { Text("详情：${it.name}") },
+                )
+            }
+        }
         compose.onAllNodesWithText("加入行程").assertCountEquals(0)
-        assertEquals(PlaceSearchAction.ToggleCollection("poi-1"), action)
+
+        compose.runOnIdle {
+            state.value = state.value.copy(displayMode = SearchDisplayMode.MapDetail("poi-1"))
+        }
+        compose.onAllNodesWithText("加入行程").assertCountEquals(0)
     }
 
     @Test fun loadingEmptyAndFailureMatchTheirActions() {
@@ -200,8 +299,8 @@ class PlaceSearchContentTest {
 
         assertHeaderInsideContainerWithoutOverlap()
         assertInside("place-search-result-row-poi-1", "place-search-surface")
-        assertInside("place-search-place-icon-poi-1", "place-search-surface")
-        assertInside("place-search-result-text-poi-1", "place-search-surface")
+        assertInside("place-search-place-icon-poi-1", "place-search-surface", useUnmergedTree = true)
+        assertInside("place-search-result-text-poi-1", "place-search-surface", useUnmergedTree = true)
         assertInside("place-search-bookmark-visual-poi-1", "place-search-surface", useUnmergedTree = true)
         assertInside("place-search-bookmark-touch-poi-1", "place-search-surface")
         assertNoOverlap("place-search-place-icon-poi-1", "place-search-bookmark-touch-poi-1")
@@ -254,8 +353,8 @@ class PlaceSearchContentTest {
     }
 
     private fun assertNoOverlap(firstTag: String, secondTag: String) {
-        val first = compose.onNodeWithTag(firstTag).getUnclippedBoundsInRoot()
-        val second = compose.onNodeWithTag(secondTag).getUnclippedBoundsInRoot()
+        val first = compose.onNodeWithTag(firstTag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val second = compose.onNodeWithTag(secondTag, useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue(
             first.right <= second.left || second.right <= first.left ||
                 first.bottom <= second.top || second.bottom <= first.top,
@@ -274,8 +373,20 @@ class PlaceSearchContentTest {
         expectedHeight?.let { assertEquals(it, (bounds.bottom - bounds.top).value, 0.5f) }
     }
 
-    private fun setContent(state: PlaceSearchUiState, onAction: (PlaceSearchAction) -> Unit = {}) {
-        compose.setContent { EasyTripTheme { PlaceSearchContent(state, onAction) } }
+    private fun setContent(
+        state: PlaceSearchUiState,
+        detailContent: @androidx.compose.runtime.Composable (PlaceCandidate) -> Unit = {},
+        onAction: (PlaceSearchAction) -> Unit = {},
+    ) {
+        compose.setContent {
+            EasyTripTheme {
+                PlaceSearchContent(
+                    state = state,
+                    onAction = onAction,
+                    detailContent = detailContent,
+                )
+            }
+        }
     }
 
     private class TestSavedPlaces : SavedPlaceRepository {

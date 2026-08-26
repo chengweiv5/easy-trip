@@ -19,7 +19,9 @@ import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -64,27 +66,36 @@ fun PlaceSearchContent(
     state: PlaceSearchUiState,
     onAction: (PlaceSearchAction) -> Unit,
     modifier: Modifier = Modifier,
+    resultsListState: LazyListState = rememberLazyListState(),
+    detailContent: @Composable (PlaceCandidate) -> Unit = {},
 ) {
-    Column(
-        modifier
-            .fillMaxSize()
-            .background(SearchBackground)
-            .windowInsetsPadding(WindowInsets.safeDrawing)
-            .navigationBarsPadding()
-            .padding(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(22.dp),
-    ) {
-        SearchHeader(state.search.query, onAction)
-        Surface(
-            modifier = Modifier.fillMaxWidth().weight(1f).testTag("place-search-surface"),
-            color = SearchSurface,
-            shape = RoundedCornerShape(12.dp),
-            tonalElevation = 0.dp,
+    when (val mode = state.displayMode) {
+        SearchDisplayMode.Results -> Column(
+            modifier
+                .fillMaxSize()
+                .background(SearchBackground)
+                .windowInsetsPadding(WindowInsets.safeDrawing)
+                .navigationBarsPadding()
+                .padding(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(22.dp),
         ) {
-            SearchBody(state, onAction)
+            SearchHeader(state.search.query, onAction)
+            Surface(
+                modifier = Modifier.fillMaxWidth().weight(1f).testTag("place-search-surface"),
+                color = SearchSurface,
+                shape = RoundedCornerShape(12.dp),
+                tonalElevation = 0.dp,
+            ) {
+                SearchBody(state, onAction, resultsListState)
+            }
+            state.collectionError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+            }
         }
-        state.collectionError?.let {
-            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+        is SearchDisplayMode.MapDetail -> {
+            state.search.results.firstOrNull { it.poiId == mode.poiId }?.let { candidate ->
+                detailContent(candidate)
+            }
         }
     }
 }
@@ -158,7 +169,11 @@ private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
 }
 
 @Composable
-private fun SearchBody(state: PlaceSearchUiState, onAction: (PlaceSearchAction) -> Unit) {
+private fun SearchBody(
+    state: PlaceSearchUiState,
+    onAction: (PlaceSearchAction) -> Unit,
+    resultsListState: LazyListState,
+) {
     when (val phase = state.search.phase) {
         PlaceSearchPhase.Initial -> SearchMessage(
             icon = { SearchIcon(Modifier.size(48.dp), SearchMuted) },
@@ -186,12 +201,16 @@ private fun SearchBody(state: PlaceSearchUiState, onAction: (PlaceSearchAction) 
             testTagPrefix = "place-search-network-failure",
             onButtonClick = { onAction(PlaceSearchAction.Retry) },
         )
-        PlaceSearchPhase.Results -> SearchResults(state, onAction)
+        PlaceSearchPhase.Results -> SearchResults(state, onAction, resultsListState)
     }
 }
 
 @Composable
-private fun SearchResults(state: PlaceSearchUiState, onAction: (PlaceSearchAction) -> Unit) {
+private fun SearchResults(
+    state: PlaceSearchUiState,
+    onAction: (PlaceSearchAction) -> Unit,
+    resultsListState: LazyListState,
+) {
     Column(Modifier.fillMaxSize()) {
         Row(
             Modifier.fillMaxWidth().padding(bottom = 8.dp),
@@ -211,13 +230,15 @@ private fun SearchResults(state: PlaceSearchUiState, onAction: (PlaceSearchActio
                 Text("${state.search.results.size} 个", color = SearchPrimaryDark, fontSize = 11.sp, fontWeight = FontWeight.Bold)
             }
         }
-        LazyColumn(Modifier.fillMaxSize()) {
+        LazyColumn(Modifier.fillMaxSize(), state = resultsListState) {
             items(state.search.results, key = { it.poiId }) { candidate ->
                 SearchResultRow(
-                    candidate,
-                    candidate.poiId in state.savedPoiIds,
-                    candidate.poiId in state.collectionBusyPoiIds,
-                ) { onAction(PlaceSearchAction.ToggleCollection(candidate.poiId)) }
+                    candidate = candidate,
+                    saved = candidate.poiId in state.savedPoiIds,
+                    busy = candidate.poiId in state.collectionBusyPoiIds,
+                    onOpenDetail = { onAction(PlaceSearchAction.OpenDetail(candidate.poiId)) },
+                    onToggleCollection = { onAction(PlaceSearchAction.ToggleCollection(candidate.poiId)) },
+                )
             }
         }
     }
@@ -291,12 +312,23 @@ private fun SearchMessage(
 }
 
 @Composable
-private fun SearchResultRow(candidate: PlaceCandidate, saved: Boolean, busy: Boolean, onToggle: () -> Unit) {
+private fun SearchResultRow(
+    candidate: PlaceCandidate,
+    saved: Boolean,
+    busy: Boolean,
+    onOpenDetail: () -> Unit,
+    onToggleCollection: () -> Unit,
+) {
     Row(
         Modifier
             .fillMaxWidth()
             .padding(vertical = 12.dp)
-            .testTag("place-search-result-row-${candidate.poiId}"),
+            .testTag("place-search-result-row-${candidate.poiId}")
+            .clickable(onClick = onOpenDetail)
+            .semantics {
+                contentDescription = "查看${candidate.name}详情"
+                role = Role.Button
+            },
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
@@ -321,7 +353,7 @@ private fun SearchResultRow(candidate: PlaceCandidate, saved: Boolean, busy: Boo
                 .size(48.dp)
                 .testTag("place-search-bookmark-touch-${candidate.poiId}")
                 .clip(CircleShape)
-                .clickable(enabled = candidate.point != null && !busy, onClick = onToggle)
+                .clickable(enabled = candidate.point != null && !busy, onClick = onToggleCollection)
                 .semantics {
                     contentDescription = if (saved) "取消收藏${candidate.name}" else "收藏${candidate.name}"
                     role = Role.Button
