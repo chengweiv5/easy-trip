@@ -189,7 +189,7 @@ private fun SearchDetailFallback(candidate: PlaceCandidate, onToggleCollection: 
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
-                .clickable(enabled = candidate.point != null, onClick = onToggleCollection)
+                .clickable(onClick = onToggleCollection)
                 .semantics {
                     contentDescription = "收藏${candidate.name}"
                     role = Role.Button

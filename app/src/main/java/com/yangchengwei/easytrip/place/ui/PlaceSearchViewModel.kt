@@ -211,7 +211,7 @@ class PlaceSearchViewModel(
 
     private fun toggleCollection(poiId: String) {
         val candidate = reducer.state.value.results.firstOrNull { it.poiId == poiId } ?: return
-        if (candidate.point == null || poiId in mutableState.value.collectionBusyPoiIds) return
+        if (poiId in mutableState.value.collectionBusyPoiIds) return
         viewModelScope.launch {
             updateBusy(poiId, true)
             mutableState.value = mutableState.value.copy(collectionError = null)

@@ -38,3 +38,35 @@ graphify update .
 - 当前默认详情区域提供最小名称、地址与收藏操作；Task 4 可用共享 `PlaceDetailPanel` 替换该 fallback。
 - 已通过 Compose instrumentation 在模拟设备上验证关键交互；未做物理真机视觉验收。
 - `graphify update .` 报告两个既有源码文件存在可部分抽取的语法错误，并提示 graphify skill/package 版本差异；本次图谱更新仍成功完成。
+
+## Fix round 1
+
+### 修复
+
+- 生产 `SearchDetailFallback` 不再因候选缺少坐标禁用收藏按钮；无坐标详情会 dispatch `ToggleCollection`。
+- `PlaceSearchViewModel` 不再提前忽略无坐标候选，而是进入仓储收藏流程；生产仓储继续通过 `SavedPlace.point` 非空约束拒绝持久化，并将“无法收藏缺少坐标的地点”反馈到 `collectionError`。
+- 无 consent 与 map host 创建失败时仍渲染并可点击真实默认收藏操作；未增加加入行程入口，未扩展 Task 4 面板。
+
+### TDD 与验证
+
+先将无坐标详情测试改为使用生产 fallback，并新增无坐标 ViewModel 收藏流程测试、map host 创建失败点击真实默认收藏操作测试；确认 instrumentation 因按钮未 dispatch、JVM 因 ViewModel 未调用仓储而 RED。最小移除 UI 与 ViewModel 的坐标前置拦截后 GREEN。
+
+最终命令：
+
+```bash
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest
+
+./gradlew :app:testDebugUnitTest \
+  --tests com.yangchengwei.easytrip.place.ui.PlaceSearchViewModelTest
+
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+
+graphify update .
+```
+
+结果：设备 `easy_trip_p60pro(AVD) - 12` 上 17 个 `PlaceSearchContentTest` 全部通过；相关 `PlaceSearchViewModelTest` 全部通过；Debug APK 与 AndroidTest APK 编译通过。
+
+### 关注点
+
+- `SavedPlace` 与 Room schema 仍要求非空坐标；本轮只让无坐标点击进入既有收藏流程并展示明确持久化错误，不制造虚假坐标或无效收藏记录。

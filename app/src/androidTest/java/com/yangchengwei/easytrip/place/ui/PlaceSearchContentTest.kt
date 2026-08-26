@@ -114,33 +114,38 @@ class PlaceSearchContentTest {
         }
     }
 
-    @Test fun candidateWithoutCoordinatesCanOpenDetailWithoutMapFocus() {
+    @Test fun candidateWithoutCoordinatesUsesProductionFallbackAndDispatchesCollection() {
         val candidate = PlaceCandidate("poi-no-point", "未知地点", "地址暂不可用", null, "010")
         val state = mutableStateOf(
             PlaceSearchUiState(search = PlaceSearchState("未知", listOf(candidate), phase = PlaceSearchPhase.Results)),
         )
-        var detailCandidate: PlaceCandidate? = null
+        val actions = mutableListOf<PlaceSearchAction>()
         compose.setContent {
             EasyTripTheme {
                 PlaceSearchContent(
                     state = state.value,
-                    onAction = {
-                        if (it is PlaceSearchAction.OpenDetail) {
-                            state.value = state.value.copy(displayMode = SearchDisplayMode.MapDetail(it.poiId))
+                    onAction = { action ->
+                        actions += action
+                        if (action is PlaceSearchAction.OpenDetail) {
+                            state.value = state.value.copy(displayMode = SearchDisplayMode.MapDetail(action.poiId))
                         }
                     },
-                    detailContent = { detailCandidate = it },
                 )
             }
         }
 
         compose.onNodeWithContentDescription("查看未知地点详情").performClick()
-        compose.waitForIdle()
+        compose.onNodeWithText("未知地点").assertIsDisplayed()
+        compose.onNodeWithContentDescription("收藏未知地点").performClick()
 
-        compose.runOnIdle {
-            assertEquals(candidate, detailCandidate)
-            assertEquals(null, detailCandidate?.point)
-        }
+        assertEquals(
+            listOf(
+                PlaceSearchAction.OpenDetail("poi-no-point"),
+                PlaceSearchAction.ToggleCollection("poi-no-point"),
+            ),
+            actions,
+        )
+        compose.onNodeWithTag("place-search-detail-map").assertDoesNotExist()
     }
 
     @Test fun resultAndDetailExposeNoAddToItineraryAction() {
@@ -255,23 +260,27 @@ class PlaceSearchContentTest {
         compose.onNodeWithTag("place-search-detail-map").assertDoesNotExist()
     }
 
-    @Test fun mapFailureLeavesDetailActionsEnabled() {
+    @Test fun mapHostCreationFailureKeepsProductionFallbackCollectionActionAvailable() {
         val candidate = PlaceCandidate("poi-map", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
         val gate = AmapPrivacyGate.create(context)
         gate.reportPrivacyShown()
         val token = requireNotNull(gate.reportUserDecision(true))
+        val actions = mutableListOf<PlaceSearchAction>()
         setContent(
             state = PlaceSearchUiState(
                 search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results),
                 displayMode = SearchDisplayMode.MapDetail(candidate.poiId),
             ),
+            onAction = actions::add,
+            detailContent = null,
             consent = token,
             mapHostFactory = { error("map unavailable") },
         )
 
-        compose.onNodeWithText("详情：故宫博物院").assertIsDisplayed()
-        compose.onNodeWithContentDescription("详情操作").assertHasClickAction()
+        compose.onNodeWithText("故宫博物院").assertIsDisplayed()
+        compose.onNodeWithContentDescription("收藏故宫博物院").performClick()
+        assertEquals(listOf(PlaceSearchAction.ToggleCollection("poi-map")), actions)
     }
 
     @Test fun loadingEmptyAndFailureMatchTheirActions() {
@@ -495,7 +504,7 @@ class PlaceSearchContentTest {
 
     private fun setContent(
         state: PlaceSearchUiState,
-        detailContent: @androidx.compose.runtime.Composable (PlaceCandidate) -> Unit = { candidate ->
+        detailContent: (@androidx.compose.runtime.Composable (PlaceCandidate) -> Unit)? = { candidate ->
             Text(
                 "详情：${candidate.name}",
                 Modifier

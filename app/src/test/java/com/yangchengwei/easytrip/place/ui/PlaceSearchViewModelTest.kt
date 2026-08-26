@@ -400,6 +400,25 @@ class PlaceSearchViewModelTest {
         assertFalse(model.state.value.shouldNavigateBack)
     }
 
+    @Test fun collectingCandidateWithoutCoordinatesEntersRepositoryFlowAndReportsPersistenceError() = runTest(dispatcher) {
+        val repository = CoordinateRequiringSavedPlaces()
+        val noPoint = PlaceCandidate("poi-no-point", "未知地点", "地址", null, "010")
+        val model = PlaceSearchViewModel(
+            "trip",
+            repository,
+            ImmediateSearchSource(listOf(noPoint)),
+            SavedStateHandle(mapOf("query" to "未知")),
+        )
+        advanceUntilIdle()
+
+        model.dispatch(PlaceSearchAction.ToggleCollection(noPoint.poiId))
+        advanceUntilIdle()
+
+        assertEquals(listOf(noPoint), repository.attempted)
+        assertEquals("无法收藏缺少坐标的地点", model.state.value.collectionError)
+        assertFalse(noPoint.poiId in model.recentlyCollectedPoiIds())
+    }
+
     @Test fun multipleResultsCanBeCollectedSequentially() = runTest(dispatcher) {
         val repository = FakeSavedPlaces()
         val results = listOf(candidate("poi-1"), candidate("poi-2"))
@@ -511,6 +530,21 @@ class PlaceSearchViewModelTest {
         override suspend fun deletePlaceAndReferences(placeId: String) {
             deleteGate.await()
         }
+    }
+
+    private class CoordinateRequiringSavedPlaces : SavedPlaceRepository {
+        val attempted = mutableListOf<PlaceCandidate>()
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = MutableStateFlow(emptyList())
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = MutableStateFlow(emptySet())
+        override suspend fun save(tripId: String, candidate: PlaceCandidate): SavePlaceResult {
+            attempted += candidate
+            requireNotNull(candidate.point) { "无法收藏缺少坐标的地点" }
+            error("unreachable")
+        }
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 
     private class FakeSavedPlaces(
