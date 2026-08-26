@@ -35,9 +35,11 @@ import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
+import com.yangchengwei.easytrip.place.domain.SavedPlace
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -95,6 +97,23 @@ class ItineraryTimelineContentTest {
         )
         compose.setContent { EasyTripTheme { DayItineraryContent(state, onAction = actions::add) } }
 
+        compose.onNodeWithTag("add-places-to-selected-day").performClick()
+        compose.runOnIdle { assertEquals(listOf(DayItineraryAction.AddPlaces), actions) }
+    }
+
+    @Test
+    fun emptyDayWithSavedPlacesOffersOnlyAddPlacesFlow() {
+        val actions = mutableListOf<DayItineraryAction>()
+        val state = DayItineraryUiState(
+            days = listOf(com.yangchengwei.easytrip.trip.domain.TripDay("day-1", 0)),
+            selectedDayId = "day-1",
+            savedPlaces = listOf(
+                SavedPlace("saved-1", "trip", "poi", "灵隐寺", "", GeoPoint(30.2, 120.1), "", emptyList()),
+            ),
+        )
+        compose.setContent { EasyTripTheme { DayItineraryContent(state, onAction = actions::add) } }
+
+        compose.onAllNodesWithTag("add-place-saved-1").assertCountEquals(0)
         compose.onNodeWithTag("add-places-to-selected-day").performClick()
         compose.runOnIdle { assertEquals(listOf(DayItineraryAction.AddPlaces), actions) }
     }

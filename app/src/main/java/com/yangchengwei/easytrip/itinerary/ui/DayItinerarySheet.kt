@@ -61,7 +61,7 @@ fun DayItineraryContent(
                 Modifier.testTag("add-places-to-selected-day"),
             ) { Text("从地点池添加") }
         }
-        if (state.savedPlaces.isNotEmpty()) {
+        if (state.items.isNotEmpty() && state.savedPlaces.isNotEmpty()) {
             Row(Modifier.horizontalScroll(rememberScrollState())) {
                 state.savedPlaces.forEach { place ->
                     TextButton({ onAction(DayItineraryAction.AddPlace(place.id)) }, Modifier.testTag("add-place-${place.id}")) { Text("添加 ${place.name}") }
