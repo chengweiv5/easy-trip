@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -17,6 +18,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.core.model.TransportMode
+import com.yangchengwei.easytrip.core.ui.component.EmptyState
 
 @Composable
 fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Modifier) {
@@ -53,7 +55,7 @@ fun DayItineraryContent(
     showDialogs: Boolean = true,
 ) {
     Column(modifier.padding(12.dp)) {
-        if (state.selectedDayId != null) {
+        if (state.items.isNotEmpty() && state.selectedDayId != null) {
             TextButton(
                 { onAction(DayItineraryAction.AddPlaces) },
                 Modifier.testTag("add-places-to-selected-day"),
@@ -68,14 +70,24 @@ fun DayItineraryContent(
         }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         val byId = state.items.associateBy(ItineraryItemUi::id)
-        LazyColumn {
-            if (state.items.isEmpty()) {
+        LazyColumn(
+            modifier = Modifier.testTag("day-itinerary-timeline"),
+            contentPadding = PaddingValues(bottom = 24.dp),
+        ) {
+            if (state.items.isEmpty() && state.selectedDayId != null) {
                 val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
                 item {
-                    Column {
-                        Text(if (dayNumber == null) "暂无行程" else "第${dayNumber}天 · 暂无行程")
-                        Text("从地点池添加地点，开始安排这一天")
-                    }
+                    EmptyState(
+                        title = if (dayNumber == null) "暂无行程" else "第${dayNumber}天 · 暂无行程",
+                        message = "从地点池添加地点，开始安排这一天",
+                        illustration = { ItineraryEmptyIllustration("暂无行程") },
+                        action = {
+                            TextButton(
+                                { onAction(DayItineraryAction.AddPlaces) },
+                                Modifier.testTag("add-places-to-selected-day"),
+                            ) { Text("从地点池添加") }
+                        },
+                    )
                 }
             }
             itemsIndexed(state.previewOrder, key = { _, id -> id }) { index, id ->

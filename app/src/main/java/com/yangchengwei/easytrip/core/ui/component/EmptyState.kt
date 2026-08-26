@@ -18,6 +18,8 @@ fun EmptyState(
     title: String,
     message: String,
     modifier: Modifier = Modifier,
+    illustration: (@Composable () -> Unit)? = null,
+    action: (@Composable () -> Unit)? = null,
 ) {
     Column(
         modifier = modifier
@@ -26,6 +28,7 @@ fun EmptyState(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small),
     ) {
+        illustration?.invoke()
         Text(
             text = title,
             style = MaterialTheme.typography.headlineMedium,
@@ -37,5 +40,6 @@ fun EmptyState(
             color = MaterialTheme.colorScheme.onSurfaceVariant,
             textAlign = TextAlign.Center,
         )
+        action?.invoke()
     }
 }

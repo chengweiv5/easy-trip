@@ -118,8 +118,11 @@ class ItineraryEditingTest {
         )
         compose.setContent { DayItinerarySheet(model) }
 
+        compose.onNodeWithTag("itinerary-empty-illustration").assertIsDisplayed()
+            .assertContentDescriptionEquals("暂无行程")
         compose.onNodeWithText("第2天 · 暂无行程").assertIsDisplayed()
         compose.onNodeWithText("从地点池添加地点，开始安排这一天").assertIsDisplayed()
+        compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
     }
 
     @Test fun waitingForNetworkKeepsAllPlaceActions() {

@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.itinerary.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.CompositionLocalProvider
@@ -13,6 +14,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
@@ -26,7 +29,9 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
@@ -41,6 +46,88 @@ import org.junit.Test
 
 class ItineraryTimelineContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test
+    fun dayTimelineInterleavesPreviewItemsAndAdjacentLegs() {
+        val state = DayItineraryUiState(
+            items = listOf(
+                itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                itineraryItem("i2", "知味观", "仁和路83号", "12:00", 60),
+                itineraryItem("i3", "西湖", "龙井路1号", "15:00", 90),
+            ),
+            legs = listOf(
+                routeLeg("first-adjacent", RouteStatus.SUCCESS, fromItemId = "i3", toItemId = "i1"),
+                routeLeg("second-adjacent", RouteStatus.SUCCESS, fromItemId = "i1", toItemId = "i2"),
+                routeLeg("non-adjacent", RouteStatus.SUCCESS, fromItemId = "i3", toItemId = "i2"),
+            ),
+            previewOrder = listOf("i3", "i1", "i2"),
+        )
+        compose.setContent { EasyTripTheme { DayItineraryContent(state, onAction = {}) } }
+
+        val timelineTags = compose.onRoot().fetchSemanticsNode().timelineTags()
+        assertEquals(
+            listOf("item-i3", "leg-first-adjacent", "item-i1", "leg-second-adjacent", "item-i2"),
+            timelineTags,
+        )
+    }
+
+    @Test
+    fun emptyDayShowsIllustrationTitleMessageAndAddAction() {
+        val state = DayItineraryUiState(
+            days = listOf(com.yangchengwei.easytrip.trip.domain.TripDay("day-1", 0)),
+            selectedDayId = "day-1",
+        )
+        compose.setContent { EasyTripTheme { DayItineraryContent(state, onAction = {}) } }
+
+        compose.onNodeWithTag("itinerary-empty-illustration").assertIsDisplayed()
+            .assertContentDescriptionEquals("暂无行程")
+        compose.onNodeWithText("第1天 · 暂无行程").assertIsDisplayed()
+        compose.onNodeWithText("从地点池添加地点，开始安排这一天").assertIsDisplayed()
+        compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
+    }
+
+    @Test
+    fun emptyDayAddDispatchesAddPlacesOnly() {
+        val actions = mutableListOf<DayItineraryAction>()
+        val state = DayItineraryUiState(
+            days = listOf(com.yangchengwei.easytrip.trip.domain.TripDay("day-1", 0)),
+            selectedDayId = "day-1",
+        )
+        compose.setContent { EasyTripTheme { DayItineraryContent(state, onAction = actions::add) } }
+
+        compose.onNodeWithTag("add-places-to-selected-day").performClick()
+        compose.runOnIdle { assertEquals(listOf(DayItineraryAction.AddPlaces), actions) }
+    }
+
+    @Test
+    fun noSelectedDayDoesNotOfferImplicitDayCreation() {
+        compose.setContent {
+            EasyTripTheme { DayItineraryContent(DayItineraryUiState(), onAction = {}) }
+        }
+
+        compose.onNodeWithTag("add-places-to-selected-day").assertDoesNotExist()
+        compose.onAllNodesWithText("新增旅行日").assertCountEquals(0)
+        compose.onAllNodesWithText("暂无旅行日").assertCountEquals(0)
+    }
+
+    @Test
+    fun longTimelineScrollsLastItemAboveBottomPadding() {
+        val items = (1..8).map {
+            itineraryItem("i$it", "地点$it", "地址$it", "09:30", 60)
+        }
+        val state = DayItineraryUiState(items = items, previewOrder = items.map { it.id })
+        compose.setContent {
+            EasyTripTheme {
+                DayItineraryContent(state, Modifier.height(260.dp), onAction = {})
+            }
+        }
+
+        compose.onNodeWithTag("day-itinerary-timeline").performScrollToIndex(7)
+        compose.onNodeWithTag("item-i8").assertIsDisplayed()
+        val listBottom = compose.onNodeWithTag("day-itinerary-timeline").getUnclippedBoundsInRoot().bottom
+        val itemBottom = compose.onNodeWithTag("item-i8").getUnclippedBoundsInRoot().bottom
+        assertTrue("listBottom=$listBottom itemBottom=$itemBottom", itemBottom < listBottom)
+    }
 
     @Test
     fun compactPlaceRowShowsArrivalNameStayAndAddress() {
@@ -557,16 +644,27 @@ class ItineraryTimelineContentTest {
         compose.onAllNodesWithText("删除").assertCountEquals(0)
     }
 
+    private fun SemanticsNode.timelineTags(): List<String> =
+        listOfNotNull(
+            if (config.contains(SemanticsProperties.TestTag)) {
+                config[SemanticsProperties.TestTag].takeIf { it.startsWith("item-") || it.startsWith("leg-") }
+            } else {
+                null
+            },
+        ) + children.flatMap { it.timelineTags() }
+
     private fun routeLeg(
         id: String,
         status: RouteStatus,
         distance: Int? = null,
         duration: Int? = null,
         error: String? = null,
+        fromItemId: String = "from-$id",
+        toItemId: String = "to-$id",
     ) = RouteLegUi(
         id = id,
-        fromItemId = "from-$id",
-        toItemId = "to-$id",
+        fromItemId = fromItemId,
+        toItemId = toItemId,
         mode = TransportMode.WALK,
         status = status,
         distanceMeters = distance,
