@@ -55,6 +55,14 @@ Task 6: complete (commits f840f71..a601f08, review clean)
 - Tests: targeted JVM PASS; Task 6 device suite 29/29 PASS; unit/lint/app and test APK assembly PASS.
 - Confirm-before-mutation, menu dismiss, separate add-day entries, and whole-trip forbidden menu/drag tags are covered.
 
+Task 7: whole-branch fix wave complete (commits 245a2b2..9491879, scoped re-review clean)
+Task 7: complete (commits a601f08..9491879, review clean)
+- Tests: JVM 338/338 PASS; focused Compose 87/87 PASS; Catalog 47/47 PASS; Full UI 47/47 PASS; lint/app and test APK assembly PASS; 0 failed/skipped.
+- Accessibility fixes: Calculating RouteLeg uses Polite live region; more-menu icon is fixed 22dp inside a 40dp touch target.
+- Minor (deferred): handle itself has no explicit 40x40 test, though production uses size(40.dp).
+- Minor (deferred): zero-elevation, full editable/read-only geometry, RouteLeg adaptive-height, and per-leg selector scoping tests remain weaker than ideal; production inspection and complementary tests found no blocking defect.
+- Physical-device acceptance: DEFERRED by user; not recorded as PASS.
+
 Task 7: complete (candidate gates PASS; commit recorded in task report)
 - Tests: JVM 338/338 PASS; focused device suite 87/87 PASS; Catalog 47/47 PASS; Full UI 47/47 PASS; all runs 0 failed and 0 skipped.
 - Static gates: lintDebug, assembleDebug, and assembleDebugAndroidTest PASS.
