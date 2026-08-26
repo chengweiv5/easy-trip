@@ -78,6 +78,18 @@ internal fun decidePlaceSearchBack(state: PlaceSearchUiState): PlaceSearchBackDe
     }
 }
 
+internal fun reducePlaceSearchBack(state: PlaceSearchUiState): PlaceSearchUiState =
+    when (decidePlaceSearchBack(state)) {
+        PlaceSearchBackDecision.Ignore -> state
+        PlaceSearchBackDecision.DismissRemovalConfirmation -> state.copy(
+            pendingCollectionRemoval = null,
+            collectionError = null,
+        )
+        PlaceSearchBackDecision.CancelEdit -> state.copy(detailDraft = null)
+        PlaceSearchBackDecision.ShowResults -> state.copy(displayMode = SearchDisplayMode.Results)
+        PlaceSearchBackDecision.ExitDestination -> state.copy(shouldNavigateBack = true)
+    }
+
 class PlaceSearchViewModel(
     private val tripId: String,
     private val repository: SavedPlaceRepository,
@@ -163,14 +175,13 @@ class PlaceSearchViewModel(
     }
 
     private fun handleBack() {
-        when (decidePlaceSearchBack(mutableState.value)) {
-            PlaceSearchBackDecision.Ignore -> Unit
-            PlaceSearchBackDecision.DismissRemovalConfirmation -> dismissRemovalConfirmation()
-            PlaceSearchBackDecision.CancelEdit -> mutableState.value = mutableState.value.copy(detailDraft = null)
-            PlaceSearchBackDecision.ShowResults -> setDisplayMode(SearchDisplayMode.Results)
-            PlaceSearchBackDecision.ExitDestination -> {
-                mutableState.value = mutableState.value.copy(shouldNavigateBack = true)
-            }
+        val current = mutableState.value
+        val updated = reducePlaceSearchBack(current)
+        if (updated === current) return
+        if (updated.displayMode != current.displayMode) {
+            setDisplayMode(updated.displayMode)
+        } else {
+            mutableState.value = updated
         }
     }
 

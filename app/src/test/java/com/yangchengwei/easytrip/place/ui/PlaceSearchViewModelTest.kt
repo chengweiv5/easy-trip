@@ -203,6 +203,146 @@ class PlaceSearchViewModelTest {
         assertEquals(PlaceSearchBackDecision.Ignore, decidePlaceSearchBack(state))
     }
 
+    @Test fun backDuringAsyncCollectionDoesNotChangeDetailOrRequestExit() = runTest(dispatcher) {
+        val repository = BlockingSavedPlaces()
+        val model = PlaceSearchViewModel(
+            "trip",
+            repository,
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            SavedStateHandle(mapOf("query" to "地点")),
+        )
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.OpenDetail("poi-1"))
+        model.dispatch(PlaceSearchAction.ToggleCollection("poi-1"))
+        dispatcher.scheduler.runCurrent()
+
+        model.dispatch(PlaceSearchAction.Back)
+
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
+        assertFalse(model.state.value.shouldNavigateBack)
+        repository.saveGate.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test fun backDuringAsyncDeletionDoesNotChangeDetailOrRequestExit() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val repository = BlockingSavedPlaces(listOf(saved))
+        val model = PlaceSearchViewModel(
+            "trip",
+            repository,
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            SavedStateHandle(mapOf("query" to "地点")),
+        )
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.OpenDetail("poi-1"))
+        model.dispatch(PlaceSearchAction.ToggleCollection("poi-1"))
+        dispatcher.scheduler.runCurrent()
+
+        model.dispatch(PlaceSearchAction.Back)
+
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
+        assertFalse(model.state.value.shouldNavigateBack)
+        repository.deleteGate.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test fun savingDetailDraftIgnoresBack() = runTest(dispatcher) {
+        val model = modelWithResult()
+        model.dispatch(PlaceSearchAction.OpenDetail("poi-1"))
+        val state = model.state.value.copy(
+            detailDraft = PlaceDetailEditState("saved-1", "note", emptySet(), isSaving = true),
+        )
+
+        val afterBack = reducePlaceSearchBack(state)
+
+        assertEquals(state, afterBack)
+    }
+
+    @Test fun restoredDetailUsesOnlyCurrentQueryTerminalResultWhenOldResponseArrivesLate() = runTest(dispatcher) {
+        val source = IgnoringCancellationSearchSource()
+        val handle = SavedStateHandle(
+            mapOf(
+                "query" to "恢复词",
+                "displayMode" to "MAP_DETAIL",
+                "selectedPoiId" to "poi-1",
+            ),
+        )
+        val model = PlaceSearchViewModel("trip", FakeSavedPlaces(), source, handle)
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.QueryChanged("新词"))
+        advanceUntilIdle()
+
+        source.complete("恢复词", candidate("stale"))
+        advanceUntilIdle()
+
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
+        assertEquals("MAP_DETAIL", handle.get<String>("displayMode"))
+        assertEquals("poi-1", handle.get<String>("selectedPoiId"))
+
+        source.complete("新词", candidate("poi-1"))
+        advanceUntilIdle()
+
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
+        assertEquals("MAP_DETAIL", handle.get<String>("displayMode"))
+        assertEquals("poi-1", handle.get<String>("selectedPoiId"))
+    }
+
+    @Test fun restoredDetailFallsBackOnlyWhenCurrentQueryTerminalResultMissesPoi() = runTest(dispatcher) {
+        val source = IgnoringCancellationSearchSource()
+        val handle = SavedStateHandle(
+            mapOf(
+                "query" to "恢复词",
+                "displayMode" to "MAP_DETAIL",
+                "selectedPoiId" to "poi-1",
+            ),
+        )
+        val model = PlaceSearchViewModel("trip", FakeSavedPlaces(), source, handle)
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.QueryChanged("新词"))
+        advanceUntilIdle()
+        source.complete("恢复词", candidate("poi-1"))
+        advanceUntilIdle()
+
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
+
+        source.complete("新词", candidate("other"))
+        advanceUntilIdle()
+
+        assertEquals(SearchDisplayMode.Results, model.state.value.displayMode)
+        assertEquals("RESULTS", handle.get<String>("displayMode"))
+        assertNull(handle.get<String>("selectedPoiId"))
+    }
+
+    @Test fun consecutiveBackFollowsConfirmationEditDetailExitPriority() = runTest(dispatcher) {
+        val model = modelWithResult()
+        model.dispatch(PlaceSearchAction.OpenDetail("poi-1"))
+        val pending = PendingCollectionRemoval(
+            candidate("poi-1"),
+            SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList()),
+            1,
+        )
+        var state = model.state.value.copy(
+            pendingCollectionRemoval = pending,
+            detailDraft = PlaceDetailEditState("saved-1", "note", emptySet()),
+        )
+
+        state = reducePlaceSearchBack(state)
+        assertNull(state.pendingCollectionRemoval)
+        assertTrue(state.detailDraft != null)
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), state.displayMode)
+
+        state = reducePlaceSearchBack(state)
+        assertNull(state.detailDraft)
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), state.displayMode)
+
+        state = reducePlaceSearchBack(state)
+        assertEquals(SearchDisplayMode.Results, state.displayMode)
+        assertFalse(state.shouldNavigateBack)
+
+        state = reducePlaceSearchBack(state)
+        assertTrue(state.shouldNavigateBack)
+    }
+
     @Test fun repeatedConfirmRemovalDeletesOnlyOnce() = runTest(dispatcher) {
         val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
         val repository = FakeSavedPlaces(listOf(saved), usageCount = 1)
@@ -326,6 +466,28 @@ class PlaceSearchViewModelTest {
             withContext(NonCancellable) { pending.getOrPut(keyword) { CompletableDeferred() }.await() }
         fun complete(keyword: String, result: PlaceCandidate) {
             pending.getValue(keyword).complete(listOf(result))
+        }
+    }
+
+    private class BlockingSavedPlaces(
+        initialPlaces: List<SavedPlace> = emptyList(),
+    ) : SavedPlaceRepository {
+        val saveGate = CompletableDeferred<Unit>()
+        val deleteGate = CompletableDeferred<Unit>()
+        private val places = MutableStateFlow(initialPlaces)
+        private val savedIds = MutableStateFlow(initialPlaces.mapTo(mutableSetOf(), SavedPlace::amapPoiId))
+
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = savedIds
+        override suspend fun save(tripId: String, candidate: PlaceCandidate): SavePlaceResult {
+            saveGate.await()
+            return SavePlaceResult.Saved(candidate.poiId)
+        }
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletePlaceAndReferences(placeId: String) {
+            deleteGate.await()
         }
     }
 

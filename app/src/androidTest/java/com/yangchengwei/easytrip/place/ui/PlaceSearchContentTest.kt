@@ -121,6 +121,34 @@ class PlaceSearchContentTest {
         assertEquals(setOf("poi-nav"), returnedPoiIds)
     }
 
+    @Test fun repeatedBackAndRouteRecompositionInvokeExternalBackOnlyOnce() {
+        val model = PlaceSearchViewModel(
+            "trip",
+            TestSavedPlaces(),
+            null,
+            SavedStateHandle(),
+        )
+        val recompose = mutableStateOf(0)
+        var backCalls = 0
+        compose.setContent {
+            recompose.value
+            PlaceSearchRoute(model) { backCalls++ }
+        }
+
+        compose.runOnIdle {
+            model.dispatch(PlaceSearchAction.Back)
+            model.dispatch(PlaceSearchAction.Back)
+            recompose.value++
+        }
+        compose.waitUntil(5_000) { backCalls == 1 }
+        compose.runOnIdle { recompose.value++ }
+
+        compose.runOnIdle {
+            assertEquals(1, backCalls)
+            assertEquals(false, model.state.value.shouldNavigateBack)
+        }
+    }
+
     @Test fun systemBackPublishesCurrentSessionCollectionsThroughSameCallback() {
         val candidate = PlaceCandidate("poi-system", "天坛", "地址", GeoPoint(39.916, 116.397), "010")
         val repository = TestSavedPlaces()

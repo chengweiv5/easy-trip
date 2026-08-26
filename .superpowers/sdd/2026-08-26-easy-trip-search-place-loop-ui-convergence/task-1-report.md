@@ -36,7 +36,31 @@ graphify update .
 
 结果：图更新为 4394 nodes / 9306 edges / 242 communities；既有 `NetworkMonitor.kt`、`RoutePlanner.kt` AST 解析警告仍存在。
 
+## Fix round 1/5
+
+补充真实行为门禁：
+
+- 使用阻塞 Repository 验证收藏和删除协程实际挂起期间，Back 不改变详情模式且不请求退出。
+- 单独验证 `detailDraft.isSaving = true` 时 Back 完全无状态变化。
+- 覆盖恢复 MapDetail 后立即发起新 query、旧请求忽略取消并迟到的组合；旧响应不清理 mode/SavedState keys，当前 query 的终态结果负责最终裁决。
+- 同时存在 confirmation 与 edit 时，连续 Back 严格按 confirmation → edit → detail → exit 推进。
+- Compose Route 覆盖连续 Back 与重组，外部 `onBack` 仅调用一次且 `shouldNavigateBack` 被消费。
+- 将统一 Back 状态转换提取为 `reducePlaceSearchBack`，ViewModel 使用同一转换并仅在 mode 改变时同步 SavedState。
+
+验证：
+
+```bash
+./gradlew :app:testDebugUnitTest \
+  --tests com.yangchengwei.easytrip.place.ui.PlaceSearchViewModelTest \
+  --tests com.yangchengwei.easytrip.place.ui.PlaceSearchReducerTest
+
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest
+```
+
+JVM 聚焦测试与 9 个 Compose instrumentation tests 均通过。
+
 ## 关注点
 
 - `PlaceDetailEditState` 仅建立 Task 1 所需状态边界；创建、更新和保存动作由后续详情任务接入。
-- 本 Task 未进行浏览器/真机验证，因为未实现地图或面板 UI。
+- 本轮仅验证既有 Route 返回行为，未实现地图或详情面板 UI。
