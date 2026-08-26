@@ -17,17 +17,21 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.core.model.RouteStatus
+import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
@@ -420,6 +424,124 @@ class ItineraryTimelineContentTest {
     }
 
     @Test
+    fun routeLegShowsReadyCalculatingWaitingAndFailedText() {
+        compose.setContent {
+            EasyTripTheme {
+                androidx.compose.foundation.layout.Column {
+                    routeLeg("ready", RouteStatus.SUCCESS, distance = 1050, duration = 300).let {
+                        RouteLegContent(it, Modifier.testTag("ready"))
+                    }
+                    routeLeg("calculating", RouteStatus.CALCULATING).let {
+                        RouteLegContent(it, Modifier.testTag("calculating"))
+                    }
+                    routeLeg("waiting", RouteStatus.WAITING_NETWORK).let {
+                        RouteLegContent(it, Modifier.testTag("waiting"))
+                    }
+                    routeLeg("failed", RouteStatus.FAILED, error = "路线暂时不可用").let {
+                        RouteLegContent(it, Modifier.testTag("failed"))
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithText("步行").assertIsDisplayed()
+        compose.onNodeWithText("1.1 公里 · 5 分钟").assertIsDisplayed()
+        compose.onNodeWithText("正在计算路线").assertIsDisplayed()
+        compose.onNodeWithText("等待联网").assertIsDisplayed()
+        compose.onNodeWithText("路线暂时不可用").assertIsDisplayed()
+        compose.onNodeWithContentDescription("路线计算中").assertIsDisplayed()
+        compose.onNodeWithContentDescription("等待网络连接").assertIsDisplayed()
+    }
+
+    @Test
+    fun onlyReadyLegOpensModeEditor() {
+        val opened = mutableListOf<String>()
+        compose.setContent {
+            EasyTripTheme {
+                androidx.compose.foundation.layout.Column {
+                    listOf(
+                        routeLeg("ready", RouteStatus.SUCCESS),
+                        routeLeg("calculating", RouteStatus.CALCULATING),
+                        routeLeg("waiting", RouteStatus.WAITING_NETWORK),
+                        routeLeg("failed", RouteStatus.FAILED, error = "失败"),
+                    ).forEach { leg ->
+                        RouteLegContent(
+                            leg = leg,
+                            modifier = Modifier.testTag("leg-${leg.id}"),
+                            onMode = { opened += leg.id },
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("mode-ready").assertHasClickAction().performClick()
+        compose.onAllNodesWithTag("mode-calculating").assertCountEquals(0)
+        compose.onAllNodesWithTag("mode-waiting").assertCountEquals(0)
+        compose.onAllNodesWithTag("mode-failed").assertCountEquals(0)
+        compose.runOnIdle { assertEquals(listOf("ready"), opened) }
+    }
+
+    @Test
+    fun failedRetryDispatchesOnlyCurrentLeg() {
+        val retried = mutableListOf<String>()
+        compose.setContent {
+            EasyTripTheme {
+                androidx.compose.foundation.layout.Column {
+                    listOf("first", "second").forEach { id ->
+                        val leg = routeLeg(id, RouteStatus.FAILED, error = "失败")
+                        RouteLegContent(leg, onRetry = { retried += id })
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("retry-second").performClick()
+        compose.runOnIdle { assertEquals(listOf("second"), retried) }
+    }
+
+    @Test
+    fun calculatingAndWaitingExposeNeitherModeNorRetry() {
+        compose.setContent {
+            EasyTripTheme {
+                androidx.compose.foundation.layout.Column {
+                    listOf(
+                        routeLeg("calculating", RouteStatus.CALCULATING),
+                        routeLeg("waiting", RouteStatus.WAITING_NETWORK),
+                    ).forEach { leg ->
+                        RouteLegContent(leg, onMode = {}, onRetry = {})
+                    }
+                }
+            }
+        }
+
+        listOf("calculating", "waiting").forEach { id ->
+            compose.onAllNodesWithTag("mode-$id").assertCountEquals(0)
+            compose.onAllNodesWithTag("retry-$id").assertCountEquals(0)
+        }
+    }
+
+    @Test
+    fun longFailureMessageIsAtMostTwoLinesWithoutFixedHeight() {
+        val message = "这是一段用于验证路线失败信息不会无限撑高连接段并且仍然完整参与自适应布局的很长错误文案"
+        compose.setContent {
+            EasyTripTheme {
+                RouteLegContent(
+                    routeLeg("long", RouteStatus.FAILED, error = message),
+                    Modifier.width(220.dp).testTag("long-leg"),
+                )
+            }
+        }
+
+        val textNode = compose.onNodeWithText(message).assertIsDisplayed().fetchSemanticsNode()
+        val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        checkNotNull(textNode.config[SemanticsActions.GetTextLayoutResult].action).invoke(results)
+        assertTrue(results.single().lineCount <= 2)
+        val bounds = compose.onNodeWithTag("long-leg").getUnclippedBoundsInRoot()
+        assertTrue(bounds.bottom > bounds.top)
+    }
+
+    @Test
     fun normalPlaceRowHasZeroElevationAndNoPermanentDeleteAction() {
         compose.setContent {
             EasyTripTheme {
@@ -434,6 +556,23 @@ class ItineraryTimelineContentTest {
         compose.onAllNodesWithTag("delete-plain").assertCountEquals(0)
         compose.onAllNodesWithText("删除").assertCountEquals(0)
     }
+
+    private fun routeLeg(
+        id: String,
+        status: RouteStatus,
+        distance: Int? = null,
+        duration: Int? = null,
+        error: String? = null,
+    ) = RouteLegUi(
+        id = id,
+        fromItemId = "from-$id",
+        toItemId = "to-$id",
+        mode = TransportMode.WALK,
+        status = status,
+        distanceMeters = distance,
+        durationSeconds = duration,
+        error = error,
+    )
 
     private fun androidx.compose.ui.test.TouchInjectionScope.longPressDragBy(deltaY: Float) {
         val start = center

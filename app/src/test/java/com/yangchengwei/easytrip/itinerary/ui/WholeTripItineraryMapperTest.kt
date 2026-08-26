@@ -88,6 +88,44 @@ class WholeTripItineraryMapperTest {
     }
 
     @Test
+    fun `failed prefers typed summary and falls back to legacy code`() {
+        val places = listOf(
+            item("item-0", "地点 0", "地址 0", null, null),
+            item("item-1", "地点 1", "地址 1", null, null),
+            item("item-2", "地点 2", "地址 2", null, null),
+        )
+        val legs = listOf(
+            leg(
+                id = "typed",
+                fromItemId = "item-0",
+                toItemId = "item-1",
+                recommendedMode = TransportMode.WALK,
+                status = RouteStatus.FAILED,
+                errorKind = RouteErrorKind.NO_ROUTE,
+                errorCode = "legacy error",
+            ),
+            leg(
+                id = "legacy",
+                fromItemId = "item-1",
+                toItemId = "item-2",
+                recommendedMode = TransportMode.WALK,
+                status = RouteStatus.FAILED,
+                errorCode = "legacy error",
+            ),
+        )
+
+        val actual = mapWholeTripDays(
+            days = listOf(TripDay("day-1", 0)),
+            snapshots = listOf(DayMapSnapshot(DayItinerary("day-1", "trip-1", places), legs)),
+        ).single().legs.map(RouteLegUi::state)
+
+        assertEquals(
+            listOf(RouteLegUiState.Failed("未找到可用路线"), RouteLegUiState.Failed("legacy error")),
+            actual,
+        )
+    }
+
+    @Test
     fun `uses existing Chinese summaries for every route error kind`() {
         val items = (0..4).map { index -> item("item-$index", "地点 $index", "地址 $index", null, null) }
         val kinds = listOf(
@@ -136,6 +174,7 @@ class WholeTripItineraryMapperTest {
         distanceMeters: Int? = null,
         durationSeconds: Int? = null,
         errorKind: RouteErrorKind? = null,
+        errorCode: String? = null,
     ) = RouteLegEntity(
         id = id,
         tripDayId = "day-1",
@@ -146,6 +185,7 @@ class WholeTripItineraryMapperTest {
         status = status,
         distanceMeters = distanceMeters,
         durationSeconds = durationSeconds,
+        errorCode = errorCode,
         errorKind = errorKind,
         updatedAt = Instant.EPOCH,
     )

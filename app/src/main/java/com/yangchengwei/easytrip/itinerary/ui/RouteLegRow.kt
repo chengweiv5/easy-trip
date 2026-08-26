@@ -1,12 +1,11 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
-import androidx.compose.foundation.background
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -17,75 +16,147 @@ import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as Tex
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
 
 @Composable
 fun RouteLegRow(leg: RouteLegUi, onMode: () -> Unit, onRetry: () -> Unit) {
-    RouteLegContent(leg, Modifier.fillMaxWidth().testTag("leg-${leg.id}")) {
-        TextButton(onMode, Modifier.testTag("mode-${leg.id}")) { Text("交通方式") }
-        if (leg.state is RouteLegUiState.Failed) {
-            TextButton(onRetry, Modifier.testTag("retry-${leg.id}")) { Text("重试") }
-        }
-    }
+    RouteLegContent(
+        leg = leg,
+        modifier = Modifier.fillMaxWidth().testTag("leg-${leg.id}"),
+        onMode = onMode,
+        onRetry = onRetry,
+    )
 }
 
 @Composable
-fun RouteLegContent(
+internal fun RouteLegContent(
     leg: RouteLegUi,
     modifier: Modifier = Modifier,
+    onMode: (() -> Unit)? = null,
+    onRetry: (() -> Unit)? = null,
 ) {
-    RouteLegContent(leg, modifier) {}
-}
-
-@Composable
-private fun RouteLegContent(
-    leg: RouteLegUi,
-    modifier: Modifier,
-    actions: @Composable () -> Unit,
-) {
-    val detail = when (val state = leg.state) {
-        RouteLegUiState.WaitingForNetwork -> "等待联网"
-        is RouteLegUiState.Failed -> state.message
-        is RouteLegUiState.Ready -> when (leg.status) {
-            RouteStatus.PENDING -> "等待计算"
-            RouteStatus.CALCULATING -> "计算中"
-            else -> listOfNotNull(
-                state.distanceMeters?.let(::formatDistance),
-                leg.durationSeconds?.let(::formatDuration),
-            ).joinToString(" · ")
-        }
-    }
+    val state = leg.state
     Row(
         modifier.padding(start = 28.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
-        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-            Box(Modifier.width(2.dp).height(18.dp).background(MaterialTheme.colorScheme.outlineVariant))
-            Text("↓", color = MaterialTheme.colorScheme.primary, modifier = Modifier.clearAndSetSemantics {})
-            Box(Modifier.width(2.dp).height(18.dp).background(MaterialTheme.colorScheme.outlineVariant))
-        }
+        RouteLegConnector()
         Row(
             Modifier.weight(1f).padding(start = 12.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column {
-                Text(leg.modeLabel(), style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
-                Text(detail, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (leg.status == RouteStatus.CALCULATING) {
-                    CircularProgressIndicator(Modifier.size(24.dp).semantics { contentDescription = "路线计算中" })
+            Column(Modifier.weight(1f)) {
+                when (state) {
+                    is RouteLegUiState.Ready -> {
+                        Text(
+                            leg.modeLabel(),
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = if (onMode == null) Modifier else Modifier
+                                .clickable(onClick = onMode)
+                                .testTag("mode-${leg.id}"),
+                        )
+                        Text(
+                            listOfNotNull(
+                                state.distanceMeters?.let(::formatDistance),
+                                state.durationSeconds?.let(::formatDuration),
+                            ).joinToString(" · "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    RouteLegUiState.Calculating -> Text(
+                        "正在计算路线",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    RouteLegUiState.WaitingForNetwork -> Text(
+                        "等待联网",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    is RouteLegUiState.Failed -> Text(
+                        state.message,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.error,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
                 }
-                actions()
+            }
+            when (state) {
+                RouteLegUiState.Calculating -> CircularProgressIndicator(
+                    Modifier.size(24.dp).semantics { contentDescription = "路线计算中" },
+                )
+                RouteLegUiState.WaitingForNetwork -> WaitingForNetworkIndicator()
+                is RouteLegUiState.Failed -> onRetry?.let {
+                    TextButton(it, Modifier.testTag("retry-${leg.id}")) { Text("重试") }
+                }
+                is RouteLegUiState.Ready -> Unit
             }
         }
+    }
+}
+
+@Composable
+private fun WaitingForNetworkIndicator() {
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Canvas(
+        Modifier
+            .size(24.dp)
+            .semantics { contentDescription = "等待网络连接" },
+    ) {
+        drawCircle(color, radius = 2.dp.toPx(), center = Offset(size.width / 2f, size.height * 0.75f))
+        drawArc(
+            color = color,
+            startAngle = 220f,
+            sweepAngle = 100f,
+            useCenter = false,
+            topLeft = Offset(size.width * 0.3f, size.height * 0.42f),
+            size = androidx.compose.ui.geometry.Size(size.width * 0.4f, size.height * 0.4f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx(), cap = StrokeCap.Round),
+        )
+        drawArc(
+            color = color,
+            startAngle = 220f,
+            sweepAngle = 100f,
+            useCenter = false,
+            topLeft = Offset(size.width * 0.12f, size.height * 0.16f),
+            size = androidx.compose.ui.geometry.Size(size.width * 0.76f, size.height * 0.76f),
+            style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx(), cap = StrokeCap.Round),
+        )
+    }
+}
+
+@Composable
+private fun RouteLegConnector() {
+    val color = MaterialTheme.colorScheme.outlineVariant
+    Canvas(Modifier.width(12.dp).size(width = 12.dp, height = 48.dp).clearAndSetSemantics {}) {
+        val centerX = size.width / 2f
+        drawLine(color, Offset(centerX, 0f), Offset(centerX, size.height), strokeWidth = 2.dp.toPx())
+        drawLine(
+            color,
+            Offset(centerX, size.height),
+            Offset(centerX - 3.dp.toPx(), size.height - 5.dp.toPx()),
+            strokeWidth = 2.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
+        drawLine(
+            color,
+            Offset(centerX, size.height),
+            Offset(centerX + 3.dp.toPx(), size.height - 5.dp.toPx()),
+            strokeWidth = 2.dp.toPx(),
+            cap = StrokeCap.Round,
+        )
     }
 }
 

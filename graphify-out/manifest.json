@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/RouteLegRow.kt": {
-    "mtime": 1787708572.172866,
-    "seen": 1787708968.7651079,
-    "ast_hash": "09c7ad2acefd5d17255b8a21a0e45578",
+    "mtime": 1787712059.2155306,
+    "seen": 1787712180.11961,
+    "ast_hash": "3741b0a4d38083e6c9a444fd4c94ef67",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/amap/AmapPlaceDataSource.kt": {
@@ -846,9 +846,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryUiModels.kt": {
-    "mtime": 1787708572.1719377,
-    "seen": 1787708968.765107,
-    "ast_hash": "9b332c2e9815c29da41ea5dde1a9dfa2",
+    "mtime": 1787711761.7264335,
+    "seen": 1787712180.119609,
+    "ast_hash": "38e1c12c3079d7620a1103df0d15e600",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContent.kt": {
@@ -888,9 +888,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryMapperTest.kt": {
-    "mtime": 1787708572.2200344,
-    "seen": 1787708968.765158,
-    "ast_hash": "d90e77e2cc081ebb0272499f775514ed",
+    "mtime": 1787711742.6351538,
+    "seen": 1787712180.119673,
+    "ast_hash": "6e732a88fcaaa7440b329551973b76ea",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/place/ui/CollectionTogglePolicyTest.kt": {
@@ -1566,9 +1566,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModelTest.kt": {
-    "mtime": 1787708572.2192628,
-    "seen": 1787708968.7651572,
-    "ast_hash": "b576755cd2a9cec8f3ec42b97defa2fe",
+    "mtime": 1787711725.3859513,
+    "seen": 1787712180.119672,
+    "ast_hash": "1d713a5745e603d97f6ddd7a29c003a8",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceBottomSheet.kt": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryTimelineContentTest.kt": {
-    "mtime": 1787711347.9295926,
-    "seen": 1787711495.807392,
-    "ast_hash": "6ec9e29c358afa0dbff36a7b14351d12",
+    "mtime": 1787711996.501166,
+    "seen": 1787712180.119555,
+    "ast_hash": "cae2486d813630cfa70f25dc3df74723",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-08-26-easy-trip-itinerary-ui-convergence.md": {

@@ -210,25 +210,45 @@ class DayItineraryViewModelTest {
         assertNull(model.state.value.editDraft?.saveError)
     }
 
-    @Test fun `route legs expose explicit ready waiting and failed states`() = runTest(dispatcher) {
+    @Test fun `pending and calculating route statuses map to calculating ui state`() = runTest(dispatcher) {
         val model = model(
             Itineraries(),
             legs = Legs(
                 listOf(
-                    legEntity("ready", RouteStatus.SUCCESS, distance = 1200, duration = 300),
-                    legEntity("waiting", RouteStatus.WAITING_NETWORK),
-                    legEntity("failed", RouteStatus.FAILED),
+                    legEntity("pending", RouteStatus.PENDING),
+                    legEntity("calculating", RouteStatus.CALCULATING),
                 ),
             ),
         )
         advanceUntilIdle()
 
-        assertEquals(RouteLegUiState.Ready(TransportMode.TAXI, 5, 1200), model.state.value.legs[0].state)
-        assertEquals(RouteLegUiState.WaitingForNetwork, model.state.value.legs[1].state)
-        assertEquals(RouteLegUiState.Failed("路线规划失败"), model.state.value.legs[2].state)
+        assertEquals(
+            listOf(RouteLegUiState.Calculating, RouteLegUiState.Calculating),
+            model.state.value.legs.map(RouteLegUi::state),
+        )
     }
 
-    @Test fun `route leg uses legacy error code when typed error is unavailable`() {
+    @Test fun `success maps to ready with distance and duration`() = runTest(dispatcher) {
+        val model = model(
+            Itineraries(),
+            legs = Legs(listOf(legEntity("ready", RouteStatus.SUCCESS, distance = 1200, duration = 300))),
+        )
+        advanceUntilIdle()
+
+        assertEquals(RouteLegUiState.Ready(1200, 300), model.state.value.legs.single().state)
+    }
+
+    @Test fun `waiting network maps to waiting state`() = runTest(dispatcher) {
+        val model = model(
+            Itineraries(),
+            legs = Legs(listOf(legEntity("waiting", RouteStatus.WAITING_NETWORK))),
+        )
+        advanceUntilIdle()
+
+        assertEquals(RouteLegUiState.WaitingForNetwork, model.state.value.legs.single().state)
+    }
+
+    @Test fun `failed route uses legacy error code when typed error is unavailable`() {
         val route = legEntity("legacy-failed", RouteStatus.FAILED).copy(errorCode = "no route")
 
         assertEquals(RouteLegUiState.Failed("no route"), route.toRouteLegUi().state)

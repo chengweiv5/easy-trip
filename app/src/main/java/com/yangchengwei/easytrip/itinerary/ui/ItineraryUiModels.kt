@@ -19,11 +19,11 @@ data class ItineraryItemUi(
 
 sealed interface RouteLegUiState {
     data class Ready(
-        val mode: TransportMode,
-        val durationMinutes: Int?,
         val distanceMeters: Int?,
+        val durationSeconds: Int?,
     ) : RouteLegUiState
 
+    data object Calculating : RouteLegUiState
     data object WaitingForNetwork : RouteLegUiState
     data class Failed(val message: String) : RouteLegUiState
 }
@@ -40,9 +40,10 @@ data class RouteLegUi(
 ) {
     val state: RouteLegUiState
         get() = when (status) {
+            RouteStatus.SUCCESS -> RouteLegUiState.Ready(distanceMeters, durationSeconds)
+            RouteStatus.PENDING, RouteStatus.CALCULATING -> RouteLegUiState.Calculating
             RouteStatus.WAITING_NETWORK -> RouteLegUiState.WaitingForNetwork
-            RouteStatus.FAILED -> RouteLegUiState.Failed(error ?: "路线规划失败")
-            else -> RouteLegUiState.Ready(mode, durationSeconds?.let { (it + 59) / 60 }, distanceMeters)
+            RouteStatus.FAILED -> RouteLegUiState.Failed(error ?: "路线计算失败")
         }
 }
 
