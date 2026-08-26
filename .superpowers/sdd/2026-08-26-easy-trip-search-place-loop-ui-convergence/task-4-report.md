@@ -62,6 +62,21 @@
 - GREEN：应用、AndroidTest、UnitTest Kotlin 编译通过。
 - GREEN：`graphify update .` 完成，4552 nodes / 9729 edges。
 
+## Fix round 3
+
+### 回归门禁
+
+- 新增真实 `PlacePoolViewModel` + `PlacePoolSheet` 流程测试：进入编辑态、点击删除、确认编辑态已关闭且删除确认出现、取消删除后确认 `deleting` 清空，`editing`/`detailDraft` 保持为空且详情 Dialog 不再出现。
+- 该测试覆盖真实 UI wiring；若删除按钮错误地只请求删除而未关闭编辑态，或取消删除错误地恢复编辑态，断言会失败。
+- 测试在 Fix round 2 的生产实现上首次运行即通过。这是审查要求补充的缺失回归门禁，因此本轮未为制造 RED 修改生产代码。
+
+### 验证
+
+- `PlacePoolFlowTest#cancellingDeleteFromEditDoesNotRestoreDetail`：1/1 通过。
+- `PlacePoolViewModelTest`：全部通过。
+- 应用、AndroidTest、UnitTest Kotlin 编译通过。
+- `graphify update .` 完成，4556 nodes / 9740 edges。
+
 ## 关注点
 
 - 先前 `PlacePoolFlowTest.searchSaveEditAndFilterThroughPlacePool` 整类运行时发生一次 instrumentation 进程崩溃；同 commit、同 AVD 串行复跑该用例 1/1 通过，runner result code 0。现无产品崩溃、选择器或 OOM 的直接证据，详见 `task-4-place-pool-flow-diagnostic.md`，未据此修改产品代码。
