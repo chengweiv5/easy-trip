@@ -1686,9 +1686,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioExecutable.kt": {
-    "mtime": 1787708572.131274,
-    "seen": 1787708968.765056,
-    "ast_hash": "ea27b899ac3957e1b40dd7673d6e4b87",
+    "mtime": 1787719942.0322852,
+    "seen": 1787720162.0328488,
+    "ast_hash": "dd8de24751f5394a08e605d341cc722e",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceChromeTest.kt": {
@@ -1848,9 +1848,21 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-26-easy-trip-itinerary-ui-convergence/task-6-report.md": {
-    "mtime": 1787718003.9599915,
-    "seen": 1787719438.553613,
-    "ast_hash": "e1a48bf03c926739b3192918e078046c",
+    "mtime": 1787719454.1756678,
+    "seen": 1787720162.0330229,
+    "ast_hash": "b06002d3a09449c236406ccdc34b790a",
+    "semantic_hash": ""
+  },
+  "docs/testing/itinerary-ui-acceptance.md": {
+    "mtime": 1787720106.4233534,
+    "seen": 1787720162.0330482,
+    "ast_hash": "5658104294016c024a485e24a487d256",
+    "semantic_hash": ""
+  },
+  "docs/testing/itinerary-ui-conflicts.md": {
+    "mtime": 1787720115.4949539,
+    "seen": 1787720162.033049,
+    "ast_hash": "2ef4c18b5cffe9690d126bf355a04eed",
     "semantic_hash": ""
   }
 }

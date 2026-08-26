@@ -7,10 +7,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -768,7 +770,11 @@ object V1ScenarioExecutableFactory {
             ScenarioFixture(id, ScenarioScreen.STATUS_MATRIX),
             ScenarioPath(listOf(ScenarioScreen.STATUS_MATRIX)),
             content = { Column { legs.forEach { RouteLegContent(it) } } },
-            verify = { listOf("等待联网", "等待计算", "计算中", "路线失败").forEach { onNodeWithText(it).assertIsDisplayed() } },
+            verify = {
+                onNodeWithText("等待联网").assertIsDisplayed()
+                onAllNodesWithText("正在计算路线").assertCountEquals(2)
+                onNodeWithText("路线失败").assertIsDisplayed()
+            },
         )
     }
 
