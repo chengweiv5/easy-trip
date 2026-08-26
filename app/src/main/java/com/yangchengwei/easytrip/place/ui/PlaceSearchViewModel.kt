@@ -64,6 +64,7 @@ data class PlaceSearchUiState(
     val collectionBusyPoiIds: Set<String> = emptySet(),
     val pendingCollectionRemoval: PendingCollectionRemoval? = null,
     val collectionError: String? = null,
+    val collectionErrorPoiId: String? = null,
     val detailDraft: PlaceDetailEditState? = null,
     val detailMapRequestId: Long = 1L,
     val shouldNavigateBack: Boolean = false,
@@ -86,6 +87,7 @@ internal fun reducePlaceSearchBack(state: PlaceSearchUiState): PlaceSearchUiStat
         PlaceSearchBackDecision.DismissRemovalConfirmation -> state.copy(
             pendingCollectionRemoval = null,
             collectionError = null,
+            collectionErrorPoiId = null,
         )
         PlaceSearchBackDecision.CancelEdit -> state.copy(detailDraft = null)
         PlaceSearchBackDecision.ShowResults -> state.copy(displayMode = SearchDisplayMode.Results)
@@ -214,7 +216,7 @@ class PlaceSearchViewModel(
         if (poiId in mutableState.value.collectionBusyPoiIds) return
         viewModelScope.launch {
             updateBusy(poiId, true)
-            mutableState.value = mutableState.value.copy(collectionError = null)
+            mutableState.value = mutableState.value.copy(collectionError = null, collectionErrorPoiId = null)
             try {
                 val saved = savedByPoiId[poiId]
                 val usageCount = saved?.let { service.deletionUsageCount(it.id) }
@@ -234,7 +236,10 @@ class PlaceSearchViewModel(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                mutableState.value = mutableState.value.copy(collectionError = error.message ?: "收藏操作失败，请重试")
+                mutableState.value = mutableState.value.copy(
+                    collectionError = error.message ?: "收藏操作失败，请重试",
+                    collectionErrorPoiId = poiId,
+                )
             } finally {
                 updateBusy(poiId, false)
             }
@@ -250,11 +255,18 @@ class PlaceSearchViewModel(
             try {
                 service.deletePlaceAndReferences(pending.place.id)
                 recentlyCollectedPoiIds -= poiId
-                mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null, collectionError = null)
+                mutableState.value = mutableState.value.copy(
+                    pendingCollectionRemoval = null,
+                    collectionError = null,
+                    collectionErrorPoiId = null,
+                )
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                mutableState.value = mutableState.value.copy(collectionError = error.message ?: "取消收藏失败，请重试")
+                mutableState.value = mutableState.value.copy(
+                    collectionError = error.message ?: "取消收藏失败，请重试",
+                    collectionErrorPoiId = poiId,
+                )
             } finally {
                 updateBusy(poiId, false)
             }
@@ -264,7 +276,11 @@ class PlaceSearchViewModel(
     private fun dismissRemovalConfirmation() {
         val pending = mutableState.value.pendingCollectionRemoval ?: return
         if (pending.candidate.poiId in mutableState.value.collectionBusyPoiIds) return
-        mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null, collectionError = null)
+        mutableState.value = mutableState.value.copy(
+            pendingCollectionRemoval = null,
+            collectionError = null,
+            collectionErrorPoiId = null,
+        )
     }
 
     private fun updateBusy(poiId: String, busy: Boolean) {

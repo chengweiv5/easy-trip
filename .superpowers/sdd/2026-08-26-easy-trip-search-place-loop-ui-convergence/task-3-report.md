@@ -70,3 +70,36 @@ graphify update .
 ### 关注点
 
 - `SavedPlace` 与 Room schema 仍要求非空坐标；本轮只让无坐标点击进入既有收藏流程并展示明确持久化错误，不制造虚假坐标或无效收藏记录。
+
+## Fix round 2
+
+### 修复
+
+- 生产 `SearchDetailFallback` 接收当前候选的收藏 busy 与错误状态；busy 时禁用收藏按钮，避免重复提交。
+- `PlaceSearchUiState` 增加 `collectionErrorPoiId`，收藏与取消收藏失败时记录错误所属 POI，清除错误时同步清除归属。
+- 详情 fallback 只展示当前候选对应的收藏错误，避免其他搜索结果的错误串到当前详情。
+- 未增加加入行程入口，未扩展 Task 4 面板。
+
+### TDD 与验证
+
+先新增生产 fallback Compose 测试，覆盖当前候选 busy 时按钮禁用且错误可见，以及其他候选错误不显示；同时扩展无坐标 ViewModel 测试验证错误归属。确认 Compose 因按钮仍启用而 RED、JVM 因错误归属未记录而 RED，随后补最小状态传递与展示实现并验证 GREEN。
+
+最终命令：
+
+```bash
+./gradlew :app:connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest
+
+./gradlew :app:testDebugUnitTest \
+  --tests com.yangchengwei.easytrip.place.ui.PlaceSearchViewModelTest
+
+./gradlew :app:assembleDebug :app:assembleDebugAndroidTest
+
+graphify update .
+```
+
+结果：设备 `easy_trip_p60pro(AVD) - 12` 上 19 个 `PlaceSearchContentTest` 全部通过；相关 `PlaceSearchViewModelTest` 全部通过。
+
+### 关注点
+
+- 错误归属随现有单一 `collectionError` 一起维护；新一次收藏操作会清除旧错误及其 POI 归属。

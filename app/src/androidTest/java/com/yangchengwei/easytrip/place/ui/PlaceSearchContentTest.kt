@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
@@ -258,6 +259,45 @@ class PlaceSearchContentTest {
 
         compose.onNodeWithText("详情：未知地点").assertIsDisplayed()
         compose.onNodeWithTag("place-search-detail-map").assertDoesNotExist()
+    }
+
+    @Test fun productionFallbackDisablesBusyCollectionAndShowsCurrentDetailError() {
+        val current = PlaceCandidate("poi-current", "当前地点", "地址", null, "010")
+        val other = PlaceCandidate("poi-other", "其他地点", "地址", GeoPoint(39.916, 116.397), "010")
+        val actions = mutableListOf<PlaceSearchAction>()
+        setContent(
+            state = PlaceSearchUiState(
+                search = PlaceSearchState("地点", listOf(current, other), phase = PlaceSearchPhase.Results),
+                displayMode = SearchDisplayMode.MapDetail(current.poiId),
+                collectionBusyPoiIds = setOf(current.poiId),
+                collectionError = "无法收藏缺少坐标的地点",
+                collectionErrorPoiId = current.poiId,
+            ),
+            onAction = actions::add,
+            detailContent = null,
+        )
+
+        compose.onNodeWithContentDescription("收藏当前地点").assertIsNotEnabled().performClick()
+        compose.onNodeWithText("无法收藏缺少坐标的地点").assertIsDisplayed()
+        assertEquals(emptyList<PlaceSearchAction>(), actions)
+    }
+
+    @Test fun productionFallbackDoesNotShowCollectionErrorWhileAnotherPoiIsBusy() {
+        val current = PlaceCandidate("poi-current", "当前地点", "地址", GeoPoint(39.916, 116.397), "010")
+        val other = PlaceCandidate("poi-other", "其他地点", "地址", GeoPoint(39.917, 116.398), "010")
+        setContent(
+            state = PlaceSearchUiState(
+                search = PlaceSearchState("地点", listOf(current, other), phase = PlaceSearchPhase.Results),
+                displayMode = SearchDisplayMode.MapDetail(current.poiId),
+                collectionBusyPoiIds = setOf(other.poiId),
+                collectionError = "其他地点收藏失败",
+                collectionErrorPoiId = other.poiId,
+            ),
+            detailContent = null,
+        )
+
+        compose.onNodeWithContentDescription("收藏当前地点").assertHasClickAction()
+        compose.onAllNodesWithText("其他地点收藏失败").assertCountEquals(0)
     }
 
     @Test fun mapHostCreationFailureKeepsProductionFallbackCollectionActionAvailable() {

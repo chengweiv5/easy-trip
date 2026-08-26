@@ -107,6 +107,8 @@ fun PlaceSearchContent(
                     mapHostFactory = mapHostFactory,
                     onRecenter = { onAction(PlaceSearchAction.RecenterDetail) },
                     onToggleCollection = { onAction(PlaceSearchAction.ToggleCollection(candidate.poiId)) },
+                    collectionBusy = candidate.poiId in state.collectionBusyPoiIds,
+                    collectionError = state.collectionError.takeIf { state.collectionErrorPoiId == candidate.poiId },
                     detailContent = detailContent,
                     modifier = modifier,
                 )
@@ -123,6 +125,8 @@ private fun SearchMapDetail(
     mapHostFactory: (android.content.Context) -> AmapMapHost,
     onRecenter: () -> Unit,
     onToggleCollection: () -> Unit,
+    collectionBusy: Boolean,
+    collectionError: String?,
     detailContent: (@Composable (PlaceCandidate) -> Unit)?,
     modifier: Modifier = Modifier,
 ) {
@@ -171,14 +175,19 @@ private fun SearchMapDetail(
             if (detailContent != null) {
                 detailContent(candidate)
             } else {
-                SearchDetailFallback(candidate, onToggleCollection)
+                SearchDetailFallback(candidate, collectionBusy, collectionError, onToggleCollection)
             }
         }
     }
 }
 
 @Composable
-private fun SearchDetailFallback(candidate: PlaceCandidate, onToggleCollection: () -> Unit) {
+private fun SearchDetailFallback(
+    candidate: PlaceCandidate,
+    collectionBusy: Boolean,
+    collectionError: String?,
+    onToggleCollection: () -> Unit,
+) {
     Column(
         Modifier.fillMaxSize().padding(20.dp),
         verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -189,7 +198,7 @@ private fun SearchDetailFallback(candidate: PlaceCandidate, onToggleCollection: 
             modifier = Modifier
                 .fillMaxWidth()
                 .height(48.dp)
-                .clickable(onClick = onToggleCollection)
+                .clickable(enabled = !collectionBusy, onClick = onToggleCollection)
                 .semantics {
                     contentDescription = "收藏${candidate.name}"
                     role = Role.Button
@@ -201,6 +210,9 @@ private fun SearchDetailFallback(candidate: PlaceCandidate, onToggleCollection: 
             Box(contentAlignment = Alignment.Center) {
                 Text("收藏", fontWeight = FontWeight.Bold)
             }
+        }
+        collectionError?.let {
+            Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
         }
     }
 }

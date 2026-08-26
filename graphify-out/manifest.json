@@ -1158,9 +1158,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt": {
-    "mtime": 1787738139.9231012,
-    "seen": 1787738563.290394,
-    "ast_hash": "dd24dbcb8993fe388884b4cc81f61082",
+    "mtime": 1787740177.585166,
+    "seen": 1787740815.513078,
+    "ast_hash": "cafa60de5428936f3d080d72c1419d66",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/CreateTripContentTest.kt": {
@@ -1194,9 +1194,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContent.kt": {
-    "mtime": 1787738451.7942631,
-    "seen": 1787738563.2904582,
-    "ast_hash": "a6dab4630df77e44d2504b3a2e16f586",
+    "mtime": 1787740432.8988745,
+    "seen": 1787740815.513143,
+    "ast_hash": "85450f6027e4aa354a8e4d7135e81424",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchRoute.kt": {
@@ -1206,9 +1206,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModel.kt": {
-    "mtime": 1787738452.2602963,
-    "seen": 1787738563.2904608,
-    "ast_hash": "6ffbe92386497ec16c285152c40585b4",
+    "mtime": 1787740566.0159583,
+    "seen": 1787740815.5131462,
+    "ast_hash": "cacc6cee7c6d662711b018766e530286",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripContent.kt": {
@@ -1254,9 +1254,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModelTest.kt": {
-    "mtime": 1787738275.5229585,
-    "seen": 1787738563.2905128,
-    "ast_hash": "bb723633ac1f735e5b16a63858638f62",
+    "mtime": 1787740209.6889484,
+    "seen": 1787740815.5131981,
+    "ast_hash": "8e90dee028234f91846738754f18bab3",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-23-easy-trip-v1-full-ui-implementation/batch-1-visual-fix-report.md": {
@@ -1914,9 +1914,9 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-26-easy-trip-search-place-loop-ui-convergence/task-3-report.md": {
-    "mtime": 1787738544.5583568,
-    "seen": 1787738563.290554,
-    "ast_hash": "256964888c661a2c1e8a5b338c1a3457",
+    "mtime": 1787740650.1104484,
+    "seen": 1787740815.513241,
+    "ast_hash": "39533c1e04dbfc7baca309e0fcd009c9",
     "semantic_hash": ""
   }
 }

@@ -416,6 +416,7 @@ class PlaceSearchViewModelTest {
 
         assertEquals(listOf(noPoint), repository.attempted)
         assertEquals("无法收藏缺少坐标的地点", model.state.value.collectionError)
+        assertEquals(noPoint.poiId, model.state.value.collectionErrorPoiId)
         assertFalse(noPoint.poiId in model.recentlyCollectedPoiIds())
     }
 
