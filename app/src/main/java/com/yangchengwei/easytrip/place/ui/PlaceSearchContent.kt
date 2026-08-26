@@ -50,7 +50,11 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.workspace.AmapComposeMap
+import com.yangchengwei.easytrip.workspace.AmapMapHost
+import com.yangchengwei.easytrip.workspace.RealAmapMapHost
 
 private val SearchBackground = Color(0xFFF5F3EE)
 private val SearchSurface = Color.White
@@ -67,7 +71,9 @@ fun PlaceSearchContent(
     onAction: (PlaceSearchAction) -> Unit,
     modifier: Modifier = Modifier,
     resultsListState: LazyListState = rememberLazyListState(),
-    detailContent: @Composable (PlaceCandidate) -> Unit = {},
+    detailContent: (@Composable (PlaceCandidate) -> Unit)? = null,
+    consent: AmapConsentToken? = null,
+    mapHostFactory: (android.content.Context) -> AmapMapHost = ::RealAmapMapHost,
 ) {
     when (val mode = state.displayMode) {
         SearchDisplayMode.Results -> Column(
@@ -94,7 +100,106 @@ fun PlaceSearchContent(
         }
         is SearchDisplayMode.MapDetail -> {
             state.search.results.firstOrNull { it.poiId == mode.poiId }?.let { candidate ->
+                SearchMapDetail(
+                    candidate = candidate,
+                    requestId = state.detailMapRequestId,
+                    consent = consent,
+                    mapHostFactory = mapHostFactory,
+                    onRecenter = { onAction(PlaceSearchAction.RecenterDetail) },
+                    onToggleCollection = { onAction(PlaceSearchAction.ToggleCollection(candidate.poiId)) },
+                    detailContent = detailContent,
+                    modifier = modifier,
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchMapDetail(
+    candidate: PlaceCandidate,
+    requestId: Long,
+    consent: AmapConsentToken?,
+    mapHostFactory: (android.content.Context) -> AmapMapHost,
+    onRecenter: () -> Unit,
+    onToggleCollection: () -> Unit,
+    detailContent: (@Composable (PlaceCandidate) -> Unit)?,
+    modifier: Modifier = Modifier,
+) {
+    Column(
+        modifier
+            .fillMaxSize()
+            .background(SearchBackground)
+            .windowInsetsPadding(WindowInsets.safeDrawing)
+            .navigationBarsPadding(),
+    ) {
+        val model = searchDetailMapModel(candidate, requestId)
+        if (model != null && consent != null) {
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                AmapComposeMap(
+                    model = model,
+                    onMarkerClick = {},
+                    consent = consent,
+                    onMapPoiClick = {},
+                    modifier = Modifier.fillMaxSize().testTag("place-search-detail-map"),
+                    hostFactory = mapHostFactory,
+                )
+                Surface(
+                    modifier = Modifier
+                        .align(Alignment.BottomEnd)
+                        .padding(16.dp)
+                        .size(48.dp)
+                        .testTag("place-search-detail-recenter")
+                        .clickable(onClick = onRecenter)
+                        .semantics {
+                            contentDescription = "回到${candidate.name}"
+                            role = Role.Button
+                        },
+                    shape = CircleShape,
+                    color = SearchSurface,
+                    shadowElevation = 4.dp,
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        LocationIcon(Modifier.size(22.dp), SearchPrimary)
+                    }
+                }
+            }
+        } else {
+            Spacer(Modifier.weight(1f))
+        }
+        Box(Modifier.fillMaxWidth().weight(1f)) {
+            if (detailContent != null) {
                 detailContent(candidate)
+            } else {
+                SearchDetailFallback(candidate, onToggleCollection)
+            }
+        }
+    }
+}
+
+@Composable
+private fun SearchDetailFallback(candidate: PlaceCandidate, onToggleCollection: () -> Unit) {
+    Column(
+        Modifier.fillMaxSize().padding(20.dp),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
+        Text(candidate.name, style = MaterialTheme.typography.headlineSmall, fontWeight = FontWeight.Bold)
+        Text(candidate.address.ifBlank { "地址暂不可用" }, color = SearchMuted)
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(48.dp)
+                .clickable(enabled = candidate.point != null, onClick = onToggleCollection)
+                .semantics {
+                    contentDescription = "收藏${candidate.name}"
+                    role = Role.Button
+                },
+            shape = RoundedCornerShape(10.dp),
+            color = SearchPrimary,
+            contentColor = Color.White,
+        ) {
+            Box(contentAlignment = Alignment.Center) {
+                Text("收藏", fontWeight = FontWeight.Bold)
             }
         }
     }

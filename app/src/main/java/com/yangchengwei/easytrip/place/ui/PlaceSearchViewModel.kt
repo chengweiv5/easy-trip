@@ -50,6 +50,7 @@ sealed interface PlaceSearchAction {
     data class QueryChanged(val value: String) : PlaceSearchAction
     data object Submit : PlaceSearchAction
     data object Retry : PlaceSearchAction
+    data object RecenterDetail : PlaceSearchAction
     data class ToggleCollection(val poiId: String) : PlaceSearchAction
     data object DismissRemovalConfirmation : PlaceSearchAction
     data object ConfirmRemoval : PlaceSearchAction
@@ -64,6 +65,7 @@ data class PlaceSearchUiState(
     val pendingCollectionRemoval: PendingCollectionRemoval? = null,
     val collectionError: String? = null,
     val detailDraft: PlaceDetailEditState? = null,
+    val detailMapRequestId: Long = 1L,
     val shouldNavigateBack: Boolean = false,
 )
 
@@ -144,6 +146,7 @@ class PlaceSearchViewModel(
             is PlaceSearchAction.QueryChanged -> reducer.setQuery(action.value)
             PlaceSearchAction.Submit -> reducer.submit()
             PlaceSearchAction.Retry -> reducer.retry()
+            PlaceSearchAction.RecenterDetail -> recenterDetail()
             is PlaceSearchAction.ToggleCollection -> toggleCollection(action.poiId)
             PlaceSearchAction.DismissRemovalConfirmation -> dismissRemovalConfirmation()
             PlaceSearchAction.ConfirmRemoval -> confirmRemoval()
@@ -197,6 +200,13 @@ class PlaceSearchViewModel(
                 savedStateHandle[SELECTED_POI_ID_KEY] = mode.poiId
             }
         }
+    }
+
+    private fun recenterDetail() {
+        if (mutableState.value.displayMode !is SearchDisplayMode.MapDetail) return
+        mutableState.value = mutableState.value.copy(
+            detailMapRequestId = mutableState.value.detailMapRequestId + 1L,
+        )
     }
 
     private fun toggleCollection(poiId: String) {

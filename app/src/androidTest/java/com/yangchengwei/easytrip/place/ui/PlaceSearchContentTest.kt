@@ -1,7 +1,9 @@
 package com.yangchengwei.easytrip.place.ui
 
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.SavedStateHandle
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.requiredWidth
@@ -14,6 +16,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertCountEquals
@@ -28,6 +32,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.amap.AmapPrivacyGate
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
@@ -35,6 +40,10 @@ import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.place.domain.SavedPlace
 import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
+import com.yangchengwei.easytrip.workspace.AmapMapHost
+import com.yangchengwei.easytrip.workspace.MapLayer
+import com.yangchengwei.easytrip.workspace.MapPoiUi
+import com.yangchengwei.easytrip.workspace.MapUiModel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
@@ -48,9 +57,10 @@ class PlaceSearchContentTest {
     @Test fun resultRowOpensDetailWhileBookmarkOnlyTogglesCollection() {
         val candidate = PlaceCandidate("poi-1", "故宫博物院", "北京市东城区景山前街4号", GeoPoint(39.916, 116.397), "010")
         val actions = mutableListOf<PlaceSearchAction>()
-        setContent(PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results))) {
-            actions.add(it)
-        }
+        setContent(
+            PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results)),
+            onAction = actions::add,
+        )
 
         compose.onNodeWithContentDescription("查看故宫博物院详情").performClick()
         compose.onNodeWithContentDescription("收藏故宫博物院").performClick()
@@ -155,6 +165,115 @@ class PlaceSearchContentTest {
         compose.onAllNodesWithText("加入行程").assertCountEquals(0)
     }
 
+    @Test fun searchDetailRendersMapAndRecenterWithoutChangingSelection() {
+        val candidate = PlaceCandidate("poi-map", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        val actions = mutableListOf<PlaceSearchAction>()
+        var renderedModel: MapUiModel? = null
+        var markerClicks = 0
+        var poiClicks = 0
+        val host = object : AmapMapHost {
+            override val view: View = View(context)
+            override fun onCreate() = Unit
+            override fun onResume() = Unit
+            override fun onPause() = Unit
+            override fun onDestroy() = Unit
+            override fun render(
+                model: MapUiModel,
+                layer: MapLayer,
+                onMarkerClick: (String) -> Unit,
+                onMapPoiClick: (MapPoiUi) -> Unit,
+                onLayerError: (Throwable, MapLayer) -> Unit,
+            ) {
+                renderedModel = model
+                onMarkerClick("search-other")
+                markerClicks++
+                onMapPoiClick(MapPoiUi("other", "其他地点", "", GeoPoint(1.0, 2.0)))
+                poiClicks++
+            }
+        }
+        setContent(
+            state = PlaceSearchUiState(
+                search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results),
+                displayMode = SearchDisplayMode.MapDetail(candidate.poiId),
+                detailMapRequestId = 4L,
+            ),
+            onAction = actions::add,
+            consent = token,
+            mapHostFactory = { host },
+        )
+
+        compose.waitUntil(5_000) { renderedModel != null }
+        compose.onNodeWithTag("place-search-detail-map").assertIsDisplayed()
+        compose.onNodeWithText("详情：故宫博物院").assertIsDisplayed()
+        compose.onNodeWithContentDescription("回到故宫博物院").performClick()
+
+        compose.runOnIdle {
+            assertEquals("search-poi-map", renderedModel?.markers?.single()?.key)
+            assertEquals(4L, renderedModel?.viewportRequest?.id)
+            assertEquals(listOf(PlaceSearchAction.RecenterDetail), actions)
+            assertTrue(markerClicks > 0)
+            assertTrue(poiClicks > 0)
+        }
+    }
+
+    @Test fun missingConsentKeepsDefaultDetailCollectionActionAvailable() {
+        val candidate = PlaceCandidate("poi-no-consent", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        var action: PlaceSearchAction? = null
+        compose.setContent {
+            EasyTripTheme {
+                PlaceSearchContent(
+                    state = PlaceSearchUiState(
+                        search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results),
+                        displayMode = SearchDisplayMode.MapDetail(candidate.poiId),
+                    ),
+                    onAction = { action = it },
+                    consent = null,
+                )
+            }
+        }
+
+        compose.onNodeWithText("故宫博物院").assertIsDisplayed()
+        compose.onNodeWithContentDescription("收藏故宫博物院").performClick()
+        assertEquals(PlaceSearchAction.ToggleCollection("poi-no-consent"), action)
+    }
+
+    @Test fun missingConsentOrCoordinatesKeepsDetailActionsAvailable() {
+        val noPoint = PlaceCandidate("poi-no-point", "未知地点", "地址", null, "010")
+        setContent(
+            state = PlaceSearchUiState(
+                search = PlaceSearchState("未知", listOf(noPoint), phase = PlaceSearchPhase.Results),
+                displayMode = SearchDisplayMode.MapDetail(noPoint.poiId),
+            ),
+            consent = null,
+        )
+
+        compose.onNodeWithText("详情：未知地点").assertIsDisplayed()
+        compose.onNodeWithTag("place-search-detail-map").assertDoesNotExist()
+    }
+
+    @Test fun mapFailureLeavesDetailActionsEnabled() {
+        val candidate = PlaceCandidate("poi-map", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
+        val gate = AmapPrivacyGate.create(context)
+        gate.reportPrivacyShown()
+        val token = requireNotNull(gate.reportUserDecision(true))
+        setContent(
+            state = PlaceSearchUiState(
+                search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results),
+                displayMode = SearchDisplayMode.MapDetail(candidate.poiId),
+            ),
+            consent = token,
+            mapHostFactory = { error("map unavailable") },
+        )
+
+        compose.onNodeWithText("详情：故宫博物院").assertIsDisplayed()
+        compose.onNodeWithContentDescription("详情操作").assertHasClickAction()
+    }
+
     @Test fun loadingEmptyAndFailureMatchTheirActions() {
         val state = mutableStateOf(PlaceSearchUiState(search = PlaceSearchState("故宫", phase = PlaceSearchPhase.Loading)))
         var action: PlaceSearchAction? = null
@@ -185,9 +304,10 @@ class PlaceSearchContentTest {
 
     @Test fun searchImeSubmitsAndEmptyStateCanClearQuery() {
         var action: PlaceSearchAction? = null
-        setContent(PlaceSearchUiState(search = PlaceSearchState("不存在", phase = PlaceSearchPhase.Empty))) {
-            action = it
-        }
+        setContent(
+            PlaceSearchUiState(search = PlaceSearchState("不存在", phase = PlaceSearchPhase.Empty)),
+            onAction = { action = it },
+        )
 
         compose.onNodeWithContentDescription("搜索地点").performImeAction()
         assertEquals(PlaceSearchAction.Submit, action)
@@ -375,8 +495,18 @@ class PlaceSearchContentTest {
 
     private fun setContent(
         state: PlaceSearchUiState,
-        detailContent: @androidx.compose.runtime.Composable (PlaceCandidate) -> Unit = {},
+        detailContent: @androidx.compose.runtime.Composable (PlaceCandidate) -> Unit = { candidate ->
+            Text(
+                "详情：${candidate.name}",
+                Modifier
+                    .testTag("place-search-detail-action")
+                    .clickable {}
+                    .semantics { contentDescription = "详情操作" },
+            )
+        },
         onAction: (PlaceSearchAction) -> Unit = {},
+        consent: com.yangchengwei.easytrip.amap.AmapConsentToken? = null,
+        mapHostFactory: (android.content.Context) -> AmapMapHost = { error("unused map host") },
     ) {
         compose.setContent {
             EasyTripTheme {
@@ -384,6 +514,8 @@ class PlaceSearchContentTest {
                     state = state,
                     onAction = onAction,
                     detailContent = detailContent,
+                    consent = consent,
+                    mapHostFactory = mapHostFactory,
                 )
             }
         }

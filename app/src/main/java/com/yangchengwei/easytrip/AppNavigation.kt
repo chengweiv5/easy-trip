@@ -346,12 +346,19 @@ fun AppNavigation(
                         entry.savedStateHandle,
                     ),
                 )
-                PlaceSearchRoute(model) {
-                    navController.previousBackStackEntry?.savedStateHandle?.let {
-                        publishWorkspaceSearchReturn(it, model.recentlyCollectedPoiIds())
-                    }
-                    navController.popBackStack()
-                }
+                PlaceSearchRoute(
+                    viewModel = model,
+                    consent = (dependencies?.mapConsentToken ?: application?.amapConsentToken)
+                        ?.takeIf { it.isActive() },
+                    mapHostFactory = mapHostFactory
+                        ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
+                    onBack = {
+                        navController.previousBackStackEntry?.savedStateHandle?.let {
+                            publishWorkspaceSearchReturn(it, model.recentlyCollectedPoiIds())
+                        }
+                        navController.popBackStack()
+                    },
+                )
             }
         }
         composable(TRIP_SETTINGS_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) {

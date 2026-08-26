@@ -91,6 +91,27 @@ class PlaceSearchViewModelTest {
         assertNull(handle.get<PlaceCandidate>("selectedCandidate"))
     }
 
+    @Test fun ordinaryDetailStateChangesKeepViewportRequestId() = runTest(dispatcher) {
+        val model = modelWithResult()
+        model.dispatch(PlaceSearchAction.OpenDetail("poi-1"))
+        val initialRequestId = model.state.value.detailMapRequestId
+
+        model.dispatch(PlaceSearchAction.ToggleCollection("poi-1"))
+        advanceUntilIdle()
+
+        assertEquals(initialRequestId, model.state.value.detailMapRequestId)
+    }
+
+    @Test fun recenterIncrementsRequestId() = runTest(dispatcher) {
+        val model = modelWithResult()
+        model.dispatch(PlaceSearchAction.OpenDetail("poi-1"))
+        val initialRequestId = model.state.value.detailMapRequestId
+
+        model.dispatch(PlaceSearchAction.RecenterDetail)
+
+        assertEquals(initialRequestId + 1L, model.state.value.detailMapRequestId)
+    }
+
     @Test fun openDetailRejectsPoiOutsideCurrentResults() = runTest(dispatcher) {
         val model = PlaceSearchViewModel(
             "trip",
@@ -420,13 +441,14 @@ class PlaceSearchViewModelTest {
             PlaceSearchAction.QueryChanged("query"),
             PlaceSearchAction.Submit,
             PlaceSearchAction.Retry,
+            PlaceSearchAction.RecenterDetail,
             PlaceSearchAction.ToggleCollection("poi"),
             PlaceSearchAction.DismissRemovalConfirmation,
             PlaceSearchAction.ConfirmRemoval,
         )
 
         assertFalse(actions.any { it.javaClass.simpleName.contains("Itinerary") || it.javaClass.simpleName.contains("Schedule") })
-        assertEquals(8, actions.size)
+        assertEquals(9, actions.size)
     }
 
     private suspend fun kotlinx.coroutines.test.TestScope.modelWithResult(): PlaceSearchViewModel {
