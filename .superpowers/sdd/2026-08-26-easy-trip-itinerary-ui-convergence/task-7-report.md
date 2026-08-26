@@ -30,11 +30,20 @@ Catalog 首次运行 47 tests 中 1 failed：场景 14 仍断言旧 UI 文案“
 
 DEFERRED。按用户决定统一延期，未记为 PASS。待验收：半屏信息密度、展开长列表、长地点名与长错误、handle/menu 误触、RouteLeg 四态、全程只读层级及 120dp 拖动手感。
 
+## Whole-branch 修复波次
+
+严格 TDD RED 首次有效运行 26 tests，2 failed、0 skipped：`more-icon-i1` 不存在，Calculating 节点缺少 `LiveRegionMode.Polite`。此前 bounds 断言曾错误地将 `DpRect` 再转换为 px，修正为 dp 数值比较后才作为有效 RED 证据。
+
+- Calculating RouteLeg 的稳定父节点现暴露 `LiveRegionMode.Polite`，并由 Compose semantics 断言覆盖。
+- `more` 文本 glyph 已替换为固定 22dp Canvas MoreVert 图标；地点名 contentDescription 与 40dp touch target 保持不变。
+- bounds 测试精确验证 40dp menu target、22dp icon，并继续验证 handle/menu 不重叠。
+- 修复后目标类 26/26 PASS；完整门禁再次通过：JVM 338/338、focused 87/87、Catalog 47/47、Full UI 47/47，均 0 failed、0 skipped；lintDebug、assembleDebug、assembleDebugAndroidTest PASS。
+
 ## Whole-branch review 关注点
 
 - zero elevation 测试未直接观测运行时 elevation。
 - editable/read-only geometry 测试比较共享 primitive，未分别渲染完整行组件。
-- `more` 仍是文本 glyph，缺少显式 20–22dp 图标尺寸。
+- `more` 文本 glyph 与显式尺寸问题已关闭。
 - RouteLeg 长错误测试未直接证明没有 fixed height。
 - RouteLeg 四态文本测试未全部限定 selector scope 到各自 leg tag。
 

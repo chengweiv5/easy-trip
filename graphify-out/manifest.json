@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/RouteLegRow.kt": {
-    "mtime": 1787712059.2155306,
-    "seen": 1787712180.11961,
-    "ast_hash": "3741b0a4d38083e6c9a444fd4c94ef67",
+    "mtime": 1787721132.1862853,
+    "seen": 1787721474.381653,
+    "ast_hash": "1d4c41645677473e9b7179e95634121f",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/amap/AmapPlaceDataSource.kt": {
@@ -1806,9 +1806,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryTimelineContentTest.kt": {
-    "mtime": 1787714150.3631701,
-    "seen": 1787714336.5499892,
-    "ast_hash": "b0a14ea22d47e16dfa6d853afa0b571f",
+    "mtime": 1787721077.633012,
+    "seen": 1787721474.3816,
+    "ast_hash": "f6db30d80bb1c7590730755118543f76",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-08-26-easy-trip-itinerary-ui-convergence.md": {
@@ -1818,9 +1818,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryItemMenu.kt": {
-    "mtime": 1787709394.0101967,
-    "seen": 1787709687.112205,
-    "ast_hash": "46b22de59e7dfaa149e4cc9554e03b76",
+    "mtime": 1787721137.9581318,
+    "seen": 1787721474.3816488,
+    "ast_hash": "87beb9f98080abe25ed11e0c0ce1e2d5",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-26-easy-trip-itinerary-ui-convergence/task-3-report.md": {
@@ -1854,15 +1854,27 @@
     "semantic_hash": ""
   },
   "docs/testing/itinerary-ui-acceptance.md": {
-    "mtime": 1787720106.4233534,
-    "seen": 1787720162.0330482,
-    "ast_hash": "5658104294016c024a485e24a487d256",
+    "mtime": 1787721458.203065,
+    "seen": 1787721474.381783,
+    "ast_hash": "7dce293564cc83c75d12d0f930081006",
     "semantic_hash": ""
   },
   "docs/testing/itinerary-ui-conflicts.md": {
     "mtime": 1787720115.4949539,
     "seen": 1787720162.033049,
     "ast_hash": "2ef4c18b5cffe9690d126bf355a04eed",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-26-easy-trip-itinerary-ui-convergence/progress.md": {
+    "mtime": 1787721457.7547245,
+    "seen": 1787721474.3817549,
+    "ast_hash": "ea8f1e02d50f0a6ad73f7f366117c868",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-26-easy-trip-itinerary-ui-convergence/task-7-report.md": {
+    "mtime": 1787721459.605829,
+    "seen": 1787721474.381759,
+    "ast_hash": "3ce8bb0f10d58ce200c1af059a492cde",
     "semantic_hash": ""
   }
 }

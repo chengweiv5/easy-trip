@@ -13,6 +13,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -236,7 +237,22 @@ class ItineraryTimelineContentTest {
         }
 
         compose.onNodeWithTag("drag-handle-i1", useUnmergedTree = true).assertIsDisplayed()
-        compose.onNodeWithTag("more-i1", useUnmergedTree = true).assertIsDisplayed()
+        val handleBounds = compose.onNodeWithTag("drag-handle-i1", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        val menuBounds = compose.onNodeWithTag("more-i1", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        assertEquals(40f, (menuBounds.right - menuBounds.left).value, 0.5f)
+        assertEquals(40f, (menuBounds.bottom - menuBounds.top).value, 0.5f)
+        assertTrue("handle=$handleBounds menu=$menuBounds", handleBounds.right <= menuBounds.left)
+        compose.onNodeWithTag("more-icon-i1", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .let { icon ->
+                val iconBounds = icon.getUnclippedBoundsInRoot()
+                assertEquals(22f, (iconBounds.right - iconBounds.left).value, 0.5f)
+                assertEquals(22f, (iconBounds.bottom - iconBounds.top).value, 0.5f)
+            }
         compose.onAllNodesWithTag("timing-i1", useUnmergedTree = true).assertCountEquals(0)
         compose.onAllNodesWithTag("move-i1", useUnmergedTree = true).assertCountEquals(0)
         compose.onAllNodesWithTag("delete-i1", useUnmergedTree = true).assertCountEquals(0)
@@ -552,6 +568,9 @@ class ItineraryTimelineContentTest {
 
         compose.onNodeWithText("步行").assertIsDisplayed()
         compose.onNodeWithText("1.1 公里 · 5 分钟").assertIsDisplayed()
+        compose.onNodeWithTag("calculating").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
+        )
         compose.onNodeWithText("正在计算路线").assertIsDisplayed()
         compose.onNodeWithText("等待联网").assertIsDisplayed()
         compose.onNodeWithText("路线暂时不可用").assertIsDisplayed()

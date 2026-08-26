@@ -30,7 +30,7 @@
 
 - zero elevation 测试只间接覆盖，未直接观测运行时 elevation。
 - editable/read-only geometry 测试比较共享 primitive，未分别渲染完整 `ItineraryItemRow` 验证。
-- `more` 入口仍使用文本 glyph，未以显式 20–22dp 图标尺寸表达。
+- `more` 文本 glyph 已在 whole-branch 修复波次关闭：改为固定 22dp Canvas 图标，并自动化验证 40dp 触控区、22dp 图标和与拖动手柄不重叠。
 - RouteLeg 长错误测试验证最大两行，但未直接证明不存在 fixed height。
 - RouteLeg 四态文字测试使用全局 selector，未全部限定到各自 leg tag scope。
 

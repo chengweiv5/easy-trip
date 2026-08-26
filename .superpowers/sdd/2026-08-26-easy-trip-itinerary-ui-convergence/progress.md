@@ -60,5 +60,8 @@ Task 7: complete (candidate gates PASS; commit recorded in task report)
 - Static gates: lintDebug, assembleDebug, and assembleDebugAndroidTest PASS.
 - Selector migration: scenario 14 now asserts two “正在计算路线” nodes for PENDING/CALCULATING, preserving both domain-state fixtures and strengthening the merged UI-state assertion.
 - Physical-device acceptance: DEFERRED by decision; not recorded as PASS.
-- Carried whole-branch review items: zero-elevation test strength; editable/read-only geometry test strength; more text glyph sizing; RouteLeg fixed-height and selector-scope test strength.
+- Whole-branch fix wave: strict RED confirmed missing `more-icon-i1` and missing Calculating `LiveRegionMode.Polite`; production now uses a fixed 22dp Canvas icon inside the unchanged 40dp menu target and exposes polite live-region semantics on the calculating leg.
+- Bounds coverage now verifies the 40dp menu target, 22dp icon, and non-overlap with the drag handle.
+- Post-fix gates: JVM 338/338 PASS; focused device suite 87/87 PASS; Catalog 47/47 PASS; Full UI 47/47 PASS; all runs 0 failed and 0 skipped. lintDebug, assembleDebug, and assembleDebugAndroidTest PASS.
+- Remaining whole-branch review items: zero-elevation test strength; editable/read-only geometry test strength; RouteLeg fixed-height and selector-scope test strength. The more text glyph item is closed.
 - Acceptance and conflict records: docs/testing/itinerary-ui-acceptance.md and docs/testing/itinerary-ui-conflicts.md.

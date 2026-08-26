@@ -19,8 +19,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -44,8 +46,13 @@ internal fun RouteLegContent(
     onRetry: (() -> Unit)? = null,
 ) {
     val state = leg.state
+    val stateModifier = if (state == RouteLegUiState.Calculating) {
+        Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+    } else {
+        Modifier
+    }
     Row(
-        modifier.padding(start = 28.dp),
+        modifier.then(stateModifier).padding(start = 28.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         RouteLegConnector()

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.DropdownMenu
@@ -10,6 +11,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -37,7 +39,7 @@ internal fun ItineraryItemMenu(
                 .testTag("more-$itemId")
                 .semantics { contentDescription = "$itemName，更多行程项操作" },
         ) {
-            Text("⋮", style = MaterialTheme.typography.titleLarge)
+            MoreVertIcon(Modifier.size(22.dp).testTag("more-icon-$itemId"))
         }
         DropdownMenu(
             expanded = expanded,
@@ -59,6 +61,17 @@ internal fun ItineraryItemMenu(
                 },
                 modifier = Modifier.testTag("menu-delete-$itemId"),
             )
+        }
+    }
+}
+
+@Composable
+private fun MoreVertIcon(modifier: Modifier = Modifier) {
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Canvas(modifier) {
+        val radius = size.minDimension / 11f
+        listOf(.25f, .5f, .75f).forEach { fraction ->
+            drawCircle(color, radius, Offset(size.width / 2f, size.height * fraction))
         }
     }
 }
