@@ -60,10 +60,10 @@ fun WholeTripItineraryContent(
             } else {
                 day.items.forEachIndexed { index, itineraryItem ->
                     item(key = "${day.dayId}-item-${itineraryItem.id}") {
-                        ItineraryItemCard(
+                        ItineraryPlaceRow(
                             item = itineraryItem,
                             displayOrder = index + 1,
-                            modifier = Modifier.fillMaxWidth().testTag("item-${itineraryItem.id}"),
+                            modifier = Modifier.fillMaxWidth(),
                         )
                     }
                     val nextItemId = day.items.getOrNull(index + 1)?.id

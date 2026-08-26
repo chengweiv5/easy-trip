@@ -80,7 +80,7 @@ fun DayItineraryContent(
             }
             itemsIndexed(state.previewOrder, key = { _, id -> id }) { index, id ->
                 val item = byId[id] ?: return@itemsIndexed
-                ItineraryPlaceRow(
+                ItineraryItemRow(
                     item,
                     index,
                     state.previewOrder.size,
