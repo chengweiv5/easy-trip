@@ -1,7 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.activity.ComponentActivity
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -191,7 +190,7 @@ class ItineraryEditingTest {
         compose.onNodeWithTag("leg-leg-2").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
         compose.onNodeWithText("↓").assertDoesNotExist()
         compose.onNodeWithTag("item-i2")
-            .assertContentDescriptionEquals("酒店，第 2 项，共 3 项", "拖动酒店调整顺序")
+            .assertContentDescriptionEquals("酒店，第 2 项，共 3 项", "拖动调整 酒店 的顺序")
             .assert(SemanticsMatcher("has both reorder actions") { node ->
                 node.config[SemanticsActions.CustomActions].map { it.label } == listOf("上移", "下移")
             })
@@ -215,21 +214,22 @@ class ItineraryEditingTest {
         compose.waitUntil(5_000) { coordinator.retries.isNotEmpty() }
         assertEquals(listOf("leg-2"), coordinator.retries)
 
-        compose.onNodeWithTag("item-i2").performTouchInput {
-            val start = Offset(width * 0.15f, height * 0.25f)
+        val reorderStepPx = compose.activity.resources.displayMetrics.density * 120f
+        compose.onNodeWithTag("drag-handle-i2", useUnmergedTree = true).performTouchInput {
+            val start = center
             down(start)
             advanceEventTime(700)
-            moveTo(Offset(start.x, start.y - 500f), 800)
+            moveTo(start.copy(y = start.y - reorderStepPx - 10f), 800)
             up()
         }
         compose.waitUntil(5_000) { itineraries.moves.isNotEmpty() }
         assertEquals(Move("i2", "day-1", 0), itineraries.moves.single())
 
-        compose.onNodeWithTag("item-i2").performTouchInput {
-            val start = Offset(width * 0.85f, height * 0.25f)
+        compose.onNodeWithTag("drag-handle-i2", useUnmergedTree = true).performTouchInput {
+            val start = center
             down(start)
             advanceEventTime(700)
-            moveTo(Offset(start.x, start.y + 500f), 800)
+            moveTo(start.copy(y = start.y + reorderStepPx * 2f + 10f), 800)
             up()
         }
         compose.waitUntil(5_000) { itineraries.moves.size == 2 }

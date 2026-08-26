@@ -5,8 +5,14 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertIsDisplayed
@@ -17,6 +23,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import java.time.LocalTime
@@ -192,6 +200,144 @@ class ItineraryTimelineContentTest {
     }
 
     @Test
+    fun longPressOnPlaceBodyDoesNotReorder() {
+        val previews = mutableListOf<Int>()
+        val commits = mutableListOf<Int>()
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                    index = 1,
+                    count = 3,
+                    onPreview = previews::add,
+                    onCommit = commits::add,
+                    onMenuAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("item-i1").performTouchInput { longPressDragBy(-300f) }
+
+        compose.runOnIdle {
+            assertTrue(previews.isEmpty())
+            assertTrue(commits.isEmpty())
+        }
+    }
+
+    @Test
+    fun longPressOnMoreDoesNotReorder() {
+        val previews = mutableListOf<Int>()
+        val commits = mutableListOf<Int>()
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                    index = 1,
+                    count = 3,
+                    onPreview = previews::add,
+                    onCommit = commits::add,
+                    onMenuAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("more-i1", useUnmergedTree = true).performTouchInput { longPressDragBy(-300f) }
+
+        compose.runOnIdle {
+            assertTrue(previews.isEmpty())
+            assertTrue(commits.isEmpty())
+        }
+    }
+
+    @Test
+    fun longPressAndDragOnHandleCommitsReorder() {
+        val previews = mutableListOf<Int>()
+        val commits = mutableListOf<Int>()
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1f)) {
+                EasyTripTheme {
+                    ItineraryItemRow(
+                        item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                        index = 1,
+                        count = 3,
+                        onPreview = previews::add,
+                        onCommit = commits::add,
+                        onMenuAction = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("drag-handle-i1", useUnmergedTree = true).performTouchInput { longPressDragBy(-130f) }
+
+        compose.runOnIdle {
+            assertEquals(0, previews.last())
+            assertEquals(listOf(0), commits)
+        }
+    }
+
+    @Test
+    fun reorderStepUsesDpAtTwoXDensity() {
+        val previews = mutableListOf<Int>()
+        val commits = mutableListOf<Int>()
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(2f, 1f)) {
+                EasyTripTheme {
+                    ItineraryItemRow(
+                        item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                        index = 1,
+                        count = 3,
+                        onPreview = previews::add,
+                        onCommit = commits::add,
+                        onMenuAction = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("drag-handle-i1", useUnmergedTree = true).performTouchInput { longPressDragBy(-130f) }
+        compose.runOnIdle {
+            assertEquals(1, previews.last())
+            assertEquals(listOf(1), commits)
+        }
+
+        previews.clear()
+        commits.clear()
+        compose.onNodeWithTag("drag-handle-i1", useUnmergedTree = true).performTouchInput { longPressDragBy(-250f) }
+        compose.runOnIdle {
+            assertEquals(0, previews.last())
+            assertEquals(listOf(0), commits)
+        }
+    }
+
+    @Test
+    fun middleItemKeepsMoveUpAndMoveDownActions() {
+        val commits = mutableListOf<Int>()
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                    index = 1,
+                    count = 3,
+                    onPreview = {},
+                    onCommit = commits::add,
+                    onMenuAction = {},
+                )
+            }
+        }
+
+        val node = compose.onNodeWithTag("item-i1")
+            .assert(SemanticsMatcher("has both reorder actions") { semanticsNode ->
+                semanticsNode.config[SemanticsActions.CustomActions].map { it.label } == listOf("上移", "下移")
+            })
+            .fetchSemanticsNode()
+        node.config[SemanticsActions.CustomActions].first { it.label == "上移" }.action()
+        node.config[SemanticsActions.CustomActions].first { it.label == "下移" }.action()
+
+        compose.runOnIdle { assertEquals(listOf(0, 2), commits) }
+    }
+
+    @Test
     fun normalPlaceRowHasZeroElevationAndNoPermanentDeleteAction() {
         compose.setContent {
             EasyTripTheme {
@@ -205,6 +351,14 @@ class ItineraryTimelineContentTest {
         compose.onNodeWithTag("item-plain").assertIsDisplayed()
         compose.onAllNodesWithTag("delete-plain").assertCountEquals(0)
         compose.onAllNodesWithText("删除").assertCountEquals(0)
+    }
+
+    private fun androidx.compose.ui.test.TouchInjectionScope.longPressDragBy(deltaY: Float) {
+        val start = center
+        down(start)
+        advanceEventTime(700)
+        moveTo(Offset(start.x, start.y + deltaY), 500)
+        up()
     }
 
     private fun itineraryItem(

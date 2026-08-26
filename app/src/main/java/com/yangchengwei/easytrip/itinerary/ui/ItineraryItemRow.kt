@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -20,8 +21,11 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
@@ -30,7 +34,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
+private val ReorderStep = 120.dp
 
 @Composable
 internal fun ItineraryItemRow(
@@ -42,47 +46,23 @@ internal fun ItineraryItemRow(
     onMenuAction: (ItineraryItemMenuAction) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var drag by remember(item.id) { mutableFloatStateOf(0f) }
     var isDragging by remember(item.id) { mutableStateOf(false) }
     var menuExpanded by remember(item.id) { mutableStateOf(false) }
-    val currentIndex by rememberUpdatedState(index)
     ItineraryPlaceContent(
         item = item,
         displayOrder = index + 1,
         modifier = modifier
             .fillMaxWidth()
-            .semanticsActions(item.name, index, count, onCommit)
-            .pointerInput(item.id, count) {
-                var startIndex = currentIndex
-                detectDragGesturesAfterLongPress(
-                    onDragStart = {
-                        drag = 0f
-                        startIndex = currentIndex
-                        isDragging = true
-                    },
-                    onDrag = { change, amount ->
-                        change.consume()
-                        drag += amount.y
-                        onPreview((startIndex + (drag / 120f).roundToInt()).coerceIn(0, count - 1))
-                    },
-                    onDragEnd = {
-                        onCommit((startIndex + (drag / 120f).roundToInt()).coerceIn(0, count - 1))
-                        drag = 0f
-                        isDragging = false
-                    },
-                    onDragCancel = {
-                        drag = 0f
-                        isDragging = false
-                    },
-                )
-            },
+            .semanticsActions(item.name, index, count, onCommit),
         leadingAction = {
-            Text(
-                text = "≡",
-                modifier = Modifier
-                    .testTag("drag-handle-${item.id}")
-                    .semantics { contentDescription = "拖动${item.name}调整顺序" },
-                style = MaterialTheme.typography.titleLarge,
+            ItineraryDragHandle(
+                itemId = item.id,
+                itemName = item.name,
+                index = index,
+                count = count,
+                onPreview = onPreview,
+                onCommit = onCommit,
+                onDraggingChange = { isDragging = it },
             )
         },
         trailingAction = {
@@ -97,6 +77,70 @@ internal fun ItineraryItemRow(
         containerColor = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         elevation = if (isDragging) 12.dp else 0.dp,
     )
+}
+
+@Composable
+private fun ItineraryDragHandle(
+    itemId: String,
+    itemName: String,
+    index: Int,
+    count: Int,
+    onPreview: (Int) -> Unit,
+    onCommit: (Int) -> Unit,
+    onDraggingChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    var drag by remember(itemId) { mutableFloatStateOf(0f) }
+    val currentIndex by rememberUpdatedState(index)
+    val reorderStepPx = with(LocalDensity.current) { ReorderStep.toPx() }
+    val handleColor = MaterialTheme.colorScheme.onSurfaceVariant
+    Box(
+        modifier = modifier
+            .size(40.dp)
+            .testTag("drag-handle-$itemId")
+            .semantics { contentDescription = "拖动调整 $itemName 的顺序" }
+            .pointerInput(itemId, count, reorderStepPx) {
+                var startIndex = currentIndex
+                detectDragGesturesAfterLongPress(
+                    onDragStart = {
+                        drag = 0f
+                        startIndex = currentIndex
+                        onDraggingChange(true)
+                    },
+                    onDrag = { change, amount ->
+                        change.consume()
+                        drag += amount.y
+                        onPreview((startIndex + (drag / reorderStepPx).toInt()).coerceIn(0, count - 1))
+                    },
+                    onDragEnd = {
+                        onCommit((startIndex + (drag / reorderStepPx).toInt()).coerceIn(0, count - 1))
+                        drag = 0f
+                        onDraggingChange(false)
+                    },
+                    onDragCancel = {
+                        drag = 0f
+                        onPreview(startIndex)
+                        onDraggingChange(false)
+                    },
+                )
+            },
+        contentAlignment = Alignment.Center,
+    ) {
+        Canvas(Modifier.size(22.dp)) {
+            val strokeWidth = 2.dp.toPx()
+            val startX = 4.dp.toPx()
+            val endX = size.width - startX
+            listOf(6.dp, 11.dp, 16.dp).forEach { y ->
+                drawLine(
+                    color = handleColor,
+                    start = Offset(startX, y.toPx()),
+                    end = Offset(endX, y.toPx()),
+                    strokeWidth = strokeWidth,
+                    cap = StrokeCap.Round,
+                )
+            }
+        }
+    }
 }
 
 @Composable
