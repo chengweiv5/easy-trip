@@ -17,9 +17,36 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 private const val SEARCH_QUERY_KEY = "query"
+private const val DISPLAY_MODE_KEY = "displayMode"
+private const val SELECTED_POI_ID_KEY = "selectedPoiId"
+private const val RESULTS_MODE = "RESULTS"
+private const val MAP_DETAIL_MODE = "MAP_DETAIL"
+
+sealed interface SearchDisplayMode {
+    data object Results : SearchDisplayMode
+    data class MapDetail(val poiId: String) : SearchDisplayMode
+}
+
+data class PlaceDetailEditState(
+    val placeId: String,
+    val note: String,
+    val selectedTagNames: Set<String>,
+    val newTagInput: String = "",
+    val isSaving: Boolean = false,
+    val errorMessage: String? = null,
+)
+
+sealed interface PlaceSearchBackDecision {
+    data object Ignore : PlaceSearchBackDecision
+    data object DismissRemovalConfirmation : PlaceSearchBackDecision
+    data object CancelEdit : PlaceSearchBackDecision
+    data object ShowResults : PlaceSearchBackDecision
+    data object ExitDestination : PlaceSearchBackDecision
+}
 
 sealed interface PlaceSearchAction {
     data object Back : PlaceSearchAction
+    data class OpenDetail(val poiId: String) : PlaceSearchAction
     data class QueryChanged(val value: String) : PlaceSearchAction
     data object Submit : PlaceSearchAction
     data object Retry : PlaceSearchAction
@@ -30,12 +57,26 @@ sealed interface PlaceSearchAction {
 
 data class PlaceSearchUiState(
     val search: PlaceSearchState = PlaceSearchState(),
+    val displayMode: SearchDisplayMode = SearchDisplayMode.Results,
     val savedPoiIds: Set<String> = emptySet(),
+    val savedPlacesByPoiId: Map<String, SavedPlace> = emptyMap(),
     val collectionBusyPoiIds: Set<String> = emptySet(),
     val pendingCollectionRemoval: PendingCollectionRemoval? = null,
     val collectionError: String? = null,
+    val detailDraft: PlaceDetailEditState? = null,
     val shouldNavigateBack: Boolean = false,
 )
+
+internal fun decidePlaceSearchBack(state: PlaceSearchUiState): PlaceSearchBackDecision {
+    val mutationBusy = state.detailDraft?.isSaving == true || state.collectionBusyPoiIds.isNotEmpty()
+    return when {
+        mutationBusy -> PlaceSearchBackDecision.Ignore
+        state.pendingCollectionRemoval != null -> PlaceSearchBackDecision.DismissRemovalConfirmation
+        state.detailDraft != null -> PlaceSearchBackDecision.CancelEdit
+        state.displayMode is SearchDisplayMode.MapDetail -> PlaceSearchBackDecision.ShowResults
+        else -> PlaceSearchBackDecision.ExitDestination
+    }
+}
 
 class PlaceSearchViewModel(
     private val tripId: String,
@@ -50,7 +91,12 @@ class PlaceSearchViewModel(
         Dispatchers.Main.immediate,
         savedStateHandle[SEARCH_QUERY_KEY] ?: "",
     )
-    private val mutableState = MutableStateFlow(PlaceSearchUiState(search = reducer.state.value))
+    private val mutableState = MutableStateFlow(
+        PlaceSearchUiState(
+            search = reducer.state.value,
+            displayMode = restoredDisplayMode(),
+        ),
+    )
     val state: StateFlow<PlaceSearchUiState> = mutableState.asStateFlow()
     private var savedByPoiId: Map<String, SavedPlace> = emptyMap()
     private val recentlyCollectedPoiIds = mutableSetOf<String>()
@@ -62,11 +108,13 @@ class PlaceSearchViewModel(
             reducer.state.collect { search ->
                 savedStateHandle[SEARCH_QUERY_KEY] = search.query
                 mutableState.value = mutableState.value.copy(search = search)
+                validateRestoredDetail(search)
             }
         }
         viewModelScope.launch {
             repository.observePlaces(tripId, emptySet()).collect { places ->
                 savedByPoiId = places.associateBy(SavedPlace::amapPoiId)
+                mutableState.value = mutableState.value.copy(savedPlacesByPoiId = savedByPoiId)
                 reducer.setSavedPlaces(places)
             }
         }
@@ -79,7 +127,8 @@ class PlaceSearchViewModel(
 
     fun dispatch(action: PlaceSearchAction) {
         when (action) {
-            PlaceSearchAction.Back -> mutableState.value = mutableState.value.copy(shouldNavigateBack = true)
+            PlaceSearchAction.Back -> handleBack()
+            is PlaceSearchAction.OpenDetail -> openDetail(action.poiId)
             is PlaceSearchAction.QueryChanged -> reducer.setQuery(action.value)
             PlaceSearchAction.Submit -> reducer.submit()
             PlaceSearchAction.Retry -> reducer.retry()
@@ -91,6 +140,52 @@ class PlaceSearchViewModel(
 
     fun consumeBack() {
         mutableState.value = mutableState.value.copy(shouldNavigateBack = false)
+    }
+
+    private fun restoredDisplayMode(): SearchDisplayMode {
+        val poiId = savedStateHandle.get<String>(SELECTED_POI_ID_KEY)
+        return if (savedStateHandle.get<String>(DISPLAY_MODE_KEY) == MAP_DETAIL_MODE && poiId != null) {
+            SearchDisplayMode.MapDetail(poiId)
+        } else {
+            SearchDisplayMode.Results
+        }
+    }
+
+    private fun openDetail(poiId: String) {
+        if (reducer.state.value.results.none { it.poiId == poiId }) return
+        setDisplayMode(SearchDisplayMode.MapDetail(poiId))
+    }
+
+    private fun validateRestoredDetail(search: PlaceSearchState) {
+        val detail = mutableState.value.displayMode as? SearchDisplayMode.MapDetail ?: return
+        if (search.phase == PlaceSearchPhase.Initial || search.phase == PlaceSearchPhase.Loading) return
+        if (search.results.none { it.poiId == detail.poiId }) setDisplayMode(SearchDisplayMode.Results)
+    }
+
+    private fun handleBack() {
+        when (decidePlaceSearchBack(mutableState.value)) {
+            PlaceSearchBackDecision.Ignore -> Unit
+            PlaceSearchBackDecision.DismissRemovalConfirmation -> dismissRemovalConfirmation()
+            PlaceSearchBackDecision.CancelEdit -> mutableState.value = mutableState.value.copy(detailDraft = null)
+            PlaceSearchBackDecision.ShowResults -> setDisplayMode(SearchDisplayMode.Results)
+            PlaceSearchBackDecision.ExitDestination -> {
+                mutableState.value = mutableState.value.copy(shouldNavigateBack = true)
+            }
+        }
+    }
+
+    private fun setDisplayMode(mode: SearchDisplayMode) {
+        mutableState.value = mutableState.value.copy(displayMode = mode)
+        when (mode) {
+            SearchDisplayMode.Results -> {
+                savedStateHandle[DISPLAY_MODE_KEY] = RESULTS_MODE
+                savedStateHandle[SELECTED_POI_ID_KEY] = null
+            }
+            is SearchDisplayMode.MapDetail -> {
+                savedStateHandle[DISPLAY_MODE_KEY] = MAP_DETAIL_MODE
+                savedStateHandle[SELECTED_POI_ID_KEY] = mode.poiId
+            }
+        }
     }
 
     private fun toggleCollection(poiId: String) {

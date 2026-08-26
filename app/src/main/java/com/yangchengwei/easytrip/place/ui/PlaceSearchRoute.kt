@@ -16,7 +16,7 @@ fun PlaceSearchRoute(
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
 
-    BackHandler { onBack() }
+    BackHandler { viewModel.dispatch(PlaceSearchAction.Back) }
 
     LaunchedEffect(state.shouldNavigateBack) {
         if (state.shouldNavigateBack) {

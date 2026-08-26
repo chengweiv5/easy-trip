@@ -23,6 +23,8 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -67,6 +69,138 @@ class PlaceSearchViewModelTest {
 
         assertEquals("新词", model.state.value.search.query)
         assertEquals(listOf("new"), model.state.value.search.results.map { it.poiId })
+    }
+
+    @Test fun openDetailKeepsQueryAndResultsAndStoresPoiId() = runTest(dispatcher) {
+        val handle = SavedStateHandle(mapOf("query" to "故宫"))
+        val model = PlaceSearchViewModel(
+            "trip",
+            FakeSavedPlaces(),
+            ImmediateSearchSource(listOf(candidate("poi-1"), candidate("poi-2"))),
+            handle,
+        )
+        advanceUntilIdle()
+        val originalSearch = model.state.value.search
+
+        model.dispatch(PlaceSearchAction.OpenDetail("poi-2"))
+
+        assertEquals(originalSearch, model.state.value.search)
+        assertEquals(SearchDisplayMode.MapDetail("poi-2"), model.state.value.displayMode)
+        assertEquals("MAP_DETAIL", handle.get<String>("displayMode"))
+        assertEquals("poi-2", handle.get<String>("selectedPoiId"))
+        assertNull(handle.get<PlaceCandidate>("selectedCandidate"))
+    }
+
+    @Test fun openDetailRejectsPoiOutsideCurrentResults() = runTest(dispatcher) {
+        val model = PlaceSearchViewModel(
+            "trip",
+            FakeSavedPlaces(),
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            SavedStateHandle(mapOf("query" to "故宫")),
+        )
+        advanceUntilIdle()
+
+        model.dispatch(PlaceSearchAction.OpenDetail("missing"))
+
+        assertEquals(SearchDisplayMode.Results, model.state.value.displayMode)
+    }
+
+    @Test fun restoredDetailWaitsForSearchTerminalStateBeforeValidation() = runTest(dispatcher) {
+        val source = ControlledSearchSource()
+        val model = PlaceSearchViewModel(
+            "trip",
+            FakeSavedPlaces(),
+            source,
+            SavedStateHandle(
+                mapOf(
+                    "query" to "故宫",
+                    "displayMode" to "MAP_DETAIL",
+                    "selectedPoiId" to "poi-1",
+                ),
+            ),
+        )
+        dispatcher.scheduler.advanceTimeBy(301)
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(PlaceSearchPhase.Loading, model.state.value.search.phase)
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
+
+        source.complete(listOf(candidate("poi-1")))
+        advanceUntilIdle()
+
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
+    }
+
+    @Test fun restoredMissingPoiFallsBackToResults() = runTest(dispatcher) {
+        val handle = SavedStateHandle(
+            mapOf(
+                "query" to "故宫",
+                "displayMode" to "MAP_DETAIL",
+                "selectedPoiId" to "missing",
+            ),
+        )
+        val model = PlaceSearchViewModel(
+            "trip",
+            FakeSavedPlaces(),
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            handle,
+        )
+
+        advanceUntilIdle()
+
+        assertEquals(SearchDisplayMode.Results, model.state.value.displayMode)
+        assertEquals("RESULTS", handle.get<String>("displayMode"))
+        assertNull(handle.get<String>("selectedPoiId"))
+    }
+
+    @Test fun backDismissesRemovalBeforeClosingDetail() {
+        val pending = PendingCollectionRemoval(
+            candidate("poi-1"),
+            SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList()),
+            1,
+        )
+        val state = PlaceSearchUiState(
+            displayMode = SearchDisplayMode.MapDetail("poi-1"),
+            pendingCollectionRemoval = pending,
+        )
+
+        assertEquals(PlaceSearchBackDecision.DismissRemovalConfirmation, decidePlaceSearchBack(state))
+    }
+
+    @Test fun backCancelsEditBeforeClosingDetail() {
+        val state = PlaceSearchUiState(
+            displayMode = SearchDisplayMode.MapDetail("poi-1"),
+            detailDraft = PlaceDetailEditState("saved-1", "note", emptySet()),
+        )
+
+        assertEquals(PlaceSearchBackDecision.CancelEdit, decidePlaceSearchBack(state))
+    }
+
+    @Test fun backFromDetailReturnsToResults() = runTest(dispatcher) {
+        val model = modelWithResult()
+        model.dispatch(PlaceSearchAction.OpenDetail("poi-1"))
+
+        model.dispatch(PlaceSearchAction.Back)
+
+        assertEquals(SearchDisplayMode.Results, model.state.value.displayMode)
+        assertFalse(model.state.value.shouldNavigateBack)
+    }
+
+    @Test fun backFromResultsRequestsDestinationExit() = runTest(dispatcher) {
+        val model = modelWithResult()
+
+        model.dispatch(PlaceSearchAction.Back)
+
+        assertTrue(model.state.value.shouldNavigateBack)
+    }
+
+    @Test fun backIsIgnoredWhileDetailMutationIsSubmitting() {
+        val state = PlaceSearchUiState(
+            displayMode = SearchDisplayMode.MapDetail("poi-1"),
+            collectionBusyPoiIds = setOf("poi-2"),
+        )
+
+        assertEquals(PlaceSearchBackDecision.Ignore, decidePlaceSearchBack(state))
     }
 
     @Test fun repeatedConfirmRemovalDeletesOnlyOnce() = runTest(dispatcher) {
@@ -142,6 +276,7 @@ class PlaceSearchViewModelTest {
     @Test fun searchActionsNeverCreateItineraryItems() {
         val actions = listOf(
             PlaceSearchAction.Back,
+            PlaceSearchAction.OpenDetail("poi"),
             PlaceSearchAction.QueryChanged("query"),
             PlaceSearchAction.Submit,
             PlaceSearchAction.Retry,
@@ -151,13 +286,30 @@ class PlaceSearchViewModelTest {
         )
 
         assertFalse(actions.any { it.javaClass.simpleName.contains("Itinerary") || it.javaClass.simpleName.contains("Schedule") })
-        assertEquals(7, actions.size)
+        assertEquals(8, actions.size)
+    }
+
+    private suspend fun kotlinx.coroutines.test.TestScope.modelWithResult(): PlaceSearchViewModel {
+        val model = PlaceSearchViewModel(
+            "trip",
+            FakeSavedPlaces(),
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            SavedStateHandle(mapOf("query" to "故宫")),
+        )
+        advanceUntilIdle()
+        return model
     }
 
     private fun candidate(id: String) = PlaceCandidate(id, id, "address", GeoPoint(39.9, 116.4), null)
 
     private class ImmediateSearchSource(private val results: List<PlaceCandidate>) : PlaceSearchDataSource {
         override suspend fun search(keyword: String, city: String?) = results
+    }
+
+    private class ControlledSearchSource : PlaceSearchDataSource {
+        private val result = CompletableDeferred<List<PlaceCandidate>>()
+        override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> = result.await()
+        fun complete(value: List<PlaceCandidate>) = result.complete(value)
     }
 
     private class RecordingSearchSource(private val results: Map<String, List<PlaceCandidate>>) : PlaceSearchDataSource {
