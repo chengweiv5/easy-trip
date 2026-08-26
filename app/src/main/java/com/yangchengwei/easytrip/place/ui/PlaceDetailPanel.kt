@@ -35,7 +35,9 @@ sealed interface PlaceDetailPanelAction {
     data object StartEdit : PlaceDetailPanelAction
     data object Delete : PlaceDetailPanelAction
     data class NoteChanged(val value: String) : PlaceDetailPanelAction
-    data class TagsChanged(val value: Set<String>) : PlaceDetailPanelAction
+    data class NewTagInputChanged(val value: String) : PlaceDetailPanelAction
+    data object AddTag : PlaceDetailPanelAction
+    data class RemoveTag(val name: String) : PlaceDetailPanelAction
     data object SaveEdit : PlaceDetailPanelAction
     data object CancelEdit : PlaceDetailPanelAction
 }
@@ -133,15 +135,28 @@ fun PlaceDetailPanel(
                 label = { Text("备注") },
                 modifier = Modifier.fillMaxWidth().testTag("place-detail-note-input"),
             )
-            OutlinedTextField(
-                value = (editState.selectedTagNames + editState.newTagInput.takeIf(String::isNotBlank)).filterNotNull().joinToString(", "),
-                onValueChange = {
-                    onAction(PlaceDetailPanelAction.TagsChanged(it.split(',').map(String::trim).filter(String::isNotEmpty).toSet()))
-                },
-                enabled = !saving,
-                label = { Text("标签（逗号分隔）") },
-                modifier = Modifier.fillMaxWidth().testTag("place-detail-tags-input"),
-            )
+            editState.selectedTagNames.forEach { tag ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text(tag)
+                    CompactSecondaryButton(
+                        onClick = { onAction(PlaceDetailPanelAction.RemoveTag(tag)) },
+                        enabled = !saving,
+                    ) { Text("移除") }
+                }
+            }
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                OutlinedTextField(
+                    value = editState.newTagInput,
+                    onValueChange = { onAction(PlaceDetailPanelAction.NewTagInputChanged(it)) },
+                    enabled = !saving,
+                    label = { Text("新标签") },
+                    modifier = Modifier.weight(1f).testTag("place-detail-tags-input"),
+                )
+                CompactSecondaryButton(
+                    onClick = { onAction(PlaceDetailPanelAction.AddTag) },
+                    enabled = !saving,
+                ) { Text("添加") }
+            }
             editState.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (source == PlaceDetailSource.PlacePool) {

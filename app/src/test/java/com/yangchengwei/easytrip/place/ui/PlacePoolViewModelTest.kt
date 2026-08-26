@@ -137,6 +137,61 @@ class PlacePoolViewModelTest {
         assertEquals("保存失败", model.state.value.detailSaveError)
     }
 
+    @Test fun addingValidTagSelectsItAndClearsInput() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), emptyMap())
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.edit(place("a"))
+
+        model.updateNewTagInput("  景点  ")
+        model.addNewTag()
+
+        assertEquals(setOf("景点"), model.state.value.detailDraft?.tags)
+        assertEquals("", model.state.value.detailDraft?.newTagInput)
+    }
+
+    @Test fun fullTagSelectionStillAllowsRemovingTag() = runTest(dispatcher) {
+        val tagged = place("a").copy(tags = (1..8).map { PlaceTag("id-$it", "tag-$it") })
+        val model = PlacePoolViewModel("trip", PoolRepository(listOf(tagged), emptyMap()), null)
+        advanceUntilIdle()
+        model.edit(tagged)
+
+        model.removeTag("tag-8")
+
+        assertEquals(7, model.state.value.detailDraft?.tags?.size)
+    }
+
+    @Test fun failedSaveKeepsNewTagInput() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), emptyMap(), updateFailure = IllegalStateException("保存失败"))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.edit(place("a"))
+        model.updateDetailDraft("傍晚散步", setOf("景点"))
+        model.updateNewTagInput("未添加")
+
+        model.updateDetails()
+        advanceUntilIdle()
+
+        assertEquals("傍晚散步", model.state.value.detailDraft?.note)
+        assertEquals(setOf("景点"), model.state.value.detailDraft?.tags)
+        assertEquals("未添加", model.state.value.detailDraft?.newTagInput)
+    }
+
+    @Test fun staleSaveCompletionCannotCloseNewPlaceDraft() = runTest(dispatcher) {
+        val repository = DelayedUpdateRepository(listOf(place("a"), place("b")))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.edit(place("a"))
+        model.updateDetails()
+        dispatcher.scheduler.runCurrent()
+        model.edit(place("b"))
+
+        repository.complete("a")
+        advanceUntilIdle()
+
+        assertEquals("b", model.state.value.detailDraft?.placeId)
+    }
+
     @Test fun deletingEditedPlaceClosesEditAndDoesNotRestoreItAfterConfirmation() = runTest(dispatcher) {
         val repository = PoolRepository(listOf(place("a")), mapOf("a" to 1))
         val model = PlacePoolViewModel("trip", repository, null)
@@ -193,6 +248,24 @@ class PlacePoolViewModelTest {
             updateFailure?.let { throw it }
         }
         override suspend fun usageCount(placeId: String) = usageCounts.value[placeId] ?: 0
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
+    private class DelayedUpdateRepository(private val initialPlaces: List<SavedPlace>) : SavedPlaceRepository {
+        private val places = MutableStateFlow(initialPlaces)
+        private val completions = mutableMapOf<String, CompletableDeferred<Unit>>()
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
+        override fun observeUsageCounts(tripId: String): Flow<Map<String, Int>> = MutableStateFlow(initialPlaces.associate { it.id to 0 })
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+            kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
+                completions.getOrPut(placeId) { CompletableDeferred() }.await()
+            }
+        }
+        fun complete(placeId: String) = completions.getValue(placeId).complete(Unit)
+        override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 

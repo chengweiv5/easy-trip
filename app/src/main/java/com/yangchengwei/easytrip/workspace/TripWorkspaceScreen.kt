@@ -263,6 +263,9 @@ private fun WorkspaceOverlayContent(
                     source = PlaceDetailSource.PlacePool,
                     onNoteChange = { onPlaceAction(PlacePoolAction.UpdateDraft(it, placeState.detailDraft.tags)) },
                     onTagsChange = { onPlaceAction(PlacePoolAction.UpdateDraft(placeState.detailDraft.note, it)) },
+                    onNewTagInputChange = { onPlaceAction(PlacePoolAction.UpdateNewTagInput(it)) },
+                    onAddTag = { onPlaceAction(PlacePoolAction.AddTag) },
+                    onRemoveTag = { onPlaceAction(PlacePoolAction.RemoveTag(it)) },
                     onDismiss = {
                         if (!placeState.detailSaving) {
                             onPlaceAction(PlacePoolAction.DismissDialogs)

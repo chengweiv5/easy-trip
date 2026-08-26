@@ -192,7 +192,9 @@ private fun SearchMapDetail(
                             PlaceDetailPanelAction.ToggleCollection -> onAction(PlaceSearchAction.ToggleCollection(candidate.poiId))
                             PlaceDetailPanelAction.StartEdit -> savedPlace?.let { onAction(PlaceSearchAction.StartEdit(it.id)) }
                             is PlaceDetailPanelAction.NoteChanged -> onAction(PlaceSearchAction.UpdateEditNote(action.value))
-                            is PlaceDetailPanelAction.TagsChanged -> onAction(PlaceSearchAction.UpdateEditTags(action.value))
+                            is PlaceDetailPanelAction.NewTagInputChanged -> onAction(PlaceSearchAction.UpdateNewTagInput(action.value))
+                            PlaceDetailPanelAction.AddTag -> onAction(PlaceSearchAction.AddNewTag)
+                            is PlaceDetailPanelAction.RemoveTag -> onAction(PlaceSearchAction.RemoveEditTag(action.name))
                             PlaceDetailPanelAction.SaveEdit -> onAction(PlaceSearchAction.SaveEdit)
                             PlaceDetailPanelAction.CancelEdit -> onAction(PlaceSearchAction.CancelEdit)
                             PlaceDetailPanelAction.Delete -> Unit

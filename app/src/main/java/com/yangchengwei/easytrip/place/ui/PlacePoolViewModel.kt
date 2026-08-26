@@ -32,7 +32,12 @@ data class SavedPlaceRowUi(
     val tags get() = place.tags.map(PlaceTag::name)
 }
 
-data class PlaceDetailDraft(val note: String, val tags: Set<String>, val placeId: String)
+data class PlaceDetailDraft(
+    val note: String,
+    val tags: Set<String>,
+    val placeId: String,
+    val newTagInput: String = "",
+)
 
 data class PlacePoolUiState(
     val search: PlaceSearchState = PlaceSearchState(),
@@ -120,7 +125,9 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     fun dismissCollectionRemoval() {
         mutableState.value = mutableState.value.copy(pendingCollectionRemoval = null, collectionError = null)
     }
+    private var detailEditGeneration = 0L
     fun edit(value: SavedPlace) {
+        detailEditGeneration++
         mutableState.value = mutableState.value.copy(
             editing = value,
             detailDraft = PlaceDetailDraft(value.note, value.tags.mapTo(mutableSetOf(), PlaceTag::name), value.id),
@@ -128,28 +135,74 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         )
     }
     fun updateDetailDraft(note: String, tags: Set<String>) {
-        if (mutableState.value.editing == null) return
-        mutableState.value = mutableState.value.copy(detailDraft = PlaceDetailDraft(note, tags, mutableState.value.editing!!.id), detailSaveError = null)
+        val draft = mutableState.value.detailDraft ?: return
+        if (mutableState.value.detailSaving) return
+        mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(note = note, tags = tags),
+            detailSaveError = null,
+        )
     }
-    fun dismissEdit() { mutableState.value = mutableState.value.copy(editing = null, detailDraft = null, detailSaving = false, detailSaveError = null) }
+    fun updateNewTagInput(value: String) {
+        val draft = mutableState.value.detailDraft ?: return
+        if (mutableState.value.detailSaving) return
+        mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(newTagInput = value),
+            detailSaveError = null,
+        )
+    }
+    fun addNewTag() {
+        val draft = mutableState.value.detailDraft ?: return
+        if (mutableState.value.detailSaving) return
+        when (val validation = validatePlaceTag(draft.newTagInput, draft.tags)) {
+            is PlaceTagValidation.Valid -> mutableState.value = mutableState.value.copy(
+                detailDraft = draft.copy(tags = draft.tags + validation.name, newTagInput = ""),
+                detailSaveError = null,
+            )
+            PlaceTagValidation.Empty -> Unit
+            PlaceTagValidation.Duplicate -> mutableState.value = mutableState.value.copy(detailSaveError = "标签已存在")
+            PlaceTagValidation.TooLong -> mutableState.value = mutableState.value.copy(detailSaveError = "标签不能超过 24 个单位")
+            PlaceTagValidation.LimitReached -> mutableState.value = mutableState.value.copy(detailSaveError = "最多选择 8 个标签")
+        }
+    }
+    fun removeTag(name: String) {
+        val draft = mutableState.value.detailDraft ?: return
+        if (mutableState.value.detailSaving) return
+        mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(tags = draft.tags - name),
+            detailSaveError = null,
+        )
+    }
+    fun dismissEdit() {
+        detailEditGeneration++
+        mutableState.value = mutableState.value.copy(editing = null, detailDraft = null, detailSaving = false, detailSaveError = null)
+    }
     fun updateDetails(note: String, tags: Set<String>) {
-        val place = mutableState.value.editing ?: return
         updateDetailDraft(note, tags)
-        mutableState.value = mutableState.value.copy(detailSaving = true)
+        updateDetails()
+    }
+    fun updateDetails() {
+        val draft = mutableState.value.detailDraft ?: return
+        if (mutableState.value.detailSaving) return
+        val generation = ++detailEditGeneration
+        mutableState.value = mutableState.value.copy(detailSaving = true, detailSaveError = null)
         viewModelScope.launch {
             try {
-                repository.updateDetails(place.id, note, tags)
-                dismissEdit()
+                repository.updateDetails(draft.placeId, draft.note, draft.tags)
+                if (isCurrentDetailEdit(draft.placeId, generation)) dismissEdit()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                mutableState.value = mutableState.value.copy(
-                    detailSaving = false,
-                    detailSaveError = error.message ?: "保存失败，请重试",
-                )
+                if (isCurrentDetailEdit(draft.placeId, generation)) {
+                    mutableState.value = mutableState.value.copy(
+                        detailSaving = false,
+                        detailSaveError = error.message ?: "保存失败，请重试",
+                    )
+                }
             }
         }
     }
+    private fun isCurrentDetailEdit(placeId: String, generation: Long): Boolean =
+        generation == detailEditGeneration && mutableState.value.detailDraft?.placeId == placeId
     private var deletePreparationJob: Job? = null
     private var deletePreparationId = 0L
     fun requestDelete(place: SavedPlace) {
@@ -191,6 +244,9 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             is PlacePoolAction.Delete -> requestDelete(action.place)
             is PlacePoolAction.ToggleCollection -> toggleCollection(action.candidate)
             is PlacePoolAction.UpdateDraft -> updateDetailDraft(action.note, action.tags)
+            is PlacePoolAction.UpdateNewTagInput -> updateNewTagInput(action.value)
+            PlacePoolAction.AddTag -> addNewTag()
+            is PlacePoolAction.RemoveTag -> removeTag(action.name)
             is PlacePoolAction.UpdateDetails -> updateDetails(action.note, action.tags)
             PlacePoolAction.StartAddToItinerary -> Unit
             PlacePoolAction.ConfirmCollectionRemoval -> confirmCollectionRemoval()

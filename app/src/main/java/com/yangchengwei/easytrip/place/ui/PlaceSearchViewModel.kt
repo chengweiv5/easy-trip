@@ -55,6 +55,9 @@ sealed interface PlaceSearchAction {
     data class StartEdit(val placeId: String) : PlaceSearchAction
     data class UpdateEditNote(val value: String) : PlaceSearchAction
     data class UpdateEditTags(val value: Set<String>) : PlaceSearchAction
+    data class UpdateNewTagInput(val value: String) : PlaceSearchAction
+    data object AddNewTag : PlaceSearchAction
+    data class RemoveEditTag(val name: String) : PlaceSearchAction
     data object SaveEdit : PlaceSearchAction
     data object CancelEdit : PlaceSearchAction
     data object DismissRemovalConfirmation : PlaceSearchAction
@@ -121,6 +124,7 @@ class PlaceSearchViewModel(
     val state: StateFlow<PlaceSearchUiState> = mutableState.asStateFlow()
     private var savedByPoiId: Map<String, SavedPlace> = emptyMap()
     private val recentlyCollectedPoiIds = mutableSetOf<String>()
+    private var detailEditGeneration = 0L
 
     fun recentlyCollectedPoiIds(): Set<String> = recentlyCollectedPoiIds.toSet()
 
@@ -158,6 +162,9 @@ class PlaceSearchViewModel(
             is PlaceSearchAction.StartEdit -> startEdit(action.placeId)
             is PlaceSearchAction.UpdateEditNote -> updateEdit(note = action.value)
             is PlaceSearchAction.UpdateEditTags -> updateEdit(tags = action.value)
+            is PlaceSearchAction.UpdateNewTagInput -> updateNewTagInput(action.value)
+            PlaceSearchAction.AddNewTag -> addNewTag()
+            is PlaceSearchAction.RemoveEditTag -> removeEditTag(action.name)
             PlaceSearchAction.SaveEdit -> saveEdit()
             PlaceSearchAction.CancelEdit -> cancelEdit()
             PlaceSearchAction.DismissRemovalConfirmation -> dismissRemovalConfirmation()
@@ -223,6 +230,7 @@ class PlaceSearchViewModel(
 
     private fun startEdit(placeId: String) {
         val place = savedByPoiId.values.firstOrNull { it.id == placeId } ?: return
+        detailEditGeneration++
         mutableState.value = mutableState.value.copy(
             detailDraft = PlaceDetailEditState(
                 placeId = place.id,
@@ -244,31 +252,80 @@ class PlaceSearchViewModel(
         )
     }
 
+    private fun updateNewTagInput(value: String) {
+        val draft = mutableState.value.detailDraft ?: return
+        if (draft.isSaving) return
+        mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(newTagInput = value, errorMessage = null),
+        )
+    }
+
+    private fun addNewTag() {
+        val draft = mutableState.value.detailDraft ?: return
+        if (draft.isSaving) return
+        when (val validation = validatePlaceTag(draft.newTagInput, draft.selectedTagNames)) {
+            is PlaceTagValidation.Valid -> mutableState.value = mutableState.value.copy(
+                detailDraft = draft.copy(
+                    selectedTagNames = draft.selectedTagNames + validation.name,
+                    newTagInput = "",
+                    errorMessage = null,
+                ),
+            )
+            PlaceTagValidation.Empty -> Unit
+            PlaceTagValidation.Duplicate -> setTagError("标签已存在")
+            PlaceTagValidation.TooLong -> setTagError("标签不能超过 24 个单位")
+            PlaceTagValidation.LimitReached -> setTagError("最多选择 8 个标签")
+        }
+    }
+
+    private fun removeEditTag(name: String) {
+        val draft = mutableState.value.detailDraft ?: return
+        if (draft.isSaving) return
+        mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(selectedTagNames = draft.selectedTagNames - name, errorMessage = null),
+        )
+    }
+
+    private fun setTagError(message: String) {
+        mutableState.value = mutableState.value.copy(
+            detailDraft = mutableState.value.detailDraft?.copy(errorMessage = message),
+        )
+    }
+
     private fun cancelEdit() {
         if (mutableState.value.detailDraft?.isSaving == true) return
+        detailEditGeneration++
         mutableState.value = mutableState.value.copy(detailDraft = null)
     }
 
     private fun saveEdit() {
         val draft = mutableState.value.detailDraft ?: return
         if (draft.isSaving) return
+        val generation = ++detailEditGeneration
         mutableState.value = mutableState.value.copy(detailDraft = draft.copy(isSaving = true, errorMessage = null))
         viewModelScope.launch {
             try {
                 repository.updateDetails(draft.placeId, draft.note, draft.selectedTagNames)
-                mutableState.value = mutableState.value.copy(detailDraft = null)
+                if (isCurrentDetailEdit(draft.placeId, generation)) {
+                    mutableState.value = mutableState.value.copy(detailDraft = null)
+                }
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                mutableState.value = mutableState.value.copy(
-                    detailDraft = mutableState.value.detailDraft?.copy(
-                        isSaving = false,
-                        errorMessage = error.message ?: "保存失败，请重试",
-                    ),
-                )
+                if (isCurrentDetailEdit(draft.placeId, generation)) {
+                    mutableState.value = mutableState.value.copy(
+                        detailDraft = mutableState.value.detailDraft?.copy(
+                            isSaving = false,
+                            errorMessage = error.message ?: "保存失败，请重试",
+                        ),
+                    )
+                }
             }
         }
     }
+
+    private fun isCurrentDetailEdit(placeId: String, generation: Long): Boolean =
+        generation == detailEditGeneration && mutableState.value.detailDraft?.placeId == placeId
 
     private fun toggleCollection(poiId: String) {
         val candidate = reducer.state.value.results.firstOrNull { it.poiId == poiId } ?: return

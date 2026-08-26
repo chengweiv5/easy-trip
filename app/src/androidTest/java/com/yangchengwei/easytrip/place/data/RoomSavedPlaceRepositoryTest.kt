@@ -21,6 +21,7 @@ import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertThrows
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -63,6 +64,67 @@ class RoomSavedPlaceRepositoryTest {
         val saved = places.save(trip, candidate("a")) as SavePlaceResult.Saved
         places.updateDetails(saved.id, "", setOf("Straße", "STRASSE"))
         assertEquals(listOf("Straße"), places.observePlaces(trip, emptySet()).first().single().tags.map { it.name })
+    }
+
+    @Test fun invalidTagUpdateIsRejectedBeforeAnyExistingDetailsChange() = runTest {
+        val trip = trips.createTrip(CreateTrip("Trip", 1))
+        val saved = places.save(trip, candidate("a")) as SavePlaceResult.Saved
+        places.updateDetails(saved.id, "original", setOf("kept"))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                places.updateDetails(saved.id, "changed", setOf("", "new"))
+            }
+        }
+
+        val value = places.observePlaces(trip, emptySet()).first().single()
+        assertEquals("original", value.note)
+        assertEquals(listOf("kept"), value.tags.map { it.name })
+    }
+
+    @Test fun tagOverTwentyFourUnitsIsRejectedAtomically() = runTest {
+        val trip = trips.createTrip(CreateTrip("Trip", 1))
+        val saved = places.save(trip, candidate("a")) as SavePlaceResult.Saved
+        places.updateDetails(saved.id, "original", setOf("kept"))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                places.updateDetails(saved.id, "changed", setOf("一二三四五六七八九十天地人"))
+            }
+        }
+
+        val value = places.observePlaces(trip, emptySet()).first().single()
+        assertEquals("original", value.note)
+        assertEquals(listOf("kept"), value.tags.map { it.name })
+    }
+
+    @Test fun moreThanEightTagsIsRejectedAtomically() = runTest {
+        val trip = trips.createTrip(CreateTrip("Trip", 1))
+        val saved = places.save(trip, candidate("a")) as SavePlaceResult.Saved
+        places.updateDetails(saved.id, "original", setOf("kept"))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                places.updateDetails(saved.id, "changed", (1..9).mapTo(mutableSetOf()) { "tag-$it" })
+            }
+        }
+
+        val value = places.observePlaces(trip, emptySet()).first().single()
+        assertEquals("original", value.note)
+        assertEquals(listOf("kept"), value.tags.map { it.name })
+    }
+
+    @Test fun validReplacementRemainsAtomicAndDeletesOrphanTags() = runTest {
+        val trip = trips.createTrip(CreateTrip("Trip", 1))
+        val first = places.save(trip, candidate("a")) as SavePlaceResult.Saved
+        val second = places.save(trip, candidate("b")) as SavePlaceResult.Saved
+        places.updateDetails(first.id, "", setOf("shared", "orphan"))
+        places.updateDetails(second.id, "", setOf("shared"))
+
+        places.updateDetails(first.id, "updated", setOf("new"))
+
+        assertEquals(setOf("shared", "new"), places.observeTags(trip).first().mapTo(mutableSetOf()) { it.name })
+        assertEquals(setOf("new"), places.observePlaces(trip, emptySet()).first().first { it.id == first.id }.tags.mapTo(mutableSetOf()) { it.name })
     }
 
     @Test fun multipleTagFilterUsesIntersectionAndNeverCrossesTrips() = runTest {

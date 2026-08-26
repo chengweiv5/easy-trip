@@ -189,6 +189,81 @@ class PlaceSearchViewModelTest {
         assertEquals("saved-1", model.state.value.detailDraft?.placeId)
     }
 
+    @Test fun addingValidTagSelectsItAndClearsInput() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val model = PlaceSearchViewModel("trip", FakeSavedPlaces(listOf(saved)), ImmediateSearchSource(listOf(candidate("poi-1"))), SavedStateHandle())
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.StartEdit("saved-1"))
+
+        model.dispatch(PlaceSearchAction.UpdateNewTagInput("  景点  "))
+        model.dispatch(PlaceSearchAction.AddNewTag)
+
+        assertEquals(setOf("景点"), model.state.value.detailDraft?.selectedTagNames)
+        assertEquals("", model.state.value.detailDraft?.newTagInput)
+    }
+
+    @Test fun fullTagSelectionStillAllowsRemovingTag() = runTest(dispatcher) {
+        val tags = (1..8).map { PlaceTag("id-$it", "tag-$it") }
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", tags)
+        val model = PlaceSearchViewModel("trip", FakeSavedPlaces(listOf(saved)), ImmediateSearchSource(listOf(candidate("poi-1"))), SavedStateHandle())
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.StartEdit("saved-1"))
+
+        model.dispatch(PlaceSearchAction.RemoveEditTag("tag-8"))
+
+        assertEquals(7, model.state.value.detailDraft?.selectedTagNames?.size)
+    }
+
+    @Test fun failedSavePreservesNoteTagsAndNewInput() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val repository = FakeSavedPlaces(listOf(saved), updateFailure = IllegalStateException("保存失败"))
+        val model = PlaceSearchViewModel("trip", repository, ImmediateSearchSource(listOf(candidate("poi-1"))), SavedStateHandle())
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.StartEdit("saved-1"))
+        model.dispatch(PlaceSearchAction.UpdateEditNote("备注"))
+        model.dispatch(PlaceSearchAction.UpdateEditTags(setOf("已有")))
+        model.dispatch(PlaceSearchAction.UpdateNewTagInput("未添加"))
+
+        model.dispatch(PlaceSearchAction.SaveEdit)
+        advanceUntilIdle()
+
+        assertEquals("备注", model.state.value.detailDraft?.note)
+        assertEquals(setOf("已有"), model.state.value.detailDraft?.selectedTagNames)
+        assertEquals("未添加", model.state.value.detailDraft?.newTagInput)
+        assertEquals("保存失败", model.state.value.detailDraft?.errorMessage)
+    }
+
+    @Test fun staleSaveCompletionCannotCloseNewPlaceDraft() = runTest(dispatcher) {
+        val first = SavedPlace("saved-1", "trip", "poi-1", "一", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val second = SavedPlace("saved-2", "trip", "poi-2", "二", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val repository = DelayedDetailSavedPlaces(listOf(first, second))
+        val model = PlaceSearchViewModel("trip", repository, ImmediateSearchSource(listOf(candidate("poi-1"), candidate("poi-2"))), SavedStateHandle())
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.StartEdit("saved-1"))
+        model.dispatch(PlaceSearchAction.SaveEdit)
+        dispatcher.scheduler.runCurrent()
+        model.dispatch(PlaceSearchAction.StartEdit("saved-2"))
+
+        repository.complete("saved-1")
+        advanceUntilIdle()
+
+        assertEquals("saved-2", model.state.value.detailDraft?.placeId)
+    }
+
+    @Test fun cancellationIsNotReportedAsSaveFailure() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val repository = FakeSavedPlaces(listOf(saved), updateFailure = kotlinx.coroutines.CancellationException("cancelled"))
+        val model = PlaceSearchViewModel("trip", repository, ImmediateSearchSource(listOf(candidate("poi-1"))), SavedStateHandle())
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.StartEdit("saved-1"))
+
+        model.dispatch(PlaceSearchAction.SaveEdit)
+        advanceUntilIdle()
+
+        assertNull(model.state.value.detailDraft?.errorMessage)
+        assertTrue(model.state.value.detailDraft?.isSaving == true)
+    }
+
     @Test fun unsavedCandidateCannotStartEdit() = runTest(dispatcher) {
         val model = modelWithResult()
 
@@ -645,9 +720,25 @@ class PlaceSearchViewModelTest {
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 
+    private class DelayedDetailSavedPlaces(private val initialPlaces: List<SavedPlace>) : SavedPlaceRepository {
+        private val places = MutableStateFlow(initialPlaces)
+        private val completions = mutableMapOf<String, CompletableDeferred<Unit>>()
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = MutableStateFlow(initialPlaces.mapTo(mutableSetOf(), SavedPlace::amapPoiId))
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved(candidate.poiId)
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+            withContext(NonCancellable) { completions.getOrPut(placeId) { CompletableDeferred() }.await() }
+        }
+        fun complete(placeId: String) = completions.getValue(placeId).complete(Unit)
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
     private class FakeSavedPlaces(
         initialPlaces: List<SavedPlace> = emptyList(),
         private val usageCount: Int = 0,
+        private val updateFailure: Throwable? = null,
     ) : SavedPlaceRepository {
         val saved = mutableListOf<PlaceCandidate>()
         val deleted = mutableListOf<String>()
@@ -665,6 +756,7 @@ class PlaceSearchViewModelTest {
         }
         override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
             updateCalls += 1
+            updateFailure?.let { throw it }
         }
         override suspend fun usageCount(placeId: String) = usageCount
         override suspend fun deletePlaceAndReferences(placeId: String) {

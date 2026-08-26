@@ -53,9 +53,15 @@ class RoomSavedPlaceRepository(
 
     override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = database.withTransaction {
         val place = requireNotNull(dao.place(placeId)) { "Unknown place: $placeId" }
-        require(dao.updateNote(placeId, note.trim()) == 1)
         val unique = linkedMapOf<String, String>()
-        tagNames.forEach { raw -> raw.trim().takeIf(String::isNotEmpty)?.let { unique.putIfAbsent(normalize(it), it) } }
+        tagNames.forEach { raw ->
+            val display = raw.trim()
+            require(display.isNotEmpty()) { "标签不能为空" }
+            require(tagUnits(display) <= 24) { "标签不能超过 24 个单位" }
+            unique.putIfAbsent(normalize(display), display)
+        }
+        require(unique.size <= 8) { "最多选择 8 个标签" }
+        require(dao.updateNote(placeId, note.trim()) == 1)
         val tags = unique.map { (normalized, display) ->
             dao.tag(place.tripId, normalized) ?: run {
                 val created = TagEntity(idFactory(), place.tripId, display, normalized)
@@ -82,4 +88,24 @@ class RoomSavedPlaceRepository(
 
     private fun normalize(value: String) =
         UCharacter.foldCase(Normalizer.normalize(value, Normalizer.Form.NFKC), true)
+
+    private fun tagUnits(value: String): Int {
+        var units = 0
+        var offset = 0
+        while (offset < value.length) {
+            val codePoint = value.codePointAt(offset)
+            units += if (Character.UnicodeScript.of(codePoint) in cjkScripts) 2 else 1
+            offset += Character.charCount(codePoint)
+        }
+        return units
+    }
+
+    private companion object {
+        val cjkScripts = setOf(
+            Character.UnicodeScript.HAN,
+            Character.UnicodeScript.HIRAGANA,
+            Character.UnicodeScript.KATAKANA,
+            Character.UnicodeScript.HANGUL,
+        )
+    }
 }

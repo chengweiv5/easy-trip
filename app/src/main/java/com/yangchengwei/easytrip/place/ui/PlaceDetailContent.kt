@@ -16,6 +16,9 @@ fun PlaceDetailContent(
     onToggleCollection: () -> Unit,
     onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    onNewTagInputChange: (String) -> Unit = {},
+    onAddTag: () -> Unit = {},
+    onRemoveTag: (String) -> Unit = {},
     source: PlaceDetailSource = PlaceDetailSource.Search,
     onDismiss: () -> Unit = {},
     onDelete: () -> Unit = {},
@@ -24,7 +27,7 @@ fun PlaceDetailContent(
         candidate = place.toCandidate(),
         savedPlace = place,
         editState = draft?.let {
-            PlaceDetailEditState(place.id, it.note, it.tags, isSaving = saving, errorMessage = error)
+            PlaceDetailEditState(place.id, it.note, it.tags, it.newTagInput, isSaving = saving, errorMessage = error)
         },
         source = source,
         collectionBusy = false,
@@ -32,7 +35,9 @@ fun PlaceDetailContent(
         onAction = { action ->
             when (action) {
                 is PlaceDetailPanelAction.NoteChanged -> onNoteChange(action.value)
-                is PlaceDetailPanelAction.TagsChanged -> onTagsChange(action.value)
+                is PlaceDetailPanelAction.NewTagInputChanged -> onNewTagInputChange(action.value)
+                PlaceDetailPanelAction.AddTag -> onAddTag()
+                is PlaceDetailPanelAction.RemoveTag -> onRemoveTag(action.name)
                 PlaceDetailPanelAction.Dismiss,
                 PlaceDetailPanelAction.CancelEdit -> onDismiss()
                 PlaceDetailPanelAction.ToggleCollection -> onToggleCollection()
@@ -57,6 +62,9 @@ fun PlaceDetailDialog(
     onDismiss: () -> Unit,
     onDelete: () -> Unit,
     onSave: () -> Unit,
+    onNewTagInputChange: (String) -> Unit = {},
+    onAddTag: () -> Unit = {},
+    onRemoveTag: (String) -> Unit = {},
 ) {
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
@@ -70,6 +78,9 @@ fun PlaceDetailDialog(
                 source = source,
                 onNoteChange = onNoteChange,
                 onTagsChange = onTagsChange,
+                onNewTagInputChange = onNewTagInputChange,
+                onAddTag = onAddTag,
+                onRemoveTag = onRemoveTag,
                 onToggleCollection = {},
                 onDismiss = onDismiss,
                 onDelete = onDelete,

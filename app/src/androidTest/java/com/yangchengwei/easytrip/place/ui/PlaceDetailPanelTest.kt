@@ -13,6 +13,7 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.runtime.mutableStateOf
 import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.core.model.GeoPoint
@@ -20,6 +21,7 @@ import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavedPlace
+import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
@@ -73,6 +75,30 @@ class PlaceDetailPanelTest {
         compose.onNodeWithText("保存中").assertIsNotEnabled()
         compose.onNodeWithText("取消").assertIsNotEnabled()
         compose.onNodeWithTag("place-detail-dismiss").assertIsNotEnabled()
+    }
+
+    @Test fun typingTagInputPreservesEveryCharacterAndComma() {
+        val input = mutableStateOf("")
+        compose.setContent {
+            EasyTripTheme {
+                PlaceDetailPanel(
+                    candidate = candidate(),
+                    savedPlace = savedPlace(),
+                    editState = PlaceDetailEditState("saved-1", "", emptySet(), input.value),
+                    source = PlaceDetailSource.PlacePool,
+                    collectionBusy = false,
+                    collectionError = null,
+                    onAction = { action ->
+                        if (action is PlaceDetailPanelAction.NewTagInputChanged) input.value = action.value
+                    },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("place-detail-tags-input").performTextInput("自然,咖啡")
+
+        compose.runOnIdle { assertEquals("自然,咖啡", input.value) }
+        compose.onNodeWithTag("place-detail-tags-input").assertTextEquals("自然,咖啡", "新标签")
     }
 
     @Test fun compatibilityWrapperForwardsDismissAndCancel() {
