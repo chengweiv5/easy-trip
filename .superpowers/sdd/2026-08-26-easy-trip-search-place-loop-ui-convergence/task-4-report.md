@@ -47,6 +47,21 @@
 - GREEN：应用、AndroidTest、UnitTest Kotlin 编译通过。
 - GREEN：`graphify update .` 完成，4547 nodes / 9714 edges。
 
+## Fix round 2
+
+### 修复
+
+- 将从编辑态发起删除的状态收敛到 `PlacePoolViewModel.requestDelete`：开始准备删除时立即清空 `editing`、`detailDraft` 和保存状态，同时继续异步保留删除确认目标。
+- 独立 `PlacePoolSheet` 与 workspace 均通过同一个删除状态转换入口，避免 UI 各自拼接关闭编辑态；确认删除后旧编辑框不会恢复。
+
+### RED / GREEN
+
+- RED：新增真实 `PlacePoolViewModel` 状态转换测试后，在发起删除后的 `editing` 非空断言处按预期失败。
+- GREEN：`PlacePoolViewModelTest` 全部通过。
+- GREEN：新增独立 `PlacePoolSheet` 编辑删除 Compose 测试与 `PlaceDetailPanelTest` 合计 10/10 通过。
+- GREEN：应用、AndroidTest、UnitTest Kotlin 编译通过。
+- GREEN：`graphify update .` 完成，4552 nodes / 9729 edges。
+
 ## 关注点
 
 - 先前 `PlacePoolFlowTest.searchSaveEditAndFilterThroughPlacePool` 整类运行时发生一次 instrumentation 进程崩溃；同 commit、同 AVD 串行复跑该用例 1/1 通过，runner result code 0。现无产品崩溃、选择器或 OOM 的直接证据，详见 `task-4-place-pool-flow-diagnostic.md`，未据此修改产品代码。

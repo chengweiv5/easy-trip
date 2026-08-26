@@ -137,6 +137,27 @@ class PlacePoolViewModelTest {
         assertEquals("保存失败", model.state.value.detailSaveError)
     }
 
+    @Test fun deletingEditedPlaceClosesEditAndDoesNotRestoreItAfterConfirmation() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), mapOf("a" to 1))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.edit(place("a"))
+
+        model.dispatch(PlacePoolAction.Delete(place("a")))
+
+        assertNull(model.state.value.editing)
+        assertNull(model.state.value.detailDraft)
+        advanceUntilIdle()
+        assertEquals("a", model.state.value.deleting?.id)
+
+        model.confirmDelete()
+        advanceUntilIdle()
+
+        assertNull(model.state.value.deleting)
+        assertNull(model.state.value.editing)
+        assertNull(model.state.value.detailDraft)
+    }
+
     private fun place(id: String) = SavedPlace(
         id,
         "trip",

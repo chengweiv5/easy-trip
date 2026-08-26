@@ -155,7 +155,14 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     fun requestDelete(place: SavedPlace) {
         deletePreparationJob?.cancel()
         val requestId = ++deletePreparationId
-        mutableState.value = mutableState.value.copy(deleting = null, deletionUsageCount = 0)
+        mutableState.value = mutableState.value.copy(
+            editing = null,
+            detailDraft = null,
+            detailSaving = false,
+            detailSaveError = null,
+            deleting = null,
+            deletionUsageCount = 0,
+        )
         deletePreparationJob = viewModelScope.launch {
             val usageCount = service.deletionUsageCount(place.id)
             if (requestId == deletePreparationId) {

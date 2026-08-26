@@ -384,6 +384,36 @@ class PlacePoolFlowTest {
         assertEquals(0, runBlocking { app.database.itineraryEditingDao().items(dayId).size })
     }
 
+    @Test fun deletingFromEditClosesDetailAndDoesNotRestoreItAfterConfirmation() {
+        val app = compose.activity.application as com.yangchengwei.easytrip.EasyTripApplication
+        val tripId = runBlocking { app.tripRepository.createTrip(CreateTrip("编辑删除旅行", 1)) }
+        val repository = RoomSavedPlaceRepository(app.database, idFactory = sequence("place-${System.nanoTime()}"))
+        val candidate = PlaceCandidate("poi-edit-delete", "待删除地点", "北京市东城区", GeoPoint(39.9, 116.4), "010")
+        runBlocking { repository.save(tripId, candidate) }
+        val model = PlacePoolViewModel(tripId, repository, null)
+        compose.setContent { PlacePoolSheet(model, showSearch = false) }
+        compose.waitUntil(5_000) { model.state.value.rows.size == 1 }
+
+        compose.onNodeWithText("编辑").performClick()
+        compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
+        compose.onAllNodesWithText("删除")[1].performClick()
+
+        compose.runOnIdle {
+            assertEquals(null, model.state.value.editing)
+            assertEquals(null, model.state.value.detailDraft)
+        }
+        compose.waitUntil(5_000) { model.state.value.deleting != null }
+        compose.onNodeWithText("删除 待删除地点？").assertIsDisplayed()
+        compose.onNodeWithText("确认删除地点").performClick()
+        compose.waitUntil(5_000) { model.state.value.deleting == null }
+
+        compose.onNodeWithTag("place-detail-title").assertDoesNotExist()
+        compose.runOnIdle {
+            assertEquals(null, model.state.value.editing)
+            assertEquals(null, model.state.value.detailDraft)
+        }
+    }
+
     @Test fun searchSaveEditAndFilterThroughPlacePool() {
         val app = compose.activity.application as com.yangchengwei.easytrip.EasyTripApplication
         val tripId = runBlocking { app.tripRepository.createTrip(CreateTrip("地点旅行", 1)) }
