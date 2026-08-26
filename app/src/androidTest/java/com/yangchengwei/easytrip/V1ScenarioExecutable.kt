@@ -9,6 +9,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
@@ -225,7 +226,7 @@ object V1ScenarioExecutableFactory {
         },
         verify = {
             onNodeWithTag("place-search-result-row-poi-1").assertIsDisplayed()
-            onNodeWithTag("place-search-result-text-poi-1").assertIsDisplayed()
+            onNodeWithTag("place-search-result-row-poi-1").assertTextContains("西湖")
         },
     )
 

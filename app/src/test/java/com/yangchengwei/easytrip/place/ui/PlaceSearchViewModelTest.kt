@@ -13,9 +13,12 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
-import kotlinx.coroutines.withContext
+import kotlinx.coroutines.async
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -314,22 +317,53 @@ class PlaceSearchViewModelTest {
         assertEquals(PlaceSearchBackDecision.CancelEdit, decidePlaceSearchBack(state))
     }
 
-    @Test fun backFromDetailReturnsToResults() = runTest(dispatcher) {
+    @Test fun backFromDetailReturnsToResultsWithoutExitEffect() = runTest(dispatcher) {
         val model = modelWithResult()
         model.dispatch(PlaceSearchAction.OpenDetail("poi-1"))
 
         model.dispatch(PlaceSearchAction.Back)
 
         assertEquals(SearchDisplayMode.Results, model.state.value.displayMode)
-        assertFalse(model.state.value.shouldNavigateBack)
+        assertNull(withTimeoutOrNull(1) { model.effects.first() })
     }
 
-    @Test fun backFromResultsRequestsDestinationExit() = runTest(dispatcher) {
-        val model = modelWithResult()
+    @Test fun editDetailResultsWorkspaceBackChainEmitsExitOnlyFromResults() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val model = PlaceSearchViewModel(
+            "trip",
+            FakeSavedPlaces(listOf(saved)),
+            ImmediateSearchSource(listOf(candidate("poi-1"))),
+            SavedStateHandle(mapOf("query" to "地点")),
+        )
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.OpenDetail("poi-1"))
+        model.dispatch(PlaceSearchAction.StartEdit("saved-1"))
+        val exit = async { model.effects.first() }
+
+        model.dispatch(PlaceSearchAction.Back)
+        assertNull(model.state.value.detailDraft)
+        assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
+        assertFalse(exit.isCompleted)
+
+        model.dispatch(PlaceSearchAction.Back)
+        assertEquals(SearchDisplayMode.Results, model.state.value.displayMode)
+        assertFalse(exit.isCompleted)
 
         model.dispatch(PlaceSearchAction.Back)
 
-        assertTrue(model.state.value.shouldNavigateBack)
+        assertEquals(PlaceSearchEffect.ExitDestination, exit.await())
+    }
+
+    @Test fun repeatedResultsBackEmitsSingleExitEffect() = runTest(dispatcher) {
+        val model = modelWithResult()
+        val exit = async { model.effects.first() }
+
+        model.dispatch(PlaceSearchAction.Back)
+        model.dispatch(PlaceSearchAction.Back)
+        advanceUntilIdle()
+
+        assertEquals(PlaceSearchEffect.ExitDestination, exit.await())
+        assertNull(withTimeoutOrNull(1) { model.effects.first() })
     }
 
     @Test fun backIsIgnoredWhileDetailMutationIsSubmitting() {
@@ -357,7 +391,7 @@ class PlaceSearchViewModelTest {
         model.dispatch(PlaceSearchAction.Back)
 
         assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
-        assertFalse(model.state.value.shouldNavigateBack)
+        assertNull(withTimeoutOrNull(1) { model.effects.first() })
         repository.saveGate.complete(Unit)
         advanceUntilIdle()
     }
@@ -382,7 +416,7 @@ class PlaceSearchViewModelTest {
         model.dispatch(PlaceSearchAction.Back)
 
         assertEquals(SearchDisplayMode.MapDetail("poi-1"), model.state.value.displayMode)
-        assertFalse(model.state.value.shouldNavigateBack)
+        assertNull(withTimeoutOrNull(1) { model.effects.first() })
         repository.deleteGate.complete(Unit)
         advanceUntilIdle()
     }
@@ -478,10 +512,8 @@ class PlaceSearchViewModelTest {
 
         state = reducePlaceSearchBack(state)
         assertEquals(SearchDisplayMode.Results, state.displayMode)
-        assertFalse(state.shouldNavigateBack)
 
-        state = reducePlaceSearchBack(state)
-        assertTrue(state.shouldNavigateBack)
+        assertEquals(PlaceSearchBackDecision.ExitDestination, decidePlaceSearchBack(state))
     }
 
     @Test fun latestCollectionTargetWinsWhenUncancellableImpactQueriesCompleteOutOfOrder() = runTest(dispatcher) {
@@ -601,7 +633,7 @@ class PlaceSearchViewModelTest {
 
         assertEquals("故宫", model.state.value.search.query)
         assertEquals(1, repository.saved.size)
-        assertFalse(model.state.value.shouldNavigateBack)
+        assertNull(withTimeoutOrNull(1) { model.effects.first() })
     }
 
     @Test fun collectingCandidateWithoutCoordinatesEntersRepositoryFlowAndReportsPersistenceError() = runTest(dispatcher) {

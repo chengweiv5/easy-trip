@@ -411,10 +411,7 @@ class PlaceSearchContentTest {
         compose.waitUntil(5_000) { backCalls == 1 }
         compose.runOnIdle { recompose.value++ }
 
-        compose.runOnIdle {
-            assertEquals(1, backCalls)
-            assertEquals(false, model.state.value.shouldNavigateBack)
-        }
+        compose.runOnIdle { assertEquals(1, backCalls) }
     }
 
     @Test fun systemBackPublishesCurrentSessionCollectionsThroughSameCallback() {

@@ -11,9 +11,11 @@ import com.yangchengwei.easytrip.place.domain.SavedPlace
 import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
 private const val SEARCH_QUERY_KEY = "query"
@@ -42,6 +44,10 @@ sealed interface PlaceSearchBackDecision {
     data object CancelEdit : PlaceSearchBackDecision
     data object ShowResults : PlaceSearchBackDecision
     data object ExitDestination : PlaceSearchBackDecision
+}
+
+sealed interface PlaceSearchEffect {
+    data object ExitDestination : PlaceSearchEffect
 }
 
 sealed interface PlaceSearchAction {
@@ -75,7 +81,6 @@ data class PlaceSearchUiState(
     val collectionErrorPoiId: String? = null,
     val detailDraft: PlaceDetailEditState? = null,
     val detailMapRequestId: Long = 1L,
-    val shouldNavigateBack: Boolean = false,
 )
 
 internal fun decidePlaceSearchBack(state: PlaceSearchUiState): PlaceSearchBackDecision {
@@ -99,7 +104,7 @@ internal fun reducePlaceSearchBack(state: PlaceSearchUiState): PlaceSearchUiStat
         )
         PlaceSearchBackDecision.CancelEdit -> state.copy(detailDraft = null)
         PlaceSearchBackDecision.ShowResults -> state.copy(displayMode = SearchDisplayMode.Results)
-        PlaceSearchBackDecision.ExitDestination -> state.copy(shouldNavigateBack = true)
+        PlaceSearchBackDecision.ExitDestination -> state
     }
 
 class PlaceSearchViewModel(
@@ -122,6 +127,9 @@ class PlaceSearchViewModel(
         ),
     )
     val state: StateFlow<PlaceSearchUiState> = mutableState.asStateFlow()
+    private val effectChannel = Channel<PlaceSearchEffect>(Channel.BUFFERED)
+    val effects = effectChannel.receiveAsFlow()
+    private var exitRequested = false
     private var savedByPoiId: Map<String, SavedPlace> = emptyMap()
     private val recentlyCollectedPoiIds = mutableSetOf<String>()
     private var detailEditGeneration = 0L
@@ -173,10 +181,6 @@ class PlaceSearchViewModel(
         }
     }
 
-    fun consumeBack() {
-        mutableState.value = mutableState.value.copy(shouldNavigateBack = false)
-    }
-
     private fun restoredDisplayMode(): SearchDisplayMode {
         val poiId = savedStateHandle.get<String>(SELECTED_POI_ID_KEY)
         return if (savedStateHandle.get<String>(DISPLAY_MODE_KEY) == MAP_DETAIL_MODE && poiId != null) {
@@ -199,6 +203,13 @@ class PlaceSearchViewModel(
 
     private fun handleBack() {
         val current = mutableState.value
+        if (decidePlaceSearchBack(current) == PlaceSearchBackDecision.ExitDestination) {
+            if (!exitRequested) {
+                exitRequested = true
+                viewModelScope.launch { effectChannel.send(PlaceSearchEffect.ExitDestination) }
+            }
+            return
+        }
         val updated = reducePlaceSearchBack(current)
         if (updated === current) return
         if (updated.displayMode != current.displayMode) {

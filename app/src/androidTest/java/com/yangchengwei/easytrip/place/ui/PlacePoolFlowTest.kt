@@ -21,7 +21,9 @@ import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.platform.LocalDensity
@@ -172,21 +174,22 @@ class PlacePoolFlowTest {
 
     @Test fun longDayListScrollsAtNarrowLargeTextWhileSubmitStaysReachable() {
         compose.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(3f, 2f)) {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
                 EasyTripTheme {
-                    SelectTargetDayContent(
-                        days = (0..19).map { TripDay("day-$it", it) },
-                        state = AddToItineraryUiState(
-                            selectedPlaceIds = listOf("place"),
-                            targetDayId = "day-1",
-                            validityInitialized = true,
-                            step = AddToItineraryStep.SELECT_TARGET_DAY,
-                        ),
-                        onSelectDay = {},
-                        onSubmit = {},
-                        onClose = {},
-                        modifier = androidx.compose.ui.Modifier.height(280.dp),
-                    )
+                    Box(androidx.compose.ui.Modifier.requiredWidth(280.dp).height(550.dp)) {
+                        SelectTargetDayContent(
+                            days = (0..19).map { TripDay("day-$it", it) },
+                            state = AddToItineraryUiState(
+                                selectedPlaceIds = listOf("place"),
+                                targetDayId = "day-1",
+                                validityInitialized = true,
+                                step = AddToItineraryStep.SELECT_TARGET_DAY,
+                            ),
+                            onSelectDay = {},
+                            onSubmit = {},
+                            onClose = {},
+                        )
+                    }
                 }
             }
         }
@@ -448,7 +451,7 @@ class PlacePoolFlowTest {
         }
 
         compose.onNodeWithTag("save-result-poi-used").performClick()
-        compose.onNodeWithText("将同时删除 1 次行程安排及受影响路线。").assertExists()
+        compose.onNodeWithText("将同时删除 1 次行程安排和 0 段路线。").assertExists()
         compose.onNodeWithText("取消").performClick()
         compose.waitUntil(5_000) { model.state.value.pendingCollectionRemoval == null }
         assertEquals(1, runBlocking { repository.usageCount(placeId) })
