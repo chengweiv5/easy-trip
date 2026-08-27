@@ -55,6 +55,15 @@ GREEN 已确认：
 
 验证：`TripListViewModelTest` 11/11 通过；主代码与单元测试代码编译通过。
 
+## Final fix
+
+- 删除开始时记录成功列表 emission 版本并预登记 generation/`tripId` 等待状态；service 未完成时成功 emission 只更新快照，不会提前关闭，service 返回后可立即消费期间已发生的目标缺失 emission。
+- 等待 Flow 确认时 collector Error 仅自动重订阅一次，保持删除不可重复；恢复后的目标缺失成功 emission 正常进入 `Idle`，避免无限重试。
+- `LoadingImpact` 显示不确定进度，并锁定取消按钮、Back 与外部点击；`ImpactFailure` 继续允许取消和重试，未增加平行删除状态。
+- cancellation 测试直接断言 impact/delete coroutine job 的 completion cause 为原始 `CancellationException`。
+
+验证：`TripListViewModelTest` 13/13、`ConfirmationDialogTest` 3/3、`TripFlowTest` 5/5、`V1PencilFlowTest` 2/2 通过；主代码与 AndroidTest 编译通过。
+
 ## 关注点
 
 - `graphify update .` 报告两个既有文件存在语法提取警告：`NetworkMonitor.kt`、`RoutePlanner.kt`；不影响 Kotlin 编译与本任务测试。

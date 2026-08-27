@@ -9,6 +9,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
@@ -72,7 +73,11 @@ private fun DeletionImpactDialog(
     onRetry: (() -> Unit)? = null,
 ) {
     AlertDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = { if (onRetry != null) onDismiss() },
+        properties = DialogProperties(
+            dismissOnBackPress = onRetry != null,
+            dismissOnClickOutside = onRetry != null,
+        ),
         title = { Text("删除$tripName？") },
         text = {
             androidx.compose.foundation.layout.Row(
@@ -92,6 +97,8 @@ private fun DeletionImpactDialog(
                 }
             }
         },
-        dismissButton = { EasyTripSecondaryButton(onDismiss) { Text("取消") } },
+        dismissButton = {
+            EasyTripSecondaryButton(onDismiss, enabled = onRetry != null) { Text("取消") }
+        },
     )
 }

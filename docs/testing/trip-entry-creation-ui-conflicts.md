@@ -20,3 +20,11 @@
 - `oW9mK`：菜单删除与精确影响摘要。
 - `zIbEu`：新空态标题、用途说明及创建入口。
 - `yIGiQ`：名称、日期、天数错误分别显示在对应字段附近。
+
+## Task 3 final fix 裁决
+
+- 删除完成以成功 `observeTrips()` emission 的版本与 trip ID 快照为准，Loading/Error 对 UI 列表的清空不构成完成证据。
+- service completion 与 Flow confirmation 是两个独立条件：service 未完成时不关闭；service 返回后可消费删除期间已发生的新 emission，或继续等待后续 emission。
+- 删除确认等待中的 collector Error 最多自动重订阅一次；不重复调用删除 service，也不引入第二套删除状态或独立删除操作。
+- `LoadingImpact` 属于不可取消的查询阶段；`ImpactFailure` 才恢复取消和重试入口。
+- impact/delete cancellation 必须沿协程传播，测试以 job completion cause 直接约束。

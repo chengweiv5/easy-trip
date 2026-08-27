@@ -16,6 +16,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.receiveAsFlow
+import kotlinx.coroutines.flow.retry
 import kotlinx.coroutines.launch
 
 private const val IMPACT_FAILURE_MESSAGE = "无法加载删除影响，请重试"
@@ -25,6 +26,7 @@ private data class AwaitingDeletedTrip(
     val generation: Long,
     val tripId: String,
     val emissionVersion: Long,
+    val serviceCompleted: Boolean,
 )
 
 data class TripListUiState(
@@ -70,18 +72,31 @@ class TripListViewModel(
             trips = emptyList(),
         )
         tripsJob = viewModelScope.launch {
-            repository.observeTrips().catch {
-                mutableState.value = mutableState.value.copy(
-                    page = TripListPageState.Error("无法加载旅行"),
-                    trips = emptyList(),
-                )
-            }.collect { trips ->
+            repository.observeTrips()
+                .retry(1) {
+                    val shouldRetry = awaitingDeletedTrip != null
+                    if (shouldRetry) {
+                        mutableState.value = mutableState.value.copy(
+                            page = TripListPageState.Error("无法加载旅行，正在重新同步"),
+                            trips = emptyList(),
+                        )
+                    }
+                    shouldRetry
+                }
+                .catch {
+                    mutableState.value = mutableState.value.copy(
+                        page = TripListPageState.Error("无法加载旅行"),
+                        trips = emptyList(),
+                    )
+                }
+                .collect { trips ->
                 successfulTripsEmissionVersion++
                 successfulTripIds = trips.mapTo(mutableSetOf(), TripSummary::id)
                 val waiting = awaitingDeletedTrip
                 val deletion = if (
                     waiting != null &&
                     waiting.generation == deleteGeneration &&
+                    waiting.serviceCompleted &&
                     successfulTripsEmissionVersion > waiting.emissionVersion &&
                     waiting.tripId !in successfulTripIds &&
                     mutableState.value.deletion.tripIdOrNull() == waiting.tripId
@@ -180,6 +195,13 @@ class TripListViewModel(
         val current = mutableState.value.deletion as? TripDeletionUiState.Ready ?: return
         if (current.isDeleting) return
         val generation = ++deleteGeneration
+        val emissionVersionAtStart = successfulTripsEmissionVersion
+        awaitingDeletedTrip = AwaitingDeletedTrip(
+            generation = generation,
+            tripId = current.tripId,
+            emissionVersion = emissionVersionAtStart,
+            serviceCompleted = false,
+        )
         mutableState.value = mutableState.value.copy(
             deletion = current.copy(isDeleting = true, errorMessage = null),
         )
@@ -187,16 +209,26 @@ class TripListViewModel(
             try {
                 service.deleteTrip(current.tripId)
                 if (deleteGeneration == generation && mutableState.value.deletion.tripIdOrNull() == current.tripId) {
-                    awaitingDeletedTrip = AwaitingDeletedTrip(
-                        generation = generation,
-                        tripId = current.tripId,
-                        emissionVersion = successfulTripsEmissionVersion,
-                    )
+                    if (
+                        successfulTripsEmissionVersion > emissionVersionAtStart &&
+                        current.tripId !in successfulTripIds
+                    ) {
+                        awaitingDeletedTrip = null
+                        mutableState.value = mutableState.value.copy(deletion = TripDeletionUiState.Idle)
+                    } else {
+                        awaitingDeletedTrip = AwaitingDeletedTrip(
+                            generation = generation,
+                            tripId = current.tripId,
+                            emissionVersion = emissionVersionAtStart,
+                            serviceCompleted = true,
+                        )
+                    }
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation
             } catch (_: Throwable) {
                 if (deleteGeneration == generation && mutableState.value.deletion.tripIdOrNull() == current.tripId) {
+                    awaitingDeletedTrip = null
                     mutableState.value = mutableState.value.copy(
                         deletion = current.copy(
                             isDeleting = false,

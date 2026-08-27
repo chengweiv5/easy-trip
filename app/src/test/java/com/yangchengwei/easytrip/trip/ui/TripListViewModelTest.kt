@@ -13,6 +13,8 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -165,6 +167,27 @@ class TripListViewModelTest {
         assertEquals(TripListPageState.Empty, viewModel.state.value.page)
     }
 
+    @Test fun targetMissingEmissionDuringServiceCallClosesWhenServiceReturns() = runTest(dispatcher) {
+        val deleteGate = CompletableDeferred<Unit>()
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都"))).apply {
+            deleteBehavior = { deleteGate.await() }
+        }
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        runCurrent()
+
+        repository.trips.value = emptyList()
+        advanceUntilIdle()
+        assertEquals(true, (viewModel.state.value.deletion as TripDeletionUiState.Ready).isDeleting)
+
+        deleteGate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+    }
+
     @Test fun unrelatedAndStaleFlowEmissionsDoNotCloseSuccessfulDeletion() = runTest(dispatcher) {
         val repository = TestTripRepository(listOf(trip("trip-a", "京都"), trip("trip-b", "东京")))
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
@@ -221,6 +244,26 @@ class TripListViewModelTest {
         assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
 
+    @Test fun collectorErrorWhileAwaitingDeletionRetriesOnceAndRecovers() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
+
+        repository.failuresRemaining = 1
+        repository.trips.value = emptyList()
+        viewModel.onAction(TripListAction.Retry)
+        advanceUntilIdle()
+
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+        assertEquals(TripListPageState.Empty, viewModel.state.value.page)
+        assertEquals(1, repository.deletedTrips.size)
+        assertEquals(3, repository.collectorStarts)
+    }
+
     @Test fun successfulEmissionBeforeDeleteDoesNotConfirmLaterDeletion() = runTest(dispatcher) {
         val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
@@ -271,25 +314,30 @@ class TripListViewModelTest {
         assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
 
-    @Test fun cancellationIsRethrownForImpactAndDelete() = runTest(dispatcher) {
+    @Test fun cancellationCompletesImpactAndDeleteJobsWithCancellationCause() = runTest(dispatcher) {
         val impactCancellation = CancellationException("impact cancelled")
+        val impactCompletion = CompletableDeferred<Throwable?>()
         val impactRepository = TestTripRepository(listOf(trip("trip-1", "京都")))
         val impactViewModel = TripListViewModel(
             TripService(impactRepository),
             impactRepository,
-            TestImpacts { throw impactCancellation },
+            TestImpacts {
+                currentCoroutineContext().job.invokeOnCompletion { impactCompletion.complete(it) }
+                throw impactCancellation
+            },
         )
         advanceUntilIdle()
         impactViewModel.onAction(TripListAction.RequestDelete("trip-1"))
         advanceUntilIdle()
-        assertEquals(
-            TripDeletionUiState.LoadingImpact("trip-1", "京都"),
-            impactViewModel.state.value.deletion,
-        )
+        assertSame(impactCancellation, impactCompletion.await())
 
         val deleteCancellation = CancellationException("delete cancelled")
+        val deleteCompletion = CompletableDeferred<Throwable?>()
         val deleteRepository = TestTripRepository(listOf(trip("trip-2", "东京"))).apply {
-            deleteBehavior = { throw deleteCancellation }
+            deleteBehavior = {
+                currentCoroutineContext().job.invokeOnCompletion { deleteCompletion.complete(it) }
+                throw deleteCancellation
+            }
         }
         val deleteViewModel = TripListViewModel(TripService(deleteRepository), deleteRepository, TestImpacts())
         advanceUntilIdle()
@@ -297,10 +345,7 @@ class TripListViewModelTest {
         advanceUntilIdle()
         deleteViewModel.onAction(TripListAction.ConfirmDelete)
         advanceUntilIdle()
-
-        val deleting = deleteViewModel.state.value.deletion as TripDeletionUiState.Ready
-        assertEquals(true, deleting.isDeleting)
-        assertEquals(null, deleting.errorMessage)
+        assertSame(deleteCancellation, deleteCompletion.await())
     }
 
     @Test fun errorRetryRecoversAndKeepsSingleCollector() = runTest(dispatcher) {
@@ -340,15 +385,22 @@ class TripListViewModelTest {
         var failure: Throwable? = null
         var activeCollectors = 0
         var maxActiveCollectors = 0
+        var collectorStarts = 0
+        var failuresRemaining = 0
         val deletedTrips = mutableListOf<String>()
         var deleteBehavior: suspend () -> Unit = {}
         var firstEmissionGate: CompletableDeferred<Unit>? = null
 
         override fun observeTrips(): Flow<List<TripSummary>> = flow {
             firstEmissionGate?.await()
+            if (failuresRemaining > 0) {
+                failuresRemaining--
+                throw IllegalStateException("db unavailable")
+            }
             failure?.let { throw it }
             trips.collect { emit(it) }
         }.onStart {
+            collectorStarts++
             activeCollectors++
             maxActiveCollectors = maxOf(maxActiveCollectors, activeCollectors)
         }.onCompletion {

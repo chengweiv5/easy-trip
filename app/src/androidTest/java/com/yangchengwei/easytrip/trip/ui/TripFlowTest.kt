@@ -1,7 +1,10 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assert
@@ -10,12 +13,15 @@ import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.AppNavigation
 import com.yangchengwei.easytrip.core.model.TravelMode
@@ -94,6 +100,14 @@ class TripFlowTest {
         compose.onNodeWithTag("trip-menu-delete-id-1").performClick()
         compose.onNodeWithText("删除影响查询测试？").assertIsDisplayed()
         compose.onNodeWithText("正在查询删除影响…").assertIsDisplayed()
+        compose.onNodeWithTag("trip-delete-impact-loading").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo.Indeterminate),
+        )
+        compose.onNodeWithText("取消").assertIsNotEnabled().performClick()
+        pressBack()
+        compose.waitForIdle()
+        compose.onAllNodes(isRoot())[1].performTouchInput { click(Offset(1f, 1f)) }
+        compose.onNodeWithText("删除影响查询测试？").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("0 个旅行日").fetchSemanticsNodes().size)
 
         compose.runOnIdle { impact.completeExceptionally(IllegalStateException("unavailable")) }

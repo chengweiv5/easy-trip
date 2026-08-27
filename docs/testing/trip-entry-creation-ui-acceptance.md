@@ -41,3 +41,10 @@
 - 场景 47 复用 focused Content 测试中的字段容器祖先匹配，错误若移出对应 `*-container` 即失败。
 - 场景 13 在确认删除后更新可控列表 state，覆盖 01v：目标卡消失且“东京秋日”保留旅行仍在。
 - RED：Catalog 47 tests，1 failure（目标卡删除后仍存在）；GREEN：Catalog 47 tests，0 failures。
+
+## Task 3 final fix
+
+- 删除确认现覆盖 service/Flow 非协作时序：service 挂起期间成功 emission 已移除目标时仍保持 busy，service 返回后立即关闭；确认前的旧 emission 不生效。
+- 等待删除确认期间列表 collector Error 自动重订阅一次，恢复后由目标缺失的成功 emission 关闭，删除 service 不会重复执行。
+- 删除影响查询中显示不确定进度，并锁定取消、Back 与外部点击；查询失败后仍可取消或重试。
+- 验证：`TripListViewModelTest` 13/13、`ConfirmationDialogTest` 3/3、`TripFlowTest` 5/5、`V1PencilFlowTest` 2/2 PASS。
