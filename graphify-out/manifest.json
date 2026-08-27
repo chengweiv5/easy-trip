@@ -1020,15 +1020,15 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripUiState.kt": {
-    "mtime": 1787806743.462583,
-    "seen": 1787806929.299988,
-    "ast_hash": "5424c0ada6ae589c5f5b99e87d0b1abf",
+    "mtime": 1787808064.9410648,
+    "seen": 1787808211.185156,
+    "ast_hash": "b081c68a16a0d25b98f155af0f331867",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripValidator.kt": {
-    "mtime": 1787728766.5475008,
-    "seen": 1787729734.5628202,
-    "ast_hash": "b365b68e3899486751d5c75397252c11",
+    "mtime": 1787808104.71891,
+    "seen": 1787808211.185157,
+    "ast_hash": "0931ab3cbfb279c31647b8dbbf7dec5e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListContent.kt": {
@@ -1062,15 +1062,15 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/CreateTripValidatorTest.kt": {
-    "mtime": 1787806241.2255213,
-    "seen": 1787806929.300035,
-    "ast_hash": "bcff62ac3bb0f6215c84a58887c5dabf",
+    "mtime": 1787807971.6010234,
+    "seen": 1787808211.185202,
+    "ast_hash": "0f8452e7df38bd184ff27b7f1eedb29a",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/CreateTripViewModelTest.kt": {
-    "mtime": 1787806769.1141748,
-    "seen": 1787806929.300035,
-    "ast_hash": "c1ae8c43109cba0425fee1acfc784467",
+    "mtime": 1787808008.9968982,
+    "seen": 1787808211.1852028,
+    "ast_hash": "3eb739f8068df0fd9178174c8a6d4c85",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/TripListUiModelsTest.kt": {
@@ -1218,9 +1218,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripViewModel.kt": {
-    "mtime": 1787806894.1884587,
-    "seen": 1787806929.29999,
-    "ast_hash": "862098255c3fc7a4da1a2bed4d8d86f7",
+    "mtime": 1787808176.5467494,
+    "seen": 1787808211.1851578,
+    "ast_hash": "6889c19689d9349132f6cd79111624fb",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceRoute.kt": {

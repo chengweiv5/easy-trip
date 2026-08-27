@@ -264,6 +264,53 @@ class CreateTripViewModelTest {
         assertEquals(listOf("request-1", "request-1", "request-1", "request-2"), repository.commands.map { it.requestId })
     }
 
+    @Test fun equivalentNormalizedCommandKeepsRequestId() = runTest(dispatcher) {
+        val ids = ArrayDeque(listOf("request-1", "request-2"))
+        val repository = FakeRepository().apply { failure = IllegalStateException("failed") }
+        val viewModel = CreateTripViewModel(TripService(repository), SavedStateHandle()) { ids.removeFirst() }
+        enterValidDraft(viewModel)
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+
+        viewModel.onAction(CreateTripAction.NameChanged(" 东京 "))
+        viewModel.onAction(CreateTripAction.DayCountChanged("03"))
+        viewModel.onAction(CreateTripAction.StartDateChanged(LocalDate.of(2026, 10, 1)))
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("request-1", "request-1"), repository.commands.map { it.requestId })
+    }
+
+    @Test fun serviceCancellationPropagatesWithoutFailureWhileViewModelLives() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { failure = kotlinx.coroutines.CancellationException("cancelled") }
+        val viewModel = model(repository)
+        enterValidDraft(viewModel)
+
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+
+        assertNull(viewModel.state.value.submitError)
+        assertEquals(1, repository.createCalls)
+    }
+
+    @Test fun savedStateIsClearedBeforeSuccessEffectIsObserved() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val viewModel = model(FakeRepository(), saved)
+        enterValidDraft(viewModel)
+        val effect = async {
+            viewModel.effects.first().also {
+                assertNull(saved.get<String>("trip.create.name"))
+                assertNull(saved.get<String>("trip.create.days"))
+                assertNull(saved.get<String>("trip.create.requestId"))
+            }
+        }
+
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+
+        assertEquals(CreateTripEffect.OpenWorkspace("trip-1"), effect.await())
+    }
+
     @Test fun backEmitsNavigateBackWhenIdle() = runTest(dispatcher) {
         val viewModel = model(FakeRepository())
         val effect = async { viewModel.effects.first() }

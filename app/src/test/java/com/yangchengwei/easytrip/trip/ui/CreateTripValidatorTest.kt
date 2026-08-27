@@ -59,4 +59,22 @@ class CreateTripValidatorTest {
         assertEquals(LocalDate.of(2026, 10, 1), command.startDate)
         assertEquals(3, command.dayCount)
     }
+
+    @Test fun endDateIsNullForDayCountsRejectedByValidatorOrDateOverflow() {
+        val tooLarge = CreateTripUiState(
+            name = "东京",
+            dayCount = "9223372036854775807",
+            timeMode = CreateTimeMode.DATED,
+            startDate = LocalDate.of(2026, 10, 1),
+        )
+        val overflowing = CreateTripUiState(
+            name = "东京",
+            dayCount = "2",
+            timeMode = CreateTimeMode.DATED,
+            startDate = LocalDate.MAX,
+        )
+
+        assertNull(tooLarge.endDate)
+        assertNull(overflowing.endDate)
+    }
 }

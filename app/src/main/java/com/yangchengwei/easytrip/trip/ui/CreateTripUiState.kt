@@ -20,8 +20,10 @@ data class CreateTripUiState(
 ) {
     val endDate: LocalDate?
         get() {
-            val days = dayCount.toLongOrNull() ?: return null
-            return if (timeMode == CreateTimeMode.DATED && days >= 1) startDate?.plusDays(days - 1) else null
+            val days = dayCount.toIntOrNull() ?: return null
+            val date = startDate ?: return null
+            if (timeMode != CreateTimeMode.DATED || days < 1) return null
+            return runCatching { date.plusDays(days.toLong() - 1) }.getOrNull()
         }
 }
 

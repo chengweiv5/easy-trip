@@ -14,6 +14,17 @@ data class CreateTripValidation(
     val dateError: String? = null,
 )
 
+fun createTripCommand(state: CreateTripUiState): CreateTrip? {
+    val days = state.dayCount.toIntOrNull() ?: return null
+    if (state.name.isBlank() || days < 1 || (state.timeMode == CreateTimeMode.DATED && state.startDate == null)) return null
+    return CreateTrip(
+        state.name.trim(),
+        days,
+        state.travelMode,
+        if (state.timeMode == CreateTimeMode.DATED) state.startDate else null,
+    )
+}
+
 fun validateCreateTrip(state: CreateTripUiState): CreateTripValidation {
     val nameError = if (state.name.isBlank()) "请输入旅行名称" else null
     val days = state.dayCount.toIntOrNull()
@@ -24,13 +35,7 @@ fun validateCreateTrip(state: CreateTripUiState): CreateTripValidation {
     }
     return CreateTripValidation(
         valid = ValidCreateTrip(
-            CreateTrip(
-                state.name.trim(),
-                days!!,
-                state.travelMode,
-                if (state.timeMode == CreateTimeMode.DATED) state.startDate else null,
-                state.requestId,
-            ),
+            createTripCommand(state)!!.copy(requestId = state.requestId),
             if (state.timeMode == CreateTimeMode.DATED) state.startDate else null,
         ),
     )

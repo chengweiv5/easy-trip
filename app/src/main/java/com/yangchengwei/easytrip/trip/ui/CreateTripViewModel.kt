@@ -88,15 +88,10 @@ class CreateTripViewModel(
     }
 
     private fun updateForCommandChange(current: CreateTripUiState, value: CreateTripUiState) {
-        update(if (sameCommand(current, value)) value else value.copy(requestId = null))
+        val currentCommand = createTripCommand(current)?.copy(requestId = null)
+        val nextCommand = createTripCommand(value)?.copy(requestId = null)
+        update(if (currentCommand == nextCommand) value else value.copy(requestId = null))
     }
-
-    private fun sameCommand(left: CreateTripUiState, right: CreateTripUiState) =
-        left.name == right.name &&
-            left.dayCount == right.dayCount &&
-            left.timeMode == right.timeMode &&
-            left.startDate == right.startDate &&
-            left.travelMode == right.travelMode
 
     private fun update(value: CreateTripUiState) {
         mutableState.value = value
@@ -108,7 +103,15 @@ class CreateTripViewModel(
         savedState[CREATE_REQUEST_ID] = value.requestId
     }
 
-    private fun clear() = update(CreateTripUiState())
+    private fun clear() {
+        mutableState.value = CreateTripUiState()
+        savedState.remove<String>(CREATE_NAME)
+        savedState.remove<String>(CREATE_DAYS)
+        savedState.remove<String>(CREATE_TIME_MODE)
+        savedState.remove<String>(CREATE_START_DATE)
+        savedState.remove<String>(CREATE_TRAVEL_MODE)
+        savedState.remove<String>(CREATE_REQUEST_ID)
+    }
 
     override fun onCleared() {
         submitGeneration++
