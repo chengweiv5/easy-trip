@@ -39,6 +39,7 @@ fun ConfirmationDialog(
     modifier: Modifier = Modifier,
     busy: Boolean = false,
     errorMessage: String? = null,
+    confirmLabel: String = model.confirmLabel,
 ) {
     Dialog(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -105,13 +106,13 @@ fun ConfirmationDialog(
                             onClick = onConfirm,
                             enabled = !busy,
                             modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-confirm"),
-                        ) { Text(model.confirmLabel) }
+                        ) { Text(confirmLabel) }
                     } else {
                         EasyTripPrimaryButton(
                             onClick = onConfirm,
                             enabled = !busy,
                             modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-confirm"),
-                        ) { Text(model.confirmLabel) }
+                        ) { Text(confirmLabel) }
                     }
                 }
             }

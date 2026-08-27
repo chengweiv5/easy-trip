@@ -28,3 +28,10 @@
 - 删除确认等待中的 collector Error 最多自动重订阅一次；不重复调用删除 service，也不引入第二套删除状态或独立删除操作。
 - `LoadingImpact` 属于不可取消的查询阶段；`ImpactFailure` 才恢复取消和重试入口。
 - impact/delete cancellation 必须沿协程传播，测试以 job completion cause 直接约束。
+
+## 新授权聚焦修复裁决
+
+- delete service 成功后，自动同步 retry(1) 耗尽不允许继续保持不可恢复 busy；改为保留同一 `Ready` 目标与 confirmation，并显式标记确认同步失败。
+- “重新同步”是独立动作，只重订阅旅行 Flow，绝不重新调用 delete service；同步期间复用 busy 的 confirm/dismiss/Back/outside 锁定契约。
+- 每次手动同步仍只允许一次自动 retry，不引入无限自动循环；失败后再次返回可点击的“重新同步”。
+- collector generation 与 delete generation/trip ID 同时隔离旧结果，旧 collector 的 completion/error/emission 不得污染新目标或新订阅。

@@ -48,3 +48,11 @@
 - 等待删除确认期间列表 collector Error 自动重订阅一次，恢复后由目标缺失的成功 emission 关闭，删除 service 不会重复执行。
 - 删除影响查询中显示不确定进度，并锁定取消、Back 与外部点击；查询失败后仍可取消或重试。
 - 验证：`TripListViewModelTest` 13/13、`ConfirmationDialogTest` 3/3、`TripFlowTest` 5/5、`V1PencilFlowTest` 2/2 PASS。
+
+## 新授权聚焦修复：删除确认同步恢复
+
+- 自动 retry(1) 连续两次失败后，确认弹窗退出 busy，保留原 trip ID 与删除影响，显示“删除成功，但同步确认失败，请重新同步”。
+- “重新同步”只重订阅 `observeTrips()`；删除 service 调用次数保持 1。同步中重复点击、取消、Back 与外部点击均被锁定；再次失败可继续重试，成功 emission 确认目标消失后回到 Idle。
+- RED：`TripListViewModelTest` 14 tests，1 failure，失败点为连续两次 collector failure 后 `isDeleting` 仍为 true。
+- UI RED：`compileDebugAndroidTestKotlin` 因 `ConfirmationDialog` 不支持 `confirmLabel` 覆盖而失败，证明缺少可达“重新同步”入口。
+- GREEN：`TripListViewModelTest` 16/16、`ConfirmationDialogTest` 4/4、`TripFlowTest` 6/6 PASS。

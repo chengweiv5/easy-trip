@@ -21,6 +21,7 @@ import kotlinx.coroutines.launch
 
 private const val IMPACT_FAILURE_MESSAGE = "无法加载删除影响，请重试"
 private const val DELETE_FAILURE_MESSAGE = "删除失败，请重试"
+private const val DELETE_SYNC_FAILURE_MESSAGE = "删除成功，但同步确认失败，请重新同步"
 
 private data class AwaitingDeletedTrip(
     val generation: Long,
@@ -59,6 +60,7 @@ class TripListViewModel(
     private var tripsJob: Job? = null
     private var deleteJob: Job? = null
     private var deleteGeneration = 0L
+    private var tripsGeneration = 0L
     private var successfulTripsEmissionVersion = 0L
     private var successfulTripIds = emptySet<String>()
     private var awaitingDeletedTrip: AwaitingDeletedTrip? = null
@@ -66,6 +68,7 @@ class TripListViewModel(
     init { observeTrips() }
 
     fun observeTrips() {
+        val collectorGeneration = ++tripsGeneration
         tripsJob?.cancel()
         mutableState.value = mutableState.value.copy(
             page = TripListPageState.Loading,
@@ -74,7 +77,7 @@ class TripListViewModel(
         tripsJob = viewModelScope.launch {
             repository.observeTrips()
                 .retry(1) {
-                    val shouldRetry = awaitingDeletedTrip != null
+                    val shouldRetry = collectorGeneration == tripsGeneration && awaitingDeletedTrip != null
                     if (shouldRetry) {
                         mutableState.value = mutableState.value.copy(
                             page = TripListPageState.Error("无法加载旅行，正在重新同步"),
@@ -84,12 +87,32 @@ class TripListViewModel(
                     shouldRetry
                 }
                 .catch {
+                    if (collectorGeneration != tripsGeneration) return@catch
+                    val currentDeletion = mutableState.value.deletion
+                    val waiting = awaitingDeletedTrip
+                    val deletion = if (
+                        waiting != null &&
+                        waiting.generation == deleteGeneration &&
+                        waiting.serviceCompleted &&
+                        currentDeletion is TripDeletionUiState.Ready &&
+                        currentDeletion.tripId == waiting.tripId
+                    ) {
+                        currentDeletion.copy(
+                            isDeleting = false,
+                            errorMessage = DELETE_SYNC_FAILURE_MESSAGE,
+                            confirmationSyncFailed = true,
+                        )
+                    } else {
+                        currentDeletion
+                    }
                     mutableState.value = mutableState.value.copy(
                         page = TripListPageState.Error("无法加载旅行"),
                         trips = emptyList(),
+                        deletion = deletion,
                     )
                 }
                 .collect { trips ->
+                if (collectorGeneration != tripsGeneration) return@collect
                 successfulTripsEmissionVersion++
                 successfulTripIds = trips.mapTo(mutableSetOf(), TripSummary::id)
                 val waiting = awaitingDeletedTrip
@@ -129,6 +152,7 @@ class TripListViewModel(
             is TripListAction.RequestDelete -> requestDelete(action.tripId)
             TripListAction.RetryDeleteImpact -> retryDeleteImpact()
             TripListAction.ConfirmDelete -> confirmDelete()
+            TripListAction.RetryDeletionSync -> retryDeletionSync()
             TripListAction.CancelDelete -> cancelDelete()
         }
     }
@@ -179,6 +203,26 @@ class TripListViewModel(
                 }
             }
         }
+    }
+
+    private fun retryDeletionSync() {
+        val current = mutableState.value.deletion as? TripDeletionUiState.Ready ?: return
+        val waiting = awaitingDeletedTrip ?: return
+        if (
+            current.isDeleting ||
+            !current.confirmationSyncFailed ||
+            waiting.generation != deleteGeneration ||
+            waiting.tripId != current.tripId ||
+            !waiting.serviceCompleted
+        ) return
+        mutableState.value = mutableState.value.copy(
+            deletion = current.copy(
+                isDeleting = true,
+                errorMessage = null,
+                confirmationSyncFailed = false,
+            ),
+        )
+        observeTrips()
     }
 
     fun cancelDelete() {

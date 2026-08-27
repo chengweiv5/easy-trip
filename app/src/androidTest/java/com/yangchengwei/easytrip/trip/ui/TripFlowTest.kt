@@ -37,6 +37,7 @@ import java.time.ZoneOffset
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -79,6 +80,24 @@ class TripFlowTest {
         compose.onNodeWithText("确认删除旅行").performClick()
 
         compose.waitUntil { repository.trip.value == null }
+        assertEquals(listOf(tripId), repository.deletedTrips)
+    }
+
+    @Test fun exhaustedDeletionSyncShowsReachableResyncAndDoesNotDeleteAgain() {
+        val repository = FakeTripRepository().apply {
+            seed("同步恢复测试", 3)
+            failCollectorsAfterDelete = 2
+        }
+        val tripId = repository.trip.value!!.id
+        compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
+
+        compose.onNodeWithTag("trip-menu-id-1").performClick()
+        compose.onNodeWithTag("trip-menu-delete-id-1").performClick()
+        compose.onNodeWithText("确认删除旅行").performClick()
+
+        compose.onNodeWithText("删除成功，但同步确认失败，请重新同步").assertIsDisplayed()
+        compose.onNodeWithText("重新同步").assertIsDisplayed().performClick()
+        compose.waitUntil { compose.onAllNodesWithText("删除同步恢复测试？").fetchSemanticsNodes().isEmpty() }
         assertEquals(listOf(tripId), repository.deletedTrips)
     }
 
@@ -188,9 +207,18 @@ class TripFlowTest {
         val moveCalls = mutableListOf<MoveCall>()
         val deletedTrips = mutableListOf<String>()
         var deletedDays = 0
+        var failCollectorsAfterDelete = 0
         fun seed(name: String, count: Int) { create(CreateTrip(name, count)) }
         private fun create(command: CreateTrip): String { val id=command.requestId ?: id(); trip.value=TripWithDays(id,command.name,command.startDate,command.travelMode,List(command.dayCount){TripDay(id(),it)}); publish(); return id }
-        override fun observeTrips(): Flow<List<TripSummary>> = trips
+        override fun observeTrips(): Flow<List<TripSummary>> = flow {
+            trips.collect {
+                if (deletedTrips.isNotEmpty() && failCollectorsAfterDelete > 0) {
+                    failCollectorsAfterDelete--
+                    throw IllegalStateException("db unavailable")
+                }
+                emit(it)
+            }
+        }
         override fun observeTrip(tripId: String): Flow<TripWithDays?> = trip
         override suspend fun createTrip(command: CreateTrip) = create(command)
         override suspend fun renameTrip(tripId: String, name: String) {}

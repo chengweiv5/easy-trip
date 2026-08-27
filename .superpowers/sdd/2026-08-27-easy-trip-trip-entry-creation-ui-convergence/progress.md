@@ -40,10 +40,13 @@ Task 3: fix round 3/5 (Loading-before-first-emission race coverage; commits f605
 Task 3: complete (commits f9a42f2..b7894d1, final scoped review approved)
 - Tests: ConfirmationDialogTest 3/3, TripFlowTest 5/5, TripListViewModelTest 11/11 PASS; Kotlin compilation PASS.
 - Delete confirmation remains busy until a post-delete successful Room Flow emission removes the bound trip; Loading/Error/UI clears cannot close it.
-Task 3: whole-branch final fix pending commit
+Task 3: whole-branch final fix (commit 3a0c1e3)
 - Tests: ConfirmationDialogTest 3/3, TripFlowTest 5/5, V1PencilFlowTest 2/2, TripListViewModelTest 13/13 PASS; Kotlin and AndroidTest compilation PASS.
 - Service completion and fresh successful Flow confirmation are coordinated across either ordering; one bounded collector retry recovers deletion confirmation after a Flow error.
 - LoadingImpact locks cancel/Back/outside dismissal and exposes progress; cancellation tests assert the original completion cause.
+- Final scoped re-review found one Important: after the automatic retry also failed, deletion stayed permanently busy with no reachable recovery action.
+- New authorized focused fix: automatic retry exhaustion now preserves the bound trip/confirmation as a non-busy sync error with a reachable “重新同步” action. Manual resync only restarts `observeTrips`, never calls delete again; duplicate actions are locked while busy, failures remain retryable, and stale collector results are generation-isolated.
+- Focused evidence: `TripListViewModelTest` 16/16, `ConfirmationDialogTest` 4/4, `TripFlowTest` 6/6 PASS; delete service call count remains one through recovery.
 
 Task 4: fix round 1/5 (normalized command identity, safe endDate, cancellation/order coverage; commits 36449a6..410a582)
 Task 4: fix round 2/5 (real cancellation propagation assertion; commits 410a582..3b31cd5)

@@ -57,10 +57,19 @@ fun TripListScreen(
         )
         is TripDeletionUiState.Ready -> ConfirmationDialog(
             model = deletion.confirmation,
-            onConfirm = viewModel::confirmDelete,
+            onConfirm = {
+                viewModel.onAction(
+                    if (deletion.confirmationSyncFailed) {
+                        TripListAction.RetryDeletionSync
+                    } else {
+                        TripListAction.ConfirmDelete
+                    },
+                )
+            },
             onDismiss = viewModel::cancelDelete,
             busy = deletion.isDeleting,
             errorMessage = deletion.errorMessage,
+            confirmLabel = if (deletion.confirmationSyncFailed) "重新同步" else deletion.confirmation.confirmLabel,
         )
     }
 }

@@ -43,6 +43,7 @@ sealed interface TripDeletionUiState {
         val confirmation: ConfirmationUiModel,
         val isDeleting: Boolean = false,
         val errorMessage: String? = null,
+        val confirmationSyncFailed: Boolean = false,
     ) : TripDeletionUiState
 }
 
@@ -54,6 +55,7 @@ sealed interface TripListAction {
     data class RequestDelete(val tripId: String) : TripListAction
     data object RetryDeleteImpact : TripListAction
     data object ConfirmDelete : TripListAction
+    data object RetryDeletionSync : TripListAction
     data object CancelDelete : TripListAction
 }
 

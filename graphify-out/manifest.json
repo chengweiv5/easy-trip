@@ -90,9 +90,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripFlowTest.kt": {
-    "mtime": 1787825438.1084774,
-    "seen": 1787825922.8154721,
-    "ast_hash": "2f0b690071d7eee3e58d7354f323b555",
+    "mtime": 1787826922.6846123,
+    "seen": 1787827163.5198941,
+    "ast_hash": "c193ced98027fb4073bc0ff7ab1f846c",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceFlowTest.kt": {
@@ -444,15 +444,15 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListScreen.kt": {
-    "mtime": 1787825484.9647145,
-    "seen": 1787825922.815547,
-    "ast_hash": "ef32fb6f521026797280d75ba5969ea1",
+    "mtime": 1787826797.1043897,
+    "seen": 1787827163.51997,
+    "ast_hash": "343ef65482196040fdf3253ab32d2d6c",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListViewModel.kt": {
-    "mtime": 1787825703.943167,
-    "seen": 1787825922.815549,
-    "ast_hash": "93d7235fdb55917c898da6688a8d2d20",
+    "mtime": 1787827206.1615307,
+    "seen": 1787827261.574837,
+    "ast_hash": "a74b146898bffe34c36da1047c15f1c7",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsViewModel.kt": {
@@ -1038,9 +1038,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt": {
-    "mtime": 1787794906.1638286,
-    "seen": 1787794969.056958,
-    "ast_hash": "bb884633029c51d84e76217aaa43dce0",
+    "mtime": 1787826661.7541509,
+    "seen": 1787827163.5199711,
+    "ast_hash": "2676d333e79c78fdedf953ffe1e123c5",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContent.kt": {
@@ -1080,9 +1080,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/TripListViewModelTest.kt": {
-    "mtime": 1787825725.387689,
-    "seen": 1787825922.8155851,
-    "ast_hash": "5658b969c0f6dcfc6979cb4f879d42c6",
+    "mtime": 1787827039.7184625,
+    "seen": 1787827163.520009,
+    "ast_hash": "a6d163f70b1261554fcd67fba37fde85",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/MapHostCallbackGuardTest.kt": {
@@ -1146,9 +1146,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/core/ui/component/ConfirmationDialogTest.kt": {
-    "mtime": 1787802623.1825783,
-    "seen": 1787802687.8057191,
-    "ast_hash": "4ec5a2a48081b5cb912305df955c4ee0",
+    "mtime": 1787826979.909709,
+    "seen": 1787827163.5198772,
+    "ast_hash": "b1042fe5c28f3d56ef05959396c1291e",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt": {
@@ -1164,9 +1164,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/ConfirmationDialog.kt": {
-    "mtime": 1787802561.5019069,
-    "seen": 1787802687.8057559,
-    "ast_hash": "3efa13c4e065b6c48185e97dadddff24",
+    "mtime": 1787826792.1692405,
+    "seen": 1787827163.5199108,
+    "ast_hash": "69be9e12003ffd22a6bd43e13396f25e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/ConfirmationUiModel.kt": {
@@ -2046,15 +2046,21 @@
     "semantic_hash": ""
   },
   "docs/testing/trip-entry-creation-ui-acceptance.md": {
-    "mtime": 1787825892.0002155,
-    "seen": 1787825922.815648,
-    "ast_hash": "747e7fa469d16310845f5c0a91dcbf15",
+    "mtime": 1787827068.7305048,
+    "seen": 1787827163.520076,
+    "ast_hash": "3501950810e88d4573b9eaefb4abe47f",
     "semantic_hash": ""
   },
   "docs/testing/trip-entry-creation-ui-conflicts.md": {
-    "mtime": 1787825898.1462247,
-    "seen": 1787825922.815649,
-    "ast_hash": "c86a27ec12134b18aa778b518cabedf9",
+    "mtime": 1787827076.8658752,
+    "seen": 1787827163.520077,
+    "ast_hash": "a5756727d43cf67fadb185a0d4ebc87e",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/progress.md": {
+    "mtime": 1787827060.2511003,
+    "seen": 1787827163.520045,
+    "ast_hash": "6434a0b4baf810e4075bc82c53595543",
     "semantic_hash": ""
   }
 }

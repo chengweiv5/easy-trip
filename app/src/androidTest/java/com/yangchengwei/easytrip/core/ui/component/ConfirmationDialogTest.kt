@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
@@ -77,6 +80,35 @@ class ConfirmationDialogTest {
         compose.onNodeWithText("删除失败，请重试").assertIsDisplayed()
         compose.onNodeWithTag("confirmation-confirm").performClick()
         assertEquals(1, confirmed)
+    }
+
+    @Test fun syncFailureShowsResyncAndBusyLocksRetryDismissBackAndOutsideDismiss() {
+        var retried = 0
+        var dismissed = 0
+        var busy by mutableStateOf(false)
+        compose.setContent {
+            EasyTripTheme {
+                ConfirmationDialog(
+                    model = confirmation(),
+                    onConfirm = { retried++; busy = true },
+                    onDismiss = { dismissed++ },
+                    busy = busy,
+                    errorMessage = if (busy) null else "删除成功，但同步确认失败，请重新同步",
+                    confirmLabel = "重新同步",
+                )
+            }
+        }
+
+        compose.onNodeWithText("删除成功，但同步确认失败，请重新同步").assertIsDisplayed()
+        compose.onNodeWithText("重新同步").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("confirmation-confirm").assertIsNotEnabled().performClick()
+        compose.onNodeWithTag("confirmation-dismiss").assertIsNotEnabled().performClick()
+        pressBack()
+        compose.waitForIdle()
+        compose.onAllNodes(isRoot())[1].performTouchInput { click(Offset(1f, 1f)) }
+        compose.onNodeWithText(confirmation().title).assertIsDisplayed()
+        assertEquals(1, retried)
+        assertEquals(0, dismissed)
     }
 
     @Test fun narrowLargeFontDialogKeepsActionsReachableWithFullImpactList() {

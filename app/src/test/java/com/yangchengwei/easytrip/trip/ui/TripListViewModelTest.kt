@@ -235,11 +235,13 @@ class TripListViewModelTest {
         firstEmissionGate.complete(Unit)
         advanceUntilIdle()
         assertEquals(TripListPageState.Error("无法加载旅行"), viewModel.state.value.page)
-        assertEquals(true, (viewModel.state.value.deletion as TripDeletionUiState.Ready).isDeleting)
+        val failedSync = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals(false, failedSync.isDeleting)
+        assertEquals("删除成功，但同步确认失败，请重新同步", failedSync.errorMessage)
 
         repository.failure = null
         repository.trips.value = emptyList()
-        viewModel.onAction(TripListAction.Retry)
+        viewModel.onAction(TripListAction.RetryDeletionSync)
         advanceUntilIdle()
         assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
@@ -262,6 +264,67 @@ class TripListViewModelTest {
         assertEquals(TripListPageState.Empty, viewModel.state.value.page)
         assertEquals(1, repository.deletedTrips.size)
         assertEquals(3, repository.collectorStarts)
+    }
+
+    @Test fun exhaustedDeletionConfirmationRetryBecomesRecoverableWithoutDeletingAgain() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
+
+        repository.failuresRemaining = 2
+        viewModel.onAction(TripListAction.Retry)
+        advanceUntilIdle()
+
+        val failedSync = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals(false, failedSync.isDeleting)
+        assertEquals("删除成功，但同步确认失败，请重新同步", failedSync.errorMessage)
+        assertEquals(listOf("trip-1"), repository.deletedTrips)
+
+        repository.trips.value = emptyList()
+        viewModel.onAction(TripListAction.RetryDeletionSync)
+        advanceUntilIdle()
+
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+        assertEquals(listOf("trip-1"), repository.deletedTrips)
+    }
+
+    @Test fun repeatedManualResyncWhileBusyStartsOneCollectorAndCanRetryAfterFailure() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
+        repository.failuresRemaining = 2
+        viewModel.onAction(TripListAction.Retry)
+        advanceUntilIdle()
+
+        val resyncGate = CompletableDeferred<Unit>()
+        repository.firstEmissionGate = resyncGate
+        val startsBeforeResync = repository.collectorStarts
+        viewModel.onAction(TripListAction.RetryDeletionSync)
+        viewModel.onAction(TripListAction.RetryDeletionSync)
+        runCurrent()
+
+        assertEquals(startsBeforeResync + 1, repository.collectorStarts)
+        assertEquals(true, (viewModel.state.value.deletion as TripDeletionUiState.Ready).isDeleting)
+        resyncGate.complete(Unit)
+        repository.firstEmissionGate = null
+        repository.failuresRemaining = 2
+        advanceUntilIdle()
+        assertEquals(false, (viewModel.state.value.deletion as TripDeletionUiState.Ready).isDeleting)
+
+        repository.trips.value = emptyList()
+        repository.failuresRemaining = 0
+        viewModel.onAction(TripListAction.RetryDeletionSync)
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+        assertEquals(listOf("trip-1"), repository.deletedTrips)
     }
 
     @Test fun successfulEmissionBeforeDeleteDoesNotConfirmLaterDeletion() = runTest(dispatcher) {
@@ -348,6 +411,26 @@ class TripListViewModelTest {
         assertSame(deleteCancellation, deleteCompletion.await())
     }
 
+    @Test fun staleCollectorFailureCannotOverwriteNewCollectorResult() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+
+        val staleFailureGate = CompletableDeferred<Unit>()
+        repository.nextNonCancellableFailureGate = staleFailureGate
+        viewModel.onAction(TripListAction.Retry)
+        runCurrent()
+        viewModel.onAction(TripListAction.Retry)
+        repository.trips.value = listOf(trip("trip-2", "东京"))
+        advanceUntilIdle()
+
+        staleFailureGate.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("trip-2"), (viewModel.state.value.page as TripListPageState.Content).trips.map(TripCardUiModel::id))
+        assertEquals(listOf("trip-2"), viewModel.state.value.trips.map(TripSummary::id))
+    }
+
     @Test fun errorRetryRecoversAndKeepsSingleCollector() = runTest(dispatcher) {
         val repository = TestTripRepository()
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
@@ -390,8 +473,16 @@ class TripListViewModelTest {
         val deletedTrips = mutableListOf<String>()
         var deleteBehavior: suspend () -> Unit = {}
         var firstEmissionGate: CompletableDeferred<Unit>? = null
+        var nextNonCancellableFailureGate: CompletableDeferred<Unit>? = null
 
-        override fun observeTrips(): Flow<List<TripSummary>> = flow {
+        override fun observeTrips(): Flow<List<TripSummary>> {
+            val nonCancellableFailureGate = nextNonCancellableFailureGate
+            nextNonCancellableFailureGate = null
+            return flow {
+            if (nonCancellableFailureGate != null) {
+                withContext(NonCancellable) { nonCancellableFailureGate.await() }
+                throw IllegalStateException("stale db unavailable")
+            }
             firstEmissionGate?.await()
             if (failuresRemaining > 0) {
                 failuresRemaining--
@@ -405,6 +496,7 @@ class TripListViewModelTest {
             maxActiveCollectors = maxOf(maxActiveCollectors, activeCollectors)
         }.onCompletion {
             activeCollectors--
+        }
         }
         override fun observeTrip(tripId: String): Flow<TripWithDays?> = emptyFlow()
         override suspend fun createTrip(command: CreateTrip): String = "trip"
