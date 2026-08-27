@@ -111,7 +111,7 @@ class RoomTripRepositoryTest {
     }
 
     @Test
-    fun replayingRequestIdIsIdempotent_andConflictingCommandFails() = runTest {
+    fun requestIdReplayStillCreatesOneTripAndOneNavigationTarget() = runTest {
         val command = CreateTrip(
             name = "Replay",
             dayCount = 2,
@@ -121,8 +121,10 @@ class RoomTripRepositoryTest {
         )
         val first = repository.createTrip(command)
         val replay = repository.createTrip(command)
+        val navigationTargets = listOf(first, replay).distinct()
 
         assertEquals(first, replay)
+        assertEquals(listOf(first), navigationTargets)
         assertEquals(1, repository.observeTrips().first().size)
         assertEquals(2, repository.observeTrip(first).first()!!.days.size)
         assertThrows(IllegalArgumentException::class.java) {
@@ -281,6 +283,20 @@ class RoomTripRepositoryTest {
             assertEquals(2, tripEvents.receiveUntil("deleted day") { it?.days?.size == 2 && it.days.none { day -> day.id == dayId } }!!.days.size)
             assertEquals(2, listEvents.receiveUntil("trip list count 2") { it.single().dayCount == 2 }.single().dayCount)
             tripEvents.cancel(); listEvents.cancel()
+        }
+    }
+
+    @Test
+    fun roomFlowReflectsDeleteWithoutManualUiMutation() = runTest {
+        val tripId = repository.createTrip(CreateTrip("Flow", 2))
+        coroutineScope {
+            val listEvents = repository.observeTrips().produceIn(this)
+            assertEquals(listOf(tripId), listEvents.receiveUntil("created trip") { it.size == 1 }.map { it.id })
+
+            repository.deleteTrip(tripId)
+
+            assertEquals(emptyList<TripSummary>(), listEvents.receiveUntil("empty list after delete") { it.isEmpty() })
+            listEvents.cancel()
         }
     }
 

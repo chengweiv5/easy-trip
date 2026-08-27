@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -56,7 +57,7 @@ class V1PencilFlowTest {
     fun tearDown() = database.close()
 
     @Test
-    fun createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction() {
+    fun createBackReopenDeleteUsesRoomAndNavigatesExactlyOncePerAction() {
         val routes = mutableListOf<String>()
         val initialDate = LocalDate.of(2027, 3, 15)
             .atStartOfDay(ZoneOffset.UTC)
@@ -84,7 +85,8 @@ class V1PencilFlowTest {
             )
         }
 
-        compose.onNodeWithText("还没有旅行计划").assertIsDisplayed()
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("开始规划一次旅行").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
         compose.onNodeWithTag("create-trip").assertHasClickAction().performClick()
         compose.onNodeWithTag("create-name").performTextInput("杭州周末")
         compose.onNodeWithTag("create-day-count").performTextInput("2")
@@ -109,9 +111,25 @@ class V1PencilFlowTest {
         assertEquals(2, saved.days.size)
 
         compose.onNodeWithTag("workspace-back").performClick()
-        compose.onNodeWithTag("trip-$tripId").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("continue-trip-$tripId").assertIsDisplayed().performClick()
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         compose.runOnIdle { assertEquals(listOf("trips/create", "trips/$tripId", "trips/$tripId"), routes) }
+
+        compose.onNodeWithTag("workspace-back").performClick()
+        compose.onNodeWithTag("trip-menu-$tripId").assertHasClickAction().performClick()
+        compose.onNodeWithTag("trip-menu-delete-$tripId").assertHasClickAction().performClick()
+        compose.onNodeWithText("2 个旅行日").assertIsDisplayed()
+        compose.onNodeWithText("0 个收藏地点").assertIsDisplayed()
+        compose.onNodeWithText("0 个标签").assertIsDisplayed()
+        compose.onNodeWithText("0 个行程项").assertIsDisplayed()
+        compose.onNodeWithText("0 个路线段").assertIsDisplayed()
+        compose.onNodeWithTag("confirmation-confirm").performClick()
+
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("开始规划一次旅行").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(listOf("trips/create", "trips/$tripId", "trips/$tripId"), routes) }
+        assertEquals(null, runBlocking { repository.observeTrip(tripId).first() })
+        assertEquals(emptyList<com.yangchengwei.easytrip.trip.domain.TripSummary>(), runBlocking { repository.observeTrips().first() })
     }
 
     private class TestMapHost(context: Context) : AmapMapHost {
