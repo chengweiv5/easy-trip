@@ -183,6 +183,59 @@ class TripListViewModelTest {
         assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
 
+    @Test fun loadingAndErrorClearsDoNotConfirmSuccessfulDeletion() = runTest(dispatcher) {
+        val deleteGate = CompletableDeferred<Unit>()
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都"))).apply {
+            deleteBehavior = { deleteGate.await() }
+        }
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        runCurrent()
+
+        repository.failure = IllegalStateException("db unavailable")
+        viewModel.onAction(TripListAction.Retry)
+        advanceUntilIdle()
+        assertEquals(emptyList<TripSummary>(), viewModel.state.value.trips)
+
+        deleteGate.complete(Unit)
+        advanceUntilIdle()
+        val awaitingSuccessfulEmission = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals("trip-1", awaitingSuccessfulEmission.tripId)
+        assertEquals(true, awaitingSuccessfulEmission.isDeleting)
+
+        repository.failure = null
+        viewModel.onAction(TripListAction.Retry)
+        advanceUntilIdle()
+        assertEquals(true, (viewModel.state.value.deletion as TripDeletionUiState.Ready).isDeleting)
+
+        repository.trips.value = emptyList()
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+    }
+
+    @Test fun successfulEmissionBeforeDeleteDoesNotConfirmLaterDeletion() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+
+        repository.trips.value = emptyList()
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
+
+        val awaitingNewEmission = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals(true, awaitingNewEmission.isDeleting)
+
+        repository.trips.value = listOf(trip("trip-2", "东京"))
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+    }
+
     @Test fun deleteFailureKeepsExactImpactAndRetries() = runTest(dispatcher) {
         val impact = TripDeleteImpact(3, 2, 1, 4, 5)
         var failDelete = true

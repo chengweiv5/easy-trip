@@ -39,6 +39,14 @@ GREEN 已确认：
 
 验证：`ConfirmationDialogTest` 3/3、`TripFlowTest` 5/5、`TripListViewModelTest` 9/9 通过；主代码与 AndroidTest 编译通过。
 
+## Fix round 2
+
+- 删除完成判定不再读取会被 Loading/Error 人为清空的 UI `trips` 快照；仅在 `observeTrips()` 成功 collect 分支记录 emission 版本与真实 trip IDs。
+- service 成功后绑定 generation、目标 `tripId` 与当时成功 emission 版本，必须等待后续真实 emission 且其中不含目标才进入 `Idle`。
+- 增加竞态测试，覆盖重新订阅或 Flow Error 清空 UI 后 service 才成功，以及确认前最后一次成功 emission 已不含目标的边界；两项旧实现均按预期 RED。
+
+验证：`TripListViewModelTest` 11/11 通过。
+
 ## 关注点
 
 - `graphify update .` 报告两个既有文件存在语法提取警告：`NetworkMonitor.kt`、`RoutePlanner.kt`；不影响 Kotlin 编译与本任务测试。

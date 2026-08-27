@@ -450,9 +450,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListViewModel.kt": {
-    "mtime": 1787802441.6808028,
-    "seen": 1787802687.805821,
-    "ast_hash": "ddd8348716fdb919e16bf442f5fc73d4",
+    "mtime": 1787803901.1051123,
+    "seen": 1787804009.182807,
+    "ast_hash": "12eb5c4cf457b3eb4d7dbebc643f1997",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsViewModel.kt": {
@@ -1080,9 +1080,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/TripListViewModelTest.kt": {
-    "mtime": 1787802291.2827415,
-    "seen": 1787802687.805862,
-    "ast_hash": "125849bab4646691ba10c9a8ee1c64d0",
+    "mtime": 1787803737.2113533,
+    "seen": 1787804009.1828501,
+    "ast_hash": "c1f6a968cca5bec8d17f4da1cfe09ffe",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/MapHostCallbackGuardTest.kt": {
@@ -2016,9 +2016,9 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-3-report.md": {
-    "mtime": 1787802678.3933005,
-    "seen": 1787802687.8059032,
-    "ast_hash": "23188985726d104eae06549cfdaa040d",
+    "mtime": 1787803962.5635657,
+    "seen": 1787804009.182891,
+    "ast_hash": "f6f9ad0c634927113461ef3fd2a9043f",
     "semantic_hash": ""
   }
 }
