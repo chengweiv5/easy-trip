@@ -450,9 +450,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListViewModel.kt": {
-    "mtime": 1787728766.550598,
-    "seen": 1787729734.562825,
-    "ast_hash": "c0fbe02a87c469866af84734abdbc6c1",
+    "mtime": 1787794940.959629,
+    "seen": 1787794969.056959,
+    "ast_hash": "89dd8ed6d3c525ba9650aac6e7d9e675",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsViewModel.kt": {
@@ -1038,9 +1038,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt": {
-    "mtime": 1787728766.5501404,
-    "seen": 1787729734.562825,
-    "ast_hash": "140fe5fba01c276016e6e308122e3937",
+    "mtime": 1787794906.1638286,
+    "seen": 1787794969.056958,
+    "ast_hash": "bb884633029c51d84e76217aaa43dce0",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContent.kt": {
@@ -1074,15 +1074,15 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/TripListUiModelsTest.kt": {
-    "mtime": 1787728766.5837011,
-    "seen": 1787729734.562863,
-    "ast_hash": "1738cf7945860e55f4402e6216053575",
+    "mtime": 1787794894.749917,
+    "seen": 1787794969.056999,
+    "ast_hash": "0a5fcf7326b6d63f532cfbb31aeba2f2",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/TripListViewModelTest.kt": {
-    "mtime": 1787728766.5839117,
-    "seen": 1787729734.562864,
-    "ast_hash": "7e1f2c2d84ecd555f69e7d37384668b0",
+    "mtime": 1787794869.4422565,
+    "seen": 1787794969.057,
+    "ast_hash": "b6082653833085d6db1ff71bc8f30259",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/MapHostCallbackGuardTest.kt": {

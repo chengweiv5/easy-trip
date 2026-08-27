@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.trip.ui
 
 import androidx.compose.runtime.Immutable
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.trip.domain.TripSummary
 import java.time.format.DateTimeFormatter
 import java.util.Locale
@@ -28,12 +29,32 @@ data class TripCardUiModel(
     val travelModeLabel: String,
 )
 
+sealed interface TripDeletionUiState {
+    data object Idle : TripDeletionUiState
+    data class LoadingImpact(val tripId: String, val tripName: String) : TripDeletionUiState
+    data class ImpactFailure(
+        val tripId: String,
+        val tripName: String,
+        val message: String,
+    ) : TripDeletionUiState
+    data class Ready(
+        val tripId: String,
+        val tripName: String,
+        val confirmation: ConfirmationUiModel,
+        val isDeleting: Boolean = false,
+        val errorMessage: String? = null,
+    ) : TripDeletionUiState
+}
+
 sealed interface TripListAction {
     data object CreateTrip : TripListAction
     data object Retry : TripListAction
     data class OpenTrip(val tripId: String) : TripListAction
     data class OpenSettings(val tripId: String) : TripListAction
     data class RequestDelete(val tripId: String) : TripListAction
+    data object RetryDeleteImpact : TripListAction
+    data object ConfirmDelete : TripListAction
+    data object CancelDelete : TripListAction
 }
 
 private val tripDateFormatter = DateTimeFormatter.ofPattern("yyyy年M月d日", Locale.CHINA)

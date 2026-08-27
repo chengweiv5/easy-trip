@@ -8,9 +8,11 @@ import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import java.time.LocalDate
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
@@ -20,10 +22,13 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
 import org.junit.Before
 import org.junit.Test
 
@@ -34,128 +39,183 @@ class TripListViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
-    @Test fun startsLoading_thenShowsEmpty() = runTest(dispatcher) {
+    @Test fun loadingEmptyContentAndErrorMapWithoutStaleTrips() = runTest(dispatcher) {
         val repository = TestTripRepository()
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
 
         assertEquals(TripListPageState.Loading, viewModel.state.value.page)
         advanceUntilIdle()
-
         assertEquals(TripListPageState.Empty, viewModel.state.value.page)
-    }
 
-    @Test fun tripsMapToContent() = runTest(dispatcher) {
-        val repository = TestTripRepository()
-        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
-        repository.trips.value = listOf(TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3))
+        repository.trips.value = listOf(trip("trip-1", "京都"), trip("trip-2", "东京"))
+        advanceUntilIdle()
+        assertEquals(listOf("trip-1", "trip-2"), viewModel.state.value.trips.map(TripSummary::id))
+
+        repository.failure = IllegalStateException("db unavailable")
+        viewModel.onAction(TripListAction.Retry)
+        assertEquals(TripListPageState.Loading, viewModel.state.value.page)
+        assertEquals(emptyList<TripSummary>(), viewModel.state.value.trips)
         advanceUntilIdle()
 
-        val content = viewModel.state.value.page as TripListPageState.Content
-        assertEquals(listOf("trip-1"), content.trips.map(TripCardUiModel::id))
+        assertEquals(TripListPageState.Error("无法加载旅行"), viewModel.state.value.page)
+        assertEquals(emptyList<TripSummary>(), viewModel.state.value.trips)
     }
 
-    @Test fun contentMapsPrimaryAndOtherTripsWithoutStaleCards() = runTest(dispatcher) {
-        val repository = TestTripRepository()
-        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
-        repository.trips.value = listOf(
-            TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3),
-            TripSummary("trip-2", "东京", null, TravelMode.SELF_DRIVE, 2),
+    @Test fun newDeleteTargetIgnoresOldImpactCompletion() = runTest(dispatcher) {
+        val oldImpact = CompletableDeferred<TripDeleteImpact>()
+        val newImpact = CompletableDeferred<TripDeleteImpact>()
+        val impacts = TestImpacts { tripId ->
+            withContext(NonCancellable) {
+                if (tripId == "trip-a") oldImpact.await() else newImpact.await()
+            }
+        }
+        val repository = TestTripRepository(listOf(trip("trip-a", "京都"), trip("trip-b", "东京")))
+        val viewModel = TripListViewModel(TripService(repository), repository, impacts)
+        advanceUntilIdle()
+
+        viewModel.onAction(TripListAction.RequestDelete("trip-a"))
+        runCurrent()
+        viewModel.onAction(TripListAction.RequestDelete("trip-b"))
+        runCurrent()
+        newImpact.complete(TripDeleteImpact(2, 0, 0, 0, 0))
+        advanceUntilIdle()
+        oldImpact.complete(TripDeleteImpact(9, 0, 0, 0, 0))
+        advanceUntilIdle()
+
+        val deletion = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals("trip-b", deletion.tripId)
+        assertEquals("删除东京？", deletion.confirmation.title)
+        assertEquals("2 个旅行日", deletion.confirmation.deletedItems.first())
+    }
+
+    @Test fun impactFailureKeepsTargetAndCanRetry() = runTest(dispatcher) {
+        var attempts = 0
+        val impacts = TestImpacts {
+            attempts++
+            if (attempts == 1) throw IllegalStateException("impact unavailable")
+            TripDeleteImpact(3, 0, 0, 0, 0)
+        }
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val viewModel = TripListViewModel(TripService(repository), repository, impacts)
+        advanceUntilIdle()
+
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        assertEquals(
+            TripDeletionUiState.ImpactFailure("trip-1", "京都", "无法加载删除影响，请重试"),
+            viewModel.state.value.deletion,
         )
+
+        viewModel.onAction(TripListAction.RetryDeleteImpact)
         advanceUntilIdle()
 
-        val first = viewModel.state.value.page as TripListPageState.Content
-        assertEquals("trip-1", first.primaryTrip.id)
-        assertEquals(listOf("trip-2"), first.otherTrips.map(TripCardUiModel::id))
-
-        repository.trips.value = listOf(
-            TripSummary("trip-3", "杭州", null, TravelMode.FLEXIBLE, 1),
-        )
-        advanceUntilIdle()
-
-        val replaced = viewModel.state.value.page as TripListPageState.Content
-        assertEquals("trip-3", replaced.primaryTrip.id)
-        assertEquals(emptyList<TripCardUiModel>(), replaced.otherTrips)
+        val ready = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals("trip-1", ready.tripId)
+        assertEquals("3 个旅行日", ready.confirmation.deletedItems.first())
+        assertEquals(2, attempts)
     }
 
-    @Test fun deletePreviewListsAffectedAndRetainedData() = runTest(dispatcher) {
-        val repository = TestTripRepository()
+    @Test fun cancelWhileImpactLoadingInvalidatesCompletion() = runTest(dispatcher) {
+        val impact = CompletableDeferred<TripDeleteImpact>()
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
         val viewModel = TripListViewModel(
             TripService(repository),
             repository,
-            TestImpacts(TripDeleteImpact(3, 2, 1, 4, 5)),
+            TestImpacts { withContext(NonCancellable) { impact.await() } },
         )
-        val trip = TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3)
-        repository.trips.value = listOf(trip)
         advanceUntilIdle()
 
-        viewModel.requestDelete(trip)
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        runCurrent()
+        assertEquals(TripDeletionUiState.LoadingImpact("trip-1", "京都"), viewModel.state.value.deletion)
+        viewModel.onAction(TripListAction.CancelDelete)
+        impact.complete(TripDeleteImpact(1, 0, 0, 0, 0))
         advanceUntilIdle()
 
-        val confirmation = viewModel.state.value.deleteConfirmation!!
-        assertEquals("删除京都？", confirmation.title)
-        assertEquals(
-            listOf("3 个旅行日", "2 个收藏地点", "1 个标签", "4 个行程项", "5 个路线段"),
-            confirmation.deletedItems,
-        )
-        assertEquals(listOf("其他旅行及其内容"), confirmation.retainedItems)
-        assertEquals(false, confirmation.reversible)
-        assertEquals(true, confirmation.destructive)
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
 
-    @Test fun cancellingDeleteDoesNotCallRepository() = runTest(dispatcher) {
-        val repository = TestTripRepository()
-        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
-        val trip = TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3)
-
-        viewModel.requestDelete(trip)
-        advanceUntilIdle()
-        viewModel.cancelDelete()
-        advanceUntilIdle()
-
-        assertEquals(emptyList<String>(), repository.deletedTrips)
-        assertEquals(null, viewModel.state.value.deleteConfirmation)
-    }
-
-    @Test fun confirmingDeleteCallsRepositoryOnlyOnce() = runTest(dispatcher) {
-        val repository = TestTripRepository().apply { blockDelete = CompletableDeferred() }
-        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
-        val trip = TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3)
-
-        viewModel.requestDelete(trip)
-        advanceUntilIdle()
-        viewModel.confirmDelete()
-        viewModel.confirmDelete()
-        advanceUntilIdle()
-
-        assertEquals(listOf("trip-1"), repository.deletedTrips)
-        repository.blockDelete!!.complete(Unit)
-        advanceUntilIdle()
-    }
-
-    @Test fun failedDeleteRestoresConfirmationAndAllowsRetry() = runTest(dispatcher) {
-        val repository = TestTripRepository().apply {
-            deleteFailure = IllegalStateException("disk unavailable")
+    @Test fun repeatedConfirmDeletesExactlyOnce() = runTest(dispatcher) {
+        val deleteGate = CompletableDeferred<Unit>()
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都"))).apply {
+            deleteBehavior = { deleteGate.await() }
         }
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
-        val trip = TripSummary("trip-1", "京都", null, TravelMode.FLEXIBLE, 3)
-
-        viewModel.requestDelete(trip)
         advanceUntilIdle()
-        viewModel.confirmDelete()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
         advanceUntilIdle()
 
-        assertEquals(false, viewModel.state.value.deleteInProgress)
-        assertEquals("删除京都？", viewModel.state.value.deleteConfirmation?.title)
-        assertEquals("删除失败，请重试", viewModel.state.value.deleteError)
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        runCurrent()
+
         assertEquals(listOf("trip-1"), repository.deletedTrips)
+        val deleting = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals(true, deleting.isDeleting)
 
-        repository.deleteFailure = null
-        viewModel.confirmDelete()
+        deleteGate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+        assertEquals(listOf("trip-1"), (viewModel.state.value.page as TripListPageState.Content).trips.map(TripCardUiModel::id))
+    }
+
+    @Test fun deleteFailureKeepsExactImpactAndRetries() = runTest(dispatcher) {
+        val impact = TripDeleteImpact(3, 2, 1, 4, 5)
+        var failDelete = true
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都"))).apply {
+            deleteBehavior = { if (failDelete) throw IllegalStateException("disk unavailable") }
+        }
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts { impact })
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        val before = viewModel.state.value.deletion as TripDeletionUiState.Ready
+
+        viewModel.onAction(TripListAction.ConfirmDelete)
         advanceUntilIdle()
 
+        val failed = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertSame(before.confirmation, failed.confirmation)
+        assertEquals(false, failed.isDeleting)
+        assertEquals("删除失败，请重试", failed.errorMessage)
+
+        failDelete = false
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
         assertEquals(listOf("trip-1", "trip-1"), repository.deletedTrips)
-        assertEquals(null, viewModel.state.value.deleteConfirmation)
-        assertEquals(null, viewModel.state.value.deleteError)
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+    }
+
+    @Test fun cancellationIsRethrownForImpactAndDelete() = runTest(dispatcher) {
+        val impactCancellation = CancellationException("impact cancelled")
+        val impactRepository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val impactViewModel = TripListViewModel(
+            TripService(impactRepository),
+            impactRepository,
+            TestImpacts { throw impactCancellation },
+        )
+        advanceUntilIdle()
+        impactViewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        assertEquals(
+            TripDeletionUiState.LoadingImpact("trip-1", "京都"),
+            impactViewModel.state.value.deletion,
+        )
+
+        val deleteCancellation = CancellationException("delete cancelled")
+        val deleteRepository = TestTripRepository(listOf(trip("trip-2", "东京"))).apply {
+            deleteBehavior = { throw deleteCancellation }
+        }
+        val deleteViewModel = TripListViewModel(TripService(deleteRepository), deleteRepository, TestImpacts())
+        advanceUntilIdle()
+        deleteViewModel.onAction(TripListAction.RequestDelete("trip-2"))
+        advanceUntilIdle()
+        deleteViewModel.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
+
+        val deleting = deleteViewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals(true, deleting.isDeleting)
+        assertEquals(null, deleting.errorMessage)
     }
 
     @Test fun errorRetryRecoversAndKeepsSingleCollector() = runTest(dispatcher) {
@@ -173,7 +233,7 @@ class TripListViewModelTest {
         repository.failure = null
         viewModel.onAction(TripListAction.Retry)
         viewModel.onAction(TripListAction.Retry)
-        repository.trips.value = listOf(TripSummary("trip-2", "东京", null, TravelMode.SELF_DRIVE, 2))
+        repository.trips.value = listOf(trip("trip-2", "东京"))
         advanceUntilIdle()
 
         assertEquals(listOf("trip-2"), (viewModel.state.value.page as TripListPageState.Content).trips.map(TripCardUiModel::id))
@@ -181,21 +241,22 @@ class TripListViewModelTest {
         assertEquals(1, repository.maxActiveCollectors)
     }
 
+    private fun trip(id: String, name: String) = TripSummary(id, name, null, TravelMode.FLEXIBLE, 3)
+
     private class TestImpacts(
-        private val impact: TripDeleteImpact = TripDeleteImpact(0, 0, 0, 0, 0),
+        private val behavior: suspend (String) -> TripDeleteImpact = { TripDeleteImpact(0, 0, 0, 0, 0) },
     ) : DeleteImpactProvider {
-        override suspend fun trip(tripId: String) = impact
+        override suspend fun trip(tripId: String) = behavior(tripId)
         override suspend fun day(dayId: String) = DayDeleteImpact(0, 0, 0)
     }
 
-    private class TestTripRepository : TripRepository {
-        val trips = MutableStateFlow<List<TripSummary>>(emptyList())
+    private class TestTripRepository(initialTrips: List<TripSummary> = emptyList()) : TripRepository {
+        val trips = MutableStateFlow(initialTrips)
         var failure: Throwable? = null
         var activeCollectors = 0
         var maxActiveCollectors = 0
         val deletedTrips = mutableListOf<String>()
-        var blockDelete: CompletableDeferred<Unit>? = null
-        var deleteFailure: Throwable? = null
+        var deleteBehavior: suspend () -> Unit = {}
 
         override fun observeTrips(): Flow<List<TripSummary>> = flow {
             failure?.let { throw it }
@@ -218,8 +279,7 @@ class TripListViewModelTest {
         override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion) = Unit
         override suspend fun deleteTrip(tripId: String) {
             deletedTrips += tripId
-            blockDelete?.await()
-            deleteFailure?.let { throw it }
+            deleteBehavior()
         }
     }
 }

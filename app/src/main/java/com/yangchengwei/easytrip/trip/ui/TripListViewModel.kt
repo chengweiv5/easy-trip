@@ -8,6 +8,7 @@ import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -17,15 +18,21 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.launch
 
+private const val IMPACT_FAILURE_MESSAGE = "无法加载删除影响，请重试"
+private const val DELETE_FAILURE_MESSAGE = "删除失败，请重试"
+
 data class TripListUiState(
     val page: TripListPageState = TripListPageState.Loading,
     val trips: List<TripSummary> = emptyList(),
-    val pendingDelete: TripSummary? = null,
-    val pendingDeleteImpact: TripDeleteImpact? = null,
-    val deleteConfirmation: ConfirmationUiModel? = null,
-    val deleteInProgress: Boolean = false,
-    val deleteError: String? = null,
-)
+    val deletion: TripDeletionUiState = TripDeletionUiState.Idle,
+) {
+    val deleteConfirmation: ConfirmationUiModel?
+        get() = (deletion as? TripDeletionUiState.Ready)?.confirmation
+    val deleteInProgress: Boolean
+        get() = (deletion as? TripDeletionUiState.Ready)?.isDeleting == true
+    val deleteError: String?
+        get() = (deletion as? TripDeletionUiState.Ready)?.errorMessage
+}
 
 sealed interface TripListNavigation {
     data class OpenWorkspace(val tripId: String) : TripListNavigation
@@ -42,15 +49,23 @@ class TripListViewModel(
     private val navigationChannel = Channel<TripListNavigation>(Channel.BUFFERED)
     val navigation = navigationChannel.receiveAsFlow()
     private var tripsJob: Job? = null
+    private var deleteJob: Job? = null
+    private var deleteGeneration = 0L
 
     init { observeTrips() }
 
     fun observeTrips() {
         tripsJob?.cancel()
-        mutableState.value = mutableState.value.copy(page = TripListPageState.Loading)
+        mutableState.value = mutableState.value.copy(
+            page = TripListPageState.Loading,
+            trips = emptyList(),
+        )
         tripsJob = viewModelScope.launch {
             repository.observeTrips().catch {
-                mutableState.value = mutableState.value.copy(page = TripListPageState.Error("无法加载旅行"))
+                mutableState.value = mutableState.value.copy(
+                    page = TripListPageState.Error("无法加载旅行"),
+                    trips = emptyList(),
+                )
             }.collect { trips ->
                 mutableState.value = mutableState.value.copy(
                     trips = trips,
@@ -71,58 +86,102 @@ class TripListViewModel(
             TripListAction.Retry -> observeTrips()
             is TripListAction.OpenTrip -> openWorkspace(action.tripId)
             is TripListAction.OpenSettings -> openSettings(action.tripId)
-            is TripListAction.RequestDelete -> mutableState.value.trips.firstOrNull { it.id == action.tripId }?.let(::requestDelete)
+            is TripListAction.RequestDelete -> requestDelete(action.tripId)
+            TripListAction.RetryDeleteImpact -> retryDeleteImpact()
+            TripListAction.ConfirmDelete -> confirmDelete()
+            TripListAction.CancelDelete -> cancelDelete()
         }
     }
 
     fun openWorkspace(id: String) { viewModelScope.launch { navigationChannel.send(TripListNavigation.OpenWorkspace(id)) } }
     fun openSettings(id: String) { viewModelScope.launch { navigationChannel.send(TripListNavigation.OpenSettings(id)) } }
 
-    fun requestDelete(value: TripSummary) {
-        viewModelScope.launch {
-            val impact = impacts.trip(value.id)
-            mutableState.value = mutableState.value.copy(
-                pendingDelete = value,
-                pendingDeleteImpact = impact,
-                deleteConfirmation = impact.toConfirmation(value.name),
-                deleteError = null,
-            )
+    private fun requestDelete(tripId: String) {
+        val trip = mutableState.value.trips.firstOrNull { it.id == tripId } ?: return
+        loadDeleteImpact(trip.id, trip.name)
+    }
+
+    private fun retryDeleteImpact() {
+        val current = mutableState.value.deletion as? TripDeletionUiState.ImpactFailure ?: return
+        loadDeleteImpact(current.tripId, current.tripName)
+    }
+
+    private fun loadDeleteImpact(tripId: String, tripName: String) {
+        deleteJob?.cancel()
+        val generation = ++deleteGeneration
+        mutableState.value = mutableState.value.copy(
+            deletion = TripDeletionUiState.LoadingImpact(tripId, tripName),
+        )
+        deleteJob = viewModelScope.launch {
+            try {
+                val impact = impacts.trip(tripId)
+                if (deleteGeneration == generation && mutableState.value.deletion.tripIdOrNull() == tripId) {
+                    mutableState.value = mutableState.value.copy(
+                        deletion = TripDeletionUiState.Ready(
+                            tripId = tripId,
+                            tripName = tripName,
+                            confirmation = impact.toConfirmation(tripName),
+                        ),
+                    )
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                if (deleteGeneration == generation && mutableState.value.deletion.tripIdOrNull() == tripId) {
+                    mutableState.value = mutableState.value.copy(
+                        deletion = TripDeletionUiState.ImpactFailure(
+                            tripId = tripId,
+                            tripName = tripName,
+                            message = IMPACT_FAILURE_MESSAGE,
+                        ),
+                    )
+                }
+            }
         }
     }
 
     fun cancelDelete() {
-        if (mutableState.value.deleteInProgress) return
-        mutableState.value = mutableState.value.copy(
-            pendingDelete = null,
-            pendingDeleteImpact = null,
-            deleteConfirmation = null,
-            deleteError = null,
-        )
+        val current = mutableState.value.deletion
+        if (current is TripDeletionUiState.Ready && current.isDeleting) return
+        deleteGeneration++
+        deleteJob?.cancel()
+        deleteJob = null
+        mutableState.value = mutableState.value.copy(deletion = TripDeletionUiState.Idle)
     }
 
     fun confirmDelete() {
-        val current = mutableState.value
-        val value = current.pendingDelete ?: return
-        if (current.deleteInProgress) return
-        mutableState.value = current.copy(deleteInProgress = true, deleteError = null)
-        viewModelScope.launch {
-            runCatching { service.deleteTrip(value.id) }
-                .onSuccess {
+        val current = mutableState.value.deletion as? TripDeletionUiState.Ready ?: return
+        if (current.isDeleting) return
+        val generation = ++deleteGeneration
+        mutableState.value = mutableState.value.copy(
+            deletion = current.copy(isDeleting = true, errorMessage = null),
+        )
+        deleteJob = viewModelScope.launch {
+            try {
+                service.deleteTrip(current.tripId)
+                if (deleteGeneration == generation && mutableState.value.deletion.tripIdOrNull() == current.tripId) {
+                    mutableState.value = mutableState.value.copy(deletion = TripDeletionUiState.Idle)
+                }
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Throwable) {
+                if (deleteGeneration == generation && mutableState.value.deletion.tripIdOrNull() == current.tripId) {
                     mutableState.value = mutableState.value.copy(
-                        pendingDelete = null,
-                        pendingDeleteImpact = null,
-                        deleteConfirmation = null,
-                        deleteInProgress = false,
-                        deleteError = null,
+                        deletion = current.copy(
+                            isDeleting = false,
+                            errorMessage = DELETE_FAILURE_MESSAGE,
+                        ),
                     )
                 }
-                .onFailure {
-                    mutableState.value = mutableState.value.copy(
-                        deleteInProgress = false,
-                        deleteError = "删除失败，请重试",
-                    )
-                }
+            }
         }
+    }
+
+    private fun TripDeletionUiState.tripIdOrNull(): String? = when (this) {
+        TripDeletionUiState.Idle -> null
+        is TripDeletionUiState.LoadingImpact -> tripId
+        is TripDeletionUiState.ImpactFailure -> tripId
+        is TripDeletionUiState.Ready -> tripId
     }
 
     private fun TripDeleteImpact.toConfirmation(tripName: String) = ConfirmationUiModel(

@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.trip.domain.TripSummary
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
@@ -28,5 +29,31 @@ class TripListUiModelsTest {
         assertEquals("5 天", result.dayCountLabel)
         assertEquals("2026年10月1日", result.dateLabel)
         assertEquals("自驾", result.travelModeLabel)
+    }
+
+    @Test fun deletionStateKeepsTargetIdentityAndExactConfirmation() {
+        val confirmation = ConfirmationUiModel(
+            title = "删除京都？",
+            message = "不可撤销",
+            deletedItems = emptyList(),
+            retainedItems = emptyList(),
+            confirmLabel = "删除",
+            dismissLabel = "取消",
+            destructive = true,
+            reversible = false,
+        )
+
+        assertEquals(
+            TripDeletionUiState.LoadingImpact("trip-1", "京都"),
+            TripDeletionUiState.LoadingImpact("trip-1", "京都"),
+        )
+        assertEquals(
+            "trip-1",
+            TripDeletionUiState.ImpactFailure("trip-1", "京都", "失败").tripId,
+        )
+        assertEquals(
+            confirmation,
+            TripDeletionUiState.Ready("trip-1", "京都", confirmation).confirmation,
+        )
     }
 }
