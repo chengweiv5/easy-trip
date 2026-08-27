@@ -266,6 +266,38 @@ class TripListViewModelTest {
         assertEquals(3, repository.collectorStarts)
     }
 
+    @Test fun collectorExhaustedBeforeServiceReturnsBecomesRecoverableAfterServiceSuccess() = runTest(dispatcher) {
+        val deleteGate = CompletableDeferred<Unit>()
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都"))).apply {
+            deleteBehavior = { deleteGate.await() }
+        }
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        runCurrent()
+
+        repository.failuresRemaining = 2
+        viewModel.onAction(TripListAction.Retry)
+        advanceUntilIdle()
+        assertEquals(true, (viewModel.state.value.deletion as TripDeletionUiState.Ready).isDeleting)
+
+        deleteGate.complete(Unit)
+        advanceUntilIdle()
+
+        val failedSync = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals(false, failedSync.isDeleting)
+        assertEquals("删除成功，但同步确认失败，请重新同步", failedSync.errorMessage)
+        assertEquals(listOf("trip-1"), repository.deletedTrips)
+
+        repository.trips.value = emptyList()
+        viewModel.onAction(TripListAction.RetryDeletionSync)
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+        assertEquals(listOf("trip-1"), repository.deletedTrips)
+    }
+
     @Test fun exhaustedDeletionConfirmationRetryBecomesRecoverableWithoutDeletingAgain() = runTest(dispatcher) {
         val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())

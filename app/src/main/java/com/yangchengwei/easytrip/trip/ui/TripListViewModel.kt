@@ -61,6 +61,7 @@ class TripListViewModel(
     private var deleteJob: Job? = null
     private var deleteGeneration = 0L
     private var tripsGeneration = 0L
+    private var exhaustedTripsGeneration: Long? = null
     private var successfulTripsEmissionVersion = 0L
     private var successfulTripIds = emptySet<String>()
     private var awaitingDeletedTrip: AwaitingDeletedTrip? = null
@@ -69,6 +70,7 @@ class TripListViewModel(
 
     fun observeTrips() {
         val collectorGeneration = ++tripsGeneration
+        exhaustedTripsGeneration = null
         tripsJob?.cancel()
         mutableState.value = mutableState.value.copy(
             page = TripListPageState.Loading,
@@ -88,6 +90,7 @@ class TripListViewModel(
                 }
                 .catch {
                     if (collectorGeneration != tripsGeneration) return@catch
+                    exhaustedTripsGeneration = collectorGeneration
                     val currentDeletion = mutableState.value.deletion
                     val waiting = awaitingDeletedTrip
                     val deletion = if (
@@ -266,6 +269,15 @@ class TripListViewModel(
                             emissionVersion = emissionVersionAtStart,
                             serviceCompleted = true,
                         )
+                        if (exhaustedTripsGeneration == tripsGeneration) {
+                            mutableState.value = mutableState.value.copy(
+                                deletion = current.copy(
+                                    isDeleting = false,
+                                    errorMessage = DELETE_SYNC_FAILURE_MESSAGE,
+                                    confirmationSyncFailed = true,
+                                ),
+                            )
+                        }
                     }
                 }
             } catch (cancellation: CancellationException) {

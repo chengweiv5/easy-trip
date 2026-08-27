@@ -46,7 +46,8 @@ Task 3: whole-branch final fix (commit 3a0c1e3)
 - LoadingImpact locks cancel/Back/outside dismissal and exposes progress; cancellation tests assert the original completion cause.
 - Final scoped re-review found one Important: after the automatic retry also failed, deletion stayed permanently busy with no reachable recovery action.
 - New authorized focused fix: automatic retry exhaustion now preserves the bound trip/confirmation as a non-busy sync error with a reachable “重新同步” action. Manual resync only restarts `observeTrips`, never calls delete again; duplicate actions are locked while busy, failures remain retryable, and stale collector results are generation-isolated.
-- Focused evidence: `TripListViewModelTest` 16/16, `ConfirmationDialogTest` 4/4, `TripFlowTest` 6/6 PASS; delete service call count remains one through recovery.
+- Focused evidence: `TripListViewModelTest` 17/17, `ConfirmationDialogTest` 4/4, `TripFlowTest` 6/6 PASS; delete service call count remains one through recovery.
+- Review follow-up: explicitly track the active collector generation's exhausted terminal state. If Flow retry exhaustion occurs before delete service returns, service success now immediately exposes SyncFailure instead of waiting forever; manual resync then confirms the missing target without re-deleting.
 
 Task 4: fix round 1/5 (normalized command identity, safe endDate, cancellation/order coverage; commits 36449a6..410a582)
 Task 4: fix round 2/5 (real cancellation propagation assertion; commits 410a582..3b31cd5)

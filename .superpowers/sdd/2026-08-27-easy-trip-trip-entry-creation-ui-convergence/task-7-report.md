@@ -66,4 +66,5 @@ DONE
 - 同步中锁定重复动作、取消、Back 与外部 dismiss；再次失败返回可重试状态，成功目标缺失 emission 后进入 Idle。
 - collector generation 与原有 delete generation/trip ID 一起阻止旧 collector completion/error/emission 污染新订阅或新目标。
 - RED：`TripListViewModelTest` 14 tests / 1 failure（连续两次 observe failure 后仍 busy）；UI compile RED（缺少 `confirmLabel` 覆盖）。
-- GREEN：`TripListViewModelTest` 16/16、`ConfirmationDialogTest` 4/4、`TripFlowTest` 6/6 PASS。
+- GREEN：`TripListViewModelTest` 17/17、`ConfirmationDialogTest` 4/4、`TripFlowTest` 6/6 PASS。
+- Review follow-up RED：confirm → Flow 连续两次失败耗尽 → service 成功后仍永久 busy；新增 collector terminal generation 跟踪后，service 成功立即暴露 SyncFailure，manual resync 成功进入 Idle，deleteCalls 始终为 1。

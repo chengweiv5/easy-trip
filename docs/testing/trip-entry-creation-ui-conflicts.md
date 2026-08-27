@@ -35,3 +35,4 @@
 - “重新同步”是独立动作，只重订阅旅行 Flow，绝不重新调用 delete service；同步期间复用 busy 的 confirm/dismiss/Back/outside 锁定契约。
 - 每次手动同步仍只允许一次自动 retry，不引入无限自动循环；失败后再次返回可点击的“重新同步”。
 - collector generation 与 delete generation/trip ID 同时隔离旧结果，旧 collector 的 completion/error/emission 不得污染新目标或新订阅。
+- 显式记录当前 collector generation 的 retry 耗尽状态；即使耗尽早于 delete service completion，service 成功也必须立即转为非 busy SyncFailure，而不是继续等待已终止的 collector。

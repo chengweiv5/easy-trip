@@ -55,4 +55,5 @@
 - “重新同步”只重订阅 `observeTrips()`；删除 service 调用次数保持 1。同步中重复点击、取消、Back 与外部点击均被锁定；再次失败可继续重试，成功 emission 确认目标消失后回到 Idle。
 - RED：`TripListViewModelTest` 14 tests，1 failure，失败点为连续两次 collector failure 后 `isDeleting` 仍为 true。
 - UI RED：`compileDebugAndroidTestKotlin` 因 `ConfirmationDialog` 不支持 `confirmLabel` 覆盖而失败，证明缺少可达“重新同步”入口。
-- GREEN：`TripListViewModelTest` 16/16、`ConfirmationDialogTest` 4/4、`TripFlowTest` 6/6 PASS。
+- GREEN：`TripListViewModelTest` 17/17、`ConfirmationDialogTest` 4/4、`TripFlowTest` 6/6 PASS。
+- 顺序竞态 RED：confirm → Flow 连续两次失败耗尽 → service 成功后仍 `isDeleting=true`；修复后立即显示 SyncFailure，manual resync 的目标缺失 emission 回到 Idle，delete service 调用始终为 1。
