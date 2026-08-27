@@ -1,16 +1,16 @@
 # Graph Report - search-place-ui-convergence  (2026-08-27)
 
 ## Corpus Check
-- 331 files · ~183,589 words
+- 331 files · ~183,614 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 4946 nodes · 10674 edges · 278 communities (223 shown, 55 thin omitted)
+- 4946 nodes · 10674 edges · 277 communities (224 shown, 53 thin omitted)
 - Extraction: 93% EXTRACTED · 7% INFERRED · 0% AMBIGUOUS · INFERRED: 748 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `36449a6a`
+- Built from commit: `410a582f`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -276,7 +276,6 @@
 - AmapComposeMap
 - SavedPlaces
 - Task 1 报告
-- SchemaItineraryDao
 - V1ComposeRule
 - ItineraryRepository
 - MapLegend
@@ -317,7 +316,7 @@
 ## Import Cycles
 - None detected.
 
-## Communities (278 total, 55 thin omitted)
+## Communities (277 total, 53 thin omitted)
 
 ### Community 0 - "Easy Trip v1.0 全量 UI 与交互落地设计"
 Cohesion: 0.04
@@ -368,8 +367,8 @@ Cohesion: 0.16
 Nodes (8): DayItinerary, ItineraryItem, ItineraryPlace, ItineraryRepository, Flow, mapWholeTripDays(), DayMapSnapshot, WholeTripItineraryMapperTest
 
 ### Community 14 - "EasyTripDatabase"
-Cohesion: 0.11
-Nodes (10): OfflineRecoveryTest, RoomDeleteImpactProviderTest, EasyTripDatabase, com, SchemaRouteDao, ItineraryItemEntity, SavedPlaceEntity, RouteLegEntity (+2 more)
+Cohesion: 0.10
+Nodes (10): OfflineRecoveryTest, EasyTripDatabase, com, SchemaItineraryDao, SchemaRouteDao, ItineraryItemEntity, SavedPlaceEntity, RouteLegEntity (+2 more)
 
 ### Community 15 - "DayItineraryViewModelTest"
 Cohesion: 0.06
@@ -540,8 +539,8 @@ Cohesion: 0.09
 Nodes (18): ItineraryScopeRailTest, ItineraryScopeRail(), Modifier, ScopeItem(), Modifier, PaddingValues, WorkspaceItineraryContent(), TripDay (+10 more)
 
 ### Community 58 - "PlaceDao"
-Cohesion: 0.08
-Nodes (7): SchemaPlaceDao, Flow, PlaceDao, PlaceSnapshotRow, PlaceUsageRow, SavedPlaceTagCrossRef, TagEntity
+Cohesion: 0.07
+Nodes (8): RoomDeleteImpactProviderTest, SchemaPlaceDao, Flow, PlaceDao, PlaceSnapshotRow, PlaceUsageRow, SavedPlaceTagCrossRef, TagEntity
 
 ### Community 59 - "FakeItineraries"
 Cohesion: 0.15
@@ -700,8 +699,8 @@ Cohesion: 0.15
 Nodes (13): Back, CloseOverlay, Locate, OpenOverlay, OpenPrivacySettings, OpenSearch, OpenSettings, Retry (+5 more)
 
 ### Community 109 - "GeoPoint"
-Cohesion: 0.07
-Nodes (16): LazyListState, Modifier, PlacePoolScrollbarTest, GeoPoint, Flow, PlaceTag, SavedPlace, LazyListState (+8 more)
+Cohesion: 0.08
+Nodes (13): LazyListState, Modifier, PlacePoolScrollbarTest, GeoPoint, Flow, PlaceTag, SavedPlace, LazyListState (+5 more)
 
 ### Community 110 - "consumeWorkspaceSearchReturn"
 Cohesion: 0.18
@@ -1147,6 +1146,10 @@ Nodes (5): Idle, ImpactFailure, LoadingImpact, Ready, TripDeletionUiState
 Cohesion: 0.17
 Nodes (11): Fix round 1, Fix round 2, Task 6 Report, TDD 与验证, TDD 证据, TDD 证据与验证, 完成内容, 审查问题与修复 (+3 more)
 
+### Community 251 - "MapViewportControllerTest"
+Cohesion: 0.12
+Nodes (4): MapViewportRequest, MapViewportController, MapViewportControllerTest, MapViewportRenderingPolicyTest
+
 ### Community 252 - "MapFacade.kt"
 Cohesion: 0.12
 Nodes (17): CorruptRoute, FocusSearchResult, MapInteractionAction, MapInteractionState, MapMarkerUi, MapPolylineUi, MapRouteLabelUi, MapScope (+9 more)
@@ -1198,7 +1201,7 @@ Nodes (3): Active, RouteDisconnectedException, RuntimeException
 ## Knowledge Gaps
 - **1070 isolated node(s):** `guard-adb-install.sh script`, `TRIP_LIST`, `CREATE_TRIP`, `DATE_PICKER`, `WORKSPACE` (+1065 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **55 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **53 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_

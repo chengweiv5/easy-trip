@@ -1068,9 +1068,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/CreateTripViewModelTest.kt": {
-    "mtime": 1787808008.9968982,
-    "seen": 1787808211.1852028,
-    "ast_hash": "3eb739f8068df0fd9178174c8a6d4c85",
+    "mtime": 1787808585.992981,
+    "seen": 1787808673.13345,
+    "ast_hash": "769efbac722323927db440bcc83c3ac7",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/TripListUiModelsTest.kt": {
@@ -1218,8 +1218,8 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripViewModel.kt": {
-    "mtime": 1787808176.5467494,
-    "seen": 1787808211.1851578,
+    "mtime": 1787808640.8227587,
+    "seen": 1787808673.133404,
     "ast_hash": "6889c19689d9349132f6cd79111624fb",
     "semantic_hash": ""
   },

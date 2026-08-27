@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.trip.ui
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
+import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.InsertSide
@@ -13,6 +14,7 @@ import java.time.LocalDate
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
@@ -32,6 +34,7 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 
@@ -285,10 +288,15 @@ class CreateTripViewModelTest {
         val repository = FakeRepository().apply { failure = kotlinx.coroutines.CancellationException("cancelled") }
         val viewModel = model(repository)
         enterValidDraft(viewModel)
-
         viewModel.onAction(CreateTripAction.Submit)
+        val submitJob = viewModel.viewModelScope.coroutineContext.job.children.single()
+        var completionCause: Throwable? = null
+        submitJob.invokeOnCompletion { completionCause = it }
+
         advanceUntilIdle()
 
+        assertTrue(submitJob.isCancelled)
+        assertTrue(completionCause is kotlinx.coroutines.CancellationException)
         assertNull(viewModel.state.value.submitError)
         assertEquals(1, repository.createCalls)
     }
