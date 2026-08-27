@@ -42,18 +42,18 @@ object V1ScenarioFixtures {
     val matrixIds = setOf("hVIMZ", "xENWi", "eHTbI", "CW0vn", "a5GvBo", "fIkSG")
 
     val scenarios = listOf(
-        scenario(1, "我的旅行", "K9h3r", "RqVLv", "hVIMZ", "existing-trips", BlockerCategory.DATA_CONSISTENCY, variants = listOf(V1ScenarioVariant(1, "我的旅行 · 删除后", "d1sTtb"))),
+        scenario(1, "我的旅行", "K9h3r", "RqVLv", "hVIMZ", "existing-trips", BlockerCategory.DATA_CONSISTENCY, "主卡仅通过继续规划进入，旅行名称、日期、天数和方式保持一致；主卡与其他卡的设置、删除均由各自 ··· 菜单承载", variants = listOf(V1ScenarioVariant(1, "我的旅行 · 删除后", "d1sTtb"))),
         scenario(2, "工作台·地点池", "A9EKX", "IpuKg", "xENWi", "trip-with-saved-places", BlockerCategory.KEY_INTERACTION),
         scenario(3, "搜索地点", "ofdn5", "V7cr3b", "eHTbI", "search-results", BlockerCategory.BASIC_ACCESSIBILITY, "搜索页不显示加入行程入口"),
         scenario(4, "工作台·行程", "LFmzR", "o4Wcz", "CW0vn", "day-itinerary", BlockerCategory.REACHABILITY),
         scenario(6, "全程行程", "FTIOF", "q08to1", "a5GvBo", "whole-trip-itinerary", BlockerCategory.KEY_INTERACTION, "全程视图不显示编辑或拖动入口"),
-        scenario(7, "创建旅行", "dzhkC", "xP91E", "fIkSG", "empty-trip-list", BlockerCategory.BASIC_ACCESSIBILITY),
+        scenario(7, "创建旅行", "dzhkC", "xP91E", "fIkSG", "empty-trip-list", BlockerCategory.BASIC_ACCESSIBILITY, "创建保留旅行名称、开始日期、天数和出行方式，并通过生产提交入口创建旅行"),
         scenario(8, "旅行设置", "U06l7P", "y3rP1", null, "existing-trip", BlockerCategory.REACHABILITY, "设置页不显示添加一天入口"),
-        scenario(9, "选择日期", "xQfD0", null, null, "dated-trip-form", BlockerCategory.KEY_INTERACTION),
+        scenario(9, "选择日期", "xQfD0", null, null, "dated-trip-form", BlockerCategory.KEY_INTERACTION, "选择开始日期后按旅行天数得出结束日期摘要"),
         scenario(10, "地点详情与编辑", "p4G1tS", null, null, "saved-place-detail", BlockerCategory.REACHABILITY, "地点详情不显示加入行程入口"),
         scenario(11, "行程项编辑", "K336N", null, null, "editable-itinerary-item", BlockerCategory.DATA_CONSISTENCY),
         scenario(12, "交通路段编辑", "T7aESo", null, null, "editable-route-leg", BlockerCategory.DATA_CONSISTENCY),
-        scenario(13, "删除旅行确认", "oW9mK", null, null, "trip-with-delete-impact", BlockerCategory.KEY_INTERACTION, "确认文案说明级联删除影响"),
+        scenario(13, "删除旅行确认", "oW9mK", null, null, "trip-with-delete-impact", BlockerCategory.KEY_INTERACTION, "从 ··· 菜单进入删除，确认文案精确列出旅行日、收藏地点、标签、行程项、路线段及保留内容"),
         scenario(14, "状态规范", "DxZ2a", null, null, "component-states", BlockerCategory.SEVERE_CLIPPING),
         scenario(15, "无旅行日", "p7U8B", null, null, "trip-without-days", BlockerCategory.CRASH_FREE),
         scenario(16, "工作台设置直达", "ijpZD", null, null, "existing-trip", BlockerCategory.REACHABILITY, "当前生产工作台通过顶部设置按钮直达设置页，不声称存在更多菜单"),
@@ -76,7 +76,7 @@ object V1ScenarioFixtures {
         scenario(33, "长日期列表", "cRdBn", null, null, "long-date-list", BlockerCategory.SEVERE_CLIPPING),
         scenario(34, "定位权限说明", "JFhZ7", null, null, "location-rationale", BlockerCategory.KEY_INTERACTION, "系统权限前先展示定位用途说明"),
         scenario(35, "前往设置", "HYCsZ", null, null, "location-permanently-denied", BlockerCategory.REACHABILITY),
-        scenario(36, "我的旅行空状态", "zIbEu", null, null, "empty-trip-list", BlockerCategory.BASIC_ACCESSIBILITY),
+        scenario(36, "我的旅行空状态", "zIbEu", null, null, "empty-trip-list", BlockerCategory.BASIC_ACCESSIBILITY, "空态展示开始规划一次旅行、用途说明和创建旅行入口"),
         scenario(37, "当天无地点", "Bcf6A", null, null, "empty-day", BlockerCategory.CRASH_FREE),
         scenario(38, "搜索网络失败", "GJo79", null, null, "search-network-error", BlockerCategory.FUNCTIONAL_STATE),
         scenario(39, "部分成功", "mGhKO", null, null, "partial-route-success", BlockerCategory.DATA_CONSISTENCY),
@@ -87,7 +87,7 @@ object V1ScenarioFixtures {
         scenario(44, "搜索加载中", "s1OvvX", null, null, "search-loading", BlockerCategory.FUNCTIONAL_STATE),
         scenario(45, "地图加载中", "GoxB6", null, null, "map-loading", BlockerCategory.FUNCTIONAL_STATE),
         scenario(46, "地图加载失败", "U8R5i", null, null, "map-load-error", BlockerCategory.CRASH_FREE),
-        scenario(47, "创建表单校验", "yIGiQ", null, null, "invalid-trip-form", BlockerCategory.BASIC_ACCESSIBILITY),
+        scenario(47, "创建表单校验", "yIGiQ", null, null, "invalid-trip-form", BlockerCategory.BASIC_ACCESSIBILITY, "旅行名称、开始日期和天数错误分别显示在对应字段附近"),
         scenario(48, "行程修改保存失败", "OOEsk", null, null, "itinerary-save-error", BlockerCategory.DATA_CONSISTENCY),
     )
 

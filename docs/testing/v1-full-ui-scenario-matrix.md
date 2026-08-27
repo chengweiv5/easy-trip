@@ -16,19 +16,19 @@ The automated gate blocks functional/state errors, data inconsistency, crashes, 
 
 | No. | Frame | Scenario | Fixture | Automated coverage | Reachable path | Key gate | Device UI |
 |---:|---|---|---|---|---|---|---|
-| 01 | `K9h3r` | 我的旅行 | existing-trips | `V1PencilFlowTest#createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction` | 启动应用 → 我的旅行 | data consistency | PENDING |
-| 01v | `d1sTtb` | 我的旅行 · 删除后 | variant of 01 | parent coverage | 我的旅行 → 删除 → 确认 | state | PENDING |
+| 01 | `K9h3r` | 我的旅行 | existing-trips | `V1ScenarioCatalogTest#executesProductionScenario` + `V1PencilFlowTest#createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction` | 启动应用 → 我的旅行 → 继续规划 | 唯一主入口；旅行名/日期/天数/方式 | PENDING |
+| 01v | `d1sTtb` | 我的旅行 · 删除后 | variant of 01 | scenario 13 production menu/delete coverage | 我的旅行 → `···` → 删除 → 确认 | stable-id menu + state | PENDING |
 | 02 | `A9EKX` | 工作台·地点池 | trip-with-saved-places | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 我的旅行 → 旅行 → 地点池 | key interaction | PENDING |
 | 03 | `ofdn5` | 搜索地点 | search-results | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 工作台 → 搜索地点 | no itinerary action | PENDING |
 | 04 | `LFmzR` | 工作台·行程 | day-itinerary | `V1AcceptanceTest#threeDayTripPersistsRepeatedPlacesEdgesOverridesAndMapScopes` | 工作台 → 行程 | reachability | PENDING |
 | 06 | `FTIOF` | 全程行程 | whole-trip-itinerary | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 行程 → 全程 | no edit/drag | PENDING |
-| 07 | `dzhkC` | 创建旅行 | empty-trip-list | `V1PencilFlowTest#createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction` | 我的旅行 → 创建 | a11y | PENDING |
+| 07 | `dzhkC` | 创建旅行 | empty-trip-list | `V1ScenarioCatalogTest#executesProductionScenario` + `V1PencilFlowTest#createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction` | 我的旅行 → 创建 → `create-submit` | 名称/开始日期/天数/方式 | PENDING |
 | 08 | `U06l7P` | 旅行设置 | existing-trip | focused Content test | 工作台 → 更多 → 设置 | no add-day | PENDING |
-| 09 | `xQfD0` | 选择日期 | dated-trip-form | `V1PencilFlowTest#createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction` | 创建旅行 → 日期 | interaction | PENDING |
+| 09 | `xQfD0` | 选择日期 | dated-trip-form | `V1ScenarioCatalogTest#executesProductionScenario` + `V1PencilFlowTest#createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction` | 创建旅行 → 指定日期 → 确定日期 | 开始与结束日期摘要 | PENDING |
 | 10 | `p4G1tS` | 地点详情与编辑 | saved-place-detail | focused Content test | 地点池 → 地点卡片 | no itinerary action | PENDING |
 | 11 | `K336N` | 行程项编辑 | editable-itinerary-item | `V1AcceptanceTest#threeDayTripPersistsRepeatedPlacesEdgesOverridesAndMapScopes` | 当日行程 → 行程项 | data consistency | PENDING |
 | 12 | `T7aESo` | 交通路段编辑 | editable-route-leg | `V1AcceptanceTest#threeDayTripPersistsRepeatedPlacesEdgesOverridesAndMapScopes` | 当日行程 → 路段 | data consistency | PENDING |
-| 13 | `oW9mK` | 删除旅行确认 | trip-with-delete-impact | focused confirmation test | 我的旅行 → 删除 | impact copy | PENDING |
+| 13 | `oW9mK` | 删除旅行确认 | trip-with-delete-impact | `V1ScenarioCatalogTest#executesProductionScenario` | 我的旅行 → `···` → 删除 → 确认删除旅行 | 精确级联删除与保留摘要 | PENDING |
 | 14 | `DxZ2a` | 状态规范 | component-states | `ConfirmationDialogTest#narrowLargeFontDialogKeepsActionsReachableWithFullImpactList` | 验收目录 → 状态矩阵 | clipping | PENDING |
 | 15 | `p7U8B` | 无旅行日 | trip-without-days | `ItineraryEditingTest#emptyDayShowsEmptyState` | 工作台 → 行程 | crash-free | PENDING |
 | 16 | `ijpZD` | 工作台设置直达 | existing-trip | typed executable | 工作台 → 设置 | production UI has a direct settings action, not a more menu | PENDING |
@@ -51,7 +51,7 @@ The automated gate blocks functional/state errors, data inconsistency, crashes, 
 | 33 | `cRdBn` | 长日期列表 | long-date-list | `PlacePoolFlowTest#longDayListScrollsAtNarrowLargeTextWhileSubmitStaysReachable` | 长旅行 → 日期列表 | clipping | PENDING |
 | 34 | `JFhZ7` | 定位权限说明 | location-rationale | `WorkspacePermissionFlowTest#locationRationaleExplainsPurposeBeforePermissionRequest` | 工作台 → 定位 | pre-permission rationale | PENDING |
 | 35 | `HYCsZ` | 前往设置 | location-permanently-denied | `WorkspacePermissionFlowTest#permanentDenialConfirmationOpensApplicationSettings` | 定位说明 → 永久拒绝 | reachability | PENDING |
-| 36 | `zIbEu` | 我的旅行空状态 | empty-trip-list | V1 Pencil flow | 启动无数据应用 | a11y | PENDING |
+| 36 | `zIbEu` | 我的旅行空状态 | empty-trip-list | `V1ScenarioCatalogTest#executesProductionScenario` + V1 Pencil flow | 启动无数据应用 → 创建旅行 | 新空态标题、说明与 CTA | PENDING |
 | 37 | `Bcf6A` | 当天无地点 | empty-day | V1 acceptance | 工作台 → 空旅行日 | crash-free | PENDING |
 | 38 | `GJo79` | 搜索网络失败 | search-network-error | `PlaceSearchContentTest#loadingEmptyAndFailureMatchTheirActions` | 搜索 → 网络失败 | state | PENDING |
 | 39 | `mGhKO` | 部分成功 | partial-route-success | V1 acceptance | 混合路线行程 | data consistency | PENDING |
@@ -62,7 +62,7 @@ The automated gate blocks functional/state errors, data inconsistency, crashes, 
 | 44 | `s1OvvX` | 搜索加载中 | search-loading | V2 acceptance | 搜索 → 输入 | state | PENDING |
 | 45 | `GoxB6` | 地图加载中 | map-loading | V2 acceptance | 打开工作台 | state | PENDING |
 | 46 | `U8R5i` | 地图加载失败 | map-load-error | `TripWorkspaceContentTest#mapFailureShowsPersistentRetryAndKeepsContent` | 工作台 → 地图失败 | crash-free | PENDING |
-| 47 | `yIGiQ` | 创建表单校验 | invalid-trip-form | V1 Pencil flow | 创建 → 无效提交 | a11y | PENDING |
+| 47 | `yIGiQ` | 创建表单校验 | invalid-trip-form | `V1ScenarioCatalogTest#executesProductionScenario` + V1 Pencil flow | 创建 → 无效提交 | 名称/日期/天数错误靠近字段 | PENDING |
 | 48 | `OOEsk` | 行程修改保存失败 | itinerary-save-error | `ItineraryEditingTest#itineraryEditSaveFailureRemainsVisible` | 行程项编辑 → 保存失败 | data consistency | PENDING |
 
 ## Cross-cutting journeys and matrices

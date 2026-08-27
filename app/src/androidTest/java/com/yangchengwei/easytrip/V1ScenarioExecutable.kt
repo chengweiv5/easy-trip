@@ -24,6 +24,7 @@ import androidx.test.ext.junit.rules.ActivityScenarioRule
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
+import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationDialog
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
@@ -69,6 +70,7 @@ import com.yangchengwei.easytrip.trip.ui.PendingDayDeletion
 import com.yangchengwei.easytrip.trip.ui.TripCardUiModel
 import com.yangchengwei.easytrip.trip.ui.TripSettingsContent
 import com.yangchengwei.easytrip.trip.ui.TripSettingsUiState
+import com.yangchengwei.easytrip.trip.ui.TripDeletionUiState
 import com.yangchengwei.easytrip.trip.ui.TripListAction
 import com.yangchengwei.easytrip.trip.ui.TripListContent
 import com.yangchengwei.easytrip.trip.ui.TripListPageState
@@ -304,9 +306,28 @@ object V1ScenarioExecutableFactory {
             ScenarioFixture(id, ScenarioScreen.TRIP_LIST),
             ScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
             actions::clear,
-            { TripListContent(TripListUiState(page = TripListPageState.Content(listOf(TripCardUiModel("trip-1", "杭州周末", "3 天", "2026年9月1日", "灵活")))), actions::add) },
-            { onNodeWithText("杭州周末").performClick() },
-            { onNodeWithText("杭州周末").assertIsDisplayed(); check(actions == listOf(TripListAction.OpenTrip("trip-1"))) },
+            {
+                TripListContent(
+                    TripListUiState(
+                        page = TripListPageState.Content(
+                            primaryTrip = TripCardUiModel("trip-1", "杭州周末", "3 天", "2026年9月1日", "灵活"),
+                            otherTrips = listOf(TripCardUiModel("trip-2", "东京秋日", "5 天", "2026年10月2日", "自驾")),
+                        ),
+                    ),
+                    actions::add,
+                )
+            },
+            { onNodeWithTag("continue-trip-trip-1").performClick() },
+            {
+                onNodeWithText("杭州周末").assertIsDisplayed()
+                onNodeWithText("2026年9月1日 · 3 天 · 灵活").assertIsDisplayed()
+                onNodeWithTag("primary-trip-trip-1").assertIsDisplayed()
+                onNodeWithTag("continue-trip-trip-1").assertIsDisplayed()
+                onNodeWithTag("trip-menu-trip-1").assertIsDisplayed()
+                onNodeWithTag("trip-menu-trip-2").assertIsDisplayed()
+                onAllNodesWithText("继续规划").assertCountEquals(1)
+                check(actions == listOf(TripListAction.OpenTrip("trip-1")))
+            },
         )
     }
 
@@ -490,29 +511,53 @@ object V1ScenarioExecutableFactory {
     )
 
     private fun deleteTripConfirmation(id: String): V1ScenarioExecutable {
-        var confirmed = false
+        val actions = mutableListOf<TripListAction>()
+        var deletion by mutableStateOf<TripDeletionUiState>(TripDeletionUiState.Idle)
+        val confirmation = ConfirmationUiModel(
+            "删除杭州周末？",
+            "此操作将永久删除旅行及其中的所有内容，无法撤销。",
+            listOf("3 个旅行日", "2 个收藏地点", "4 个标签", "5 个行程项", "4 个路线段"),
+            listOf("其他旅行及其内容"),
+            "确认删除旅行",
+            "取消",
+            destructive = true,
+            reversible = false,
+        )
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.TRIP_LIST),
             ScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
-            { confirmed = false },
             {
-                ConfirmationDialog(
-                    ConfirmationUiModel(
-                        "删除杭州周末？",
-                        "删除旅行会同时清理相关内容。",
-                        listOf("3 个旅行日", "5 个行程项", "4 个路线段"),
-                        listOf("收藏地点"),
-                        "确认删除",
-                        "取消",
-                        destructive = true,
-                        reversible = false,
-                    ),
-                    { confirmed = true },
-                    {},
-                )
+                actions.clear()
+                deletion = TripDeletionUiState.Idle
             },
-            { onNodeWithTag("confirmation-confirm").performClick() },
-            { onNodeWithText("删除杭州周末？").assertIsDisplayed(); check(confirmed) },
+            {
+                TripListContent(
+                    TripListUiState(
+                        page = TripListPageState.Content(listOf(TripCardUiModel("trip-1", "杭州周末", "3 天", "2026年9月1日", "灵活"))),
+                        deletion = deletion,
+                    ),
+                    onAction = { action ->
+                        actions += action
+                        if (action == TripListAction.RequestDelete("trip-1")) {
+                            deletion = TripDeletionUiState.Ready("trip-1", "杭州周末", confirmation)
+                        }
+                    },
+                )
+                if (deletion is TripDeletionUiState.Ready) {
+                    ConfirmationDialog(confirmation, { actions += TripListAction.ConfirmDelete }, {})
+                }
+            },
+            {
+                onNodeWithTag("trip-menu-trip-1").performClick()
+                onNodeWithTag("trip-menu-delete-trip-1").performClick()
+                onNodeWithTag("confirmation-confirm").performClick()
+            },
+            {
+                onNodeWithText("删除杭州周末？").assertIsDisplayed()
+                listOf("3 个旅行日", "2 个收藏地点", "4 个标签", "5 个行程项", "4 个路线段", "其他旅行及其内容")
+                    .forEach { onNodeWithText(it).assertIsDisplayed() }
+                check(actions == listOf(TripListAction.RequestDelete("trip-1"), TripListAction.ConfirmDelete))
+            },
         )
     }
 
@@ -701,13 +746,28 @@ object V1ScenarioExecutableFactory {
 
     private fun validCreate(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<CreateTripAction>()
+        val state = CreateTripUiState(
+            name = "杭州周末",
+            dayCount = "3",
+            timeMode = CreateTimeMode.DATED,
+            startDate = LocalDate.of(2026, 9, 1),
+            travelMode = TravelMode.FLEXIBLE,
+        )
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.CREATE_TRIP),
             ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.CREATE_TRIP)),
             actions::clear,
-            { CreateTripContent(CreateTripUiState("杭州周末", "3"), actions::add) },
+            { CreateTripContent(state, actions::add) },
             { onNodeWithTag("create-submit").performClick() },
-            { onNodeWithText("创建旅行").assertIsDisplayed(); check(actions == listOf(CreateTripAction.Submit)) },
+            {
+                onNodeWithTag("create-name").assertTextContains("杭州周末")
+                onNodeWithText("2026-09-01").assertIsDisplayed()
+                onNodeWithText("2026-09-03").assertIsDisplayed()
+                onNodeWithTag("create-day-count").assertTextContains("3")
+                onNodeWithTag("create-mode-FLEXIBLE").assertIsDisplayed()
+                onNodeWithTag("create-submit").assertIsDisplayed()
+                check(actions == listOf(CreateTripAction.Submit))
+            },
         )
     }
 
@@ -724,7 +784,9 @@ object V1ScenarioExecutableFactory {
             },
             {
                 check(actions.first() == CreateTripAction.TimeModeChanged(CreateTimeMode.DATED))
-                check(actions.last() is CreateTripAction.StartDateChanged)
+                val selectedDate = (actions.last() as CreateTripAction.StartDateChanged).value
+                check(selectedDate == LocalDate.of(2026, 8, 31))
+                check(selectedDate.plusDays(2) == LocalDate.of(2026, 9, 2))
             },
         )
     }
@@ -903,8 +965,11 @@ object V1ScenarioExecutableFactory {
     private fun invalidCreate(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.CREATE_TRIP),
         ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.CREATE_TRIP)),
-        content = { CreateTripContent(CreateTripUiState(nameError = "请输入旅行名称", dayCountError = "至少 1 天", dateError = "请选择日期", timeMode = CreateTimeMode.DATED), {}) },
+        content = { CreateTripContent(CreateTripUiState(nameError = "请输入旅行名称", dayCountError = "请输入至少 1 天", dateError = "请选择开始日期", timeMode = CreateTimeMode.DATED), {}) },
         verify = {
+            onNodeWithText("请输入旅行名称").assertIsDisplayed()
+            onNodeWithText("请输入至少 1 天").assertIsDisplayed()
+            onNodeWithText("请选择开始日期").assertIsDisplayed()
             onNodeWithTag("create-name").assertIsDisplayed()
             onNodeWithTag("create-day-count").assertIsDisplayed()
             onNodeWithTag("create-date-error").assertIsDisplayed()
@@ -915,7 +980,11 @@ object V1ScenarioExecutableFactory {
         ScenarioFixture(id, ScenarioScreen.TRIP_LIST),
         ScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
         content = { TripListContent(TripListUiState(page = TripListPageState.Empty), {}) },
-        verify = { onNodeWithText("还没有旅行计划").assertIsDisplayed(); onNodeWithTag("create-trip").assertIsDisplayed() },
+        verify = {
+            onNodeWithText("开始规划一次旅行").assertIsDisplayed()
+            onNodeWithText("创建旅行后，可以收藏地点并按天安排行程").assertIsDisplayed()
+            onNodeWithTag("create-trip").assertIsDisplayed()
+        },
     )
 
     private fun emptyDay(id: String): V1ScenarioExecutable {

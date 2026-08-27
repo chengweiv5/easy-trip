@@ -1662,27 +1662,27 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioFixtures.kt": {
-    "mtime": 1787728766.480694,
-    "seen": 1787729734.562724,
-    "ast_hash": "649994af0fbc66a7322f1cc8268a9d13",
+    "mtime": 1787821114.8784225,
+    "seen": 1787822124.1725209,
+    "ast_hash": "969e0cdb72a6e496e9e56b8d4827e6f8",
     "semantic_hash": ""
   },
   "docs/testing/v1-full-ui-scenario-matrix.md": {
-    "mtime": 1787728766.6325278,
-    "seen": 1787729734.562923,
-    "ast_hash": "8226a556025cb5ef55b3f3869b6a2fa2",
+    "mtime": 1787821722.292402,
+    "seen": 1787822124.172749,
+    "ast_hash": "2061096858b9cad5fa354a00a056ba24",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioCatalogTest.kt": {
-    "mtime": 1787728766.479317,
-    "seen": 1787729734.562722,
-    "ast_hash": "9bb2e9c2b8af73a06ff468f0b0df3f53",
+    "mtime": 1787819449.8490713,
+    "seen": 1787822124.172519,
+    "ast_hash": "eca09e7a138fcf186c394b14fd829152",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioExecutable.kt": {
-    "mtime": 1787766625.4002504,
-    "seen": 1787766799.2769668,
-    "ast_hash": "3695ed8a50641fe46c27a0862c8a54cd",
+    "mtime": 1787820370.9010441,
+    "seen": 1787822124.17252,
+    "ast_hash": "90fcf108c9791db41dec3ea4427fab22",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceChromeTest.kt": {
@@ -2040,9 +2040,21 @@
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-6-report.md": {
-    "mtime": 1787816509.665678,
-    "seen": 1787818946.0477161,
-    "ast_hash": "4ff0588093fb85822e0d93aaa5019cad",
+    "mtime": 1787819001.6264315,
+    "seen": 1787822124.172714,
+    "ast_hash": "60f5eac6364727b9ba5f4b9099cff138",
+    "semantic_hash": ""
+  },
+  "docs/testing/trip-entry-creation-ui-acceptance.md": {
+    "mtime": 1787822078.8918815,
+    "seen": 1787822124.172745,
+    "ast_hash": "7c4f802b6a690d17d0d8ba4077dd18e9",
+    "semantic_hash": ""
+  },
+  "docs/testing/trip-entry-creation-ui-conflicts.md": {
+    "mtime": 1787821759.9584014,
+    "seen": 1787822124.172747,
+    "ast_hash": "dacb6134e6474bcd8eaa46b144020f2f",
     "semantic_hash": ""
   }
 }

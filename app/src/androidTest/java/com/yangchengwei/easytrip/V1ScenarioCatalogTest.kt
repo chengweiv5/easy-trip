@@ -1,7 +1,17 @@
 package com.yangchengwei.easytrip
 
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
+import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -165,6 +175,47 @@ class V1ScenarioMetadataTest {
             }
         }
     }
+
+    @Test
+    fun tripEntryScenariosUseProductionSelectorsAndSemantics() {
+        listOf(1, 7, 9, 13, 36, 47).forEach { number ->
+            val executable = V1ScenarioFixtures.scenarios.first { it.number == number }.createExecutable()
+            executable.setup()
+            executable.render(compose)
+            compose.waitForIdle()
+            executable.actions(compose)
+            compose.waitForIdle()
+            executable.assertions(compose)
+        }
+    }
+
+    @Test
+    fun tripEntryScenarioCatalogCoversConfirmedFrames() {
+        val frames = V1ScenarioFixtures.scenarios
+            .flatMap { scenario -> listOf(scenario.frameId) + scenario.variants.map(V1ScenarioVariant::frameId) }
+            .toSet()
+
+        assertTrue(frames.containsAll(setOf("K9h3r", "d1sTtb", "dzhkC", "xQfD0", "oW9mK", "zIbEu", "yIGiQ")))
+    }
+
+    @Test
+    fun tripEntryExecutablesDoNotClaimProfileNavigation() {
+        val executable = V1ScenarioFixtures.scenarios.first { it.number == 1 }.createExecutable()
+        executable.setup()
+        executable.render(compose)
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("profile-avatar", useUnmergedTree = true).assertIsDisplayed()
+            .assert(SemanticsProperties.Role.keyNotDefined())
+            .assert(SemanticsActions.OnClick.keyNotDefined())
+        compose.onAllNodesWithContentDescription("个人中心").assertCountEquals(0)
+        compose.onAllNodes(hasClickAction() and hasTestTag("profile-avatar")).assertCountEquals(0)
+    }
+
+    private fun <T> androidx.compose.ui.semantics.SemanticsPropertyKey<T>.keyNotDefined() =
+        androidx.compose.ui.test.SemanticsMatcher("$name is not defined") { node ->
+            node.config.getOrNull(this) == null
+        }
 
     @Test
     fun blockerAssertionsCoverTheAcceptanceGate() {
