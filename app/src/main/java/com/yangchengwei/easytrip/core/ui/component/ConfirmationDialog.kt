@@ -89,7 +89,7 @@ fun ConfirmationDialog(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.spacedBy(8.dp),
                         ) {
-                            CircularProgressIndicator(Modifier.size(18.dp))
+                            CircularProgressIndicator(Modifier.size(18.dp).testTag("confirmation-progress"))
                             Text("处理中…", style = MaterialTheme.typography.bodySmall)
                         }
                     }

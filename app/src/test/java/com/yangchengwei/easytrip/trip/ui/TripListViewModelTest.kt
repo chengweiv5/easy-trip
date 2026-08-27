@@ -155,8 +155,32 @@ class TripListViewModelTest {
 
         deleteGate.complete(Unit)
         advanceUntilIdle()
-        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+        val awaitingFlow = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals(true, awaitingFlow.isDeleting)
         assertEquals(listOf("trip-1"), (viewModel.state.value.page as TripListPageState.Content).trips.map(TripCardUiModel::id))
+
+        repository.trips.value = emptyList()
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+        assertEquals(TripListPageState.Empty, viewModel.state.value.page)
+    }
+
+    @Test fun unrelatedAndStaleFlowEmissionsDoNotCloseSuccessfulDeletion() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-a", "京都"), trip("trip-b", "东京")))
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-a"))
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
+
+        repository.trips.value = listOf(trip("trip-a", "旧京都"))
+        advanceUntilIdle()
+        assertEquals("trip-a", (viewModel.state.value.deletion as TripDeletionUiState.Ready).tripId)
+
+        repository.trips.value = listOf(trip("trip-b", "东京"))
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
 
     @Test fun deleteFailureKeepsExactImpactAndRetries() = runTest(dispatcher) {
@@ -183,6 +207,9 @@ class TripListViewModelTest {
         viewModel.onAction(TripListAction.ConfirmDelete)
         advanceUntilIdle()
         assertEquals(listOf("trip-1", "trip-1"), repository.deletedTrips)
+        assertEquals(true, (viewModel.state.value.deletion as TripDeletionUiState.Ready).isDeleting)
+        repository.trips.value = emptyList()
+        advanceUntilIdle()
         assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
 

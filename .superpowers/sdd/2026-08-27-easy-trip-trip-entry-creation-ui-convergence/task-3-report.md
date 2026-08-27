@@ -29,6 +29,16 @@ GREEN 已确认：
 - `graphify update .`：完成。
 - `git diff --check`：通过。
 
+## Fix round 1
+
+- 删除 service 成功后继续保留 `Ready(isDeleting = true)`；仅当列表实际消费到不含对应 `tripId` 的 Flow emission 后关闭确认框。
+- 等待标记绑定删除 generation 与目标 `tripId`，旧 emission、仍含目标的 emission 或其他 target 不会误关闭。
+- 增加可控 Flow 单测，覆盖 service 已成功但目标仍在列表、随后目标消失、以及旧/无关 emission。
+- outside-dismiss 测试改为对独立 Dialog root 遮罩坐标注入真实触摸，不再调用 `rootView.performClick()`。
+- busy 进度指示增加稳定测试标签，并显式断言 `ProgressBarRangeInfo.Indeterminate` 语义。
+
+验证：`ConfirmationDialogTest` 3/3、`TripFlowTest` 5/5、`TripListViewModelTest` 9/9 通过；主代码与 AndroidTest 编译通过。
+
 ## 关注点
 
 - `graphify update .` 报告两个既有文件存在语法提取警告：`NetworkMonitor.kt`、`RoutePlanner.kt`；不影响 Kotlin 编译与本任务测试。

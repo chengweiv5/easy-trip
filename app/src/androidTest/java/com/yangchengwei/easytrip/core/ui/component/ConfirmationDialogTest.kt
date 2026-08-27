@@ -4,17 +4,24 @@ import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import androidx.test.espresso.Espresso.pressBack
-import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
@@ -42,11 +49,12 @@ class ConfirmationDialogTest {
         compose.onNodeWithTag("confirmation-confirm").assertIsNotEnabled().performClick()
         compose.onNodeWithTag("confirmation-dismiss").assertIsNotEnabled().performClick()
         compose.onNodeWithText("处理中…").assertIsDisplayed()
+        compose.onNodeWithTag("confirmation-progress").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.ProgressBarRangeInfo, ProgressBarRangeInfo.Indeterminate),
+        )
         pressBack()
         compose.waitForIdle()
-        InstrumentationRegistry.getInstrumentation().runOnMainSync {
-            compose.activity.window.decorView.rootView.performClick()
-        }
+        compose.onAllNodes(isRoot())[1].performTouchInput { click(Offset(1f, 1f)) }
         compose.onNodeWithText(confirmation().title).assertIsDisplayed()
         assertEquals(0, confirmed)
         assertEquals(0, dismissed)

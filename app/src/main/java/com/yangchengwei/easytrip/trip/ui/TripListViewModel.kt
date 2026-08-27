@@ -51,6 +51,7 @@ class TripListViewModel(
     private var tripsJob: Job? = null
     private var deleteJob: Job? = null
     private var deleteGeneration = 0L
+    private var awaitingDeletedTrip: Pair<Long, String>? = null
 
     init { observeTrips() }
 
@@ -67,6 +68,18 @@ class TripListViewModel(
                     trips = emptyList(),
                 )
             }.collect { trips ->
+                val waiting = awaitingDeletedTrip
+                val deletion = if (
+                    waiting != null &&
+                    waiting.first == deleteGeneration &&
+                    trips.none { it.id == waiting.second } &&
+                    mutableState.value.deletion.tripIdOrNull() == waiting.second
+                ) {
+                    awaitingDeletedTrip = null
+                    TripDeletionUiState.Idle
+                } else {
+                    mutableState.value.deletion
+                }
                 mutableState.value = mutableState.value.copy(
                     trips = trips,
                     page = if (trips.isEmpty()) {
@@ -75,6 +88,7 @@ class TripListViewModel(
                         val cards = trips.map(TripSummary::toTripCardUiModel)
                         TripListPageState.Content(cards.first(), cards.drop(1))
                     },
+                    deletion = deletion,
                 )
             }
         }
@@ -108,6 +122,7 @@ class TripListViewModel(
 
     private fun loadDeleteImpact(tripId: String, tripName: String) {
         deleteJob?.cancel()
+        awaitingDeletedTrip = null
         val generation = ++deleteGeneration
         mutableState.value = mutableState.value.copy(
             deletion = TripDeletionUiState.LoadingImpact(tripId, tripName),
@@ -144,6 +159,7 @@ class TripListViewModel(
         val current = mutableState.value.deletion
         if (current is TripDeletionUiState.Ready && current.isDeleting) return
         deleteGeneration++
+        awaitingDeletedTrip = null
         deleteJob?.cancel()
         deleteJob = null
         mutableState.value = mutableState.value.copy(deletion = TripDeletionUiState.Idle)
@@ -160,7 +176,11 @@ class TripListViewModel(
             try {
                 service.deleteTrip(current.tripId)
                 if (deleteGeneration == generation && mutableState.value.deletion.tripIdOrNull() == current.tripId) {
-                    mutableState.value = mutableState.value.copy(deletion = TripDeletionUiState.Idle)
+                    if (mutableState.value.trips.none { it.id == current.tripId }) {
+                        mutableState.value = mutableState.value.copy(deletion = TripDeletionUiState.Idle)
+                    } else {
+                        awaitingDeletedTrip = generation to current.tripId
+                    }
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation
