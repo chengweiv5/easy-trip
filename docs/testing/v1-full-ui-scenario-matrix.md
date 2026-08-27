@@ -17,7 +17,7 @@ The automated gate blocks functional/state errors, data inconsistency, crashes, 
 | No. | Frame | Scenario | Fixture | Automated coverage | Reachable path | Key gate | Device UI |
 |---:|---|---|---|---|---|---|---|
 | 01 | `K9h3r` | 我的旅行 | existing-trips | `V1ScenarioCatalogTest#executesProductionScenario` + `V1PencilFlowTest#createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction` | 启动应用 → 我的旅行 → 继续规划 | 唯一主入口；旅行名/日期/天数/方式 | PENDING |
-| 01v | `d1sTtb` | 我的旅行 · 删除后 | variant of 01 | scenario 13 production menu/delete coverage | 我的旅行 → `···` → 删除 → 确认 | stable-id menu + state | PENDING |
+| 01v | `d1sTtb` | 我的旅行 · 删除后 | variant of 01 | `V1ScenarioCatalogTest#executesProductionScenario`（场景 13 可控列表闭环） | 我的旅行 → `···` → 删除 → 确认 | 目标卡消失且保留旅行仍在 | PENDING |
 | 02 | `A9EKX` | 工作台·地点池 | trip-with-saved-places | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 我的旅行 → 旅行 → 地点池 | key interaction | PENDING |
 | 03 | `ofdn5` | 搜索地点 | search-results | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 工作台 → 搜索地点 | no itinerary action | PENDING |
 | 04 | `LFmzR` | 工作台·行程 | day-itinerary | `V1AcceptanceTest#threeDayTripPersistsRepeatedPlacesEdgesOverridesAndMapScopes` | 工作台 → 行程 | reachability | PENDING |
