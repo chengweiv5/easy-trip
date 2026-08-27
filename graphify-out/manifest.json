@@ -1158,9 +1158,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/CreateTripContentTest.kt": {
-    "mtime": 1787809111.3691306,
-    "seen": 1787809179.433781,
-    "ast_hash": "3a175223a3810d942a7c8d1f97fd1ede",
+    "mtime": 1787810698.4784613,
+    "seen": 1787810895.2119591,
+    "ast_hash": "82b7e9607f79323b755bcdc216face99",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/ConfirmationDialog.kt": {
@@ -2022,9 +2022,21 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripFormFields.kt": {
-    "mtime": 1787808995.7109048,
-    "seen": 1787809179.433861,
-    "ast_hash": "b18e2ae3e8efad180194c4f38b687d95",
+    "mtime": 1787810306.840669,
+    "seen": 1787810895.2120461,
+    "ast_hash": "0fa3d90da1c5d6973ddd7741d818b6f5",
+    "semantic_hash": ""
+  },
+  "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/CreateTripRouteTest.kt": {
+    "mtime": 1787810508.912996,
+    "seen": 1787810895.211961,
+    "ast_hash": "b6ace0965c70cb6de8d86b9fb84ea139",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-5-report.md": {
+    "mtime": 1787810806.9674864,
+    "seen": 1787810895.212137,
+    "ast_hash": "8b8b77a0ecae614a4b4a3a81573e8d3c",
     "semantic_hash": ""
   }
 }

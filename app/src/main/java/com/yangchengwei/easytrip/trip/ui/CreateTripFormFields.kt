@@ -26,6 +26,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.error
@@ -35,9 +36,32 @@ import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.SelectablePill
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripBorder
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimary
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripSecondary
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurface
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
 import java.time.Instant
 import java.time.ZoneOffset
+
+internal data class CreateTripDatePickerPalette(
+    val container: Color,
+    val content: Color,
+    val secondaryContent: Color,
+    val primary: Color,
+    val onPrimary: Color,
+    val outline: Color,
+)
+
+internal fun createTripDatePickerPalette() = CreateTripDatePickerPalette(
+    container = EasyTripSurface,
+    content = EasyTripPrimaryDark,
+    secondaryContent = EasyTripSecondary,
+    primary = EasyTripPrimary,
+    onPrimary = EasyTripSurface,
+    outline = EasyTripBorder,
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -74,29 +98,6 @@ internal fun CreateTripFormFields(
                 color = if (state.nameError != null) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
             )
-        }
-        Column(
-            Modifier.testTag("create-day-count-container"),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("旅行天数", style = MaterialTheme.typography.labelLarge)
-            OutlinedTextField(
-                value = state.dayCount,
-                onValueChange = { onAction(CreateTripAction.DayCountChanged(it)) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(52.dp)
-                    .testTag("create-day-count")
-                    .errorSemantics(state.dayCountError),
-                placeholder = { Text("至少 1 天") },
-                isError = state.dayCountError != null,
-                enabled = enabled,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            )
-            state.dayCountError?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
-            }
         }
         Column(
             Modifier.testTag("create-date-control-container"),
@@ -152,6 +153,29 @@ internal fun CreateTripFormFields(
                 )
             }
         }
+        Column(
+            Modifier.testTag("create-day-count-container"),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            Text("旅行天数", style = MaterialTheme.typography.labelLarge)
+            OutlinedTextField(
+                value = state.dayCount,
+                onValueChange = { onAction(CreateTripAction.DayCountChanged(it)) },
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(52.dp)
+                    .testTag("create-day-count")
+                    .errorSemantics(state.dayCountError),
+                placeholder = { Text("至少 1 天") },
+                isError = state.dayCountError != null,
+                enabled = enabled,
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+            )
+            state.dayCountError?.let {
+                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
+            }
+        }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("出行方式", style = MaterialTheme.typography.labelLarge)
             Row(
@@ -195,6 +219,7 @@ internal fun CreateTripFormFields(
     if (showPicker && enabled) {
         val millis = state.startDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli() ?: initialDateMillis
         val picker = rememberDatePickerState(initialSelectedDateMillis = millis, initialDisplayedMonthMillis = millis)
+        val palette = createTripDatePickerPalette()
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
             confirmButton = {
@@ -213,21 +238,21 @@ internal fun CreateTripFormFields(
                 state = picker,
                 modifier = Modifier.testTag("create-date-picker"),
                 colors = DatePickerDefaults.colors(
-                    containerColor = MaterialTheme.colorScheme.surface,
-                    titleContentColor = MaterialTheme.colorScheme.onSurface,
-                    headlineContentColor = MaterialTheme.colorScheme.onSurface,
-                    weekdayContentColor = MaterialTheme.colorScheme.secondary,
-                    subheadContentColor = MaterialTheme.colorScheme.secondary,
-                    navigationContentColor = MaterialTheme.colorScheme.primary,
-                    yearContentColor = MaterialTheme.colorScheme.onSurface,
-                    currentYearContentColor = MaterialTheme.colorScheme.primary,
-                    selectedYearContentColor = MaterialTheme.colorScheme.onPrimary,
-                    selectedYearContainerColor = MaterialTheme.colorScheme.primary,
-                    dayContentColor = MaterialTheme.colorScheme.onSurface,
-                    selectedDayContentColor = MaterialTheme.colorScheme.onPrimary,
-                    selectedDayContainerColor = MaterialTheme.colorScheme.primary,
-                    todayContentColor = MaterialTheme.colorScheme.primary,
-                    todayDateBorderColor = MaterialTheme.colorScheme.primary,
+                    containerColor = palette.container,
+                    titleContentColor = palette.content,
+                    headlineContentColor = palette.content,
+                    weekdayContentColor = palette.secondaryContent,
+                    subheadContentColor = palette.secondaryContent,
+                    navigationContentColor = palette.primary,
+                    yearContentColor = palette.content,
+                    currentYearContentColor = palette.primary,
+                    selectedYearContentColor = palette.onPrimary,
+                    selectedYearContainerColor = palette.primary,
+                    dayContentColor = palette.content,
+                    selectedDayContentColor = palette.onPrimary,
+                    selectedDayContainerColor = palette.primary,
+                    todayContentColor = palette.primary,
+                    todayDateBorderColor = palette.outline,
                 ),
             )
         }

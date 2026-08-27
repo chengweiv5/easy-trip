@@ -18,6 +18,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -30,6 +31,11 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripBorder
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimary
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripSecondary
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurface
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.InsertSide
@@ -149,6 +155,18 @@ class CreateTripContentTest {
         compose.onNodeWithTag("create-date-control").assertHeightIsEqualTo(66.dp)
     }
 
+    @Test fun fieldsFollowNameDateDaysAndModeOrder() {
+        compose.setContent { EasyTripTheme { CreateTripContent(CreateTripUiState(), {}) } }
+
+        val nameTop = compose.onNodeWithTag("create-name-container").fetchSemanticsNode().boundsInRoot.top
+        val dateTop = compose.onNodeWithTag("create-date-control-container").fetchSemanticsNode().boundsInRoot.top
+        val daysTop = compose.onNodeWithTag("create-day-count-container").fetchSemanticsNode().boundsInRoot.top
+        val modeTop = compose.onNodeWithTag("create-mode-options").fetchSemanticsNode().boundsInRoot.top
+        org.junit.Assert.assertTrue(nameTop < dateTop)
+        org.junit.Assert.assertTrue(dateTop < daysTop)
+        org.junit.Assert.assertTrue(daysTop < modeTop)
+    }
+
     @Test fun datedFormShowsStartAndInclusiveEndDate() {
         compose.setContent {
             EasyTripTheme {
@@ -180,11 +198,16 @@ class CreateTripContentTest {
 
         compose.onNodeWithTag("create-time-DATED").performClick()
         compose.onNodeWithTag("create-date-picker").assertIsDisplayed()
-        compose.onNodeWithTag("create-date-picker").assert(
-            androidx.compose.ui.test.SemanticsMatcher.expectValue(
-                SemanticsProperties.TestTag,
-                "create-date-picker",
+        assertEquals(
+            CreateTripDatePickerPalette(
+                container = EasyTripSurface,
+                content = EasyTripPrimaryDark,
+                secondaryContent = EasyTripSecondary,
+                primary = EasyTripPrimary,
+                onPrimary = EasyTripSurface,
+                outline = EasyTripBorder,
             ),
+            createTripDatePickerPalette(),
         )
         pressBack()
         compose.onNodeWithTag("create-date-picker").assertDoesNotExist()
@@ -259,6 +282,7 @@ class CreateTripContentTest {
 
         compose.onNodeWithTag("create-name").performClick().performTextInput("东京")
         compose.onNodeWithTag("create-name").assertIsFocused()
+        compose.onNode(hasScrollAction()).assertExists()
         compose.onNodeWithTag("create-submit").performScrollTo().assertIsDisplayed().assertHasClickAction().performClick()
         compose.onNodeWithTag("create-planning-tip").performScrollTo().assertIsDisplayed()
     }
