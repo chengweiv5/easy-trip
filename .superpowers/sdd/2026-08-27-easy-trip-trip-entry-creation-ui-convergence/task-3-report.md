@@ -47,6 +47,14 @@ GREEN 已确认：
 
 验证：`TripListViewModelTest` 11/11 通过。
 
+## Fix round 3
+
+- 将重新订阅竞态测试细分为三个可观察阶段：新 Flow 首次 emission 前保持 `Loading`，推进后进入 `Error`，最后成功发出不含目标的列表。
+- 在 Loading 与 Error 阶段分别确认删除状态仍为绑定目标的 `Ready(isDeleting = true)`；仅最后的成功 emission 关闭确认框。
+- 生产实现无需修改。
+
+验证：`TripListViewModelTest` 11/11 通过；主代码与单元测试代码编译通过。
+
 ## 关注点
 
 - `graphify update .` 报告两个既有文件存在语法提取警告：`NetworkMonitor.kt`、`RoutePlanner.kt`；不影响 Kotlin 编译与本任务测试。

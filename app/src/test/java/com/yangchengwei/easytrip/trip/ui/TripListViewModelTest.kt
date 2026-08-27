@@ -183,8 +183,9 @@ class TripListViewModelTest {
         assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
 
-    @Test fun loadingAndErrorClearsDoNotConfirmSuccessfulDeletion() = runTest(dispatcher) {
+    @Test fun loadingAndErrorBeforeFirstEmissionDoNotConfirmSuccessfulDeletion() = runTest(dispatcher) {
         val deleteGate = CompletableDeferred<Unit>()
+        val firstEmissionGate = CompletableDeferred<Unit>()
         val repository = TestTripRepository(listOf(trip("trip-1", "京都"))).apply {
             deleteBehavior = { deleteGate.await() }
         }
@@ -195,23 +196,27 @@ class TripListViewModelTest {
         viewModel.onAction(TripListAction.ConfirmDelete)
         runCurrent()
 
+        repository.firstEmissionGate = firstEmissionGate
         repository.failure = IllegalStateException("db unavailable")
         viewModel.onAction(TripListAction.Retry)
-        advanceUntilIdle()
+        runCurrent()
+        assertEquals(TripListPageState.Loading, viewModel.state.value.page)
         assertEquals(emptyList<TripSummary>(), viewModel.state.value.trips)
 
         deleteGate.complete(Unit)
-        advanceUntilIdle()
-        val awaitingSuccessfulEmission = viewModel.state.value.deletion as TripDeletionUiState.Ready
-        assertEquals("trip-1", awaitingSuccessfulEmission.tripId)
-        assertEquals(true, awaitingSuccessfulEmission.isDeleting)
+        runCurrent()
+        val awaitingWhileLoading = viewModel.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals("trip-1", awaitingWhileLoading.tripId)
+        assertEquals(true, awaitingWhileLoading.isDeleting)
 
-        repository.failure = null
-        viewModel.onAction(TripListAction.Retry)
+        firstEmissionGate.complete(Unit)
         advanceUntilIdle()
+        assertEquals(TripListPageState.Error("无法加载旅行"), viewModel.state.value.page)
         assertEquals(true, (viewModel.state.value.deletion as TripDeletionUiState.Ready).isDeleting)
 
+        repository.failure = null
         repository.trips.value = emptyList()
+        viewModel.onAction(TripListAction.Retry)
         advanceUntilIdle()
         assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
@@ -337,8 +342,10 @@ class TripListViewModelTest {
         var maxActiveCollectors = 0
         val deletedTrips = mutableListOf<String>()
         var deleteBehavior: suspend () -> Unit = {}
+        var firstEmissionGate: CompletableDeferred<Unit>? = null
 
         override fun observeTrips(): Flow<List<TripSummary>> = flow {
+            firstEmissionGate?.await()
             failure?.let { throw it }
             trips.collect { emit(it) }
         }.onStart {
