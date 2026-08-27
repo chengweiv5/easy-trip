@@ -3,20 +3,29 @@ package com.yangchengwei.easytrip.trip.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
-import androidx.compose.runtime.getValue
+import androidx.compose.foundation.layout.width
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.SavedStateHandle
 import androidx.test.espresso.Espresso.pressBack
@@ -55,8 +64,8 @@ class CreateTripContentTest {
         compose.onNodeWithTag("create-name").assertHeightIsEqualTo(52.dp)
         compose.onNodeWithTag("create-date-control").assertHeightIsEqualTo(66.dp)
         compose.onNodeWithTag("create-mode-options").assertHeightIsEqualTo(82.dp)
-        compose.onNodeWithTag("create-planning-tip").assertHeightIsEqualTo(40.dp)
-        compose.onNodeWithTag("create-submit").assertIsDisplayed().assertHeightIsEqualTo(52.dp)
+        compose.onNodeWithTag("create-planning-tip").assertIsDisplayed()
+        compose.onNodeWithTag("create-submit").assertIsDisplayed().assertHeightIsEqualTo(48.dp)
     }
 
     @Test fun dayCountStartsEmptyAndAcceptsNaturalSingleDigitInput() {
@@ -131,18 +140,126 @@ class CreateTripContentTest {
         override suspend fun deleteTrip(tripId: String) = Unit
     }
 
-    @Test fun imeInsetsKeepSubmitActionVisibleAndClickable() {
+    @Test fun usesSpecifiedFortyFourAndFortyEightDpActions() {
+        compose.setContent { EasyTripTheme { CreateTripContent(CreateTripUiState(), {}) } }
+
+        compose.onNodeWithTag("create-back").assertHeightIsEqualTo(44.dp)
+        compose.onNodeWithTag("create-submit").assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("create-name").assertHeightIsEqualTo(52.dp)
+        compose.onNodeWithTag("create-date-control").assertHeightIsEqualTo(66.dp)
+    }
+
+    @Test fun datedFormShowsStartAndInclusiveEndDate() {
         compose.setContent {
             EasyTripTheme {
-                Box(Modifier.height(500.dp).testTag("small-window")) {
-                    CreateTripContent(CreateTripUiState(), {})
+                CreateTripContent(
+                    CreateTripUiState(
+                        dayCount = "3",
+                        timeMode = CreateTimeMode.DATED,
+                        startDate = LocalDate.of(2027, 1, 11),
+                    ),
+                    {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("2027-01-11").assertIsDisplayed()
+        compose.onNodeWithText("2027-01-13").assertIsDisplayed()
+    }
+
+    @Test fun datePickerUsesForestSageThemeAndKeepsDraftOnDismiss() {
+        val actions = mutableListOf<CreateTripAction>()
+        compose.setContent {
+            EasyTripTheme {
+                CreateTripContent(
+                    CreateTripUiState(timeMode = CreateTimeMode.DATED, startDate = LocalDate.of(2027, 1, 11)),
+                    actions::add,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("create-time-DATED").performClick()
+        compose.onNodeWithTag("create-date-picker").assertIsDisplayed()
+        compose.onNodeWithTag("create-date-picker").assert(
+            androidx.compose.ui.test.SemanticsMatcher.expectValue(
+                SemanticsProperties.TestTag,
+                "create-date-picker",
+            ),
+        )
+        pressBack()
+        compose.onNodeWithTag("create-date-picker").assertDoesNotExist()
+        assertEquals(listOf(CreateTripAction.TimeModeChanged(CreateTimeMode.DATED)), actions)
+        compose.onNodeWithText("2027-01-11").assertIsDisplayed()
+    }
+
+    @Test fun validationErrorsHaveNearbyTextAndErrorSemantics() {
+        compose.setContent {
+            EasyTripTheme {
+                CreateTripContent(
+                    CreateTripUiState(
+                        nameError = "请输入旅行名称",
+                        dayCountError = "请输入至少 1 天",
+                        dateError = "请选择开始日期",
+                    ),
+                    {},
+                )
+            }
+        }
+
+        listOf(
+            "create-name" to "请输入旅行名称",
+            "create-day-count" to "请输入至少 1 天",
+            "create-date-control" to "请选择开始日期",
+        ).forEach { (tag, message) ->
+            compose.onNodeWithTag(tag).assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(SemanticsProperties.Error, message),
+            )
+            compose.onNodeWithText(message).assert(hasAnyAncestor(hasTestTag("$tag-container")))
+        }
+    }
+
+    @Test fun submittingLocksBackFieldsPickerModesAndSubmit() {
+        compose.setContent {
+            EasyTripTheme { CreateTripContent(CreateTripUiState(isSubmitting = true), {}) }
+        }
+
+        listOf(
+            "create-back",
+            "create-name",
+            "create-day-count",
+            "create-time-DRAFT",
+            "create-time-DATED",
+            "create-mode-FLEXIBLE",
+            "create-mode-SELF_DRIVE",
+            "create-submit",
+        ).forEach { compose.onNodeWithTag(it).assertIsNotEnabled() }
+        compose.onNodeWithTag("create-time-DATED").performClick()
+        compose.onNodeWithTag("create-date-picker").assertDoesNotExist()
+    }
+
+    @Test fun systemBackIsConsumedWhileSubmitting() {
+        compose.setContent {
+            EasyTripTheme { CreateTripContent(CreateTripUiState(isSubmitting = true), {}) }
+        }
+
+        pressBack()
+        compose.onNodeWithText("创建旅行", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test fun narrowLargeFontAndImeKeepFocusedFieldAndSubmitReachable() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(2f, 2f)) {
+                EasyTripTheme {
+                    Box(Modifier.width(280.dp).height(500.dp).testTag("small-window")) {
+                        CreateTripContent(CreateTripUiState(), {})
+                    }
                 }
             }
         }
 
         compose.onNodeWithTag("create-name").performClick().performTextInput("东京")
         compose.onNodeWithTag("create-name").assertIsFocused()
-        compose.waitForIdle()
-        compose.onNodeWithTag("create-submit").assertIsDisplayed().assertHasClickAction().performClick()
+        compose.onNodeWithTag("create-submit").performScrollTo().assertIsDisplayed().assertHasClickAction().performClick()
+        compose.onNodeWithTag("create-planning-tip").performScrollTo().assertIsDisplayed()
     }
 }
