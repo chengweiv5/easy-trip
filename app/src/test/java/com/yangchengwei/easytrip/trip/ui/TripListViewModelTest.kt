@@ -324,6 +324,32 @@ class TripListViewModelTest {
         assertEquals(listOf("trip-1"), repository.deletedTrips)
     }
 
+    @Test fun staleConfirmActionDuringSyncFailureCannotDeleteAgain() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
+        repository.failuresRemaining = 2
+        viewModel.onAction(TripListAction.Retry)
+        advanceUntilIdle()
+        val failedSync = viewModel.state.value.deletion
+
+        viewModel.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
+
+        assertEquals(failedSync, viewModel.state.value.deletion)
+        assertEquals(listOf("trip-1"), repository.deletedTrips)
+
+        repository.trips.value = emptyList()
+        viewModel.onAction(TripListAction.RetryDeletionSync)
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
+        assertEquals(listOf("trip-1"), repository.deletedTrips)
+    }
+
     @Test fun repeatedManualResyncWhileBusyStartsOneCollectorAndCanRetryAfterFailure() = runTest(dispatcher) {
         val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts())

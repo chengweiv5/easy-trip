@@ -240,7 +240,7 @@ class TripListViewModel(
 
     fun confirmDelete() {
         val current = mutableState.value.deletion as? TripDeletionUiState.Ready ?: return
-        if (current.isDeleting) return
+        if (current.isDeleting || current.confirmationSyncFailed) return
         val generation = ++deleteGeneration
         val emissionVersionAtStart = successfulTripsEmissionVersion
         awaitingDeletedTrip = AwaitingDeletedTrip(

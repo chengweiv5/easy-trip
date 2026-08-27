@@ -68,3 +68,4 @@ DONE
 - RED：`TripListViewModelTest` 14 tests / 1 failure（连续两次 observe failure 后仍 busy）；UI compile RED（缺少 `confirmLabel` 覆盖）。
 - GREEN：`TripListViewModelTest` 17/17、`ConfirmationDialogTest` 4/4、`TripFlowTest` 6/6 PASS。
 - Review follow-up RED：confirm → Flow 连续两次失败耗尽 → service 成功后仍永久 busy；新增 collector terminal generation 跟踪后，service 成功立即暴露 SyncFailure，manual resync 成功进入 Idle，deleteCalls 始终为 1。
+- Scoped follow-up RED：SyncFailure 下直接派发滞后 `ConfirmDelete` 会再次调用 delete service；最小 guard 拒绝 `confirmationSyncFailed=true`，状态不变且 deleteCalls 保持 1，`RetryDeletionSync` 路径仍可进入 Idle。GREEN：`TripListViewModelTest` 18/18。
