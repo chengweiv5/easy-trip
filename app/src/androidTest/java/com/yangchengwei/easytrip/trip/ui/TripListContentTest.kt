@@ -21,7 +21,9 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasClickAction
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -70,7 +72,10 @@ class TripListContentTest {
         compose.onNodeWithTag("trip-menu-trip-1").performClick()
         compose.onNodeWithTag("trip-menu-settings-trip-1").assertIsDisplayed()
         compose.onNodeWithTag("trip-menu-delete-trip-1").assertIsDisplayed()
-        compose.onAllNodes(TripMenuItem.keyIs(true)).assertCountEquals(2)
+        compose.onAllNodes(
+            hasClickAction() and hasAnyAncestor(hasTestTag("trip-menu-popup-trip-1")),
+            useUnmergedTree = true,
+        ).assertCountEquals(2)
         compose.onNodeWithTag("trip-menu-delete-trip-1").assert(TripMenuTone.keyIs("danger"))
         compose.onNodeWithTag("trip-menu-settings-trip-1").performClick()
         compose.onNodeWithTag("trip-menu-trip-1").performClick()

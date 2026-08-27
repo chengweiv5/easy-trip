@@ -966,9 +966,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripListContentTest.kt": {
-    "mtime": 1787798093.368888,
-    "seen": 1787798635.339509,
-    "ast_hash": "ac50bf79c53e4831068f3e3a0afdd0eb",
+    "mtime": 1787799657.3061385,
+    "seen": 1787800235.687414,
+    "ast_hash": "f7b478c410a5631cc16b7931e04fb747",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContentTest.kt": {
@@ -1992,9 +1992,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListCards.kt": {
-    "mtime": 1787797977.8793337,
-    "seen": 1787798635.339592,
-    "ast_hash": "0aa67d302ac85ae2521416a79b67c490",
+    "mtime": 1787799874.9601014,
+    "seen": 1787800235.6874938,
+    "ast_hash": "9161b3e9847173a66a179fe54fcba97c",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListStates.kt": {
@@ -2007,6 +2007,12 @@
     "mtime": 1787794988.693706,
     "seen": 1787795674.8887959,
     "ast_hash": "8bcab22d5e5a5db164fa33674073c53b",
+    "semantic_hash": ""
+  },
+  ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-2-report.md": {
+    "mtime": 1787800194.0770273,
+    "seen": 1787800235.6875782,
+    "ast_hash": "5e4c5711f3dcbd4e7f94b3093c9e7b77",
     "semantic_hash": ""
   }
 }

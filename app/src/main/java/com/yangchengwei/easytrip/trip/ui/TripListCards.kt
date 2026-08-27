@@ -128,7 +128,11 @@ private fun TripMenu(
             modifier = Modifier.size(40.dp).testTag("trip-menu-${trip.id}")
                 .semantics { contentDescription = "${trip.name}，更多旅行操作" },
         ) { MoreIcon(Modifier.size(22.dp)) }
-        DropdownMenu(expanded = expanded, onDismissRequest = { onExpandedChange(false) }) {
+        DropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { onExpandedChange(false) },
+            modifier = Modifier.testTag("trip-menu-popup-${trip.id}"),
+        ) {
             DropdownMenuItem(
                 text = { Text("设置") },
                 onClick = {
