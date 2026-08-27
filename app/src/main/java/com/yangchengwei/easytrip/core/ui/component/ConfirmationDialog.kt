@@ -14,6 +14,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -36,12 +37,16 @@ fun ConfirmationDialog(
     onConfirm: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
-    confirmEnabled: Boolean = true,
+    busy: Boolean = false,
     errorMessage: String? = null,
 ) {
     Dialog(
-        onDismissRequest = onDismiss,
-        properties = DialogProperties(usePlatformDefaultWidth = false),
+        onDismissRequest = { if (!busy) onDismiss() },
+        properties = DialogProperties(
+            dismissOnBackPress = !busy,
+            dismissOnClickOutside = !busy,
+            usePlatformDefaultWidth = false,
+        ),
     ) {
         Surface(
             modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp).widthIn(max = 334.dp).heightIn(max = 640.dp),
@@ -79,23 +84,32 @@ fun ConfirmationDialog(
                         }
                     }
                     errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
+                    if (busy) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        ) {
+                            CircularProgressIndicator(Modifier.size(18.dp))
+                            Text("处理中…", style = MaterialTheme.typography.bodySmall)
+                        }
+                    }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     EasyTripSecondaryButton(
                         onClick = onDismiss,
-                        enabled = confirmEnabled,
+                        enabled = !busy,
                         modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-dismiss"),
                     ) { Text(model.dismissLabel) }
                     if (model.destructive) {
                         EasyTripDangerButton(
                             onClick = onConfirm,
-                            enabled = confirmEnabled,
+                            enabled = !busy,
                             modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-confirm"),
                         ) { Text(model.confirmLabel) }
                     } else {
                         EasyTripPrimaryButton(
                             onClick = onConfirm,
-                            enabled = confirmEnabled,
+                            enabled = !busy,
                             modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-confirm"),
                         ) { Text(model.confirmLabel) }
                     }

@@ -28,6 +28,7 @@ import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import java.time.LocalDate
 import java.time.ZoneOffset
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import org.junit.Assert.assertEquals
@@ -41,22 +42,24 @@ class TripFlowTest {
         val repository = FakeTripRepository().apply { seed("川西环线", 4) }
         compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
 
-        compose.onNodeWithTag("trip-settings-id-1").performClick()
-        compose.onNodeWithText("川西环线").performClick()
-        compose.onNodeWithTag("rename-input").performTextInput("新名称")
+        compose.onNodeWithTag("trip-menu-id-1").performClick()
+        compose.onNodeWithTag("trip-menu-settings-id-1").performClick()
+        compose.onNodeWithText("修改旅行名称").performClick()
+        compose.onNodeWithText("旅行名称").performTextInput("新名称")
         compose.onNodeWithText("保存名称").performClick()
-        compose.onNodeWithText("出行日期").assertIsDisplayed()
+        compose.onNodeWithText("整体出行日期").assertIsDisplayed()
         compose.onNodeWithText("出行方式").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("末尾追加旅行日").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("操作 Day 1").fetchSemanticsNodes().size)
     }
 
-    @Test fun confirmingTripDeleteShowsImpactAndDeletesExactlyOnce() {
+    @Test fun tripMenuDeleteShowsExactImpactAndDeletesOnce() {
         val repository = FakeTripRepository().apply { seed("确认删除测试", 3) }
         val tripId = repository.trip.value!!.id
         compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
 
-        compose.onNodeWithTag("trip-delete-id-1").performClick()
+        compose.onNodeWithTag("trip-menu-id-1").performClick()
+        compose.onNodeWithTag("trip-menu-delete-id-1").performClick()
         compose.onNodeWithText("删除确认删除测试？").assertIsDisplayed()
         compose.onNodeWithText("此操作将永久删除旅行及其中的所有内容，无法撤销。").assertIsDisplayed()
         compose.onNodeWithText("将删除").assertIsDisplayed()
@@ -71,6 +74,32 @@ class TripFlowTest {
 
         compose.waitUntil { repository.trip.value == null }
         assertEquals(listOf(tripId), repository.deletedTrips)
+    }
+
+    @Test fun impactLoadingAndFailureKeepDeleteTargetVisible() {
+        val repository = FakeTripRepository().apply { seed("影响查询测试", 3) }
+        val impact = CompletableDeferred<TripDeleteImpact>()
+        compose.setContent {
+            AppNavigation(
+                TripService(repository),
+                repository,
+                object : DeleteImpactProvider {
+                    override suspend fun trip(tripId: String) = impact.await()
+                    override suspend fun day(dayId: String) = DayDeleteImpact(0, 0, 0)
+                },
+            )
+        }
+
+        compose.onNodeWithTag("trip-menu-id-1").performClick()
+        compose.onNodeWithTag("trip-menu-delete-id-1").performClick()
+        compose.onNodeWithText("删除影响查询测试？").assertIsDisplayed()
+        compose.onNodeWithText("正在查询删除影响…").assertIsDisplayed()
+        assertEquals(0, compose.onAllNodesWithText("0 个旅行日").fetchSemanticsNodes().size)
+
+        compose.runOnIdle { impact.completeExceptionally(IllegalStateException("unavailable")) }
+        compose.onNodeWithText("未删除旅行").assertIsDisplayed()
+        compose.onNodeWithText("无法加载删除影响，请重试").assertIsDisplayed()
+        compose.onNodeWithText("删除影响查询测试？").assertIsDisplayed()
     }
 
     @Test fun createAndSettingsChoicesUseExclusiveSelectablePills() {
@@ -88,7 +117,8 @@ class TripFlowTest {
         compose.onNodeWithTag("create-time-DRAFT").assertIsNotSelected()
         compose.onNodeWithTag("create-time-DATED").assertIsSelected()
         pressBack()
-        compose.onNodeWithTag("trip-settings-id-1").performClick()
+        compose.onNodeWithTag("trip-menu-id-1").performClick()
+        compose.onNodeWithTag("trip-menu-settings-id-1").performClick()
         compose.onNodeWithTag("settings-mode-FLEXIBLE").assert(hasRole(Role.RadioButton)).assertIsSelected()
         compose.onNodeWithTag("settings-mode-SELF_DRIVE").assertIsNotSelected()
     }

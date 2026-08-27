@@ -460,7 +460,7 @@ private fun WorkspaceOverlayContent(
                             onClose()
                         }
                     },
-                    confirmEnabled = !placeBusy,
+                    busy = placeBusy,
                     errorMessage = placeState.deletionError,
                 )
             }

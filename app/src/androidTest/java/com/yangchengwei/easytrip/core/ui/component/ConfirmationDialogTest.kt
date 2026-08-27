@@ -8,10 +8,13 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.test.espresso.Espresso.pressBack
+import androidx.test.platform.app.InstrumentationRegistry
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
@@ -21,6 +24,52 @@ import org.junit.Test
 
 class ConfirmationDialogTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun busyDialogBlocksConfirmDismissBackAndOutsideDismiss() {
+        var confirmed = 0
+        var dismissed = 0
+        compose.setContent {
+            EasyTripTheme {
+                ConfirmationDialog(
+                    model = confirmation(),
+                    onConfirm = { confirmed++ },
+                    onDismiss = { dismissed++ },
+                    busy = true,
+                )
+            }
+        }
+
+        compose.onNodeWithTag("confirmation-confirm").assertIsNotEnabled().performClick()
+        compose.onNodeWithTag("confirmation-dismiss").assertIsNotEnabled().performClick()
+        compose.onNodeWithText("处理中…").assertIsDisplayed()
+        pressBack()
+        compose.waitForIdle()
+        InstrumentationRegistry.getInstrumentation().runOnMainSync {
+            compose.activity.window.decorView.rootView.performClick()
+        }
+        compose.onNodeWithText(confirmation().title).assertIsDisplayed()
+        assertEquals(0, confirmed)
+        assertEquals(0, dismissed)
+    }
+
+    @Test fun failedDialogKeepsImpactAndAllowsRetry() {
+        var confirmed = 0
+        compose.setContent {
+            EasyTripTheme {
+                ConfirmationDialog(
+                    model = confirmation(),
+                    onConfirm = { confirmed++ },
+                    onDismiss = {},
+                    errorMessage = "删除失败，请重试",
+                )
+            }
+        }
+
+        compose.onNodeWithText("5 个路线段").assertIsDisplayed()
+        compose.onNodeWithText("删除失败，请重试").assertIsDisplayed()
+        compose.onNodeWithTag("confirmation-confirm").performClick()
+        assertEquals(1, confirmed)
+    }
 
     @Test fun narrowLargeFontDialogKeepsActionsReachableWithFullImpactList() {
         var confirmed = 0
@@ -54,4 +103,15 @@ class ConfirmationDialogTest {
         assertEquals(1, dismissed)
         assertEquals(1, confirmed)
     }
+
+    private fun confirmation() = ConfirmationUiModel(
+        title = "删除杭州春日慢游？",
+        message = "此操作将永久删除旅行及其中的所有内容，无法撤销。",
+        confirmLabel = "确认删除",
+        dismissLabel = "取消",
+        destructive = true,
+        reversible = false,
+        deletedItems = listOf("3 个旅行日", "2 个收藏地点", "1 个标签", "4 个行程项", "5 个路线段"),
+        retainedItems = listOf("其他旅行及其内容"),
+    )
 }
