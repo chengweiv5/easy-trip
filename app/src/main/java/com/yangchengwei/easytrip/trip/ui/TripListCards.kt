@@ -24,6 +24,8 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsPropertyKey
+import androidx.compose.ui.semantics.SemanticsPropertyReceiver
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
@@ -31,6 +33,11 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
+
+internal val TripMenuItem = SemanticsPropertyKey<Boolean>("TripMenuItem")
+internal var SemanticsPropertyReceiver.tripMenuItem by TripMenuItem
+internal val TripMenuTone = SemanticsPropertyKey<String>("TripMenuTone")
+internal var SemanticsPropertyReceiver.tripMenuTone by TripMenuTone
 
 @Composable
 internal fun PrimaryTripCard(
@@ -48,7 +55,7 @@ internal fun PrimaryTripCard(
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
                 Text(
                     trip.name,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("primary-trip-name-${trip.id}"),
                     style = MaterialTheme.typography.headlineLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -89,7 +96,13 @@ internal fun OtherTripRow(
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(trip.name, style = MaterialTheme.typography.titleMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(
+                trip.name,
+                modifier = Modifier.testTag("other-trip-name-${trip.id}"),
+                style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
             Text(
                 "${trip.dateLabel ?: "待定日期"} · ${trip.travelModeLabel}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -122,7 +135,7 @@ private fun TripMenu(
                     onExpandedChange(false)
                     onAction(TripListAction.OpenSettings(trip.id))
                 },
-                modifier = Modifier.testTag("trip-menu-settings-${trip.id}"),
+                modifier = Modifier.testTag("trip-menu-settings-${trip.id}").semantics { tripMenuItem = true },
             )
             DropdownMenuItem(
                 text = { Text("删除", color = MaterialTheme.colorScheme.error) },
@@ -130,7 +143,10 @@ private fun TripMenu(
                     onExpandedChange(false)
                     onAction(TripListAction.RequestDelete(trip.id))
                 },
-                modifier = Modifier.testTag("trip-menu-delete-${trip.id}"),
+                modifier = Modifier.testTag("trip-menu-delete-${trip.id}").semantics {
+                    tripMenuItem = true
+                    tripMenuTone = "danger"
+                },
             )
         }
     }
@@ -142,7 +158,7 @@ private fun MoreIcon(modifier: Modifier = Modifier) {
     Canvas(modifier) {
         val radius = size.minDimension / 11f
         listOf(.25f, .5f, .75f).forEach { fraction ->
-            drawCircle(color, radius, Offset(size.width / 2f, size.height * fraction))
+            drawCircle(color, radius, Offset(size.width * fraction, size.height / 2f))
         }
     }
 }

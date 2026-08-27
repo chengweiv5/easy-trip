@@ -18,6 +18,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasClickAction
@@ -67,6 +68,10 @@ class TripListContentTest {
         setContent(content(), actions::add)
 
         compose.onNodeWithTag("trip-menu-trip-1").performClick()
+        compose.onNodeWithTag("trip-menu-settings-trip-1").assertIsDisplayed()
+        compose.onNodeWithTag("trip-menu-delete-trip-1").assertIsDisplayed()
+        compose.onAllNodes(TripMenuItem.keyIs(true)).assertCountEquals(2)
+        compose.onNodeWithTag("trip-menu-delete-trip-1").assert(TripMenuTone.keyIs("danger"))
         compose.onNodeWithTag("trip-menu-settings-trip-1").performClick()
         compose.onNodeWithTag("trip-menu-trip-1").performClick()
         compose.onNodeWithTag("trip-menu-delete-trip-1").performClick()
@@ -97,24 +102,27 @@ class TripListContentTest {
     }
 
     @Test fun emptyStateUsesRemainingSpaceWithoutFixedHeight() {
-        var emptyHeight = 0
+        var emptyHeightPx = 0
+        lateinit var density: Density
         compose.setContent {
+            density = LocalDensity.current
             EasyTripTheme {
-                Box(Modifier.requiredWidth(320.dp).height(480.dp)) {
+                Box(Modifier.requiredWidth(320.dp).height(300.dp)) {
                     TripListContent(
                         state = TripListUiState(page = TripListPageState.Empty),
                         onAction = {},
                         modifier = Modifier.fillMaxSize(),
-                        emptyStateModifier = Modifier.onGloballyPositioned { emptyHeight = it.size.height },
+                        emptyStateModifier = Modifier.onGloballyPositioned { emptyHeightPx = it.size.height },
                     )
                 }
             }
         }
 
         compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
-        compose.onNodeWithText("创建旅行后，可以收藏地点并按天安排行程").assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").performScrollTo().assertIsDisplayed()
-        assertFalse(emptyHeight == 647)
+        compose.onNodeWithTag("create-trip").assertIsNotDisplayed().performScrollTo().assertIsDisplayed()
+        val emptyHeightDp = with(density) { emptyHeightPx.toDp() }
+        assertEquals(true, emptyHeightDp > 0.dp && emptyHeightDp < 300.dp)
+        assertFalse(emptyHeightDp == 647.dp)
     }
 
     @Test fun longNamesAtNarrowWidthAndLargeFontKeepActionsReachable() {
@@ -143,8 +151,16 @@ class TripListContentTest {
         compose.onNodeWithTag("other-trip-trip-other").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("trip-menu-trip-other").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("create-trip").performScrollTo().assertIsDisplayed()
-        val menuBounds = compose.onNodeWithTag("trip-menu-trip-long").getUnclippedBoundsInRoot()
-        assertEquals(true, menuBounds.left >= 0.dp && menuBounds.right <= 280.dp)
+        listOf(
+            "primary-trip-name-trip-long",
+            "trip-menu-trip-long",
+            "other-trip-name-trip-other",
+            "trip-menu-trip-other",
+        ).forEach { tag ->
+            val bounds = compose.onNodeWithTag(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+            assertEquals("$tag left bound", true, bounds.left >= 0.dp)
+            assertEquals("$tag right bound", true, bounds.right <= 280.dp)
+        }
         assertFalse(overflowed)
     }
 
@@ -173,5 +189,10 @@ class TripListContentTest {
     private fun <T> androidx.compose.ui.semantics.SemanticsPropertyKey<T>.keyNotDefined() =
         androidx.compose.ui.test.SemanticsMatcher("$name is not defined") { node ->
             node.config.getOrNull(this) == null
+        }
+
+    private fun <T> androidx.compose.ui.semantics.SemanticsPropertyKey<T>.keyIs(value: T) =
+        androidx.compose.ui.test.SemanticsMatcher("$name equals $value") { node ->
+            node.config.getOrNull(this) == value
         }
 }
