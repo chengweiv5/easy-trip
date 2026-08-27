@@ -1978,5 +1978,17 @@
     "seen": 1787770618.276698,
     "ast_hash": "35c9471e3c49188ac8d8adff39106cab",
     "semantic_hash": ""
+  },
+  "docs/superpowers/plans/2026-08-27-easy-trip-trip-entry-creation-ui-convergence.md": {
+    "mtime": 1787794469.642716,
+    "seen": 1787794705.019721,
+    "ast_hash": "a255e63a80c4310a17acc0325a2043dd",
+    "semantic_hash": ""
+  },
+  "docs/superpowers/specs/2026-08-27-easy-trip-trip-entry-creation-ui-convergence-design.md": {
+    "mtime": 1787793887.2436628,
+    "seen": 1787794705.019729,
+    "ast_hash": "b6cb3710b8b52061f17c281ccd872d0d",
+    "semantic_hash": ""
   }
 }
