@@ -26,13 +26,12 @@ DONE
 
 ## 门禁
 
-- JVM：419 tests，0 failures。
+- JVM：426 tests，0 failures。
 - lint + debug APK + androidTest APK：PASS。
-- `TripListContentTest`：7 tests，0 failures。
-- `CreateTripContentTest`：12 tests，0 failures。
-- `V1PencilFlowTest`：2 tests，0 failures。
+- 最新串行 focused combined（`ConfirmationDialogTest` + `TripFlowTest` + `V1PencilFlowTest`）：12 tests，0 failures。
 - `V1ScenarioCatalogTest`：47 tests，0 failures。
 - `V1FullUiAcceptanceTest`：47 tests，0 failures。
+- 未执行全量 `connectedDebugAndroidTest`，不将上述聚焦与候选套件结果扩大表述为全量 connected 门禁。
 - 自动化设备：`easy_trip_p60pro(AVD) - 12` / `Android_SDK_built_for_arm64`。
 - 物理设备验收：DEFERRED（Mate 60 Pro 未执行）。
 - 无 0 tests、超时、signal 9 或 runner crash；未重启 AVD。
@@ -69,3 +68,5 @@ DONE
 - GREEN：`TripListViewModelTest` 17/17、`ConfirmationDialogTest` 4/4、`TripFlowTest` 6/6 PASS。
 - Review follow-up RED：confirm → Flow 连续两次失败耗尽 → service 成功后仍永久 busy；新增 collector terminal generation 跟踪后，service 成功立即暴露 SyncFailure，manual resync 成功进入 Idle，deleteCalls 始终为 1。
 - Scoped follow-up RED：SyncFailure 下直接派发滞后 `ConfirmDelete` 会再次调用 delete service；最小 guard 拒绝 `confirmationSyncFailed=true`，状态不变且 deleteCalls 保持 1，`RetryDeletionSync` 路径仍可进入 Idle。GREEN：`TripListViewModelTest` 18/18。
+- 聚焦恢复提交：`2e698f7`、`7597706`、`b89a80a`；最终验收 HEAD 为 `b89a80a`。`SyncFailure` 下“重新同步”只重订阅 Flow，恢复全程 delete service 调用保持一次。
+- 最终复验：JVM 426/426；最新串行 focused combined 12/12（`ConfirmationDialogTest` + `TripFlowTest` + `V1PencilFlowTest`）；Catalog 47/47；Full UI 47/47；lint/debug APK/androidTest APK PASS。物理设备验收仍为 DEFERRED。

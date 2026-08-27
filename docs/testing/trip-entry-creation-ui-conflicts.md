@@ -37,3 +37,5 @@
 - collector generation 与 delete generation/trip ID 同时隔离旧结果，旧 collector 的 completion/error/emission 不得污染新目标或新订阅。
 - 显式记录当前 collector generation 的 retry 耗尽状态；即使耗尽早于 delete service completion，service 成功也必须立即转为非 busy SyncFailure，而不是继续等待已终止的 collector。
 - `confirmationSyncFailed=true` 时拒绝任何滞后或直接派发的 `ConfirmDelete`；恢复只能走 `RetryDeletionSync`，确保 delete service exactly-once。
+- 聚焦恢复由 `2e698f7`、`7597706`、`b89a80a` 收口；最终验收 HEAD 为 `b89a80a`。`SyncFailure`/“重新同步”路径只恢复 Flow 订阅，恢复成功不重复 delete。
+- 最终自动化事实限定为 JVM 426/426、最新串行 focused combined 12/12、Catalog 47/47、Full UI 47/47、lint/APKs PASS；未据此宣称全量 connected 门禁通过，物理设备验收仍为 DEFERRED。

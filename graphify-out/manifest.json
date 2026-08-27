@@ -2046,27 +2046,27 @@
     "semantic_hash": ""
   },
   "docs/testing/trip-entry-creation-ui-acceptance.md": {
-    "mtime": 1787827852.360673,
-    "seen": 1787827933.414079,
-    "ast_hash": "f7e3045a49944cffff59f046bb01cfab",
+    "mtime": 1787828496.511307,
+    "seen": 1787828526.972447,
+    "ast_hash": "3f41a7059ba4080f36082b6ba568d80d",
     "semantic_hash": ""
   },
   "docs/testing/trip-entry-creation-ui-conflicts.md": {
-    "mtime": 1787827860.159062,
-    "seen": 1787827933.414079,
-    "ast_hash": "c0c93cf8c1f0c5b238b4ab49c65aa45b",
+    "mtime": 1787828502.8691597,
+    "seen": 1787828526.972448,
+    "ast_hash": "4798826919a54e1a918e5b62d46bd441",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/progress.md": {
-    "mtime": 1787827838.6516795,
-    "seen": 1787827933.414047,
-    "ast_hash": "b3085d91888b9bd38289bb47310d68b8",
+    "mtime": 1787828150.5279064,
+    "seen": 1787828526.972417,
+    "ast_hash": "b7df610c708ddfdfbe09e44aa00edf50",
     "semantic_hash": ""
   },
   ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-7-report.md": {
-    "mtime": 1787827844.2271624,
-    "seen": 1787827933.414051,
-    "ast_hash": "073af917366c72ef61a5576fd50ac1cb",
+    "mtime": 1787828514.4723058,
+    "seen": 1787828526.9724212,
+    "ast_hash": "7baeb6d96661bfa4c5cb0dfb16c53f3e",
     "semantic_hash": ""
   }
 }

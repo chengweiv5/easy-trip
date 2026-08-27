@@ -21,11 +21,9 @@
 
 | 命令 | 测试数 | 失败数 | 结果 |
 |---|---:|---:|---|
-| `./gradlew :app:testDebugUnitTest` | 419 | 0 | PASS |
+| `./gradlew :app:testDebugUnitTest` | 426 | 0 | PASS |
 | `./gradlew :app:lintDebug :app:assembleDebug :app:assembleDebugAndroidTest` | N/A（构建门禁） | 0 | PASS |
-| `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.trip.ui.TripListContentTest` | 7 | 0 | PASS |
-| `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.trip.ui.CreateTripContentTest` | 12 | 0 | PASS |
-| `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.V1PencilFlowTest` | 2 | 0 | PASS |
+| 串行 focused combined：`ConfirmationDialogTest` + `TripFlowTest` + `V1PencilFlowTest` | 12 | 0 | PASS |
 | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.V1ScenarioCatalogTest` | 47 | 0 | PASS |
 | `./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.V1FullUiAcceptanceTest` | 47 | 0 | PASS |
 
@@ -58,3 +56,5 @@
 - GREEN：`TripListViewModelTest` 17/17、`ConfirmationDialogTest` 4/4、`TripFlowTest` 6/6 PASS。
 - 顺序竞态 RED：confirm → Flow 连续两次失败耗尽 → service 成功后仍 `isDeleting=true`；修复后立即显示 SyncFailure，manual resync 的目标缺失 emission 回到 Idle，delete service 调用始终为 1。
 - 滞后动作 RED：SyncFailure 下直接派发 `ConfirmDelete` 会重复删除；增加状态 guard 后该动作保持状态不变、deleteCalls 为 1，`RetryDeletionSync` 仍可完成恢复。GREEN：`TripListViewModelTest` 18/18。
+- 聚焦恢复提交：`2e698f7`、`7597706`、`b89a80a`；最终验收 HEAD 为 `b89a80a`。最终 JVM 426/426；最新串行设备门禁为 focused combined 12/12（`ConfirmationDialogTest` + `TripFlowTest` + `V1PencilFlowTest`）、Catalog 47/47、Full UI 47/47，lint/debug APK/androidTest APK 均 PASS。该记录不代表执行或通过全量 `connectedDebugAndroidTest`。
+- `SyncFailure` 下“重新同步”只重订阅 `observeTrips()`；恢复期间及恢复成功后删除 service 调用次数始终为 1，不重复 delete。

@@ -537,6 +537,32 @@
       "source_location": "L54"
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_fixture",
+      "label": "Fixture",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": "fixture",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L122"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest",
+      "label": "SchemaTest",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": "schematest",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L24"
+    },
+    {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest",
       "label": "OfflineRecoveryTest",
       "_callable": true,
@@ -548,19 +574,6 @@
       "norm_label": "offlinerecoverytest",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
       "source_location": "L29"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest",
-      "label": "RoomRouteLegRepositoryTest",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": "roomroutelegrepositorytest",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
-      "source_location": "L20"
     },
     {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_ui_roomdeleteimpactprovidertest_roomdeleteimpactprovidertest",
@@ -587,19 +600,6 @@
       "norm_label": "easytripdatabase",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
       "source_location": "L28"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao",
-      "label": "SchemaItineraryDao",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": "schemaitinerarydao",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L9"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao",
@@ -979,30 +979,17 @@
       "source_location": "L122"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_fixture",
-      "label": "Fixture",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces",
+      "label": "TestSavedPlaces",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "SchemaTest",
+      "community_name": "TestSavedPlaces",
       "file_type": "code",
-      "norm_label": "fixture",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L122"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest",
-      "label": "SchemaTest",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "SchemaTest",
-      "file_type": "code",
-      "norm_label": "schematest",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L24"
+      "norm_label": "testsavedplaces",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L585"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_workspace_workspaceuimodels_consentrequired",
@@ -1497,6 +1484,19 @@
       "norm_label": "cascadedeletetest",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/CascadeDeleteTest.kt",
       "source_location": "L26"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest",
+      "label": "V1AcceptanceTest",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "RoomSavedPlaceRepository",
+      "file_type": "code",
+      "norm_label": "v1acceptancetest",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
+      "source_location": "L33"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_roomsavedplacerepository_roomsavedplacerepository",
@@ -3514,17 +3514,17 @@
       "source_location": "L5"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest",
-      "label": "V1AcceptanceTest",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest",
+      "label": "RoomRouteLegRepositoryTest",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 201,
       "community_name": "RoomRouteLegRepository",
       "file_type": "code",
-      "norm_label": "v1acceptancetest",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
-      "source_location": "L33"
+      "norm_label": "roomroutelegrepositorytest",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
+      "source_location": "L20"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_route_data_roomroutelegrepository_roomroutelegrepository",
@@ -4391,10 +4391,62 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 259,
-      "community_name": "AmapMapHost",
+      "community_name": "MapUiModel",
       "file_type": "code",
       "norm_label": "amapmaphost",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L98"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295",
+      "label": "AmapMapHost",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": "amapmaphost",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L295"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265",
+      "label": "AmapMapHost",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": "amapmaphost",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L265"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost",
+      "label": "RecordingHost",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": "recordinghost",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
+      "source_location": "L217"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_workspace_mapfacade_mapuimodel",
+      "label": "MapUiModel",
+      "_callable": true,
+      "_callable_class": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": "mapuimodel",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/workspace/MapFacade.kt",
       "source_location": "L98"
     },
     {
@@ -4463,17 +4515,17 @@
       "source_location": "L27"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295",
-      "label": "AmapMapHost",
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao",
+      "label": "SchemaItineraryDao",
       "_callable": true,
       "_callable_class": true,
       "_origin": "ast",
       "community": 261,
-      "community_name": "AmapMapHost",
+      "community_name": "SchemaItineraryDao",
       "file_type": "code",
-      "norm_label": "amapmaphost",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L295"
+      "norm_label": "schemaitinerarydao",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L9"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_trip_ui_createtripformfields_createtripdatepickerpalette",
@@ -5041,7 +5093,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": "amapcomposemaptest",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -5054,7 +5106,7 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": "amapmaphost",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -5067,24 +5119,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": "amapmaphost",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
       "source_location": "L190"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265",
-      "label": "AmapMapHost",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": "amapmaphost",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L265"
     },
     {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_testowner",
@@ -5093,37 +5132,11 @@
       "_callable_class": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": "testowner",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
       "source_location": "L486"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost",
-      "label": "RecordingHost",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": "recordinghost",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
-      "source_location": "L217"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_workspace_mapfacade_mapuimodel",
-      "label": "MapUiModel",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": "mapuimodel",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/workspace/MapFacade.kt",
-      "source_location": "L98"
     },
     {
       "id": "app_src_test_java_com_yangchengwei_easytrip_amap_sdkcallbackbridgetest_fakeboundary",
@@ -8129,19 +8142,6 @@
       "source_location": "L438"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces",
-      "label": "TestSavedPlaces",
-      "_callable": true,
-      "_callable_class": true,
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": "testsavedplaces",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L585"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_amap_amapplacedatasource_placecandidate",
       "label": "PlaceCandidate",
       "_callable": true,
@@ -8851,6 +8851,18 @@
       "norm_label": ".setquery()",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt",
       "source_location": "L70"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_place_ui_placesearchreducer_placesearchreducer_setsavedplaces",
+      "label": ".setSavedPlaces()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 10,
+      "community_name": "PlaceSearchReducer",
+      "file_type": "code",
+      "norm_label": ".setsavedplaces()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt",
+      "source_location": "L59"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_ui_placesearchreducer_placesearchreducer_setsource",
@@ -10125,6 +10137,198 @@
       "source_location": "L579"
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_declareduniqueconstraintsrejectduplicates",
+      "label": ".declaredUniqueConstraintsRejectDuplicates()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".declareduniqueconstraintsrejectduplicates()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L112"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_deletingplaceitemandtripcascadeswithouterrors",
+      "label": ".deletingPlaceItemAndTripCascadesWithoutErrors()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".deletingplaceitemandtripcascadeswithouterrors()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L73"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_duplicateroutelegviolatesuniqueconstraint",
+      "label": ".duplicateRouteLegViolatesUniqueConstraint()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".duplicateroutelegviolatesuniqueconstraint()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L67"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_id",
+      "label": ".id()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".id()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L130"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_inserttripday",
+      "label": ".insertTripDay()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".inserttripday()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L129"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_item",
+      "label": ".item()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".item()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L133"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_itineraryitemcannotreferenceplacefromanothertrip",
+      "label": ".itineraryItemCannotReferencePlaceFromAnotherTrip()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".itineraryitemcannotreferenceplacefromanothertrip()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L45"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_leg",
+      "label": ".leg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".leg()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L134"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_place",
+      "label": ".place()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".place()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L132"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_routelegrejectscrossdayendpointandacceptssamedayendpoints",
+      "label": ".routeLegRejectsCrossDayEndpointAndAcceptsSameDayEndpoints()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".routelegrejectscrossdayendpointandacceptssamedayendpoints()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L55"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_samedayfixture",
+      "label": ".sameDayFixture()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".samedayfixture()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L123"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_savedplacecanbereferencedbymultipleitineraryitems",
+      "label": ".savedPlaceCanBeReferencedByMultipleItineraryItems()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".savedplacecanbereferencedbymultipleitineraryitems()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L34"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_savedplacetagcrossrefenforcessametripandcascades",
+      "label": ".savedPlaceTagCrossRefEnforcesSameTripAndCascades()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".savedplacetagcrossrefenforcessametripandcascades()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L96"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_setup",
+      "label": ".setUp()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".setup()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L28"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_teardown",
+      "label": ".tearDown()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".teardown()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L32"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_trip",
+      "label": ".trip()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 114,
+      "community_name": "EasyTripDatabase",
+      "file_type": "code",
+      "norm_label": ".trip()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
+      "source_location": "L131"
+    },
+    {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_offlinerecoverytest_offlinerecoverytest_onlinerecoveryrequeuesinterruptedworkwithouttouchingsuccess",
       "label": ".onlineRecoveryRequeuesInterruptedWorkWithoutTouchingSuccess()",
       "_callable": true,
@@ -10195,78 +10399,6 @@
       "norm_label": ".teardown()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt",
       "source_location": "L40"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_conditionalwritesandtransientrequeueareatomic",
-      "label": ".conditionalWritesAndTransientRequeueAreAtomic()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".conditionalwritesandtransientrequeueareatomic()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
-      "source_location": "L23"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_leg",
-      "label": ".leg()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".leg()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
-      "source_location": "L26"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_overrideandretryclearcacheandincrementversion",
-      "label": ".overrideAndRetryClearCacheAndIncrementVersion()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".overrideandretryclearcacheandincrementversion()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
-      "source_location": "L24"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_result",
-      "label": ".result()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".result()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
-      "source_location": "L27"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_seed",
-      "label": ".seed()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".seed()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
-      "source_location": "L25"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_setup",
-      "label": ".setup()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".setup()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
-      "source_location": "L21"
     },
     {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_trip_data_roomtriprepositorytest_roomtriprepositorytest_switchingfromselfdrivetoflexiblerecommendsbydistanceandclearscache",
@@ -10353,18 +10485,6 @@
       "source_location": "L41"
     },
     {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_easytripdatabase_itinerarydao",
-      "label": ".itineraryDao()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".itinerarydao()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L29"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_easytripdatabase_itineraryeditingdao",
       "label": ".itineraryEditingDao()",
       "_callable": true,
@@ -10423,78 +10543,6 @@
       "norm_label": ".savedplacedao()",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
       "source_location": "L29"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_countbyday",
-      "label": ".countByDay()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".countbyday()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L14"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_countbyid",
-      "label": ".countById()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".countbyid()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L13"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_countbysavedplace",
-      "label": ".countBySavedPlace()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".countbysavedplace()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L12"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_countbytrip",
-      "label": ".countByTrip()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".countbytrip()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L15"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_deleteitem",
-      "label": ".deleteItem()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".deleteitem()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L16"
-    },
-    {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_insertitem",
-      "label": ".insertItem()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 114,
-      "community_name": "EasyTripDatabase",
-      "file_type": "code",
-      "norm_label": ".insertitem()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
-      "source_location": "L11"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaplacedao_countbytrip",
@@ -12249,196 +12297,100 @@
       "source_location": "L670"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_declareduniqueconstraintsrejectduplicates",
-      "label": ".declaredUniqueConstraintsRejectDuplicates()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_deleteplaceandreferences",
+      "label": ".deletePlaceAndReferences()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "SchemaTest",
+      "community_name": "TestSavedPlaces",
       "file_type": "code",
-      "norm_label": ".declareduniqueconstraintsrejectduplicates()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L112"
+      "norm_label": ".deleteplaceandreferences()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L600"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_deletingplaceitemandtripcascadeswithouterrors",
-      "label": ".deletingPlaceItemAndTripCascadesWithoutErrors()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_deletionimpact",
+      "label": ".deletionImpact()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "SchemaTest",
+      "community_name": "TestSavedPlaces",
       "file_type": "code",
-      "norm_label": ".deletingplaceitemandtripcascadeswithouterrors()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L73"
+      "norm_label": ".deletionimpact()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L599"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_duplicateroutelegviolatesuniqueconstraint",
-      "label": ".duplicateRouteLegViolatesUniqueConstraint()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_observeplaces",
+      "label": ".observePlaces()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "SchemaTest",
+      "community_name": "TestSavedPlaces",
       "file_type": "code",
-      "norm_label": ".duplicateroutelegviolatesuniqueconstraint()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L67"
+      "norm_label": ".observeplaces()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L588"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_id",
-      "label": ".id()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_observesavedpoiids",
+      "label": ".observeSavedPoiIds()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "SchemaTest",
+      "community_name": "TestSavedPlaces",
       "file_type": "code",
-      "norm_label": ".id()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L130"
+      "norm_label": ".observesavedpoiids()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L590"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_inserttripday",
-      "label": ".insertTripDay()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_observetags",
+      "label": ".observeTags()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "SchemaTest",
+      "community_name": "TestSavedPlaces",
       "file_type": "code",
-      "norm_label": ".inserttripday()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L129"
+      "norm_label": ".observetags()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L589"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_item",
-      "label": ".item()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_save",
+      "label": ".save()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "SchemaTest",
+      "community_name": "TestSavedPlaces",
       "file_type": "code",
-      "norm_label": ".item()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L133"
+      "norm_label": ".save()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L591"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_itineraryitemcannotreferenceplacefromanothertrip",
-      "label": ".itineraryItemCannotReferencePlaceFromAnotherTrip()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_updatedetails",
+      "label": ".updateDetails()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "SchemaTest",
+      "community_name": "TestSavedPlaces",
       "file_type": "code",
-      "norm_label": ".itineraryitemcannotreferenceplacefromanothertrip()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L45"
+      "norm_label": ".updatedetails()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L597"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_leg",
-      "label": ".leg()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_usagecount",
+      "label": ".usageCount()",
       "_callable": true,
       "_origin": "ast",
       "community": 123,
-      "community_name": "SchemaTest",
+      "community_name": "TestSavedPlaces",
       "file_type": "code",
-      "norm_label": ".leg()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L134"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_place",
-      "label": ".place()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "SchemaTest",
-      "file_type": "code",
-      "norm_label": ".place()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L132"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_routelegrejectscrossdayendpointandacceptssamedayendpoints",
-      "label": ".routeLegRejectsCrossDayEndpointAndAcceptsSameDayEndpoints()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "SchemaTest",
-      "file_type": "code",
-      "norm_label": ".routelegrejectscrossdayendpointandacceptssamedayendpoints()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L55"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_samedayfixture",
-      "label": ".sameDayFixture()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "SchemaTest",
-      "file_type": "code",
-      "norm_label": ".samedayfixture()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L123"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_savedplacecanbereferencedbymultipleitineraryitems",
-      "label": ".savedPlaceCanBeReferencedByMultipleItineraryItems()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "SchemaTest",
-      "file_type": "code",
-      "norm_label": ".savedplacecanbereferencedbymultipleitineraryitems()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L34"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_savedplacetagcrossrefenforcessametripandcascades",
-      "label": ".savedPlaceTagCrossRefEnforcesSameTripAndCascades()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "SchemaTest",
-      "file_type": "code",
-      "norm_label": ".savedplacetagcrossrefenforcessametripandcascades()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L96"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_setup",
-      "label": ".setUp()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "SchemaTest",
-      "file_type": "code",
-      "norm_label": ".setup()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L28"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_teardown",
-      "label": ".tearDown()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "SchemaTest",
-      "file_type": "code",
-      "norm_label": ".teardown()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L32"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_core_database_schematest_schematest_trip",
-      "label": ".trip()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 123,
-      "community_name": "SchemaTest",
-      "file_type": "code",
-      "norm_label": ".trip()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/core/database/SchemaTest.kt",
-      "source_location": "L131"
+      "norm_label": ".usagecount()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L598"
     },
     {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_workspacepermissionflowtest_workspacepermissionflowtest_mapfailureretryislocalandlocationremainsavailable",
@@ -14503,6 +14455,54 @@
       "norm_label": ".setup()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/data/RoomSavedPlaceRepositoryTest.kt",
       "source_location": "L41"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest_open",
+      "label": ".open()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "RoomSavedPlaceRepository",
+      "file_type": "code",
+      "norm_label": ".open()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
+      "source_location": "L102"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest_setup",
+      "label": ".setUp()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "RoomSavedPlaceRepository",
+      "file_type": "code",
+      "norm_label": ".setup()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
+      "source_location": "L40"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest_teardown",
+      "label": ".tearDown()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "RoomSavedPlaceRepository",
+      "file_type": "code",
+      "norm_label": ".teardown()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
+      "source_location": "L45"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest_threedaytrippersistsrepeatedplacesedgesoverridesandmapscopes",
+      "label": ".threeDayTripPersistsRepeatedPlacesEdgesOverridesAndMapScopes()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "RoomSavedPlaceRepository",
+      "file_type": "code",
+      "norm_label": ".threedaytrippersistsrepeatedplacesedgesoverridesandmapscopes()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
+      "source_location": "L50"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_roomsavedplacerepository_roomsavedplacerepository_deleteplaceandreferences",
@@ -21297,52 +21297,76 @@
       "source_location": "L105"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest_open",
-      "label": ".open()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_conditionalwritesandtransientrequeueareatomic",
+      "label": ".conditionalWritesAndTransientRequeueAreAtomic()",
       "_callable": true,
       "_origin": "ast",
       "community": 201,
       "community_name": "RoomRouteLegRepository",
       "file_type": "code",
-      "norm_label": ".open()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
-      "source_location": "L102"
+      "norm_label": ".conditionalwritesandtransientrequeueareatomic()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
+      "source_location": "L23"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest_setup",
-      "label": ".setUp()",
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_leg",
+      "label": ".leg()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 201,
+      "community_name": "RoomRouteLegRepository",
+      "file_type": "code",
+      "norm_label": ".leg()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
+      "source_location": "L26"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_overrideandretryclearcacheandincrementversion",
+      "label": ".overrideAndRetryClearCacheAndIncrementVersion()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 201,
+      "community_name": "RoomRouteLegRepository",
+      "file_type": "code",
+      "norm_label": ".overrideandretryclearcacheandincrementversion()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
+      "source_location": "L24"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_result",
+      "label": ".result()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 201,
+      "community_name": "RoomRouteLegRepository",
+      "file_type": "code",
+      "norm_label": ".result()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
+      "source_location": "L27"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_seed",
+      "label": ".seed()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 201,
+      "community_name": "RoomRouteLegRepository",
+      "file_type": "code",
+      "norm_label": ".seed()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
+      "source_location": "L25"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_route_data_roomroutelegrepositorytest_roomroutelegrepositorytest_setup",
+      "label": ".setup()",
       "_callable": true,
       "_origin": "ast",
       "community": 201,
       "community_name": "RoomRouteLegRepository",
       "file_type": "code",
       "norm_label": ".setup()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
-      "source_location": "L40"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest_teardown",
-      "label": ".tearDown()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 201,
-      "community_name": "RoomRouteLegRepository",
-      "file_type": "code",
-      "norm_label": ".teardown()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
-      "source_location": "L45"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest_v1acceptancetest_threedaytrippersistsrepeatedplacesedgesoverridesandmapscopes",
-      "label": ".threeDayTripPersistsRepeatedPlacesEdgesOverridesAndMapScopes()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 201,
-      "community_name": "RoomRouteLegRepository",
-      "file_type": "code",
-      "norm_label": ".threedaytrippersistsrepeatedplacesedgesoverridesandmapscopes()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
-      "source_location": "L50"
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt",
+      "source_location": "L21"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_route_data_roomroutelegrepository_roomroutelegrepository_claimifversionmatches",
@@ -24506,7 +24530,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 259,
-      "community_name": "AmapMapHost",
+      "community_name": "MapUiModel",
       "file_type": "code",
       "norm_label": ".fakehostdeliversmappoitocomposecallback()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -24518,7 +24542,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 259,
-      "community_name": "AmapMapHost",
+      "community_name": "MapUiModel",
       "file_type": "code",
       "norm_label": ".oncreate()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -24530,7 +24554,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 259,
-      "community_name": "AmapMapHost",
+      "community_name": "MapUiModel",
       "file_type": "code",
       "norm_label": ".ondestroy()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -24542,7 +24566,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 259,
-      "community_name": "AmapMapHost",
+      "community_name": "MapUiModel",
       "file_type": "code",
       "norm_label": ".onpause()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -24554,7 +24578,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 259,
-      "community_name": "AmapMapHost",
+      "community_name": "MapUiModel",
       "file_type": "code",
       "norm_label": ".onresume()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -24566,11 +24590,215 @@
       "_callable": true,
       "_origin": "ast",
       "community": 259,
-      "community_name": "AmapMapHost",
+      "community_name": "MapUiModel",
       "file_type": "code",
       "norm_label": ".render()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
       "source_location": "L104"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready",
+      "label": ".layerFailureDoesNotReportMapReady()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".layerfailuredoesnotreportmapready()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L282"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_oncreate",
+      "label": ".onCreate()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".oncreate()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L297"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_ondestroy",
+      "label": ".onDestroy()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".ondestroy()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L300"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_onpause",
+      "label": ".onPause()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".onpause()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L299"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_onresume",
+      "label": ".onResume()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".onresume()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L298"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_render",
+      "label": ".render()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".render()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L301"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported",
+      "label": ".renderFailureIsReported()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".renderfailureisreported()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L253"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_oncreate",
+      "label": ".onCreate()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".oncreate()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L267"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_ondestroy",
+      "label": ".onDestroy()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".ondestroy()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L270"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_onpause",
+      "label": ".onPause()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".onpause()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L269"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_onresume",
+      "label": ".onResume()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".onresume()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L268"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_render",
+      "label": ".render()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".render()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L271"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_oncreate",
+      "label": ".onCreate()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".oncreate()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
+      "source_location": "L223"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_ondestroy",
+      "label": ".onDestroy()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".ondestroy()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
+      "source_location": "L226"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_onpause",
+      "label": ".onPause()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".onpause()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
+      "source_location": "L225"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_onresume",
+      "label": ".onResume()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".onresume()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
+      "source_location": "L224"
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_render",
+      "label": ".render()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": ".render()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
+      "source_location": "L227"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_ui_placesearchviewmodel_decideplacesearchback",
@@ -24681,18 +24909,6 @@
       "source_location": "L311"
     },
     {
-      "id": "app_src_test_java_com_yangchengwei_easytrip_place_ui_placesearchviewmodeltest_placesearchviewmodeltest_backdismissesremovalbeforeclosingdetail",
-      "label": ".backDismissesRemovalBeforeClosingDetail()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 26,
-      "community_name": "PlaceSearchViewModel.kt",
-      "file_type": "code",
-      "norm_label": ".backdismissesremovalbeforeclosingdetail()",
-      "source_file": "app/src/test/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModelTest.kt",
-      "source_location": "L297"
-    },
-    {
       "id": "app_src_test_java_com_yangchengwei_easytrip_place_ui_placesearchviewmodeltest_placesearchviewmodeltest_backisignoredwhiledetailmutationissubmitting",
       "label": ".backIsIgnoredWhileDetailMutationIsSubmitting()",
       "_callable": true,
@@ -24729,76 +24945,88 @@
       "source_location": "L424"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready",
-      "label": ".layerFailureDoesNotReportMapReady()",
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_easytripdatabase_itinerarydao",
+      "label": ".itineraryDao()",
       "_callable": true,
       "_origin": "ast",
       "community": 261,
-      "community_name": "AmapMapHost",
+      "community_name": "SchemaItineraryDao",
       "file_type": "code",
-      "norm_label": ".layerfailuredoesnotreportmapready()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L282"
+      "norm_label": ".itinerarydao()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L29"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_oncreate",
-      "label": ".onCreate()",
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_countbyday",
+      "label": ".countByDay()",
       "_callable": true,
       "_origin": "ast",
       "community": 261,
-      "community_name": "AmapMapHost",
+      "community_name": "SchemaItineraryDao",
       "file_type": "code",
-      "norm_label": ".oncreate()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L297"
+      "norm_label": ".countbyday()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L14"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_ondestroy",
-      "label": ".onDestroy()",
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_countbyid",
+      "label": ".countById()",
       "_callable": true,
       "_origin": "ast",
       "community": 261,
-      "community_name": "AmapMapHost",
+      "community_name": "SchemaItineraryDao",
       "file_type": "code",
-      "norm_label": ".ondestroy()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L300"
+      "norm_label": ".countbyid()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L13"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_onpause",
-      "label": ".onPause()",
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_countbysavedplace",
+      "label": ".countBySavedPlace()",
       "_callable": true,
       "_origin": "ast",
       "community": 261,
-      "community_name": "AmapMapHost",
+      "community_name": "SchemaItineraryDao",
       "file_type": "code",
-      "norm_label": ".onpause()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L299"
+      "norm_label": ".countbysavedplace()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L12"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_onresume",
-      "label": ".onResume()",
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_countbytrip",
+      "label": ".countByTrip()",
       "_callable": true,
       "_origin": "ast",
       "community": 261,
-      "community_name": "AmapMapHost",
+      "community_name": "SchemaItineraryDao",
       "file_type": "code",
-      "norm_label": ".onresume()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L298"
+      "norm_label": ".countbytrip()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L15"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_layerfailuredoesnotreportmapready_object_amapmaphost_l295_render",
-      "label": ".render()",
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_deleteitem",
+      "label": ".deleteItem()",
       "_callable": true,
       "_origin": "ast",
       "community": 261,
-      "community_name": "AmapMapHost",
+      "community_name": "SchemaItineraryDao",
       "file_type": "code",
-      "norm_label": ".render()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L301"
+      "norm_label": ".deleteitem()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L16"
+    },
+    {
+      "id": "app_src_main_java_com_yangchengwei_easytrip_core_database_easytripdatabase_schemaitinerarydao_insertitem",
+      "label": ".insertItem()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 261,
+      "community_name": "SchemaItineraryDao",
+      "file_type": "code",
+      "norm_label": ".insertitem()",
+      "source_file": "app/src/main/java/com/yangchengwei/easytrip/core/database/EasyTripDatabase.kt",
+      "source_location": "L11"
     },
     {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_maplayerflowtest_maplayerflowtest_searchsurfaceisfullwidthandopaque",
@@ -27290,7 +27518,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".disposedhostcallbacksareignoredafterlifecycleownerreplacement()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27302,7 +27530,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".oncreate()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27314,7 +27542,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".ondestroy()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27326,7 +27554,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".onpause()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27338,7 +27566,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".onresume()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27350,7 +27578,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".render()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27362,7 +27590,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".disposedhostreadycallbackisignoredafterreplacement()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27374,7 +27602,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".oncreate()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27386,7 +27614,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".ondestroy()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27398,7 +27626,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".onpause()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27410,7 +27638,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".onresume()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27422,7 +27650,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".render()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27434,7 +27662,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".setonreadylistener()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27446,95 +27674,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".fakehostkeepslifecycleandconsumeseachviewportrequestonce()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
       "source_location": "L396"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_locaterequestinvokesmaphostcurrentlocation",
-      "label": ".locateRequestInvokesMapHostCurrentLocation()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".locaterequestinvokesmaphostcurrentlocation()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L50"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported",
-      "label": ".renderFailureIsReported()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".renderfailureisreported()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L253"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_oncreate",
-      "label": ".onCreate()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".oncreate()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L267"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_ondestroy",
-      "label": ".onDestroy()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".ondestroy()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L270"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_onpause",
-      "label": ".onPause()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".onpause()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L269"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_onresume",
-      "label": ".onResume()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".onresume()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L268"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_renderfailureisreported_object_amapmaphost_l265_render",
-      "label": ".render()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".render()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
-      "source_location": "L271"
     },
     {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_request",
@@ -27542,7 +27686,7 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".request()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -27554,71 +27698,11 @@
       "_callable": true,
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": ".sdkpoitranslationkeepsstableidandmarksmissingiduncollectable()",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
       "source_location": "L40"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_oncreate",
-      "label": ".onCreate()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".oncreate()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
-      "source_location": "L223"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_ondestroy",
-      "label": ".onDestroy()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".ondestroy()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
-      "source_location": "L226"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_onpause",
-      "label": ".onPause()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".onpause()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
-      "source_location": "L225"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_onresume",
-      "label": ".onResume()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".onresume()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
-      "source_location": "L224"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_recordinghost_render",
-      "label": ".render()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": ".render()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt",
-      "source_location": "L227"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_amap_sdkcallbackbridge_awaitsdkcallback",
@@ -33405,6 +33489,18 @@
       "source_location": "L241"
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_locaterequestinvokesmaphostcurrentlocation",
+      "label": ".locateRequestInvokesMapHostCurrentLocation()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 63,
+      "community_name": "View",
+      "file_type": "code",
+      "norm_label": ".locaterequestinvokesmaphostcurrentlocation()",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
+      "source_location": "L50"
+    },
+    {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_amap_amapcomposemaptest_amapcomposemaptest_locaterequestinvokesmaphostcurrentlocation_object_amapmaphost_l64_oncreate",
       "label": ".onCreate()",
       "_callable": true,
@@ -37305,102 +37401,6 @@
       "source_location": "L439"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_deleteplaceandreferences",
-      "label": ".deletePlaceAndReferences()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": ".deleteplaceandreferences()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L600"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_deletionimpact",
-      "label": ".deletionImpact()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": ".deletionimpact()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L599"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_observeplaces",
-      "label": ".observePlaces()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": ".observeplaces()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L588"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_observesavedpoiids",
-      "label": ".observeSavedPoiIds()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": ".observesavedpoiids()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L590"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_observetags",
-      "label": ".observeTags()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": ".observetags()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L589"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_save",
-      "label": ".save()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": ".save()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L591"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_updatedetails",
-      "label": ".updateDetails()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": ".updatedetails()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L597"
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_testsavedplaces_usagecount",
-      "label": ".usageCount()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": ".usagecount()",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L598"
-    },
-    {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_workspaceflowtest_places_save",
       "label": ".save()",
       "_callable": true,
@@ -38769,18 +38769,6 @@
       "source_location": "L20"
     },
     {
-      "id": "app_src_main_java_com_yangchengwei_easytrip_place_ui_placesearchreducer_placesearchreducer_setsavedplaces",
-      "label": ".setSavedPlaces()",
-      "_callable": true,
-      "_origin": "ast",
-      "community": 99,
-      "community_name": "GeoPoint",
-      "file_type": "code",
-      "norm_label": ".setsavedplaces()",
-      "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt",
-      "source_location": "L59"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_route_domain_polylinecodec_polylinecodec_decode",
       "label": ".decode()",
       "_callable": true,
@@ -38803,6 +38791,18 @@
       "norm_label": ".encode()",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/route/domain/PolylineCodec.kt",
       "source_location": "L3"
+    },
+    {
+      "id": "app_src_test_java_com_yangchengwei_easytrip_place_ui_placesearchviewmodeltest_placesearchviewmodeltest_backdismissesremovalbeforeclosingdetail",
+      "label": ".backDismissesRemovalBeforeClosingDetail()",
+      "_callable": true,
+      "_origin": "ast",
+      "community": 99,
+      "community_name": "GeoPoint",
+      "file_type": "code",
+      "norm_label": ".backdismissesremovalbeforeclosingdetail()",
+      "source_file": "app/src/test/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModelTest.kt",
+      "source_location": "L297"
     },
     {
       "id": "app_src_test_java_com_yangchengwei_easytrip_route_domain_polylinecodectest_polylinecodectest_damaged_polyline_fails_decode",
@@ -41580,6 +41580,17 @@
       "source_location": ""
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_kt_flow",
+      "label": "Flow",
+      "_origin": "ast",
+      "community": 123,
+      "community_name": "TestSavedPlaces",
+      "file_type": "code",
+      "norm_label": "flow",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_workspace_tripworkspacecontent",
       "label": "TripWorkspaceContent.kt",
       "_origin": "ast",
@@ -41979,7 +41990,7 @@
       "node_kind": "heading",
       "norm_label": "fix round 1",
       "source_file": ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-7-report.md",
-      "source_location": "L48"
+      "source_location": "L47"
     },
     {
       "id": "superpowers_sdd_2026_08_27_easy_trip_trip_entry_creation_ui_convergence_task_7_report_graphify_\u4e0e\u4ed3\u5e93\u68c0\u67e5",
@@ -41991,7 +42002,7 @@
       "node_kind": "heading",
       "norm_label": "graphify \u4e0e\u4ed3\u5e93\u68c0\u67e5",
       "source_file": ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-7-report.md",
-      "source_location": "L40"
+      "source_location": "L39"
     },
     {
       "id": "superpowers_sdd_2026_08_27_easy_trip_trip_entry_creation_ui_convergence_task_7_report_task_7_report",
@@ -42027,7 +42038,7 @@
       "node_kind": "heading",
       "norm_label": "\u5173\u6ce8\u70b9",
       "source_file": ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-7-report.md",
-      "source_location": "L57"
+      "source_location": "L56"
     },
     {
       "id": "superpowers_sdd_2026_08_27_easy_trip_trip_entry_creation_ui_convergence_task_7_report_\u5b9e\u73b0",
@@ -42051,7 +42062,7 @@
       "node_kind": "heading",
       "norm_label": "\u65b0\u6388\u6743\u805a\u7126\u4fee\u590d",
       "source_file": ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-7-report.md",
-      "source_location": "L62"
+      "source_location": "L61"
     },
     {
       "id": "superpowers_sdd_2026_08_27_easy_trip_trip_entry_creation_ui_convergence_task_7_report_\u72b6\u6001",
@@ -43372,6 +43383,17 @@
       "norm_label": "roomdatabase",
       "source_file": "",
       "source_location": ""
+    },
+    {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest",
+      "label": "V1AcceptanceTest.kt",
+      "_origin": "ast",
+      "community": 14,
+      "community_name": "RoomSavedPlaceRepository",
+      "file_type": "code",
+      "norm_label": "v1acceptancetest.kt",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
+      "source_location": "L1"
     },
     {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_data_roomsavedplacerepository_kt_flow",
@@ -47862,17 +47884,6 @@
       "source_location": "L1"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_v1acceptancetest",
-      "label": "V1AcceptanceTest.kt",
-      "_origin": "ast",
-      "community": 201,
-      "community_name": "RoomRouteLegRepository",
-      "file_type": "code",
-      "norm_label": "v1acceptancetest.kt",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt",
-      "source_location": "L1"
-    },
-    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_route_data_roomroutelegrepository",
       "label": "RoomRouteLegRepository.kt",
       "_origin": "ast",
@@ -51474,6 +51485,17 @@
       "source_location": "L3"
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_kt_amapmaphost",
+      "label": "AmapMapHost",
+      "_origin": "ast",
+      "community": 259,
+      "community_name": "MapUiModel",
+      "file_type": "code",
+      "norm_label": "amapmaphost",
+      "source_file": "",
+      "source_location": ""
+    },
+    {
       "id": "app_src_main_java_com_yangchengwei_easytrip_place_ui_placesearchviewmodel",
       "label": "PlaceSearchViewModel.kt",
       "_origin": "ast",
@@ -51716,7 +51738,7 @@
       "node_kind": "heading",
       "norm_label": "fix round 1",
       "source_file": "docs/testing/trip-entry-creation-ui-acceptance.md",
-      "source_location": "L38"
+      "source_location": "L36"
     },
     {
       "id": "docs_testing_trip_entry_creation_ui_acceptance_task_3_final_fix",
@@ -51728,7 +51750,7 @@
       "node_kind": "heading",
       "norm_label": "task 3 final fix",
       "source_file": "docs/testing/trip-entry-creation-ui-acceptance.md",
-      "source_location": "L45"
+      "source_location": "L43"
     },
     {
       "id": "docs_testing_trip_entry_creation_ui_acceptance_tdd_\u8bc1\u636e",
@@ -51752,7 +51774,7 @@
       "node_kind": "heading",
       "norm_label": "\u5019\u9009\u7ed3\u8bba",
       "source_file": "docs/testing/trip-entry-creation-ui-acceptance.md",
-      "source_location": "L34"
+      "source_location": "L32"
     },
     {
       "id": "docs_testing_trip_entry_creation_ui_acceptance_\u65b0\u6388\u6743\u805a\u7126\u4fee\u590d_\u5220\u9664\u786e\u8ba4\u540c\u6b65\u6062\u590d",
@@ -51764,7 +51786,7 @@
       "node_kind": "heading",
       "norm_label": "\u65b0\u6388\u6743\u805a\u7126\u4fee\u590d:\u5220\u9664\u786e\u8ba4\u540c\u6b65\u6062\u590d",
       "source_file": "docs/testing/trip-entry-creation-ui-acceptance.md",
-      "source_location": "L52"
+      "source_location": "L50"
     },
     {
       "id": "docs_testing_trip_entry_creation_ui_acceptance_\u65c5\u884c\u5165\u53e3\u4e0e\u521b\u5efa_ui_\u5019\u9009\u9a8c\u6536",
@@ -53765,7 +53787,7 @@
       "label": "AmapComposeMapTest.kt",
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": "amapcomposemaptest.kt",
       "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt",
@@ -53776,7 +53798,7 @@
       "label": "Lifecycle",
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": "lifecycle",
       "source_file": "",
@@ -53787,20 +53809,9 @@
       "label": "LifecycleOwner",
       "_origin": "ast",
       "community": 37,
-      "community_name": "MapUiModel",
+      "community_name": "AmapComposeMapTest.kt",
       "file_type": "code",
       "norm_label": "lifecycleowner",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_workspace_searchmapfocustest_kt_amapmaphost",
-      "label": "AmapMapHost",
-      "_origin": "ast",
-      "community": 37,
-      "community_name": "MapUiModel",
-      "file_type": "code",
-      "norm_label": "amapmaphost",
       "source_file": "",
       "source_location": ""
     },
@@ -54798,17 +54809,6 @@
       "file_type": "code",
       "norm_label": "collectiontogglepolicy.kt",
       "source_file": "app/src/main/java/com/yangchengwei/easytrip/place/ui/CollectionTogglePolicy.kt",
-      "source_location": "L1"
-    },
-    {
-      "id": "app_src_test_java_com_yangchengwei_easytrip_place_ui_collectiontogglepolicytest",
-      "label": "CollectionTogglePolicyTest.kt",
-      "_origin": "ast",
-      "community": 43,
-      "community_name": "decideCollectionToggle",
-      "file_type": "code",
-      "norm_label": "collectiontogglepolicytest.kt",
-      "source_file": "app/src/test/java/com/yangchengwei/easytrip/place/ui/CollectionTogglePolicyTest.kt",
       "source_location": "L1"
     },
     {
@@ -59779,17 +59779,6 @@
       "source_location": "L1"
     },
     {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest",
-      "label": "PlaceSearchContentTest.kt",
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": "placesearchcontenttest.kt",
-      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
-      "source_location": "L1"
-    },
-    {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_kt_androidx",
       "label": "androidx",
       "_origin": "ast",
@@ -59808,17 +59797,6 @@
       "community_name": "PlaceCandidate",
       "file_type": "code",
       "norm_label": "com",
-      "source_file": "",
-      "source_location": ""
-    },
-    {
-      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest_kt_flow",
-      "label": "Flow",
-      "_origin": "ast",
-      "community": 93,
-      "community_name": "PlaceCandidate",
-      "file_type": "code",
-      "norm_label": "flow",
       "source_file": "",
       "source_location": ""
     },
@@ -60132,6 +60110,17 @@
       "source_location": ""
     },
     {
+      "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_placesearchcontenttest",
+      "label": "PlaceSearchContentTest.kt",
+      "_origin": "ast",
+      "community": 99,
+      "community_name": "GeoPoint",
+      "file_type": "code",
+      "norm_label": "placesearchcontenttest.kt",
+      "source_file": "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+      "source_location": "L1"
+    },
+    {
       "id": "app_src_androidtest_java_com_yangchengwei_easytrip_place_ui_workspaceplacepoollayouttest",
       "label": "WorkspacePlacePoolLayoutTest.kt",
       "_origin": "ast",
@@ -60174,6 +60163,17 @@
       "norm_label": "result",
       "source_file": "",
       "source_location": ""
+    },
+    {
+      "id": "app_src_test_java_com_yangchengwei_easytrip_place_ui_collectiontogglepolicytest",
+      "label": "CollectionTogglePolicyTest.kt",
+      "_origin": "ast",
+      "community": 99,
+      "community_name": "GeoPoint",
+      "file_type": "code",
+      "norm_label": "collectiontogglepolicytest.kt",
+      "source_file": "app/src/test/java/com/yangchengwei/easytrip/place/ui/CollectionTogglePolicyTest.kt",
+      "source_location": "L1"
     },
     {
       "id": "app_src_test_java_com_yangchengwei_easytrip_place_ui_placesearchreducertest",
@@ -148436,7 +148436,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/testing/trip-entry-creation-ui-acceptance.md",
-      "source_location": "L34",
+      "source_location": "L32",
       "weight": 1.0
     },
     {
@@ -148447,7 +148447,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/testing/trip-entry-creation-ui-acceptance.md",
-      "source_location": "L38",
+      "source_location": "L36",
       "weight": 1.0
     },
     {
@@ -148458,7 +148458,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/testing/trip-entry-creation-ui-acceptance.md",
-      "source_location": "L45",
+      "source_location": "L43",
       "weight": 1.0
     },
     {
@@ -148480,7 +148480,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": "docs/testing/trip-entry-creation-ui-acceptance.md",
-      "source_location": "L52",
+      "source_location": "L50",
       "weight": 1.0
     },
     {
@@ -152803,7 +152803,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-7-report.md",
-      "source_location": "L40",
+      "source_location": "L39",
       "weight": 1.0
     },
     {
@@ -152814,7 +152814,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-7-report.md",
-      "source_location": "L48",
+      "source_location": "L47",
       "weight": 1.0
     },
     {
@@ -152836,7 +152836,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-7-report.md",
-      "source_location": "L57",
+      "source_location": "L56",
       "weight": 1.0
     },
     {
@@ -152847,7 +152847,7 @@
       "confidence": "EXTRACTED",
       "confidence_score": 1.0,
       "source_file": ".superpowers/sdd/2026-08-27-easy-trip-trip-entry-creation-ui-convergence/task-7-report.md",
-      "source_location": "L62",
+      "source_location": "L61",
       "weight": 1.0
     },
     {
@@ -190872,5 +190872,5 @@
     }
   ],
   "hyperedges": [],
-  "built_at_commit": "759770617292f738401b33adab2957a15ced2410"
+  "built_at_commit": "b89a80a1cecad9ded48c6f08bb9a986b3af1bd62"
 }
