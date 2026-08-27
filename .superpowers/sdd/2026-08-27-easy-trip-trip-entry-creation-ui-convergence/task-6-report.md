@@ -29,3 +29,34 @@
 
 - graphify 报告两个既存 Kotlin 文件存在语法提取警告：`NetworkMonitor.kt`、`RoutePlanner.kt`；本任务未修改它们。
 - 当前 `V1PencilFlowTest` 类只有本次闭环测试，因此类级运行共 1 test，不是 0 tests。
+
+## Fix round1
+
+### 修复
+
+- `AppNavigation` 通过 `rememberUpdatedState` 持有最新 `navigationObserver`，通用导航与创建成功导航均读取同一 State；创建成功仍保留 `popUpTo(CREATE_TRIP_ROUTE) { inclusive = true }`。
+- 新增同一 composition 重组替换 observer 的真实 UI 测试，确认旧 observer 不再收到导航，只有新 observer 收到 `trips/create`。
+- requestId replay 改为恢复带同一 requestId 的 `CreateTripViewModel` 状态，经 `effects` 发布 `OpenWorkspace`，并由 `AppNavigationObserver` 记录一个实际导航 target；同时断言 Room 中仅一个 trip、两个 days。
+- 空态容器新增稳定 tag `empty-trips`；闭环用 tag 等待状态稳定，并继续用“开始规划一次旅行”验证业务文案。
+- 删除流程在检查真实 impact 前先等待 `confirmation-confirm` 就绪并验证可点击。
+
+### TDD 证据
+
+- observer freshness 测试在旧实现上 RED：旧 observer 错误收到 `[trips/create]`；生产代码改用最新 State 引用后 GREEN。
+- 空态 tag 测试在未添加 tag 时 RED：5 秒等待超时；添加 `empty-trips` 后随完整闭环 GREEN。
+- requestId replay 首轮运行暴露测试协程调度等待超时；移除虚拟时间 `withTimeout` 等待、直接 join 已启动的 effect collector 后通过。
+
+### 验证
+
+- `V1PencilFlowTest`：2 tests，PASS。
+- `RoomTripRepositoryTest`：17 tests，PASS。
+- `CreateTripRouteTest`：4 tests，PASS。
+- `CreateTripContentTest`：12 tests，PASS。
+- `:app:compileDebugKotlin :app:compileDebugAndroidTestKotlin`：PASS。
+- `graphify update .`：完成，5009 nodes / 10808 edges / 266 communities。
+- `git diff --check`：PASS。
+
+### 关注点
+
+- graphify 仍报告两个既存 Kotlin 文件的语法提取警告：`NetworkMonitor.kt`、`RoutePlanner.kt`；本轮未修改。
+- graphify 社区数变化并提示可执行 `graphify label` 刷新名称；不影响代码和测试结果。

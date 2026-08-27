@@ -30,7 +30,7 @@ import com.yangchengwei.easytrip.core.ui.component.InlineStatus
 
 @Composable
 internal fun EmptyTrips(onCreate: () -> Unit, modifier: Modifier = Modifier) {
-    BoxWithConstraints(modifier.fillMaxWidth()) {
+    BoxWithConstraints(modifier.fillMaxWidth().testTag("empty-trips")) {
         val compact = maxHeight < 360.dp
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),

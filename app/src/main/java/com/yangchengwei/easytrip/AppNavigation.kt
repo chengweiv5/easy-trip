@@ -9,6 +9,7 @@ import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
@@ -130,8 +131,9 @@ fun AppNavigation(
     onOpenApplicationSettings: ((android.content.Context) -> Unit)? = null,
 ) {
     val navController = rememberNavController()
+    val currentNavigationObserver = rememberUpdatedState(navigationObserver)
     val navigate: (String) -> Unit = { route ->
-        navigationObserver?.onNavigate(route)
+        currentNavigationObserver.value?.onNavigate(route)
         navController.navigate(route)
     }
     NavHost(navController, startDestination = TRIP_LIST_ROUTE) {
@@ -149,7 +151,7 @@ fun AppNavigation(
             CreateTripRoute(
                 onBack = navController::popBackStack,
                 onOpenWorkspace = { id ->
-                    navigationObserver?.onNavigate("trips/$id")
+                    currentNavigationObserver.value?.onNavigate("trips/$id")
                     navController.navigate("trips/$id") {
                         popUpTo(CREATE_TRIP_ROUTE) { inclusive = true }
                     }

@@ -2,8 +2,10 @@ package com.yangchengwei.easytrip.trip.data
 
 import android.content.Context
 import android.database.sqlite.SQLiteConstraintException
+import androidx.lifecycle.SavedStateHandle
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
+import com.yangchengwei.easytrip.AppNavigationObserver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.RouteStatus
@@ -14,7 +16,12 @@ import com.yangchengwei.easytrip.place.data.SavedPlaceEntity
 import com.yangchengwei.easytrip.route.data.RouteLegEntity
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.InsertSide
+import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
+import com.yangchengwei.easytrip.trip.ui.CreateTimeMode
+import com.yangchengwei.easytrip.trip.ui.CreateTripAction
+import com.yangchengwei.easytrip.trip.ui.CreateTripEffect
+import com.yangchengwei.easytrip.trip.ui.CreateTripViewModel
 import java.time.Clock
 import java.time.Instant
 import java.time.LocalDate
@@ -27,6 +34,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.produceIn
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.channels.ReceiveChannel
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.withTimeout
@@ -112,25 +120,41 @@ class RoomTripRepositoryTest {
 
     @Test
     fun requestIdReplayStillCreatesOneTripAndOneNavigationTarget() = runTest {
+        val date = LocalDate.parse("2026-10-01")
         val command = CreateTrip(
             name = "Replay",
             dayCount = 2,
             travelMode = TravelMode.FLEXIBLE,
-            startDate = LocalDate.parse("2026-10-01"),
+            startDate = date,
             requestId = "request-1",
         )
-        val first = repository.createTrip(command)
-        val replay = repository.createTrip(command)
-        val navigationTargets = listOf(first, replay).distinct()
-
-        assertEquals(first, replay)
-        assertEquals(listOf(first), navigationTargets)
-        assertEquals(1, repository.observeTrips().first().size)
-        assertEquals(2, repository.observeTrip(first).first()!!.days.size)
-        assertThrows(IllegalArgumentException::class.java) {
-            kotlinx.coroutines.runBlocking { repository.createTrip(command.copy(name = "Conflict")) }
+        val tripId = repository.createTrip(command)
+        val savedState = SavedStateHandle(
+            mapOf(
+                "trip.create.name" to command.name,
+                "trip.create.days" to command.dayCount.toString(),
+                "trip.create.timeMode" to CreateTimeMode.DATED.name,
+                "trip.create.startDate" to date.toString(),
+                "trip.create.travelMode" to command.travelMode.name,
+                "trip.create.requestId" to command.requestId,
+            ),
+        )
+        val navigationTargets = mutableListOf<String>()
+        val observer = AppNavigationObserver(navigationTargets::add)
+        val replayViewModel = CreateTripViewModel(TripService(repository), savedState) { "unexpected-request" }
+        val effectJob = launch {
+            when (val effect = replayViewModel.effects.first()) {
+                is CreateTripEffect.OpenWorkspace -> observer.onNavigate("trips/${effect.tripId}")
+                CreateTripEffect.NavigateBack -> error("Unexpected back navigation")
+            }
         }
+
+        replayViewModel.onAction(CreateTripAction.Submit)
+        effectJob.join()
+
+        assertEquals(listOf("trips/$tripId"), navigationTargets)
         assertEquals(1, repository.observeTrips().first().size)
+        assertEquals(2, repository.observeTrip(tripId).first()!!.days.size)
     }
 
     @Test

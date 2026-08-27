@@ -6,12 +6,18 @@ import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.SideEffect
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.referentialEqualityPolicy
+import androidx.compose.runtime.setValue
 import androidx.room.Room
 import androidx.test.core.app.ApplicationProvider
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
@@ -57,6 +63,43 @@ class V1PencilFlowTest {
     fun tearDown() = database.close()
 
     @Test
+    fun recompositionUsesOnlyLatestNavigationObserver() {
+        val oldRoutes = mutableListOf<String>()
+        val newRoutes = mutableListOf<String>()
+        val oldObserver: AppNavigationObserver = object : AppNavigationObserver {
+            override fun onNavigate(route: String) {
+                oldRoutes += route
+            }
+        }
+        val newObserver: AppNavigationObserver = object : AppNavigationObserver {
+            override fun onNavigate(route: String) {
+                newRoutes += route
+            }
+        }
+        var observer by mutableStateOf(oldObserver, referentialEqualityPolicy())
+        var observedObserver = oldObserver
+        compose.setContent {
+            AppNavigation(
+                service = TripService(repository),
+                repository = repository,
+                impacts = RoomDeleteImpactProvider(database.deleteImpactDao()),
+                navigationObserver = observer,
+            )
+            SideEffect { observedObserver = observer }
+        }
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("create-trip").fetchSemanticsNodes().isNotEmpty() }
+        compose.runOnIdle { observer = newObserver }
+        compose.waitUntil(5_000) { observedObserver === newObserver }
+
+        compose.onNodeWithTag("create-trip").performClick()
+
+        compose.runOnIdle {
+            assertEquals(emptyList<String>(), oldRoutes)
+            assertEquals(listOf(CREATE_TRIP_ROUTE), newRoutes)
+        }
+    }
+
+    @Test
     fun createBackReopenDeleteUsesRoomAndNavigatesExactlyOncePerAction() {
         val routes = mutableListOf<String>()
         val initialDate = LocalDate.of(2027, 3, 15)
@@ -85,7 +128,8 @@ class V1PencilFlowTest {
             )
         }
 
-        compose.waitUntil(5_000) { compose.onAllNodesWithText("开始规划一次旅行").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("empty-trips").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("empty-trips").assertIsDisplayed()
         compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
         compose.onNodeWithTag("create-trip").assertHasClickAction().performClick()
         compose.onNodeWithTag("create-name").performTextInput("杭州周末")
@@ -118,6 +162,10 @@ class V1PencilFlowTest {
         compose.onNodeWithTag("workspace-back").performClick()
         compose.onNodeWithTag("trip-menu-$tripId").assertHasClickAction().performClick()
         compose.onNodeWithTag("trip-menu-delete-$tripId").assertHasClickAction().performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("confirmation-confirm").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("confirmation-confirm").assertHasClickAction()
         compose.onNodeWithText("2 个旅行日").assertIsDisplayed()
         compose.onNodeWithText("0 个收藏地点").assertIsDisplayed()
         compose.onNodeWithText("0 个标签").assertIsDisplayed()
@@ -125,7 +173,8 @@ class V1PencilFlowTest {
         compose.onNodeWithText("0 个路线段").assertIsDisplayed()
         compose.onNodeWithTag("confirmation-confirm").performClick()
 
-        compose.waitUntil(5_000) { compose.onAllNodesWithText("开始规划一次旅行").fetchSemanticsNodes().isNotEmpty() }
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("empty-trips").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("empty-trips").assertIsDisplayed()
         compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
         compose.runOnIdle { assertEquals(listOf("trips/create", "trips/$tripId", "trips/$tripId"), routes) }
         assertEquals(null, runBlocking { repository.observeTrip(tripId).first() })
