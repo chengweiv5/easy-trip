@@ -17,7 +17,13 @@ data class CreateTripUiState(
     val isSubmitting: Boolean = false,
     val submitError: String? = null,
     val requestId: String? = null,
-)
+) {
+    val endDate: LocalDate?
+        get() {
+            val days = dayCount.toLongOrNull() ?: return null
+            return if (timeMode == CreateTimeMode.DATED && days >= 1) startDate?.plusDays(days - 1) else null
+        }
+}
 
 sealed interface CreateTripAction {
     data object Back : CreateTripAction

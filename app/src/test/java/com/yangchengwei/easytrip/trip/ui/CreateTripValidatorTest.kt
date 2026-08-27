@@ -44,4 +44,19 @@ class CreateTripValidatorTest {
         assertEquals(CreateTrip("东京", 3, TravelMode.FLEXIBLE, date), result.command)
         assertEquals(date, result.startDate)
     }
+
+    @Test fun datedDraftComputesInclusiveEndDateWithoutChangingCommand() {
+        val state = CreateTripUiState(
+            name = "东京",
+            dayCount = "3",
+            timeMode = CreateTimeMode.DATED,
+            startDate = LocalDate.of(2026, 10, 1),
+        )
+
+        val command = validateCreateTrip(state).valid!!.command
+
+        assertEquals(LocalDate.of(2026, 10, 3), state.endDate)
+        assertEquals(LocalDate.of(2026, 10, 1), command.startDate)
+        assertEquals(3, command.dayCount)
+    }
 }

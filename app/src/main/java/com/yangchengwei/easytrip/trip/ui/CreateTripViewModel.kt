@@ -10,6 +10,7 @@ import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.TripService
 import java.time.LocalDate
 import java.util.UUID
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -28,43 +29,74 @@ class CreateTripViewModel(
     private val effectChannel = Channel<CreateTripEffect>(Channel.BUFFERED)
     val effects = effectChannel.receiveAsFlow()
     private var submitJob: Job? = null
+    private var submitGeneration = 0L
 
     fun onAction(action: CreateTripAction) {
         val current = mutableState.value
-        val fieldsLocked = current.isSubmitting
+        if (current.isSubmitting) return
         when (action) {
-            CreateTripAction.Back -> if (!fieldsLocked) viewModelScope.launch { effectChannel.send(CreateTripEffect.NavigateBack) }
-            is CreateTripAction.NameChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(name = action.value, nameError = null, submitError = null))
-            is CreateTripAction.DayCountChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(dayCount = action.value.filter(Char::isDigit), dayCountError = null, submitError = null))
-            is CreateTripAction.TimeModeChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(timeMode = action.value, startDate = if (action.value == CreateTimeMode.DRAFT) null else current.startDate, dateError = null))
-            is CreateTripAction.StartDateChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(startDate = action.value, dateError = null))
-            is CreateTripAction.TravelModeChanged -> if (!fieldsLocked) updateForCommandChange(current.copy(travelMode = action.value))
+            CreateTripAction.Back -> viewModelScope.launch { effectChannel.send(CreateTripEffect.NavigateBack) }
+            is CreateTripAction.NameChanged -> updateForCommandChange(current, current.copy(name = action.value, nameError = null, submitError = null))
+            is CreateTripAction.DayCountChanged -> updateForCommandChange(current, current.copy(dayCount = action.value.filter(Char::isDigit), dayCountError = null, submitError = null))
+            is CreateTripAction.TimeModeChanged -> updateForCommandChange(current, current.copy(timeMode = action.value, startDate = if (action.value == CreateTimeMode.DRAFT) null else current.startDate, dateError = null))
+            is CreateTripAction.StartDateChanged -> if (action.value != null) updateForCommandChange(current, current.copy(startDate = action.value, dateError = null))
+            is CreateTripAction.TravelModeChanged -> updateForCommandChange(current, current.copy(travelMode = action.value))
             CreateTripAction.Submit -> submit(current)
         }
     }
 
     private fun submit(current: CreateTripUiState) {
-        if (current.isSubmitting || submitJob?.isActive == true) return
-        val submitted = current.copy(requestId = current.requestId ?: requestIdFactory())
-        update(submitted)
-        val validation = validateCreateTrip(submitted)
+        if (submitJob?.isActive == true) return
+        val validation = validateCreateTrip(current)
         val valid = validation.valid
         if (valid == null) {
-            update(submitted.copy(nameError = validation.nameError, dayCountError = validation.dayCountError, dateError = validation.dateError, requestId = null))
+            update(current.copy(nameError = validation.nameError, dayCountError = validation.dayCountError, dateError = validation.dateError))
             return
         }
-        update(submitted.copy(isSubmitting = true, submitError = null, nameError = null, dayCountError = null, dateError = null))
+        val requestId = current.requestId ?: requestIdFactory()
+        val submitted = current.copy(
+            isSubmitting = true,
+            submitError = null,
+            nameError = null,
+            dayCountError = null,
+            dateError = null,
+            requestId = requestId,
+        )
+        update(submitted)
+        val command = valid.command.copy(requestId = requestId)
+        val generation = ++submitGeneration
         submitJob = viewModelScope.launch {
-            runCatching { service.createTrip(valid.command) }
-                .onSuccess { tripId ->
+            try {
+                val tripId = service.createTrip(command)
+                if (isCurrentSubmission(generation, requestId)) {
                     clear()
                     effectChannel.send(CreateTripEffect.OpenWorkspace(tripId))
                 }
-                .onFailure { update(mutableState.value.copy(isSubmitting = false, submitError = "创建旅行失败，请重试")) }
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (_: Throwable) {
+                if (isCurrentSubmission(generation, requestId)) {
+                    update(mutableState.value.copy(isSubmitting = false, submitError = "创建旅行失败，请重试"))
+                }
+            }
         }
     }
 
-    private fun updateForCommandChange(value: CreateTripUiState) = update(value.copy(requestId = null))
+    private fun isCurrentSubmission(generation: Long, requestId: String): Boolean {
+        val current = mutableState.value
+        return generation == submitGeneration && current.isSubmitting && current.requestId == requestId
+    }
+
+    private fun updateForCommandChange(current: CreateTripUiState, value: CreateTripUiState) {
+        update(if (sameCommand(current, value)) value else value.copy(requestId = null))
+    }
+
+    private fun sameCommand(left: CreateTripUiState, right: CreateTripUiState) =
+        left.name == right.name &&
+            left.dayCount == right.dayCount &&
+            left.timeMode == right.timeMode &&
+            left.startDate == right.startDate &&
+            left.travelMode == right.travelMode
 
     private fun update(value: CreateTripUiState) {
         mutableState.value = value
@@ -77,6 +109,11 @@ class CreateTripViewModel(
     }
 
     private fun clear() = update(CreateTripUiState())
+
+    override fun onCleared() {
+        submitGeneration++
+        super.onCleared()
+    }
 
     private fun savedCreateState() = CreateTripUiState(
         name = savedState[CREATE_NAME] ?: "",

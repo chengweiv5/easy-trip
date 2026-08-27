@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModelStore
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.InsertSide
@@ -9,7 +10,9 @@ import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import java.time.LocalDate
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitCancellation
@@ -22,6 +25,7 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
@@ -146,6 +150,120 @@ class CreateTripViewModelTest {
         assertEquals("restored-request", repository.commands.single().requestId)
     }
 
+    @Test fun clearingOrDismissingDatePickerDoesNotEraseValidDraft() = runTest(dispatcher) {
+        val viewModel = model(FakeRepository())
+        viewModel.onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DATED))
+        viewModel.onAction(CreateTripAction.StartDateChanged(LocalDate.of(2026, 10, 1)))
+
+        viewModel.onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DATED))
+        viewModel.onAction(CreateTripAction.StartDateChanged(null))
+
+        assertEquals(CreateTimeMode.DATED, viewModel.state.value.timeMode)
+        assertEquals(LocalDate.of(2026, 10, 1), viewModel.state.value.startDate)
+    }
+
+    @Test fun allMutatingActionsAreIgnoredWhileSubmitting() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { pendingCreates += CompletableDeferred() }
+        val viewModel = model(repository)
+        enterValidDraft(viewModel)
+        viewModel.onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DATED))
+        viewModel.onAction(CreateTripAction.StartDateChanged(LocalDate.of(2026, 10, 1)))
+        viewModel.onAction(CreateTripAction.TravelModeChanged(TravelMode.SELF_DRIVE))
+
+        viewModel.onAction(CreateTripAction.Submit)
+        dispatcher.scheduler.runCurrent()
+        val submitting = viewModel.state.value
+        viewModel.onAction(CreateTripAction.NameChanged("大阪"))
+        viewModel.onAction(CreateTripAction.DayCountChanged("9"))
+        viewModel.onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DRAFT))
+        viewModel.onAction(CreateTripAction.StartDateChanged(LocalDate.of(2027, 1, 1)))
+        viewModel.onAction(CreateTripAction.TravelModeChanged(TravelMode.FLEXIBLE))
+        viewModel.onAction(CreateTripAction.Submit)
+        viewModel.onAction(CreateTripAction.Back)
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(submitting, viewModel.state.value)
+        assertEquals(1, repository.createCalls)
+        assertNull(withTimeoutOrNull(1) { viewModel.effects.first() })
+    }
+
+    @Test fun cancelledSubmitDoesNotBecomeFailure() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { suspendCreate = true }
+        val store = ViewModelStore()
+        val viewModel = CreateTripViewModel(TripService(repository), SavedStateHandle()) { "request-1" }
+        store.put("create", viewModel)
+        enterValidDraft(viewModel)
+        viewModel.onAction(CreateTripAction.Submit)
+        dispatcher.scheduler.runCurrent()
+
+        store.clear()
+        dispatcher.scheduler.runCurrent()
+
+        assertNull(viewModel.state.value.submitError)
+    }
+
+    @Test fun staleCompletionCannotClearNewDraftOrPublishNavigation() = runTest(dispatcher) {
+        val repository = FakeRepository().apply {
+            pendingCreates += CompletableDeferred()
+            pendingCreates += CompletableDeferred()
+        }
+        val saved = SavedStateHandle()
+        val first = CreateTripViewModel(TripService(repository), saved) { "request-1" }
+        val firstStore = ViewModelStore().also { it.put("create", first) }
+        enterValidDraft(first)
+        first.onAction(CreateTripAction.Submit)
+        dispatcher.scheduler.runCurrent()
+
+        firstStore.clear()
+        val second = CreateTripViewModel(TripService(repository), saved) { "request-2" }
+        second.onAction(CreateTripAction.NameChanged("大阪"))
+        repository.pendingCreates.first().complete("old-trip")
+        advanceUntilIdle()
+
+        assertEquals("大阪", second.state.value.name)
+        assertEquals("大阪", saved.get<String>("trip.create.name"))
+        assertNull(withTimeoutOrNull(1) { first.effects.first() })
+    }
+
+    @Test fun savedStateRestoresDraftButDoesNotAutoSubmitOrNavigate() = runTest(dispatcher) {
+        val saved = SavedStateHandle(
+            mapOf(
+                "trip.create.name" to "京都",
+                "trip.create.days" to "4",
+                "trip.create.requestId" to "restored-request",
+            ),
+        )
+        val repository = FakeRepository()
+        val viewModel = model(repository, saved)
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals("京都", viewModel.state.value.name)
+        assertEquals("restored-request", viewModel.state.value.requestId)
+        assertEquals(0, repository.createCalls)
+        assertFalse(viewModel.state.value.isSubmitting)
+        assertNull(withTimeoutOrNull(1) { viewModel.effects.first() })
+    }
+
+    @Test fun failedRetryReusesRequestIdUntilCommandChanges() = runTest(dispatcher) {
+        val ids = ArrayDeque(listOf("request-1", "request-2"))
+        val repository = FakeRepository().apply { failure = IllegalStateException("failed") }
+        val viewModel = CreateTripViewModel(TripService(repository), SavedStateHandle()) { ids.removeFirst() }
+        enterValidDraft(viewModel)
+
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+        viewModel.onAction(CreateTripAction.StartDateChanged(null))
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+        viewModel.onAction(CreateTripAction.NameChanged("大阪"))
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("request-1", "request-1", "request-1", "request-2"), repository.commands.map { it.requestId })
+    }
+
     @Test fun backEmitsNavigateBackWhenIdle() = runTest(dispatcher) {
         val viewModel = model(FakeRepository())
         val effect = async { viewModel.effects.first() }
@@ -217,6 +335,7 @@ class CreateTripViewModelTest {
         var failure: Throwable? = null
         var loseFirstAcknowledgement = false
         var suspendCreate = false
+        val pendingCreates = ArrayDeque<CompletableDeferred<String>>()
         var createCalls = 0
         override fun observeTrips(): Flow<List<TripSummary>> = trips
         override fun observeTrip(tripId: String): Flow<TripWithDays?> = emptyFlow()
@@ -224,6 +343,7 @@ class CreateTripViewModelTest {
             createCalls++
             commands += command
             if (suspendCreate) awaitCancellation()
+            if (pendingCreates.isNotEmpty()) return withContext(NonCancellable) { pendingCreates.removeFirst().await() }
             failure?.let { throw it }
             val id = command.requestId ?: "trip-1"
             val isNew = persistedRequests.add(id)
