@@ -45,3 +45,10 @@
 - 新增 idle 系统 Back 的 `onBack` 新鲜度测试；临时让 effect collector 捕获旧 `onBack` 后按预期得到 `back-1` 而非 `back-2`，恢复 `rememberUpdatedState` 后 GREEN，且新 callback 仅调用一次。
 - `CreateTripContentTest` 与 `CreateTripRouteTest` 共 16 项通过；`CreateTripViewModelTest`、`compileDebugKotlin` 与 `compileDebugAndroidTestKotlin` 通过。
 - IME 验证边界不变：仅确认真实焦点、可滚动 viewport、关键内容可达和 `imePadding` 结构，不声称仪器环境已观测软键盘实际显示。
+
+## Fix round 3
+
+- DatePicker 颜色测试不再统计整屏主色像素；通过 `isSelected()` 精确定位 selected-day 语义节点，仅截取该节点并断言其容器像素为 `EasyTripPrimary`。
+- 测试外围将 Material 默认 primary 覆盖为洋红色；临时删除生产 `selectedDayContainerColor` 映射后，选中日期区域实际变为洋红色并按预期 RED，恢复 Forest Sage 映射后 GREEN。
+- 容器背景仍通过 DatePicker 根节点局部像素验证。2027-01 固定测试月份不包含执行当天，因此 today 色仅由生产 palette 契约和代码审查覆盖，不声称完成 today 像素验证。
+- `CreateTripContentTest` 与 `CreateTripRouteTest` 共 16 项通过；`compileDebugKotlin` 与 `compileDebugAndroidTestKotlin` 通过。

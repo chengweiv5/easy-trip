@@ -8,6 +8,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -23,6 +24,7 @@ import androidx.compose.ui.test.assertIsFocused
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -194,21 +196,27 @@ class CreateTripContentTest {
     @Test fun easyTripDatePickerRendersForestSageContainerAndSelectedDay() {
         compose.setContent {
             EasyTripTheme {
-                Box(Modifier.width(560.dp).height(560.dp)) {
-                    EasyTripDatePicker(
-                        state = rememberDatePickerState(initialSelectedDateMillis = 1_799_625_600_000L),
-                        modifier = Modifier.testTag("picker-under-test"),
-                    )
+                MaterialTheme(colorScheme = MaterialTheme.colorScheme.copy(primary = Color.Magenta)) {
+                    Box(Modifier.width(560.dp).height(560.dp)) {
+                        EasyTripDatePicker(
+                            state = rememberDatePickerState(initialSelectedDateMillis = 1_799_625_600_000L),
+                            modifier = Modifier.testTag("picker-under-test"),
+                        )
+                    }
                 }
             }
         }
 
-        val image = compose.onNodeWithTag("picker-under-test").captureToImage().toPixelMap()
-        assertEquals(EasyTripSurface, image[4, 4])
-        val primaryPixels = (0 until image.width).sumOf { x ->
-            (0 until image.height).count { y -> image[x, y].isNear(EasyTripPrimary) }
-        }
-        org.junit.Assert.assertTrue(primaryPixels > 100)
+        val pickerImage = compose.onNodeWithTag("picker-under-test").captureToImage().toPixelMap()
+        assertEquals(EasyTripSurface, pickerImage[4, 4])
+
+        val selectedDayImage = compose.onNode(isSelected(), useUnmergedTree = true)
+            .captureToImage()
+            .toPixelMap()
+        assertEquals(
+            EasyTripPrimary,
+            selectedDayImage[selectedDayImage.width / 4, selectedDayImage.height / 2],
+        )
     }
 
     @Test fun datePickerUsesForestSageThemeAndKeepsDraftOnDismiss() {
@@ -294,12 +302,6 @@ class CreateTripContentTest {
         pressBack()
         compose.onNodeWithText("创建旅行", useUnmergedTree = true).assertIsDisplayed()
     }
-
-    private fun Color.isNear(other: Color, tolerance: Float = 0.01f) =
-        kotlin.math.abs(red - other.red) < tolerance &&
-            kotlin.math.abs(green - other.green) < tolerance &&
-            kotlin.math.abs(blue - other.blue) < tolerance &&
-            kotlin.math.abs(alpha - other.alpha) < tolerance
 
     @Test fun narrowLargeFontAndImeKeepFocusedFieldAndSubmitReachable() {
         compose.setContent {
