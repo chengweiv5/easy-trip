@@ -1,116 +1,134 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
-import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
-import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Rule
 import org.junit.Test
 
 class TripListContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun loadingStateRenders() {
-        setContent(TripListPageState.Loading)
-        compose.onNodeWithText("正在加载旅行").assertIsDisplayed()
-    }
-
-    @Test fun emptyListShowsDesignedHeaderIllustrationAndCompactCreateAction() {
+    @Test fun profileAvatarIsDecorativeAndHasNoClickOrButtonSemantics() {
         setContent(TripListPageState.Empty)
 
-        compose.onNodeWithText("周末，去远一点").assertIsDisplayed()
-        compose.onNodeWithContentDescription("个人中心").assertIsDisplayed()
-        compose.onNodeWithContentDescription("旅行行李插画").assertIsDisplayed()
-        compose.onNodeWithText("还没有旅行计划").assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(220.dp)
-        compose.onAllNodesWithTag("create-trip").assertCountEquals(1)
+        compose.onNodeWithTag("profile-avatar", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("profile-avatar", useUnmergedTree = true)
+            .assert(SemanticsProperties.Role.keyNotDefined())
+            .assert(SemanticsActions.OnClick.keyNotDefined())
+        compose.onAllNodesWithContentDescription("个人中心").assertCountEquals(0)
+        compose.onAllNodes(hasClickAction() and androidx.compose.ui.test.hasTestTag("profile-avatar")).assertCountEquals(0)
     }
 
-    @Test fun profileMenuInvokesCallbackExactlyOnce() {
-        var clicks = 0
+    @Test fun primaryTripUsesSingleEntryActionAndFortyDpMenu() {
+        val actions = mutableListOf<TripListAction>()
+        setContent(content(), actions::add)
+
+        compose.onNodeWithTag("continue-trip-trip-1").assertHeightIsEqualTo(48.dp).performClick()
+        assertEquals(listOf(TripListAction.OpenTrip("trip-1")), actions)
+        compose.onNodeWithTag("trip-menu-trip-1").assertWidthIsEqualTo(40.dp).assertHeightIsEqualTo(40.dp)
+        compose.onAllNodesWithTag("trip-trip-1").assertCountEquals(0)
+        compose.onAllNodesWithTag("trip-settings-trip-1").assertCountEquals(0)
+        compose.onAllNodesWithTag("trip-delete-trip-1").assertCountEquals(0)
+    }
+
+    @Test fun primaryMenuContainsOnlySettingsAndDeleteForBoundTrip() {
+        val actions = mutableListOf<TripListAction>()
+        setContent(content(), actions::add)
+
+        compose.onNodeWithTag("trip-menu-trip-1").performClick()
+        compose.onNodeWithTag("trip-menu-settings-trip-1").performClick()
+        compose.onNodeWithTag("trip-menu-trip-1").performClick()
+        compose.onNodeWithTag("trip-menu-delete-trip-1").performClick()
+
+        assertEquals(
+            listOf(TripListAction.OpenSettings("trip-1"), TripListAction.RequestDelete("trip-1")),
+            actions,
+        )
+        compose.onAllNodesWithTag("trip-menu-settings-trip-2").assertCountEquals(0)
+    }
+
+    @Test fun otherTripMenuIsBoundToStableTripId() {
+        val page = mutableStateOf(content())
+        val actions = mutableListOf<TripListAction>()
+        compose.setContent {
+            EasyTripTheme { TripListContent(TripListUiState(page = page.value), actions::add) }
+        }
+
+        compose.onNodeWithTag("trip-menu-trip-2").performClick()
+        page.value = TripListPageState.Content(
+            primaryTrip = trip("trip-1", "京都"),
+            otherTrips = listOf(trip("trip-3", "首尔"), trip("trip-2", "东京")),
+        )
+        compose.waitForIdle()
+        compose.onNodeWithTag("trip-menu-delete-trip-2").performClick()
+
+        assertEquals(listOf(TripListAction.RequestDelete("trip-2")), actions)
+    }
+
+    @Test fun emptyStateUsesRemainingSpaceWithoutFixedHeight() {
+        var emptyHeight = 0
         compose.setContent {
             EasyTripTheme {
-                TripListContent(
-                    state = TripListUiState(page = TripListPageState.Empty),
-                    onAction = {},
-                    onProfile = { clicks++ },
-                )
+                Box(Modifier.requiredWidth(320.dp).height(480.dp)) {
+                    TripListContent(
+                        state = TripListUiState(page = TripListPageState.Empty),
+                        onAction = {},
+                        modifier = Modifier.fillMaxSize(),
+                        emptyStateModifier = Modifier.onGloballyPositioned { emptyHeight = it.size.height },
+                    )
+                }
             }
         }
 
-        compose.onNodeWithContentDescription("个人中心").performClick()
-        assertEquals(1, clicks)
+        compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
+        compose.onNodeWithText("创建旅行后，可以收藏地点并按天安排行程").assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").performScrollTo().assertIsDisplayed()
+        assertFalse(emptyHeight == 647)
     }
 
-    @Test fun emptyStateRendersAndOpensCreate() {
-        var action: TripListAction? = null
-        setContent(TripListPageState.Empty) { action = it }
-        compose.onNodeWithText("还没有旅行计划").assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").performClick()
-        assertEquals(TripListAction.CreateTrip, action)
-    }
-
-    @Test fun titleUsesDisplaySizeAndTripCardsExposeActions() {
-        setContent(
-            TripListPageState.Content(
-                listOf(
-                    TripCardUiModel("trip-1", "京都", "3 天", null, "灵活"),
-                    TripCardUiModel("trip-2", "东京", "2 天", null, "自驾"),
-                ),
-            ),
-        )
-
-        compose.onNodeWithTag("trip-list-title").assertIsDisplayed()
-        compose.onNodeWithTag("primary-trip-trip-1").assertIsDisplayed()
-        compose.onNodeWithText("其他旅行").assertIsDisplayed()
-        compose.onNodeWithTag("other-trip-trip-2").assertIsDisplayed().assertHeightIsEqualTo(72.dp)
-        compose.onNodeWithText("待定日期 · 自驾").assertIsDisplayed()
-    }
-
-    @Test fun longTripNameAndLargeFontRemainScrollable() {
+    @Test fun longNamesAtNarrowWidthAndLargeFontKeepActionsReachable() {
         var overflowed = false
         compose.setContent {
-            androidx.compose.runtime.CompositionLocalProvider(
-                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(
-                    density = 1f,
-                    fontScale = 2f,
-                ),
-            ) {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
                 EasyTripTheme {
-                    androidx.compose.foundation.layout.Box(
-                        Modifier.requiredWidth(280.dp).fillMaxHeight(),
-                    ) {
+                    Box(Modifier.requiredWidth(280.dp).height(900.dp)) {
                         TripListContent(
-                            modifier = Modifier.onGloballyPositioned { root ->
-                                overflowed = root.size.width > 280
-                            },
+                            modifier = Modifier.onGloballyPositioned { overflowed = it.size.width > 280 },
                             state = TripListUiState(
                                 page = TripListPageState.Content(
-                                    listOf(
-                                        TripCardUiModel(
-                                            "trip-long",
-                                            "一段特别特别长而且需要完整换行展示的旅行名称",
-                                            "123 个旅行日",
-                                            "2026年12月31日",
-                                            "超长自驾出行方式",
-                                        ),
-                                    ),
+                                    primaryTrip = trip("trip-long", "一段特别特别长而且需要完整换行展示的旅行名称"),
+                                    otherTrips = listOf(trip("trip-other", "另一段同样很长而且需要换行的旅行名称")),
                                 ),
                             ),
                             onAction = {},
@@ -120,72 +138,40 @@ class TripListContentTest {
             }
         }
 
-        compose.onNodeWithTag("metadata-days-trip-long", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("metadata-mode-trip-long", useUnmergedTree = true).performScrollTo().assertIsDisplayed()
-        val daysBounds = compose.onNodeWithTag("metadata-days-trip-long", useUnmergedTree = true).getUnclippedBoundsInRoot()
-        val modeBounds = compose.onNodeWithTag("metadata-mode-trip-long", useUnmergedTree = true).getUnclippedBoundsInRoot()
-        assertEquals(true, daysBounds.left >= 0.dp && daysBounds.right <= 280.dp)
-        assertEquals(true, modeBounds.left >= 0.dp && modeBounds.right <= 280.dp)
-        compose.onNodeWithTag("trip-settings-trip-long").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("trip-delete-trip-long").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("continue-trip-trip-long").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("trip-menu-trip-long").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("other-trip-trip-other").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("trip-menu-trip-other").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("create-trip").performScrollTo().assertIsDisplayed()
-        assertEquals(false, overflowed)
+        val menuBounds = compose.onNodeWithTag("trip-menu-trip-long").getUnclippedBoundsInRoot()
+        assertEquals(true, menuBounds.left >= 0.dp && menuBounds.right <= 280.dp)
+        assertFalse(overflowed)
     }
 
-    @Test fun contentRenders_andActionsEachFireExactlyOnceWithoutParentLeak() {
+    @Test fun errorStateKeepsCreateAndRetryActions() {
         val actions = mutableListOf<TripListAction>()
-        setContent(
-            TripListPageState.Content(
-                listOf(TripCardUiModel("trip-1", "京都", "3 天", "2026年10月1日", "灵活")),
-            ),
-            actions::add,
-        )
+        setContent(TripListPageState.Error("无法加载旅行"), actions::add)
 
-        compose.onNodeWithText("京都").assertIsDisplayed()
-        compose.onNodeWithText("3 天").assertIsDisplayed()
-        compose.onNodeWithText("2026年10月1日").assertIsDisplayed()
-
-        compose.onNodeWithTag("trip-settings-trip-1").performClick()
-        assertEquals(listOf(TripListAction.OpenSettings("trip-1")), actions)
-
-        compose.onNodeWithTag("trip-delete-trip-1").performClick()
-        assertEquals(
-            listOf(TripListAction.OpenSettings("trip-1"), TripListAction.RequestDelete("trip-1")),
-            actions,
-        )
-
-        compose.onNodeWithTag("trip-trip-1").performClick()
-        assertEquals(
-            listOf(
-                TripListAction.OpenSettings("trip-1"),
-                TripListAction.RequestDelete("trip-1"),
-                TripListAction.OpenTrip("trip-1"),
-            ),
-            actions,
-        )
+        compose.onNodeWithTag("retry-trips").performClick()
+        compose.onNodeWithTag("create-trip").performClick()
+        assertEquals(listOf(TripListAction.Retry, TripListAction.CreateTrip), actions)
     }
 
-    @Test fun errorState_retries() {
-        var action: TripListAction? = null
-        setContent(TripListPageState.Error("无法加载旅行")) { action = it }
-        compose.onNodeWithText("重试").performClick()
-        assertEquals(TripListAction.Retry, action)
-    }
+    private fun content() = TripListPageState.Content(
+        primaryTrip = trip("trip-1", "京都"),
+        otherTrips = listOf(trip("trip-2", "东京")),
+    )
 
-    @Test fun tripCard_hasReadableAccessibilityLabels() {
-        setContent(
-            TripListPageState.Content(
-                listOf(TripCardUiModel("trip-1", "京都", "3 天", null, "自驾")),
-            ),
-        )
-        compose.onNodeWithContentDescription("打开旅行 京都").assertIsDisplayed()
-        compose.onNodeWithContentDescription("设置 京都").assertIsDisplayed()
-        compose.onNodeWithContentDescription("删除 京都").assertIsDisplayed()
-    }
+    private fun trip(id: String, name: String) = TripCardUiModel(id, name, "3 天", null, "灵活")
 
     private fun setContent(page: TripListPageState, onAction: (TripListAction) -> Unit = {}) {
         compose.setContent {
             EasyTripTheme { TripListContent(TripListUiState(page = page), onAction) }
         }
     }
+
+    private fun <T> androidx.compose.ui.semantics.SemanticsPropertyKey<T>.keyNotDefined() =
+        androidx.compose.ui.test.SemanticsMatcher("$name is not defined") { node ->
+            node.config.getOrNull(this) == null
+        }
 }
