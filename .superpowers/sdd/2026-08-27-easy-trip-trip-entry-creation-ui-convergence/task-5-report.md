@@ -37,3 +37,11 @@
 - 新增 Route 层测试：idle 系统 Back 触发返回 effect，submitting 时消费 Back，重组替换 callback 后 workspace effect 调用最新 callback。
 - Fix round 1 RED：字段顺序测试在旧顺序下失败；颜色契约测试在契约不存在时编译失败。
 - Fix round 1 GREEN：`CreateTripContentTest` 与 `CreateTripRouteTest` 共 14 项通过。
+
+## Fix round 2
+
+- 新增唯一生产渲染边界 `EasyTripDatePicker`，创建旅行日期弹层统一通过该边界消费 Forest Sage `DatePickerDefaults.colors` 映射。
+- 新增真实渲染像素测试，验证 DatePicker 容器色和 selected/today 使用的主色像素；临时删除生产 `colors = DatePickerDefaults.colors(...)` 后测试按预期 RED，容器实际呈现默认 Material 紫灰色，恢复映射后 GREEN。
+- 新增 idle 系统 Back 的 `onBack` 新鲜度测试；临时让 effect collector 捕获旧 `onBack` 后按预期得到 `back-1` 而非 `back-2`，恢复 `rememberUpdatedState` 后 GREEN，且新 callback 仅调用一次。
+- `CreateTripContentTest` 与 `CreateTripRouteTest` 共 16 项通过；`CreateTripViewModelTest`、`compileDebugKotlin` 与 `compileDebugAndroidTestKotlin` 通过。
+- IME 验证边界不变：仅确认真实焦点、可滚动 viewport、关键内容可达和 `imePadding` 结构，不声称仪器环境已观测软键盘实际显示。

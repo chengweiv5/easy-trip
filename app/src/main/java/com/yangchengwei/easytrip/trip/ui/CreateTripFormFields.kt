@@ -13,6 +13,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDefaults
 import androidx.compose.material3.DatePickerDialog
+import androidx.compose.material3.DatePickerState
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
@@ -62,6 +63,36 @@ internal fun createTripDatePickerPalette() = CreateTripDatePickerPalette(
     onPrimary = EasyTripSurface,
     outline = EasyTripBorder,
 )
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun EasyTripDatePicker(
+    state: DatePickerState,
+    modifier: Modifier = Modifier,
+) {
+    val palette = createTripDatePickerPalette()
+    DatePicker(
+        state = state,
+        modifier = modifier,
+        colors = DatePickerDefaults.colors(
+            containerColor = palette.container,
+            titleContentColor = palette.content,
+            headlineContentColor = palette.content,
+            weekdayContentColor = palette.secondaryContent,
+            subheadContentColor = palette.secondaryContent,
+            navigationContentColor = palette.primary,
+            yearContentColor = palette.content,
+            currentYearContentColor = palette.primary,
+            selectedYearContentColor = palette.onPrimary,
+            selectedYearContainerColor = palette.primary,
+            dayContentColor = palette.content,
+            selectedDayContentColor = palette.onPrimary,
+            selectedDayContainerColor = palette.primary,
+            todayContentColor = palette.primary,
+            todayDateBorderColor = palette.outline,
+        ),
+    )
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -219,7 +250,6 @@ internal fun CreateTripFormFields(
     if (showPicker && enabled) {
         val millis = state.startDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli() ?: initialDateMillis
         val picker = rememberDatePickerState(initialSelectedDateMillis = millis, initialDisplayedMonthMillis = millis)
-        val palette = createTripDatePickerPalette()
         DatePickerDialog(
             onDismissRequest = { showPicker = false },
             confirmButton = {
@@ -234,26 +264,9 @@ internal fun CreateTripFormFields(
                 ) { Text("确定日期") }
             },
         ) {
-            DatePicker(
+            EasyTripDatePicker(
                 state = picker,
                 modifier = Modifier.testTag("create-date-picker"),
-                colors = DatePickerDefaults.colors(
-                    containerColor = palette.container,
-                    titleContentColor = palette.content,
-                    headlineContentColor = palette.content,
-                    weekdayContentColor = palette.secondaryContent,
-                    subheadContentColor = palette.secondaryContent,
-                    navigationContentColor = palette.primary,
-                    yearContentColor = palette.content,
-                    currentYearContentColor = palette.primary,
-                    selectedYearContentColor = palette.onPrimary,
-                    selectedYearContainerColor = palette.primary,
-                    dayContentColor = palette.content,
-                    selectedDayContentColor = palette.onPrimary,
-                    selectedDayContainerColor = palette.primary,
-                    todayContentColor = palette.primary,
-                    todayDateBorderColor = palette.outline,
-                ),
             )
         }
     }

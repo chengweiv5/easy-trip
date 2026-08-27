@@ -36,6 +36,23 @@ class CreateTripRouteTest {
         compose.waitUntil { callbacks == listOf("back") }
     }
 
+    @Test fun idleSystemBackUsesLatestOnBackAfterRecomposition() {
+        val callbacks = mutableListOf<String>()
+        val viewModel = viewModel()
+        var generation by mutableStateOf(1)
+        compose.setContent {
+            EasyTripTheme {
+                val current = generation
+                CreateTripRoute({ callbacks += "back-$current" }, {}, viewModel)
+            }
+        }
+        compose.runOnIdle { generation = 2 }
+
+        pressBack()
+        compose.waitUntil { callbacks.size == 1 }
+        assertEquals(listOf("back-2"), callbacks)
+    }
+
     @Test fun submittingConsumesSystemBack() {
         val callbacks = mutableListOf<String>()
         val repository = BlockingRepository()
