@@ -4,13 +4,16 @@ import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Butto
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavType
@@ -19,9 +22,9 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
 import com.yangchengwei.easytrip.trip.domain.TripRepository
+import com.yangchengwei.easytrip.amap.AmapConsentFact
+import com.yangchengwei.easytrip.amap.AmapConsentStore
 import com.yangchengwei.easytrip.amap.AmapConsentToken
-import com.yangchengwei.easytrip.amap.AmapPrivacyGate
-import com.yangchengwei.easytrip.place.amap.AmapPlaceDataSource
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import com.yangchengwei.easytrip.place.ui.PlacePoolSheet
 import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
@@ -64,6 +67,7 @@ import com.yangchengwei.easytrip.itinerary.ui.DayItinerarySheet
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
 import com.yangchengwei.easytrip.workspace.TripWorkspaceRoute
 import com.yangchengwei.easytrip.workspace.TripWorkspaceViewModel
+import kotlinx.coroutines.launch
 
 const val TRIP_LIST_ROUTE = "trips"
 const val CREATE_TRIP_ROUTE = "trips/create"
@@ -71,6 +75,116 @@ const val TRIP_WORKSPACE_ROUTE = "trips/{tripId}"
 const val TRIP_SETTINGS_ROUTE = "trips/{tripId}/settings"
 const val TRIP_SEARCH_ROUTE = "trips/{tripId}/search"
 internal const val WORKSPACE_SEARCH_RETURN_KEY = "searchReturnPoiIds"
+
+internal fun dispatchLocationPermissionRequest(
+    generation: Long,
+    launcher: (Array<String>) -> Result<Unit>,
+    coordinator: LocationPermissionCoordinator,
+): Result<Unit> = launcher(
+    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
+).onSuccess {
+    coordinator.onPermissionLaunchStarted(generation)
+}.onFailure {
+    coordinator.onPermissionLaunchFailed(generation)
+}
+
+internal fun dispatchApplicationSettingsRequest(
+    generation: Long,
+    launcher: () -> Result<Unit>,
+    coordinator: LocationPermissionCoordinator,
+) {
+    launcher().onSuccess {
+        coordinator.onSettingsLaunchStarted(generation)
+    }.onFailure {
+        coordinator.onSettingsLaunchFailed(generation)
+    }
+}
+
+internal fun applyConsentDecision(
+    result: Result<Unit>,
+    error: String?,
+    onSuccess: () -> Unit,
+    onFailure: (String?) -> Unit,
+) {
+    if (result.isSuccess) onSuccess() else onFailure(error)
+}
+
+@Composable
+internal fun AmapConsentDialog(
+    store: AmapConsentStore,
+    policyRead: Boolean,
+    onPolicyReadChange: (Boolean) -> Unit,
+    onClose: () -> Unit,
+    onDecisionSuccess: () -> Unit,
+    context: android.content.Context,
+) {
+    val privacyReported by store.shown.collectAsStateWithLifecycle()
+    var shownAttempt by remember { mutableStateOf(0) }
+    var shownError by remember { mutableStateOf<String?>(null) }
+    var consentError by remember { mutableStateOf<String?>(null) }
+    val coroutineScope = rememberCoroutineScope()
+
+    LaunchedEffect(shownAttempt) {
+        store.reportShown().onSuccess {
+            shownError = null
+        }.onFailure {
+            shownError = "隐私说明展示失败，请重试"
+        }
+    }
+    AlertDialog(
+        onDismissRequest = onClose,
+        title = { Text("高德服务隐私说明") },
+        text = {
+            Column {
+                Text("搜索地点会调用高德地图服务。不同意仍可使用本地点池。")
+                shownError?.let {
+                    Text(it)
+                    TextButton(onClick = { shownAttempt++ }) { Text("重试") }
+                }
+                consentError?.let { Text(it) }
+                TextButton(onClick = {
+                    context.startActivity(
+                        Intent(Intent.ACTION_VIEW, Uri.parse("https://lbs.amap.com/home/privacy/")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
+                    )
+                }) { Text("阅读高德隐私权政策") }
+                androidx.compose.foundation.layout.Row {
+                    Checkbox(policyRead, onPolicyReadChange)
+                    Text("我已阅读高德隐私权政策")
+                }
+            }
+        },
+        confirmButton = {
+            TextButton(
+                enabled = privacyReported && policyRead,
+                onClick = {
+                    coroutineScope.launch {
+                        applyConsentDecision(
+                            result = store.decide(true),
+                            error = store.state.value.error,
+                            onSuccess = onDecisionSuccess,
+                            onFailure = { consentError = it },
+                        )
+                    }
+                },
+            ) { Text("同意并启用搜索") }
+        },
+        dismissButton = {
+            TextButton(
+                enabled = privacyReported,
+                onClick = {
+                    coroutineScope.launch {
+                        applyConsentDecision(
+                            result = store.decide(false),
+                            error = store.state.value.error,
+                            onSuccess = onDecisionSuccess,
+                            onFailure = { consentError = it },
+                        )
+                    }
+                },
+            ) { Text("不同意") }
+        },
+    )
+}
 
 fun tripSearchRoute(tripId: String): String = "trips/$tripId/search"
 
@@ -103,6 +217,9 @@ data class AppNavigationDependencies(
     val routeLegRepository: RouteLegRepository,
     val mapPreferences: MapPreferences,
     val locationPermissionRequestStore: LocationPermissionRequestStore,
+    val consentStore: AmapConsentStore? = null,
+    val runtimeSessionFactory: ((AmapConsentFact.Accepted) -> AmapRuntimeSession)? = null,
+    val stopRuntimeSession: () -> Unit = {},
     val routeCoordinator: RouteRefreshCoordinator? = null,
     val placeSearchDataSource: PlaceSearchDataSource? = null,
     val mapConsentToken: AmapConsentToken? = null,
@@ -128,9 +245,25 @@ fun AppNavigation(
     dependencies: AppNavigationDependencies? = null,
     navigationObserver: AppNavigationObserver? = null,
     mapHostFactory: ((android.content.Context) -> com.yangchengwei.easytrip.workspace.AmapMapHost)? = null,
-    onOpenApplicationSettings: ((android.content.Context) -> Unit)? = null,
+    onLaunchLocationPermission: ((Array<String>) -> Result<Unit>)? = null,
+    onOpenApplicationSettings: (() -> Result<Unit>)? = null,
+    locationPermissionSnapshot: (() -> LocationPermissionSnapshot)? = null,
 ) {
     val navController = rememberNavController()
+    val effectiveDependencies = remember(dependencies, application) {
+        dependencies ?: application?.let {
+            AppNavigationDependencies(
+                savedPlaceRepository = it.savedPlaceRepository,
+                itineraryRepository = it.itineraryRepository,
+                routeLegRepository = it.routeLegRepository,
+                mapPreferences = it.mapPreferences,
+                locationPermissionRequestStore = it.locationPermissionRequestStore,
+                consentStore = it.amapConsentStore,
+                runtimeSessionFactory = it.container::runtimeSession,
+                stopRuntimeSession = it.container::stopRuntimeSession,
+            )
+        }
+    }
     val currentNavigationObserver = rememberUpdatedState(navigationObserver)
     val navigate: (String) -> Unit = { route ->
         currentNavigationObserver.value?.onNavigate(route)
@@ -162,59 +295,96 @@ fun AppNavigation(
         }
         composable(TRIP_WORKSPACE_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->
             val id = checkNotNull(entry.arguments?.getString("tripId"))
-            val workspaceDependencies = dependencies ?: application?.let {
-                AppNavigationDependencies(
-                    it.savedPlaceRepository,
-                    it.itineraryRepository,
-                    it.routeLegRepository,
-                    it.mapPreferences,
-                    it.locationPermissionRequestStore,
-                    it.routeCoordinatorOrNull(),
-                )
-            }
+            val workspaceDependencies = effectiveDependencies
             if (workspaceDependencies == null) Column { Text("旅行工作区 $id"); Button(onClick = { navigate("trips/$id/settings") }) { Text("设置") } }
             else {
-                var source by remember {
-                    mutableStateOf(
-                        application?.amapConsentToken?.takeIf { it.isActive() }?.let { AmapPlaceDataSource(application, it) },
-                    )
-                }
-                var showConsent by remember { mutableStateOf(application?.amapPrivacyDecided == false) }
+                val consentStore = workspaceDependencies.consentStore
+                val consentState = consentStore?.state?.collectAsStateWithLifecycle()?.value
+                val privacyReported = consentStore?.shown?.collectAsStateWithLifecycle()?.value ?: true
+                val consentFact = consentState?.fact
+                var runtimeSession by remember { mutableStateOf<AmapRuntimeSession?>(null) }
+                var showConsent by remember { mutableStateOf(consentFact is AmapConsentFact.Undecided && !privacyReported) }
                 var policyRead by remember { mutableStateOf(false) }
-                var privacyReported by remember { mutableStateOf(application?.amapPrivacyShown == true) }
+                val openConsentRequest by entry.savedStateHandle.getStateFlow("openConsent", false).collectAsStateWithLifecycle()
+                LaunchedEffect(openConsentRequest) {
+                    if (openConsentRequest) {
+                        entry.savedStateHandle["openConsent"] = false
+                        showConsent = true
+                        policyRead = false
+                    }
+                }
+                var consentError by remember { mutableStateOf<String?>(null) }
+                val coroutineScope = rememberCoroutineScope()
+                LaunchedEffect(consentFact) {
+                    runtimeSession = when (val fact = consentFact) {
+                        is AmapConsentFact.Accepted -> workspaceDependencies.runtimeSessionFactory?.invoke(fact)
+                        is AmapConsentFact.Declined, is AmapConsentFact.Undecided -> {
+                            workspaceDependencies.stopRuntimeSession()
+                            null
+                        }
+                        null -> null
+                    }
+                }
+                val runtime = resolveAmapRuntimeDependencies(
+                    consentFact = consentFact,
+                    session = runtimeSession,
+                    legacy = AmapRuntimeDependencies(
+                        workspaceDependencies.mapConsentToken?.takeIf { it.isActive() },
+                        workspaceDependencies.placeSearchDataSource,
+                        workspaceDependencies.routeCoordinator,
+                    ),
+                )
+                val source = runtime.placeSearchDataSource
+                val routeCoordinator = runtime.routeRefreshCoordinator
+                val token = runtime.token
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
                 val workspaceSearchReturnState: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
                 val context = androidx.compose.ui.platform.LocalContext.current
                 val activity = context as? Activity
                 val locationCoordinator = remember(entry) {
-                    LocationPermissionCoordinator(entry.savedStateHandle, workspaceDependencies.locationPermissionRequestStore)
+                    LocationPermissionCoordinator(workspaceDependencies.locationPermissionRequestStore)
                 }
-                fun locationPermissionSnapshot(grants: Map<String, Boolean>? = null) =
-                    LocationPermissionSnapshot.from(
-                        permissions = setOf(
-                            Manifest.permission.ACCESS_FINE_LOCATION,
-                            Manifest.permission.ACCESS_COARSE_LOCATION,
-                        ),
-                        isGranted = { permission ->
-                            grants?.get(permission) == true || grants == null &&
-                                ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
-                        },
-                        shouldShowRationale = { permission ->
-                            activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, permission) } == true
-                        },
-                    )
+                fun readLocationPermissionSnapshot() = locationPermissionSnapshot?.invoke() ?: LocationPermissionSnapshot.from(
+                    permissions = setOf(
+                        Manifest.permission.ACCESS_FINE_LOCATION,
+                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                    ),
+                    isGranted = { permission ->
+                        ContextCompat.checkSelfPermission(context, permission) == PackageManager.PERMISSION_GRANTED
+                    },
+                    shouldShowRationale = { permission ->
+                        activity?.let { ActivityCompat.shouldShowRequestPermissionRationale(it, permission) } == true
+                    },
+                )
+                var pendingPermissionGeneration by remember { mutableStateOf<Long?>(null) }
                 val locationPermissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions(),
-                ) { result ->
-                    locationCoordinator.onPermissionResult(locationPermissionSnapshot(result))
+                ) {
+                    val generation = pendingPermissionGeneration
+                    pendingPermissionGeneration = null
+                    generation?.let {
+                        locationCoordinator.onPermissionResult(it, readLocationPermissionSnapshot())
+                    }
+                }
+                DisposableEffect(entry, id, locationCoordinator) {
+                    locationCoordinator.attachWorkspace(id)
+                    val observer = LifecycleEventObserver { _, event ->
+                        if (event == Lifecycle.Event.ON_RESUME) {
+                            locationCoordinator.onWorkspaceResumed(id, readLocationPermissionSnapshot())
+                        }
+                    }
+                    entry.lifecycle.addObserver(observer)
+                    onDispose {
+                        entry.lifecycle.removeObserver(observer)
+                        pendingPermissionGeneration = null
+                        locationCoordinator.detachWorkspace(id)
+                    }
                 }
                 val searchReturnPayload by entry.savedStateHandle.getStateFlow<Array<String>?>(WORKSPACE_SEARCH_RETURN_KEY, null).collectAsStateWithLifecycle()
                 LaunchedEffect(searchReturnPayload) {
                     if (searchReturnPayload != null) workspaceSearchReturnState.show(consumeWorkspaceSearchReturn(entry.savedStateHandle))
                 }
-                val token = (workspaceDependencies.mapConsentToken ?: application?.amapConsentToken)
-                    ?.takeIf { it.isActive() }
                 val addToItineraryModel: com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel = viewModel(
                     viewModelStoreOwner = entry,
                     factory = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel.Factory(
@@ -229,19 +399,19 @@ fun AppNavigation(
                         repository,
                         workspaceDependencies.itineraryRepository,
                         workspaceDependencies.routeLegRepository,
-                        workspaceDependencies.routeCoordinator,
+                        routeCoordinator,
                         workspaceDependencies.savedPlaceRepository.observePlaces(id, emptySet()),
                         workspaceModel.selectedDayId,
                     ),
                 )
-                LaunchedEffect(source) {
+                LaunchedEffect(source, routeCoordinator) {
                     placeModel.setSearchSource(source)
-                    itineraryModel.setRouteCoordinator(workspaceDependencies.routeCoordinator)
-                    if (source != null) application?.startRouteCoordinator()
+                    itineraryModel.setRouteCoordinator(routeCoordinator)
                 }
                 TripWorkspaceRoute(
                     viewModel = workspaceModel,
                     consent = token,
+                    consentFact = consentFact,
                     onBack = {
                         workspaceSearchReturnState.clear()
                         navController.popBackStack()
@@ -250,7 +420,7 @@ fun AppNavigation(
                         workspaceSearchReturnState.clear()
                         navigate("trips/$id/settings")
                     },
-                    onPrivacySettings = { if (application != null) { showConsent = true; policyRead = false } },
+                    onPrivacySettings = { if (consentStore != null) { showConsent = true; policyRead = false } },
                     onOpenSearch = {
                         workspaceSearchReturnState.clear()
                         navigate(tripSearchRoute(id))
@@ -262,98 +432,102 @@ fun AppNavigation(
                     searchReturn = workspaceSearchReturnState.value,
                     onConsumeSearchReturn = workspaceSearchReturnState::clear,
                     locationPermissionCoordinator = locationCoordinator,
-                    locationPermissionSnapshot = ::locationPermissionSnapshot,
+                    locationPermissionSnapshot = ::readLocationPermissionSnapshot,
                     onWorkspaceEffect = { effect ->
                         when (effect) {
-                            WorkspaceEffect.RequestLocationPermission -> locationPermissionLauncher.launch(
-                                arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-                            )
-                            WorkspaceEffect.ShowCurrentLocation -> Unit
-                            WorkspaceEffect.OpenApplicationSettings -> if (onOpenApplicationSettings != null) {
-                                onOpenApplicationSettings(context)
-                            } else {
-                                context.startActivity(
-                                    Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, Uri.parse("package:${context.packageName}")),
+                            is WorkspaceEffect.RequestLocationPermission -> {
+                                if (pendingPermissionGeneration != null) return@TripWorkspaceRoute
+                                val result = dispatchLocationPermissionRequest(
+                                    generation = effect.generation,
+                                    launcher = onLaunchLocationPermission ?: { permissions ->
+                                        runCatching { locationPermissionLauncher.launch(permissions) }
+                                    },
+                                    coordinator = locationCoordinator,
+                                )
+                                if (result.isSuccess) pendingPermissionGeneration = effect.generation
+                            }
+                            is WorkspaceEffect.ShowCurrentLocation -> Unit
+                            is WorkspaceEffect.OpenApplicationSettings -> {
+                                dispatchApplicationSettingsRequest(
+                                    generation = effect.generation,
+                                    launcher = onOpenApplicationSettings ?: {
+                                        runCatching {
+                                            context.startActivity(
+                                                Intent(
+                                                    Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                                    Uri.parse("package:${context.packageName}"),
+                                                ),
+                                            )
+                                        }
+                                    },
+                                    coordinator = locationCoordinator,
                                 )
                             }
                         }
                     },
                 )
-                if (showConsent && application != null) {
-                    SideEffect {
-                        application.reportAmapPrivacyShown()
-                        privacyReported = true
-                    }
-                    AlertDialog(
-                        onDismissRequest = {},
-                        title = { Text("高德服务隐私说明") },
-                        text = {
-                            Column {
-                                Text("搜索地点会调用高德地图服务。不同意仍可使用本地点池。")
-                                TextButton(onClick = {
-                                    application.startActivity(
-                                        Intent(Intent.ACTION_VIEW, Uri.parse("https://lbs.amap.com/home/privacy/")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
-                                    )
-                                }) { Text("阅读高德隐私权政策") }
-                                androidx.compose.foundation.layout.Row {
-                                    Checkbox(policyRead, { policyRead = it })
-                                    Text("我已阅读高德隐私权政策")
-                                }
-                            }
-                        },
-                        confirmButton = {
-                            TextButton(
-                                enabled = privacyReported && policyRead,
-                                onClick = {
-                                    application.decideAmapPrivacy(true)
-                                    source = application.amapConsentToken?.let { AmapPlaceDataSource(application, it) }
-                                    showConsent = false
-                                },
-                            ) { Text("同意并启用搜索") }
-                        },
-                        dismissButton = {
-                            TextButton(
-                                enabled = privacyReported,
-                                onClick = {
-                                    application.decideAmapPrivacy(false)
-                                    source = null
-                                    showConsent = false
-                                },
-                            ) { Text("不同意") }
-                        },
+                if (showConsent && consentStore != null) {
+                    AmapConsentDialog(
+                        store = consentStore,
+                        policyRead = policyRead,
+                        onPolicyReadChange = { policyRead = it },
+                        onClose = { showConsent = false },
+                        onDecisionSuccess = { showConsent = false },
+                        context = context,
                     )
                 }
             }
         }
         composable(TRIP_SEARCH_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->
             val id = checkNotNull(entry.arguments?.getString("tripId"))
-            val savedPlaceRepository = dependencies?.savedPlaceRepository ?: application?.savedPlaceRepository
+            val savedPlaceRepository = effectiveDependencies?.savedPlaceRepository
             if (savedPlaceRepository == null) {
                 Column {
                     Text("搜索地点")
                     TextButton(onClick = navController::popBackStack) { Text("返回") }
                 }
             } else {
-                val source = remember(application, dependencies?.placeSearchDataSource) {
-                    dependencies?.placeSearchDataSource
-                        ?: application?.amapConsentToken
-                            ?.takeIf { it.isActive() }
-                            ?.let { AmapPlaceDataSource(application, it) }
+                val consentFact = effectiveDependencies?.consentStore?.state?.collectAsStateWithLifecycle()?.value?.fact
+                var session by remember { mutableStateOf<AmapRuntimeSession?>(null) }
+                LaunchedEffect(consentFact) {
+                    session = when (val fact = consentFact) {
+                        is AmapConsentFact.Accepted -> effectiveDependencies.runtimeSessionFactory?.invoke(fact)
+                        is AmapConsentFact.Declined, is AmapConsentFact.Undecided -> {
+                            effectiveDependencies.stopRuntimeSession()
+                            null
+                        }
+                        null -> null
+                    }
                 }
+                val runtime = resolveAmapRuntimeDependencies(
+                    consentFact = consentFact,
+                    session = session,
+                    legacy = AmapRuntimeDependencies(
+                        effectiveDependencies?.mapConsentToken?.takeIf { it.isActive() },
+                        effectiveDependencies?.placeSearchDataSource,
+                    ),
+                )
                 val model: PlaceSearchViewModel = viewModel(
                     factory = PlaceSearchViewModel.Factory(
                         id,
                         savedPlaceRepository,
-                        source,
+                        null,
                         entry.savedStateHandle,
                     ),
                 )
+                val remoteSearchGeneration = (consentFact as? AmapConsentFact.Accepted)?.generation ?: -1L
+                LaunchedEffect(remoteSearchGeneration, runtime.placeSearchDataSource) {
+                    model.setRemoteSearchSession(remoteSearchGeneration, runtime.placeSearchDataSource)
+                }
                 PlaceSearchRoute(
                     viewModel = model,
-                    consent = (dependencies?.mapConsentToken ?: application?.amapConsentToken)
-                        ?.takeIf { it.isActive() },
+                    consent = runtime.token,
                     mapHostFactory = mapHostFactory
                         ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
+                    onOpenConsent = {
+                        navController.popBackStack()
+                        navController.currentBackStackEntry?.savedStateHandle?.set("openConsent", true)
+                    },
                     onBack = {
                         navController.previousBackStackEntry?.savedStateHandle?.let {
                             publishWorkspaceSearchReturn(it, model.recentlyCollectedPoiIds())

@@ -48,13 +48,22 @@ class TripWorkspaceContentTest {
         assertEquals(TripWorkspaceAction.Back, action)
     }
 
-    @Test fun consentRequiredKeepsLocalContentAndControls() {
-        setContent(ready(), WorkspaceMapState.ConsentRequired)
-        compose.onNodeWithText("同意高德隐私政策后显示地图").assertIsDisplayed()
+    @Test fun declinedConsentKeepsPlacePoolAndItineraryInteractive() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        setContent(ready(), WorkspaceMapState.ConsentRequired, actions::add)
+        compose.onNodeWithTag("map-consent-required").assertIsDisplayed()
         compose.onNodeWithText("地点池").assertIsDisplayed()
         compose.onNodeWithText("还没有收藏地点").assertExists()
-        compose.onNodeWithTag("workspace-more").assertIsDisplayed().assertHasClickAction()
-        compose.onNodeWithTag("workspace-back").assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithText("行程").performClick()
+        compose.onNodeWithTag("workspace-more").performClick()
+
+        assertEquals(
+            listOf(
+                TripWorkspaceAction.SelectSection(WorkspaceSection.ITINERARY),
+                TripWorkspaceAction.OpenSettings,
+            ),
+            actions,
+        )
     }
 
     @Test fun mapFailureRetryIsAboveSheetAndInvokesDedicatedCallbackOnce() {
@@ -67,7 +76,7 @@ class TripWorkspaceContentTest {
             onMapRetry = { retryCalls.incrementAndGet() },
         )
         compose.waitForIdle()
-        val retry = compose.onNodeWithTag("workspace-map-retry")
+        val retry = compose.onNodeWithTag("map-retry")
         val sheet = compose.onNodeWithTag("workspace-sheet")
         retry.assertIsDisplayed()
         assertTrue(
@@ -339,7 +348,7 @@ class TripWorkspaceContentTest {
         setContent(ready(), WorkspaceMapState.Failed("地图加载失败"))
         compose.waitForIdle()
 
-        val retry = compose.onNodeWithTag("workspace-map-retry").getUnclippedBoundsInRoot()
+        val retry = compose.onNodeWithTag("map-retry").getUnclippedBoundsInRoot()
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
         assertTrue("retry=$retry sheet=$sheet", retry.bottom <= sheet.top)
     }

@@ -90,8 +90,8 @@ class AmapSmokeTest {
     }
 
     private fun consent(): AmapConsentToken {
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        return requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        return requireNotNull(gate.decide(true))
     }
 }

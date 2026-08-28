@@ -112,6 +112,45 @@ class PlaceSearchReducerTest {
         assertEquals(listOf("new-source"), reducer.state.value.results.map { it.poiId })
     }
 
+    @Test fun revokingConsentCancelsRemoteSearchClearsRemoteResultsAndKeepsSavedPlaces() = runTest {
+        val source = SearchSource()
+        val reducer = PlaceSearchReducer(null, this, StandardTestDispatcher(testScheduler))
+        val saved = SavedPlace("saved", "trip", "saved-poi", "已收藏", "地址", GeoPoint(1.0, 2.0), "备注", emptyList())
+        reducer.setSavedPlaces(listOf(saved))
+        reducer.setRemoteSearchSession(1L, source)
+        reducer.setQuery("西湖")
+        advanceTimeBy(300)
+        runCurrent()
+
+        reducer.setRemoteSearchSession(2L, null)
+        advanceUntilIdle()
+
+        assertEquals(listOf("西湖"), source.cancelled)
+        assertEquals(listOf(saved), reducer.state.value.savedPlaces)
+        assertEquals(emptyList<PlaceCandidate>(), reducer.state.value.results)
+        assertEquals(PlaceSearchPhase.ConsentRequired, reducer.state.value.phase)
+    }
+
+    @Test fun staleSearchResponseFromRevokedGenerationIsIgnored() = runTest {
+        val first = SearchSource(ignoreCancellation = true)
+        val second = SearchSource()
+        val reducer = PlaceSearchReducer(null, this, StandardTestDispatcher(testScheduler))
+        reducer.setRemoteSearchSession(1L, first)
+        reducer.setQuery("西湖")
+        advanceTimeBy(300)
+        runCurrent()
+
+        reducer.setRemoteSearchSession(2L, second)
+        advanceTimeBy(300)
+        runCurrent()
+        second.complete("西湖", candidate("current"))
+        advanceUntilIdle()
+        first.complete("西湖", candidate("old"))
+        advanceUntilIdle()
+
+        assertEquals(listOf("current"), reducer.state.value.results.map { it.poiId })
+    }
+
     @Test fun clearResetsStateAndCancelsActiveSearch() = runTest {
         val source = SearchSource(ignoreCancellation = true)
         val reducer = PlaceSearchReducer(source, this, StandardTestDispatcher(testScheduler))

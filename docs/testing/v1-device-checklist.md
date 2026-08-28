@@ -42,6 +42,13 @@
 - 新鲜定向证据：相关 trip UI/domain JVM 109/109、设置 Content 13/13、日期 Room 11/11、RoomTripRepository 18/18 PASS。
 - 完整 JVM、Catalog、Full UI 与物理真机不在本轮重跑范围，由 controller 后续统一执行。
 
+## 地图授权与定位权限候选门禁（2026-08-28）
+
+- 自动化候选门禁：**PASS**，详见 `docs/testing/map-consent-location-permission-acceptance.md`。
+- 全量 JVM：`517 / 0 / 0 / 0`；connected：`WorkspacePermissionFlowTest` `7/7`、`TripWorkspaceContentTest` `25/25`、`AmapComposeMapTest` `12/12`、`PlaceSearchContentTest` `22/22`、`WorkspaceFlowTest` `27/27`、`V1ScenarioCatalogTest` `47/47`、`V1FullUiAcceptanceTest` `47/47`，累计 `187 / 0 / 0 / 0`。
+- `lintDebug`、`assembleDebug`、`assembleDebugAndroidTest`、更新前后 `git diff --check` 与 `graphify update .` 均 PASS。Catalog 曾出现一次 split APK 安装 infra 失败，唯一重试后 `47/47` PASS；infra retry=1。历史产品/同步失败均已修复并保留于验收记录。
+- 本轮未使用物理设备，未清除物理设备数据；地图授权和定位权限的 12 条真机关键路径仍为 `NOT-RUN`，不得以模拟器结果替代。
+
 ## 自动化基线
 
 - `./gradlew clean test lint assembleDebug connectedDebugAndroidTest`

@@ -25,12 +25,14 @@ fun PlaceSearchRoute(
     detailContent: (@Composable (com.yangchengwei.easytrip.place.amap.PlaceCandidate) -> Unit)? = null,
     consent: AmapConsentToken? = null,
     mapHostFactory: (Context) -> AmapMapHost = ::RealAmapMapHost,
+    onOpenConsent: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
     val resultsListState = rememberSaveable(saver = LazyListState.Saver) { LazyListState() }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val currentOnBack = rememberUpdatedState(onBack)
+    val currentOnOpenConsent = rememberUpdatedState(onOpenConsent)
 
     BackHandler { viewModel.dispatch(PlaceSearchAction.Back) }
 
@@ -39,6 +41,7 @@ fun PlaceSearchRoute(
             viewModel.effects.collect { effect ->
                 when (effect) {
                     PlaceSearchEffect.ExitDestination -> currentOnBack.value()
+                    PlaceSearchEffect.OpenConsent -> currentOnOpenConsent.value()
                 }
             }
         }
@@ -51,6 +54,7 @@ fun PlaceSearchRoute(
         detailContent = detailContent,
         consent = consent,
         mapHostFactory = mapHostFactory,
+        onOpenConsent = { viewModel.dispatch(PlaceSearchAction.OpenConsent) },
     )
     state.pendingCollectionRemoval?.let { pending ->
         val busy = pending.candidate.poiId in state.collectionBusyPoiIds

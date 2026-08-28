@@ -626,6 +626,61 @@ class PlaceSearchViewModelTest {
         advanceUntilIdle()
     }
 
+    @Test fun reauthorizingRetriesCurrentQueryWithoutRecreatingViewModel() = runTest(dispatcher) {
+        val repository = FakeSavedPlaces()
+        val first = IgnoringCancellationSearchSource()
+        val second = RecordingSearchSource(mapOf("西湖" to listOf(candidate("new"))))
+        val model = PlaceSearchViewModel("trip", repository, null, SavedStateHandle())
+
+        model.setRemoteSearchSession(1L, first)
+        model.dispatch(PlaceSearchAction.QueryChanged("西湖"))
+        advanceUntilIdle()
+        model.setRemoteSearchSession(2L, null)
+        first.complete("西湖", candidate("old"))
+        advanceUntilIdle()
+        model.setRemoteSearchSession(3L, second)
+        advanceUntilIdle()
+
+        assertEquals("西湖", model.state.value.search.query)
+        assertEquals(listOf("西湖"), second.keywords)
+        assertEquals(listOf("new"), model.state.value.search.results.map { it.poiId })
+    }
+
+    @Test fun newAcceptedGenerationCreatesFreshSearchSession() = runTest(dispatcher) {
+        val first = RecordingSearchSource(mapOf("西湖" to listOf(candidate("first"))))
+        val second = RecordingSearchSource(mapOf("西湖" to listOf(candidate("second"))))
+        val model = PlaceSearchViewModel("trip", FakeSavedPlaces(), null, SavedStateHandle())
+
+        model.setRemoteSearchSession(1L, first)
+        model.dispatch(PlaceSearchAction.QueryChanged("西湖"))
+        advanceUntilIdle()
+        model.setRemoteSearchSession(2L, second)
+        advanceUntilIdle()
+
+        assertEquals(listOf("西湖"), first.keywords)
+        assertEquals(listOf("西湖"), second.keywords)
+        assertEquals(listOf("second"), model.state.value.search.results.map { it.poiId })
+    }
+
+    @Test fun replacingSearchSourceKeepsViewModelAndUsesLatestRuntime() = runTest(dispatcher) {
+        val repository = FakeSavedPlaces()
+        val first = ImmediateSearchSource(listOf(candidate("first")))
+        val second = ImmediateSearchSource(listOf(candidate("second")))
+        val model = PlaceSearchViewModel("trip", repository, first, SavedStateHandle())
+
+        model.dispatch(PlaceSearchAction.QueryChanged("北京"))
+        advanceUntilIdle()
+        assertEquals(listOf("first"), model.state.value.search.results.map { it.poiId })
+
+        model.setSearchSource(null)
+        advanceUntilIdle()
+        assertEquals(PlaceSearchPhase.ConsentRequired, model.state.value.search.phase)
+
+        model.setSearchSource(second)
+        advanceUntilIdle()
+        assertEquals(listOf("second"), model.state.value.search.results.map { it.poiId })
+    }
+
     @Test fun collectingKeepsUserOnSearchScreen() = runTest(dispatcher) {
         val repository = FakeSavedPlaces()
         val handle = SavedStateHandle(mapOf("query" to "故宫"))

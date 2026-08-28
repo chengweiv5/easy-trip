@@ -15,6 +15,7 @@ import kotlinx.coroutines.launch
 
 sealed interface PlaceSearchPhase {
     data object Initial : PlaceSearchPhase
+    data object ConsentRequired : PlaceSearchPhase
     data object Loading : PlaceSearchPhase
     data object Results : PlaceSearchPhase
     data object Empty : PlaceSearchPhase
@@ -41,19 +42,27 @@ class PlaceSearchReducer(
     val state: StateFlow<PlaceSearchState> = mutableState.asStateFlow()
     private var searchJob: Job? = null
     private var generation = 0L
+    private var remoteSessionGeneration = 0L
 
     init {
         if (initialQuery.isNotBlank()) search(initialQuery)
     }
 
-    fun setSource(value: PlaceSearchDataSource?) {
-        if (source === value) return
+    fun setSource(value: PlaceSearchDataSource?) = setRemoteSearchSession(remoteSessionGeneration + 1L, value)
+
+    fun setRemoteSearchSession(generation: Long, value: PlaceSearchDataSource?) {
+        if (remoteSessionGeneration == generation && source === value) return
+        remoteSessionGeneration = generation
         source = value
         searchJob?.cancel()
-        generation++
+        this.generation++
+        searchJob = null
         val query = mutableState.value.query
-        mutableState.value = mutableState.value.copy(phase = PlaceSearchPhase.Initial)
-        if (query.isNotBlank()) search(query)
+        mutableState.value = mutableState.value.copy(
+            results = emptyList(),
+            phase = if (value == null) PlaceSearchPhase.ConsentRequired else PlaceSearchPhase.Initial,
+        )
+        if (value != null && query.isNotBlank()) search(query)
     }
 
     fun setSavedPlaces(value: List<SavedPlace>) {
@@ -86,24 +95,25 @@ class PlaceSearchReducer(
 
     private fun search(query: String, debounce: Boolean = true) {
         val current = ++generation
+        val currentRemoteSession = remoteSessionGeneration
         searchJob?.cancel()
         searchJob = scope.launch(dispatcher) {
             if (debounce) delay(300)
             val active = source ?: run {
-                if (current == generation) {
+                if (current == generation && currentRemoteSession == remoteSessionGeneration) {
                     mutableState.value = mutableState.value.copy(
                         results = emptyList(),
-                        phase = PlaceSearchPhase.NetworkFailure("请先阅读并同意高德隐私政策"),
+                        phase = PlaceSearchPhase.ConsentRequired,
                     )
                 }
                 return@launch
             }
-            if (current == generation) {
+            if (current == generation && currentRemoteSession == remoteSessionGeneration) {
                 mutableState.value = mutableState.value.copy(phase = PlaceSearchPhase.Loading)
             }
             try {
                 val result = active.search(query.trim(), null)
-                if (current == generation) {
+                if (current == generation && currentRemoteSession == remoteSessionGeneration) {
                     mutableState.value = mutableState.value.copy(
                         results = result,
                         phase = if (result.isEmpty()) PlaceSearchPhase.Empty else PlaceSearchPhase.Results,
@@ -112,7 +122,7 @@ class PlaceSearchReducer(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
-                if (current == generation) {
+                if (current == generation && currentRemoteSession == remoteSessionGeneration) {
                     mutableState.value = mutableState.value.copy(
                         results = emptyList(),
                         phase = PlaceSearchPhase.NetworkFailure(error.message ?: "搜索失败"),

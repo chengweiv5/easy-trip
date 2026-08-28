@@ -4,11 +4,18 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.ViewModelStore
 import androidx.lifecycle.ViewModelStoreOwner
+import com.yangchengwei.easytrip.amap.AmapConsentFact
+import com.yangchengwei.easytrip.amap.AmapConsentPersistence
+import com.yangchengwei.easytrip.amap.AmapConsentStore
+import com.yangchengwei.easytrip.amap.AmapPrivacyReporter
+import com.yangchengwei.easytrip.amap.ConsentRegistry
 import com.yangchengwei.easytrip.workspace.WorkspaceSearchReturn
 import com.yangchengwei.easytrip.workspace.WorkspaceSection
 import com.yangchengwei.easytrip.workspace.shouldConsumeSearchReturn
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class WorkspaceSearchReturnNavigationTest {
@@ -62,6 +69,59 @@ class WorkspaceSearchReturnNavigationTest {
 
         assertNull(consumeWorkspaceSearchReturn(handle))
         assertNull(handle.get<Array<String>>(WORKSPACE_SEARCH_RETURN_KEY))
+    }
+
+    @Test fun supersededConsentDecisionDoesNotRunNavigationSuccessEffects() {
+        var successRuns = 0
+        var failure: String? = null
+
+        applyConsentDecision(
+            result = Result.failure(IllegalStateException("superseded")),
+            error = null,
+            onSuccess = { successRuns++ },
+            onFailure = { failure = it },
+        )
+
+        assertEquals(0, successRuns)
+        assertNull(failure)
+    }
+
+    @Test fun failedConsentDecisionKeepsNavigationSuccessEffectsClosed() = runTest {
+        val persistence = MemoryConsentPersistence()
+        val reporter = FailingDecisionReporter()
+        val store = AmapConsentStore(persistence, reporter, ConsentRegistry())
+        var sourceEnabled = false
+        var consentClosed = false
+        var displayedError: String? = null
+
+        applyConsentDecision(
+            result = store.decide(true),
+            error = store.state.value.error,
+            onSuccess = {
+                sourceEnabled = true
+                consentClosed = true
+            },
+            onFailure = { displayedError = it },
+        )
+
+        assertEquals(false, sourceEnabled)
+        assertEquals(false, consentClosed)
+        assertTrue(store.state.value.fact is AmapConsentFact.Undecided)
+        assertEquals("地图授权更新失败，请重试", displayedError)
+    }
+
+    private class MemoryConsentPersistence : AmapConsentPersistence {
+        override fun readDecision(): Boolean? = null
+
+        override fun writeDecision(accepted: Boolean) = Unit
+    }
+
+    private class FailingDecisionReporter : AmapPrivacyReporter {
+        override suspend fun reportShown() = Unit
+
+        override suspend fun reportDecision(accepted: Boolean) {
+            throw IllegalStateException("privacy update failed")
+        }
     }
 
     private class TestOwner : ViewModelStoreOwner {

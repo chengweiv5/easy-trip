@@ -48,6 +48,7 @@ sealed interface PlaceSearchBackDecision {
 
 sealed interface PlaceSearchEffect {
     data object ExitDestination : PlaceSearchEffect
+    data object OpenConsent : PlaceSearchEffect
 }
 
 sealed interface PlaceSearchAction {
@@ -56,6 +57,7 @@ sealed interface PlaceSearchAction {
     data class QueryChanged(val value: String) : PlaceSearchAction
     data object Submit : PlaceSearchAction
     data object Retry : PlaceSearchAction
+    data object OpenConsent : PlaceSearchAction
     data object RecenterDetail : PlaceSearchAction
     data class ToggleCollection(val poiId: String) : PlaceSearchAction
     data class StartEdit(val placeId: String) : PlaceSearchAction
@@ -139,6 +141,11 @@ class PlaceSearchViewModel(
 
     fun recentlyCollectedPoiIds(): Set<String> = recentlyCollectedPoiIds.toSet()
 
+    fun setSearchSource(source: PlaceSearchDataSource?) = reducer.setSource(source)
+
+    fun setRemoteSearchSession(generation: Long, source: PlaceSearchDataSource?) =
+        reducer.setRemoteSearchSession(generation, source)
+
     init {
         viewModelScope.launch {
             reducer.state.collect { search ->
@@ -173,6 +180,7 @@ class PlaceSearchViewModel(
             is PlaceSearchAction.QueryChanged -> reducer.setQuery(action.value)
             PlaceSearchAction.Submit -> reducer.submit()
             PlaceSearchAction.Retry -> reducer.retry()
+            PlaceSearchAction.OpenConsent -> viewModelScope.launch { effectChannel.send(PlaceSearchEffect.OpenConsent) }
             PlaceSearchAction.RecenterDetail -> recenterDetail()
             is PlaceSearchAction.ToggleCollection -> toggleCollection(action.poiId)
             is PlaceSearchAction.StartEdit -> startEdit(action.placeId)

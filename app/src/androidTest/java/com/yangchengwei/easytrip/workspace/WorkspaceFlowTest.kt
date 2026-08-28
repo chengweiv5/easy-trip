@@ -5,6 +5,8 @@ import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.assertHeightIsAtLeast
@@ -27,6 +29,14 @@ import androidx.room.Room
 import com.yangchengwei.easytrip.AppNavigation
 import com.yangchengwei.easytrip.AppNavigationDependencies
 import com.yangchengwei.easytrip.AppNavigationObserver
+import com.yangchengwei.easytrip.AmapRuntimeSession
+import com.yangchengwei.easytrip.amap.AmapConsentPersistence
+import com.yangchengwei.easytrip.amap.AmapConsentStore
+import com.yangchengwei.easytrip.amap.AmapPrivacyReporter
+import com.yangchengwei.easytrip.amap.ConsentRegistry
+import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.flow.MutableStateFlow
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
 import com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore
@@ -125,7 +135,7 @@ class WorkspaceFlowTest {
                 )
             }
 
-            compose.onNodeWithTag("trip-$tripId").performClick()
+            compose.onNodeWithTag("continue-trip-$tripId").performClick()
             compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
             compose.onNodeWithTag("workspace-search-launcher").assertHasClickAction().performClick()
             compose.onNodeWithTag("place-search-field").performTextInput("博物馆")
@@ -143,6 +153,66 @@ class WorkspaceFlowTest {
         } finally {
             database.close()
         }
+    }
+
+    @Test fun firstWorkspaceEntryShowsConsentExplanationOnce() {
+        val fixture = consentNavigationFixture(null)
+        compose.setContent { fixture.render() }
+        enterWorkspace()
+
+        compose.onNodeWithText("高德服务隐私说明").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fixture.reporter.shownCalls) }
+        compose.onNodeWithTag("workspace-back").performClick()
+        compose.onNodeWithTag("continue-trip-trip").performClick()
+        compose.onNodeWithText("高德服务隐私说明").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(1, fixture.reporter.shownCalls) }
+    }
+
+    @Test fun failedShownReportOffersRetryAndKeepsDecisionsDisabledUntilShown() {
+        val fixture = consentNavigationFixture(null)
+        fixture.reporter.failShown = true
+        compose.setContent { fixture.render() }
+        enterWorkspace()
+
+        compose.onNodeWithText("隐私说明展示失败，请重试").assertIsDisplayed()
+        compose.onNodeWithText("不同意").assertIsNotEnabled()
+        compose.onNodeWithText("重试").performClick()
+        compose.waitUntil(5_000) { fixture.reporter.shownCalls == 2 }
+        compose.onNodeWithText("不同意").assertIsEnabled().performClick()
+        compose.onNodeWithText("高德服务隐私说明").assertDoesNotExist()
+    }
+
+    @Test fun persistedDeclineDoesNotAutoPromptOnReentry() {
+        val fixture = consentNavigationFixture(false)
+        compose.setContent { fixture.render() }
+        enterWorkspace()
+
+        compose.onNodeWithText("高德服务隐私说明").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(0, fixture.reporter.shownCalls) }
+    }
+
+    @Test fun explicitAuthorizeActionReopensConsentExplanation() {
+        val fixture = consentNavigationFixture(false)
+        compose.setContent { fixture.render() }
+        enterWorkspace()
+
+        compose.onNodeWithTag("map-consent-open").performClick()
+        compose.onNodeWithText("高德服务隐私说明").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fixture.reporter.shownCalls) }
+    }
+
+    @Test fun withdrawalStopsSearchAndMapWithoutResettingWorkspace() {
+        val fixture = consentNavigationFixture(true)
+        compose.setContent { fixture.render() }
+        enterWorkspace()
+        compose.waitUntil(5_000) { fixture.runtimeSessions == 1 }
+        compose.onNodeWithTag("section-ITINERARY").performClick().assertIsSelected()
+
+        compose.runOnUiThread { runBlocking { fixture.store.decide(false) } }
+
+        compose.onNodeWithTag("map-consent-required").assertIsDisplayed()
+        compose.onNodeWithTag("section-ITINERARY").assertIsSelected()
+        compose.runOnIdle { assertEquals(1, fixture.stoppedSessions) }
     }
 
     @Test fun longTripNameKeepsBackMoreAndSearchPhysicallyClickable() {
@@ -184,6 +254,34 @@ class WorkspaceFlowTest {
         }
     }
 
+    @Test fun mapRetryRecreatesOnlyMapHostAndKeepsWorkspaceContext() {
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        var attempt by mutableIntStateOf(0)
+        var hosts = 0
+        compose.setContent {
+            key(attempt) {
+                TripWorkspaceScreen(
+                    viewModel = model,
+                    consent = consentToken(),
+                    onBack = {},
+                    onSettings = {},
+                    placeContent = { Text("地点内容") },
+                    dayItineraryContent = { Text("行程内容") },
+                    mapHostFactory = { context -> FailingMapHost(context).also { hosts++ } },
+                )
+            }
+        }
+
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("map-retry").fetchSemanticsNodes().isNotEmpty() }
+        model.selectSection(WorkspaceSection.ITINERARY)
+        val identity = model
+        compose.onNodeWithTag("map-retry").performClick()
+        compose.waitUntil(5_000) { hosts == 2 }
+
+        assertEquals(identity, model)
+        assertEquals(WorkspaceSection.ITINERARY, model.state.value.section)
+    }
+
     @Test fun mapFailureKeepsLocalTabsAndActionsReachable() {
         val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         compose.setContent {
@@ -217,7 +315,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = { backCount++ },
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
@@ -272,7 +370,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
@@ -302,7 +400,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 itineraryState = DayItineraryUiState(
@@ -335,7 +433,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
@@ -363,7 +461,7 @@ class WorkspaceFlowTest {
                     consent = null,
                     onBack = {},
                     onSettings = {},
-                    locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                    locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                     locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                     onWorkspaceEffect = {},
                     placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
@@ -436,7 +534,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 placeViewModel = placeModel,
@@ -470,7 +568,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = { backCount++ },
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 placeViewModel = placeModel,
@@ -500,7 +598,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 placeViewModel = placeModel,
@@ -532,7 +630,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 placeViewModel = placeModel,
@@ -568,7 +666,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = { backCount++ },
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 placeViewModel = placeModel,
@@ -611,7 +709,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 itineraryState = itineraryState,
@@ -697,7 +795,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 itineraryState = state,
@@ -742,7 +840,7 @@ class WorkspaceFlowTest {
                 consent = null,
                 onBack = {},
                 onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(SavedStateHandle()),
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 itineraryState = state,
@@ -921,6 +1019,79 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { model.state.value.sheetLevel == WorkspaceSheetLevel.HALF }
     }
 
+    private fun enterWorkspace() {
+        compose.onNodeWithTag("continue-trip-trip").performClick()
+        compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed()
+    }
+
+    private fun consentNavigationFixture(decision: Boolean?): ConsentNavigationFixture {
+        val persistence = MemoryConsentPersistence(decision)
+        val reporter = RecordingConsentReporter()
+        val store = AmapConsentStore(persistence, reporter, ConsentRegistry())
+        return ConsentNavigationFixture(store, reporter) { dependencies ->
+            AppNavigation(
+                service = TripService(Trips()),
+                repository = Trips(),
+                impacts = object : com.yangchengwei.easytrip.trip.ui.DeleteImpactProvider {
+                    override suspend fun trip(tripId: String) = com.yangchengwei.easytrip.trip.ui.TripDeleteImpact(0, 0, 0, 0, 0)
+                    override suspend fun day(dayId: String) = com.yangchengwei.easytrip.trip.ui.DayDeleteImpact(0, 0, 0)
+                },
+                dependencies = dependencies,
+                mapHostFactory = ::TestMapHost,
+            )
+        }
+    }
+
+    private class ConsentNavigationFixture(
+        val store: AmapConsentStore,
+        val reporter: RecordingConsentReporter,
+        private val renderNavigation: @androidx.compose.runtime.Composable (AppNavigationDependencies) -> Unit,
+    ) {
+        var runtimeSessions = 0
+        var stoppedSessions = 0
+        private val source = object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?) = emptyList<PlaceCandidate>()
+        }
+        private val coordinator = object : RouteRefreshCoordinator {
+            override fun start(scope: CoroutineScope) = Unit
+            override suspend fun retry(legId: String) = false
+            override suspend fun overrideMode(legId: String, mode: TransportMode) = false
+        }
+        @androidx.compose.runtime.Composable fun render() = renderNavigation(
+            AppNavigationDependencies(
+                savedPlaceRepository = Places(),
+                itineraryRepository = Itineraries(),
+                routeLegRepository = Legs(),
+                mapPreferences = InMemoryMapPreferences(),
+                locationPermissionRequestStore = InMemoryLocationPermissionRequestStore(),
+                consentStore = store,
+                runtimeSessionFactory = { fact ->
+                    runtimeSessions++
+                    AmapRuntimeSession(fact.generation, fact.token, source, coordinator)
+                },
+                stopRuntimeSession = { stoppedSessions++ },
+            ),
+        )
+    }
+
+    private class MemoryConsentPersistence(private var decision: Boolean?) : AmapConsentPersistence {
+        override fun readDecision() = decision
+        override fun writeDecision(accepted: Boolean) { decision = accepted }
+    }
+
+    private class RecordingConsentReporter : AmapPrivacyReporter {
+        var shownCalls = 0
+        var failShown = false
+        override suspend fun reportShown() {
+            shownCalls++
+            if (failShown) {
+                failShown = false
+                throw IllegalStateException("show failed")
+            }
+        }
+        override suspend fun reportDecision(accepted: Boolean) = Unit
+    }
+
     private class EditingPlaces : SavedPlaceRepository {
         private val place = SavedPlace("saved", "trip", "saved-poi", "新编辑地点", "新地址", GeoPoint(39.8, 116.3), "", emptyList())
         override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
@@ -972,9 +1143,9 @@ class WorkspaceFlowTest {
     }
 
     private fun consentToken(): com.yangchengwei.easytrip.amap.AmapConsentToken {
-        val gate = com.yangchengwei.easytrip.amap.AmapPrivacyGate.create(compose.activity)
-        gate.reportPrivacyShown()
-        return requireNotNull(gate.reportUserDecision(true))
+        val gate = com.yangchengwei.easytrip.amap.TestConsentGate()
+        gate.show()
+        return requireNotNull(gate.decide(true))
     }
 
     private class TestMapHost(context: Context) : AmapMapHost {
@@ -1066,7 +1237,9 @@ class WorkspaceFlowTest {
                 listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
             ),
         )
-        override fun observeTrips() = flowOf(emptyList<TripSummary>())
+        override fun observeTrips() = flowOf(
+            listOf(TripSummary("trip", "川西", null, TravelMode.FLEXIBLE, 2)),
+        )
         override suspend fun createTrip(command: CreateTrip) = "trip"
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit

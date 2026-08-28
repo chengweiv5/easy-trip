@@ -20,8 +20,6 @@ class ConsentRegistry {
     }
 }
 
-private val processConsentRegistry = ConsentRegistry()
-
 class AmapPrivacyStateMachine {
     private var shown = false
     fun markShown() { shown = true }
@@ -45,22 +43,20 @@ class AmapConsentToken private constructor(
 
 class AmapPrivacyGate internal constructor(
     private val context: Context,
-    private val state: AmapPrivacyStateMachine,
-    private val registry: ConsentRegistry,
-) {
-    fun reportPrivacyShown() {
+) : AmapPrivacyReporter {
+    override suspend fun reportShown() {
         MapsInitializer.updatePrivacyShow(context, true, true)
         ServiceSettings.updatePrivacyShow(context, true, true)
-        state.markShown()
     }
-    fun reportUserDecision(accepted: Boolean): AmapConsentToken? {
-        state.requireShown()
+
+    override suspend fun reportDecision(accepted: Boolean) {
         MapsInitializer.updatePrivacyAgree(context, accepted)
         ServiceSettings.updatePrivacyAgree(context, accepted)
-        val snapshot = registry.decide(accepted)
-        return if (accepted) AmapConsentToken.issue(registry, snapshot.generation) else null
     }
-    companion object { fun create(context: Context) = AmapPrivacyGate(context.applicationContext, AmapPrivacyStateMachine(), processConsentRegistry) }
+
+    companion object {
+        fun create(context: Context) = AmapPrivacyGate(context.applicationContext)
+    }
 }
 
 internal class TestConsentGate(

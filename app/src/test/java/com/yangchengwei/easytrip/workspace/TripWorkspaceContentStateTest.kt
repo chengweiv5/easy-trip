@@ -1,6 +1,9 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.lifecycle.SavedStateHandle
+import com.yangchengwei.easytrip.amap.AmapConsentFact
+import com.yangchengwei.easytrip.amap.AmapConsentToken
+import com.yangchengwei.easytrip.amap.ConsentRegistry
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
@@ -49,6 +52,36 @@ class TripWorkspaceContentStateTest {
 
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
+
+    @Test fun consentRequiredTakesPriorityOverFailureAndPermanentLocationDenial() {
+        val state = resolveWorkspaceMapState(
+            consentFact = declinedFact(),
+            mapHostState = MapHostState.Failed("offline"),
+            locationPermanentlyDenied = true,
+        )
+
+        assertEquals(WorkspaceMapState.ConsentRequired, state)
+    }
+
+    @Test fun mapFailureTakesPriorityOverPermanentLocationDenial() {
+        val state = resolveWorkspaceMapState(
+            consentFact = acceptedFact(),
+            mapHostState = MapHostState.Failed("offline"),
+            locationPermanentlyDenied = true,
+        )
+
+        assertEquals(WorkspaceMapState.Failed("offline"), state)
+    }
+
+    @Test fun permanentLocationDenialTakesPriorityOverReadyMap() {
+        val state = resolveWorkspaceMapState(
+            consentFact = acceptedFact(),
+            mapHostState = MapHostState.Ready,
+            locationPermanentlyDenied = true,
+        )
+
+        assertEquals(WorkspaceMapState.LocationPermanentlyDenied, state)
+    }
 
     @Test fun initialStateIsLoading() = runTest(dispatcher) {
         val trips = Trips()
@@ -216,6 +249,14 @@ class TripWorkspaceContentStateTest {
         assertEquals(true, model.pageState.value is TripWorkspacePageState.Ready)
         assertEquals(1, trips.activeSubscriptions)
         assertEquals(1, trips.maxSubscriptions)
+    }
+
+    private fun declinedFact() = AmapConsentFact.Declined(1)
+
+    private fun acceptedFact(): AmapConsentFact.Accepted {
+        val registry = ConsentRegistry()
+        val snapshot = registry.decide(true)
+        return AmapConsentFact.Accepted(1, AmapConsentToken.issue(registry, snapshot.generation))
     }
 
     private fun trip() = TripWithDays("trip", "北京", LocalDate.of(2026, 8, 23), TravelMode.FLEXIBLE, listOf(TripDay("day", 0)))

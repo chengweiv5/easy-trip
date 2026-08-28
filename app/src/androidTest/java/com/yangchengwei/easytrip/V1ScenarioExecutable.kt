@@ -184,12 +184,12 @@ object V1ScenarioExecutableFactory {
         27 -> searchState(fixtureId, PlaceSearchPhase.Empty, "没有找到相关地点")
         28 -> waitingForNetwork(fixtureId)
         29 -> failedRoute(fixtureId)
-        30 -> permission(fixtureId, com.yangchengwei.easytrip.workspace.PermissionKind.MAP_SERVICE_CONSENT)
+        30 -> permission(fixtureId)
         31 -> addComplete(fixtureId)
         32 -> deleteItineraryItem(fixtureId)
         33 -> longTargetDays(fixtureId)
-        34 -> permission(fixtureId, com.yangchengwei.easytrip.workspace.PermissionKind.DEVICE_LOCATION)
-        35 -> permission(fixtureId, com.yangchengwei.easytrip.workspace.PermissionKind.DEVICE_LOCATION_SETTINGS, clickConfirm = true)
+        34 -> permission(fixtureId)
+        35 -> permission(fixtureId, clickConfirm = true)
         36 -> emptyTrips(fixtureId)
         37 -> emptyDay(fixtureId)
         38 -> searchState(fixtureId, PlaceSearchPhase.NetworkFailure("无法搜索新的地点"), "网络连接失败")
@@ -1070,7 +1070,6 @@ object V1ScenarioExecutableFactory {
 
     private fun permission(
         id: String,
-        kind: com.yangchengwei.easytrip.workspace.PermissionKind,
         clickConfirm: Boolean = false,
     ): V1ScenarioExecutable {
         var confirmed = false
@@ -1078,7 +1077,7 @@ object V1ScenarioExecutableFactory {
             ScenarioFixture(id, ScenarioScreen.PERMISSION),
             ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
             { confirmed = false },
-            { PermissionExplanationContent(kind, { confirmed = true }, {}) },
+            { PermissionExplanationContent({ confirmed = true }, {}) },
             { if (clickConfirm) onNodeWithTag("permission-explanation-confirm").performClick() },
             {
                 onNodeWithTag("permission-explanation-confirm").assertIsDisplayed()
@@ -1096,9 +1095,9 @@ object V1ScenarioExecutableFactory {
             WorkspaceMapState.Failed("地图加载失败"),
             reset = { retryCalls = 0 },
             onMapRetry = { retryCalls++ },
-            interact = { onNodeWithTag("workspace-map-retry").performClick() },
+            interact = { onNodeWithTag("map-retry").performClick() },
             verify = {
-                onNodeWithText("地图加载失败").assertIsDisplayed()
+                onNodeWithTag("map-load-failed").assertIsDisplayed()
                 onNodeWithText("第1天 · 暂无行程").assertIsDisplayed()
                 check(retryCalls == 1)
             },

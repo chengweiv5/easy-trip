@@ -35,7 +35,9 @@ fun TripWorkspaceContent(
     mapState: WorkspaceMapState,
     onAction: (TripWorkspaceAction) -> Unit,
     onPageRetry: () -> Unit = { onAction(TripWorkspaceAction.Retry) },
+    onOpenConsent: () -> Unit = { onAction(TripWorkspaceAction.OpenPrivacySettings) },
     onMapRetry: () -> Unit = { onAction(TripWorkspaceAction.Retry) },
+    onOpenLocationSettings: () -> Unit = {},
     placeState: PlacePoolUiState,
     onPlaceAction: (PlacePoolAction) -> Unit,
     itineraryState: DayItineraryUiState,
@@ -54,7 +56,9 @@ fun TripWorkspaceContent(
             pageState.content,
             mapState,
             onAction,
+            onOpenConsent,
             onMapRetry,
+            onOpenLocationSettings,
             placeState,
             onPlaceAction,
             itineraryState,
@@ -81,7 +85,9 @@ private fun WorkspaceReadyContent(
     state: TripWorkspaceReadyState,
     mapState: WorkspaceMapState,
     onAction: (TripWorkspaceAction) -> Unit,
+    onOpenConsent: () -> Unit,
     onMapRetry: () -> Unit,
+    onOpenLocationSettings: () -> Unit,
     placeState: PlacePoolUiState,
     onPlaceAction: (PlacePoolAction) -> Unit,
     itineraryState: DayItineraryUiState,
@@ -150,10 +156,11 @@ private fun WorkspaceReadyContent(
                 if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) mapContent()
                 if (mapState != WorkspaceMapState.Ready) {
                     WorkspaceMapFallback(
-                        mapState,
-                        { onAction(TripWorkspaceAction.OpenPrivacySettings) },
-                        onMapRetry,
-                        Modifier.padding(bottom = metrics.sheetHeight),
+                        state = mapState,
+                        onOpenConsent = onOpenConsent,
+                        onRetryMap = onMapRetry,
+                        onOpenLocationSettings = onOpenLocationSettings,
+                        modifier = Modifier.padding(bottom = metrics.sheetHeight),
                     )
                 }
             }

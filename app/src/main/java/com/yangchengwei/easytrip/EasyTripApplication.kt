@@ -1,11 +1,18 @@
 package com.yangchengwei.easytrip
 
 import android.app.Application
-import com.yangchengwei.easytrip.amap.AmapConsentToken
+import com.yangchengwei.easytrip.amap.AmapConsentStore
 import com.yangchengwei.easytrip.amap.AmapPrivacyGate
+import com.yangchengwei.easytrip.amap.ConsentRegistry
+import com.yangchengwei.easytrip.amap.SharedPreferencesAmapConsentPersistence
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+
+internal suspend fun decideAmapPrivacy(
+    store: AmapConsentStore,
+    accepted: Boolean,
+): Result<Unit> = store.decide(accepted)
 
 class EasyTripApplication : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
@@ -21,43 +28,15 @@ class EasyTripApplication : Application() {
     val locationPermissionRequestStore get() = container.locationPermissionRequestStore
     val deleteImpactProvider get() = container.deleteImpactProvider
 
-    private val preferences by lazy { getSharedPreferences("privacy", MODE_PRIVATE) }
-    private val amapPrivacyGate by lazy { AmapPrivacyGate.create(this) }
-    var amapConsentToken: AmapConsentToken? = null
-        private set
-    var amapPrivacyShown: Boolean = false
-        private set
-    var amapPrivacyDecided: Boolean = false
+    lateinit var amapConsentStore: AmapConsentStore
         private set
 
     override fun onCreate() {
         super.onCreate()
-        if (preferences.contains(AMAP_ACCEPTED)) {
-            reportAmapPrivacyShown()
-            decideAmapPrivacy(preferences.getBoolean(AMAP_ACCEPTED, false), persist = false)
-            if (amapConsentToken != null) startRouteCoordinator()
-        }
+        amapConsentStore = AmapConsentStore(
+            SharedPreferencesAmapConsentPersistence(getSharedPreferences("privacy", MODE_PRIVATE)),
+            AmapPrivacyGate.create(this),
+            ConsentRegistry(),
+        )
     }
-
-    fun routeCoordinatorOrNull() = container.routeCoordinator(amapConsentToken)
-    fun startRouteCoordinator() = container.startRouteCoordinator(amapConsentToken)
-
-    fun reportAmapPrivacyShown() {
-        if (!amapPrivacyShown) {
-            amapPrivacyGate.reportPrivacyShown()
-            amapPrivacyShown = true
-        }
-    }
-
-    fun decideAmapPrivacy(accepted: Boolean) = decideAmapPrivacy(accepted, persist = true)
-
-    private fun decideAmapPrivacy(accepted: Boolean, persist: Boolean) {
-        check(amapPrivacyShown)
-        if (!accepted) container.stopRouteCoordinator()
-        amapConsentToken = amapPrivacyGate.reportUserDecision(accepted)
-        amapPrivacyDecided = true
-        if (persist) preferences.edit().putBoolean(AMAP_ACCEPTED, accepted).apply()
-    }
-
-    companion object { private const val AMAP_ACCEPTED = "amap.accepted" }
 }

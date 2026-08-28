@@ -15,8 +15,9 @@ import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
 import com.yangchengwei.easytrip.route.data.RouteLegEntity
 import com.yangchengwei.easytrip.trip.data.TripDayEntity
 import com.yangchengwei.easytrip.trip.data.TripEntity
+import com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore
 import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
-import androidx.lifecycle.SavedStateHandle
+import com.yangchengwei.easytrip.permission.LocationPermissionUiState
 import java.time.Instant
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -87,11 +88,9 @@ class OfflineRecoveryTest {
     }
 
     @Test fun reopeningWorkspaceDoesNotRequestLocationPermission() {
-        val saved = SavedStateHandle(mapOf(LocationPermissionCoordinator.HAS_REQUESTED_KEY to true))
+        val coordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore(true))
 
-        val coordinator = LocationPermissionCoordinator(saved)
-
-        assertFalse(coordinator.effects.tryReceive().isSuccess)
+        assertEquals(LocationPermissionUiState(), coordinator.uiState.value)
     }
 
     private fun open() = Room.databaseBuilder(context, EasyTripDatabase::class.java, name).build()

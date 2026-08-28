@@ -16,8 +16,9 @@ import androidx.compose.ui.unit.dp
 @Composable
 fun WorkspaceMapFallback(
     state: WorkspaceMapState,
-    onPrivacySettings: () -> Unit,
-    onRetry: () -> Unit,
+    onOpenConsent: () -> Unit,
+    onRetryMap: () -> Unit,
+    onOpenLocationSettings: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     Column(
@@ -31,12 +32,18 @@ fun WorkspaceMapFallback(
                 Text("地图加载中")
             }
             WorkspaceMapState.ConsentRequired -> {
-                Text("同意高德隐私政策后显示地图")
-                TextButton(onPrivacySettings) { Text("地图授权") }
+                Text("地图服务未启用", Modifier.testTag("map-consent-required"))
+                Text("本地地点与行程仍可使用")
+                TextButton(onOpenConsent, Modifier.testTag("map-consent-open")) { Text("查看并授权") }
             }
             is WorkspaceMapState.Failed -> {
+                Text("地图加载失败", Modifier.testTag("map-load-failed"))
                 Text(state.message)
-                TextButton(onRetry, Modifier.testTag("workspace-map-retry")) { Text("重试地图") }
+                TextButton(onRetryMap, Modifier.testTag("map-retry")) { Text("重试地图") }
+            }
+            WorkspaceMapState.LocationPermanentlyDenied -> {
+                Text("定位权限未开启", Modifier.testTag("location-permission-denied"))
+                TextButton(onOpenLocationSettings, Modifier.testTag("location-open-settings")) { Text("前往系统设置") }
             }
             WorkspaceMapState.Ready -> Unit
         }

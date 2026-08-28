@@ -150,6 +150,7 @@ internal fun appendDayCompletionDecision(
 fun TripWorkspaceRoute(
     viewModel: TripWorkspaceViewModel,
     consent: AmapConsentToken?,
+    consentFact: com.yangchengwei.easytrip.amap.AmapConsentFact? = consent?.let { com.yangchengwei.easytrip.amap.AmapConsentFact.Accepted(0, it) },
     onBack: () -> Unit,
     onSettings: () -> Unit,
     onPrivacySettings: () -> Unit = {},
@@ -179,19 +180,18 @@ fun TripWorkspaceRoute(
     val ready = (page as? TripWorkspacePageState.Ready)?.content
     val dispatchPlace: (PlacePoolAction) -> Unit = placeViewModel?.let { it::dispatch } ?: onPlaceAction
     val dispatchItinerary: (DayItineraryAction) -> Unit = itineraryViewModel?.let { it::dispatch } ?: onItineraryAction
-    val permissionExplanation = locationPermissionCoordinator.explanation.collectAsStateWithLifecycle().value
+    val locationPermissionUiState = locationPermissionCoordinator.uiState.collectAsStateWithLifecycle().value
     var locateRequest by remember { mutableIntStateOf(0) }
 
     LaunchedEffect(locationPermissionCoordinator) {
         locationPermissionCoordinator.effectFlow.collect { effect ->
-            if (effect == WorkspaceEffect.ShowCurrentLocation) locateRequest++ else onWorkspaceEffect(effect)
+            if (effect is WorkspaceEffect.ShowCurrentLocation) locateRequest++ else onWorkspaceEffect(effect)
         }
     }
-    LaunchedEffect(permissionExplanation, ready?.overlay) {
-        val explanation = permissionExplanation
-        if (explanation != null && ready?.overlay != WorkspaceOverlay.PermissionExplanation(explanation)) {
-            viewModel.openOverlay(WorkspaceOverlay.PermissionExplanation(explanation))
-        } else if (explanation == null && ready?.overlay is WorkspaceOverlay.PermissionExplanation) {
+    LaunchedEffect(locationPermissionUiState.explanationVisible, ready?.overlay) {
+        if (locationPermissionUiState.explanationVisible && ready?.overlay != WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION)) {
+            viewModel.openOverlay(WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION))
+        } else if (!locationPermissionUiState.explanationVisible && ready?.overlay is WorkspaceOverlay.PermissionExplanation) {
             viewModel.closeOverlay()
         }
     }
@@ -334,6 +334,9 @@ fun TripWorkspaceRoute(
     TripWorkspaceScreen(
         pageState = page,
         consent = consent,
+        consentFact = consentFact,
+        locationPermissionUiState = locationPermissionUiState,
+        onOpenLocationSettings = locationPermissionCoordinator::requestApplicationSettings,
         onAction = { action ->
             when (action) {
                 TripWorkspaceAction.Back -> leaveOrCloseOverlay()

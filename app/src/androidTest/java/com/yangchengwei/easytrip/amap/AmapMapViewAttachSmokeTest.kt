@@ -37,9 +37,9 @@ class AmapMapViewAttachSmokeTest {
         persistStatus()
         val info = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
         check(info.metaData?.getString("com.amap.api.v2.apikey").orEmpty().isNotBlank()) { "AMAP_API_KEY is required" }
-        AmapPrivacyGate.create(context).apply {
-            reportPrivacyShown()
-            assertNotNull(reportUserDecision(true))
+        TestConsentGate().apply {
+            show()
+            assertNotNull(decide(true))
         }
 
         val loaded = CountDownLatch(1)

@@ -49,9 +49,9 @@ class AmapComposeMapTest {
 
     @Test fun locateRequestInvokesMapHostCurrentLocation() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val located = CountDownLatch(1)
         rule.scenario.onActivity { activity ->
             activity.setContent {
@@ -81,9 +81,9 @@ class AmapComposeMapTest {
 
     @Test fun fakeHostDeliversMapPoiToComposeCallback() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val expected = MapPoiUi("B0001", "故宫", "北京市东城区景山前街4号", GeoPoint(39.916, 116.397))
         var received: MapPoiUi? = null
         val emitted = CountDownLatch(1)
@@ -122,9 +122,9 @@ class AmapComposeMapTest {
 
     @Test fun delayedMapReadyKeepsLoadingUntilHostSignalsReady() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val listenerRegistered = CountDownLatch(1)
         val rendered = CountDownLatch(1)
         val ready = CountDownLatch(1)
@@ -167,11 +167,55 @@ class AmapComposeMapTest {
         assertEquals(1, readyCount)
     }
 
+    @Test fun withdrawalDisposesActiveMapHostAndIgnoresOldCallbacks() {
+        val registry = ConsentRegistry()
+        val active = registry.decide(true)
+        val token = AmapConsentToken.issue(registry, active.generation)
+        var readyListener: (() -> Unit)? = null
+        val listenerRegistered = CountDownLatch(1)
+        var listenerRemoved = 0
+        var destroyed = 0
+        var readyCount = 0
+
+        rule.scenario.onActivity { activity ->
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    hostFactory = { context -> object : AmapMapHost {
+                        override val view: View = View(context)
+                        override fun setOnReadyListener(listener: (() -> Unit)?) {
+                            readyListener = listener
+                            if (listener == null) listenerRemoved++ else listenerRegistered.countDown()
+                        }
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() { destroyed++ }
+                    } },
+                    onMapReady = { readyCount++ },
+                )
+            }
+        }
+
+        assertTrue(listenerRegistered.await(5, TimeUnit.SECONDS))
+        val oldCallback = requireNotNull(readyListener)
+        registry.decide(false)
+        rule.scenario.onActivity { }
+        oldCallback.invoke()
+        rule.scenario.onActivity { }
+
+        assertEquals(1, listenerRemoved)
+        assertEquals(1, destroyed)
+        assertEquals(0, readyCount)
+    }
+
     @Test fun disposedHostReadyCallbackIsIgnoredAfterReplacement() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         lateinit var ownerState: androidx.compose.runtime.MutableState<TestOwner>
         val readyCallbacks = mutableListOf<() -> Unit>()
         val firstReadyListener = CountDownLatch(1)
@@ -224,10 +268,11 @@ class AmapComposeMapTest {
 
     @Test fun hostCreationFailureIsReported() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val reported = CountDownLatch(1)
+        val destroyedSignal = CountDownLatch(1)
         var destroyed = 0
         rule.scenario.onActivity { activity ->
             activity.setContent {
@@ -240,21 +285,22 @@ class AmapComposeMapTest {
                         override fun onCreate() = throw IllegalStateException("create")
                         override fun onResume() = Unit
                         override fun onPause() = Unit
-                        override fun onDestroy() { destroyed++ }
+                        override fun onDestroy() { destroyed++; destroyedSignal.countDown() }
                     } },
                     onMapError = { reported.countDown() },
                 )
             }
         }
         assertTrue(reported.await(5, TimeUnit.SECONDS))
+        assertTrue(destroyedSignal.await(5, TimeUnit.SECONDS))
         assertEquals(1, destroyed)
     }
 
     @Test fun renderFailureIsReported() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val reported = CountDownLatch(1)
         rule.scenario.onActivity { activity ->
             activity.setContent {
@@ -281,9 +327,9 @@ class AmapComposeMapTest {
 
     @Test fun layerFailureDoesNotReportMapReady() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val layerReported = CountDownLatch(1)
         var readyCount = 0
         rule.scenario.onActivity { activity ->
@@ -313,9 +359,9 @@ class AmapComposeMapTest {
 
     @Test fun successfulRenderReportsMapReadyOnceAcrossUpdates() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val ready = CountDownLatch(1)
         var readyCount = 0
         lateinit var model: androidx.compose.runtime.MutableState<MapUiModel>
@@ -345,9 +391,9 @@ class AmapComposeMapTest {
 
     @Test fun disposedHostCallbacksAreIgnoredAfterLifecycleOwnerReplacement() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         lateinit var ownerState: androidx.compose.runtime.MutableState<TestOwner>
         val callbacks = mutableListOf<(Throwable, MapLayer) -> Unit>()
         val firstRender = CountDownLatch(1)
@@ -395,9 +441,9 @@ class AmapComposeMapTest {
 
     @Test fun fakeHostKeepsLifecycleAndConsumesEachViewportRequestOnce() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         var creations = 0
         var destroys = 0
         var creates = 0

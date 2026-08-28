@@ -74,6 +74,7 @@ fun PlaceSearchContent(
     detailContent: (@Composable (PlaceCandidate) -> Unit)? = null,
     consent: AmapConsentToken? = null,
     mapHostFactory: (android.content.Context) -> AmapMapHost = ::RealAmapMapHost,
+    onOpenConsent: () -> Unit = {},
 ) {
     when (val mode = state.displayMode) {
         SearchDisplayMode.Results -> Column(
@@ -114,6 +115,7 @@ fun PlaceSearchContent(
                     availableTagNames = state.availableTags.map { it.name },
                     detailContent = detailContent,
                     modifier = modifier,
+                    onOpenConsent = onOpenConsent,
                 )
             }
         }
@@ -135,6 +137,7 @@ private fun SearchMapDetail(
     availableTagNames: List<String>,
     detailContent: (@Composable (PlaceCandidate) -> Unit)?,
     modifier: Modifier = Modifier,
+    onOpenConsent: () -> Unit,
 ) {
     Column(
         modifier
@@ -172,6 +175,29 @@ private fun SearchMapDetail(
                     Box(contentAlignment = Alignment.Center) {
                         LocationIcon(Modifier.size(22.dp), SearchPrimary)
                     }
+                }
+            }
+        } else if (model != null) {
+            Column(
+                Modifier.fillMaxWidth().weight(1f),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center,
+            ) {
+                Text("地图服务未启用", color = SearchPrimaryDark, fontWeight = FontWeight.Bold)
+                Spacer(Modifier.height(8.dp))
+                Text("查看并授权后可使用地图详情", color = SearchMuted, fontSize = 12.sp)
+                Spacer(Modifier.height(16.dp))
+                Box(
+                    Modifier
+                        .height(48.dp)
+                        .testTag("search-consent-open")
+                        .border(1.dp, SearchBorder, RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(10.dp))
+                        .clickable(onClick = onOpenConsent)
+                        .padding(horizontal = 24.dp),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Text("查看并授权", color = SearchPrimaryDark, fontWeight = FontWeight.Bold)
                 }
             }
         } else {
@@ -290,6 +316,7 @@ private fun SearchBody(
             title = "搜索想去的地方",
             message = "收藏后会停留在搜索页，可继续收藏更多地点。",
         )
+        PlaceSearchPhase.ConsentRequired -> ConsentRequiredBody(state.search.savedPlaces, onAction)
         PlaceSearchPhase.Loading -> SearchMessage(
             icon = { CircularProgressIndicator(Modifier.size(42.dp), color = SearchPrimary, strokeWidth = 3.dp) },
             title = "正在搜索地点",
@@ -312,6 +339,39 @@ private fun SearchBody(
             onButtonClick = { onAction(PlaceSearchAction.Retry) },
         )
         PlaceSearchPhase.Results -> SearchResults(state, onAction, resultsListState)
+    }
+}
+
+@Composable
+private fun ConsentRequiredBody(
+    savedPlaces: List<com.yangchengwei.easytrip.place.domain.SavedPlace>,
+    onAction: (PlaceSearchAction) -> Unit,
+) {
+    Column(
+        Modifier.fillMaxSize().testTag("search-consent-required"),
+        verticalArrangement = Arrangement.spacedBy(16.dp),
+    ) {
+        SearchMessage(
+            icon = { SearchOffIcon(Modifier.size(48.dp), SearchMuted) },
+            title = "地图服务未启用",
+            message = "在线地点搜索暂不可用，本地收藏仍可使用。",
+            buttonLabel = "查看并授权",
+            testTagPrefix = "search-consent-required",
+            fillAvailableSpace = false,
+            onButtonClick = { onAction(PlaceSearchAction.OpenConsent) },
+        )
+        if (savedPlaces.isNotEmpty()) {
+            LazyColumn(Modifier.fillMaxWidth().weight(1f).testTag("saved-place-list")) {
+                items(savedPlaces, key = { it.id }) { place ->
+                    Text(
+                        place.name,
+                        Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        color = SearchPrimaryDark,
+                        fontWeight = FontWeight.SemiBold,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -361,10 +421,11 @@ private fun SearchMessage(
     message: String,
     buttonLabel: String? = null,
     testTagPrefix: String? = null,
+    fillAvailableSpace: Boolean = true,
     onButtonClick: () -> Unit = {},
 ) {
     Column(
-        Modifier.fillMaxSize().then(
+        (if (fillAvailableSpace) Modifier.fillMaxSize() else Modifier.fillMaxWidth()).then(
             if (testTagPrefix == null) Modifier else Modifier.testTag("$testTagPrefix-body"),
         ),
         horizontalAlignment = Alignment.CenterHorizontally,

@@ -13,19 +13,21 @@ class LocationPermissionSourceTest {
         assertTrue(manifest.contains("android.permission.ACCESS_FINE_LOCATION"))
     }
 
-    @Test fun routeUsesActivityResultBoundaryAndApplicationSettingsCallback() {
-        val navigation = source("src/main/java/com/yangchengwei/easytrip/AppNavigation.kt")
-        assertTrue(navigation.contains("ActivityResultContracts.RequestMultiplePermissions"))
-        assertTrue(navigation.contains("onOpenApplicationSettings"))
-        assertTrue(navigation.contains("Settings.ACTION_APPLICATION_DETAILS_SETTINGS"))
+    @Test fun coordinatorHasNoSavedStateRequestStoreOrAndroidStateOwner() {
+        val coordinator = source("src/main/java/com/yangchengwei/easytrip/permission/LocationPermissionCoordinator.kt")
+        assertFalse(coordinator.contains("SavedStateLocationPermissionRequestStore"))
+        assertFalse(coordinator.contains("SavedStateHandle"))
+        assertFalse(coordinator.contains("LifecycleOwner"))
+        assertFalse(coordinator.contains("Context"))
     }
 
-    @Test fun mapRetryDoesNotInvokePageRetryOrRoom() {
-        val screen = source("src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt")
-        val localRetry = screen.substringAfter("onMapRetry = {").substringBefore("},\n        onAction")
-        assertFalse(localRetry.contains("viewModel.retry"))
-        assertFalse(localRetry.contains("repository"))
-        assertFalse(localRetry.contains("Room"))
+    @Test fun permissionKindsExcludeConsentAndSettingsDialogSemantics() {
+        val overlay = source("src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt")
+        val explanation = source("src/main/java/com/yangchengwei/easytrip/permission/PermissionExplanationContent.kt")
+        assertFalse(overlay.contains("MAP_SERVICE_CONSENT"))
+        assertFalse(overlay.contains("DEVICE_LOCATION_SETTINGS"))
+        assertFalse(explanation.contains("打开应用设置"))
+        assertTrue(explanation.contains("定位仅在你主动点击后用于在地图上显示当前位置"))
     }
 
     private fun source(path: String) = String(Files.readAllBytes(Paths.get(path)))

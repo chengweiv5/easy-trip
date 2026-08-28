@@ -33,7 +33,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.amap.AmapPrivacyGate
+import com.yangchengwei.easytrip.amap.TestConsentGate
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
@@ -174,9 +174,9 @@ class PlaceSearchContentTest {
     @Test fun searchDetailRendersMapAndRecenterWithoutChangingSelection() {
         val candidate = PlaceCandidate("poi-map", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val actions = mutableListOf<PlaceSearchAction>()
         var renderedModel: MapUiModel? = null
         var markerClicks = 0
@@ -224,6 +224,27 @@ class PlaceSearchContentTest {
             assertTrue(markerClicks > 0)
             assertTrue(poiClicks > 0)
         }
+    }
+
+    @Test fun missingConsentDetailShowsAuthorizeActionInsteadOfSpacer() {
+        val candidate = PlaceCandidate("poi-no-consent", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        var openedConsent = false
+        compose.setContent {
+            EasyTripTheme {
+                PlaceSearchContent(
+                    state = PlaceSearchUiState(
+                        search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results),
+                        displayMode = SearchDisplayMode.MapDetail(candidate.poiId),
+                    ),
+                    onAction = {},
+                    consent = null,
+                    onOpenConsent = { openedConsent = true },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("search-consent-open").assertIsDisplayed().performClick()
+        assertTrue(openedConsent)
     }
 
     @Test fun missingConsentKeepsDefaultDetailCollectionActionAvailable() {
@@ -303,9 +324,9 @@ class PlaceSearchContentTest {
     @Test fun mapHostCreationFailureKeepsProductionFallbackCollectionActionAvailable() {
         val candidate = PlaceCandidate("poi-map", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
-        val gate = AmapPrivacyGate.create(context)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val actions = mutableListOf<PlaceSearchAction>()
         setContent(
             state = PlaceSearchUiState(
@@ -321,6 +342,24 @@ class PlaceSearchContentTest {
         compose.onNodeWithText("故宫博物院").assertIsDisplayed()
         compose.onNodeWithContentDescription("收藏故宫博物院").performClick()
         assertEquals(listOf(PlaceSearchAction.ToggleCollection("poi-map")), actions)
+    }
+
+    @Test fun declinedSearchShowsAuthorizeActionAndKeepsSavedPlaces() {
+        val saved = SavedPlace("saved", "trip", "saved-poi", "已收藏地点", "地址", GeoPoint(39.916, 116.397), "", emptyList())
+        val actions = mutableListOf<PlaceSearchAction>()
+        setContent(
+            PlaceSearchUiState(
+                search = PlaceSearchState("故宫", savedPlaces = listOf(saved), phase = PlaceSearchPhase.ConsentRequired),
+            ),
+            onAction = actions::add,
+        )
+
+        compose.onNodeWithTag("search-consent-required").assertIsDisplayed()
+        compose.onNodeWithTag("saved-place-list").assertIsDisplayed()
+        compose.onNodeWithText("已收藏地点").assertIsDisplayed()
+        compose.onNodeWithTag("search-consent-required-action").performClick()
+
+        assertEquals(listOf(PlaceSearchAction.OpenConsent), actions)
     }
 
     @Test fun loadingEmptyAndFailureMatchTheirActions() {

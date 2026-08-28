@@ -17,7 +17,7 @@ import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import com.yangchengwei.easytrip.amap.AmapPrivacyGate
+import com.yangchengwei.easytrip.amap.TestConsentGate
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
@@ -79,9 +79,9 @@ class SearchMapFocusTest {
         )
         val unrelated = mutableStateOf(0)
         lateinit var host: RecordingHost
-        val gate = AmapPrivacyGate.create(compose.activity)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
 
         compose.setContent {
             unrelated.value
@@ -128,9 +128,9 @@ class SearchMapFocusTest {
             flowOf(listOf(candidate)),
         )
         lateinit var host: RecordingHost
-        val gate = AmapPrivacyGate.create(compose.activity)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
 
         compose.setContent {
             val workspaceState by model.state.collectAsState()
@@ -188,9 +188,9 @@ class SearchMapFocusTest {
         val saved = SavedPlace("saved", "trip", "poi", "故宫", "地址", point, "", emptyList())
         val model = TripWorkspaceViewModel("trip", Trips(), SavedPlaces(saved), Itineraries(), Legs(), SavedStateHandle())
         compose.waitUntil(5_000) { model.state.value.map.viewportRequest?.reason == ViewportReason.INITIAL }
-        val gate = AmapPrivacyGate.create(compose.activity)
-        gate.reportPrivacyShown()
-        val token = requireNotNull(gate.reportUserDecision(true))
+        val gate = TestConsentGate()
+        gate.show()
+        val token = requireNotNull(gate.decide(true))
         val owner = mutableStateOf<TestOwner>(TestOwner())
         val hosts = mutableListOf<RecordingHost>()
 

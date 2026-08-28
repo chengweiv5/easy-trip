@@ -30,8 +30,10 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yangchengwei.easytrip.amap.AmapConsentFact
 import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.core.model.TransportMode
+import com.yangchengwei.easytrip.permission.LocationPermissionUiState
 import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationDialog
@@ -55,6 +57,9 @@ import com.yangchengwei.easytrip.permission.PermissionExplanationContent
 fun TripWorkspaceScreen(
     pageState: TripWorkspacePageState,
     consent: AmapConsentToken?,
+    consentFact: AmapConsentFact? = consent?.let { AmapConsentFact.Accepted(0, it) },
+    locationPermissionUiState: LocationPermissionUiState = LocationPermissionUiState(),
+    onOpenLocationSettings: () -> Unit = {},
     onAction: (TripWorkspaceAction) -> Unit,
     onMarkerClick: (String) -> Unit,
     onMapPoiClick: (MapPoiUi) -> Unit,
@@ -84,22 +89,28 @@ fun TripWorkspaceScreen(
     searchReturn: WorkspaceSearchReturn? = null,
 ) {
     var mapAttempt by remember { mutableIntStateOf(0) }
-    var mapState by remember(consent) { mutableStateOf(if (consent == null) WorkspaceMapState.ConsentRequired else WorkspaceMapState.Loading) }
+    var mapHostState: MapHostState by remember(consent) { mutableStateOf(MapHostState.Loading) }
     var failedAttempt by remember(consent) { mutableStateOf<Int?>(null) }
     LaunchedEffect(consent) {
         mapAttempt++
         failedAttempt = null
-        mapState = if (consent == null) WorkspaceMapState.ConsentRequired else WorkspaceMapState.Loading
+        mapHostState = MapHostState.Loading
     }
+    val mapState = resolveWorkspaceMapState(
+        consentFact = consentFact,
+        mapHostState = mapHostState,
+        locationPermanentlyDenied = locationPermissionUiState.permanentlyDenied,
+    )
     val ready = (pageState as? TripWorkspacePageState.Ready)?.content
 
     TripWorkspaceContent(
         pageState = pageState,
         mapState = mapState,
+        onOpenLocationSettings = onOpenLocationSettings,
         onMapRetry = {
             mapAttempt++
             failedAttempt = null
-            mapState = if (consent == null) WorkspaceMapState.ConsentRequired else WorkspaceMapState.Loading
+            mapHostState = MapHostState.Loading
         },
         onAction = onAction,
         placeState = placeState,
@@ -126,17 +137,17 @@ fun TripWorkspaceScreen(
                         if (attemptId == mapAttempt) {
                             failedAttempt = attemptId
                             onAction(TripWorkspaceAction.SelectMapLayer(retainedLayer))
-                            mapState = WorkspaceMapState.Failed("地图图层切换失败，已保留当前图层")
+                            mapHostState = MapHostState.Failed("地图图层切换失败，已保留当前图层")
                         }
                     },
                     onMapError = {
                         if (attemptId == mapAttempt) {
                             failedAttempt = attemptId
-                            mapState = WorkspaceMapState.Failed("地图加载失败")
+                            mapHostState = MapHostState.Failed("地图加载失败")
                         }
                     },
                     onMapReady = {
-                        if (attemptId == mapAttempt && failedAttempt != attemptId) mapState = WorkspaceMapState.Ready
+                        if (attemptId == mapAttempt && failedAttempt != attemptId) mapHostState = MapHostState.Ready
                     },
                 )
             }
@@ -480,7 +491,6 @@ private fun WorkspaceOverlayContent(
             confirmButton = {},
         )
         is WorkspaceOverlay.PermissionExplanation -> PermissionExplanationContent(
-            kind = overlay.kind,
             onConfirm = onConfirmPermissionExplanation,
             onDismiss = onDismissPermissionExplanation,
         )
