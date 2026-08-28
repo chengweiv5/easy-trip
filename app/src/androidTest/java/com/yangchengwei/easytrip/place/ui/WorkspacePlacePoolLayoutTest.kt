@@ -5,8 +5,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.Text
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.test.onNodeWithTag
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
@@ -51,6 +53,23 @@ class WorkspacePlacePoolLayoutTest {
         val more = compose.onNodeWithTag("more-place-place").getUnclippedBoundsInRoot()
         assertTrue("row=$row quickAdd=$quickAdd", quickAdd.right <= row.right)
         assertTrue("row=$row more=$more", more.right <= row.right)
+    }
+
+    @Test fun placeActionsHaveFortyEightDpTouchTargetsAndTwentyDpInset() {
+        val place = SavedPlace("place", "trip", "poi-place", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        compose.setContent {
+            EasyTripTheme {
+                PlacePoolContent(
+                    state = PlacePoolUiState(rows = listOf(SavedPlaceRowUi(place, 0, false))),
+                    showSearch = false,
+                    onAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("quick-add-place-place").assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("more-place-place").assertHeightIsEqualTo(48.dp)
+        assertEquals(20f, compose.onNodeWithTag("workspace-place-list").getUnclippedBoundsInRoot().left.value)
     }
 
     @Test fun workspacePlacePoolUsesOnlySheetHorizontalInset() {

@@ -54,7 +54,7 @@ class TripFlowTest {
         compose.onNodeWithText("修改旅行名称").performClick()
         compose.onNodeWithText("旅行名称").performTextInput("新名称")
         compose.onNodeWithText("保存名称").performClick()
-        compose.onNodeWithText("整体出行日期").assertIsDisplayed()
+        compose.onNodeWithText("出行日期").assertIsDisplayed()
         compose.onNodeWithText("出行方式").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("末尾追加旅行日").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("操作 Day 1").fetchSemanticsNodes().size)
@@ -170,22 +170,25 @@ class TripFlowTest {
                 march15,
             )
         }
-        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithTag("create-name").performTextInput("草案"); compose.onNodeWithTag("create-day-count").performTextInput("3"); compose.onNodeWithText("继续").performClick()
-        compose.waitForIdle(); assertEquals(3, repository.trip.value!!.days.size)
-        pressBack()
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("create-trip").fetchSemanticsNodes().size == 1 }
+        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithTag("create-name").performTextInput("草案"); compose.onNodeWithTag("create-day-count").performTextInput("3"); compose.onNodeWithTag("create-submit").performClick()
+        compose.waitUntil { repository.trip.value?.name == "草案" }
+        assertEquals(3, repository.trip.value!!.days.size)
+        compose.onNodeWithText("旅行工作区 ${repository.trip.value!!.id}").assertIsDisplayed()
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("create-trip").fetchSemanticsNodes().isNotEmpty() }
         compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithTag("create-name").performTextInput("日期旅行"); compose.onNodeWithTag("create-day-count").performTextInput("2")
         compose.onNodeWithTag("create-mode-SELF_DRIVE").performScrollTo().performClick()
         compose.onNodeWithText("指定日期").performClick()
         compose.onNodeWithText("确定日期").performClick()
-        compose.onNodeWithText("2027-03-15").assertIsDisplayed().assertIsSelected()
+        compose.onNodeWithText("指定日期").assertIsSelected()
         compose.onNodeWithText("日期待定").performClick()
         compose.onNodeWithText("指定日期").assertIsDisplayed().assertIsNotSelected()
         compose.onNodeWithText("指定日期").performClick()
         compose.onNodeWithText("确定日期").performClick()
-        compose.onNodeWithText("2027-03-15").assertIsDisplayed().assertIsSelected()
+        compose.onNodeWithText("指定日期").assertIsSelected()
+        compose.onNodeWithText("2027-03-15").assertIsDisplayed()
         compose.onNodeWithTag("create-mode-SELF_DRIVE").assertIsSelected()
-        compose.onNodeWithText("继续").performClick()
+        compose.onNodeWithTag("create-submit").performClick()
         compose.waitUntil { repository.trip.value?.name == "日期旅行" }
         assertEquals(TravelMode.SELF_DRIVE, repository.trip.value!!.travelMode)
         assertEquals(LocalDate.of(2027, 3, 15), repository.trip.value!!.startDate)

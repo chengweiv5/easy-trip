@@ -23,6 +23,7 @@ sealed interface RouteLegUiState {
         val durationSeconds: Int?,
     ) : RouteLegUiState
 
+    data object Pending : RouteLegUiState
     data object Calculating : RouteLegUiState
     data object WaitingForNetwork : RouteLegUiState
     data class Failed(val message: String) : RouteLegUiState
@@ -41,7 +42,8 @@ data class RouteLegUi(
     val state: RouteLegUiState
         get() = when (status) {
             RouteStatus.SUCCESS -> RouteLegUiState.Ready(distanceMeters, durationSeconds)
-            RouteStatus.PENDING, RouteStatus.CALCULATING -> RouteLegUiState.Calculating
+            RouteStatus.PENDING -> RouteLegUiState.Pending
+            RouteStatus.CALCULATING -> RouteLegUiState.Calculating
             RouteStatus.WAITING_NETWORK -> RouteLegUiState.WaitingForNetwork
             RouteStatus.FAILED -> RouteLegUiState.Failed(error ?: "路线计算失败")
         }

@@ -1,9 +1,12 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.Alignment
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
@@ -258,6 +261,63 @@ class TripWorkspaceContentTest {
         )
     }
 
+    @Test fun inProgressDragKeepsSheetBottomAnchoredAndSharesVisibleHeightWithOverlays() {
+        val dragDelta = mutableStateOf(0f)
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().height(600.dp).testTag("workspace-root")) {
+                    val anchors = workspaceSheetAnchors(600.dp, searchReturn = false)
+                    val visibleHeight = with(androidx.compose.ui.platform.LocalDensity.current) {
+                        (anchors[WorkspaceSheetLevel.HALF].toPx() - dragDelta.value).toDp()
+                    }
+                    val metrics = workspaceLayoutMetrics(600.dp, visibleHeight)
+                    Box(Modifier.fillMaxSize()) {
+                        Text(
+                            "overlay",
+                            Modifier.align(Alignment.BottomCenter).padding(bottom = metrics.overlayBottomInset).testTag("drag-overlay"),
+                        )
+                    }
+                    WorkspaceBottomSheet(
+                        value = WorkspaceSheetLevel.HALF,
+                        anchors = anchors,
+                        onValueChange = {},
+                        dragOffsetPx = dragDelta.value,
+                        onDragOffsetChange = { dragDelta.value = it },
+                        header = { Text("拖动") },
+                        content = { Text("内容") },
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
+        val handle = compose.onNodeWithTag("workspace-sheet-handle")
+        handle.performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y - 200f))
+            advanceEventTime(100)
+        }
+        compose.waitForIdle()
+        assertDragGeometry(root)
+
+        handle.performTouchInput {
+            moveTo(Offset(center.x, center.y + 1_000f))
+            advanceEventTime(100)
+        }
+        compose.waitForIdle()
+        assertDragGeometry(root)
+    }
+
+    private fun assertDragGeometry(root: androidx.compose.ui.unit.DpRect) {
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        val overlay = compose.onNodeWithTag("drag-overlay").getUnclippedBoundsInRoot()
+        assertEquals("sheet=$sheet root=$root", root.bottom, sheet.bottom)
+        assertTrue("sheet=$sheet root=$root", sheet.top >= root.top && sheet.bottom <= root.bottom)
+        assertTrue("overlay=$overlay sheet=$sheet", overlay.bottom <= sheet.top)
+    }
+
     @Test fun activeGestureUsesLatestLevelChangeCallback() {
         val calls = mutableListOf<Int>()
         val callback = mutableStateOf<(WorkspaceSheetLevel) -> Unit>({ calls += 0 })
@@ -411,6 +471,21 @@ class TripWorkspaceContentTest {
         assertTrue("root=$root sheet=$sheet", sheet.bottom <= root.bottom)
         assertTrue("root=$root topBar=$topBar", topBar.top >= root.top)
         assertTrue("root=$root topBar=$topBar", topBar.top - root.top <= 48.dp)
+    }
+
+    @Test fun workspaceHeightBoundaryKeepsExpandedSheetContinuousAndAllAnchorsOrdered() {
+        val boundaries = listOf(395.dp, 396.dp, 397.dp)
+        val anchors = boundaries.map { workspaceSheetAnchors(it, searchReturn = false) }
+
+        anchors.zipWithNext().forEach { (before, after) ->
+            assertTrue("before=$before after=$after", after.collapsed >= before.collapsed)
+            assertTrue("before=$before after=$after", after.half >= before.half)
+            assertTrue("before=$before after=$after", after.expanded > before.expanded)
+            assertTrue("before=$before after=$after", after.expanded - before.expanded < 2.dp)
+        }
+        anchors.forEach { anchor ->
+            assertTrue("anchors=$anchor", anchor.collapsed < anchor.half && anchor.half < anchor.expanded)
+        }
     }
 
     @Test fun constrainedHeightKeepsPlacePoolReachableAtSmallWindowAndLargeFont() {

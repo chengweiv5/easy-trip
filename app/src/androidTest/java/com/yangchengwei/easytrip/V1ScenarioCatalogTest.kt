@@ -176,17 +176,26 @@ class V1ScenarioMetadataTest {
         }
     }
 
-    @Test
-    fun tripEntryScenariosUseProductionSelectorsAndSemantics() {
-        listOf(1, 7, 9, 13, 36, 47).forEach { number ->
-            val executable = V1ScenarioFixtures.scenarios.first { it.number == number }.createExecutable()
-            executable.setup()
-            executable.render(compose)
-            compose.waitForIdle()
-            executable.actions(compose)
-            compose.waitForIdle()
-            executable.assertions(compose)
-        }
+    @Test fun tripListEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(1)
+
+    @Test fun createTripEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(7)
+
+    @Test fun datePickerEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(9)
+
+    @Test fun deletionEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(13)
+
+    @Test fun emptyTripListEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(36)
+
+    @Test fun dateModeEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(47)
+
+    private fun assertProductionScenario(number: Int) {
+        val executable = V1ScenarioFixtures.scenarios.first { it.number == number }.createExecutable()
+        executable.setup()
+        executable.render(compose)
+        compose.waitForIdle()
+        executable.actions(compose)
+        compose.waitForIdle()
+        executable.assertions(compose)
     }
 
     @Test

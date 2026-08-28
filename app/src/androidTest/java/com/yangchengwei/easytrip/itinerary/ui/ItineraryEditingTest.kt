@@ -118,8 +118,7 @@ class ItineraryEditingTest {
         )
         compose.setContent { DayItinerarySheet(model) }
 
-        compose.onNodeWithTag("itinerary-empty-illustration").assertIsDisplayed()
-            .assertContentDescriptionEquals("暂无行程")
+        compose.onNodeWithTag("empty-illustration-itinerary").assertIsDisplayed()
         compose.onNodeWithText("第2天 · 暂无行程").assertIsDisplayed()
         compose.onNodeWithText("从地点池添加地点，开始安排这一天").assertIsDisplayed()
         compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
@@ -136,7 +135,7 @@ class ItineraryEditingTest {
         compose.setContent { DayItinerarySheet(model) }
         compose.waitUntil(5_000) { model.state.value.items.size == 3 }
 
-        compose.onNodeWithText("等待联网").assertIsDisplayed()
+        compose.onNodeWithText("联网后计算路线").assertIsDisplayed()
         compose.onNodeWithTag("item-i2")
             .assert(SemanticsMatcher("has both reorder actions") { node ->
                 node.config[SemanticsActions.CustomActions].map { it.label } == listOf("上移", "下移")

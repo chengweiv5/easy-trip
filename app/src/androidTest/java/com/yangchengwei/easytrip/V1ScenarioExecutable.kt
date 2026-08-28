@@ -17,9 +17,11 @@ import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
 import androidx.compose.ui.test.swipeUp
@@ -423,7 +425,11 @@ object V1ScenarioExecutableFactory {
                 onAction = {},
             )
         },
-        verify = { onNodeWithText("等待联网").assertIsDisplayed(); onNodeWithTag("add-places-to-selected-day").assertIsDisplayed() },
+        verify = {
+            onNodeWithText("联网后计算路线").assertIsDisplayed()
+            onNodeWithContentDescription("离线，联网后计算路线").assertIsDisplayed()
+            onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
+        },
     )
 
     private fun failedRoute(id: String): V1ScenarioExecutable {
@@ -510,9 +516,18 @@ object V1ScenarioExecutableFactory {
             tripId = "trip-1",
             name = "杭州周末",
             startDate = LocalDate.of(2026, 9, 1),
+            dateRange = DateRangeChangeUiState(
+                startDate = LocalDate.of(2026, 9, 1),
+                baselineEndDate = LocalDate.of(2026, 9, 2),
+                endDate = LocalDate.of(2026, 9, 2),
+            ),
             days = listOf(DayUi("day-1", "Day 1 · 9月1日"), DayUi("day-2", "Day 2 · 9月2日")),
         ),
-        verify = { onNodeWithText("整体出行日期").assertIsDisplayed(); onNodeWithText("旅行日").assertIsDisplayed() },
+        verify = {
+            onNodeWithTag("settings-date-row").performScrollTo().assertIsDisplayed()
+            onNodeWithText("整体出行日期").assertIsDisplayed()
+            onNodeWithText("旅行日").assertIsDisplayed()
+        },
     )
 
     private fun deleteTripConfirmation(id: String): V1ScenarioExecutable {
@@ -883,8 +898,9 @@ object V1ScenarioExecutableFactory {
             ScenarioPath(listOf(ScenarioScreen.STATUS_MATRIX)),
             content = { Column { legs.forEach { RouteLegContent(it) } } },
             verify = {
-                onNodeWithText("等待联网").assertIsDisplayed()
-                onAllNodesWithText("正在计算路线").assertCountEquals(2)
+                onNodeWithText("联网后计算路线").assertIsDisplayed()
+                onNodeWithContentDescription("离线，联网后计算路线").assertIsDisplayed()
+                onAllNodesWithText("正在计算路线").assertCountEquals(1)
                 onNodeWithText("路线失败").assertIsDisplayed()
             },
         )

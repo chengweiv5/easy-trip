@@ -40,7 +40,7 @@ fun SavedPlaceRow(
     var menuExpanded by remember(place.id) { mutableStateOf(false) }
     Surface(modifier.fillMaxWidth().testTag("saved-place-${place.id}"), color = MaterialTheme.colorScheme.surface) {
         Row(
-            Modifier.fillMaxWidth().padding(vertical = 12.dp),
+            Modifier.fillMaxWidth().padding(vertical = 10.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -78,7 +78,7 @@ fun SavedPlaceRow(
                 onQuickAdd?.let { quickAdd ->
                     Box(
                         Modifier
-                            .size(40.dp)
+                            .size(48.dp)
                             .testTag("quick-add-place-${place.id}")
                             .semantics { contentDescription = "添加${place.name}到行程" }
                             .clickable(onClick = quickAdd),
@@ -87,10 +87,10 @@ fun SavedPlaceRow(
                         PlusIcon(Modifier.size(22.dp))
                     }
                 }
-                Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) {
+                Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
                     Box(
                         Modifier
-                            .size(40.dp)
+                            .size(48.dp)
                             .testTag("more-place-${place.id}")
                             .semantics { contentDescription = "${place.name}，更多操作" }
                             .clickable { menuExpanded = !menuExpanded },

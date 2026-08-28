@@ -51,6 +51,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -299,10 +300,10 @@ class PlacePoolFlowTest {
         more.assertIsDisplayed().assertHasClickAction()
         val quickAddBounds = quickAdd.getUnclippedBoundsInRoot()
         val moreBounds = more.getUnclippedBoundsInRoot()
-        assertEquals(40.dp, quickAddBounds.right - quickAddBounds.left)
-        assertEquals(40.dp, quickAddBounds.bottom - quickAddBounds.top)
-        assertEquals(40.dp, moreBounds.right - moreBounds.left)
-        assertEquals(40.dp, moreBounds.bottom - moreBounds.top)
+        assertTrue(quickAddBounds.right - quickAddBounds.left >= 47.5.dp)
+        assertTrue(quickAddBounds.bottom - quickAddBounds.top >= 47.5.dp)
+        assertTrue(moreBounds.right - moreBounds.left >= 47.5.dp)
+        assertTrue(moreBounds.bottom - moreBounds.top >= 47.5.dp)
 
         quickAdd.performClick()
         compose.onNodeWithTag("more-place-second").performClick()

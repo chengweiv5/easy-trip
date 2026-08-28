@@ -32,6 +32,12 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -51,19 +57,17 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yangchengwei.easytrip.amap.AmapConsentToken
+import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
+import com.yangchengwei.easytrip.core.ui.component.EmptyIllustration
+import com.yangchengwei.easytrip.core.ui.component.EmptyIllustrationImage
+import com.yangchengwei.easytrip.core.ui.component.EmptyState
+import com.yangchengwei.easytrip.core.ui.component.InlineStatus
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.workspace.AmapComposeMap
 import com.yangchengwei.easytrip.workspace.AmapMapHost
 import com.yangchengwei.easytrip.workspace.RealAmapMapHost
-
-private val SearchBackground = Color(0xFFF5F3EE)
-private val SearchSurface = Color.White
-private val SearchPrimary = Color(0xFF2D5E3A)
-private val SearchPrimaryDark = Color(0xFF1B3A28)
-private val SearchMuted = Color(0xFF6E7F72)
-private val SearchBorder = Color(0xFFD6DDD0)
-private val SearchSoft = Color(0xFFE7EFE2)
-private val SearchError = Color(0xFFBA1A1A)
+import kotlinx.coroutines.launch
 
 @Composable
 fun PlaceSearchContent(
@@ -80,18 +84,18 @@ fun PlaceSearchContent(
         SearchDisplayMode.Results -> Column(
             modifier
                 .fillMaxSize()
-                .background(SearchBackground)
+                .background(MaterialTheme.colorScheme.background)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .navigationBarsPadding()
-                .padding(start = 20.dp, top = 12.dp, end = 20.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(22.dp),
+                .padding(start = EasyTripTheme.spacing.large, top = EasyTripTheme.spacing.small, end = EasyTripTheme.spacing.large, bottom = EasyTripTheme.spacing.xLarge),
+            verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.large),
         ) {
             SearchHeader(state.search.query, onAction)
             Surface(
                 modifier = Modifier.fillMaxWidth().weight(1f).testTag("place-search-surface"),
-                color = SearchSurface,
-                shape = RoundedCornerShape(12.dp),
-                tonalElevation = 0.dp,
+                color = MaterialTheme.colorScheme.surface,
+                shape = MaterialTheme.shapes.medium,
+                tonalElevation = EasyTripTheme.elevation.card,
             ) {
                 SearchBody(state, onAction, resultsListState)
             }
@@ -139,71 +143,86 @@ private fun SearchMapDetail(
     modifier: Modifier = Modifier,
     onOpenConsent: () -> Unit,
 ) {
-    Column(
+    Box(
         modifier
             .fillMaxSize()
-            .background(SearchBackground)
+            .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .navigationBarsPadding(),
     ) {
         val model = searchDetailMapModel(candidate, requestId)
-        if (model != null && consent != null) {
-            Box(Modifier.fillMaxWidth().weight(1f)) {
-                AmapComposeMap(
-                    model = model,
-                    onMarkerClick = {},
-                    consent = consent,
-                    onMapPoiClick = {},
-                    modifier = Modifier.fillMaxSize().testTag("place-search-detail-map"),
-                    hostFactory = mapHostFactory,
-                )
-                Surface(
-                    modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(16.dp)
-                        .size(48.dp)
-                        .testTag("place-search-detail-recenter")
-                        .clickable(onClick = onRecenter)
-                        .semantics {
-                            contentDescription = "回到${candidate.name}"
-                            role = Role.Button
-                        },
-                    shape = CircleShape,
-                    color = SearchSurface,
-                    shadowElevation = 4.dp,
-                ) {
-                    Box(contentAlignment = Alignment.Center) {
-                        LocationIcon(Modifier.size(22.dp), SearchPrimary)
+        val mapAttempt = remember(candidate.poiId) { mutableIntStateOf(0) }
+        var mapError by remember(candidate.poiId, mapAttempt.intValue) { mutableStateOf<Throwable?>(null) }
+        val mapScope = rememberCoroutineScope()
+        Box(
+            Modifier
+                .fillMaxWidth()
+                .fillMaxSize(0.58f)
+                .align(Alignment.TopCenter)
+                .testTag("place-search-detail-map-region"),
+        ) {
+            when {
+                model != null && consent != null && mapError == null -> {
+                    AmapComposeMap(
+                        model = model,
+                        onMarkerClick = {},
+                        consent = consent,
+                        onMapPoiClick = {},
+                        modifier = Modifier.fillMaxSize().testTag("place-search-detail-map"),
+                        hostFactory = mapHostFactory,
+                        onMapError = { error -> mapScope.launch { mapError = error } },
+                        onLayerError = { error, _ -> mapScope.launch { mapError = error } },
+                        retryKey = mapAttempt.intValue,
+                    )
+                    Surface(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .padding(EasyTripTheme.spacing.medium)
+                            .size(EasyTripTheme.sizes.iconButtonSize)
+                            .testTag("place-search-detail-recenter")
+                            .clickable(onClick = onRecenter)
+                            .semantics {
+                                contentDescription = "回到${candidate.name}"
+                                role = Role.Button
+                            },
+                        shape = CircleShape,
+                        color = MaterialTheme.colorScheme.surface,
+                        shadowElevation = EasyTripTheme.elevation.floating,
+                    ) {
+                        Box(contentAlignment = Alignment.Center) {
+                            LocationIcon(Modifier.size(EasyTripTheme.sizes.iconSize), MaterialTheme.colorScheme.primary)
+                        }
                     }
                 }
+                mapError != null -> InlineStatus(
+                    title = "地图加载失败",
+                    modifier = Modifier.fillMaxSize().testTag("place-search-detail-map-failure"),
+                    actionLabel = "重试",
+                    onAction = {
+                        mapError = null
+                        mapAttempt.intValue++
+                    },
+                    actionTag = "place-search-detail-retry",
+                )
+                else -> InlineStatus(
+                    title = if (model == null) "地图暂不可用" else "地图服务未启用",
+                    modifier = Modifier.fillMaxSize().testTag("place-search-detail-map-recovery"),
+                    actionLabel = if (model == null) null else "查看并授权",
+                    onAction = if (model == null) null else onOpenConsent,
+                    actionTag = if (model == null) null else "search-consent-open",
+                )
             }
-        } else if (model != null) {
-            Column(
-                Modifier.fillMaxWidth().weight(1f),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.Center,
-            ) {
-                Text("地图服务未启用", color = SearchPrimaryDark, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(8.dp))
-                Text("查看并授权后可使用地图详情", color = SearchMuted, fontSize = 12.sp)
-                Spacer(Modifier.height(16.dp))
-                Box(
-                    Modifier
-                        .height(48.dp)
-                        .testTag("search-consent-open")
-                        .border(1.dp, SearchBorder, RoundedCornerShape(10.dp))
-                        .clip(RoundedCornerShape(10.dp))
-                        .clickable(onClick = onOpenConsent)
-                        .padding(horizontal = 24.dp),
-                    contentAlignment = Alignment.Center,
-                ) {
-                    Text("查看并授权", color = SearchPrimaryDark, fontWeight = FontWeight.Bold)
-                }
-            }
-        } else {
-            Spacer(Modifier.weight(1f))
         }
-        Box(Modifier.fillMaxWidth().weight(1f)) {
+        Surface(
+            modifier = Modifier
+                .fillMaxWidth()
+                .fillMaxSize(0.48f)
+                .align(Alignment.BottomCenter)
+                .testTag("place-search-detail-panel"),
+            color = MaterialTheme.colorScheme.surface,
+            shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+            shadowElevation = EasyTripTheme.elevation.floating,
+        ) {
             if (detailContent != null) {
                 detailContent(candidate)
             } else {
@@ -252,7 +271,7 @@ private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
                 .semantics { contentDescription = "返回地点池"; role = Role.Button },
             contentAlignment = Alignment.Center,
         ) {
-            BackIcon(Modifier.size(22.dp), SearchPrimaryDark)
+            BackIcon(Modifier.size(22.dp), MaterialTheme.colorScheme.onSurface)
         }
         BasicTextField(
             value = query,
@@ -264,7 +283,7 @@ private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
                 .semantics { contentDescription = "搜索地点" },
             singleLine = true,
             textStyle = MaterialTheme.typography.bodyLarge.copy(
-                color = SearchPrimaryDark,
+                color = MaterialTheme.colorScheme.onSurface,
                 fontSize = 15.sp,
                 fontWeight = FontWeight.SemiBold,
             ),
@@ -274,15 +293,15 @@ private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
                 Row(
                     Modifier
                         .fillMaxSize()
-                        .background(SearchSurface, CircleShape)
-                        .border(2.dp, SearchPrimary, CircleShape)
+                        .background(MaterialTheme.colorScheme.surface, CircleShape)
+                        .border(2.dp, MaterialTheme.colorScheme.primary, CircleShape)
                         .padding(horizontal = 14.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(10.dp),
                 ) {
-                    SearchIcon(Modifier.size(21.dp), SearchPrimary)
+                    SearchIcon(Modifier.size(21.dp), MaterialTheme.colorScheme.primary)
                     Box(Modifier.weight(1f)) {
-                        if (query.isEmpty()) Text("搜索地点", color = SearchMuted, fontSize = 14.sp)
+                        if (query.isEmpty()) Text("搜索地点", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodyMedium)
                         input()
                     }
                     if (query.isNotEmpty()) {
@@ -295,7 +314,7 @@ private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
                                 .semantics { contentDescription = "清空搜索"; role = Role.Button },
                             contentAlignment = Alignment.Center,
                         ) {
-                            CloseIcon(Modifier.size(19.dp), SearchMuted)
+                            CloseIcon(Modifier.size(19.dp), MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                 }
@@ -312,18 +331,18 @@ private fun SearchBody(
 ) {
     when (val phase = state.search.phase) {
         PlaceSearchPhase.Initial -> SearchMessage(
-            icon = { SearchIcon(Modifier.size(48.dp), SearchMuted) },
+            icon = { SearchIcon(Modifier.size(48.dp), MaterialTheme.colorScheme.onSurfaceVariant) },
             title = "搜索想去的地方",
             message = "收藏后会停留在搜索页，可继续收藏更多地点。",
         )
         PlaceSearchPhase.ConsentRequired -> ConsentRequiredBody(state.search.savedPlaces, onAction)
         PlaceSearchPhase.Loading -> SearchMessage(
-            icon = { CircularProgressIndicator(Modifier.size(42.dp), color = SearchPrimary, strokeWidth = 3.dp) },
+            icon = { CircularProgressIndicator(Modifier.size(42.dp), color = MaterialTheme.colorScheme.primary, strokeWidth = 3.dp) },
             title = "正在搜索地点",
             message = "正在查找“${state.search.query}”相关结果…",
         )
         PlaceSearchPhase.Empty -> SearchMessage(
-            icon = { SearchOffIcon(Modifier.size(48.dp), SearchMuted) },
+            icon = { EmptyIllustrationImage(EmptyIllustration.Search) },
             title = "没有找到相关地点",
             message = "试试更短的关键词，或检查地点名称是否正确。",
             buttonLabel = "清空搜索",
@@ -331,7 +350,7 @@ private fun SearchBody(
             onButtonClick = { onAction(PlaceSearchAction.QueryChanged("")) },
         )
         is PlaceSearchPhase.NetworkFailure -> SearchMessage(
-            icon = { WifiOffIcon(Modifier.size(48.dp), SearchError) },
+            icon = { EmptyIllustrationImage(EmptyIllustration.Failure) },
             title = "网络连接失败",
             message = phase.message.ifBlank { "无法搜索新的地点。请检查网络连接后重试。" },
             buttonLabel = "重新搜索",
@@ -352,7 +371,7 @@ private fun ConsentRequiredBody(
         verticalArrangement = Arrangement.spacedBy(16.dp),
     ) {
         SearchMessage(
-            icon = { SearchOffIcon(Modifier.size(48.dp), SearchMuted) },
+            icon = { SearchOffIcon(Modifier.size(48.dp), MaterialTheme.colorScheme.onSurfaceVariant) },
             title = "地图服务未启用",
             message = "在线地点搜索暂不可用，本地收藏仍可使用。",
             buttonLabel = "查看并授权",
@@ -366,7 +385,7 @@ private fun ConsentRequiredBody(
                     Text(
                         place.name,
                         Modifier.fillMaxWidth().padding(vertical = 12.dp),
-                        color = SearchPrimaryDark,
+                        color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                     )
                 }
@@ -389,15 +408,14 @@ private fun SearchResults(
         ) {
             Text(
                 "搜索结果 · 可连续收藏",
-                color = SearchPrimaryDark,
-                fontSize = 19.sp,
-                fontWeight = FontWeight.Bold,
+                color = MaterialTheme.colorScheme.onSurface,
+                style = MaterialTheme.typography.titleMedium,
             )
             Box(
-                Modifier.height(26.dp).background(SearchSoft, CircleShape).padding(horizontal = 10.dp),
+                Modifier.height(26.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape).padding(horizontal = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("${state.search.results.size} 个", color = SearchPrimaryDark, fontSize = 11.sp, fontWeight = FontWeight.Bold)
+                Text("${state.search.results.size} 个", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
             }
         }
         LazyColumn(Modifier.fillMaxSize(), state = resultsListState) {
@@ -444,9 +462,8 @@ private fun SearchMessage(
             Modifier.then(
                 if (testTagPrefix == null) Modifier else Modifier.testTag("$testTagPrefix-title"),
             ),
-            color = SearchPrimaryDark,
-            fontSize = 19.sp,
-            fontWeight = FontWeight.Bold,
+            color = MaterialTheme.colorScheme.onSurface,
+            style = MaterialTheme.typography.titleMedium,
         )
         Spacer(Modifier.height(8.dp))
         Text(
@@ -457,7 +474,7 @@ private fun SearchMessage(
                 .then(
                     if (testTagPrefix == null) Modifier else Modifier.testTag("$testTagPrefix-description"),
                 ),
-            color = SearchMuted,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
             fontSize = 12.sp,
             lineHeight = 18.sp,
             textAlign = TextAlign.Center,
@@ -471,12 +488,12 @@ private fun SearchMessage(
                     .then(
                         if (testTagPrefix == null) Modifier else Modifier.testTag("$testTagPrefix-action"),
                     )
-                    .border(1.dp, SearchBorder, RoundedCornerShape(10.dp))
+                    .border(1.dp, MaterialTheme.colorScheme.outline, RoundedCornerShape(10.dp))
                     .clip(RoundedCornerShape(10.dp))
                     .clickable(onClick = onButtonClick),
                 contentAlignment = Alignment.Center,
             ) {
-                Text(buttonLabel, color = SearchPrimaryDark, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                Text(buttonLabel, color = MaterialTheme.colorScheme.onSurface, fontSize = 14.sp, fontWeight = FontWeight.Bold)
             }
         }
     }
@@ -507,16 +524,16 @@ private fun SearchResultRow(
             Modifier
                 .size(46.dp)
                 .testTag("place-search-place-icon-${candidate.poiId}")
-                .background(SearchSoft, RoundedCornerShape(14.dp)),
+                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(14.dp)),
             contentAlignment = Alignment.Center,
         ) {
-            LocationIcon(Modifier.size(22.dp), SearchPrimary)
+            LocationIcon(Modifier.size(22.dp), MaterialTheme.colorScheme.primary)
         }
         Column(Modifier.weight(1f).testTag("place-search-result-text-${candidate.poiId}")) {
-            Text(candidate.name, color = SearchPrimaryDark, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            Text(candidate.name, color = MaterialTheme.colorScheme.onSurface, fontWeight = FontWeight.SemiBold, maxLines = 2, overflow = TextOverflow.Ellipsis)
             if (candidate.address.isNotBlank()) {
                 Spacer(Modifier.height(3.dp))
-                Text(candidate.address, color = SearchMuted, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(candidate.address, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
             }
         }
         Box(
@@ -535,15 +552,15 @@ private fun SearchResultRow(
                 Modifier
                     .size(40.dp)
                     .testTag("place-search-bookmark-visual-${candidate.poiId}")
-                    .background(if (saved) SearchPrimary else SearchSurface, CircleShape)
-                    .border(1.dp, SearchPrimary, CircleShape),
+                    .background(if (saved) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface, CircleShape)
+                    .border(1.dp, MaterialTheme.colorScheme.primary, CircleShape),
                 contentAlignment = Alignment.Center,
             ) {
-                BookmarkIcon(Modifier.size(20.dp), if (saved) Color.White else SearchPrimary, saved)
+                BookmarkIcon(Modifier.size(20.dp), if (saved) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary, saved)
             }
         }
     }
-    Box(Modifier.fillMaxWidth().height(1.dp).background(SearchBorder))
+    Box(Modifier.fillMaxWidth().height(1.dp).background(MaterialTheme.colorScheme.outline))
     Spacer(Modifier.height(1.dp))
 }
 

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -18,9 +17,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
-import kotlin.math.roundToInt
 
 enum class WorkspaceSheetLevel { COLLAPSED, HALF, EXPANDED }
 
@@ -49,10 +46,11 @@ internal fun workspaceSheetAnchors(
     availableHeight: Dp,
     searchReturn: Boolean,
 ): WorkspaceSheetAnchors {
-    val expanded = minOf(
-        availableHeight * workspaceSheetFraction(WorkspaceSheetLevel.EXPANDED),
-        if (availableHeight >= 396.dp) availableHeight - 214.dp else availableHeight,
-    )
+    val expanded = when {
+        availableHeight <= 397.dp -> availableHeight * workspaceSheetFraction(WorkspaceSheetLevel.EXPANDED)
+        availableHeight <= 636.dp -> 357.3.dp + (availableHeight - 397.dp) * (64.7f / 239f)
+        else -> availableHeight - 214.dp
+    }
     val collapsed = minOf(34.dp, expanded / 3f)
     val levelGap = minOf(12.dp, (expanded - collapsed) / 2f)
     val half = maxOf(
@@ -107,13 +105,14 @@ internal fun WorkspaceBottomSheet(
     val currentHeightPx = with(density) { targetHeight.toPx() }
     val collapsedHeightPx = with(density) { anchors.collapsed.toPx() }
     val expandedHeightPx = with(density) { anchors.expanded.toPx() }
+    val visibleHeight = with(density) { (currentHeightPx - dragOffsetPx).toDp() }
+        .coerceIn(anchors.collapsed, anchors.expanded)
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val currentOnDragOffsetChange by rememberUpdatedState(onDragOffsetChange)
     Surface(
         modifier = modifier
             .fillMaxWidth()
-            .height(targetHeight)
-            .offset { IntOffset(0, dragOffsetPx.roundToInt()) }
+            .height(visibleHeight)
             .testTag("workspace-sheet"),
         shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
         color = MaterialTheme.colorScheme.surface,

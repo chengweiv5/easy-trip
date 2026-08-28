@@ -211,7 +211,7 @@ class DayItineraryViewModelTest {
         assertNull(model.state.value.editDraft?.saveError)
     }
 
-    @Test fun `pending and calculating route statuses map to calculating ui state`() = runTest(dispatcher) {
+    @Test fun `pending and calculating route statuses keep distinct ui states`() = runTest(dispatcher) {
         val model = model(
             Itineraries(),
             legs = Legs(
@@ -224,7 +224,7 @@ class DayItineraryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            listOf(RouteLegUiState.Calculating, RouteLegUiState.Calculating),
+            listOf(RouteLegUiState.Pending, RouteLegUiState.Calculating),
             model.state.value.legs.map(RouteLegUi::state),
         )
     }

@@ -9,6 +9,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 
@@ -18,6 +19,7 @@ fun InlineStatus(
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
+    actionTag: String? = null,
 ) {
     Column(
         modifier = modifier
@@ -28,7 +30,10 @@ fun InlineStatus(
     ) {
         Text(title, style = MaterialTheme.typography.bodyLarge)
         if (actionLabel != null && onAction != null) {
-            EasyTripSecondaryButton(onClick = onAction) { Text(actionLabel) }
+            EasyTripSecondaryButton(
+                onClick = onAction,
+                modifier = if (actionTag == null) Modifier else Modifier.testTag(actionTag),
+            ) { Text(actionLabel) }
         }
     }
 }

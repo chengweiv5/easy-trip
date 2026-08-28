@@ -82,8 +82,7 @@ class ItineraryTimelineContentTest {
         )
         compose.setContent { EasyTripTheme { DayItineraryContent(state, onAction = {}) } }
 
-        compose.onNodeWithTag("itinerary-empty-illustration").assertIsDisplayed()
-            .assertContentDescriptionEquals("暂无行程")
+        compose.onNodeWithTag("empty-illustration-itinerary").assertIsDisplayed()
         compose.onNodeWithText("第1天 · 暂无行程").assertIsDisplayed()
         compose.onNodeWithText("从地点池添加地点，开始安排这一天").assertIsDisplayed()
         compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
@@ -572,10 +571,55 @@ class ItineraryTimelineContentTest {
             SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
         )
         compose.onNodeWithText("正在计算路线").assertIsDisplayed()
-        compose.onNodeWithText("等待联网").assertIsDisplayed()
+        compose.onNodeWithText("联网后计算路线").assertIsDisplayed()
         compose.onNodeWithText("路线暂时不可用").assertIsDisplayed()
         compose.onNodeWithContentDescription("路线计算中").assertIsDisplayed()
-        compose.onNodeWithContentDescription("等待网络连接").assertIsDisplayed()
+        compose.onNodeWithContentDescription("离线，联网后计算路线").assertIsDisplayed()
+    }
+
+    @Test
+    fun routeLegKeepsPendingCalculatingAndOfflineStatesDistinctWithAccessibleIcons() {
+        compose.setContent {
+            EasyTripTheme {
+                androidx.compose.foundation.layout.Column {
+                    listOf(
+                        routeLeg("pending", RouteStatus.PENDING),
+                        routeLeg("calculating", RouteStatus.CALCULATING),
+                        routeLeg("offline", RouteStatus.WAITING_NETWORK),
+                    ).forEach { leg -> RouteLegContent(leg, Modifier.testTag("state-${leg.id}")) }
+                }
+            }
+        }
+
+        compose.onNodeWithText("等待计算路线").assertIsDisplayed()
+        compose.onNodeWithText("正在计算路线").assertIsDisplayed()
+        compose.onNodeWithText("联网后计算路线").assertIsDisplayed()
+        compose.onNodeWithContentDescription("等待计算路线").assertIsDisplayed()
+        compose.onNodeWithContentDescription("路线计算中").assertIsDisplayed()
+        compose.onNodeWithContentDescription("离线，联网后计算路线").assertIsDisplayed()
+        compose.onNodeWithTag("state-calculating").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
+        )
+    }
+
+    @Test
+    fun longPlaceNameAndAddressKeepReadableTypographyAtNarrowWidth() {
+        val name = "一段很长很长很长很长很长很长的地点名称"
+        val address = "一段很长很长很长很长很长很长很长很长的地点地址"
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryPlaceContent(
+                    item = itineraryItem("narrow", name, address, "09:30", 120),
+                    displayOrder = 1,
+                    modifier = Modifier.width(220.dp),
+                )
+            }
+        }
+
+        val nameLayout = compose.onNodeWithText(name).fetchSemanticsNode().textLayout()
+        val addressLayout = compose.onNodeWithText(address).fetchSemanticsNode().textLayout()
+        assertTrue(nameLayout.lineCount >= 1)
+        assertTrue(addressLayout.lineCount >= 1)
     }
 
     @Test
@@ -647,6 +691,49 @@ class ItineraryTimelineContentTest {
     }
 
     @Test
+    fun twoXFontScaleKeepsFailureTextRetryAndConnectorReachable() {
+        val error = "这是一段用于验证大字号下路线失败信息保持可读且操作仍可触达的两行错误文案"
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
+                EasyTripTheme {
+                    RouteLegContent(
+                        routeLeg("large-font", RouteStatus.FAILED, error = error),
+                        Modifier.width(320.dp).testTag("large-font-leg"),
+                        onRetry = {},
+                    )
+                }
+            }
+        }
+
+        val leg = compose.onNodeWithTag("large-font-leg").getUnclippedBoundsInRoot()
+        val text = compose.onNodeWithText(error).getUnclippedBoundsInRoot()
+        val retry = compose.onNodeWithTag("retry-large-font").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val connector = compose.onNodeWithTag("route-connector-large-font", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        assertTrue("leg=$leg text=$text retry=$retry", text.right <= retry.left && retry.right <= leg.right)
+        assertEquals(leg.bottom - leg.top, connector.bottom - connector.top)
+    }
+
+    @Test
+    fun longFailureMessageExpandsConnectorToMatchItsActualRowHeight() {
+        val message = "这是一段用于验证路线失败信息不会无限撑高连接段并且仍然完整参与自适应布局的很长错误文案"
+        compose.setContent {
+            EasyTripTheme {
+                RouteLegContent(
+                    routeLeg("connector", RouteStatus.FAILED, error = message),
+                    Modifier.width(220.dp).testTag("connector-leg"),
+                )
+            }
+        }
+
+        val leg = compose.onNodeWithTag("connector-leg").getUnclippedBoundsInRoot()
+        val connector = compose.onNodeWithTag("route-connector-connector", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        assertEquals(leg.bottom - leg.top, connector.bottom - connector.top)
+        assertTrue("leg=$leg connector=$connector", connector.bottom > connector.top)
+    }
+
+    @Test
     fun longFailureMessageIsAtMostTwoLinesWithoutFixedHeight() {
         val message = "这是一段用于验证路线失败信息不会无限撑高连接段并且仍然完整参与自适应布局的很长错误文案"
         compose.setContent {
@@ -680,6 +767,12 @@ class ItineraryTimelineContentTest {
         compose.onNodeWithTag("item-plain").assertIsDisplayed()
         compose.onAllNodesWithTag("delete-plain").assertCountEquals(0)
         compose.onAllNodesWithText("删除").assertCountEquals(0)
+    }
+
+    private fun SemanticsNode.textLayout(): androidx.compose.ui.text.TextLayoutResult {
+        val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        checkNotNull(config[SemanticsActions.GetTextLayoutResult].action).invoke(results)
+        return results.single()
     }
 
     private fun SemanticsNode.timelineTags(): List<String> =

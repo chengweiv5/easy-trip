@@ -79,7 +79,7 @@ fun PlacePoolContent(
     onAction: (PlacePoolAction) -> Unit,
     onSearch: () -> Unit = {},
     showDialogs: Boolean = true,
-    contentPadding: PaddingValues = PaddingValues(16.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
 ) {
     PlacePoolContent(
         state = state,
@@ -132,19 +132,19 @@ fun PlacePoolContent(
     onStartAdd: (() -> Unit)?,
     onStartAddSingle: ((String) -> Unit)?,
     showDialogs: Boolean = true,
-    contentPadding: PaddingValues = PaddingValues(16.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
 ) {
     Column(modifier.padding(contentPadding)) {
         if (showSearch) PlaceSearchField(state.search.query, onSetQuery)
         if (state.rows.isEmpty() && !showSearch) {
-            androidx.compose.foundation.layout.Column(
-                Modifier.fillMaxWidth().padding(vertical = 40.dp),
-                horizontalAlignment = androidx.compose.ui.Alignment.CenterHorizontally,
-            ) {
-                Text("还没有收藏地点", style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
-                Text("先搜索想去的地点，收藏后再安排到每天的行程。")
-                com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(onSearch) { Text("搜索地点") }
-            }
+            com.yangchengwei.easytrip.core.ui.component.EmptyState(
+                title = "还没有收藏地点",
+                message = "先搜索想去的地点，收藏后再安排到每天的行程。",
+                emptyIllustration = com.yangchengwei.easytrip.core.ui.component.EmptyIllustration.Places,
+                action = {
+                    com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(onSearch) { Text("搜索地点") }
+                },
+            )
         } else {
             if (!showSearch && onStartAdd != null) {
                 com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(

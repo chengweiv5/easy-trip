@@ -21,6 +21,7 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -43,7 +44,7 @@ class WholeTripItineraryContentTest {
         var addClicks = 0
         compose.setContent { WholeTripItineraryContent(emptyList(), onAddDay = { addClicks++ }) }
 
-        compose.onNodeWithTag("itinerary-empty-illustration").assertIsDisplayed()
+        compose.onNodeWithTag("empty-illustration-itinerary").assertIsDisplayed()
         compose.onNodeWithText("暂无旅行日").assertIsDisplayed()
         compose.onNodeWithTag("whole-trip-add-day").assertHasClickAction().performClick()
         assertEquals(1, addClicks)
@@ -86,6 +87,35 @@ class WholeTripItineraryContentTest {
         val forbiddenPrefixes = listOf("timing-", "move-", "delete-", "mode-", "retry-", "more-", "drag-handle-")
         val allTags = compose.onRoot(useUnmergedTree = true).fetchSemanticsNode().allTags()
         assertTrue(allTags.none { tag -> forbiddenPrefixes.any(tag::startsWith) })
+    }
+
+    @Test
+    fun wholeTripLongFailureKeepsConnectorContinuousAndReadOnly() {
+        val first = item("first", "早餐店")
+        val second = item("second", "博物馆")
+        val error = "这是一段很长很长的路线错误信息，用于验证全程行程中的连接线会随两行错误文本一起伸缩"
+        val leg = RouteLegUi(
+            id = "long-route",
+            fromItemId = first.id,
+            toItemId = second.id,
+            mode = TransportMode.WALK,
+            status = RouteStatus.FAILED,
+            distanceMeters = null,
+            durationSeconds = null,
+            error = error,
+        )
+        compose.setContent {
+            Box(Modifier.width(220.dp)) {
+                WholeTripItineraryContent(listOf(WholeTripDayUi("day-1", 1, listOf(first, second), listOf(leg))))
+            }
+        }
+
+        val legBounds = compose.onNodeWithTag("leg-long-route").getUnclippedBoundsInRoot()
+        val connectorBounds = compose.onNodeWithTag("route-connector-long-route", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        assertEquals(legBounds.bottom - legBounds.top, connectorBounds.bottom - connectorBounds.top)
+        compose.onAllNodesWithTag("retry-long-route").assertCountEquals(0)
+        compose.onAllNodesWithTag("mode-long-route").assertCountEquals(0)
     }
 
     @Test

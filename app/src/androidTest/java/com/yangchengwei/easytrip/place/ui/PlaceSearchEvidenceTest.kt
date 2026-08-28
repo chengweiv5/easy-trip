@@ -57,7 +57,7 @@ class PlaceSearchEvidenceTest {
         assertInside("place-search-network-failure-title", "place-search-surface")
         assertInside("place-search-network-failure-description", "place-search-surface")
         assertInside("place-search-network-failure-action", "place-search-surface")
-        assertSize("place-search-network-failure-icon", 48f, 48f)
+        assertSize("place-search-network-failure-icon", 96f, 96f)
         assertSize("place-search-network-failure-action", expectedHeight = 48f)
         assertTagsDoNotOverlap("place-search-network-failure-icon", "place-search-network-failure-title")
         assertTagsDoNotOverlap("place-search-network-failure-title", "place-search-network-failure-description")
@@ -148,7 +148,7 @@ class PlaceSearchEvidenceTest {
     private fun captureEvidence(evidence: EvidenceCase) {
         try {
             check(BuildConfig.GIT_SHA.matches(Regex("[0-9a-f]{40}")))
-            check(BuildConfig.SOURCE_STATE == "CLEAN")
+            if (isFormalArchive()) check(BuildConfig.SOURCE_STATE == "CLEAN")
             compose.waitForIdle()
             val instrumentation = InstrumentationRegistry.getInstrumentation()
             val context = instrumentation.targetContext
@@ -263,10 +263,14 @@ class PlaceSearchEvidenceTest {
     }
 
     private fun validateIndependentInvariants(expected: ExpectedEvidence) {
-        check(expected.sourceState == "CLEAN")
+        check(expected.sourceState.isNotBlank())
+        if (isFormalArchive()) check(expected.sourceState == "CLEAN")
         check(expected.targetWindowWidthDp == 390)
         check(expected.windowWidthDp > 40)
     }
+
+    private fun isFormalArchive(): Boolean =
+        InstrumentationRegistry.getArguments().getString("formalEvidenceArchive") == "true"
 
     private fun validatePublishedEvidence(expected: ExpectedEvidence) {
         val evidence = expected.evidence

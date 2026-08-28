@@ -38,7 +38,7 @@ fun WholeTripItineraryContent(
                 EmptyState(
                     title = "暂无旅行日",
                     message = "新增旅行日，开始规划行程",
-                    illustration = { ItineraryEmptyIllustration("暂无旅行日") },
+                    emptyIllustration = com.yangchengwei.easytrip.core.ui.component.EmptyIllustration.Itinerary,
                     action = {
                         TextButton(onAddDay, Modifier.testTag("whole-trip-add-day")) {
                             Text("新增旅行日")

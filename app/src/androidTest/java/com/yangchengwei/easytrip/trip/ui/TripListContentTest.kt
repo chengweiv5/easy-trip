@@ -53,6 +53,13 @@ class TripListContentTest {
         compose.onAllNodes(hasClickAction() and androidx.compose.ui.test.hasTestTag("profile-avatar")).assertCountEquals(0)
     }
 
+    @Test fun emptyTripsUsesSharedIllustratedState() {
+        setContent(TripListPageState.Empty)
+
+        compose.onNodeWithTag("empty-illustration-trips").assertIsDisplayed()
+        compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
+    }
+
     @Test fun primaryTripUsesSingleEntryActionAndFortyDpMenu() {
         val actions = mutableListOf<TripListAction>()
         setContent(content(), actions::add)

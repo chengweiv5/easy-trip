@@ -266,13 +266,14 @@ class AmapComposeMapTest {
         assertEquals(1, readyCount)
     }
 
-    @Test fun hostCreationFailureIsReported() {
+    @Test fun hostCreationFailureIsReportedExactlyOnce() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
         val gate = TestConsentGate()
         gate.show()
         val token = requireNotNull(gate.decide(true))
         val reported = CountDownLatch(1)
         val destroyedSignal = CountDownLatch(1)
+        var errors = 0
         var destroyed = 0
         rule.scenario.onActivity { activity ->
             activity.setContent {
@@ -287,21 +288,51 @@ class AmapComposeMapTest {
                         override fun onPause() = Unit
                         override fun onDestroy() { destroyed++; destroyedSignal.countDown() }
                     } },
-                    onMapError = { reported.countDown() },
+                    onMapError = { errors++; reported.countDown() },
                 )
             }
         }
         assertTrue(reported.await(5, TimeUnit.SECONDS))
+        rule.scenario.onActivity { }
         assertTrue(destroyedSignal.await(5, TimeUnit.SECONDS))
+        assertEquals(1, errors)
         assertEquals(1, destroyed)
     }
 
-    @Test fun renderFailureIsReported() {
+    @Test fun lifecycleFailureIsReportedExactlyOnce() {
+        val gate = TestConsentGate().also { it.show() }
+        val token = requireNotNull(gate.decide(true))
+        val reported = CountDownLatch(1)
+        var errors = 0
+        rule.scenario.onActivity { activity ->
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    hostFactory = { ctx -> object : AmapMapHost {
+                        override val view: View = View(ctx)
+                        override fun onCreate() = Unit
+                        override fun onResume() = throw IllegalStateException("resume")
+                        override fun onPause() = Unit
+                        override fun onDestroy() = Unit
+                    } },
+                    onMapError = { errors++; reported.countDown() },
+                )
+            }
+        }
+        assertTrue(reported.await(5, TimeUnit.SECONDS))
+        rule.scenario.onActivity { }
+        assertEquals(1, errors)
+    }
+
+    @Test fun renderFailureIsReportedExactlyOnce() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
         val gate = TestConsentGate()
         gate.show()
         val token = requireNotNull(gate.decide(true))
         val reported = CountDownLatch(1)
+        var errors = 0
         rule.scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
@@ -318,11 +349,13 @@ class AmapComposeMapTest {
                             throw IllegalStateException("render")
                         }
                     } },
-                    onMapError = { reported.countDown() },
+                    onMapError = { errors++; reported.countDown() },
                 )
             }
         }
         assertTrue(reported.await(5, TimeUnit.SECONDS))
+        rule.scenario.onActivity { }
+        assertEquals(1, errors)
     }
 
     @Test fun layerFailureDoesNotReportMapReady() {
@@ -437,6 +470,42 @@ class AmapComposeMapTest {
         assertEquals(2, readyCount)
         rule.scenario.onActivity { callbacks.first()(IllegalStateException("late"), MapLayer.STANDARD) }
         assertEquals(0, layerErrors)
+    }
+
+    @Test fun retryKeyStartsNewAttemptAndReportsItsOwnFailureOnce() {
+        val gate = TestConsentGate().also { it.show() }
+        val token = requireNotNull(gate.decide(true))
+        lateinit var retryKey: androidx.compose.runtime.MutableState<Int>
+        val firstError = CountDownLatch(1)
+        val secondError = CountDownLatch(1)
+        var errors = 0
+        rule.scenario.onActivity { activity ->
+            retryKey = mutableStateOf(0)
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    retryKey = retryKey.value,
+                    hostFactory = { ctx -> object : AmapMapHost {
+                        override val view: View = View(ctx)
+                        override fun onCreate() = throw IllegalStateException("create-${retryKey.value}")
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() = Unit
+                    } },
+                    onMapError = {
+                        errors++
+                        if (errors == 1) firstError.countDown() else secondError.countDown()
+                    },
+                )
+            }
+        }
+        assertTrue(firstError.await(5, TimeUnit.SECONDS))
+        rule.scenario.onActivity { retryKey.value++ }
+        assertTrue(secondError.await(5, TimeUnit.SECONDS))
+        rule.scenario.onActivity { }
+        assertEquals(2, errors)
     }
 
     @Test fun fakeHostKeepsLifecycleAndConsumesEachViewportRequestOnce() {

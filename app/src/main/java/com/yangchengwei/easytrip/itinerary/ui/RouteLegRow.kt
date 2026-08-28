@@ -3,16 +3,19 @@ package com.yangchengwei.easytrip.itinerary.ui
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -27,6 +30,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TransportMode
+import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 
 @Composable
 fun RouteLegRow(leg: RouteLegUi, onMode: () -> Unit, onRetry: () -> Unit) {
@@ -52,12 +56,12 @@ internal fun RouteLegContent(
         Modifier
     }
     Row(
-        modifier.then(stateModifier).padding(start = 28.dp),
-        verticalAlignment = Alignment.CenterVertically,
+        modifier.then(stateModifier).padding(start = 28.dp).height(IntrinsicSize.Min),
+        verticalAlignment = Alignment.Top,
     ) {
-        RouteLegConnector()
+        RouteLegConnector(leg.id, Modifier.fillMaxHeight())
         Row(
-            Modifier.weight(1f).padding(start = 12.dp),
+            Modifier.weight(1f).padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -81,16 +85,9 @@ internal fun RouteLegContent(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    RouteLegUiState.Calculating -> Text(
-                        "正在计算路线",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                    RouteLegUiState.WaitingForNetwork -> Text(
-                        "等待联网",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+                    RouteLegUiState.Pending -> RouteLegStatusText("等待计算路线")
+                    RouteLegUiState.Calculating -> RouteLegStatusText("正在计算路线")
+                    RouteLegUiState.WaitingForNetwork -> RouteLegStatusText("联网后计算路线")
                     is RouteLegUiState.Failed -> Text(
                         state.message,
                         style = MaterialTheme.typography.bodySmall,
@@ -101,6 +98,7 @@ internal fun RouteLegContent(
                 }
             }
             when (state) {
+                RouteLegUiState.Pending -> PendingRouteIndicator()
                 RouteLegUiState.Calculating -> CircularProgressIndicator(
                     Modifier.size(24.dp).semantics { contentDescription = "路线计算中" },
                 )
@@ -115,12 +113,36 @@ internal fun RouteLegContent(
 }
 
 @Composable
+private fun RouteLegStatusText(text: String) {
+    Text(
+        text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+    )
+}
+
+@Composable
+private fun PendingRouteIndicator() {
+    val color = MaterialTheme.colorScheme.onSurfaceVariant
+    Canvas(
+        Modifier
+            .size(24.dp)
+            .semantics { contentDescription = "等待计算路线" },
+    ) {
+        val center = Offset(size.width / 2f, size.height / 2f)
+        drawCircle(color = color, center = center, radius = 8.dp.toPx(), style = androidx.compose.ui.graphics.drawscope.Stroke(2.dp.toPx()))
+        drawLine(color, center, Offset(center.x, center.y - 4.dp.toPx()), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+        drawLine(color, center, Offset(center.x + 3.dp.toPx(), center.y), strokeWidth = 2.dp.toPx(), cap = StrokeCap.Round)
+    }
+}
+
+@Composable
 private fun WaitingForNetworkIndicator() {
     val color = MaterialTheme.colorScheme.onSurfaceVariant
     Canvas(
         Modifier
             .size(24.dp)
-            .semantics { contentDescription = "等待网络连接" },
+            .semantics { contentDescription = "离线，联网后计算路线" },
     ) {
         drawCircle(color, radius = 2.dp.toPx(), center = Offset(size.width / 2f, size.height * 0.75f))
         drawArc(
@@ -145,9 +167,9 @@ private fun WaitingForNetworkIndicator() {
 }
 
 @Composable
-private fun RouteLegConnector() {
+private fun RouteLegConnector(legId: String, modifier: Modifier = Modifier) {
     val color = MaterialTheme.colorScheme.outlineVariant
-    Canvas(Modifier.width(12.dp).size(width = 12.dp, height = 48.dp).clearAndSetSemantics {}) {
+    Canvas(modifier.width(12.dp).testTag("route-connector-$legId").clearAndSetSemantics {}) {
         val centerX = size.width / 2f
         drawLine(color, Offset(centerX, 0f), Offset(centerX, size.height), strokeWidth = 2.dp.toPx())
         drawLine(

@@ -80,7 +80,7 @@ fun DayItineraryContent(
                     EmptyState(
                         title = if (dayNumber == null) "暂无行程" else "第${dayNumber}天 · 暂无行程",
                         message = "从地点池添加地点，开始安排这一天",
-                        illustration = { ItineraryEmptyIllustration("暂无行程") },
+                        emptyIllustration = com.yangchengwei.easytrip.core.ui.component.EmptyIllustration.Itinerary,
                         action = {
                             TextButton(
                                 { onAction(DayItineraryAction.AddPlaces) },

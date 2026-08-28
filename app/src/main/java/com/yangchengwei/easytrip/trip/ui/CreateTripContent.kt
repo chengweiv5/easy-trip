@@ -98,7 +98,7 @@ fun CreateTripContent(
                     onClick = { onAction(CreateTripAction.Submit) },
                     modifier = Modifier.fillMaxWidth().height(48.dp).testTag("create-submit"),
                     enabled = enabled,
-                ) { Text(if (state.isSubmitting) "创建中…" else "继续") }
+                ) { Text(if (state.isSubmitting) "创建中…" else "创建旅行") }
                 Text(
                     if (state.nameError != null || state.dayCountError != null || state.dateError != null) {
                         "修正标红字段后即可创建旅行"

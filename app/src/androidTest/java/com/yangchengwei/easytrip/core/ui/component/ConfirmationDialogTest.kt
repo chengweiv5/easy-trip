@@ -2,31 +2,38 @@ package com.yangchengwei.easytrip.core.ui.component
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredWidth
-import androidx.compose.ui.geometry.Offset
+import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
-import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
-import androidx.test.espresso.Espresso.pressBack
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -142,6 +149,42 @@ class ConfirmationDialogTest {
         compose.onNodeWithTag("confirmation-confirm").assertIsDisplayed().performClick()
         assertEquals(1, dismissed)
         assertEquals(1, confirmed)
+    }
+
+    @Test fun dialogSurfaceScrollsLongContentToReachBottomAction() {
+        var confirmed = 0
+        compose.setContent {
+            EasyTripTheme {
+                EasyTripDialogSurface(onDismiss = {}) {
+                    Column(Modifier.padding(20.dp)) {
+                        repeat(80) { Text("很长的说明内容 $it") }
+                        androidx.compose.material3.Button(
+                            onClick = { confirmed++ },
+                            modifier = Modifier.testTag("long-dialog-confirm"),
+                        ) { Text("继续") }
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("long-dialog-confirm").performScrollTo().assertIsDisplayed().performClick()
+        assertEquals(1, confirmed)
+    }
+
+    @Test fun dialogSurfaceUsesBrandWidthRoundCornersAndScrollableContent() {
+        compose.setContent {
+            EasyTripTheme {
+                EasyTripDialogSurface(
+                    onDismiss = {},
+                    modifier = Modifier.testTag("dialog-surface"),
+                ) {
+                    Text("可滚动内容")
+                }
+            }
+        }
+
+        compose.onNodeWithTag("dialog-surface").assertWidthIsEqualTo(350.dp).assertIsDisplayed()
+        compose.onNodeWithText("可滚动内容").assertIsDisplayed()
     }
 
     private fun confirmation() = ConfirmationUiModel(

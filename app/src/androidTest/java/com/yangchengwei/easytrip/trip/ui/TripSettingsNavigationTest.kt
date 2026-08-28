@@ -12,6 +12,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -103,7 +104,7 @@ class TripSettingsNavigationTest {
         compose.onNodeWithTag("workspace-sheet-handle").performTouchInput { swipeUp() }
         val expandedSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
         compose.onNodeWithTag("workspace-more").performClick()
-        compose.onNodeWithTag("settings-start-date").assertIsDisplayed()
+        compose.onNodeWithTag("settings-date-row").assertIsDisplayed()
         compose.runOnIdle { assertEquals("trips/$tripId/settings", routes.last()) }
 
         compose.onNodeWithTag("settings-back").performClick()
@@ -144,12 +145,14 @@ class TripSettingsNavigationTest {
         compose.waitUntil { viewModel.state.value.dateRange.phase is DateRangeChangePhase.Applying }
 
         pressBack()
-        compose.onNodeWithTag("settings-start-date").assertIsDisplayed()
+        compose.onNodeWithTag("settings-date-row").assertIsNotEnabled()
+        compose.onNodeWithText("修改出行日期").assertDoesNotExist()
 
         repository.applyBlock.complete(Unit)
         compose.waitUntil { viewModel.state.value.dateRange.phase is DateRangeChangePhase.AwaitingRoom }
         pressBack()
-        compose.onNodeWithTag("settings-start-date").assertIsDisplayed()
+        compose.onNodeWithTag("settings-date-row").assertIsNotEnabled()
+        compose.onNodeWithText("修改出行日期").assertDoesNotExist()
 
         repository.emitDayCount(4)
         compose.waitUntil { !viewModel.state.value.dateRange.submitting }
@@ -163,7 +166,7 @@ class TripSettingsNavigationTest {
         setNavigation(routes)
         compose.onNodeWithTag("continue-trip-$tripId").performClick()
         compose.onNodeWithTag("workspace-more").performClick()
-        compose.onNodeWithTag("settings-start-date").assertIsDisplayed()
+        compose.onNodeWithTag("settings-date-row").assertIsDisplayed()
 
         runBlocking { repository.deleteTrip(tripId) }
 

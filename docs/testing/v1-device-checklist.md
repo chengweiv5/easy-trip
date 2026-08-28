@@ -49,6 +49,17 @@
 - `lintDebug`、`assembleDebug`、`assembleDebugAndroidTest`、更新前后 `git diff --check` 与 `graphify update .` 均 PASS。Catalog 曾出现一次 split APK 安装 infra 失败，唯一重试后 `47/47` PASS；infra retry=1。历史产品/同步失败均已修复并保留于验收记录。
 - 本轮未使用物理设备，未清除物理设备数据；地图授权和定位权限的 12 条真机关键路径仍为 `NOT-RUN`，不得以模拟器结果替代。
 
+## 视觉收敛最终候选门禁（2026-08-29）
+
+- 候选结论：**PASS（自动化候选）**；详见 `docs/testing/2026-08-29-visual-convergence-acceptance.md`。
+- 执行环境：`emulator-5554` online、boot complete，启动时无 instrumentation。
+- 精确计数：全量 JVM XML `521 / 0 failures / 0 errors / 0 skipped`；22 个指定 connected suites XML 合计 `351 / 0 / 0 / 0`，其中 `V1ScenarioCatalogTest` 和 `V1FullUiAcceptanceTest` 各 `47 / 0 / 0 / 0`。
+- 构建门禁：`lintDebug`、`assembleDebug`、`assembleDebugAndroidTest`、`compileDebugAndroidTestKotlin` 均 PASS；`git diff --check` 在 `graphify update .` 前后均 PASS。
+- Infra：外层 10 分钟命令时限在 `WholeTripItineraryContentTest` 执行时中断一次；设备无残留 instrumentation，按规则唯一重试后该 suite `6 / 0 / 0 / 0`。`infra retry=1`，无产品失败。
+- Pencil 对照及截图诊断：基线 `design/easy-trip-v1.0.pen`，frame 覆盖 `U06l7P`、`IKTv5`、`ofdn5`、`p4G1tS`、`A9EKX`、`eHTX3`、`zIbEu`、`lsr1I`、`Bcf6A`、`dzhkC`、`batch5`、`batch6-search`、`batch6-failure`；诊断截图写入模拟器私有路径 `/data/user/0/com.yangchengwei.easytrip/files/evidence/batch-0/`，测试安装清理后未保留可导出副本。历史截图在 `.superpowers/sdd/2026-08-23-easy-trip-v1-full-ui-implementation/task-4-evidence/`。
+- 物理真机：**NOT-RUN**；未清除物理真机数据。截图不作像素阻断，严重裁切、关键交互故障、崩溃、不可达流程或数据不一致才阻断。
+- 未运行无过滤 474-test connected suite：它包含真实 SDK smoke 的预期 skip，且不属于本次正式归档范围；定向 22 suite 已覆盖本批关键族与 47 场景。
+
 ## 自动化基线
 
 - `./gradlew clean test lint assembleDebug connectedDebugAndroidTest`

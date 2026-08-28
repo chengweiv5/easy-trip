@@ -6,6 +6,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -21,6 +22,7 @@ import androidx.compose.ui.test.click
 import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.DateRangeChangeImpact
+import androidx.compose.ui.unit.dp
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -39,6 +41,47 @@ class TripSettingsContentTest {
         compose.onNodeWithText("设置单日日期").assertDoesNotExist()
     }
 
+    @Test fun settingsRowsExposeSingleClickActionAndDayDeleteHas48DpTarget() {
+        compose.setContent { content(state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle))) }
+
+        compose.onNodeWithTag("settings-rename").assert(
+            androidx.compose.ui.test.SemanticsMatcher("has one click action") { node ->
+                node.config.contains(SemanticsActions.OnClick)
+            },
+        )
+        compose.onNodeWithTag("settings-date-row").assert(
+            androidx.compose.ui.test.SemanticsMatcher("has one click action") { node ->
+                node.config.contains(SemanticsActions.OnClick)
+            },
+        )
+        compose.onNodeWithTag("delete-day-day-2").assertHeightIsAtLeast(48.dp)
+    }
+
+    @Test fun dateRowOpensLocalEditorAndAppliesOnlyFromTheDialog() {
+        var submissions = 0
+        compose.setContent {
+            TripSettingsContent(
+                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                onBack = {}, onRename = {}, onTravelMode = {}, onDateEndDraft = {},
+                onSubmitDateRange = { submissions++ }, onCancelDateRange = {}, onConfirmDateRange = {},
+                onRetryDateRangeSync = {}, onRequestDeleteDay = {}, onRetryDeleteDay = {},
+                onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+            )
+        }
+
+        compose.onNodeWithText("修改出行日期").assertDoesNotExist()
+        compose.onNodeWithTag("settings-date-row").performClick()
+        compose.onNodeWithText("修改出行日期").assertIsDisplayed()
+        compose.onNodeWithTag("settings-start-date").assert(
+            androidx.compose.ui.test.SemanticsMatcher("has no SetText action") {
+                !it.config.contains(SemanticsActions.SetText)
+            },
+        )
+        compose.onNodeWithTag("settings-end-date").performTextReplacement("2026-10-02")
+        compose.onNodeWithTag("settings-apply-date-range").performClick()
+        assertEquals(1, submissions)
+    }
+
     @Test fun startDateIsReadOnlyAndOnlyEndDateDispatchesDraft() {
         val drafts = mutableListOf<LocalDate?>()
         compose.setContent {
@@ -50,7 +93,8 @@ class TripSettingsContentTest {
             )
         }
 
-        compose.onNodeWithTag("settings-start-date").assert(
+        compose.onNodeWithTag("settings-date-row").performClick()
+        compose.onNodeWithTag("settings-start-date", useUnmergedTree = true).assert(
             androidx.compose.ui.test.SemanticsMatcher("has no SetText action") {
                 !it.config.contains(SemanticsActions.SetText)
             },
@@ -76,8 +120,8 @@ class TripSettingsContentTest {
             )
         }
 
-        compose.onNodeWithTag("settings-end-date").assertIsNotEnabled()
-        compose.onNodeWithTag("settings-apply-date-range").assertIsNotEnabled()
+        compose.onNodeWithTag("settings-date-row").assertIsNotEnabled()
+        compose.onNodeWithText("修改出行日期").assertDoesNotExist()
         compose.onNodeWithTag("delete-day-day-2").assertIsNotEnabled()
         compose.onNodeWithTag("settings-back").assertIsNotEnabled().performClick()
         compose.onNodeWithTag("confirmation-dismiss").assertIsNotEnabled().performClick()
@@ -100,8 +144,8 @@ class TripSettingsContentTest {
             compose.onNodeWithText("确认修改日期范围？").assertDoesNotExist()
             compose.onNodeWithText("缩短日期会删除超出范围的旅行内容。").assertDoesNotExist()
             compose.onNodeWithTag("settings-back").assertIsNotEnabled()
-            compose.onNodeWithTag("settings-end-date").assertIsNotEnabled()
-            compose.onNodeWithTag("settings-apply-date-range").assertIsNotEnabled()
+            compose.onNodeWithTag("settings-date-row").assertIsNotEnabled()
+            compose.onNodeWithText("修改出行日期").assertDoesNotExist()
             compose.onNodeWithTag("delete-day-day-2").assertIsNotEnabled()
         }
 
@@ -124,8 +168,8 @@ class TripSettingsContentTest {
         }
 
         compose.onNodeWithTag("settings-back").assertIsNotEnabled().performClick()
-        compose.onNodeWithTag("settings-end-date").assertIsNotEnabled()
-        compose.onNodeWithTag("settings-apply-date-range").assertIsNotEnabled()
+        compose.onNodeWithTag("settings-date-row").assertIsNotEnabled()
+        compose.onNodeWithText("修改出行日期").assertDoesNotExist()
         compose.onNodeWithTag("delete-day-day-2").assertIsNotEnabled()
         compose.onNodeWithTag("confirmation-confirm").assertIsNotEnabled()
         compose.onNodeWithTag("confirmation-dismiss").assertIsNotEnabled().performClick()
@@ -206,7 +250,7 @@ class TripSettingsContentTest {
             )
         }
 
-        compose.onNodeWithTag("settings-apply-date-range").assertIsNotEnabled()
+        compose.onNodeWithTag("settings-date-row").assertIsNotEnabled()
     }
 
     @Test fun failedDayPreviewShowsBodyErrorAndExplicitRetry() {

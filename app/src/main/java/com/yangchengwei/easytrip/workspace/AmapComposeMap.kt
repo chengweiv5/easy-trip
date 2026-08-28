@@ -93,6 +93,7 @@ internal fun Poi.toMapPoiUi(address: String = ""): MapPoiUi? {
 internal class MapHostCallbackGuard {
     private var active = true
     private var terminalFailure = false
+    private var mapErrorReported = false
     private var readyReported = false
     private var disposalFailureReported = false
     private var renderGeneration = 0L
@@ -119,16 +120,22 @@ internal class MapHostCallbackGuard {
         callback(error)
     }
 
-    fun reportHostError(error: Throwable, callback: (Throwable) -> Unit) {
+    fun reportHostError(error: Throwable) {
         if (!active || terminalFailure) return
         terminalFailure = true
-        callback(error)
+    }
+
+    fun consumeMapError(): Boolean {
+        if (mapErrorReported) return false
+        mapErrorReported = true
+        return true
     }
 
     fun reportDisposalError(error: Throwable, callback: (Throwable) -> Unit) {
         if (terminalFailure || disposalFailureReported) return
         terminalFailure = true
         disposalFailureReported = true
+        mapErrorReported = true
         callback(error)
     }
 
@@ -341,16 +348,17 @@ fun AmapComposeMap(
     onLayerError: (Throwable, MapLayer) -> Unit = { _, _ -> },
     onMapError: (Throwable) -> Unit = {},
     onMapReady: () -> Unit = {},
+    retryKey: Int = 0,
 ) {
     val consentSnapshot by consent.active.collectAsState()
     val context = LocalContext.current
     if (!consent.isActive(consentSnapshot)) return
     consent.validateActive()
     val lifecycleOwner = LocalLifecycleOwner.current
-    var mapFailure by remember(context, consent, lifecycleOwner) { mutableStateOf<Throwable?>(null) }
-    var mapReady by remember(context, consent, lifecycleOwner) { mutableStateOf(false) }
-    val callbackGuard = remember(context, consent, lifecycleOwner) { MapHostCallbackGuard() }
-    val host = remember(context, consent, lifecycleOwner) {
+    val mapFailureState = remember(context, consent, lifecycleOwner, retryKey) { mutableStateOf<Throwable?>(null) }
+    var mapReady by remember(context, consent, lifecycleOwner, retryKey) { mutableStateOf(false) }
+    val callbackGuard = remember(context, consent, lifecycleOwner, retryKey) { MapHostCallbackGuard() }
+    val host = remember(context, consent, lifecycleOwner, retryKey) {
         var createdHost: AmapMapHost? = null
         runCatching {
             consent.validateActive()
@@ -362,29 +370,32 @@ fun AmapComposeMap(
                 host.onCreate()
             }
         }.onFailure { error ->
-            mapFailure = error
-            callbackGuard.reportHostError(error, onMapError)
+            callbackGuard.reportHostError(error)
+            mapFailureState.value = error
             callbackGuard.deactivate()
             createdHost?.let { failedHost ->
                 runCatching(failedHost::onDestroy).onFailure { callbackGuard.reportDisposalError(it, onMapError) }
             }
         }.getOrNull()
     }
-    if (host == null || mapFailure != null) return
+    LaunchedEffect(mapFailureState.value) {
+        mapFailureState.value?.takeIf { callbackGuard.consumeMapError() }?.let(onMapError)
+    }
+    if (host == null || mapFailureState.value != null) return
     LaunchedEffect(host, locateRequest) {
         if (locateRequest > 0) host.showCurrentLocation()
     }
     DisposableEffect(lifecycleOwner, host) {
         val lifecycleError: (Throwable) -> Unit = { error ->
-            mapFailure = error
-            callbackGuard.reportHostError(error, onMapError)
+            callbackGuard.reportHostError(error)
+            mapFailureState.value = error
         }
         val controller = MapLifecycleController(
             resume = { runCatching(host::onResume).onFailure(lifecycleError) },
             pause = { runCatching(host::onPause).onFailure(lifecycleError) },
             destroy = {
                 runCatching(host::onDestroy).onFailure { error ->
-                    mapFailure = error
+                    mapFailureState.value = error
                     callbackGuard.reportDisposalError(error, onMapError)
                 }
             },
@@ -426,9 +437,8 @@ fun AmapComposeMap(
                             callbackGuard.reportError(renderGeneration, error) { onLayerError(it, retainedLayer) }
                         }
                         if (layerFailure == null) callbackGuard.reportReady(renderGeneration, onMapReady)
-                    }.onFailure {
-                        mapFailure = it
-                        callbackGuard.reportError(renderGeneration, it, onMapError)
+                    }.onFailure { error ->
+                        callbackGuard.reportError(renderGeneration, error) { mapFailureState.value = it }
                     }
                 }
             },

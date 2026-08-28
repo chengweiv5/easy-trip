@@ -27,14 +27,17 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.amap.TestConsentGate
 import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.core.ui.component.EmptyIllustration
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceTag
@@ -226,6 +229,84 @@ class PlaceSearchContentTest {
         }
     }
 
+    @Test fun detailMapCreationFailureShowsRetryRecreatesHostAndKeepsCollectionAvailable() {
+        val candidate = PlaceCandidate("poi-map-failure", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        val gate = TestConsentGate().also { it.show() }
+        val token = requireNotNull(gate.decide(true))
+        val actions = mutableListOf<PlaceSearchAction>()
+        var hostCreations = 0
+        setContent(
+            state = PlaceSearchUiState(
+                search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results),
+                displayMode = SearchDisplayMode.MapDetail(candidate.poiId),
+            ),
+            onAction = actions::add,
+            consent = token,
+            mapHostFactory = { context ->
+                hostCreations++
+                object : AmapMapHost {
+                    override val view: View = View(context)
+                    override fun onCreate() = throw IllegalStateException("create")
+                    override fun onResume() = Unit
+                    override fun onPause() = Unit
+                    override fun onDestroy() = Unit
+                }
+            },
+            detailContent = null,
+        )
+
+        compose.waitUntil(5_000) {
+            try {
+                compose.onNodeWithTag("place-search-detail-map-failure").assertIsDisplayed()
+                true
+            } catch (_: AssertionError) {
+                false
+            }
+        }
+        compose.onNodeWithTag("place-search-detail-retry").assertIsDisplayed().performClick()
+        compose.waitUntil(5_000) { hostCreations >= 2 }
+        compose.onNodeWithTag("place-search-detail-recenter").assertDoesNotExist()
+        compose.onNodeWithContentDescription("收藏故宫博物院").performClick()
+        assertEquals(listOf(PlaceSearchAction.ToggleCollection(candidate.poiId)), actions)
+    }
+
+    @Test fun longEditingDetailKeepsOverlayProportionsAndBottomActionsReachable() {
+        val candidate = PlaceCandidate(
+            "poi-long",
+            "这是一个非常长的地点名称用于验证固定详情面板在狭短视口内仍然保持可滚动和可操作",
+            "这是一个非常长的地址信息，用于验证地图区域与固定详情面板重叠布局不会因文本增长而严重裁切或丢失底部动作",
+            GeoPoint(39.916, 116.397),
+            "010",
+        )
+        val saved = SavedPlace(
+            "saved-long", "trip", candidate.poiId, candidate.name, candidate.address, candidate.point!!,
+            "很长的备注内容。".repeat(24),
+            (1..8).map { PlaceTag("tag-$it", "超长标签名称$it") },
+        )
+        setContent(
+            state = PlaceSearchUiState(
+                search = PlaceSearchState("长文本", listOf(candidate), phase = PlaceSearchPhase.Results),
+                displayMode = SearchDisplayMode.MapDetail(candidate.poiId),
+                savedPlacesByPoiId = mapOf(candidate.poiId to saved),
+                detailDraft = PlaceDetailEditState(saved.id, saved.note, saved.tags.map { it.name }.toSet(), "新的长标签"),
+                availableTags = saved.tags,
+            ),
+            consent = null,
+            detailContent = null,
+        )
+
+        val rootHeight = compose.activity.resources.configuration.screenHeightDp.toFloat()
+        val mapBounds = compose.onNodeWithTag("place-search-detail-map-region").getUnclippedBoundsInRoot()
+        val panelBounds = compose.onNodeWithTag("place-search-detail-panel").getUnclippedBoundsInRoot()
+        val mapRatio = (mapBounds.bottom - mapBounds.top).value / rootHeight
+        val panelRatio = (panelBounds.bottom - panelBounds.top).value / rootHeight
+        assertTrue(mapRatio in 0.50f..0.66f)
+        assertTrue(panelRatio in 0.40f..0.56f)
+        assertTrue(panelBounds.top < mapBounds.bottom)
+        compose.onNodeWithTag("place-detail-save").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-cancel").performScrollTo().assertIsDisplayed()
+    }
+
     @Test fun missingConsentDetailShowsAuthorizeActionInsteadOfSpacer() {
         val candidate = PlaceCandidate("poi-no-consent", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
         var openedConsent = false
@@ -243,8 +324,24 @@ class PlaceSearchContentTest {
             }
         }
 
-        compose.onNodeWithTag("search-consent-open").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("search-consent-open").assertIsDisplayed().assertHasClickAction().performClick()
+        compose.onAllNodesWithTag("search-consent-open").assertCountEquals(1)
         assertTrue(openedConsent)
+    }
+
+    @Test fun detailUsesFixedOverlayPanelWhenMapConsentIsUnavailable() {
+        val candidate = PlaceCandidate("poi-overlay", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        setContent(
+            state = PlaceSearchUiState(
+                search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results),
+                displayMode = SearchDisplayMode.MapDetail(candidate.poiId),
+            ),
+            consent = null,
+            detailContent = null,
+        )
+
+        compose.onNodeWithTag("place-search-detail-panel").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-scroll-content").assertIsDisplayed()
     }
 
     @Test fun missingConsentKeepsDefaultDetailCollectionActionAvailable() {
@@ -360,6 +457,23 @@ class PlaceSearchContentTest {
         compose.onNodeWithTag("search-consent-required-action").performClick()
 
         assertEquals(listOf(PlaceSearchAction.OpenConsent), actions)
+    }
+
+    @Test fun emptyAndNetworkFailureUseSharedIllustrationsWithoutChangingActions() {
+        val state = mutableStateOf(PlaceSearchUiState(search = PlaceSearchState("不存在", phase = PlaceSearchPhase.Empty)))
+        var action: PlaceSearchAction? = null
+        compose.setContent { EasyTripTheme { PlaceSearchContent(state.value, { action = it }) } }
+
+        compose.onNodeWithTag("empty-illustration-search", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("place-search-empty-action").performClick()
+        assertEquals(PlaceSearchAction.QueryChanged(""), action)
+
+        compose.runOnIdle {
+            state.value = PlaceSearchUiState(search = PlaceSearchState("故宫", phase = PlaceSearchPhase.NetworkFailure("网络不可用")))
+        }
+        compose.onNodeWithTag("empty-illustration-failure", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("place-search-network-failure-action").performClick()
+        assertEquals(PlaceSearchAction.Retry, action)
     }
 
     @Test fun loadingEmptyAndFailureMatchTheirActions() {

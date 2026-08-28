@@ -17,10 +17,13 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.hasAnyAncestor
@@ -28,6 +31,8 @@ import androidx.compose.ui.test.isSelected
 import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -65,7 +70,7 @@ class CreateTripContentTest {
             EasyTripTheme { CreateTripContent(CreateTripUiState(), {}) }
         }
 
-        compose.onNodeWithText("创建旅行", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("create-submit").assertIsDisplayed()
         compose.onNodeWithText("基本信息").assertIsDisplayed()
         compose.onNodeWithText("旅行名称").assertIsDisplayed()
         compose.onNodeWithText("旅行天数").assertIsDisplayed()
@@ -79,6 +84,72 @@ class CreateTripContentTest {
         compose.onNodeWithTag("create-mode-options").assertHeightIsEqualTo(82.dp)
         compose.onNodeWithTag("create-planning-tip").assertIsDisplayed()
         compose.onNodeWithTag("create-submit").assertIsDisplayed().assertHeightIsEqualTo(48.dp)
+    }
+
+    @Test fun brandedNameAndDateRowsUseReferenceSizingAndAccessibleActions() {
+        compose.setContent { EasyTripTheme { CreateTripContent(CreateTripUiState(), {}) } }
+
+        compose.onNodeWithTag("create-name").assertHeightIsEqualTo(52.dp).assertHasClickAction()
+        compose.onNodeWithTag("create-date-control").assertHeightIsEqualTo(66.dp).assertHasClickAction()
+        compose.onAllNodesWithTag("create-name-leading-icon", useUnmergedTree = true).assertCountEquals(2)
+        compose.onNodeWithTag("create-date-leading-icon", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test fun brandedFieldsRemainReachableAtDoubleFontScale() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
+                EasyTripTheme { CreateTripContent(CreateTripUiState(name = "杭州", dayCount = "3"), {}) }
+            }
+        }
+
+        compose.onNodeWithTag("create-name").assertIsDisplayed().assertHeightIsEqualTo(52.dp)
+        compose.onNodeWithTag("create-day-count").assertIsDisplayed().assertHeightIsEqualTo(52.dp)
+        compose.onAllNodesWithTag("create-name-leading-icon", useUnmergedTree = true).assertCountEquals(2)
+    }
+
+    @Test fun brandedFieldsExposeLeadingIconsWithDefaultFontScale() {
+        compose.setContent { EasyTripTheme { CreateTripContent(CreateTripUiState(name = "杭州", dayCount = "3"), {}) } }
+
+        compose.onNodeWithTag("create-name").assertIsDisplayed()
+        compose.onNodeWithTag("create-day-count").assertIsDisplayed()
+        compose.onAllNodesWithTag("create-name-leading-icon", useUnmergedTree = true).assertCountEquals(2)
+    }
+
+    @Test fun dateRowIsButtonWithCurrentDateRangeDescriptionAndRetainsErrorSemantics() {
+        compose.setContent {
+            EasyTripTheme {
+                CreateTripContent(
+                    CreateTripUiState(
+                        timeMode = CreateTimeMode.DATED,
+                        dayCount = "3",
+                        startDate = LocalDate.of(2027, 1, 11),
+                        dateError = "请选择开始日期",
+                    ),
+                    {},
+                )
+            }
+        }
+
+        compose.onNodeWithContentDescription("选择出行日期，当前范围：2027-01-11 至 2027-01-13")
+            .assertHasClickAction()
+            .assert(
+                androidx.compose.ui.test.SemanticsMatcher.expectValue(SemanticsProperties.Error, "请选择开始日期"),
+            )
+    }
+
+    @Test fun travelModeCardsExposeRadioSelectionAndRespectSubmittingLock() {
+        val submitting = androidx.compose.runtime.mutableStateOf(false)
+        compose.setContent {
+            EasyTripTheme {
+                CreateTripContent(CreateTripUiState(travelMode = TravelMode.FLEXIBLE, isSubmitting = submitting.value), {})
+            }
+        }
+
+        compose.onNodeWithTag("create-mode-FLEXIBLE").assertIsSelected().assertHasClickAction().assertHeightIsEqualTo(82.dp)
+        compose.onNodeWithTag("create-mode-SELF_DRIVE").assertIsNotSelected().assertHasClickAction().assertHeightIsEqualTo(82.dp)
+        submitting.value = true
+        compose.onNodeWithTag("create-mode-FLEXIBLE").assertIsNotEnabled()
+        compose.onNodeWithTag("create-mode-SELF_DRIVE").assertIsNotEnabled()
     }
 
     @Test fun dayCountStartsEmptyAndAcceptsNaturalSingleDigitInput() {
@@ -300,7 +371,7 @@ class CreateTripContentTest {
         }
 
         pressBack()
-        compose.onNodeWithText("创建旅行", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("create-submit").assertIsDisplayed()
     }
 
     @Test fun narrowLargeFontAndImeKeepFocusedFieldAndSubmitReachable() {

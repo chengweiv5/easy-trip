@@ -21,8 +21,9 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton
-import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
+import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
+import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.SavedPlace
 
@@ -61,8 +62,9 @@ fun PlaceDetailPanel(
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .imePadding()
-            .padding(20.dp),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+            .padding(EasyTripTheme.spacing.large)
+            .testTag("place-detail-scroll-content"),
+        verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small),
     ) {
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
             Text(
@@ -89,7 +91,7 @@ fun PlaceDetailPanel(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 when (source) {
                     PlaceDetailSource.Search -> {
-                        CompactPrimaryButton(
+                        EasyTripPrimaryButton(
                             onClick = { onAction(PlaceDetailPanelAction.ToggleCollection) },
                             enabled = !collectionBusy,
                             modifier = Modifier.weight(1f).semantics {
@@ -101,18 +103,18 @@ fun PlaceDetailPanel(
                             },
                         ) { Text(if (savedPlace == null) "收藏" else "取消收藏") }
                         if (savedPlace != null) {
-                            CompactSecondaryButton(
+                            EasyTripSecondaryButton(
                                 onClick = { onAction(PlaceDetailPanelAction.StartEdit) },
                                 modifier = Modifier.weight(1f),
                             ) { Text("编辑") }
                         }
                     }
                     PlaceDetailSource.PlacePool -> {
-                        CompactSecondaryButton(
+                        EasyTripSecondaryButton(
                             onClick = { onAction(PlaceDetailPanelAction.StartEdit) },
                             modifier = Modifier.weight(1f),
                         ) { Text("编辑") }
-                        CompactSecondaryButton(
+                        EasyTripSecondaryButton(
                             onClick = { onAction(PlaceDetailPanelAction.Delete) },
                             modifier = Modifier.weight(1f),
                         ) { Text("删除") }
@@ -122,7 +124,7 @@ fun PlaceDetailPanel(
             collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         } else {
             if (source == PlaceDetailSource.Search) {
-                CompactSecondaryButton(
+                EasyTripSecondaryButton(
                     onClick = { onAction(PlaceDetailPanelAction.ToggleCollection) },
                     enabled = !saving && !collectionBusy,
                     modifier = Modifier.fillMaxWidth().semantics {
@@ -139,7 +141,7 @@ fun PlaceDetailPanel(
             )
             availableTagNames.distinct().forEach { tag ->
                 val selected = tag in editState.selectedTagNames
-                CompactSecondaryButton(
+                EasyTripSecondaryButton(
                     onClick = {
                         onAction(
                             if (selected) PlaceDetailPanelAction.RemoveTag(tag)
@@ -153,7 +155,7 @@ fun PlaceDetailPanel(
             editState.selectedTagNames.filterNot { it in availableTagNames }.forEach { tag ->
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(tag)
-                    CompactSecondaryButton(
+                    EasyTripSecondaryButton(
                         onClick = { onAction(PlaceDetailPanelAction.RemoveTag(tag)) },
                         enabled = !saving,
                     ) { Text("移除") }
@@ -167,7 +169,7 @@ fun PlaceDetailPanel(
                     label = { Text("新标签") },
                     modifier = Modifier.weight(1f).testTag("place-detail-tags-input"),
                 )
-                CompactSecondaryButton(
+                EasyTripSecondaryButton(
                     onClick = { onAction(PlaceDetailPanelAction.AddTag) },
                     enabled = !saving,
                 ) { Text("添加") }
@@ -175,21 +177,21 @@ fun PlaceDetailPanel(
             editState.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
                 if (source == PlaceDetailSource.PlacePool) {
-                    CompactSecondaryButton(
+                    EasyTripSecondaryButton(
                         onClick = { onAction(PlaceDetailPanelAction.Delete) },
                         enabled = !saving,
                         modifier = Modifier.weight(1f).testTag("place-detail-delete"),
                     ) { Text("删除") }
                 }
-                CompactSecondaryButton(
+                EasyTripSecondaryButton(
                     onClick = { onAction(PlaceDetailPanelAction.CancelEdit) },
                     enabled = !saving,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("place-detail-cancel"),
                 ) { Text("取消") }
-                CompactPrimaryButton(
+                EasyTripPrimaryButton(
                     onClick = { onAction(PlaceDetailPanelAction.SaveEdit) },
                     enabled = !saving,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f).testTag("place-detail-save"),
                 ) { Text(if (saving) "保存中" else "保存") }
             }
         }

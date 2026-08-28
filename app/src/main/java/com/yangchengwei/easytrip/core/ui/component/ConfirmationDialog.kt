@@ -9,11 +9,8 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -27,8 +24,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripBackground
 
 @Composable
@@ -43,28 +38,18 @@ fun ConfirmationDialog(
     deletedItemTags: List<String>? = null,
     retainedItemTags: List<String>? = null,
 ) {
-    Dialog(
-        onDismissRequest = { if (!busy) onDismiss() },
-        properties = DialogProperties(
-            dismissOnBackPress = !busy,
-            dismissOnClickOutside = !busy,
-            usePlatformDefaultWidth = false,
-        ),
+    EasyTripDialogSurface(
+        onDismiss = onDismiss,
+        modifier = modifier,
+        dismissible = !busy,
     ) {
-        Surface(
-            modifier = modifier.fillMaxWidth().padding(horizontal = 16.dp).widthIn(max = 334.dp).heightIn(max = 640.dp),
-            shape = RoundedCornerShape(18.dp),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 0.dp,
-            shadowElevation = 6.dp,
+        Column(
+            modifier = Modifier.padding(horizontal = 22.dp, vertical = 20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
-            Column(
-                modifier = Modifier.padding(horizontal = 22.dp, vertical = 20.dp),
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(14.dp),
-            ) {
                 Column(
-                    modifier = Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
+                    modifier = Modifier,
                     horizontalAlignment = Alignment.CenterHorizontally,
                     verticalArrangement = Arrangement.spacedBy(14.dp),
                 ) {
@@ -120,7 +105,6 @@ fun ConfirmationDialog(
             }
         }
     }
-}
 
 @Composable
 private fun ConfirmationSection(

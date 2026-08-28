@@ -76,8 +76,22 @@ class V2AcceptanceTest {
         val source = object : PlaceSearchDataSource {
             override suspend fun search(keyword: String, city: String?) = listOf(museum, park)
         }
-        val consentGate = TestConsentGate().apply { show() }
-        val consent = requireNotNull(consentGate.decide(true))
+        val consentStore = com.yangchengwei.easytrip.amap.AmapConsentStore(
+            persistence = object : com.yangchengwei.easytrip.amap.AmapConsentPersistence {
+                override fun readDecision(): Boolean? = null
+                override fun writeDecision(accepted: Boolean) = Unit
+            },
+            reporter = object : com.yangchengwei.easytrip.amap.AmapPrivacyReporter {
+                override suspend fun reportShown() = Unit
+                override suspend fun reportDecision(accepted: Boolean) = Unit
+            },
+            registry = com.yangchengwei.easytrip.amap.ConsentRegistry(),
+        )
+        runBlocking {
+            consentStore.reportShown().getOrThrow()
+            consentStore.decide(true).getOrThrow()
+        }
+        val consent = (consentStore.state.value.fact as com.yangchengwei.easytrip.amap.AmapConsentFact.Accepted).token
         val navigationRoutes = java.util.concurrent.CopyOnWriteArrayList<String>()
         val host = AtomicReference<RecordingHost?>()
         fun waitFor(stage: String, condition: () -> Boolean) {
@@ -100,7 +114,19 @@ class V2AcceptanceTest {
                     routeLegRepository = routes,
                     mapPreferences = com.yangchengwei.easytrip.workspace.InMemoryMapPreferences(),
                     locationPermissionRequestStore = InMemoryLocationPermissionRequestStore(),
-                    placeSearchDataSource = source,
+                    consentStore = consentStore,
+                    runtimeSessionFactory = { fact ->
+                        com.yangchengwei.easytrip.AmapRuntimeSession(
+                            fact.generation,
+                            fact.token,
+                            source,
+                            object : com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator {
+                                override fun start(scope: CoroutineScope) = Unit
+                                override suspend fun retry(legId: String) = false
+                                override suspend fun overrideMode(legId: String, mode: com.yangchengwei.easytrip.core.model.TransportMode) = false
+                            },
+                        )
+                    },
                     mapConsentToken = consent,
                 ),
                 navigationObserver = AppNavigationObserver(navigationRoutes::add),
@@ -108,7 +134,8 @@ class V2AcceptanceTest {
             )
         }
 
-        compose.onNodeWithTag("trip-$tripId").performClick()
+        waitFor("trip list entry") { hasTag("continue-trip-$tripId") }
+        compose.onNodeWithTag("continue-trip-$tripId").performClick()
         waitFor("workspace UI") { hasTag("workspace-top-bar") }
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         compose.onNodeWithTag("layer-menu").assertHasClickAction()
