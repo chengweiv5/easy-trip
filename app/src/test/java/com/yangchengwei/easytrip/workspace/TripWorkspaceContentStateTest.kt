@@ -4,6 +4,7 @@ import androidx.lifecycle.SavedStateHandle
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
+import com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
@@ -119,6 +120,56 @@ class TripWorkspaceContentStateTest {
         assertEquals(TripWorkspacePageState.Error("无法加载旅行"), model.pageState.value)
     }
 
+    @Test fun deletedDayInvalidationBeforeTripEmissionDoesNotFailWorkspace() = runTest(dispatcher) {
+        val trips = Trips()
+        val itineraries = DeletingDayItineraries()
+        val model = TripWorkspaceViewModel("trip", trips, Places(), itineraries, Legs(), SavedStateHandle())
+        trips.value.value = TripWithDays(
+            "trip",
+            "北京",
+            LocalDate.of(2026, 8, 23),
+            TravelMode.FLEXIBLE,
+            listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
+        )
+        advanceUntilIdle()
+
+        itineraries.delete("day-2")
+        advanceUntilIdle()
+        trips.value.value = TripWithDays(
+            "trip",
+            "北京",
+            LocalDate.of(2026, 8, 23),
+            TravelMode.FLEXIBLE,
+            listOf(TripDay("day-1", 0)),
+        )
+        advanceUntilIdle()
+
+        assertEquals(true, model.pageState.value is TripWorkspacePageState.Ready)
+        assertEquals(listOf("day-1"), (model.pageState.value as TripWorkspacePageState.Ready).content.days.map(TripDay::id))
+    }
+
+    @Test fun missingDayStillPresentInLatestTripFailsWorkspace() = runTest(dispatcher) {
+        val trips = Trips()
+        val itineraries = DeletingDayItineraries()
+        val model = TripWorkspaceViewModel("trip", trips, Places(), itineraries, Legs(), SavedStateHandle())
+        val current = TripWithDays(
+            "trip",
+            "北京",
+            LocalDate.of(2026, 8, 23),
+            TravelMode.FLEXIBLE,
+            listOf(TripDay("day-1", 0)),
+        )
+        trips.value.value = current
+        advanceUntilIdle()
+
+        itineraries.delete("day-1")
+        advanceUntilIdle()
+        trips.value.value = current.copy(name = "北京更新")
+        advanceUntilIdle()
+
+        assertEquals(TripWorkspacePageState.Error("无法加载旅行"), model.pageState.value)
+    }
+
     @Test fun searchFailureBecomesError() = runTest(dispatcher) {
         val trips = Trips()
         val model = TripWorkspaceViewModel(
@@ -207,6 +258,19 @@ class TripWorkspaceContentStateTest {
     }
     private class Itineraries(private val failure: Boolean = false) : ItineraryRepository {
         override fun observeDay(dayId: String): Flow<DayItinerary> = if (failure) flow { throw IllegalStateException("itinerary") } else flowOf(DayItinerary(dayId, "trip", emptyList()))
+        override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int) = "item"
+        override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteItem(itemId: String) = Unit
+        override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun removePlaceOccurrences(placeId: String) = Unit
+    }
+
+    private class DeletingDayItineraries : ItineraryRepository {
+        private val days = mutableMapOf<String, MutableStateFlow<Boolean>>()
+        override fun observeDay(dayId: String): Flow<DayItinerary> = days.getOrPut(dayId) { MutableStateFlow(true) }.flatMapLatest { exists ->
+            if (exists) flowOf(DayItinerary(dayId, "trip", emptyList())) else flow { throw TargetDayNotFoundException(dayId) }
+        }
+        fun delete(dayId: String) { days.getValue(dayId).value = false }
         override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int) = "item"
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
         override suspend fun deleteItem(itemId: String) = Unit

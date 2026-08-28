@@ -40,6 +40,8 @@ fun ConfirmationDialog(
     busy: Boolean = false,
     errorMessage: String? = null,
     confirmLabel: String = model.confirmLabel,
+    deletedItemTags: List<String>? = null,
+    retainedItemTags: List<String>? = null,
 ) {
     Dialog(
         onDismissRequest = { if (!busy) onDismiss() },
@@ -80,8 +82,8 @@ fun ConfirmationDialog(
                     Text(model.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                     Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = EasyTripBackground) {
                         Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error)
-                            ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.primary)
+                            ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error, deletedItemTags)
+                            ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.primary, retainedItemTags)
                         }
                     }
                     errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
@@ -121,9 +123,20 @@ fun ConfirmationDialog(
 }
 
 @Composable
-private fun ConfirmationSection(title: String, items: List<String>, color: Color) {
+private fun ConfirmationSection(
+    title: String,
+    items: List<String>,
+    color: Color,
+    itemTags: List<String>?,
+) {
     Column(verticalArrangement = Arrangement.spacedBy(3.dp)) {
         Text(title, style = MaterialTheme.typography.labelMedium, color = color, fontWeight = FontWeight.SemiBold)
-        items.forEach { Text(it, style = MaterialTheme.typography.bodySmall) }
+        items.forEachIndexed { index, item ->
+            Text(
+                item,
+                modifier = itemTags?.getOrNull(index)?.let(Modifier::testTag) ?: Modifier,
+                style = MaterialTheme.typography.bodySmall,
+            )
+        }
     }
 }

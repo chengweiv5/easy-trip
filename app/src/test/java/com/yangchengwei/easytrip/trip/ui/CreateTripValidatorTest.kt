@@ -16,6 +16,49 @@ class CreateTripValidatorTest {
         assertEquals("请输入至少 1 天", validateCreateTrip(CreateTripUiState(name = "东京", dayCount = "0")).dayCountError)
     }
 
+    @Test fun thirtyDaysIsValid() {
+        val result = validateCreateTrip(CreateTripUiState(name = "东京", dayCount = "30"))
+
+        assertEquals(30, result.valid?.command?.dayCount)
+        assertNull(result.dayCountError)
+    }
+
+    @Test fun thirtyOneDaysReturnsMaximumErrorAndNoCommand() {
+        val result = validateCreateTrip(CreateTripUiState(name = "东京", dayCount = "31"))
+
+        assertEquals("旅行最多 30 天", result.dayCountError)
+        assertNull(result.valid)
+    }
+
+    @Test fun datedTripEndingOnLocalDateMaxIsValid() {
+        val result = validateCreateTrip(
+            CreateTripUiState(
+                name = "边界旅行",
+                dayCount = "1",
+                timeMode = CreateTimeMode.DATED,
+                startDate = LocalDate.MAX,
+            ),
+        )
+
+        assertEquals(LocalDate.MAX, result.valid?.command?.startDate)
+        assertEquals(LocalDate.MAX, result.valid?.startDate)
+        assertNull(result.dateError)
+    }
+
+    @Test fun datedTripBeyondLocalDateMaxReturnsExplicitErrorAndNoCommand() {
+        val result = validateCreateTrip(
+            CreateTripUiState(
+                name = "越界旅行",
+                dayCount = "2",
+                timeMode = CreateTimeMode.DATED,
+                startDate = LocalDate.MAX,
+            ),
+        )
+
+        assertEquals("日期范围超出支持范围", result.dateError)
+        assertNull(result.valid)
+    }
+
     @Test fun datedTripWithoutStartDate_returnsDateError() {
         assertEquals("请选择开始日期", validateCreateTrip(CreateTripUiState(name = "东京", dayCount = "2", timeMode = CreateTimeMode.DATED)).dateError)
     }

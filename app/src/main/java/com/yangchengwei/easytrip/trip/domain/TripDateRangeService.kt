@@ -1,12 +1,14 @@
 package com.yangchengwei.easytrip.trip.domain
 
+import com.yangchengwei.easytrip.trip.ui.DateRangeChangeRequest
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
 import kotlinx.coroutines.flow.first
 
+class DateRangeSnapshotChangedException(message: String) : IllegalStateException(message)
+
 data class DateRangeChangeImpact(
-    val newStartDate: LocalDate?,
-    val newEndDate: LocalDate?,
+    val request: DateRangeChangeRequest,
     val retainedDayIds: List<String>,
     val deletedDayIds: List<String>,
     val deletedItineraryItems: Int,
@@ -22,25 +24,30 @@ data class DateRangeDeletionCounts(
 
 data class DateRangeApply(
     val tripId: String,
-    val startDate: LocalDate?,
+    val expectedStartDate: LocalDate,
+    val startDate: LocalDate,
     val dayCount: Int,
-    val expectedDayIds: List<String> = emptyList(),
-    val expectedDeletedDayIds: List<String> = emptyList(),
-    val expectedDeletedItineraryItems: Int = 0,
-    val expectedDeletedRouteLegs: Int = 0,
+    val expectedDayIds: List<String>,
+    val expectedDeletedDayIds: List<String>,
+    val expectedDeletedItineraryItems: Int,
+    val expectedDeletedRouteLegs: Int,
 )
 
 class TripDateRangeService(private val repository: TripRepository) {
-    suspend fun preview(tripId: String, startDate: LocalDate?, endDate: LocalDate?): DateRangeChangeImpact {
-        val dayCount = validateAndCount(startDate, endDate)
-        val trip = requireNotNull(repository.observeTrip(tripId).first()) { "Unknown trip: $tripId" }
-        val targetCount = dayCount ?: trip.days.size
-        val retained = trip.days.take(targetCount).map(TripDay::id)
-        val deleted = trip.days.drop(targetCount).map(TripDay::id)
-        val counts = repository.dateRangeDeletionCounts(tripId, deleted)
+    suspend fun preview(request: DateRangeChangeRequest): DateRangeChangeImpact {
+        val trip = requireNotNull(repository.observeTrip(request.tripId).first()) { "Unknown trip: ${request.tripId}" }
+        if (trip.startDate != request.baselineStartDate) {
+            throw DateRangeSnapshotChangedException("Trip start date changed after edit began")
+        }
+        if (trip.days.map(TripDay::id) != request.baselineDayIds) {
+            throw DateRangeSnapshotChangedException("Trip days changed after edit began")
+        }
+        val dayCount = validateAndCount(request.baselineStartDate, request.targetEndDate)
+        val retained = trip.days.take(dayCount).map(TripDay::id)
+        val deleted = trip.days.drop(dayCount).map(TripDay::id)
+        val counts = repository.dateRangeDeletionCounts(request.tripId, deleted)
         return DateRangeChangeImpact(
-            startDate,
-            endDate,
+            request,
             retained,
             deleted,
             counts.itineraryItems,
@@ -49,15 +56,15 @@ class TripDateRangeService(private val repository: TripRepository) {
         )
     }
 
-    suspend fun apply(impact: DateRangeChangeImpact, tripId: String) {
-        val dayCount = validateAndCount(impact.newStartDate, impact.newEndDate)
-            ?: impact.retainedDayIds.size + impact.deletedDayIds.size
+    suspend fun apply(impact: DateRangeChangeImpact) {
+        val request = impact.request
         repository.applyDateRange(
             DateRangeApply(
-                tripId = tripId,
-                startDate = impact.newStartDate,
-                dayCount = dayCount,
-                expectedDayIds = impact.retainedDayIds + impact.deletedDayIds,
+                tripId = request.tripId,
+                expectedStartDate = request.baselineStartDate,
+                startDate = request.baselineStartDate,
+                dayCount = validateAndCount(request.baselineStartDate, request.targetEndDate),
+                expectedDayIds = request.baselineDayIds,
                 expectedDeletedDayIds = impact.deletedDayIds,
                 expectedDeletedItineraryItems = impact.deletedItineraryItems,
                 expectedDeletedRouteLegs = impact.deletedRouteLegs,
@@ -65,10 +72,10 @@ class TripDateRangeService(private val repository: TripRepository) {
         )
     }
 
-    private fun validateAndCount(startDate: LocalDate?, endDate: LocalDate?): Int? {
-        require((startDate == null) == (endDate == null)) { "Start and end date must both be set or both be null" }
-        if (startDate == null) return null
-        require(!endDate!!.isBefore(startDate)) { "End date cannot be before start date" }
-        return ChronoUnit.DAYS.between(startDate, endDate).toInt() + 1
+    private fun validateAndCount(startDate: LocalDate, endDate: LocalDate): Int {
+        require(!endDate.isBefore(startDate)) { "End date cannot be before start date" }
+        val dayCount = ChronoUnit.DAYS.between(startDate, endDate) + 1L
+        require(dayCount in 1L..MAX_TRIP_DAYS.toLong()) { "旅行最多 30 天" }
+        return dayCount.toInt()
     }
 }

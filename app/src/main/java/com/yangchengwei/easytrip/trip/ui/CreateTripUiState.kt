@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.trip.domain.tripEndDateOrNull
 import java.time.LocalDate
 
 enum class CreateTimeMode { DRAFT, DATED }
@@ -21,9 +22,8 @@ data class CreateTripUiState(
     val endDate: LocalDate?
         get() {
             val days = dayCount.toIntOrNull() ?: return null
-            val date = startDate ?: return null
             if (timeMode != CreateTimeMode.DATED || days < 1) return null
-            return runCatching { date.plusDays(days.toLong() - 1) }.getOrNull()
+            return tripEndDateOrNull(startDate, days)
         }
 }
 

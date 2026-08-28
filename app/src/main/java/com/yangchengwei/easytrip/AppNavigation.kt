@@ -365,7 +365,16 @@ fun AppNavigation(
         }
         composable(TRIP_SETTINGS_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) {
             val model: TripSettingsViewModel = viewModel(factory = TripSettingsViewModel.Factory(service, repository, impacts))
-            TripSettingsRoute(model, navController::popBackStack)
+            TripSettingsRoute(
+                viewModel = model,
+                onBack = navController::popBackStack,
+                onTripDeleted = {
+                    navController.navigate(TRIP_LIST_ROUTE) {
+                        popUpTo(TRIP_LIST_ROUTE) { inclusive = false }
+                        launchSingleTop = true
+                    }
+                },
+            )
         }
     }
 }

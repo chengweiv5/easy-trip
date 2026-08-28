@@ -6,8 +6,11 @@ import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.DateRangeApply
 import com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts
+import com.yangchengwei.easytrip.trip.domain.DateRangeSnapshotChangedException
 import com.yangchengwei.easytrip.trip.domain.DayDeletion
 import com.yangchengwei.easytrip.trip.domain.InsertSide
+import com.yangchengwei.easytrip.trip.domain.MAX_TRIP_DAYS
+import com.yangchengwei.easytrip.trip.domain.isTripDateRangeRepresentable
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripSummary
@@ -51,7 +54,8 @@ class RoomTripRepository(
 
     override suspend fun createTrip(command: CreateTrip): String {
         require(command.name.isNotBlank())
-        require(command.dayCount >= 1)
+        require(command.dayCount in 1..MAX_TRIP_DAYS)
+        require(isTripDateRangeRepresentable(command.startDate, command.dayCount)) { "日期范围超出支持范围" }
         val tripId = command.requestId ?: idFactory()
         val now = clock.instant()
         val trip = TripEntity(
@@ -88,29 +92,31 @@ class RoomTripRepository(
     }
 
     override suspend fun applyDateRange(command: DateRangeApply) {
-        require(command.dayCount >= 1)
+        require(command.dayCount in 1..MAX_TRIP_DAYS)
+        require(isTripDateRangeRepresentable(command.startDate, command.dayCount)) { "日期范围超出支持范围" }
         val db = requireNotNull(database) { "Date range changes require a database transaction" }
         db.withTransaction {
+            val trip = requireNotNull(dao.trip(command.tripId)) { "Unknown trip: ${command.tripId}" }
             val days = dao.days(command.tripId)
-            require(days.isNotEmpty()) { "Unknown or empty trip: ${command.tripId}" }
-            if (command.expectedDayIds.isNotEmpty()) {
-                require(days.map(TripDayEntity::id) == command.expectedDayIds) { "Trip days changed after preview" }
-            }
-            if (command.expectedDeletedDayIds.isNotEmpty()) {
-                require(days.drop(command.dayCount).map(TripDayEntity::id) == command.expectedDeletedDayIds) {
-                    "Deleted trip days changed after preview"
-                }
-                require(dao.itemCountForDays(command.expectedDeletedDayIds) == command.expectedDeletedItineraryItems) {
-                    "Deleted itinerary items changed after preview"
-                }
-                require(dao.legCountForDays(command.expectedDeletedDayIds) == command.expectedDeletedRouteLegs) {
-                    "Deleted route legs changed after preview"
-                }
-            }
+            snapshotCheck(trip.startDate == command.expectedStartDate, "Trip start date changed after preview")
+            snapshotCheck(command.startDate == command.expectedStartDate, "Trip start date cannot change in this flow")
+            snapshotCheck(days.map(TripDayEntity::id) == command.expectedDayIds, "Trip days changed after preview")
+            snapshotCheck(
+                days.drop(command.dayCount).map(TripDayEntity::id) == command.expectedDeletedDayIds,
+                "Deleted trip days changed after preview",
+            )
+            snapshotCheck(
+                dao.itemCountForDays(command.expectedDeletedDayIds) == command.expectedDeletedItineraryItems,
+                "Deleted itinerary items changed after preview",
+            )
+            snapshotCheck(
+                dao.legCountForDays(command.expectedDeletedDayIds) == command.expectedDeletedRouteLegs,
+                "Deleted route legs changed after preview",
+            )
             dao.setStartDate(
                 command.tripId,
                 command.startDate,
-                if (command.startDate == null) TimeMode.DRAFT else TimeMode.DATED,
+                TimeMode.DATED,
                 clock.instant(),
             )
             when {
@@ -125,6 +131,10 @@ class RoomTripRepository(
                 require(dao.position(day.id, index * TripDao.POSITION_STEP) == 1)
             }
         }
+    }
+
+    private fun snapshotCheck(condition: Boolean, message: String) {
+        if (!condition) throw DateRangeSnapshotChangedException(message)
     }
 
     override suspend fun setTravelMode(tripId: String, mode: TravelMode) {
@@ -149,7 +159,7 @@ class RoomTripRepository(
 
     override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String {
         val dayId = idFactory()
-        dao.insertAndReorderDay(tripId, anchorDayId, side == InsertSide.AFTER, dayId, clock.instant())
+        dao.insertAndReorderDay(tripId, anchorDayId, side == InsertSide.AFTER, dayId, clock.instant(), MAX_TRIP_DAYS)
         return dayId
     }
 

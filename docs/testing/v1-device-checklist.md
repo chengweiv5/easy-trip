@@ -4,9 +4,11 @@
 
 ## 验收环境
 
-- 日期：2026-08-22
+- 既有 #1–#12 验收日期：2026-08-22
+- 本轮 #13–#17 验收日期：2026-08-28
 - 设备型号：Huawei ALN-AL00（序列号不记录）
-- Android 版本：12
+- 既有 #1–#12 验收 Android 版本：12
+- 本轮 #13–#17 真机 Android 版本：12（`ALN-AL00`，1260×2720 @ 520 dpi）
 - App commit：基线 `253b8a8`，验收构建包含未提交工作树改动
 - 构建类型：debug
 - 高德 Key 对应包名：`com.yangchengwei.easytrip`
@@ -28,6 +30,17 @@
 | 10 | 性能 | 至少 30 个 marker、7 天路线；缩放、拖动地图与切换抽屉无明显卡顿，地图视口不因 sheet/tab 重组重置 | 通过 | 真机验证通过 |
 | 11 | 授权撤销 | 撤销地图授权后地图/搜索/路线停止，离线行程编辑仍可用；重新授权后路线继续 | 通过 | 真机验证通过 |
 | 12 | 删除确认 | 删除被引用地点前显示引用次数；确认后所有引用和旧路段消失，并生成必要桥接路段 | 通过 | 真机验证通过 |
+| 13 | 旅行设置往返 | 从当前旅行工作台“更多”进入设置并返回；保持原 trip、原 section、地点池和行程可用 | 有关注项 | Workspace missing-day race 已有 TDD 根因修复；最终 fresh 真机连续 5 轮均正常返回同一 FreshGate 工作台，未见“无法加载旅行”。历史事件仍保留说明，不删除 concern |
+| 14 | 日期增长 | 延长结束日期；新增旅行日连续，原旅行日和内容保持 | 通过 | 专用旅行 8/29..8/31 延长至 9/2，五日连续；原三日保持 |
+| 15 | 日期缩短取消与确认 | 核对旅行日、行程项、RouteLeg、SavedPlace 影响；取消后数据不变，再次提交后尾部内容级联删除且日期重编号 | 通过 | 影响框显示删除 2 日、0 item/leg、保留 0 SavedPlace；取消不改数据，再确认缩至三日；非空级联由自动化覆盖 |
+| 16 | 单日删除 | 删除非最后一个旅行日后内容级联且日期重编号；最后一个旅行日不可删除 | 通过 | 删除中间日后连续重编号；单日时点击删除不弹确认且数据不变 |
+| 17 | 日期提交单飞 | 快速重复点击确认只执行一次；并发快照失效和 Room Flow 异常以自动化测试为权威 | 通过 | 连续点击确认最终只应用一次且无崩溃；不可稳定制造的异常沿用自动化权威结果 |
+
+## 当前 freshness（2026-08-28）
+
+- 本轮新增 Room latest-fact 竞态修复与统一 30 天上限后，表中既有真机结果及此前完整自动化门禁均为 stale 历史证据。
+- 新鲜定向证据：相关 trip UI/domain JVM 109/109、设置 Content 13/13、日期 Room 11/11、RoomTripRepository 18/18 PASS。
+- 完整 JVM、Catalog、Full UI 与物理真机不在本轮重跑范围，由 controller 后续统一执行。
 
 ## 自动化基线
 
@@ -36,4 +49,13 @@
 
 ## 结论
 
-当前状态：**物理真机验收全部通过。**
+当前状态：**DONE_WITH_CONCERNS**。已确认根因为删除日时旧 itinerary Room Flow 先于 trip day-list emission 抛 `TargetDayNotFoundException`，并以 focused RED/GREEN 修复。最终 fresh JVM 467/467、connected 122/122 与构建门禁通过；connected 仅在 `emulator-5554` 执行，真机只安装并手工复验。Mate 60 Pro 的 30 天错误、增长、缩短、日删除及 settings→workspace 连续 5 轮均通过。历史“无法加载旅行”事件继续保留说明；非空内容级联仍未在物理设备直接覆盖。
+
+## FreshGate 工作台修复复验补充（2026-08-28）
+
+- [x] 失败现场 UI hierarchy、完整 app PID logcat、dumpsys activity/window/meminfo 已采集。
+- [x] `run-as` 只读 DB/WAL/SHM 导出：integrity ok，无 foreign-key orphan，FreshGate 为 1 个合法 day。
+- [x] RED：`deletedDayInvalidationBeforeTripEmissionDoesNotFailWorkspace` 修复前按预期失败。
+- [x] Fix round 1/5 GREEN：每条 authoritative trip emission 建立 snapshots 代；旧 day missing 后随下一条列表移除则取消旧代，若仍保留则新代立即进入 Error。全部 `workspace.*` JVM 121/121、lint、diff、Graphify PASS；无时间延迟或额外 repository collector。此前真机 `TripDateRangeRoomTest` 11/11 在本次收紧前，现为 stale。
+- [x] 同一 Mate 60 Pro 原路径至少 5 轮：用户解锁后完成 5/5，均回到同一 FreshGate 工作台且无“无法加载旅行”。
+- [x] 数据事故记录：focused connected 意外清数据；已从测试前完整快照恢复并确认 FreshGate 存在。

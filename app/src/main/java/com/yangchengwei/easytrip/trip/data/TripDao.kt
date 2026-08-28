@@ -50,14 +50,20 @@ interface TripDao {
         require(existing.name==trip.name && existing.timeMode==trip.timeMode && existing.startDate==trip.startDate && existing.travelMode==trip.travelMode && existingDays.size==dayCount){"Conflicting create request: ${trip.id}"}
     }
     @Transaction suspend fun renameTrip(tripId:String,name:String,now:Instant){ require(renameRow(tripId,name,now)==1){"Unknown trip: $tripId"} }
-    @Transaction suspend fun setStartDate(tripId:String,date:LocalDate?,mode:TimeMode,now:Instant){ require(dateRow(tripId,date,mode,now)==1){"Unknown trip: $tripId"} }
+    @Transaction suspend fun setStartDate(tripId:String,date:LocalDate?,mode:TimeMode,now:Instant){
+        require(tripExists(tripId)){"Unknown trip: $tripId"}
+        require(com.yangchengwei.easytrip.trip.domain.isTripDateRangeRepresentable(date,days(tripId).size)){"日期范围超出支持范围"}
+        require(dateRow(tripId,date,mode,now)==1){"Unknown trip: $tripId"}
+    }
     @Transaction suspend fun setTravelMode(tripId:String,mode:TravelMode,now:Instant){ require(modeRow(tripId,mode,now)==1){"Unknown trip: $tripId"} }
     @Transaction suspend fun deleteTripChecked(tripId:String){ require(deleteTripRow(tripId)==1){"Unknown trip: $tripId"} }
 
     @Transaction
-    suspend fun insertAndReorderDay(tripId:String,anchorDayId:String?,after:Boolean,newId:String,now:Instant){
-        require(tripExists(tripId)){"Unknown trip: $tripId"}
+    suspend fun insertAndReorderDay(tripId:String,anchorDayId:String?,after:Boolean,newId:String,now:Instant,maxDays:Int){
+        val trip=requireNotNull(trip(tripId)){"Unknown trip: $tripId"}
         val ordered=days(tripId).toMutableList()
+        require(ordered.size < maxDays) { "旅行最多 30 天" }
+        require(com.yangchengwei.easytrip.trip.domain.isTripDateRangeRepresentable(trip.startDate,ordered.size+1)){"日期范围超出支持范围"}
         val target=if(anchorDayId==null) ordered.size else {
             val index=ordered.indexOfFirst{it.id==anchorDayId}
             require(index>=0){"Unknown anchor for trip: $anchorDayId"}

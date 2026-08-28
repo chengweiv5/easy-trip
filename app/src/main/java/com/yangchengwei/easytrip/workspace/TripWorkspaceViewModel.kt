@@ -8,6 +8,7 @@ import androidx.lifecycle.viewmodel.CreationExtras
 import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
+import com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException
 import com.yangchengwei.easytrip.itinerary.ui.WholeTripDayUi
 import com.yangchengwei.easytrip.itinerary.ui.mapWholeTripDays
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
@@ -18,16 +19,17 @@ import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.shareIn
-import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.launch
 
 enum class WorkspaceTab { PLACES, ITINERARY }
@@ -356,7 +358,19 @@ private fun observeSnapshots(
 ): Flow<List<DayMapSnapshot>> {
     if (days.isEmpty()) return flowOf(emptyList())
     val flows = days.map { day ->
-        combine(itineraries.observeDay(day.id), routes.observeDay(day.id)) { itinerary, legs -> DayMapSnapshot(itinerary, legs) }
+        flow {
+            var emitted = false
+            try {
+                combine(itineraries.observeDay(day.id), routes.observeDay(day.id)) { itinerary, legs -> DayMapSnapshot(itinerary, legs) }
+                    .collect {
+                        emitted = true
+                        emit(it)
+                    }
+            } catch (error: TargetDayNotFoundException) {
+                if (!emitted) throw error
+                awaitCancellation()
+            }
+        }
     }
     return combine(flows) { it.toList() }
 }

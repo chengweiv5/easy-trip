@@ -81,6 +81,91 @@ class RoomTripRepositoryTest {
     }
 
     @Test
+    fun createRejectsMoreThanThirtyDaysWithoutWriting() = runTest {
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.createTrip(CreateTrip("Too long", 31)) }
+        }
+
+        assertEquals(emptyList<TripSummary>(), repository.observeTrips().first())
+    }
+
+    @Test
+    fun datedCreateAcceptsRepresentableEndAndRejectsOverflowWithoutWriting() = runTest {
+        val maximumTripId = repository.createTrip(CreateTrip("Maximum", 1, startDate = LocalDate.MAX))
+        val beforeTrips = repository.observeTrips().first()
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                repository.createTrip(CreateTrip("Overflow", 2, startDate = LocalDate.MAX))
+            }
+        }
+
+        assertEquals(LocalDate.MAX, repository.observeTrip(maximumTripId).first()!!.startDate)
+        assertEquals(beforeTrips, repository.observeTrips().first())
+    }
+
+    @Test
+    fun applyDateRangeRejectsUnrepresentableEndBeforeWriting() = runTest {
+        repository = RoomTripRepository(database.tripDao(), clock, IdFactory(), database)
+        val tripId = repository.createTrip(CreateTrip("Maximum", 1, startDate = LocalDate.MAX))
+        val beforeTrip = repository.observeTrip(tripId).first()!!
+        val beforePositions = database.tripDao().dayPositions(tripId)
+        val snapshot = com.yangchengwei.easytrip.trip.domain.DateRangeApply(
+            tripId = tripId,
+            expectedStartDate = LocalDate.MAX,
+            startDate = LocalDate.MAX,
+            dayCount = 1,
+            expectedDayIds = beforeTrip.days.map { it.id },
+            expectedDeletedDayIds = emptyList(),
+            expectedDeletedItineraryItems = 0,
+            expectedDeletedRouteLegs = 0,
+        )
+
+        repository.applyDateRange(snapshot)
+        assertEquals(beforeTrip, repository.observeTrip(tripId).first())
+        assertEquals(beforePositions, database.tripDao().dayPositions(tripId))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.applyDateRange(snapshot.copy(dayCount = 2)) }
+        }
+
+        assertEquals(beforeTrip, repository.observeTrip(tripId).first())
+        assertEquals(beforePositions, database.tripDao().dayPositions(tripId))
+    }
+
+    @Test
+    fun datedInsertRejectsUnrepresentableEndWithoutWriting() = runTest {
+        val tripId = repository.createTrip(CreateTrip("Maximum", 1, startDate = LocalDate.MAX))
+        val beforeTrip = repository.observeTrip(tripId).first()!!
+        val beforePositions = database.tripDao().dayPositions(tripId)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.insertDay(tripId, null, InsertSide.AFTER) }
+        }
+
+        assertEquals(beforeTrip, repository.observeTrip(tripId).first())
+        assertEquals(beforePositions, database.tripDao().dayPositions(tripId))
+    }
+
+    @Test
+    fun setStartDateAcceptsMaximumForOneDayAndRejectsItForMultipleDaysWithoutWriting() = runTest {
+        val singleDayId = repository.createTrip(CreateTrip("Single", 1))
+        repository.setStartDate(singleDayId, LocalDate.MAX)
+        assertEquals(LocalDate.MAX, repository.observeTrip(singleDayId).first()!!.startDate)
+
+        val multipleDayId = repository.createTrip(CreateTrip("Multiple", 2))
+        val beforeTrip = repository.observeTrip(multipleDayId).first()!!
+        val beforePositions = database.tripDao().dayPositions(multipleDayId)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.setStartDate(multipleDayId, LocalDate.MAX) }
+        }
+
+        assertEquals(beforeTrip, repository.observeTrip(multipleDayId).first())
+        assertEquals(beforePositions, database.tripDao().dayPositions(multipleDayId))
+    }
+
+    @Test
     fun createConstraintFailureRollsBackTripAndDays() = runTest {
         repository = RoomTripRepository(database.tripDao(), clock, idFactory = { "duplicate" })
 
@@ -271,14 +356,30 @@ class RoomTripRepositoryTest {
     }
 
     @Test
-    fun largeTripInsertionUsesDisjointParkingRange() = runTest {
-        val tripId = repository.createTrip(CreateTrip("Large", 1_000))
-        val anchor = repository.observeTrip(tripId).first()!!.days[500].id
+    fun maximumTripInsertionUsesDisjointParkingRange() = runTest {
+        val tripId = repository.createTrip(CreateTrip("Large", 29))
+        val anchor = repository.observeTrip(tripId).first()!!.days[15].id
 
         repository.insertDay(tripId, anchor, InsertSide.BEFORE)
 
-        assertEquals(1_001, repository.observeTrip(tripId).first()!!.days.size)
-        assertEquals(List(1_001) { it * 1_000L }, database.tripDao().dayPositions(tripId))
+        assertEquals(30, repository.observeTrip(tripId).first()!!.days.size)
+        assertEquals(List(30) { it * 1_000L }, database.tripDao().dayPositions(tripId))
+    }
+
+    @Test
+    fun insertingThirtyFirstDayIsRejectedWithoutChangingTrip() = runTest {
+        val tripId = repository.createTrip(CreateTrip("Maximum", 30))
+        val beforeTrip = repository.observeTrip(tripId).first()!!
+        val beforePositions = database.tripDao().dayPositions(tripId)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                repository.insertDay(tripId, null, InsertSide.AFTER)
+            }
+        }
+
+        assertEquals(beforeTrip, repository.observeTrip(tripId).first())
+        assertEquals(beforePositions, database.tripDao().dayPositions(tripId))
     }
 
     @Test
@@ -362,6 +463,7 @@ class RoomTripRepositoryTest {
                     after = false,
                     newId = beforeDays[0].id,
                     now = clock.instant(),
+                    maxDays = com.yangchengwei.easytrip.trip.domain.MAX_TRIP_DAYS,
                 )
             }
         }

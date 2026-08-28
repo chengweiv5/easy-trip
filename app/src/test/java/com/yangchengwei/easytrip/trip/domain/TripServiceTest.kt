@@ -65,12 +65,60 @@ class TripServiceTest {
     @Test
     fun appendingToTripWithoutDaysCreatesFirstDay() = runTest {
         val repository = FakeTripRepository().apply {
-            trip = TripWithDays("trip", "Empty", null, TravelMode.FLEXIBLE, emptyList())
+            publishTrip(TripWithDays("trip", "Empty", null, TravelMode.FLEXIBLE, emptyList()))
         }
 
         val appendedId = TripService(repository).appendTripDay("trip")
 
         assertEquals(listOf(appendedId), repository.trip!!.days.map(TripDay::id))
+    }
+
+    @Test
+    fun insertingThirtiethDaySucceedsAndThirtyFirstIsRejectedBeforeRepositoryInsert() = runTest {
+        val repository = FakeTripRepository()
+        val service = TripService(repository)
+        val tripId = service.createTrip(CreateTrip("Kyoto", 29))
+
+        service.appendTripDay(tripId)
+        assertEquals(30, repository.trip!!.days.size)
+        assertEquals(1, repository.insertCalls)
+        val beforeRejectedInsert = repository.trip
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { service.appendTripDay(tripId) }
+        }
+
+        assertEquals(1, repository.insertCalls)
+        assertEquals(beforeRejectedInsert, repository.trip)
+
+        val directRepository = FakeTripRepository()
+        val directService = TripService(directRepository)
+        val directTripId = directService.createTrip(CreateTrip("Direct", 30))
+        val directBefore = directRepository.trip
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                directService.insertDay(directTripId, directBefore!!.days.first().id, InsertSide.BEFORE)
+            }
+        }
+
+        assertEquals(0, directRepository.insertCalls)
+        assertEquals(directBefore, directRepository.trip)
+    }
+
+    @Test
+    fun datedInsertRejectsUnrepresentableEndBeforeRepositoryCall() = runTest {
+        val repository = FakeTripRepository()
+        val service = TripService(repository)
+        val tripId = service.createTrip(CreateTrip("Maximum", 1, startDate = LocalDate.MAX))
+        val before = repository.trip
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { service.appendTripDay(tripId) }
+        }
+
+        assertEquals(0, repository.insertCalls)
+        assertEquals(before, repository.trip)
     }
 
     @Test
@@ -111,6 +159,59 @@ class TripServiceTest {
 
 
     @Test
+    fun createAcceptsThirtyDaysAndRejectsThirtyOneBeforeRepositoryCall() = runTest {
+        val repository = FakeTripRepository()
+        val service = TripService(repository)
+
+        service.createTrip(CreateTrip("Thirty", 30))
+        assertEquals(1, repository.createCalls)
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { service.createTrip(CreateTrip("Thirty one", 31)) }
+        }
+        assertEquals(1, repository.createCalls)
+    }
+
+    @Test
+    fun datedCreateAcceptsRepresentableEndAndRejectsOverflowBeforeRepositoryCall() = runTest {
+        val repository = FakeTripRepository()
+        val service = TripService(repository)
+
+        service.createTrip(CreateTrip("Maximum", 1, startDate = LocalDate.MAX))
+        assertEquals(1, repository.createCalls)
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                service.createTrip(CreateTrip("Overflow", 2, startDate = LocalDate.MAX))
+            }
+        }
+
+        assertEquals(1, repository.createCalls)
+    }
+
+    @Test
+    fun setStartDateAcceptsMaximumForOneDayAndRejectsItForMultipleDaysBeforeRepositoryCall() = runTest {
+        val singleDayRepository = FakeTripRepository()
+        val singleDayService = TripService(singleDayRepository)
+        val singleDayTripId = singleDayService.createTrip(CreateTrip("Single", 1))
+
+        singleDayService.setStartDate(singleDayTripId, LocalDate.MAX)
+        assertEquals(1, singleDayRepository.setStartDateCalls)
+        assertEquals(LocalDate.MAX, singleDayRepository.trip!!.startDate)
+
+        val multipleDayRepository = FakeTripRepository()
+        val multipleDayService = TripService(multipleDayRepository)
+        val multipleDayTripId = multipleDayService.createTrip(CreateTrip("Multiple", 2))
+        val before = multipleDayRepository.trip
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { multipleDayService.setStartDate(multipleDayTripId, LocalDate.MAX) }
+        }
+
+        assertEquals(0, multipleDayRepository.setStartDateCalls)
+        assertEquals(before, multipleDayRepository.trip)
+    }
+
+    @Test
     fun mutationEntriesDelegateAndRenameValidates() = runTest {
         val repository = FakeTripRepository()
         val service = TripService(repository)
@@ -135,6 +236,9 @@ class TripServiceTest {
         var lastInsertAnchor: String? = "unset"
         var lastInsertSide: InsertSide? = null
         var trip: TripWithDays? = null
+        var createCalls = 0
+        var insertCalls = 0
+        var setStartDateCalls = 0
         private var nextId = 1
         private val trips = MutableStateFlow<List<TripSummary>>(emptyList())
         private val selected = MutableStateFlow<TripWithDays?>(null)
@@ -142,12 +246,18 @@ class TripServiceTest {
         override fun observeTrips(): Flow<List<TripSummary>> = trips
         override fun observeTrip(tripId: String): Flow<TripWithDays?> = selected
 
+        fun publishTrip(value: TripWithDays) {
+            trip = value
+            selected.value = value
+        }
+
         override suspend fun createTrip(command: CreateTrip): String {
+            createCalls++
             val tripId = id()
             trip = TripWithDays(
                 id = tripId,
                 name = command.name,
-                startDate = null,
+                startDate = command.startDate,
                 travelMode = command.travelMode,
                 days = List(command.dayCount) { TripDay(id(), it) },
             )
@@ -164,6 +274,7 @@ class TripServiceTest {
         override suspend fun applyDateRange(command: DateRangeApply) = Unit
 
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) {
+            setStartDateCalls++
             trip = trip!!.copy(startDate = startDate)
             selected.value = trip
         }
@@ -174,6 +285,7 @@ class TripServiceTest {
         }
 
         override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String {
+            insertCalls++
             lastInsertAnchor = anchorDayId
             lastInsertSide = side
             val newId = id()
@@ -182,6 +294,7 @@ class TripServiceTest {
             val index = if (side == InsertSide.BEFORE) anchorIndex else anchorIndex + 1
             days.add(index.coerceIn(0, days.size), TripDay(newId, 0))
             trip = trip!!.copy(days = days.mapIndexed { i, day -> day.copy(index = i) })
+            selected.value = trip
             return newId
         }
 

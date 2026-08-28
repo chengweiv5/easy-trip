@@ -4,6 +4,18 @@ import com.yangchengwei.easytrip.core.model.TravelMode
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
+const val MAX_TRIP_DAYS = 30
+
+fun isTripDateRangeRepresentable(startDate: LocalDate?, dayCount: Int): Boolean =
+    startDate == null || dayCount >= 1 && startDate <= LocalDate.MAX.minusDays(dayCount.toLong() - 1L)
+
+fun tripEndDateOrNull(startDate: LocalDate?, dayCount: Int): LocalDate? =
+    if (startDate != null && isTripDateRangeRepresentable(startDate, dayCount)) {
+        startDate.plusDays(dayCount.toLong() - 1L)
+    } else {
+        null
+    }
+
 data class TripSummary(
     val id: String,
     val name: String,

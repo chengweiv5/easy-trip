@@ -66,6 +66,8 @@ import com.yangchengwei.easytrip.trip.ui.CreateTripAction
 import com.yangchengwei.easytrip.trip.ui.CreateTripContent
 import com.yangchengwei.easytrip.trip.ui.CreateTripUiState
 import com.yangchengwei.easytrip.trip.domain.DateRangeChangeImpact
+import com.yangchengwei.easytrip.trip.ui.DateRangeChangePhase
+import com.yangchengwei.easytrip.trip.ui.DateRangeChangeRequest
 import com.yangchengwei.easytrip.trip.ui.DateRangeChangeUiState
 import com.yangchengwei.easytrip.trip.ui.DayDeleteImpact
 import com.yangchengwei.easytrip.trip.ui.DayUi
@@ -712,11 +714,24 @@ object V1ScenarioExecutableFactory {
                 days = listOf(DayUi("day-1", "Day 1"), DayUi("day-2", "Day 2")),
                 dateRange = DateRangeChangeUiState(
                     startDate = LocalDate.of(2026, 9, 1),
+                    baselineEndDate = LocalDate.of(2026, 9, 2),
                     endDate = LocalDate.of(2026, 9, 1),
-                    confirmation = DateRangeChangeImpact(
-                        LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 1),
-                        listOf("day-1"), listOf("day-2"), 2, 1, 3,
-                    ),
+                    isDirty = true,
+                    phase = DateRangeChangeRequest(
+                        1,
+                        "trip-1",
+                        LocalDate.of(2026, 9, 1),
+                        listOf("day-1", "day-2"),
+                        LocalDate.of(2026, 9, 1),
+                    ).let { request ->
+                        DateRangeChangePhase.AwaitingConfirmation(
+                            request,
+                            DateRangeChangeImpact(
+                                request,
+                                listOf("day-1"), listOf("day-2"), 2, 1, 3,
+                            ),
+                        )
+                    },
                 ),
             ),
             onConfirmDateRange = { confirmed = true },
@@ -949,7 +964,7 @@ object V1ScenarioExecutableFactory {
         ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.TRIP_SETTINGS)),
         content = {
             TripSettingsContent(
-                state, {}, {}, {}, { _, _ -> }, {}, {}, onConfirmDateRange,
+                state, {}, {}, {}, {}, {}, {}, onConfirmDateRange, {},
                 {}, {}, {}, onConfirmDeleteDay,
             )
         },
