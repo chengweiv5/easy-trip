@@ -12,8 +12,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -22,8 +20,10 @@ import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -495,13 +495,33 @@ class PlaceSearchContentTest {
         assertEquals(PlaceSearchAction.Retry, action)
     }
 
-    @Test fun activeSearchSurfaceUsesOpaqueWhiteBackground() {
+    @Test fun emptyStatesUsePageLayerRatherThanResultsSurface() {
+        val state = mutableStateOf(PlaceSearchUiState(search = PlaceSearchState("不存在", phase = PlaceSearchPhase.Empty)))
+        compose.setContent { EasyTripTheme { PlaceSearchContent(state.value, {}) } }
+
+        compose.onNodeWithTag("place-search-empty-body").assertIsDisplayed()
+        compose.onAllNodesWithTag("place-search-results-container").assertCountEquals(0)
+
+        compose.runOnIdle {
+            state.value = PlaceSearchUiState(search = PlaceSearchState("故宫", phase = PlaceSearchPhase.NetworkFailure("网络不可用")))
+        }
+        compose.onNodeWithTag("place-search-network-failure-body").assertIsDisplayed()
+        compose.onAllNodesWithTag("place-search-results-container").assertCountEquals(0)
+    }
+
+    @Test fun resultsKeepDedicatedContainer() {
+        val candidate = PlaceCandidate("poi-1", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
+        setContent(PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results)))
+
+        compose.onNodeWithTag("place-search-results-container").assertIsDisplayed()
+        assertInside("place-search-result-row-poi-1", "place-search-results-container")
+    }
+
+    @Test fun loadingUsesPageLayerRatherThanResultsSurface() {
         setContent(PlaceSearchUiState(search = PlaceSearchState("故宫", phase = PlaceSearchPhase.Loading)))
 
-        val image = compose.onNodeWithTag("place-search-surface").assertIsDisplayed().captureToImage()
-        val pixel = image.toPixelMap()[image.width / 2, image.height / 4]
-        assertTrue(pixel.alpha == 1f)
-        assertEquals(Color.White, pixel)
+        compose.onNodeWithTag("place-search-loading-body").assertIsDisplayed()
+        compose.onAllNodesWithTag("place-search-results-container").assertCountEquals(0)
     }
 
     @Test fun searchImeSubmitsAndEmptyStateCanClearQuery() {
@@ -609,8 +629,9 @@ class PlaceSearchContentTest {
         val candidate = PlaceCandidate("poi-1", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
         setContent(PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results)))
 
-        assertSize("place-search-back", 44f, 44f)
-        assertSize("place-search-field", expectedHeight = 48f)
+        assertSize("place-search-back", 48f, 48f)
+        compose.onNodeWithTag("place-search-field").assert(hasSetTextAction())
+        assertSize("place-search-field-visual", expectedHeight = 46f)
         assertSize("place-search-place-icon-poi-1", 46f, 46f)
         assertSize("place-search-bookmark-visual-poi-1", 40f, 40f)
         assertSize("place-search-bookmark-touch-poi-1", 48f, 48f)
@@ -632,22 +653,22 @@ class PlaceSearchContentTest {
         }
 
         assertHeaderInsideContainerWithoutOverlap()
-        assertInside("place-search-result-row-poi-1", "place-search-surface")
-        assertInside("place-search-place-icon-poi-1", "place-search-surface", useUnmergedTree = true)
-        assertInside("place-search-result-text-poi-1", "place-search-surface", useUnmergedTree = true)
-        assertInside("place-search-bookmark-visual-poi-1", "place-search-surface", useUnmergedTree = true)
-        assertInside("place-search-bookmark-touch-poi-1", "place-search-surface")
+        assertInside("place-search-result-row-poi-1", "place-search-results-container")
+        assertInside("place-search-place-icon-poi-1", "place-search-results-container", useUnmergedTree = true)
+        assertInside("place-search-result-text-poi-1", "place-search-results-container", useUnmergedTree = true)
+        assertInside("place-search-bookmark-visual-poi-1", "place-search-results-container", useUnmergedTree = true)
+        assertInside("place-search-bookmark-touch-poi-1", "place-search-results-container")
         assertNoOverlap("place-search-place-icon-poi-1", "place-search-bookmark-touch-poi-1")
         assertNoOverlap("place-search-result-text-poi-1", "place-search-bookmark-touch-poi-1")
         assertMinimumTouchSize("place-search-bookmark-touch-poi-1", 48f)
 
         compose.runOnIdle { state.value = PlaceSearchUiState(search = PlaceSearchState("无", phase = PlaceSearchPhase.Empty)) }
         assertHeaderInsideContainerWithoutOverlap()
-        assertInside("place-search-empty-body", "place-search-surface")
-        assertInside("place-search-empty-icon", "place-search-surface")
-        assertInside("place-search-empty-title", "place-search-surface")
-        assertInside("place-search-empty-description", "place-search-surface")
-        assertInside("place-search-empty-action", "place-search-surface")
+        assertInside("place-search-empty-body", "narrow-container")
+        assertInside("place-search-empty-icon", "narrow-container")
+        assertInside("place-search-empty-title", "narrow-container")
+        assertInside("place-search-empty-description", "narrow-container")
+        assertInside("place-search-empty-action", "narrow-container")
         assertNoOverlap("place-search-empty-icon", "place-search-empty-title")
         assertNoOverlap("place-search-empty-title", "place-search-empty-description")
         assertNoOverlap("place-search-empty-description", "place-search-empty-action")
@@ -657,11 +678,11 @@ class PlaceSearchContentTest {
             state.value = PlaceSearchUiState(search = PlaceSearchState("失败", phase = PlaceSearchPhase.NetworkFailure("网络不可用")))
         }
         assertHeaderInsideContainerWithoutOverlap()
-        assertInside("place-search-network-failure-body", "place-search-surface")
-        assertInside("place-search-network-failure-icon", "place-search-surface")
-        assertInside("place-search-network-failure-title", "place-search-surface")
-        assertInside("place-search-network-failure-description", "place-search-surface")
-        assertInside("place-search-network-failure-action", "place-search-surface")
+        assertInside("place-search-network-failure-body", "narrow-container")
+        assertInside("place-search-network-failure-icon", "narrow-container")
+        assertInside("place-search-network-failure-title", "narrow-container")
+        assertInside("place-search-network-failure-description", "narrow-container")
+        assertInside("place-search-network-failure-action", "narrow-container")
         assertNoOverlap("place-search-network-failure-icon", "place-search-network-failure-title")
         assertNoOverlap("place-search-network-failure-title", "place-search-network-failure-description")
         assertNoOverlap("place-search-network-failure-description", "place-search-network-failure-action")
@@ -671,7 +692,7 @@ class PlaceSearchContentTest {
     private fun assertHeaderInsideContainerWithoutOverlap() {
         val container = compose.onNodeWithTag("narrow-container").getUnclippedBoundsInRoot()
         val back = compose.onNodeWithTag("place-search-back").getUnclippedBoundsInRoot()
-        val field = compose.onNodeWithTag("place-search-field").getUnclippedBoundsInRoot()
+        val field = compose.onNodeWithTag("place-search-field-visual", useUnmergedTree = true).getUnclippedBoundsInRoot()
         assertTrue(back.left >= container.left && back.right <= container.right)
         assertTrue(field.left >= container.left && field.right <= container.right)
         assertTrue(back.right <= field.left)

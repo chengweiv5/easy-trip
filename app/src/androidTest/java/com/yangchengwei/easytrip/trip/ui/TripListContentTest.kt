@@ -72,6 +72,18 @@ class TripListContentTest {
         compose.onAllNodesWithTag("trip-delete-trip-1").assertCountEquals(0)
     }
 
+    @Test fun contentCreateActionUsesFullWidthSecondaryCta() {
+        setContent(content())
+
+        val primaryBounds = compose.onNodeWithTag("primary-trip-trip-1").getUnclippedBoundsInRoot()
+        val createBounds = compose.onNodeWithTag("create-trip")
+            .assertHeightIsEqualTo(48.dp)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        assertEquals(primaryBounds.left, createBounds.left)
+        assertEquals(primaryBounds.right, createBounds.right)
+    }
+
     @Test fun primaryMenuContainsOnlySettingsAndDeleteForBoundTrip() {
         val actions = mutableListOf<TripListAction>()
         setContent(content(), actions::add)

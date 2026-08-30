@@ -43,3 +43,29 @@
 
 - 已执行 `graphify update .`；工具报告代码图拓扑无变化，但提示 `NetworkMonitor.kt` 与 `RoutePlanner.kt` 存在既有/部分 AST 语法提取告警。
 - 最终 `git diff --check` 通过。未修改生产代码，未 commit 或 push。
+
+## 二次视觉收敛复验（2026-08-29）
+
+- 基线提交：`00043b7`；本节记录其上的未提交视觉候选，尚未 commit/push。
+- 自动化：`testDebugUnitTest`、`lintDebug`、`assembleDebug`、`assembleDebugAndroidTest` PASS；冷启动 AVD 后 `V1ScenarioCatalogTest` 47/47、`V1FullUiAcceptanceTest` 47/47 PASS。
+- 定向门禁：最终视觉细节 70/70、工作台空态 35/35、行程空态 50/50；`VisualBatch0EvidenceTest` 14/14、`ConfirmationDialogTest` + `PlaceSearchContentTest` 37/37 PASS。
+- 证据改进：截图支持 387–390dp 目标手机宽度，manifest 记录 390dp 基线和实际宽度；工作台证据明确为 production Compose workspace host + deterministic fake map surface，不等同于真实 AMap Host 证明。
+- 模拟器截图：`/tmp/easytrip-emulator-visual-v4/`；最终空地点池诊断图：`/tmp/easytrip-emulator-visual-final/empty-place-pool-lsr1I.png`。
+- 物理设备：Huawei ALN-AL00，Android 12，1260×2720。使用 `adb install -r` 覆盖安装，未主动清数据。
+- 真机代表路径：旅行空态、创建表单及校验错误、创建临时旅行 `FinalVisual`、地图隐私拒绝恢复、地点池空态、行程空态、设置页均已操作验证；无 crash/ANR、流程不可达或状态错误。
+- 真机中发现并修复两项严重裁切：地点池空态与单日行程空态的底部按钮被 Sheet/导航栏压缩。修复方式为只对 Sheet 内空态使用 16dp 垂直 padding；相关模拟器门禁与最终真机截图通过。
+- 最终真机证据：`/tmp/easytrip-physical-acceptance-v3/17-final-workspace-empty.png`、`21-final-itinerary-fixed.png`。
+- 用户未授权代为接受高德隐私条款，本轮选择“不同意”验证本地恢复路径；真实地图瓦片和已授权在线搜索不属于本次最终真机结论。
+- 本轮创建的临时旅行 `FinalVisual` 暂时保留，未擅自删除用户设备数据。
+- `graphify update .` 完成；仍有既有的 `NetworkMonitor.kt`、`RoutePlanner.kt` AST 部分提取警告。
+
+## v2 工作台抽屉最终验收（2026-08-30）
+
+- 事实来源：`design/easy-trip-v2.0.pen` 的 `kCc5z` / `sWTB3` / `f2ieZ6`，以及 `design/EASY_TRIP_IMPLEMENTATION_GUIDE.md` 的 108/432/720dp 三态规范。
+- 自动化：Workspace JVM 定向测试通过；`WorkspaceChromeTest` + `TripWorkspaceContentTest` 41/41；`VisualBatch0EvidenceTest` 17/17；`V1ScenarioCatalogTest` 47/47；`V1FullUiAcceptanceTest` 47/47；`lintDebug`、`assembleDebug`、`assembleDebugAndroidTest`、`git diff --check` 通过。
+- 独立复审后修复：小窗收起态为真实摘要保留空间，并新增 92dp 极限窗口结构测试；紧凑锚点使用自适应拖动阈值；地图辅助 overlay 避开顶部栏；展开态和空间不足时关闭不可见图层菜单；展开态不再裁切地图失败/授权 fallback；地点池摘要使用收藏总数而非筛选结果数；图层面板改为位于圆形控件左侧，打开期间隐藏地图图例，避免顶部栏、Sheet 和图例重叠。
+- 模拟器最终证据：`/tmp/easytrip-v2-sheet-evidence-final/`；manifest 明确记录 `production Compose workspace host` 和 `deterministic fake map surface; not a real map host`。
+- 真机：Huawei ALN-AL00，使用 `adb install -r` 覆盖安装，不清数据；创建临时旅行 `V2Sheet`，选择“不同意”高德隐私授权，实际完成半屏→展开→半屏→收起→半屏，以及地点池/行程两个收起摘要；图层菜单打开后进入展开态再返回半屏不会残留，标准半屏面板完整显示且图例隐藏；无 crash/ANR。
+- 真机诊断截图：`/tmp/easytrip-v2-physical-half2.png`、`/tmp/easytrip-v2-fixed-expanded.png`、`/tmp/easytrip-v2-physical-collapsed2.png`、`/tmp/easytrip-v2-itinerary-collapsed.png`、`/tmp/easytrip-v2-layer-return.png`。
+- 限制：未接受高德隐私条款，因此没有将真实高德底图内容纳入本轮结论；本轮只验收 App 自有顶部栏、Tabs、摘要、Sheet、overlay 降级和本地恢复路径。
+- 本轮临时旅行 `V2Sheet` 保留，未擅自删除设备数据；未 commit、未 push。

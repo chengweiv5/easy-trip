@@ -47,11 +47,12 @@ fun EmptyState(
     emptyIllustration: EmptyIllustration? = null,
     illustration: (@Composable () -> Unit)? = null,
     action: (@Composable () -> Unit)? = null,
+    verticalPadding: androidx.compose.ui.unit.Dp = 48.dp,
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = 48.dp),
+            .padding(vertical = verticalPadding),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small),
     ) {

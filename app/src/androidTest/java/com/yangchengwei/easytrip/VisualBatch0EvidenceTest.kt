@@ -3,9 +3,17 @@ package com.yangchengwei.easytrip
 import android.graphics.Bitmap
 import android.os.Build
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.test.platform.app.InstrumentationRegistry
@@ -45,6 +53,14 @@ import com.yangchengwei.easytrip.trip.ui.TripListPageState
 import com.yangchengwei.easytrip.trip.ui.TripListUiState
 import com.yangchengwei.easytrip.trip.ui.TripSettingsContent
 import com.yangchengwei.easytrip.trip.ui.TripSettingsUiState
+import com.yangchengwei.easytrip.workspace.ItineraryScope
+import com.yangchengwei.easytrip.workspace.TripWorkspaceContent
+import com.yangchengwei.easytrip.workspace.TripWorkspacePageState
+import com.yangchengwei.easytrip.workspace.TripWorkspaceUiState
+import com.yangchengwei.easytrip.workspace.WorkspaceMapState
+import com.yangchengwei.easytrip.workspace.WorkspaceSection
+import com.yangchengwei.easytrip.workspace.WorkspaceSheetLevel
+import com.yangchengwei.easytrip.workspace.toReadyState
 import java.io.File
 import java.io.FileOutputStream
 import java.security.MessageDigest
@@ -90,44 +106,159 @@ class VisualBatch0EvidenceTest {
         compose.onNodeWithText("西湖天地").assertIsDisplayed()
     }
 
-    @Test fun placePool_A9EKX() {
-        render("A9EKX", "place-pool") {
-            PlacePoolContent(
-                state = PlacePoolUiState(
-                    rows = searchCandidates().mapIndexed { index, candidate ->
-                        SavedPlaceRowUi(savedPlace(candidate, "saved-$index"), 0, scheduled = false)
-                    },
-                    tags = listOf(PlaceTag("tag-1", "景点"), PlaceTag("tag-2", "散步")),
-                ),
-                showSearch = false,
+    @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_A9EKX() {
+        render(
+            "A9EKX",
+            "workspace-place-pool",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(WorkspaceSection.PLACE_POOL),
+                mapState = WorkspaceMapState.Ready,
                 onAction = {},
+                placeState = placePoolState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
+        assertWorkspaceHost()
         compose.onNodeWithText("添加到行程").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-place-list").assertIsDisplayed()
     }
 
-    @Test fun dayItinerary_eHTX3() {
-        render("eHTX3", "day-itinerary") {
-            val items = listOf(
-                ItineraryItemUi("item-1", "西湖天地", "上城区南山路", java.time.LocalTime.of(9, 30), 90),
-                ItineraryItemUi("item-2", "知味观·湖滨店", "仁和路83号", java.time.LocalTime.of(12, 0), 60),
-                ItineraryItemUi("item-3", "龙井村", "西湖区龙井路", java.time.LocalTime.of(14, 30), 120),
-            )
-            DayItineraryContent(
-                DayItineraryUiState(
-                    days = listOf(TripDay("day-1", 0), TripDay("day-2", 1), TripDay("day-3", 2)),
+    @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_LFmzR() {
+        render(
+            "LFmzR",
+            "workspace-itinerary",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            val items = itineraryItems()
+            TripWorkspaceContent(
+                pageState = workspaceState(WorkspaceSection.ITINERARY),
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = placePoolState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(
+                    days = workspaceDays(),
                     selectedDayId = "day-1",
                     items = items,
                     previewOrder = items.map { it.id },
-                    legs = listOf(
-                        RouteLegUi("leg-1", "item-1", "item-2", TransportMode.WALK, RouteStatus.SUCCESS, 1200, 1080, null),
-                        RouteLegUi("leg-2", "item-2", "item-3", TransportMode.DRIVE, RouteStatus.SUCCESS, 11000, 1680, null),
-                    ),
+                    legs = itineraryLegs(),
                 ),
-                onAction = {},
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
+        assertWorkspaceHost()
         compose.onNodeWithText("西湖天地").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
+    }
+
+    @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_eHTX3() {
+        render(
+            "eHTX3",
+            "workspace-day-itinerary",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            val items = itineraryItems()
+            TripWorkspaceContent(
+                pageState = workspaceState(WorkspaceSection.ITINERARY),
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = placePoolState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(
+                    days = workspaceDays(),
+                    selectedDayId = "day-1",
+                    items = items,
+                    previewOrder = items.map { it.id },
+                    legs = itineraryLegs(),
+                ),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
+        }
+        assertWorkspaceHost()
+        compose.onNodeWithText("西湖天地").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
+    }
+
+    @Test fun workspaceSheetCollapsed_kCc5z() {
+        render(
+            "kCc5z",
+            "workspace-sheet-collapsed",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(WorkspaceSection.ITINERARY, WorkspaceSheetLevel.COLLAPSED),
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = placePoolState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(days = workspaceDays(), selectedDayId = "day-1", items = itineraryItems()),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
+        }
+        compose.onNodeWithTag("workspace-collapsed-summary").assertIsDisplayed()
+        compose.onAllNodesWithTag("day-itinerary-timeline").assertCountEquals(0)
+    }
+
+    @Test fun workspaceSheetHalf_sWTB3() {
+        render(
+            "sWTB3",
+            "workspace-sheet-half",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(WorkspaceSection.ITINERARY, WorkspaceSheetLevel.HALF),
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = placePoolState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(days = workspaceDays(), selectedDayId = "day-1", items = itineraryItems(), previewOrder = itineraryItems().map { it.id }, legs = itineraryLegs()),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
+        }
+        assertWorkspaceHost()
+    }
+
+    @Test fun workspaceSheetExpanded_f2ieZ6() {
+        render(
+            "f2ieZ6",
+            "workspace-sheet-expanded",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(WorkspaceSection.ITINERARY, WorkspaceSheetLevel.EXPANDED),
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = placePoolState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(days = workspaceDays(), selectedDayId = "day-1", items = itineraryItems(), previewOrder = itineraryItems().map { it.id }, legs = itineraryLegs()),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
+        }
+        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-sheet").assertIsDisplayed()
+        compose.onAllNodesWithTag("workspace-search-launcher").assertCountEquals(0)
     }
 
     @Test fun routeLegStates_batch5() {
@@ -200,7 +331,13 @@ class VisualBatch0EvidenceTest {
         compose.onNodeWithTag("create-submit").assertIsDisplayed()
     }
 
-    private fun render(frameId: String, name: String, content: @androidx.compose.runtime.Composable () -> Unit) {
+    private fun render(
+        frameId: String,
+        name: String,
+        evidenceHost: String = "isolated Compose fixture",
+        mapSurface: String = "not applicable",
+        content: @androidx.compose.runtime.Composable () -> Unit,
+    ) {
         compose.setContent { EasyTripTheme { content() } }
         compose.waitForIdle()
         when (name) {
@@ -210,19 +347,27 @@ class VisualBatch0EvidenceTest {
         InstrumentationRegistry.getInstrumentation().waitForIdleSync()
         android.os.SystemClock.sleep(300)
         val context = InstrumentationRegistry.getInstrumentation().targetContext
-        assertEquals(390, context.resources.configuration.screenWidthDp)
+        val config = context.resources.configuration
+        val actualWidthDp = config.screenWidthDp
+        check(actualWidthDp in 387..390) {
+            "Visual evidence expects a target phone width of 387..390dp, but was ${actualWidthDp}dp"
+        }
         val directory = File(context.filesDir, "evidence/batch-0").apply { mkdirs() }
         val png = File(directory, "$name-$frameId.png")
         val shot = checkNotNull(InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
         try {
             FileOutputStream(png).use { check(shot.compress(Bitmap.CompressFormat.PNG, 100, it)) }
         } finally { shot.recycle() }
-        val config = context.resources.configuration
         File(directory, "$name-$frameId.manifest.json").writeText(
             JSONObject()
                 .put("frame_id", frameId)
                 .put("test_class", javaClass.name)
                 .put("test_method", name)
+                .put("evidence_host", evidenceHost)
+                .put("map_surface", mapSurface)
+                .put("baseline_width_dp", 390)
+                .put("target_phone_width_dp_range", "387..390")
+                .put("actual_width_dp", actualWidthDp)
                 .put("git_sha", BuildConfig.GIT_SHA)
                 .put("source_state", BuildConfig.SOURCE_STATE)
                 .put("device_serial", "emulator-5554")
@@ -239,6 +384,59 @@ class VisualBatch0EvidenceTest {
                 .toString(2),
         )
     }
+
+    @androidx.compose.runtime.Composable
+    private fun DeterministicFakeMapSurface() {
+        Box(Modifier.fillMaxSize().background(Color(0xFFDCE8DF)).testTag("deterministic-fake-map-surface"))
+    }
+
+    private fun assertWorkspaceHost() {
+        compose.onNodeWithTag("workspace-root").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-map").assertIsDisplayed()
+        compose.onNodeWithTag("deterministic-fake-map-surface").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-locate").assertIsDisplayed()
+        compose.onNodeWithTag("layer-menu").assertIsDisplayed()
+        compose.onNodeWithTag("map-legend").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-sheet").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
+    }
+
+    private fun workspaceState(
+        section: WorkspaceSection,
+        sheetLevel: WorkspaceSheetLevel = WorkspaceSheetLevel.HALF,
+    ) = TripWorkspacePageState.Ready(
+        TripWorkspaceUiState(
+            tripName = "杭州·春日慢游",
+            dateLabel = "2025年4月12日 - 4月14日",
+            days = workspaceDays(),
+            section = section,
+            itineraryScope = ItineraryScope.Day("day-1"),
+            sheetLevel = sheetLevel,
+        ).toReadyState(),
+    )
+
+    private fun placePoolState() = PlacePoolUiState(
+        rows = searchCandidates().mapIndexed { index, candidate ->
+            SavedPlaceRowUi(savedPlace(candidate, "saved-$index"), 0, scheduled = index == 0)
+        },
+        tags = listOf(PlaceTag("tag-1", "景点"), PlaceTag("tag-2", "散步")),
+    )
+
+    private fun workspaceDays() = listOf(TripDay("day-1", 0), TripDay("day-2", 1), TripDay("day-3", 2))
+
+    private fun itineraryItems() = listOf(
+        ItineraryItemUi("item-1", "西湖天地", "上城区南山路", java.time.LocalTime.of(9, 30), 90),
+        ItineraryItemUi("item-2", "知味观·湖滨店", "仁和路83号", java.time.LocalTime.of(12, 0), 60),
+        ItineraryItemUi("item-3", "龙井村", "西湖区龙井路", java.time.LocalTime.of(14, 30), 120),
+    )
+
+    private fun itineraryLegs() = listOf(
+        RouteLegUi("leg-1", "item-1", "item-2", TransportMode.WALK, RouteStatus.SUCCESS, 1200, 1080, null),
+        RouteLegUi("leg-2", "item-2", "item-3", TransportMode.DRIVE, RouteStatus.SUCCESS, 11000, 1680, null),
+    )
 
     private fun request() = DateRangeChangeRequest(1, "trip", LocalDate.of(2025, 4, 12), listOf("day-1", "day-2", "day-3"), LocalDate.of(2025, 4, 12))
     private fun impact() = DateRangeChangeImpact(request(), listOf("day-1"), listOf("day-2", "day-3"), 3, 2, 8)

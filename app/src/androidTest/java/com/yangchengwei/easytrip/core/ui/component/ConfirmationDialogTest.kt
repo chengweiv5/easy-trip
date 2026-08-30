@@ -20,6 +20,7 @@ import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertWidthIsEqualTo
@@ -151,6 +152,38 @@ class ConfirmationDialogTest {
         assertEquals(1, confirmed)
     }
 
+    @Test fun confirmationUsesWideDialogForReadableActions() {
+        compose.setContent {
+            EasyTripTheme {
+                ConfirmationDialog(
+                    model = confirmation(),
+                    onConfirm = {},
+                    onDismiss = {},
+                    modifier = Modifier.testTag("confirmation-dialog"),
+                )
+            }
+        }
+
+        compose.onNodeWithTag("confirmation-dialog").assertWidthIsEqualTo(350.dp)
+    }
+
+    @Test fun emptyImpactDialogDoesNotRenderSummarySurface() {
+        compose.setContent {
+            EasyTripTheme {
+                ConfirmationDialog(
+                    model = ConfirmationUiModel("删除旅行？", "此操作不可撤销。", emptyList(), emptyList(), "删除", "取消", true, false),
+                    onConfirm = {},
+                    onDismiss = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("将删除").assertDoesNotExist()
+        compose.onNodeWithText("将保留").assertDoesNotExist()
+        compose.onNodeWithTag("confirmation-confirm").assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("confirmation-dismiss").assertHeightIsEqualTo(48.dp)
+    }
+
     @Test fun dialogSurfaceScrollsLongContentToReachBottomAction() {
         var confirmed = 0
         compose.setContent {
@@ -171,7 +204,7 @@ class ConfirmationDialogTest {
         assertEquals(1, confirmed)
     }
 
-    @Test fun dialogSurfaceUsesBrandWidthRoundCornersAndScrollableContent() {
+    @Test fun dialogSurfaceUsesCompactDefaultWidthAndScrollableContent() {
         compose.setContent {
             EasyTripTheme {
                 EasyTripDialogSurface(
@@ -183,8 +216,24 @@ class ConfirmationDialogTest {
             }
         }
 
-        compose.onNodeWithTag("dialog-surface").assertWidthIsEqualTo(350.dp).assertIsDisplayed()
+        compose.onNodeWithTag("dialog-surface").assertWidthIsEqualTo(240.dp).assertIsDisplayed()
         compose.onNodeWithText("可滚动内容").assertIsDisplayed()
+    }
+
+    @Test fun dialogSurfaceSupportsExplicitLongFormWidth() {
+        compose.setContent {
+            EasyTripTheme {
+                EasyTripDialogSurface(
+                    onDismiss = {},
+                    width = 350.dp,
+                    modifier = Modifier.testTag("wide-dialog-surface"),
+                ) {
+                    Text("长表单内容")
+                }
+            }
+        }
+
+        compose.onNodeWithTag("wide-dialog-surface").assertWidthIsEqualTo(350.dp).assertIsDisplayed()
     }
 
     private fun confirmation() = ConfirmationUiModel(

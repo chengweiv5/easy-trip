@@ -102,6 +102,18 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(WorkspaceOverlay.EditItineraryItem("item-22"), model.state.value.overlay)
     }
 
+    @Test fun expandingSheetClosesLayerMenuBeforeItBecomesInvisible() = runTest(dispatcher) {
+        val model = model(Trips(days("one", "two")))
+        advanceUntilIdle()
+
+        model.openOverlay(WorkspaceOverlay.LayerMenu)
+        model.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
+        advanceUntilIdle()
+
+        assertEquals(WorkspaceOverlay.None, model.state.value.overlay)
+        assertEquals(WorkspaceSheetLevel.EXPANDED, model.state.value.sheetLevel)
+    }
+
     @Test fun addFlowBackPolicyLocksSubmitAndUndoWithoutClosingOtherIdleOverlays() {
         assertEquals(WorkspaceBackDecision.Ignore, workspaceBackDecision(WorkspaceOverlay.SelectAddTargetDay, AddToItineraryUiState(isSubmitting = true)))
         assertEquals(WorkspaceBackDecision.Ignore, workspaceBackDecision(WorkspaceOverlay.AddToItineraryResult, AddToItineraryUiState(isUndoing = true)))

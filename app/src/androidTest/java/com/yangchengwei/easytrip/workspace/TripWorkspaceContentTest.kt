@@ -28,6 +28,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
@@ -253,12 +254,8 @@ class TripWorkspaceContentTest {
         compose.runOnIdle { level.value = requestedLevel.value!! }
         compose.waitForIdle()
         val expandedSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
-        val expandedSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
         assertTrue("half=$initialSheetTop expanded=$expandedSheetTop", expandedSheetTop < initialSheetTop)
-        assertTrue(
-            "half=$initialSearchBottom expanded=$expandedSearchBottom sheet=$expandedSheetTop",
-            expandedSearchBottom < initialSearchBottom && expandedSearchBottom <= expandedSheetTop,
-        )
+        compose.onAllNodesWithTag("workspace-search-launcher").assertCountEquals(0)
     }
 
     @Test fun inProgressDragKeepsSheetBottomAnchoredAndSharesVisibleHeightWithOverlays() {
@@ -266,7 +263,7 @@ class TripWorkspaceContentTest {
         compose.setContent {
             EasyTripTheme {
                 Box(Modifier.fillMaxWidth().height(600.dp).testTag("workspace-root")) {
-                    val anchors = workspaceSheetAnchors(600.dp, searchReturn = false)
+                    val anchors = workspaceSheetAnchors(600.dp)
                     val visibleHeight = with(androidx.compose.ui.platform.LocalDensity.current) {
                         (anchors[WorkspaceSheetLevel.HALF].toPx() - dragDelta.value).toDp()
                     }
@@ -325,7 +322,6 @@ class TripWorkspaceContentTest {
             EasyTripTheme {
                 WorkspaceScaffold(
                     sheetLevel = WorkspaceSheetLevel.HALF,
-                    searchReturn = false,
                     onSheetLevelChange = callback.value,
                     modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     map = {},
@@ -352,28 +348,25 @@ class TripWorkspaceContentTest {
         assertEquals(listOf(1), calls)
     }
 
-    @Test fun overlayPositionsMoveBetweenHalfAndExpandedLevels() {
+    @Test fun overlayPositionsFollowMetricsUntilMapSpaceIsExhausted() {
         val level = mutableStateOf(WorkspaceSheetLevel.HALF)
         setContentForLevel(level)
         compose.waitForIdle()
-        val halfPositions = listOf("workspace-search-launcher", "map-legend", "workspace-locate").associateWith { tag ->
-            compose.onNodeWithTag(tag).getUnclippedBoundsInRoot().bottom
-        }
+        val halfSheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        val halfSearch = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot()
+        assertTrue("search=$halfSearch sheet=$halfSheet", halfSearch.bottom <= halfSheet.top)
 
         compose.runOnIdle { level.value = WorkspaceSheetLevel.EXPANDED }
         compose.waitForIdle()
-        val expandedSheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
-        halfPositions.forEach { (tag, halfBottom) ->
-            val expandedBottom = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot().bottom
-            assertTrue("tag=$tag half=$halfBottom expanded=$expandedBottom", expandedBottom < halfBottom)
-            assertTrue("tag=$tag expanded=$expandedBottom sheet=$expandedSheet", expandedBottom <= expandedSheet.top)
+        listOf("workspace-search-launcher", "map-legend", "workspace-locate", "layer-menu").forEach { tag ->
+            compose.onAllNodesWithTag(tag).assertCountEquals(0)
         }
     }
 
-    @Test fun expandedRegularWindowKeepsEssentialOverlaysBetweenTopBarAndSheet() {
+    @Test fun expandedSheetKeepsTopBarAndHidesMapOverlaysWhenSpaceIsInsufficient() {
         compose.setContent {
             EasyTripTheme {
-                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(792.dp)) {
+                androidx.compose.foundation.layout.Box(Modifier.fillMaxWidth().height(844.dp)) {
                     TripWorkspaceContent(
                         pageState = ready(WorkspaceSheetLevel.EXPANDED),
                         mapState = WorkspaceMapState.Ready,
@@ -390,18 +383,98 @@ class TripWorkspaceContentTest {
         }
         compose.waitForIdle()
 
-        val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
-        val topBar = compose.onNodeWithTag("workspace-top-bar").getUnclippedBoundsInRoot()
-        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         listOf("workspace-search-launcher", "workspace-locate", "layer-menu", "map-legend").forEach { tag ->
-            val overlay = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
-            assertTrue(
-                "tag=$tag root=$root overlay=$overlay",
-                overlay.left >= root.left && overlay.right <= root.right,
-            )
-            assertTrue("tag=$tag topBar=$topBar overlay=$overlay", overlay.top >= topBar.bottom)
-            assertTrue("tag=$tag sheet=$sheet overlay=$overlay", overlay.bottom <= sheet.top)
+            compose.onAllNodesWithTag(tag).assertCountEquals(0)
         }
+    }
+
+    @Test fun expandedSheetHidesMapFailureFallbackInsteadOfClippingItUnderTopBar() {
+        setContent(ready(WorkspaceSheetLevel.EXPANDED), WorkspaceMapState.Failed("地图加载失败"))
+
+        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
+        compose.onNodeWithTag("map-failed").assertDoesNotExist()
+        compose.onNodeWithTag("map-retry").assertDoesNotExist()
+    }
+
+    @Test fun layerMenuPanelStaysBelowTopBarAtStandardHalfHeight() {
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().height(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(
+                            TripWorkspaceUiState(
+                                tripName = "北京",
+                                sheetLevel = WorkspaceSheetLevel.HALF,
+                                overlay = WorkspaceOverlay.LayerMenu,
+                            ).toReadyState(),
+                        ),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = {},
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { Text("地图就绪") },
+                        modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        val topBar = compose.onNodeWithTag("workspace-top-bar").getUnclippedBoundsInRoot()
+        val panel = compose.onNodeWithTag("layer-menu-panel").getUnclippedBoundsInRoot()
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        assertTrue("topBar=$topBar panel=$panel", panel.top >= topBar.bottom)
+        assertTrue("panel=$panel sheet=$sheet", panel.bottom <= sheet.top)
+        compose.onNodeWithTag("map-legend").assertDoesNotExist()
+    }
+
+    @Test fun mapOverlaysHideDuringDragWhenLiveSheetTopLeavesNoSpace() {
+        setContent(ready(), WorkspaceMapState.Ready)
+        compose.waitForIdle()
+        compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+            down(center)
+            moveTo(Offset(center.x, center.y - 1_000f))
+            advanceEventTime(100)
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-search-launcher").assertDoesNotExist()
+        compose.onNodeWithTag("map-legend").assertDoesNotExist()
+    }
+
+    @Test fun insufficientSpaceClosesLayerMenuInsteadOfKeepingInvisibleOverlayState() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().height(600.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(
+                            TripWorkspaceUiState(
+                                tripName = "北京",
+                                sheetLevel = WorkspaceSheetLevel.HALF,
+                                overlay = WorkspaceOverlay.LayerMenu,
+                            ).toReadyState(),
+                        ),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = actions::add,
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { Text("地图就绪") },
+                        modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("layer-menu-panel").assertDoesNotExist()
+        assertEquals(listOf(TripWorkspaceAction.CloseOverlay), actions)
     }
 
     @Test fun mapFailureRetryRemainsAboveSheet() {
@@ -435,11 +508,38 @@ class TripWorkspaceContentTest {
         assertTrue("heights=$heights", heights[0] < heights[1] && heights[1] < heights[2])
     }
 
-    @Test fun collapsedSheetKeepsHandleAndHidesBusinessContent() {
+    @Test fun collapsedSheetKeepsTabsAndRealPlaceSummaryWithoutBusinessList() {
         setContent(ready(WorkspaceSheetLevel.COLLAPSED), WorkspaceMapState.Ready)
 
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
-        compose.onAllNodesWithText("还没有收藏地点").assertCountEquals(0)
+        compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
+        compose.onNodeWithText("还没有收藏地点").assertExists()
+        compose.onNodeWithText("上滑展开").assertExists()
+        compose.onNodeWithTag("workspace-place-list").assertDoesNotExist()
+    }
+
+    @Test fun collapsedSheetUsesTotalSavedPlaceCountWhenTagFilterHidesRows() {
+        setContent(
+            ready(WorkspaceSheetLevel.COLLAPSED),
+            WorkspaceMapState.Ready,
+            placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+                rows = emptyList(),
+                selectedTagIds = setOf("tag"),
+                savedPoiIds = setOf("poi-1", "poi-2"),
+            ),
+        )
+
+        compose.onNodeWithText("已收藏 2 个地点").assertExists()
+    }
+
+    @Test fun collapsedSheetUsesActualItineraryDayAndPlaceCount() {
+        setContent(
+            itineraryReady(WorkspaceSheetLevel.COLLAPSED, ItineraryScope.Day("day-1")),
+            WorkspaceMapState.Ready,
+        )
+
+        compose.onNodeWithText("第 1 天 · 0 个地点").assertExists()
+        compose.onNodeWithTag("day-itinerary-timeline").assertDoesNotExist()
     }
 
     @Test fun sheetAlwaysStaysInsideWorkspaceRoot() {
@@ -463,7 +563,7 @@ class TripWorkspaceContentTest {
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
         val topBar = compose.onNodeWithTag("workspace-top-bar").getUnclippedBoundsInRoot()
 
-        val anchors = workspaceSheetAnchors(root.height, searchReturn = false)
+        val anchors = workspaceSheetAnchors(root.height)
         assertTrue(
             "root=$root sheet=$sheet anchors=$anchors",
             kotlin.math.abs((sheet.height - anchors.half).value) <= 1f,
@@ -475,7 +575,7 @@ class TripWorkspaceContentTest {
 
     @Test fun workspaceHeightBoundaryKeepsExpandedSheetContinuousAndAllAnchorsOrdered() {
         val boundaries = listOf(395.dp, 396.dp, 397.dp)
-        val anchors = boundaries.map { workspaceSheetAnchors(it, searchReturn = false) }
+        val anchors = boundaries.map { workspaceSheetAnchors(it) }
 
         anchors.zipWithNext().forEach { (before, after) ->
             assertTrue("before=$before after=$after", after.collapsed >= before.collapsed)
@@ -497,7 +597,7 @@ class TripWorkspaceContentTest {
                 EasyTripTheme {
                     androidx.compose.foundation.layout.Box(Modifier.height(280.dp).testTag("small-window")) {
                         TripWorkspaceContent(
-                            pageState = ready(),
+                            pageState = ready(WorkspaceSheetLevel.EXPANDED),
                             mapState = WorkspaceMapState.Ready,
                             onAction = {},
                             placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(rows = places.map { com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(it, 0, false) }),
@@ -518,7 +618,7 @@ class TripWorkspaceContentTest {
         compose.onNodeWithTag("saved-place-8").assertIsDisplayed()
     }
 
-    @Test fun searchReturnSheetIsRaisedAndHighlightsRecentCollections() {
+    @Test fun searchReturnKeepsSheetAnchorAndHighlightsRecentCollections() {
         val places = listOf(
             com.yangchengwei.easytrip.place.domain.SavedPlace("new", "trip", "poi-new", "新收藏", "地址", com.yangchengwei.easytrip.core.model.GeoPoint(39.9, 116.4), "", emptyList()),
             com.yangchengwei.easytrip.place.domain.SavedPlace("old", "trip", "poi-old", "原收藏", "地址", com.yangchengwei.easytrip.core.model.GeoPoint(39.91, 116.4), "", emptyList()),
@@ -549,10 +649,10 @@ class TripWorkspaceContentTest {
 
         val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
         val returnedSheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
-        val anchors = workspaceSheetAnchors(root.height, searchReturn = true)
+        val anchors = workspaceSheetAnchors(root.height)
         assertTrue(
             "root=$root regular=$regularHalfHeight returned=$returnedSheet anchors=$anchors",
-            returnedSheet.height > regularHalfHeight &&
+            kotlin.math.abs((returnedSheet.height - regularHalfHeight).value) <= 1f &&
                 kotlin.math.abs((returnedSheet.height - anchors.half).value) <= 1f,
         )
         compose.onNodeWithText("刚刚收藏 · 待安排行程").assertExists()

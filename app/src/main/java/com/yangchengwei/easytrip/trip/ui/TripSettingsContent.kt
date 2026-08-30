@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.trip.ui
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,7 @@ import com.yangchengwei.easytrip.core.ui.component.EasyTripDialogSurface
 import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
 import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripBackground
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import java.time.LocalDate
 
 @Composable
@@ -92,8 +94,12 @@ fun TripSettingsContent(
     }
 
     Column(
-        Modifier.fillMaxSize().background(EasyTripBackground).statusBarsPadding().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp, vertical = 18.dp),
-        verticalArrangement = Arrangement.spacedBy(18.dp),
+        Modifier.fillMaxSize()
+            .background(EasyTripBackground)
+            .statusBarsPadding()
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = EasyTripTheme.spacing.settingsGrid, vertical = 18.dp),
+        verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsSectionGap),
     ) {
         SettingsHeader(state.name, onBack, !screenBusy)
         if (state.observationError != null) {
@@ -101,32 +107,43 @@ fun TripSettingsContent(
             EasyTripSecondaryButton(onRetryTripObservation) { Text("重试") }
         } else {
             SettingsSection("基本信息") {
-                SettingsRow(
-                    icon = { Icon(Icons.Rounded.Edit, null) },
-                    label = "修改旅行名称",
-                    value = state.name.ifEmpty { "未命名旅行" },
-                    enabled = !settingsWriteLocked,
-                    onClick = { name = state.name; editingName = true },
-                    modifier = Modifier.testTag("settings-rename"),
-                )
-                if (hasDates) {
-                    SettingsRow(
-                        icon = { Icon(Icons.Rounded.DateRange, null) },
-                        label = "整体出行日期",
-                        value = "${state.dateRange.startDate} — ${state.dateRange.endDate}",
-                        enabled = !settingsWriteLocked,
-                        onClick = { editingDates = true },
-                        modifier = Modifier.testTag("settings-date-row"),
-                    )
-                } else {
-                    SettingsRow(
-                        icon = { Icon(Icons.Rounded.DateRange, null) },
-                        label = "出行日期",
-                        value = "未设置日期",
-                        enabled = false,
-                        onClick = {},
-                        modifier = Modifier.testTag("settings-start-date"),
-                    )
+                Surface(
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius),
+                    color = MaterialTheme.colorScheme.surface,
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                        SettingsRow(
+                            icon = { Icon(Icons.Rounded.Edit, null) },
+                            label = "修改旅行名称",
+                            value = state.name.ifEmpty { "未命名旅行" },
+                            enabled = !settingsWriteLocked,
+                            onClick = { name = state.name; editingName = true },
+                            modifier = Modifier.testTag("settings-rename"),
+                            grouped = true,
+                        )
+                        if (hasDates) {
+                            SettingsRow(
+                                icon = { Icon(Icons.Rounded.DateRange, null) },
+                                label = "整体出行日期",
+                                value = "${state.dateRange.startDate} — ${state.dateRange.endDate}",
+                                enabled = !settingsWriteLocked,
+                                onClick = { editingDates = true },
+                                modifier = Modifier.testTag("settings-date-row"),
+                                grouped = true,
+                            )
+                        } else {
+                            SettingsRow(
+                                icon = { Icon(Icons.Rounded.DateRange, null) },
+                                label = "出行日期",
+                                value = "未设置日期",
+                                enabled = false,
+                                onClick = {},
+                                modifier = Modifier.testTag("settings-start-date"),
+                                grouped = true,
+                            )
+                        }
+                    }
                 }
             }
             inputError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -137,7 +154,10 @@ fun TripSettingsContent(
                 EasyTripSecondaryButton(onRetryDateRangeSync, modifier = Modifier.testTag("settings-date-sync-retry")) { Text("重新同步") }
             }
             SettingsSection("出行方式") {
-                Row(Modifier.fillMaxWidth().height(62.dp).selectableGroup(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    Modifier.fillMaxWidth().height(EasyTripTheme.sizes.settingsModeCardHeight).selectableGroup(),
+                    horizontalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsCardGap),
+                ) {
                     com.yangchengwei.easytrip.trip.ui.TravelModeCard(TravelMode.FLEXIBLE, state.travelMode == TravelMode.FLEXIBLE, { onTravelMode(TravelMode.FLEXIBLE) }, Modifier.weight(1f).testTag("settings-mode-FLEXIBLE"), !settingsWriteLocked)
                     com.yangchengwei.easytrip.trip.ui.TravelModeCard(TravelMode.SELF_DRIVE, state.travelMode == TravelMode.SELF_DRIVE, { onTravelMode(TravelMode.SELF_DRIVE) }, Modifier.weight(1f).testTag("settings-mode-SELF_DRIVE"), !settingsWriteLocked)
                 }
@@ -145,8 +165,8 @@ fun TripSettingsContent(
             SettingsSection("旅行日") {
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     state.days.forEachIndexed { index, day ->
-                        Surface(color = MaterialTheme.colorScheme.surface, shape = if (index == 0 || index == state.days.lastIndex) RoundedCornerShape(10.dp) else RoundedCornerShape(0.dp)) {
-                            Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+                        Surface(color = MaterialTheme.colorScheme.surface, shape = if (index == 0 || index == state.days.lastIndex) RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius) else RoundedCornerShape(0.dp)) {
+                            Row(Modifier.fillMaxWidth().height(EasyTripTheme.sizes.settingsDayRowHeight).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                                 Surface(Modifier.size(26.dp), shape = RoundedCornerShape(7.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = .12f)) {
                                     androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { Text("${index + 1}", style = MaterialTheme.typography.labelMedium) }
                                 }
@@ -174,7 +194,7 @@ fun TripSettingsContent(
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("危险操作", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.errorContainer, border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = .25f))) {
+                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius), color = MaterialTheme.colorScheme.errorContainer, border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = .25f))) {
                     Text("删除旅行请返回旅行列表操作", Modifier.padding(14.dp), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
                 }
             }
@@ -215,17 +235,120 @@ fun TripSettingsContent(
     }
 }
 
-@Composable private fun SettingsHeader(name: String, onBack: () -> Unit, enabled: Boolean) = Row(Modifier.fillMaxWidth().height(40.dp), verticalAlignment = Alignment.CenterVertically) {
-    Surface(Modifier.size(40.dp).testTag("settings-back").clickable(enabled = enabled, onClick = onBack), shape = CircleShape, color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)) { androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回") } }
-    Column(Modifier.padding(start = 12.dp).weight(1f)) { Text("旅行设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text(name.ifEmpty { "未命名旅行" }, Modifier.semantics { contentDescription = "重命名旅行" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis) }
+@Composable
+private fun SettingsHeader(name: String, onBack: () -> Unit, enabled: Boolean) = Row(
+    Modifier.fillMaxWidth().height(EasyTripTheme.sizes.settingsHeaderHeight).testTag("settings-header"),
+    verticalAlignment = Alignment.CenterVertically,
+) {
+    Surface(
+        Modifier.size(40.dp).testTag("settings-back").clickable(enabled = enabled, onClick = onBack),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+    ) { androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回") } }
+    Column(Modifier.padding(start = 12.dp).weight(1f)) {
+        Text("旅行设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text(name.ifEmpty { "未命名旅行" }, Modifier.semantics { contentDescription = "重命名旅行" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+    }
+    Surface(
+        modifier = Modifier
+            .height(EasyTripTheme.sizes.buttonHeight)
+            .testTag("settings-done")
+            .clickable(enabled = enabled, onClick = onBack),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.primary,
+        contentColor = MaterialTheme.colorScheme.onPrimary,
+    ) {
+        androidx.compose.foundation.layout.Box(
+            modifier = Modifier.padding(horizontal = 18.dp),
+            contentAlignment = Alignment.Center,
+        ) {
+            Text("完成", style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+        }
+    }
 }
 
-@Composable private fun SettingsSection(title: String, content: @Composable () -> Unit) = Column(verticalArrangement = Arrangement.spacedBy(10.dp)) { Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold); content() }
+@Composable
+private fun SettingsSection(title: String, content: @Composable () -> Unit) = Column(
+    verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsCardGap),
+) { Text(title, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold); content() }
 
-@Composable private fun SettingsRow(icon: @Composable () -> Unit, label: String, value: String, enabled: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) = Surface(modifier.fillMaxWidth().height(58.dp).clickable(enabled = enabled, onClick = onClick), shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.surface) { Row(Modifier.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) { Surface(Modifier.size(28.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .12f), contentColor = MaterialTheme.colorScheme.primary) { androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { icon() } }; Column(Modifier.padding(start = 12.dp).weight(1f)) { Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(value, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold) }; Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) } }
+@Composable
+private fun SettingsRow(
+    icon: @Composable () -> Unit,
+    label: String,
+    value: String,
+    enabled: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+    grouped: Boolean = false,
+) = Surface(
+    modifier.fillMaxWidth().height(EasyTripTheme.sizes.settingsRowHeight).clickable(enabled = enabled, onClick = onClick),
+    shape = if (grouped) RoundedCornerShape(0.dp) else RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius),
+    color = MaterialTheme.colorScheme.surface,
+) { Row(Modifier.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) { Surface(Modifier.size(28.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .12f), contentColor = MaterialTheme.colorScheme.primary) { androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { icon() } }; Column(Modifier.padding(start = 12.dp).weight(1f)) { Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(value, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold) }; Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) } }
 
-@Composable private fun RenameDialog(name: String, onNameChange: (String) -> Unit, onSave: () -> Unit, onDismiss: () -> Unit, enabled: Boolean) = EasyTripDialogSurface(onDismiss, dismissible = enabled) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) { Text("重命名旅行", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); OutlinedTextField(name, onNameChange, label = { Text("旅行名称") }, enabled = enabled); DialogActions(onDismiss, onSave, "保存名称", enabled && name.isNotBlank(), false) } }
+@Composable
+private fun RenameDialog(name: String, onNameChange: (String) -> Unit, onSave: () -> Unit, onDismiss: () -> Unit, enabled: Boolean) = EasyTripDialogSurface(
+    onDismiss,
+    dismissible = enabled,
+    width = EasyTripTheme.sizes.dialogWidth,
+) { Column(Modifier.padding(EasyTripTheme.spacing.dialogContentVertical), verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.dialogSectionGap)) { Text("重命名旅行", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); OutlinedTextField(name, onNameChange, label = { Text("旅行名称") }, enabled = enabled, modifier = Modifier.fillMaxWidth()); DialogActions(onDismiss, onSave, "保存名称", enabled && name.isNotBlank(), false) } }
 
-@Composable private fun DateEditorDialog(startDate: LocalDate, endText: String, onEndTextChange: (String) -> Unit, error: String?, onApply: () -> Unit, onDismiss: () -> Unit, enabled: Boolean) = EasyTripDialogSurface(onDismiss, dismissible = enabled) { Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(14.dp)) { Text("修改出行日期", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); Text("旅行日将根据日期范围自动连续生成，不能单独修改某一天。", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall); OutlinedTextField(startDate.toString(), {}, label = { Text("开始日期") }, readOnly = true, modifier = Modifier.fillMaxWidth().testTag("settings-start-date")); OutlinedTextField(endText, onEndTextChange, label = { Text("结束日期 YYYY-MM-DD") }, enabled = enabled, modifier = Modifier.fillMaxWidth().testTag("settings-end-date")); error?.let { Text(it, color = MaterialTheme.colorScheme.error) }; DialogActions(onDismiss, onApply, "确认修改", enabled, false, Modifier.testTag("settings-apply-date-range")) } }
+@Composable
+private fun DateEditorDialog(startDate: LocalDate, endText: String, onEndTextChange: (String) -> Unit, error: String?, onApply: () -> Unit, onDismiss: () -> Unit, enabled: Boolean) = EasyTripDialogSurface(
+    onDismiss,
+    dismissible = enabled,
+    width = EasyTripTheme.sizes.dialogWidth,
+) {
+    Column(
+        Modifier.padding(EasyTripTheme.spacing.dialogContentHorizontal),
+        verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsCardGap),
+    ) {
+        Text("修改出行日期", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("旅行日将根据日期范围自动连续生成，不能单独修改某一天。", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+        DateEditorRow("开始日期", startDate.toString(), Modifier.testTag("settings-start-date"))
+        EditableDateEditorRow("结束日期", endText, onEndTextChange, enabled, Modifier.testTag("settings-end-date"))
+        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        DialogActions(onDismiss, onApply, "确认修改", enabled, false, Modifier.testTag("settings-apply-date-range"))
+    }
+}
+
+@Composable
+private fun DateEditorRow(label: String, value: String, modifier: Modifier = Modifier) = Surface(
+    modifier.fillMaxWidth().height(EasyTripTheme.sizes.dialogFieldHeight),
+    shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius),
+    color = EasyTripBackground,
+) {
+    Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Rounded.DateRange, null, tint = MaterialTheme.colorScheme.primary)
+        Column(Modifier.padding(start = 10.dp)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+        }
+    }
+}
+
+@Composable
+private fun EditableDateEditorRow(label: String, value: String, onValueChange: (String) -> Unit, enabled: Boolean, modifier: Modifier = Modifier) = Surface(
+    Modifier.fillMaxWidth().height(EasyTripTheme.sizes.dialogFieldHeight),
+    shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius),
+    color = EasyTripBackground,
+) {
+    Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
+        Icon(Icons.Rounded.DateRange, null, tint = MaterialTheme.colorScheme.primary)
+        Column(Modifier.padding(start = 10.dp).weight(1f)) {
+            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            BasicTextField(
+                value = value,
+                onValueChange = onValueChange,
+                enabled = enabled,
+                singleLine = true,
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+                modifier = modifier.fillMaxWidth().semantics { contentDescription = "结束日期" },
+            )
+        }
+    }
+}
 
 @Composable private fun DialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, confirmLabel: String, enabled: Boolean, destructive: Boolean, modifier: Modifier = Modifier) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) { EasyTripSecondaryButton(onDismiss, Modifier.weight(1f), enabled) { Text("取消") }; if (destructive) EasyTripDangerButton(onConfirm, Modifier.weight(1f), enabled) { Text(confirmLabel) } else EasyTripPrimaryButton(onConfirm, Modifier.weight(1f).then(modifier), enabled) { Text(confirmLabel) } }

@@ -261,7 +261,12 @@ class TripWorkspaceViewModel(
         mapInteraction.value = mapInteraction.value.copy(focusedPoiId = null, highlightedMarkerKey = null)
     }
     fun selectMapLayer(value: MapLayer) { mapPreferences.setLayer(value) }
-    fun setSheetLevel(value: WorkspaceSheetLevel) { savedState[SHEET] = value.name }
+    fun setSheetLevel(value: WorkspaceSheetLevel) {
+        savedState[SHEET] = value.name
+        if (value == WorkspaceSheetLevel.EXPANDED && overlay.value == WorkspaceOverlay.LayerMenu) {
+            closeOverlay()
+        }
+    }
     fun openOverlay(value: WorkspaceOverlay) {
         clearMapDetail()
         overlay.value = value

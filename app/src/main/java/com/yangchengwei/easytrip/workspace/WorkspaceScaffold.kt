@@ -56,13 +56,13 @@ internal fun workspaceLayoutMetrics(
 @Composable
 internal fun WorkspaceScaffold(
     sheetLevel: WorkspaceSheetLevel,
-    searchReturn: Boolean,
     onSheetLevelChange: (WorkspaceSheetLevel) -> Unit,
     modifier: Modifier = Modifier,
     map: @Composable BoxScope.(WorkspaceLayoutMetrics) -> Unit,
     topOverlay: @Composable BoxScope.(WorkspaceLayoutMetrics) -> Unit,
     sheetHeader: @Composable () -> Unit,
     sheetContent: @Composable () -> Unit,
+    collapsedContent: @Composable () -> Unit = {},
 ) {
     BoxWithConstraints(
         modifier
@@ -70,7 +70,7 @@ internal fun WorkspaceScaffold(
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .imePadding(),
     ) {
-        val anchors = workspaceSheetAnchors(maxHeight, searchReturn)
+        val anchors = workspaceSheetAnchors(maxHeight)
         val density = LocalDensity.current
         var dragOffsetPx by remember(sheetLevel, anchors, density) { mutableFloatStateOf(0f) }
         val visibleSheetHeight = with(density) { anchors[sheetLevel].toPx() - dragOffsetPx }.let { heightPx ->
@@ -89,6 +89,7 @@ internal fun WorkspaceScaffold(
             onDragOffsetChange = { dragOffsetPx = it },
             header = sheetHeader,
             content = sheetContent,
+            collapsedContent = collapsedContent,
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
         )
     }

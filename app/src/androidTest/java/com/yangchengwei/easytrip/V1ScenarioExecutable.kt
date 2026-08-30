@@ -634,7 +634,7 @@ object V1ScenarioExecutableFactory {
         val actions = mutableListOf<com.yangchengwei.easytrip.workspace.TripWorkspaceAction>()
         var currentLevel by mutableStateOf(level)
         val heights = mutableMapOf<WorkspaceSheetLevel, Float>()
-        val contentVisibility = mutableMapOf<WorkspaceSheetLevel, Boolean>()
+        val collapsedSummaryVisibility = mutableMapOf<WorkspaceSheetLevel, Boolean>()
         val gestureTarget = when (level) {
             WorkspaceSheetLevel.COLLAPSED -> WorkspaceSheetLevel.HALF
             WorkspaceSheetLevel.HALF -> WorkspaceSheetLevel.EXPANDED
@@ -647,7 +647,7 @@ object V1ScenarioExecutableFactory {
                 spec.requireIdentity(scenarioNumber, frameId, fixtureId)
                 actions.clear()
                 heights.clear()
-                contentVisibility.clear()
+                collapsedSummaryVisibility.clear()
                 currentLevel = level
             },
             content = {
@@ -673,7 +673,9 @@ object V1ScenarioExecutableFactory {
                     runOnIdle { currentLevel = target }
                     waitForIdle()
                     heights[target] = onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().let { it.bottom.value - it.top.value }
-                    contentVisibility[target] = runCatching { onNodeWithText("行程").assertIsDisplayed() }.isSuccess
+                    collapsedSummaryVisibility[target] = runCatching {
+                        onNodeWithTag("workspace-collapsed-summary").assertIsDisplayed()
+                    }.isSuccess
                 }
                 runOnIdle { currentLevel = level; actions.clear() }
                 waitForIdle()
@@ -689,10 +691,10 @@ object V1ScenarioExecutableFactory {
                 spec.requireIdentity(scenarioNumber, frameId, fixtureId)
                 check(heights.getValue(WorkspaceSheetLevel.COLLAPSED) < heights.getValue(WorkspaceSheetLevel.HALF))
                 check(heights.getValue(WorkspaceSheetLevel.HALF) < heights.getValue(WorkspaceSheetLevel.EXPANDED))
-                check(contentVisibility == mapOf(
-                    WorkspaceSheetLevel.COLLAPSED to false,
-                    WorkspaceSheetLevel.HALF to true,
-                    WorkspaceSheetLevel.EXPANDED to true,
+                check(collapsedSummaryVisibility == mapOf(
+                    WorkspaceSheetLevel.COLLAPSED to true,
+                    WorkspaceSheetLevel.HALF to false,
+                    WorkspaceSheetLevel.EXPANDED to false,
                 ))
                 check(actions == listOf(com.yangchengwei.easytrip.workspace.TripWorkspaceAction.SetSheetLevel(gestureTarget)))
                 onNodeWithTag("workspace-map").assertIsDisplayed()

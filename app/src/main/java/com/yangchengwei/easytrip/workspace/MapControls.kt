@@ -5,6 +5,7 @@ import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -36,18 +37,10 @@ fun MapControls(
     val controlSize = EasyTripTheme.sizes.workspaceDenseTouchTarget
     val iconSize = EasyTripTheme.sizes.workspaceIconSize
     val controlGap = EasyTripTheme.spacing.workspaceControlGap
-    Column(modifier, horizontalAlignment = Alignment.End) {
-        Surface(
-            Modifier.size(controlSize).testTag("workspace-locate").semantics { contentDescription = "定位" }.clickable(onClick = onLocate),
-            shape = RoundedCornerShape(controlSize / 2), color = MaterialTheme.colorScheme.surface, shadowElevation = EasyTripTheme.elevation.floating,
-        ) { Box(contentAlignment = Alignment.Center) { WorkspaceLocateIcon(Modifier.size(iconSize)) } }
-        Surface(
-            Modifier.padding(top = controlGap).size(controlSize).testTag("layer-menu").semantics { contentDescription = "地图图层" }.clickable(onClick = onOpenLayerMenu),
-            shape = RoundedCornerShape(controlSize / 2), color = MaterialTheme.colorScheme.surface, shadowElevation = EasyTripTheme.elevation.floating,
-        ) { Box(contentAlignment = Alignment.Center) { WorkspaceLayerIcon(Modifier.size(iconSize)) } }
+    Row(modifier, horizontalArrangement = Arrangement.spacedBy(controlGap), verticalAlignment = Alignment.Bottom) {
         if (overlay == WorkspaceOverlay.LayerMenu) {
             Surface(
-                Modifier.padding(top = controlGap).widthIn(max = 280.dp).testTag("layer-menu-panel"),
+                Modifier.widthIn(max = 280.dp).testTag("layer-menu-panel"),
                 shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface, shadowElevation = EasyTripTheme.elevation.dialog,
             ) {
                 Column(Modifier.padding(16.dp)) {
@@ -83,6 +76,16 @@ fun MapControls(
                     Text("选择将应用到所有旅行，并在下次打开时保留。", style = MaterialTheme.typography.labelSmall)
                 }
             }
+        }
+        Column(horizontalAlignment = Alignment.End) {
+            Surface(
+                Modifier.size(controlSize).testTag("workspace-locate").semantics { contentDescription = "定位" }.clickable(onClick = onLocate),
+                shape = RoundedCornerShape(controlSize / 2), color = MaterialTheme.colorScheme.surface, shadowElevation = EasyTripTheme.elevation.floating,
+            ) { Box(contentAlignment = Alignment.Center) { WorkspaceLocateIcon(Modifier.size(iconSize)) } }
+            Surface(
+                Modifier.padding(top = controlGap).size(controlSize).testTag("layer-menu").semantics { contentDescription = "地图图层" }.clickable(onClick = onOpenLayerMenu),
+                shape = RoundedCornerShape(controlSize / 2), color = MaterialTheme.colorScheme.surface, shadowElevation = EasyTripTheme.elevation.floating,
+            ) { Box(contentAlignment = Alignment.Center) { WorkspaceLayerIcon(Modifier.size(iconSize)) } }
         }
     }
 }

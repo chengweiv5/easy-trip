@@ -1,7 +1,9 @@
 package com.yangchengwei.easytrip.place.ui
 
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -13,8 +15,10 @@ import androidx.compose.material3.Text
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,23 +138,30 @@ fun PlacePoolContent(
     showDialogs: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
 ) {
-    Column(modifier.padding(contentPadding)) {
+    Column(modifier.padding(contentPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         if (showSearch) PlaceSearchField(state.search.query, onSetQuery)
         if (state.rows.isEmpty() && !showSearch) {
             com.yangchengwei.easytrip.core.ui.component.EmptyState(
                 title = "还没有收藏地点",
                 message = "先搜索想去的地点，收藏后再安排到每天的行程。",
                 emptyIllustration = com.yangchengwei.easytrip.core.ui.component.EmptyIllustration.Places,
+                verticalPadding = 16.dp,
                 action = {
                     com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(onSearch) { Text("搜索地点") }
                 },
             )
         } else {
             if (!showSearch && onStartAdd != null) {
-                com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton(
-                    onClick = onStartAdd,
-                    modifier = Modifier.fillMaxWidth().testTag("start-add-to-itinerary"),
-                ) { Text("添加到行程") }
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    EasyTripSecondaryButton(
+                        onClick = onStartAdd,
+                        modifier = Modifier.testTag("start-add-to-itinerary"),
+                    ) { Text("添加到行程") }
+                }
             }
             androidx.compose.foundation.lazy.LazyColumn(
                 Modifier.fillMaxWidth().weight(1f).testTag("workspace-place-list"),

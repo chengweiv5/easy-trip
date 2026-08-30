@@ -1,10 +1,13 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.gestures.detectVerticalDragGestures
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -24,12 +27,6 @@ enum class WorkspaceSheetLevel { COLLAPSED, HALF, EXPANDED }
 internal fun restoreWorkspaceSheetLevel(raw: String?): WorkspaceSheetLevel =
     WorkspaceSheetLevel.entries.firstOrNull { it.name == raw } ?: WorkspaceSheetLevel.HALF
 
-internal fun workspaceSheetFraction(level: WorkspaceSheetLevel): Float = when (level) {
-    WorkspaceSheetLevel.COLLAPSED -> 0f
-    WorkspaceSheetLevel.HALF -> 0.5f
-    WorkspaceSheetLevel.EXPANDED -> 0.9f
-}
-
 internal data class WorkspaceSheetAnchors(
     val collapsed: Dp,
     val half: Dp,
@@ -42,22 +39,27 @@ internal data class WorkspaceSheetAnchors(
     }
 }
 
-internal fun workspaceSheetAnchors(
-    availableHeight: Dp,
-    searchReturn: Boolean,
-): WorkspaceSheetAnchors {
-    val expanded = when {
-        availableHeight <= 397.dp -> availableHeight * workspaceSheetFraction(WorkspaceSheetLevel.EXPANDED)
-        availableHeight <= 636.dp -> 357.3.dp + (availableHeight - 397.dp) * (64.7f / 239f)
-        else -> availableHeight - 214.dp
-    }
-    val collapsed = minOf(34.dp, expanded / 3f)
-    val levelGap = minOf(12.dp, (expanded - collapsed) / 2f)
-    val half = maxOf(
-        availableHeight * workspaceSheetFraction(WorkspaceSheetLevel.HALF) + if (searchReturn) 16.dp else 0.dp,
-        240.dp,
-    ).coerceIn(collapsed + levelGap, expanded - levelGap)
+internal fun workspaceSheetAnchors(availableHeight: Dp): WorkspaceSheetAnchors {
+    val height = availableHeight.coerceAtLeast(0.dp)
+    val scale = (height.value / 782f).coerceIn(0f, 1f)
+    val minimumCollapsed = minOf(96.dp, (height - 6.dp).coerceAtLeast(0.dp))
+    val collapsed = maxOf(minimumCollapsed, 108.dp * scale).coerceAtMost(height)
+    val expanded = maxOf(720.dp * scale, collapsed + 6.dp).coerceAtMost(height)
+    val gap = minOf(12.dp, (expanded - collapsed) / 3f)
+    val half = (432.dp * scale).coerceIn(collapsed + gap, expanded - gap)
     return WorkspaceSheetAnchors(collapsed, half, expanded)
+}
+
+internal fun workspaceSheetDragThreshold(
+    current: WorkspaceSheetLevel,
+    anchors: WorkspaceSheetAnchors,
+): Dp {
+    val adjacentGap = when (current) {
+        WorkspaceSheetLevel.COLLAPSED -> anchors.half - anchors.collapsed
+        WorkspaceSheetLevel.HALF -> minOf(anchors.half - anchors.collapsed, anchors.expanded - anchors.half)
+        WorkspaceSheetLevel.EXPANDED -> anchors.expanded - anchors.half
+    }
+    return minOf(24.dp, adjacentGap / 2f)
 }
 
 internal fun resolveWorkspaceSheetDrag(
@@ -88,6 +90,8 @@ internal fun clampWorkspaceSheetDragOffsetPx(
     currentHeightPx - collapsedHeightPx,
 )
 
+private val WorkspaceSheetHeaderHeight = 68.dp
+
 @Composable
 internal fun WorkspaceBottomSheet(
     value: WorkspaceSheetLevel,
@@ -98,15 +102,17 @@ internal fun WorkspaceBottomSheet(
     header: @Composable () -> Unit,
     content: @Composable () -> Unit,
     modifier: Modifier = Modifier,
+    collapsedContent: @Composable () -> Unit = {},
 ) {
     val targetHeight = anchors[value]
     val density = LocalDensity.current
-    val dragThresholdPx = with(density) { 24.dp.toPx() }
+    val dragThresholdPx = with(density) { workspaceSheetDragThreshold(value, anchors).toPx() }
     val currentHeightPx = with(density) { targetHeight.toPx() }
     val collapsedHeightPx = with(density) { anchors.collapsed.toPx() }
     val expandedHeightPx = with(density) { anchors.expanded.toPx() }
     val visibleHeight = with(density) { (currentHeightPx - dragOffsetPx).toDp() }
         .coerceIn(anchors.collapsed, anchors.expanded)
+    val collapsedBottomPadding = if (visibleHeight >= 94.dp) 8.dp else 0.dp
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val currentOnDragOffsetChange by rememberUpdatedState(onDragOffsetChange)
     Surface(
@@ -118,10 +124,12 @@ internal fun WorkspaceBottomSheet(
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 4.dp,
     ) {
-        Column {
+        Column(Modifier.fillMaxSize()) {
             Box(
                 Modifier
                     .fillMaxWidth()
+                    .height(WorkspaceSheetHeaderHeight)
+                    .padding(horizontal = 20.dp)
                     .pointerInput(value, anchors, density) {
                         var gestureDragOffsetPx = 0f
                         detectVerticalDragGestures(
@@ -149,7 +157,26 @@ internal fun WorkspaceBottomSheet(
                     }
                     .testTag("workspace-sheet-handle"),
             ) { header() }
-            if (value != WorkspaceSheetLevel.COLLAPSED) content()
+            if (value == WorkspaceSheetLevel.COLLAPSED) {
+                Box(
+                    Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(start = 20.dp, end = 20.dp, bottom = collapsedBottomPadding)
+                        .testTag("workspace-collapsed-content"),
+                    contentAlignment = Alignment.CenterStart,
+                ) { collapsedContent() }
+            } else {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                ) {
+                    Box(Modifier.fillMaxSize()) { content() }
+                }
+            }
         }
     }
 }

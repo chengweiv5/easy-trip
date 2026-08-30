@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -32,8 +33,8 @@ fun WorkspaceItineraryContent(
             onAddDay = onAddDay,
             modifier = Modifier.fillMaxHeight(),
         )
-        VerticalDivider()
-        Box(Modifier.weight(1f).fillMaxHeight().padding(start = 12.dp)) {
+        VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .45f))
+        Box(Modifier.weight(1f).fillMaxHeight().padding(start = 16.dp)) {
             when (selected) {
                 ItineraryScope.WholeTrip -> WholeTripItineraryContent(
                     days = wholeTripDays,

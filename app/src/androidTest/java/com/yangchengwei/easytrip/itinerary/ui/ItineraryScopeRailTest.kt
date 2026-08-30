@@ -29,6 +29,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.hasText
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.trip.domain.TripDay
@@ -81,7 +82,7 @@ class ItineraryScopeRailTest {
             )
         }
 
-        compose.onNodeWithTag("itinerary-scope-rail").performScrollToNode(hasText("添加"))
+        compose.onNodeWithTag("itinerary-scope-rail").performScrollToNode(hasTestTag("itinerary-add-day"))
         val wholeTop = compose.onNodeWithText("全程").fetchSemanticsNode().positionInRoot.y
         val firstTop = compose.onNodeWithText("第一天").fetchSemanticsNode().positionInRoot.y
         val secondTop = compose.onNodeWithText("第二天").fetchSemanticsNode().positionInRoot.y

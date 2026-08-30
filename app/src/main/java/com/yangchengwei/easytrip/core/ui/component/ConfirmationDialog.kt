@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -25,6 +24,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripBackground
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 
 @Composable
 fun ConfirmationDialog(
@@ -42,33 +42,39 @@ fun ConfirmationDialog(
         onDismiss = onDismiss,
         modifier = modifier,
         dismissible = !busy,
+        width = EasyTripTheme.sizes.dialogWidth,
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 22.dp, vertical = 20.dp),
+            modifier = Modifier.padding(
+                horizontal = EasyTripTheme.spacing.dialogContentHorizontal,
+                vertical = EasyTripTheme.spacing.dialogContentVertical,
+            ),
             horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.spacedBy(14.dp),
+            verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.dialogSectionGap),
         ) {
                 Column(
                     modifier = Modifier,
                     horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(14.dp),
+                    verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.dialogSectionGap),
                 ) {
                     Surface(
-                        modifier = Modifier.size(52.dp),
+                        modifier = Modifier.size(36.dp),
                         shape = CircleShape,
                         color = MaterialTheme.colorScheme.error.copy(alpha = 0.1f),
                         contentColor = MaterialTheme.colorScheme.error,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            Text("!", fontSize = 24.sp, fontWeight = FontWeight.Bold)
+                            Text("!", fontSize = 18.sp, fontWeight = FontWeight.Bold)
                         }
                     }
-                    Text(model.title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
+                    Text(model.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     Text(model.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
-                    Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(10.dp), color = EasyTripBackground) {
-                        Column(Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error, deletedItemTags)
-                            ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.primary, retainedItemTags)
+                    if (model.deletedItems.isNotEmpty() || model.retainedItems.isNotEmpty()) {
+                        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius), color = EasyTripBackground) {
+                            Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                if (model.deletedItems.isNotEmpty()) ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error, deletedItemTags)
+                                if (model.retainedItems.isNotEmpty()) ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.primary, retainedItemTags)
+                            }
                         }
                     }
                     errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
@@ -86,19 +92,19 @@ fun ConfirmationDialog(
                     EasyTripSecondaryButton(
                         onClick = onDismiss,
                         enabled = !busy,
-                        modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-dismiss"),
+                        modifier = Modifier.weight(1f).height(48.dp).testTag("confirmation-dismiss"),
                     ) { Text(model.dismissLabel) }
                     if (model.destructive) {
                         EasyTripDangerButton(
                             onClick = onConfirm,
                             enabled = !busy,
-                            modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-confirm"),
+                            modifier = Modifier.weight(1f).height(48.dp).testTag("confirmation-confirm"),
                         ) { Text(confirmLabel) }
                     } else {
                         EasyTripPrimaryButton(
                             onClick = onConfirm,
                             enabled = !busy,
-                            modifier = Modifier.weight(1f).height(44.dp).testTag("confirmation-confirm"),
+                            modifier = Modifier.weight(1f).height(48.dp).testTag("confirmation-confirm"),
                         ) { Text(confirmLabel) }
                     }
                 }

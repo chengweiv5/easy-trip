@@ -61,7 +61,7 @@ internal fun RouteLegContent(
     ) {
         RouteLegConnector(leg.id, Modifier.fillMaxHeight())
         Row(
-            Modifier.weight(1f).padding(start = 12.dp, top = 8.dp, bottom = 8.dp),
+            Modifier.weight(1f).padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -171,7 +171,7 @@ private fun RouteLegConnector(legId: String, modifier: Modifier = Modifier) {
     val color = MaterialTheme.colorScheme.outlineVariant
     Canvas(modifier.width(12.dp).testTag("route-connector-$legId").clearAndSetSemantics {}) {
         val centerX = size.width / 2f
-        drawLine(color, Offset(centerX, 0f), Offset(centerX, size.height), strokeWidth = 2.dp.toPx())
+        drawLine(color, Offset(centerX, 0f), Offset(centerX, size.height), strokeWidth = 1.dp.toPx())
         drawLine(
             color,
             Offset(centerX, size.height),

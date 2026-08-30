@@ -52,11 +52,11 @@ internal fun PrimaryTripCard(
         color = MaterialTheme.colorScheme.surface,
     ) {
         Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.Top) {
+            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     trip.name,
                     modifier = Modifier.weight(1f).testTag("primary-trip-name-${trip.id}"),
-                    style = MaterialTheme.typography.headlineLarge,
+                    style = MaterialTheme.typography.titleLarge,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )

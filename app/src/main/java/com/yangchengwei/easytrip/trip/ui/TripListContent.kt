@@ -27,7 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
+import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
 
 @Composable
@@ -83,12 +83,10 @@ fun TripListContent(
                         }
                     }
                     item {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
-                            EasyTripPrimaryButton(
-                                onClick = { onAction(TripListAction.CreateTrip) },
-                                modifier = Modifier.testTag("create-trip"),
-                            ) { Text("创建旅行") }
-                        }
+                        EasyTripSecondaryButton(
+                            onClick = { onAction(TripListAction.CreateTrip) },
+                            modifier = Modifier.fillMaxWidth().height(48.dp).testTag("create-trip"),
+                        ) { Text("创建旅行") }
                     }
                 }
             }

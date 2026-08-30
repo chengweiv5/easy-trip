@@ -5,8 +5,10 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -57,6 +59,21 @@ class TripSettingsContentTest {
         compose.onNodeWithTag("delete-day-day-2").assertHeightIsAtLeast(48.dp)
     }
 
+    @Test fun settingsUsesDesignHeaderAndDoneReturnsThroughBackCallback() {
+        var backs = 0
+        compose.setContent {
+            content(
+                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                onBack = { backs++ },
+            )
+        }
+
+        compose.onNodeWithTag("settings-header").assertHeightIsEqualTo(62.dp)
+        compose.onNodeWithTag("settings-done").assertIsEnabled().performClick()
+        compose.onNodeWithTag("delete-day-day-2").assertHeightIsAtLeast(48.dp)
+        assertEquals(1, backs)
+    }
+
     @Test fun dateRowOpensLocalEditorAndAppliesOnlyFromTheDialog() {
         var submissions = 0
         compose.setContent {
@@ -99,7 +116,13 @@ class TripSettingsContentTest {
                 !it.config.contains(SemanticsActions.SetText)
             },
         )
-        compose.onNodeWithTag("settings-end-date").performTextReplacement("2026-10-02")
+        compose.onNodeWithTag("settings-end-date").assert(
+            androidx.compose.ui.test.SemanticsMatcher.expectValue(SemanticsProperties.ContentDescription, listOf("结束日期")),
+        ).assert(
+            androidx.compose.ui.test.SemanticsMatcher("has SetText action") {
+                it.config.contains(SemanticsActions.SetText)
+            },
+        ).performTextReplacement("2026-10-02")
         compose.onNodeWithTag("settings-apply-date-range").assertIsEnabled().performClick()
 
         assertEquals(listOf(LocalDate.parse("2026-10-02")), drafts)

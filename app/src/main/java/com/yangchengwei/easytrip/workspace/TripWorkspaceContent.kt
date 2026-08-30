@@ -10,13 +10,20 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.Canvas
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
@@ -100,25 +107,29 @@ private fun WorkspaceReadyContent(
 ) {
     WorkspaceScaffold(
         sheetLevel = state.sheetLevel,
-        searchReturn = searchReturn != null,
         onSheetLevelChange = { onAction(TripWorkspaceAction.SetSheetLevel(it)) },
         modifier = modifier,
         sheetHeader = {
-            Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp)) {
+            Column(Modifier.fillMaxWidth()) {
                 WorkspaceSheetHandle()
-                if (state.sheetLevel != WorkspaceSheetLevel.COLLAPSED) {
-                    WorkspaceTabs(
-                        selected = state.section,
-                        onSelect = { onAction(TripWorkspaceAction.SelectSection(it)) },
-                    )
-                }
+                WorkspaceTabs(
+                    selected = state.section,
+                    onSelect = { onAction(TripWorkspaceAction.SelectSection(it)) },
+                )
             }
+        },
+        collapsedContent = {
+            WorkspaceCollapsedSummary(
+                state = state,
+                placeState = placeState,
+                itineraryState = itineraryState,
+            )
         },
         sheetContent = {
             Column(Modifier.fillMaxSize()) {
                 when (state.section) {
                     WorkspaceSection.PLACE_POOL -> if (placeContent != null) {
-                        Box(Modifier.weight(1f).padding(horizontal = 20.dp)) { placeContent() }
+                        Box(Modifier.weight(1f)) { placeContent() }
                     } else PlacePoolContent(
                         state = placeState.copy(
                             rows = placeState.rows.map { row ->
@@ -130,7 +141,7 @@ private fun WorkspaceReadyContent(
                         onAction = onPlaceAction,
                         onSearch = { onAction(TripWorkspaceAction.OpenSearch) },
                         showDialogs = false,
-                        contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
+                        contentPadding = PaddingValues(bottom = 4.dp),
                     )
                     WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
                         days = state.days,
@@ -139,7 +150,7 @@ private fun WorkspaceReadyContent(
                         onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
                         onAddDay = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
                         modifier = Modifier.weight(1f),
-                        contentPadding = PaddingValues(horizontal = 20.dp),
+                        contentPadding = PaddingValues.Zero,
                         dayContent = {
                             if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
                                 state = itineraryState,
@@ -154,7 +165,7 @@ private fun WorkspaceReadyContent(
         map = { metrics ->
             Box(Modifier.fillMaxSize().testTag("workspace-map")) {
                 if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) mapContent()
-                if (mapState != WorkspaceMapState.Ready) {
+                if (mapState != WorkspaceMapState.Ready && workspaceMapOverlaysFit(metrics)) {
                     WorkspaceMapFallback(
                         state = mapState,
                         onOpenConsent = onOpenConsent,
@@ -166,6 +177,13 @@ private fun WorkspaceReadyContent(
             }
         },
         topOverlay = { metrics ->
+            val mapOverlaysFit = workspaceMapOverlaysFit(metrics)
+            val layerMenuFits = workspaceLayerMenuFits(metrics)
+            LaunchedEffect(state.overlay, layerMenuFits) {
+                if (state.overlay == WorkspaceOverlay.LayerMenu && !layerMenuFits) {
+                    onAction(TripWorkspaceAction.CloseOverlay)
+                }
+            }
             WorkspaceTopBar(
                 title = state.tripName,
                 dateLabel = state.dateLabel,
@@ -173,26 +191,109 @@ private fun WorkspaceReadyContent(
                 onMore = { onAction(TripWorkspaceAction.OpenSettings) },
                 modifier = Modifier.padding(horizontal = 20.dp),
             )
-            MapControls(
-                layer = state.mapLayer,
-                overlay = state.overlay,
-                onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
-                onCloseOverlay = { onAction(TripWorkspaceAction.CloseOverlay) },
-                onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
-                onLocate = { onAction(TripWorkspaceAction.Locate) },
-                modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
-            )
-            MapLegend(
-                Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
-            )
-            WorkspaceSearchBar(
-                { onAction(TripWorkspaceAction.OpenSearch) },
-                Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(start = 20.dp, end = 20.dp, bottom = metrics.overlayBottomInset),
-            )
+            if (mapOverlaysFit) {
+                MapControls(
+                    layer = state.mapLayer,
+                    overlay = state.overlay.takeIf { layerMenuFits } ?: WorkspaceOverlay.None,
+                    onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
+                    onCloseOverlay = { onAction(TripWorkspaceAction.CloseOverlay) },
+                    onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
+                    onLocate = { onAction(TripWorkspaceAction.Locate) },
+                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
+                )
+                if (state.overlay != WorkspaceOverlay.LayerMenu) {
+                    MapLegend(
+                        Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
+                    )
+                }
+                WorkspaceSearchBar(
+                    { onAction(TripWorkspaceAction.OpenSearch) },
+                    Modifier
+                        .align(Alignment.BottomCenter)
+                        .padding(start = 20.dp, end = 20.dp, bottom = metrics.overlayBottomInset),
+                )
+            }
         },
     )
+}
+
+private val WorkspaceMapOverlayRequiredHeight = 214.dp
+private val WorkspaceLayerMenuRequiredHeight = 330.dp
+
+internal fun workspaceMapOverlaysFit(metrics: WorkspaceLayoutMetrics): Boolean =
+    metrics.sheetTop >= WorkspaceMapOverlayRequiredHeight
+
+internal fun workspaceLayerMenuFits(metrics: WorkspaceLayoutMetrics): Boolean =
+    metrics.sheetTop >= WorkspaceLayerMenuRequiredHeight
+
+@Composable
+private fun WorkspaceCollapsedSummary(
+    state: TripWorkspaceReadyState,
+    placeState: PlacePoolUiState,
+    itineraryState: DayItineraryUiState,
+) {
+    val summary = when (state.section) {
+        WorkspaceSection.PLACE_POOL -> {
+            val count = placeState.savedPoiIds.size.takeIf { it > 0 } ?: placeState.rows.size
+            when (count) {
+                0 -> "还没有收藏地点"
+                else -> "已收藏 $count 个地点"
+            }
+        }
+        WorkspaceSection.ITINERARY -> when (val scope = state.itineraryScope) {
+            ItineraryScope.WholeTrip -> "全程 · ${state.wholeTripDays.sumOf { it.items.size }} 个地点"
+            is ItineraryScope.Day -> {
+                val dayNumber = state.days.indexOfFirst { it.id == scope.dayId }.takeIf { it >= 0 }?.plus(1)
+                val placeCount = if (itineraryState.selectedDayId == scope.dayId) itineraryState.items.size else {
+                    state.wholeTripDays.firstOrNull { it.dayId == scope.dayId }?.items?.size ?: 0
+                }
+                if (dayNumber == null) "$placeCount 个地点" else "第 $dayNumber 天 · $placeCount 个地点"
+            }
+        }
+    }
+    Row(
+        modifier = Modifier.fillMaxWidth().testTag("workspace-collapsed-summary"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        WorkspaceSummaryIcon(state.section, Modifier.height(18.dp))
+        Text(
+            summary,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Text(
+            "上滑展开",
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(start = 8.dp),
+        )
+    }
+}
+
+@Composable
+private fun WorkspaceSummaryIcon(section: WorkspaceSection, modifier: Modifier = Modifier) {
+    val color = MaterialTheme.colorScheme.primary
+    Canvas(modifier.size(18.dp)) {
+        val stroke = Stroke(width = size.minDimension / 10f, cap = StrokeCap.Round)
+        if (section == WorkspaceSection.PLACE_POOL) {
+            val path = Path().apply {
+                moveTo(size.width * .25f, size.height * .12f)
+                lineTo(size.width * .75f, size.height * .12f)
+                lineTo(size.width * .75f, size.height * .88f)
+                lineTo(size.width * .5f, size.height * .68f)
+                lineTo(size.width * .25f, size.height * .88f)
+                close()
+            }
+            drawPath(path, color, style = stroke)
+        } else {
+            drawLine(color, Offset(size.width * .2f, size.height * .25f), Offset(size.width * .5f, size.height * .5f), stroke.width, StrokeCap.Round)
+            drawLine(color, Offset(size.width * .5f, size.height * .5f), Offset(size.width * .8f, size.height * .25f), stroke.width, StrokeCap.Round)
+            listOf(.2f, .5f, .8f).forEachIndexed { index, x ->
+                drawCircle(color, size.minDimension * .08f, Offset(size.width * x, if (index == 1) size.height * .5f else size.height * .25f))
+            }
+        }
+    }
 }
 
 @Composable

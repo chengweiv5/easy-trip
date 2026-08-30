@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.MaterialTheme
@@ -60,31 +61,53 @@ fun SavedPlaceRow(
                             else -> "仅收藏"
                         },
                         style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.testTag("place-status-${place.id}"),
                     )
                 }
-                Text(
-                    place.address,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                place.note?.let { Text(it, style = MaterialTheme.typography.bodySmall) }
-                if (place.tags.isNotEmpty()) Text(place.tags.joinToString(" · "), style = MaterialTheme.typography.labelSmall)
+                if (place.address.isNotBlank()) {
+                    Text(
+                        place.address,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .72f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                place.note?.let {
+                    Text(
+                        it,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .72f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+                if (place.tags.isNotEmpty()) {
+                    Text(
+                        place.tags.joinToString(" · "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .72f),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 onQuickAdd?.let { quickAdd ->
-                    Box(
-                        Modifier
+                    Surface(
+                        modifier = Modifier
                             .size(48.dp)
                             .testTag("quick-add-place-${place.id}")
                             .semantics { contentDescription = "添加${place.name}到行程" }
                             .clickable(onClick = quickAdd),
-                        contentAlignment = Alignment.Center,
+                        shape = RoundedCornerShape(24.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ) {
-                        PlusIcon(Modifier.size(22.dp))
+                        Box(contentAlignment = Alignment.Center) {
+                            PlusIcon(Modifier.size(20.dp))
+                        }
                     }
                 }
                 Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
