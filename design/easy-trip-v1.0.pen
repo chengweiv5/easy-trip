@@ -1920,7 +1920,7 @@
                   "id": "I81vsb",
                   "name": "Screen Coverage Title",
                   "fill": "$primary-dark",
-                  "content": "48 类界面 · 8 条主旅程 · 6 个状态组",
+                  "content": "47 类界面 · 8 条主旅程 · 6 个状态组",
                   "fontFamily": "$font-heading",
                   "fontSize": 17,
                   "fontWeight": "700"
@@ -13161,6 +13161,7 @@
       "x": 1570,
       "y": 532,
       "name": "07 创建旅行",
+      "context": "创建旅行界面",
       "clip": true,
       "width": 390,
       "height": 844,
@@ -111215,6 +111216,7 @@
       "x": 1100,
       "y": 532,
       "name": "36 我的旅行 · 空状态",
+      "context": "空状态，没有创建任何旅行",
       "clip": true,
       "width": 390,
       "height": 844,
@@ -221283,6 +221285,1978 @@
           "fontFamily": "$font-body",
           "fontSize": 11,
           "fontWeight": "normal"
+        }
+      ]
+    },
+    {
+      "type": "frame",
+      "id": "YYo6U",
+      "x": 3450,
+      "y": 532,
+      "name": "07A 创建旅行 · 填写出行日期",
+      "context": "在创建旅行时选择开始与结束日期，并即时确认行程天数。",
+      "clip": true,
+      "width": 390,
+      "height": 844,
+      "fill": "$bg",
+      "layout": "none",
+      "children": [
+        {
+          "type": "frame",
+          "id": "BmjcZ",
+          "x": 0,
+          "y": 62,
+          "name": "Create Trip Content",
+          "width": 390,
+          "height": 782,
+          "fill": "$bg",
+          "layout": "vertical",
+          "gap": 22,
+          "padding": [
+            18,
+            20,
+            24,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "NvG78",
+              "name": "Create Trip Header",
+              "width": "fill_container",
+              "height": 58,
+              "gap": 12,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "KGvX4",
+                  "name": "Create Trip Back",
+                  "width": 40,
+                  "height": 40,
+                  "fill": "$surface",
+                  "cornerRadius": 20,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "J0E0X",
+                      "name": "Back Icon",
+                      "width": 20,
+                      "height": 20,
+                      "icon": "arrow_back",
+                      "library": "Material Symbols Rounded",
+                      "fill": "$primary-dark"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "BX8Zl",
+                  "name": "Create Trip Header Text",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "SqwNx",
+                      "name": "Create Trip Title",
+                      "fill": "$primary-dark",
+                      "content": "创建旅行",
+                      "fontFamily": "$font-heading",
+                      "fontSize": 26,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "TeAIB",
+                      "name": "Create Trip Subtitle",
+                      "fill": "$muted",
+                      "content": "先确定基本信息，之后再慢慢规划",
+                      "fontFamily": "$font-body",
+                      "fontSize": 12,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "iV21E",
+              "name": "Create Progress",
+              "width": "fill_container",
+              "height": 34,
+              "gap": 8,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "h8XGu",
+                  "name": "Step 1",
+                  "width": 22,
+                  "height": 22,
+                  "fill": "$primary",
+                  "cornerRadius": 11,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "rMBua",
+                      "name": "Step 1 Number",
+                      "fill": "#FFFFFF",
+                      "content": "1",
+                      "fontFamily": "$font-body",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "R1xWCi",
+                  "name": "Step 1 Label",
+                  "fill": "$primary-dark",
+                  "content": "基本信息",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "rectangle",
+                  "id": "z0zwTd",
+                  "name": "Step Connector",
+                  "fill": "$border",
+                  "width": 36,
+                  "height": 1
+                },
+                {
+                  "type": "frame",
+                  "id": "M5wxIn",
+                  "name": "Step 2",
+                  "width": 22,
+                  "height": 22,
+                  "fill": "$surface-soft",
+                  "cornerRadius": 11,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "GoTU7",
+                      "name": "Step 2 Number",
+                      "fill": "$muted",
+                      "content": "2",
+                      "fontFamily": "$font-body",
+                      "fontSize": 11,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "c9oYVT",
+                  "name": "Step 2 Label",
+                  "fill": "$muted",
+                  "content": "开始规划",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "waIJu",
+              "name": "Trip Basics Form",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 18,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "cTa7G",
+                  "name": "Trip Name Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "HIOhn",
+                      "name": "Trip Name Label",
+                      "fill": "$primary-dark",
+                      "content": "旅行名称",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yTG8h",
+                      "name": "Trip Name Field",
+                      "width": "fill_container",
+                      "height": 52,
+                      "fill": "$surface",
+                      "cornerRadius": 10,
+                      "stroke": "$primary",
+                      "strokeWidth": 2,
+                      "effect": {
+                        "type": "shadow",
+                        "shadowType": "outer",
+                        "color": "#1B3A2812",
+                        "offset": {
+                          "x": 0,
+                          "y": 2
+                        },
+                        "blur": 8
+                      },
+                      "gap": 10,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "icon",
+                          "id": "hdrn7",
+                          "name": "Trip Name Icon",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "luggage",
+                          "library": "Material Symbols Rounded",
+                          "fill": "$primary"
+                        },
+                        {
+                          "type": "text",
+                          "id": "GL7Tf",
+                          "name": "Trip Name Value",
+                          "fill": "$primary-dark",
+                          "content": "杭州 · 春日慢游",
+                          "fontFamily": "$font-body",
+                          "fontSize": 15,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "text",
+                      "id": "D95wyl",
+                      "name": "Trip Name Hint",
+                      "fill": "$muted",
+                      "content": "一个容易辨认的名称，稍后可以修改",
+                      "fontFamily": "$font-body",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "oVJmx",
+                  "name": "Travel Date Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "JZFmC",
+                      "name": "Travel Date Label",
+                      "fill": "$primary-dark",
+                      "content": "出行日期",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "JK2dM",
+                      "name": "Travel Date Row",
+                      "width": "fill_container",
+                      "height": 66,
+                      "fill": "$surface",
+                      "cornerRadius": 10,
+                      "stroke": "$primary",
+                      "strokeWidth": 2,
+                      "gap": 12,
+                      "padding": [
+                        0,
+                        14
+                      ],
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "BVKpF",
+                          "name": "Date Icon Container",
+                          "width": 36,
+                          "height": 36,
+                          "fill": "$surface-soft",
+                          "cornerRadius": 8,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "xDr8E",
+                              "name": "Date Icon",
+                              "width": 20,
+                              "height": 20,
+                              "icon": "calendar_month",
+                              "library": "Material Symbols Rounded",
+                              "fill": "$primary"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "O48aKi",
+                          "name": "Travel Date Text",
+                          "width": "fill_container",
+                          "layout": "vertical",
+                          "gap": 3,
+                          "children": [
+                            {
+                              "type": "text",
+                              "id": "Oh6aj",
+                              "name": "Travel Date Value",
+                              "fill": "$primary-dark",
+                              "content": "2025.04.12 — 04.14",
+                              "fontFamily": "$font-body",
+                              "fontSize": 14,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "NoSrx",
+                              "name": "Travel Duration",
+                              "fill": "$muted",
+                              "content": "3 天 2 晚",
+                              "fontFamily": "$font-body",
+                              "fontSize": 11,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "icon",
+                          "id": "uoajp",
+                          "name": "Date Chevron",
+                          "width": 20,
+                          "height": 20,
+                          "icon": "chevron_right",
+                          "library": "Material Symbols Rounded",
+                          "fill": "$muted"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "XnQFm",
+                  "name": "Travel Mode Group",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 8,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "qzFfm",
+                      "name": "Travel Mode Label",
+                      "fill": "$primary-dark",
+                      "content": "出行方式",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "g631ua",
+                      "name": "Travel Mode Options",
+                      "width": "fill_container",
+                      "height": 82,
+                      "gap": 10,
+                      "children": [
+                        {
+                          "type": "frame",
+                          "id": "b1qoH",
+                          "name": "Flexible Mode",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "$primary",
+                          "cornerRadius": 10,
+                          "effect": {
+                            "type": "shadow",
+                            "shadowType": "outer",
+                            "color": "#1B3A2820",
+                            "offset": {
+                              "x": 0,
+                              "y": 2
+                            },
+                            "blur": 8
+                          },
+                          "layout": "vertical",
+                          "gap": 5,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "zQXOI",
+                              "name": "Flexible Mode Icon",
+                              "width": 22,
+                              "height": 22,
+                              "icon": "explore",
+                              "library": "Material Symbols Rounded",
+                              "fill": "#FFFFFF"
+                            },
+                            {
+                              "type": "text",
+                              "id": "e2uRtf",
+                              "name": "Flexible Mode Title",
+                              "fill": "#FFFFFF",
+                              "content": "灵活出行",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "G8PAb",
+                              "name": "Flexible Mode Hint",
+                              "fill": "#FFFFFFCC",
+                              "content": "混合交通方式",
+                              "fontFamily": "$font-body",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "crtyv",
+                          "name": "Self Drive Mode",
+                          "width": "fill_container",
+                          "height": "fill_container",
+                          "fill": "$surface",
+                          "cornerRadius": 10,
+                          "stroke": "$border",
+                          "strokeWidth": 1,
+                          "layout": "vertical",
+                          "gap": 5,
+                          "justifyContent": "center",
+                          "alignItems": "center",
+                          "children": [
+                            {
+                              "type": "icon",
+                              "id": "KfUKi",
+                              "name": "Self Drive Icon",
+                              "width": 22,
+                              "height": 22,
+                              "icon": "directions_car",
+                              "library": "Material Symbols Rounded",
+                              "fill": "$secondary"
+                            },
+                            {
+                              "type": "text",
+                              "id": "k9PTC",
+                              "name": "Self Drive Title",
+                              "fill": "$primary-dark",
+                              "content": "自驾",
+                              "fontFamily": "$font-body",
+                              "fontSize": 13,
+                              "fontWeight": "600"
+                            },
+                            {
+                              "type": "text",
+                              "id": "HQFP5",
+                              "name": "Self Drive Hint",
+                              "fill": "$muted",
+                              "content": "优先驾车路线",
+                              "fontFamily": "$font-body",
+                              "fontSize": 10,
+                              "fontWeight": "normal"
+                            }
+                          ]
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "M8Zm9",
+              "name": "Planning Tip",
+              "width": "fill_container",
+              "fill": "$surface-soft",
+              "cornerRadius": 10,
+              "gap": 10,
+              "padding": [
+                11,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "nBF6w",
+                  "name": "Planning Tip Icon",
+                  "width": 18,
+                  "height": 18,
+                  "icon": "lightbulb",
+                  "library": "Material Symbols Rounded",
+                  "fill": "$primary"
+                },
+                {
+                  "type": "text",
+                  "id": "c2EjzE",
+                  "name": "Planning Tip Text",
+                  "fill": "$secondary",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "创建后先收藏感兴趣的地点，再从地点池添加到每天的行程。",
+                  "lineHeight": 1.4,
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "vAMof",
+              "name": "Create Trip Action Area",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 10,
+              "children": [
+                {
+                  "id": "mE9ik",
+                  "type": "ref",
+                  "ref": "Qt2FO",
+                  "name": "Create Trip Primary Action",
+                  "width": "fill_container",
+                  "height": 52
+                },
+                {
+                  "type": "text",
+                  "id": "CdOGe",
+                  "name": "Create Trip Disclaimer",
+                  "fill": "$muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "地点与日期都可以稍后调整",
+                  "textAlign": "center",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "normal"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "frame",
+          "id": "g6CdrU",
+          "x": 0,
+          "y": 0,
+          "name": "Status Bar",
+          "width": 390,
+          "height": 62,
+          "fill": "$surface",
+          "padding": [
+            0,
+            20
+          ],
+          "justifyContent": "space_between",
+          "alignItems": "center",
+          "children": [
+            {
+              "type": "text",
+              "id": "d8OwJ",
+              "name": "Time",
+              "fill": "$primary-dark",
+              "content": "9:41",
+              "fontFamily": "Inter",
+              "fontSize": 14,
+              "fontWeight": "600"
+            },
+            {
+              "type": "frame",
+              "id": "ltjoH",
+              "name": "System Icons",
+              "gap": 7,
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "ZyWIq",
+                  "name": "Signal",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "signal_cellular_alt",
+                  "library": "Material Symbols Rounded",
+                  "fill": "$primary-dark"
+                },
+                {
+                  "type": "icon",
+                  "id": "YnW3H",
+                  "name": "Wifi",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "wifi",
+                  "library": "Material Symbols Rounded",
+                  "fill": "$primary-dark"
+                },
+                {
+                  "type": "icon",
+                  "id": "qDTgm",
+                  "name": "Battery",
+                  "width": 17,
+                  "height": 17,
+                  "icon": "battery_full",
+                  "library": "Material Symbols Rounded",
+                  "fill": "$primary-dark"
+                }
+              ]
+            }
+          ]
+        },
+        {
+          "type": "rectangle",
+          "id": "GLKBd",
+          "x": 0,
+          "y": 0,
+          "name": "日期选择遮罩",
+          "fill": "#1B2A2059",
+          "width": 390,
+          "height": 844
+        },
+        {
+          "type": "frame",
+          "id": "ItH3J",
+          "x": 0,
+          "y": 184,
+          "name": "出行日期选择面板",
+          "width": 390,
+          "height": 660,
+          "fill": "$surface",
+          "cornerRadius": [
+            22,
+            22,
+            0,
+            0
+          ],
+          "effect": {
+            "type": "shadow",
+            "shadowType": "outer",
+            "color": "#00000024",
+            "offset": {
+              "x": 0,
+              "y": -4
+            },
+            "blur": 18
+          },
+          "layout": "vertical",
+          "gap": 14,
+          "padding": [
+            10,
+            20,
+            22,
+            20
+          ],
+          "children": [
+            {
+              "type": "frame",
+              "id": "oCoWC",
+              "name": "日期面板拖动区域",
+              "width": "fill_container",
+              "height": 14,
+              "justifyContent": "center",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "rectangle",
+                  "cornerRadius": 2,
+                  "id": "HXi0u",
+                  "name": "日期面板拖动条",
+                  "fill": "$border",
+                  "width": 42,
+                  "height": 4
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "tHJ9f",
+              "name": "日期面板标题行",
+              "width": "fill_container",
+              "height": 50,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "kFsEW",
+                  "name": "日期面板标题文字",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "zZGq8",
+                      "name": "日期面板标题",
+                      "fill": "$primary-dark",
+                      "content": "选择出行日期",
+                      "fontFamily": "$font-heading",
+                      "fontSize": 22,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "x23CVI",
+                      "name": "日期面板说明",
+                      "fill": "$muted",
+                      "content": "先选开始日期，再选结束日期",
+                      "fontFamily": "$font-body",
+                      "fontSize": 11,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "pPg0s",
+                  "name": "关闭日期面板",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$surface-soft",
+                  "cornerRadius": 18,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "e2Wmj4",
+                      "name": "关闭日期面板图标",
+                      "width": 19,
+                      "height": 19,
+                      "icon": "close",
+                      "library": "Material Symbols Rounded",
+                      "fill": "$primary-dark"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "mnZzO",
+              "name": "日期范围摘要",
+              "width": "fill_container",
+              "height": 62,
+              "gap": 8,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "E6AS0",
+                  "name": "开始日期摘要",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "$surface-soft",
+                  "cornerRadius": 10,
+                  "stroke": "$primary",
+                  "strokeWidth": 2,
+                  "layout": "vertical",
+                  "gap": 3,
+                  "padding": [
+                    9,
+                    11
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "S0JqOR",
+                      "name": "开始日期标签",
+                      "fill": "$muted",
+                      "content": "开始日期",
+                      "fontFamily": "$font-body",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "WATDn",
+                      "name": "开始日期值",
+                      "fill": "$primary-dark",
+                      "content": "4月12日 · 周六",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "k5fnRG",
+                  "name": "结束日期摘要",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "$bg",
+                  "cornerRadius": 10,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "layout": "vertical",
+                  "gap": 3,
+                  "padding": [
+                    9,
+                    11
+                  ],
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "n0rdfY",
+                      "name": "结束日期标签",
+                      "fill": "$muted",
+                      "content": "结束日期",
+                      "fontFamily": "$font-body",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "o8BPK",
+                      "name": "结束日期值",
+                      "fill": "$primary-dark",
+                      "content": "4月14日 · 周一",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "YA2pu",
+              "name": "月份切换",
+              "width": "fill_container",
+              "height": 38,
+              "justifyContent": "space_between",
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "CAoUC",
+                  "name": "上个月",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$surface-soft",
+                  "cornerRadius": 18,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "XpijH",
+                      "name": "上个月图标",
+                      "width": 19,
+                      "height": 19,
+                      "icon": "chevron_left",
+                      "library": "Material Symbols Rounded",
+                      "fill": "$primary-dark"
+                    }
+                  ]
+                },
+                {
+                  "type": "text",
+                  "id": "U6q8k",
+                  "name": "当前月份",
+                  "fill": "$primary-dark",
+                  "content": "2025 年 4 月",
+                  "fontFamily": "$font-heading",
+                  "fontSize": 17,
+                  "fontWeight": "700"
+                },
+                {
+                  "type": "frame",
+                  "id": "mRb30",
+                  "name": "下个月",
+                  "width": 36,
+                  "height": 36,
+                  "fill": "$surface-soft",
+                  "cornerRadius": 18,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "icon",
+                      "id": "XHnuK",
+                      "name": "下个月图标",
+                      "width": 19,
+                      "height": 19,
+                      "icon": "chevron_right",
+                      "library": "Material Symbols Rounded",
+                      "fill": "$primary-dark"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "TvZjQ",
+              "name": "星期标题",
+              "width": "fill_container",
+              "height": 24,
+              "children": [
+                {
+                  "type": "text",
+                  "id": "RmQDH",
+                  "name": "星期一",
+                  "fill": "$muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "一",
+                  "textAlign": "center",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "r7NaD4",
+                  "name": "星期二",
+                  "fill": "$muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "二",
+                  "textAlign": "center",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "hj6DP",
+                  "name": "星期三",
+                  "fill": "$muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "三",
+                  "textAlign": "center",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "iZJ6a",
+                  "name": "星期四",
+                  "fill": "$muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "四",
+                  "textAlign": "center",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "CHvpz",
+                  "name": "星期五",
+                  "fill": "$muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "五",
+                  "textAlign": "center",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "hA5Wv",
+                  "name": "星期六",
+                  "fill": "$muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "六",
+                  "textAlign": "center",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                },
+                {
+                  "type": "text",
+                  "id": "X3sNi",
+                  "name": "星期日",
+                  "fill": "$muted",
+                  "textGrowth": "fixed-width",
+                  "width": "fill_container",
+                  "content": "日",
+                  "textAlign": "center",
+                  "fontFamily": "$font-body",
+                  "fontSize": 11,
+                  "fontWeight": "600"
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "OZbIA",
+              "name": "四月日历",
+              "width": "fill_container",
+              "layout": "vertical",
+              "gap": 5,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "jv5tx",
+                  "name": "日历第1周",
+                  "width": "fill_container",
+                  "height": 42,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "I9Miq",
+                      "name": "日期31月外",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "TutH9",
+                          "name": "日期31数字",
+                          "fill": "$border",
+                          "content": "31",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "I8vcX7",
+                      "name": "日期1",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "PJ8io",
+                          "name": "日期1数字",
+                          "fill": "$primary-dark",
+                          "content": "1",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wZazV",
+                      "name": "日期2",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "NJ9cu",
+                          "name": "日期2数字",
+                          "fill": "$primary-dark",
+                          "content": "2",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "xPS9x",
+                      "name": "日期3",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "UlepS",
+                          "name": "日期3数字",
+                          "fill": "$primary-dark",
+                          "content": "3",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "H0j8p",
+                      "name": "日期4",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SYOoW",
+                          "name": "日期4数字",
+                          "fill": "$primary-dark",
+                          "content": "4",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "KOzmH",
+                      "name": "日期5",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "rTDss",
+                          "name": "日期5数字",
+                          "fill": "$primary-dark",
+                          "content": "5",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "N0BNx",
+                      "name": "日期6",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "yeQcX",
+                          "name": "日期6数字",
+                          "fill": "$primary-dark",
+                          "content": "6",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "CsAny",
+                  "name": "日历第2周",
+                  "width": "fill_container",
+                  "height": 42,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "vqf1g",
+                      "name": "日期7",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "V0klhf",
+                          "name": "日期7数字",
+                          "fill": "$primary-dark",
+                          "content": "7",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "V8Sw1",
+                      "name": "日期8",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "I1VBy",
+                          "name": "日期8数字",
+                          "fill": "$primary-dark",
+                          "content": "8",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "uot50",
+                      "name": "日期9",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "b4EvM",
+                          "name": "日期9数字",
+                          "fill": "$primary-dark",
+                          "content": "9",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "pzBy8",
+                      "name": "日期10",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "pUWiF",
+                          "name": "日期10数字",
+                          "fill": "$primary-dark",
+                          "content": "10",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "kw2WU",
+                      "name": "日期11",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "h4EZG",
+                          "name": "日期11数字",
+                          "fill": "$primary-dark",
+                          "content": "11",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "jgHCU",
+                      "name": "日期12",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "$primary",
+                      "cornerRadius": 21,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "lynp9",
+                          "name": "日期12数字",
+                          "fill": "#FFFFFF",
+                          "content": "12",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "gZoBg",
+                      "name": "日期13",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "$surface-soft",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "MtzVX",
+                          "name": "日期13数字",
+                          "fill": "$primary-dark",
+                          "content": "13",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "C3fas",
+                  "name": "日历第3周",
+                  "width": "fill_container",
+                  "height": 42,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "nyGTN",
+                      "name": "日期14",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "$primary",
+                      "cornerRadius": 21,
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "BvPhu",
+                          "name": "日期14数字",
+                          "fill": "#FFFFFF",
+                          "content": "14",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "700"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "feH1Q",
+                      "name": "日期15",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "xoQRN",
+                          "name": "日期15数字",
+                          "fill": "$primary-dark",
+                          "content": "15",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "CL82o",
+                      "name": "日期16",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "nX3FP",
+                          "name": "日期16数字",
+                          "fill": "$primary-dark",
+                          "content": "16",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "EFW8q",
+                      "name": "日期17",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "SRECh",
+                          "name": "日期17数字",
+                          "fill": "$primary-dark",
+                          "content": "17",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "rVS37",
+                      "name": "日期18",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "QY9Nc",
+                          "name": "日期18数字",
+                          "fill": "$primary-dark",
+                          "content": "18",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "ghpE4",
+                      "name": "日期19",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "BP0Td",
+                          "name": "日期19数字",
+                          "fill": "$primary-dark",
+                          "content": "19",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "paGIN",
+                      "name": "日期20",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "T81xh",
+                          "name": "日期20数字",
+                          "fill": "$primary-dark",
+                          "content": "20",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "lxD83",
+                  "name": "日历第4周",
+                  "width": "fill_container",
+                  "height": 42,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "AEvRG",
+                      "name": "日期21",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "l5LrC",
+                          "name": "日期21数字",
+                          "fill": "$primary-dark",
+                          "content": "21",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "m58KH9",
+                      "name": "日期22",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "LNGhp",
+                          "name": "日期22数字",
+                          "fill": "$primary-dark",
+                          "content": "22",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "tmNVi",
+                      "name": "日期23",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "xUXWK",
+                          "name": "日期23数字",
+                          "fill": "$primary-dark",
+                          "content": "23",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "BorY8",
+                      "name": "日期24",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "u0YPt",
+                          "name": "日期24数字",
+                          "fill": "$primary-dark",
+                          "content": "24",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "fgFnj",
+                      "name": "日期25",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "BCGrj",
+                          "name": "日期25数字",
+                          "fill": "$primary-dark",
+                          "content": "25",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "k2CAR",
+                      "name": "日期26",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "VwkbC",
+                          "name": "日期26数字",
+                          "fill": "$primary-dark",
+                          "content": "26",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "X3ntP",
+                      "name": "日期27",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "cakSG",
+                          "name": "日期27数字",
+                          "fill": "$primary-dark",
+                          "content": "27",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "KafTV",
+                  "name": "日历第5周",
+                  "width": "fill_container",
+                  "height": 42,
+                  "children": [
+                    {
+                      "type": "frame",
+                      "id": "DcTWK",
+                      "name": "日期28",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "E90fe",
+                          "name": "日期28数字",
+                          "fill": "$primary-dark",
+                          "content": "28",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "Fqxi5",
+                      "name": "日期29",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "FSmuR",
+                          "name": "日期29数字",
+                          "fill": "$primary-dark",
+                          "content": "29",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "m3OgIg",
+                      "name": "日期30",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "aqTlL",
+                          "name": "日期30数字",
+                          "fill": "$primary-dark",
+                          "content": "30",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "aMnd3",
+                      "name": "日期1月外",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "u5UVF",
+                          "name": "日期1数字",
+                          "fill": "$border",
+                          "content": "1",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "bNm3u",
+                      "name": "日期2月外",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "XlsUG",
+                          "name": "日期2数字",
+                          "fill": "$border",
+                          "content": "2",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wA3Ho",
+                      "name": "日期3月外",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "crInH",
+                          "name": "日期3数字",
+                          "fill": "$border",
+                          "content": "3",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "wvqfE",
+                      "name": "日期4月外",
+                      "width": "fill_container",
+                      "height": "fill_container",
+                      "fill": "#00000000",
+                      "justifyContent": "center",
+                      "alignItems": "center",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "zoexT",
+                          "name": "日期4数字",
+                          "fill": "$border",
+                          "content": "4",
+                          "fontFamily": "$font-body",
+                          "fontSize": 12,
+                          "fontWeight": "500"
+                        }
+                      ]
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "iay9y",
+              "name": "行程日期结果",
+              "width": "fill_container",
+              "height": 50,
+              "fill": "$surface-soft",
+              "cornerRadius": 10,
+              "gap": 10,
+              "padding": [
+                0,
+                12
+              ],
+              "alignItems": "center",
+              "children": [
+                {
+                  "type": "icon",
+                  "id": "H5b4Xp",
+                  "name": "行程日期结果图标",
+                  "width": 19,
+                  "height": 19,
+                  "icon": "date_range",
+                  "library": "Material Symbols Rounded",
+                  "fill": "$primary"
+                },
+                {
+                  "type": "frame",
+                  "id": "qM7i8",
+                  "name": "行程日期结果文字",
+                  "width": "fill_container",
+                  "layout": "vertical",
+                  "gap": 2,
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "YevMA",
+                      "name": "行程日期结果主文案",
+                      "fill": "$primary-dark",
+                      "content": "4月12日 — 4月14日",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    },
+                    {
+                      "type": "text",
+                      "id": "arHCu",
+                      "name": "行程日期结果说明",
+                      "fill": "$muted",
+                      "content": "共 3 天 2 晚，将自动生成 3 个旅行日",
+                      "fontFamily": "$font-body",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                }
+              ]
+            },
+            {
+              "type": "frame",
+              "id": "TLhyX",
+              "name": "日期选择操作",
+              "width": "fill_container",
+              "height": 48,
+              "gap": 10,
+              "children": [
+                {
+                  "type": "frame",
+                  "id": "QU3Al",
+                  "name": "取消选择日期",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "$surface",
+                  "cornerRadius": 10,
+                  "stroke": "$border",
+                  "strokeWidth": 1,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "BPBnF",
+                      "name": "取消选择日期文字",
+                      "fill": "$primary-dark",
+                      "content": "取消",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                },
+                {
+                  "type": "frame",
+                  "id": "p7OKJ",
+                  "name": "确认出行日期",
+                  "width": "fill_container",
+                  "height": "fill_container",
+                  "fill": "$primary",
+                  "cornerRadius": 10,
+                  "justifyContent": "center",
+                  "alignItems": "center",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "n8gVpV",
+                      "name": "确认出行日期文字",
+                      "fill": "#FFFFFF",
+                      "content": "确认日期",
+                      "fontFamily": "$font-body",
+                      "fontSize": 13,
+                      "fontWeight": "700"
+                    }
+                  ]
+                }
+              ]
+            }
+          ]
         }
       ]
     }
