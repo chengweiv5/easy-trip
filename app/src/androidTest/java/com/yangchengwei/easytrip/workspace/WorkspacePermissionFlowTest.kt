@@ -133,11 +133,8 @@ class WorkspacePermissionFlowTest {
         compose.setContent {
             MaterialTheme {
                 MapControls(
-                    layer = MapLayer.STANDARD,
-                    overlay = WorkspaceOverlay.None,
+                    active = false,
                     onOpenLayerMenu = {},
-                    onCloseOverlay = {},
-                    onSelectLayer = {},
                     onLocate = { locateClicks++ },
                 )
             }

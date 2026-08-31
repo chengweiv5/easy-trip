@@ -52,12 +52,19 @@ class WorkspaceLayoutMetricsTest {
         assertTrue(workspaceMapOverlaysFit(baseline))
     }
 
-    @Test fun `layer menu requires more map space than compact controls`() {
-        val compactOnly = workspaceLayoutMetrics(600.dp, workspaceSheetAnchors(600.dp), WorkspaceSheetLevel.HALF)
-        val baseline = workspaceLayoutMetrics(782.dp, workspaceSheetAnchors(782.dp), WorkspaceSheetLevel.HALF)
+    @Test fun `layer menu requires safe workspace width and height`() {
+        val tooShort = WorkspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 428.dp,
+            sheetHeight = 0.dp,
+            sheetTop = 428.dp,
+            overlayBottomInset = 20.dp,
+        )
+        val tooNarrow = tooShort.copy(availableWidth = 255.dp, availableHeight = 782.dp, sheetTop = 782.dp)
+        val baseline = tooNarrow.copy(availableWidth = 256.dp)
 
-        assertTrue(workspaceMapOverlaysFit(compactOnly))
-        assertFalse(workspaceLayerMenuFits(compactOnly))
+        assertFalse(workspaceLayerMenuFits(tooShort))
+        assertFalse(workspaceLayerMenuFits(tooNarrow))
         assertTrue(workspaceLayerMenuFits(baseline))
     }
 }

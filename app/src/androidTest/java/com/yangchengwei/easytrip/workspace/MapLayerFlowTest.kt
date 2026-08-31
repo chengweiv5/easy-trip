@@ -5,7 +5,9 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.semantics.Role
@@ -68,25 +70,60 @@ class MapLayerFlowTest {
         compose.onNodeWithText("搜索餐厅、景点或地址").assertIsDisplayed()
     }
 
-    @Test fun layerMenuUsesExclusiveWorkspaceOverlay() {
-        var overlay by mutableStateOf<WorkspaceOverlay>(WorkspaceOverlay.None)
+    @Test fun selectedLayerOptionHasExplicitPrimaryBorder() {
         compose.setContent {
             EasyTripTheme {
-                MapControls(
+                MapLayerMenu(
                     layer = MapLayer.STANDARD,
-                    overlay = overlay,
-                    onOpenLayerMenu = { overlay = WorkspaceOverlay.LayerMenu },
-                    onCloseOverlay = { overlay = WorkspaceOverlay.None },
+                    onClose = {},
                     onSelectLayer = {},
                 )
             }
         }
 
+        compose.onNodeWithTag("layer-selected-border-STANDARD", useUnmergedTree = true).assertIsDisplayed()
+        compose.onAllNodesWithTag("layer-selected-border-SATELLITE", useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithTag("layer-selected-border-SATELLITE_ROAD", useUnmergedTree = true).assertCountEquals(0)
+    }
+
+    @Test fun layerLauncherActiveStateFollowsMenuVisibilityInsteadOfSelectedLayer() {
+        var active by mutableStateOf(false)
+        compose.setContent {
+            EasyTripTheme {
+                MapControls(
+                    active = active,
+                    onOpenLayerMenu = { active = true },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("layer-menu").assertIsNotSelected().performClick()
+        compose.onNodeWithTag("layer-menu").assertIsSelected()
+    }
+
+    @Test fun layerMenuUsesExclusiveWorkspaceOverlay() {
+        var overlay by mutableStateOf<WorkspaceOverlay>(WorkspaceOverlay.None)
+        compose.setContent {
+            EasyTripTheme {
+                MapControls(
+                    active = overlay == WorkspaceOverlay.LayerMenu,
+                    onOpenLayerMenu = { overlay = WorkspaceOverlay.LayerMenu },
+                )
+                if (overlay == WorkspaceOverlay.LayerMenu) {
+                    MapLayerMenu(
+                        layer = MapLayer.STANDARD,
+                        onClose = { overlay = WorkspaceOverlay.None },
+                        onSelectLayer = {},
+                    )
+                }
+            }
+        }
+
         compose.onNodeWithTag("layer-menu").performClick()
-        compose.onNodeWithText("地图图层").assertIsDisplayed()
-        compose.onNodeWithTag("layer-menu-close").assertWidthIsAtLeast(40.dp).assertHeightIsAtLeast(40.dp)
+        compose.onNodeWithTag("layer-menu-panel").assertIsDisplayed()
+        compose.onNodeWithTag("layer-STANDARD").assertIsDisplayed()
         compose.runOnIdle { overlay = WorkspaceOverlay.PlaceDetail(1) }
-        compose.onNodeWithText("地图图层").assertDoesNotExist()
+        compose.onNodeWithTag("layer-menu-panel").assertDoesNotExist()
     }
 
     @Test fun layerControlsAreExclusiveAndSelectionSurvivesTripSwitch() {
@@ -106,19 +143,21 @@ class MapLayerFlowTest {
 
         compose.onNodeWithTag("layer-menu").performClick()
         compose.onNodeWithTag("layer-STANDARD").assertIsDisplayed()
+        compose.onNodeWithTag("layer-SATELLITE").assertIsDisplayed()
+        compose.onNodeWithText("卫星地图").assertIsDisplayed()
         compose.onNodeWithTag("layer-SATELLITE_ROAD").assertIsDisplayed().performClick()
         compose.waitUntil(5_000) { first.state.value.mapLayer == MapLayer.SATELLITE_ROAD }
         assertEquals(0, compose.onAllNodesWithTag("layer-STANDARD").fetchSemanticsNodes().size)
 
         compose.onNodeWithTag("layer-menu").performClick()
-        compose.onNodeWithText("卫星").assertIsDisplayed()
+        compose.onNodeWithText("卫星路网").assertIsDisplayed()
         compose.onNodeWithTag("layer-SATELLITE_ROAD").assertIsSelected().performClick()
 
         val second = model("trip-2", preferences)
         compose.runOnIdle { current = second }
         compose.waitUntil(5_000) { second.state.value.mapLayer == MapLayer.SATELLITE_ROAD }
         compose.onNodeWithTag("layer-menu").performClick()
-        compose.onNodeWithText("卫星").assertIsDisplayed()
+        compose.onNodeWithText("卫星路网").assertIsDisplayed()
         compose.onNodeWithTag("layer-SATELLITE_ROAD").assertIsSelected()
         assertEquals(MapLayer.SATELLITE_ROAD, preferences.layer.value)
     }

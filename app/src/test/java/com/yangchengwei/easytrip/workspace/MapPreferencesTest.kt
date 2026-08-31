@@ -9,14 +9,53 @@ class MapPreferencesTest {
         assertEquals(MapLayer.STANDARD, SharedPreferencesMapPreferences(MemoryPreferences()).layer.value)
     }
 
-    @Test fun `all layer values are written and emitted`() {
+    @Test fun `all layer values are written as stable lowercase tokens and emitted`() {
         val storage = MemoryPreferences()
         val preferences = SharedPreferencesMapPreferences(storage)
+        val tokens = mapOf(
+            MapLayer.STANDARD to "standard",
+            MapLayer.SATELLITE to "satellite",
+            MapLayer.SATELLITE_ROAD to "satellite_road",
+        )
 
-        MapLayer.entries.forEach { layer ->
+        tokens.forEach { (layer, token) ->
             preferences.setLayer(layer)
             assertEquals(layer, preferences.layer.value)
-            assertEquals(layer.name, storage.getString("map.layer", null))
+            assertEquals(token, storage.getString("map.layer", null))
+        }
+    }
+
+    @Test fun `lowercase stored tokens restore matching layers`() {
+        mapOf(
+            "standard" to MapLayer.STANDARD,
+            "satellite" to MapLayer.SATELLITE,
+            "satellite_road" to MapLayer.SATELLITE_ROAD,
+        ).forEach { (token, layer) ->
+            assertEquals(layer, SharedPreferencesMapPreferences(MemoryPreferences(mutableMapOf("map.layer" to token))).layer.value)
+        }
+    }
+
+    @Test fun `legacy uppercase values migrate to compatible lowercase tokens`() {
+        mapOf(
+            "STANDARD" to (MapLayer.STANDARD to "standard"),
+            "SATELLITE" to (MapLayer.SATELLITE_ROAD to "satellite_road"),
+            "SATELLITE_ROAD" to (MapLayer.SATELLITE_ROAD to "satellite_road"),
+        ).forEach { (legacy, expected) ->
+            val storage = MemoryPreferences(mutableMapOf("map.layer" to legacy))
+
+            assertEquals(expected.first, SharedPreferencesMapPreferences(storage).layer.value)
+            assertEquals(expected.second, storage.getString("map.layer", null))
+        }
+    }
+
+    @Test fun `new tokens survive recreation exactly`() {
+        MapLayer.entries.forEach { layer ->
+            val storage = MemoryPreferences()
+            SharedPreferencesMapPreferences(storage).setLayer(layer)
+
+            val stored = storage.getString("map.layer", null)
+            assertEquals(layer, SharedPreferencesMapPreferences(storage).layer.value)
+            assertEquals(stored, storage.getString("map.layer", null))
         }
     }
 
@@ -25,13 +64,6 @@ class MapPreferencesTest {
         SharedPreferencesMapPreferences(storage).setLayer(MapLayer.SATELLITE_ROAD)
 
         assertEquals(MapLayer.SATELLITE_ROAD, SharedPreferencesMapPreferences(storage).layer.value)
-    }
-
-    @Test fun `legacy satellite value migrates to satellite road`() {
-        val storage = MemoryPreferences(mutableMapOf("map.layer" to "SATELLITE"))
-
-        assertEquals(MapLayer.SATELLITE_ROAD, SharedPreferencesMapPreferences(storage).layer.value)
-        assertEquals("SATELLITE_ROAD", storage.getString("map.layer", null))
     }
 
     @Test fun `invalid stored value falls back to standard`() {

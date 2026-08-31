@@ -6,6 +6,8 @@ import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.amap.ConsentRegistry
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
@@ -109,6 +111,80 @@ class TripWorkspaceContentStateTest {
         trips.value.value = TripWithDays("trip", "北京", LocalDate.of(2026, 8, 23), TravelMode.FLEXIBLE, listOf(TripDay("day", 0)))
         advanceUntilIdle()
         assertEquals("北京", (model.pageState.value as TripWorkspacePageState.Ready).content.tripName)
+    }
+
+    @Test fun nonEmptyDaysWithEmptySnapshotsAndNoSavedPlacesExposeJointFullEmptyState() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips)
+        trips.value.value = TripWithDays(
+            "trip",
+            "北京",
+            LocalDate.of(2026, 8, 23),
+            TravelMode.FLEXIBLE,
+            listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
+        )
+        advanceUntilIdle()
+
+        val ready = model.pageState.value as TripWorkspacePageState.Ready
+        assertEquals(true, ready.content.isItineraryAllEmpty)
+        assertEquals(true, ready.content.isWorkspaceAllEmpty)
+    }
+
+    @Test fun incompleteOrMismatchedSnapshotIdsDoNotExposeFullEmptyState() = runTest(dispatcher) {
+        val trips = Trips()
+        val itineraries = ControlledItineraries(
+            mapOf(
+                "day-1" to DayItinerary("day-1", "trip", emptyList()),
+                "day-2" to DayItinerary("stale-day", "trip", emptyList()),
+            ),
+        )
+        val model = TripWorkspaceViewModel("trip", trips, Places(), itineraries, Legs(), SavedStateHandle())
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+
+        val ready = model.pageState.value as TripWorkspacePageState.Ready
+        assertEquals(false, ready.content.isItineraryAllEmpty)
+        assertEquals(false, ready.content.isWorkspaceAllEmpty)
+    }
+
+    @Test fun itineraryItemInAnyCurrentDayDoesNotExposeFullEmptyState() = runTest(dispatcher) {
+        val trips = Trips()
+        val itineraries = ControlledItineraries(
+            mapOf(
+                "day-1" to DayItinerary("day-1", "trip", listOf(itineraryItem("item-1"))),
+                "day-2" to DayItinerary("day-2", "trip", emptyList()),
+            ),
+        )
+        val model = TripWorkspaceViewModel("trip", trips, Places(), itineraries, Legs(), SavedStateHandle())
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+
+        val ready = model.pageState.value as TripWorkspacePageState.Ready
+        assertEquals(false, ready.content.isItineraryAllEmpty)
+        assertEquals(false, ready.content.isWorkspaceAllEmpty)
+    }
+
+    @Test fun savedPlaceKeepsWorkspaceFullEmptyFalseWhileAllItinerariesAreEmpty() = runTest(dispatcher) {
+        val trips = Trips()
+        val places = Places(listOf(savedPlace()))
+        val model = model(trips, places)
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+
+        val ready = model.pageState.value as TripWorkspacePageState.Ready
+        assertEquals(true, ready.content.isItineraryAllEmpty)
+        assertEquals(false, ready.content.isWorkspaceAllEmpty)
+    }
+
+    @Test fun tripWithoutDaysDoesNotExposeItineraryFullEmptyState() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips)
+        trips.value.value = TripWithDays("trip", "北京", LocalDate.of(2026, 8, 23), TravelMode.FLEXIBLE, emptyList())
+        advanceUntilIdle()
+
+        val ready = model.pageState.value as TripWorkspacePageState.Ready
+        assertEquals(false, ready.content.isItineraryAllEmpty)
+        assertEquals(false, ready.content.isWorkspaceAllEmpty)
     }
 
     @Test fun readyTripExposesWorkspaceDateLabel() = runTest(dispatcher) {
@@ -260,6 +336,29 @@ class TripWorkspaceContentStateTest {
     }
 
     private fun trip() = TripWithDays("trip", "北京", LocalDate.of(2026, 8, 23), TravelMode.FLEXIBLE, listOf(TripDay("day", 0)))
+    private fun tripWithTwoDays() = TripWithDays(
+        "trip",
+        "北京",
+        LocalDate.of(2026, 8, 23),
+        TravelMode.FLEXIBLE,
+        listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
+    )
+    private fun itineraryItem(id: String) = ItineraryItem(
+        id,
+        ItineraryPlace("place-$id", "地点", "地址", com.yangchengwei.easytrip.core.model.GeoPoint(39.9, 116.4)),
+        null,
+        null,
+    )
+    private fun savedPlace() = SavedPlace(
+        "place-1",
+        "trip",
+        "poi-1",
+        "地点",
+        "地址",
+        com.yangchengwei.easytrip.core.model.GeoPoint(39.9, 116.4),
+        "",
+        emptyList(),
+    )
     private fun model(trips: Trips, places: Places = Places()) = TripWorkspaceViewModel("trip", trips, places, Itineraries(), Legs(), SavedStateHandle())
 
     private class Trips(private val failure: Throwable? = null) : TripRepository {
@@ -284,10 +383,10 @@ class TripWorkspaceContentStateTest {
         override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion) = Unit
         override suspend fun deleteTrip(tripId: String) = Unit
     }
-    private class Places : SavedPlaceRepository {
+    private class Places(private val saved: List<SavedPlace> = emptyList()) : SavedPlaceRepository {
         val fail = MutableStateFlow(false)
         override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = fail.flatMapLatest { broken ->
-            if (broken) flow { throw IllegalStateException("places") } else flowOf(emptyList())
+            if (broken) flow { throw IllegalStateException("places") } else flowOf(saved)
         }
         override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
         override fun observeSavedPoiIds(tripId: String) = flowOf(emptySet<String>())
@@ -299,6 +398,15 @@ class TripWorkspaceContentStateTest {
     }
     private class Itineraries(private val failure: Boolean = false) : ItineraryRepository {
         override fun observeDay(dayId: String): Flow<DayItinerary> = if (failure) flow { throw IllegalStateException("itinerary") } else flowOf(DayItinerary(dayId, "trip", emptyList()))
+        override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int) = "item"
+        override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteItem(itemId: String) = Unit
+        override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun removePlaceOccurrences(placeId: String) = Unit
+    }
+
+    private class ControlledItineraries(private val days: Map<String, DayItinerary>) : ItineraryRepository {
+        override fun observeDay(dayId: String): Flow<DayItinerary> = flowOf(requireNotNull(days[dayId]))
         override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int) = "item"
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
         override suspend fun deleteItem(itemId: String) = Unit

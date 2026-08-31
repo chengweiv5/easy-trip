@@ -36,6 +36,8 @@ data class TripWorkspaceReadyState(
     val selectedMarkerPoi: MapPoiUi?,
     val selectedMapPoi: MapPoiUi?,
     val overlay: WorkspaceOverlay,
+    val isItineraryAllEmpty: Boolean = false,
+    val isWorkspaceAllEmpty: Boolean = false,
     val dateLabel: String? = null,
 )
 
@@ -53,6 +55,8 @@ internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
     selectedMarkerPoi = selectedMarkerPoi,
     selectedMapPoi = selectedMapPoi,
     overlay = overlay,
+    isItineraryAllEmpty = isItineraryAllEmpty,
+    isWorkspaceAllEmpty = isWorkspaceAllEmpty,
 )
 
 sealed interface TripWorkspacePageState {

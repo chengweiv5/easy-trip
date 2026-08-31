@@ -3,12 +3,21 @@ package com.yangchengwei.easytrip.workspace
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.performClick
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.material3.Text
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeUp
+import androidx.compose.ui.test.click
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -200,25 +209,203 @@ class WorkspaceChromeTest {
         compose.onNodeWithTag("workspace-tab-indicator-PLACE_POOL", useUnmergedTree = true).assertHeightIsEqualTo(3.dp)
     }
 
+    @Test fun layerMenuScrimBlocksBottomSheetAndOutsideTapClosesOnlyOverlay() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(
+                            TripWorkspaceUiState(
+                                tripName = "北京",
+                                sheetLevel = WorkspaceSheetLevel.HALF,
+                                overlay = WorkspaceOverlay.LayerMenu,
+                            ).toReadyState(),
+                        ),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = actions::add,
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { Text("地图就绪") },
+                        modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("layer-menu-scrim").assertIsDisplayed()
+        val shield = compose.onNodeWithTag("layer-menu-hit-shield").getUnclippedBoundsInRoot()
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+        org.junit.Assert.assertTrue("shield=$shield sheet=$sheet", shield.bottom >= sheet.bottom)
+        compose.onNodeWithTag("workspace-root").performTouchInput { click(Offset(32f, 450f)) }
+        org.junit.Assert.assertEquals(listOf(TripWorkspaceAction.CloseOverlay), actions)
+    }
+
+    @Test fun layerMenuHasThreeRadioOptionsAndStaysInsideWorkspaceBounds() {
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(
+                            TripWorkspaceUiState(
+                                tripName = "北京",
+                                sheetLevel = WorkspaceSheetLevel.HALF,
+                                overlay = WorkspaceOverlay.LayerMenu,
+                            ).toReadyState(),
+                        ),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = {},
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { Text("地图就绪") },
+                        modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("layer-menu-panel").assertHeightIsEqualTo(289.dp)
+        listOf("STANDARD", "SATELLITE", "SATELLITE_ROAD").forEach { option ->
+            compose.onNodeWithTag("layer-$option").assertIsDisplayed().assertHeightIsEqualTo(62.dp)
+        }
+        compose.onNodeWithText("标准地图").assertIsDisplayed()
+        compose.onNodeWithText("卫星地图").assertIsDisplayed()
+        compose.onNodeWithText("卫星路网").assertIsDisplayed()
+        compose.onNodeWithText("选择将应用到所有旅行，并在下次打开时保留。").assertIsDisplayed()
+        val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
+        val panel = compose.onNodeWithTag("layer-menu-panel").getUnclippedBoundsInRoot()
+        org.junit.Assert.assertTrue("root=$root panel=$panel", panel.left >= root.left && panel.right <= root.right && panel.top >= root.top && panel.bottom <= root.bottom)
+    }
+
+    @Test fun layerMenuPickerOptionDispatchesSelectThenCloseExactlyOnce() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(TripWorkspaceUiState(tripName = "北京", sheetLevel = WorkspaceSheetLevel.HALF, overlay = WorkspaceOverlay.LayerMenu).toReadyState()),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = actions::add,
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(), onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(), onItineraryAction = {},
+                        mapContent = { Text("地图就绪") }, modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+        compose.onNodeWithTag("layer-SATELLITE").performClick()
+        org.junit.Assert.assertEquals(listOf(TripWorkspaceAction.SelectMapLayer(MapLayer.SATELLITE), TripWorkspaceAction.CloseOverlay), actions)
+    }
+
+    @Test fun layerMenuPickerBlankCoordinateDoesNotClose() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(TripWorkspaceUiState(tripName = "北京", sheetLevel = WorkspaceSheetLevel.HALF, overlay = WorkspaceOverlay.LayerMenu).toReadyState()),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = actions::add,
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(), onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(), onItineraryAction = {},
+                        mapContent = { Text("地图就绪") }, modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+        val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
+        val panel = compose.onNodeWithTag("layer-menu-panel").getUnclippedBoundsInRoot()
+        val blankInsidePanel = with(compose.density) {
+            Offset((panel.right - root.left).toPx() - 4f, (panel.bottom - root.top).toPx() - 4f)
+        }
+        compose.onNodeWithTag("workspace-root").performTouchInput { click(blankInsidePanel) }
+        org.junit.Assert.assertTrue(actions.isEmpty())
+    }
+
+    @Test fun layerMenuRootCoordinatesBlockUnderlyingWorkspaceInteractions() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        var mapClicks = 0
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(TripWorkspaceUiState(tripName = "北京", sheetLevel = WorkspaceSheetLevel.HALF, overlay = WorkspaceOverlay.LayerMenu).toReadyState()),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = actions::add,
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(), onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(), onItineraryAction = {},
+                        mapContent = { Box(Modifier.fillMaxSize().clickable { mapClicks++ }) },
+                        modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
+        fun clickRootAt(tag: String) {
+            val bounds = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            compose.onNodeWithTag("workspace-root").performTouchInput {
+                click(with(compose.density) {
+                    Offset(
+                        ((bounds.left + bounds.right) / 2 - root.left).toPx(),
+                        ((bounds.top + bounds.bottom) / 2 - root.top).toPx(),
+                    )
+                })
+            }
+        }
+
+        listOf(
+            "workspace-search-launcher" to TripWorkspaceAction.OpenSearch,
+            "workspace-locate" to TripWorkspaceAction.Locate,
+            "layer-menu" to TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu),
+            "section-PLACE_POOL" to TripWorkspaceAction.SelectSection(WorkspaceSection.PLACE_POOL),
+        ).forEach { (tag, forbiddenAction) ->
+            actions.clear()
+            clickRootAt(tag)
+            org.junit.Assert.assertFalse("$tag leaked $actions", forbiddenAction in actions)
+        }
+
+        actions.clear()
+        compose.onNodeWithTag("workspace-root").performTouchInput { click(Offset(24f, 260f)) }
+        org.junit.Assert.assertEquals(0, mapClicks)
+
+        actions.clear()
+        val handle = compose.onNodeWithTag("workspace-sheet-handle").getUnclippedBoundsInRoot()
+        val start = with(compose.density) {
+            Offset(
+                (((handle.left + handle.right) / 2) - root.left).toPx(),
+                (((handle.top + handle.bottom) / 2) - root.top).toPx(),
+            )
+        }
+        compose.onNodeWithTag("workspace-root").performTouchInput {
+            swipe(start = start, end = start - Offset(0f, 180f), durationMillis = 300)
+        }
+        org.junit.Assert.assertTrue(actions.none { it is TripWorkspaceAction.SetSheetLevel })
+    }
+
     @Test fun mapControlsUseIconsWithoutPlaceholderActionText() {
         compose.setContent {
             EasyTripTheme {
                 MapControls(
-                    layer = MapLayer.STANDARD,
-                    overlay = WorkspaceOverlay.LayerMenu,
+                    active = false,
                     onOpenLayerMenu = {},
-                    onCloseOverlay = {},
-                    onSelectLayer = {},
                     onLocate = {},
                 )
             }
         }
 
         compose.onNodeWithContentDescription("定位").assertHasClickAction()
-        compose.onNodeWithContentDescription("关闭图层菜单").assertHasClickAction()
         compose.onNodeWithText("定位").assertDoesNotExist()
         compose.onNodeWithText("关闭").assertDoesNotExist()
         compose.onNodeWithText("✓ 标准").assertDoesNotExist()
-        compose.onNodeWithTag("layer-STANDARD").assertIsSelected()
     }
 }

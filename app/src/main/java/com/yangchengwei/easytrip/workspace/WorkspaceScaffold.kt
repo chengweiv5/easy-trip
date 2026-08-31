@@ -21,6 +21,7 @@ import androidx.compose.ui.unit.dp
 
 @Immutable
 internal data class WorkspaceLayoutMetrics(
+    val availableWidth: Dp,
     val availableHeight: Dp,
     val sheetHeight: Dp,
     val sheetTop: Dp,
@@ -32,7 +33,9 @@ internal fun workspaceLayoutMetrics(
     anchors: WorkspaceSheetAnchors,
     level: WorkspaceSheetLevel,
     overlayGap: Dp = 20.dp,
+    availableWidth: Dp = Dp.Infinity,
 ): WorkspaceLayoutMetrics = workspaceLayoutMetrics(
+    availableWidth = availableWidth,
     availableHeight = availableHeight,
     visibleSheetHeight = anchors[level],
     overlayGap = overlayGap,
@@ -42,10 +45,12 @@ internal fun workspaceLayoutMetrics(
     availableHeight: Dp,
     visibleSheetHeight: Dp,
     overlayGap: Dp = 20.dp,
+    availableWidth: Dp = Dp.Infinity,
 ): WorkspaceLayoutMetrics {
     val sheetHeight = visibleSheetHeight.coerceIn(0.dp, availableHeight)
     val sheetTop = (availableHeight - sheetHeight).coerceAtLeast(0.dp)
     return WorkspaceLayoutMetrics(
+        availableWidth = availableWidth,
         availableHeight = availableHeight,
         sheetHeight = sheetHeight,
         sheetTop = sheetTop,
@@ -60,6 +65,7 @@ internal fun WorkspaceScaffold(
     modifier: Modifier = Modifier,
     map: @Composable BoxScope.(WorkspaceLayoutMetrics) -> Unit,
     topOverlay: @Composable BoxScope.(WorkspaceLayoutMetrics) -> Unit,
+    modalOverlay: @Composable BoxScope.(WorkspaceLayoutMetrics) -> Unit = {},
     sheetHeader: @Composable () -> Unit,
     sheetContent: @Composable () -> Unit,
     collapsedContent: @Composable () -> Unit = {},
@@ -76,7 +82,11 @@ internal fun WorkspaceScaffold(
         val visibleSheetHeight = with(density) { anchors[sheetLevel].toPx() - dragOffsetPx }.let { heightPx ->
             with(density) { heightPx.toDp() }
         }
-        val metrics = workspaceLayoutMetrics(maxHeight, visibleSheetHeight)
+        val metrics = workspaceLayoutMetrics(
+            availableHeight = maxHeight,
+            visibleSheetHeight = visibleSheetHeight,
+            availableWidth = maxWidth,
+        )
         Box(Modifier.fillMaxSize()) {
             map(metrics)
             topOverlay(metrics)
@@ -92,5 +102,6 @@ internal fun WorkspaceScaffold(
             collapsedContent = collapsedContent,
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
         )
+        Box(Modifier.fillMaxSize()) { modalOverlay(metrics) }
     }
 }

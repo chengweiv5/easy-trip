@@ -69,9 +69,29 @@ import org.json.JSONObject
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TestName
 
 class VisualBatch0EvidenceTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    @get:Rule val testName = TestName()
+
+    @Test fun evidenceManifestRecordsJUnitMethodAndRuntimeSerial() {
+        val manifest = evidenceManifest(
+            frameId = "metadata",
+            evidenceName = "metadata-check",
+            testMethod = testName.methodName,
+            deviceSerial = "runtime-serial",
+        )
+
+        assertEquals(testName.methodName, manifest.getString("test_method"))
+        assertEquals("metadata-check", manifest.getString("evidence_name"))
+        assertEquals("runtime-serial", manifest.getString("device_serial"))
+    }
+
+    @Test fun missingDeviceSerialIsRecordedAsUnknown() {
+        assertEquals("unknown", normalizedDeviceSerial(null))
+        assertEquals("unknown", normalizedDeviceSerial("   "))
+    }
 
     @Test fun settings_U06l7P() {
         render("U06l7P", "settings") {
@@ -104,6 +124,89 @@ class VisualBatch0EvidenceTest {
             PlaceDetailPanel(searchCandidates()[1], savedPlace(), null, PlaceDetailSource.Search, false, null, {})
         }
         compose.onNodeWithText("西湖天地").assertIsDisplayed()
+    }
+
+    @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_shoPV() {
+        render(
+            "shoPV",
+            "workspace-map-layer",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(
+                    section = WorkspaceSection.PLACE_POOL,
+                    overlay = com.yangchengwei.easytrip.workspace.WorkspaceOverlay.LayerMenu,
+                ),
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = placePoolState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
+        }
+        compose.onNodeWithTag("layer-menu-panel").assertIsDisplayed()
+        compose.onNodeWithTag("layer-menu-scrim").assertIsDisplayed()
+        compose.onNodeWithTag("layer-STANDARD").assertIsDisplayed()
+        compose.onNodeWithTag("layer-SATELLITE").assertIsDisplayed()
+        compose.onNodeWithTag("layer-SATELLITE_ROAD").assertIsDisplayed()
+    }
+
+    @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_BrYVA() {
+        render(
+            "BrYVA",
+            "workspace-all-empty",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(
+                    section = WorkspaceSection.PLACE_POOL,
+                    isItineraryAllEmpty = true,
+                    isWorkspaceAllEmpty = true,
+                ),
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
+        }
+        assertWorkspaceHost()
+        compose.onNodeWithTag("workspace-all-empty").assertIsDisplayed()
+    }
+
+    @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_WFOpg() {
+        render(
+            "WFOpg",
+            "workspace-itinerary-all-empty",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(
+                    section = WorkspaceSection.ITINERARY,
+                    isItineraryAllEmpty = true,
+                ),
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
+        }
+        assertWorkspaceHost()
+        compose.onNodeWithTag("itinerary-all-empty").assertIsDisplayed()
+        compose.onAllNodesWithTag("itinerary-scope-rail").assertCountEquals(0)
     }
 
     @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_A9EKX() {
@@ -359,31 +462,72 @@ class VisualBatch0EvidenceTest {
             FileOutputStream(png).use { check(shot.compress(Bitmap.CompressFormat.PNG, 100, it)) }
         } finally { shot.recycle() }
         File(directory, "$name-$frameId.manifest.json").writeText(
-            JSONObject()
-                .put("frame_id", frameId)
-                .put("test_class", javaClass.name)
-                .put("test_method", name)
-                .put("evidence_host", evidenceHost)
-                .put("map_surface", mapSurface)
-                .put("baseline_width_dp", 390)
-                .put("target_phone_width_dp_range", "387..390")
-                .put("actual_width_dp", actualWidthDp)
-                .put("git_sha", BuildConfig.GIT_SHA)
-                .put("source_state", BuildConfig.SOURCE_STATE)
-                .put("device_serial", "emulator-5554")
-                .put("device_fingerprint", Build.FINGERPRINT)
-                .put("device_model", Build.MODEL)
-                .put("device_sdk", Build.VERSION.SDK_INT)
-                .put("bitmap_width_px", shot.width)
-                .put("bitmap_height_px", shot.height)
-                .put("window_width_dp", config.screenWidthDp)
-                .put("window_height_dp", config.screenHeightDp)
-                .put("density_dpi", config.densityDpi)
-                .put("font_scale", config.fontScale.toDouble())
-                .put("png_sha256", sha256(png))
-                .toString(2),
+            evidenceManifest(
+                frameId = frameId,
+                evidenceName = name,
+                testMethod = testName.methodName,
+                deviceSerial = runtimeDeviceSerial(),
+                evidenceHost = evidenceHost,
+                mapSurface = mapSurface,
+                actualWidthDp = actualWidthDp,
+                bitmapWidthPx = shot.width,
+                bitmapHeightPx = shot.height,
+                windowHeightDp = config.screenHeightDp,
+                densityDpi = config.densityDpi,
+                fontScale = config.fontScale.toDouble(),
+                pngSha256 = sha256(png),
+            ).toString(2),
         )
     }
+
+    private fun evidenceManifest(
+        frameId: String,
+        evidenceName: String,
+        testMethod: String,
+        deviceSerial: String,
+        evidenceHost: String = "isolated Compose fixture",
+        mapSurface: String = "not applicable",
+        actualWidthDp: Int = 390,
+        bitmapWidthPx: Int = 0,
+        bitmapHeightPx: Int = 0,
+        windowHeightDp: Int = 0,
+        densityDpi: Int = 0,
+        fontScale: Double = 1.0,
+        pngSha256: String = "",
+    ) = JSONObject()
+        .put("frame_id", frameId)
+        .put("evidence_name", evidenceName)
+        .put("test_class", javaClass.name)
+        .put("test_method", testMethod)
+        .put("evidence_host", evidenceHost)
+        .put("map_surface", mapSurface)
+        .put("baseline_width_dp", 390)
+        .put("target_phone_width_dp_range", "387..390")
+        .put("actual_width_dp", actualWidthDp)
+        .put("git_sha", BuildConfig.GIT_SHA)
+        .put("source_state", BuildConfig.SOURCE_STATE)
+        .put("device_serial", normalizedDeviceSerial(deviceSerial))
+        .put("device_fingerprint", Build.FINGERPRINT)
+        .put("device_model", Build.MODEL)
+        .put("device_sdk", Build.VERSION.SDK_INT)
+        .put("bitmap_width_px", bitmapWidthPx)
+        .put("bitmap_height_px", bitmapHeightPx)
+        .put("window_width_dp", actualWidthDp)
+        .put("window_height_dp", windowHeightDp)
+        .put("density_dpi", densityDpi)
+        .put("font_scale", fontScale)
+        .put("png_sha256", pngSha256)
+
+    private fun runtimeDeviceSerial(): String {
+        val arguments = InstrumentationRegistry.getArguments()
+        val provided = arguments.getString("device_serial") ?: arguments.getString("deviceSerial")
+        if (!provided.isNullOrBlank()) return provided
+        return runCatching { Build.getSerial() }
+            .getOrNull()
+            .let(::normalizedDeviceSerial)
+    }
+
+    private fun normalizedDeviceSerial(value: String?): String = value?.trim().takeUnless { it.isNullOrEmpty() || it == Build.UNKNOWN } ?: "unknown"
 
     @androidx.compose.runtime.Composable
     private fun DeterministicFakeMapSurface() {
@@ -407,6 +551,9 @@ class VisualBatch0EvidenceTest {
     private fun workspaceState(
         section: WorkspaceSection,
         sheetLevel: WorkspaceSheetLevel = WorkspaceSheetLevel.HALF,
+        overlay: com.yangchengwei.easytrip.workspace.WorkspaceOverlay = com.yangchengwei.easytrip.workspace.WorkspaceOverlay.None,
+        isItineraryAllEmpty: Boolean = false,
+        isWorkspaceAllEmpty: Boolean = false,
     ) = TripWorkspacePageState.Ready(
         TripWorkspaceUiState(
             tripName = "杭州·春日慢游",
@@ -415,6 +562,9 @@ class VisualBatch0EvidenceTest {
             section = section,
             itineraryScope = ItineraryScope.Day("day-1"),
             sheetLevel = sheetLevel,
+            overlay = overlay,
+            isItineraryAllEmpty = isItineraryAllEmpty,
+            isWorkspaceAllEmpty = isWorkspaceAllEmpty,
         ).toReadyState(),
     )
 

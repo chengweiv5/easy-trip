@@ -32,12 +32,12 @@
 |---|---|---|---|---|---|
 | Easy Trip UI Kit | `f7rS8` | `EasyTripTokens`、Theme、基础组件 | 颜色、字体、圆角、按钮、状态反馈 | 编译、组件 UI 测试 | 待分析 |
 | 14 状态规范 | `DxZ2a` | `EmptyState`、InlineStatus、Dialog、Snackbar | 六类通用状态和恢复操作 | 组件 UI 测试 | 待分析 |
-| 工作台全空 | `BrYVA` | `TripWorkspaceContent` | 地图、Tab、主抽屉结构 | Workspace UI 测试 | 已实现 |
-| 行程全空 | `WFOpg` | `WorkspaceItineraryContent` | Tab 切换和空行程状态 | Workspace UI 测试 | 已实现 |
+| 工作台全空 | `BrYVA` | `TripWorkspaceContent` | 地图、Tab、主抽屉结构 | Workspace UI 测试、typed scenario、模拟器证据 | 已测试 |
+| 行程全空 | `WFOpg` | `WorkspaceItineraryContent` | Tab 切换和空行程状态 | Workspace UI 测试、typed scenario、模拟器证据 | 已测试 |
 | 抽屉收起 | `kCc5z` | `WorkspaceBottomSheet` | `h108`、Tab、真实状态摘要与地图最大空间 | 抽屉状态测试 | 已验收 |
 | 抽屉半屏 | `sWTB3` | `WorkspaceBottomSheet` | `h432`、地图与内容并存 | 抽屉状态测试 | 已验收 |
 | 抽屉展开 | `f2ieZ6` | `WorkspaceBottomSheet` | `h720`、地图浮层按可用空间降级 | 层级和状态测试 | 已验收 |
-| 地图图层 | `shoPV` | 地图图层浮层 | 遮罩、选项和控件层级 | Workspace UI 测试 | 待分析 |
+| 地图图层 | `shoPV` | 地图图层浮层 | 遮罩、选项和控件层级 | Workspace UI 测试 | 已测试 |
 
 ### Batch 0 完成条件
 
@@ -78,18 +78,22 @@
 |---|---|---|---|---|
 | 地点池工作台 | `A9EKX` | `TripWorkspaceContent`、`PlacePoolSheet` | 地图、地点池、滚动和主抽屉 | 待分析 |
 | 行程工作台 | `LFmzR` | `WorkspaceItineraryContent` | 日导航、行程列表和地图 | 待分析 |
-| 全空状态 | `BrYVA` | `TripWorkspaceContent` | 地点池与行程均为空 | 待分析 |
-| 行程全空 | `WFOpg` | `WorkspaceItineraryContent` | 所有旅行日无行程项 | 待分析 |
+| 全空状态 | `BrYVA` | `TripWorkspaceContent` | 地点池与行程均为空 | 已测试 |
+| 行程全空 | `WFOpg` | `WorkspaceItineraryContent` | 所有旅行日无行程项 | 已测试 |
 | 更多菜单 | `ijpZD` | 工作台菜单 | 设置和工作台级入口 | 待分析 |
-| 地图图层 | `shoPV` | 地图图层浮层 | 图层选择和正确层级 | 待分析 |
+| 地图图层 | `shoPV` | 地图图层浮层 | 图层选择和正确层级 | 已测试 |
 | 抽屉三态 | `kCc5z` / `sWTB3` / `f2ieZ6` | `WorkspaceBottomSheet` | 收起、半屏、展开、按实时 sheetTop 降级地图浮层 | 已实现 |
 
 ### Batch 2 完成条件
 
-- [ ] 地点池/行程切换正确。
-- [ ] 三态抽屉可拖动且状态可恢复。
-- [ ] 地图控制、菜单、遮罩和抽屉层级正确。
-- [ ] 全空和行程全空状态入口可达。
+自动化与 App 自有 UI 的物理设备验收已完成；真实 AMap 图层渲染仍因未接受第三方隐私条款而待验证。
+
+- [x] 地点池/行程切换正确。
+- [x] 三态抽屉可拖动且状态可恢复。
+- [x] 地图控制、菜单、遮罩和抽屉层级正确。
+- [x] 全空和行程全空状态入口可达。
+- [x] Huawei ALN-AL00 上完成 App 自有 Batch 2 UI 与偏好持久化验收。
+- [ ] 已授权环境中的真实 AMap 三图层渲染验证。
 
 ## Batch 3：地点池、搜索和地点详情
 
@@ -200,6 +204,17 @@
 - 未运行检查及原因：未接受高德隐私条款，因此未验证真实高德地图 Host；三态结构证据使用 deterministic fake map surface，不能替代真实地图证据。
 - 已知非阻塞差异：Pencil 使用示意地图，当前验收在未授权状态显示地图服务 fallback；App 自有顶部栏、Tabs、摘要、抽屉状态与 overlay 降级已验证。
 - 下一批入口：Batch 2 地图图层 `shoPV` 的遮罩/z-order，以及工作台全空 `BrYVA` / 行程全空 `WFOpg` 的剩余映射。
+
+### 2026-08-31 · Batch 2 · 工作台空状态与地图图层
+
+- 实现：`shoPV` 使用三图层选项、模态遮罩、已选状态、外部关闭与全工作区输入阻断；`BrYVA` 与 `WFOpg` 均由现有 `TripWorkspaceContent` 的 UiState 分支表达，不增加 route。`BrYVA` 仅在地点池与行程均空时出现；`WFOpg` 在所有旅行日没有行程项时出现，隐藏 scope rail 与内容 CTA。
+- 设计 frame：`shoPV`、`BrYVA`、`WFOpg`。
+- 修改文件：workspace 图层与全空状态实现、对应 JVM/Compose 测试、typed scenario fixtures、visual evidence、scenario matrix。
+- 自动化验证：Task 1–3 focused JVM tests 通过；最终相关 connected 套件 222/222 通过（修正 `V2AcceptanceTest` 中与 WFOpg 新语义冲突的旧 rail 断言后，focused 1/1 + 其余相关测试 221/221）；`VisualBatch0EvidenceTest` 22/22、BrYVA/WFOpg typed variants 3/3、`V1ScenarioCatalogTest` 47/47、`V1FullUiAcceptanceTest` 47/47、全量 unit、`lintDebug`、`assembleDebug`、`assembleDebugAndroidTest`、`git diff --check`、`graphify update .` 均通过。未纳入真实 AMap smoke tests；它们在未代用户接受高德隐私条款的模拟器上由 SDK 以 555570 拒绝。
+- 设备验证：emulator-5554 已运行 production Compose workspace host 的 `shoPV`/`BrYVA`/`WFOpg` deterministic fake map evidence；稳定证据已导出至 `/tmp/easytrip-v2-batch2-evidence/`。Huawei ALN-AL00（1260×2720、520dpi）使用 `adb install -r` 保留数据覆盖安装后，创建两日空旅行并实际验证：`BrYVA`→`WFOpg` 可达且文案完整、无内容 CTA/行程 scope rail；`shoPV` 三项及选中态完整、scrim 和 picker 无严重裁切、点外与 Back 关闭、底层搜索不穿透、picker 内空白不关闭；STANDARD / SATELLITE / SATELLITE_ROAD 均可选择，SATELLITE_ROAD 在应用强制停止并重启后仍保留；未发现 crash/ANR。
+- 未运行检查及原因：真机选择“不同意”高德隐私说明，未代用户接受第三方条款，因此真实 AMap host 的三图层画面切换仍未验证。
+- 已知非阻塞差异：本批已通过 Pencil MCP 核对 `shoPV`、`BrYVA`、`WFOpg` 顶层 frame 与状态语义；fake map surface 和未授权真机均不能替代已授权真实地图渲染证据。
+- 下一步：在用户自行接受高德隐私条款后补充真实 AMap 三图层渲染验证；App 自有 Batch 2 UI 已具备进入下一批的门禁条件。
 
 每次完成一批后追加：
 

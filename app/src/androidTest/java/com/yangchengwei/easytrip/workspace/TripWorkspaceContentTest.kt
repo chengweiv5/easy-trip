@@ -52,6 +52,80 @@ class TripWorkspaceContentTest {
         assertEquals(TripWorkspaceAction.Back, action)
     }
 
+    @Test fun jointWorkspaceEmptyShowsBrYVAWithoutContentCta() {
+        setContent(
+            TripWorkspacePageState.Ready(
+                TripWorkspaceUiState(
+                    tripName = "北京",
+                    days = listOf(TripDay("day-1", 0)),
+                    isItineraryAllEmpty = true,
+                    isWorkspaceAllEmpty = true,
+                ).toReadyState(),
+            ),
+            WorkspaceMapState.Ready,
+        )
+
+        compose.onNodeWithTag("workspace-all-empty").assertIsDisplayed()
+        compose.onNodeWithText("旅行还是空的").assertIsDisplayed()
+        compose.onNodeWithText("还没有收藏地点，也没有安排任何行程。先搜索想去的地方，收藏后再加入旅行日。").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-place-list").assertDoesNotExist()
+        compose.onAllNodesWithText("搜索地点").assertCountEquals(0)
+    }
+
+    @Test fun itineraryFullEmptyShowsWFOpgForBothScopesWithoutRailOrContentCta() {
+        val scope = mutableStateOf<ItineraryScope>(ItineraryScope.WholeTrip)
+        compose.setContent {
+            EasyTripTheme {
+                TripWorkspaceContent(
+                    pageState = TripWorkspacePageState.Ready(
+                        TripWorkspaceUiState(
+                            tripName = "北京",
+                            days = listOf(TripDay("day-1", 0)),
+                            section = WorkspaceSection.ITINERARY,
+                            itineraryScope = scope.value,
+                            isItineraryAllEmpty = true,
+                        ).toReadyState(),
+                    ),
+                    mapState = WorkspaceMapState.Ready,
+                    onAction = {},
+                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                    onPlaceAction = {},
+                    itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                    onItineraryAction = {},
+                    mapContent = { Text("地图就绪") },
+                    modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                )
+            }
+        }
+
+        compose.onNodeWithTag("itinerary-all-empty").assertIsDisplayed()
+        compose.onNodeWithText("还没有安排行程").assertIsDisplayed()
+        compose.onNodeWithText("当前旅行的所有旅行日都没有行程项。先去地点池收藏地点，再添加到对应旅行日。").assertIsDisplayed()
+        compose.onAllNodesWithTag("itinerary-scope-rail").assertCountEquals(0)
+        compose.onAllNodesWithTag("add-places-to-selected-day").assertCountEquals(0)
+        compose.runOnIdle { scope.value = ItineraryScope.Day("day-1") }
+        compose.onNodeWithTag("itinerary-all-empty").assertIsDisplayed()
+        compose.onAllNodesWithTag("itinerary-scope-rail").assertCountEquals(0)
+    }
+
+    @Test fun ordinaryPlaceEmptyRemainsWhenItineraryHasItems() {
+        setContent(
+            TripWorkspacePageState.Ready(
+                TripWorkspaceUiState(
+                    tripName = "北京",
+                    days = listOf(TripDay("day-1", 0)),
+                    isItineraryAllEmpty = false,
+                    isWorkspaceAllEmpty = false,
+                ).toReadyState(),
+            ),
+            WorkspaceMapState.Ready,
+        )
+
+        compose.onNodeWithTag("workspace-all-empty").assertDoesNotExist()
+        compose.onNodeWithText("还没有收藏地点").assertIsDisplayed()
+        compose.onNodeWithText("搜索地点").assertIsDisplayed()
+    }
+
     @Test fun declinedConsentKeepsPlacePoolAndItineraryInteractive() {
         val actions = mutableListOf<TripWorkspaceAction>()
         setContent(ready(), WorkspaceMapState.ConsentRequired, actions::add)
@@ -427,7 +501,7 @@ class TripWorkspaceContentTest {
         val panel = compose.onNodeWithTag("layer-menu-panel").getUnclippedBoundsInRoot()
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
         assertTrue("topBar=$topBar panel=$panel", panel.top >= topBar.bottom)
-        assertTrue("panel=$panel sheet=$sheet", panel.bottom <= sheet.top)
+        assertTrue("panel=$panel sheet=$sheet", panel.top < sheet.top && panel.bottom > sheet.top)
         compose.onNodeWithTag("map-legend").assertDoesNotExist()
     }
 
@@ -446,11 +520,11 @@ class TripWorkspaceContentTest {
         compose.onNodeWithTag("map-legend").assertDoesNotExist()
     }
 
-    @Test fun insufficientSpaceClosesLayerMenuInsteadOfKeepingInvisibleOverlayState() {
+    @Test fun safeWorkspaceTooShortClosesLayerMenuInsteadOfKeepingInvisibleOverlayState() {
         val actions = mutableListOf<TripWorkspaceAction>()
         compose.setContent {
             EasyTripTheme {
-                Box(Modifier.fillMaxWidth().height(600.dp)) {
+                Box(Modifier.fillMaxWidth().height(400.dp)) {
                     TripWorkspaceContent(
                         pageState = TripWorkspacePageState.Ready(
                             TripWorkspaceUiState(

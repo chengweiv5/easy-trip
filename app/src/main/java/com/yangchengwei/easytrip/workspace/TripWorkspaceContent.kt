@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
@@ -9,15 +10,23 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.Canvas
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -27,6 +36,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
+import com.yangchengwei.easytrip.core.ui.component.EmptyIllustration
+import com.yangchengwei.easytrip.core.ui.component.EmptyState
 import com.yangchengwei.easytrip.core.ui.component.SelectablePill
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryContent
@@ -54,6 +65,8 @@ fun TripWorkspaceContent(
     dayItineraryContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
     searchReturn: WorkspaceSearchReturn? = null,
+    layerFailureMessage: String? = null,
+    onLayerFailureMessageDismissed: () -> Unit = {},
 ) {
     when (pageState) {
         TripWorkspacePageState.Loading -> WorkspacePageMessage("旅行加载中")
@@ -75,6 +88,8 @@ fun TripWorkspaceContent(
             dayItineraryContent,
             modifier,
             searchReturn,
+            layerFailureMessage,
+            onLayerFailureMessageDismissed,
         )
     }
 }
@@ -104,6 +119,8 @@ private fun WorkspaceReadyContent(
     dayItineraryContent: (@Composable () -> Unit)?,
     modifier: Modifier,
     searchReturn: WorkspaceSearchReturn?,
+    layerFailureMessage: String?,
+    onLayerFailureMessageDismissed: () -> Unit,
 ) {
     WorkspaceScaffold(
         sheetLevel = state.sheetLevel,
@@ -128,7 +145,14 @@ private fun WorkspaceReadyContent(
         sheetContent = {
             Column(Modifier.fillMaxSize()) {
                 when (state.section) {
-                    WorkspaceSection.PLACE_POOL -> if (placeContent != null) {
+                    WorkspaceSection.PLACE_POOL -> if (state.isWorkspaceAllEmpty) {
+                        EmptyState(
+                            title = "旅行还是空的",
+                            message = "还没有收藏地点，也没有安排任何行程。先搜索想去的地方，收藏后再加入旅行日。",
+                            emptyIllustration = EmptyIllustration.Places,
+                            modifier = Modifier.weight(1f).testTag("workspace-all-empty"),
+                        )
+                    } else if (placeContent != null) {
                         Box(Modifier.weight(1f)) { placeContent() }
                     } else PlacePoolContent(
                         state = placeState.copy(
@@ -143,7 +167,14 @@ private fun WorkspaceReadyContent(
                         showDialogs = false,
                         contentPadding = PaddingValues(bottom = 4.dp),
                     )
-                    WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
+                    WorkspaceSection.ITINERARY -> if (state.isItineraryAllEmpty) {
+                        EmptyState(
+                            title = "还没有安排行程",
+                            message = "当前旅行的所有旅行日都没有行程项。先去地点池收藏地点，再添加到对应旅行日。",
+                            emptyIllustration = EmptyIllustration.Itinerary,
+                            modifier = Modifier.weight(1f).testTag("itinerary-all-empty"),
+                        )
+                    } else WorkspaceItineraryContent(
                         days = state.days,
                         selected = state.itineraryScope,
                         wholeTripDays = state.wholeTripDays,
@@ -176,7 +207,48 @@ private fun WorkspaceReadyContent(
                 }
             }
         },
+        modalOverlay = { metrics ->
+            if (state.overlay == WorkspaceOverlay.LayerMenu && workspaceLayerMenuFits(metrics)) {
+                Box(
+                    Modifier
+                        .fillMaxSize()
+                        .testTag("layer-menu-hit-shield")
+                        .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
+                )
+                Box(
+                    Modifier
+                        .align(Alignment.TopStart)
+                        .offset(y = 128.dp)
+                        .fillMaxWidth()
+                        .height((metrics.sheetTop - 128.dp).coerceAtLeast(0.dp))
+                        .testTag("layer-menu-scrim")
+                        .background(Color(0x1A1B3A28))
+                        .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
+                )
+                Box(
+                    Modifier
+                        .align(Alignment.TopEnd)
+                        .offset(x = (-WorkspaceLayerMenuEndInset), y = WorkspaceLayerMenuTopOffset)
+                        .width(240.dp)
+                        .testTag("layer-menu-picker")
+                        .pointerInput(Unit) { detectTapGestures { } },
+                ) {
+                    MapLayerMenu(
+                        layer = state.mapLayer,
+                        onClose = { onAction(TripWorkspaceAction.CloseOverlay) },
+                        onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
+                    )
+                }
+            }
+        },
         topOverlay = { metrics ->
+            layerFailureMessage?.let { message ->
+                WorkspaceLayerFailureFeedback(
+                    message = message,
+                    onDismissed = onLayerFailureMessageDismissed,
+                    modifier = Modifier.align(Alignment.TopCenter).padding(top = 84.dp, start = 20.dp, end = 20.dp),
+                )
+            }
             val mapOverlaysFit = workspaceMapOverlaysFit(metrics)
             val layerMenuFits = workspaceLayerMenuFits(metrics)
             LaunchedEffect(state.overlay, layerMenuFits) {
@@ -193,11 +265,8 @@ private fun WorkspaceReadyContent(
             )
             if (mapOverlaysFit) {
                 MapControls(
-                    layer = state.mapLayer,
-                    overlay = state.overlay.takeIf { layerMenuFits } ?: WorkspaceOverlay.None,
+                    active = state.overlay == WorkspaceOverlay.LayerMenu,
                     onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
-                    onCloseOverlay = { onAction(TripWorkspaceAction.CloseOverlay) },
-                    onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
                     onLocate = { onAction(TripWorkspaceAction.Locate) },
                     modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
                 )
@@ -217,14 +286,30 @@ private fun WorkspaceReadyContent(
     )
 }
 
+@Composable
+private fun WorkspaceLayerFailureFeedback(
+    message: String,
+    onDismissed: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    LaunchedEffect(message) {
+        delay(4_000)
+        onDismissed()
+    }
+    Snackbar(modifier = modifier.testTag("map-layer-failure")) { Text(message) }
+}
+
 private val WorkspaceMapOverlayRequiredHeight = 214.dp
-private val WorkspaceLayerMenuRequiredHeight = 330.dp
+private val WorkspaceLayerMenuTopOffset = 140.dp
+private val WorkspaceLayerMenuHeight = 289.dp
+private val WorkspaceLayerMenuEndInset = 16.dp
 
 internal fun workspaceMapOverlaysFit(metrics: WorkspaceLayoutMetrics): Boolean =
     metrics.sheetTop >= WorkspaceMapOverlayRequiredHeight
 
 internal fun workspaceLayerMenuFits(metrics: WorkspaceLayoutMetrics): Boolean =
-    metrics.sheetTop >= WorkspaceLayerMenuRequiredHeight
+    metrics.availableWidth >= WorkspaceLayerMenuEndInset + 240.dp &&
+        metrics.availableHeight >= WorkspaceLayerMenuTopOffset + WorkspaceLayerMenuHeight
 
 @Composable
 private fun WorkspaceCollapsedSummary(
@@ -304,6 +389,7 @@ internal fun WorkspaceSheetHandle(modifier: Modifier = Modifier) {
 }
 
 internal fun MapLayer.label() = when (this) {
-    MapLayer.STANDARD -> "标准"
-    MapLayer.SATELLITE_ROAD -> "卫星"
+    MapLayer.STANDARD -> "标准地图"
+    MapLayer.SATELLITE -> "卫星地图"
+    MapLayer.SATELLITE_ROAD -> "卫星路网"
 }

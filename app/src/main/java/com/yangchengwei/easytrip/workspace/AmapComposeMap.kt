@@ -67,11 +67,38 @@ fun viewportRendering(consumedRequestId: Long?, request: MapViewportRequest?): V
 
 data class MapLayerRendering(val mapType: Int, val showMapText: Boolean)
 
+data class MapLayerApplicationFailure(val error: Throwable, val retainedLayer: MapLayer)
+
 fun mapLayerRendering(applied: MapLayer?, requested: MapLayer): MapLayerRendering? =
     if (applied == requested) null else when (requested) {
         MapLayer.STANDARD -> MapLayerRendering(AMap.MAP_TYPE_NORMAL, true)
+        MapLayer.SATELLITE -> MapLayerRendering(AMap.MAP_TYPE_SATELLITE, false)
         MapLayer.SATELLITE_ROAD -> MapLayerRendering(AMap.MAP_TYPE_SATELLITE, true)
     }
+
+internal class MapLayerApplicationController(
+    private val updateSdk: (MapLayerRendering) -> Unit,
+) {
+    private var appliedLayer: MapLayer? = null
+
+    fun apply(requested: MapLayer): MapLayerApplicationFailure? {
+        val rendering = mapLayerRendering(appliedLayer, requested) ?: return null
+        return runCatching { updateSdk(rendering) }.fold(
+            onSuccess = {
+                appliedLayer = requested
+                null
+            },
+            onFailure = { error ->
+                val retainedLayer = appliedLayer ?: MapLayer.STANDARD
+                val rollbackSucceeded = runCatching {
+                    mapLayerRendering(null, retainedLayer)?.let(updateSdk)
+                }.isSuccess
+                if (!rollbackSucceeded) appliedLayer = null
+                MapLayerApplicationFailure(error, retainedLayer)
+            },
+        )
+    }
+}
 
 data class MapPoiUi(
     val poiId: String?,
@@ -178,7 +205,10 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     private val mapLoadedListener = AMap.OnMapLoadedListener { onReadyListener?.invoke() }
     private var renderedOverlays: MapUiModel? = null
     private var consumedViewportId: Long? = null
-    private var appliedLayer: MapLayer? = null
+    private val layerController = MapLayerApplicationController { rendering ->
+        mapView.map.mapType = rendering.mapType
+        mapView.map.showMapText(rendering.showMapText)
+    }
     override val view: View = mapView
     override fun setOnReadyListener(listener: (() -> Unit)?) {
         onReadyListener = listener
@@ -218,23 +248,8 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
         onMapPoiClick: (MapPoiUi) -> Unit,
         onLayerError: (Throwable, MapLayer) -> Unit,
     ) {
-        mapLayerRendering(appliedLayer, layer)?.let { rendering ->
-            runCatching {
-                mapView.map.mapType = rendering.mapType
-                mapView.map.showMapText(rendering.showMapText)
-            }.onSuccess {
-                appliedLayer = layer
-            }.onFailure { error ->
-                appliedLayer?.let { previous ->
-                    mapLayerRendering(null, previous)?.let { rollback ->
-                        runCatching {
-                            mapView.map.mapType = rollback.mapType
-                            mapView.map.showMapText(rollback.showMapText)
-                        }
-                    }
-                }
-                onLayerError(error, appliedLayer ?: MapLayer.STANDARD)
-            }
+        layerController.apply(layer)?.let { failure ->
+            onLayerError(failure.error, failure.retainedLayer)
         }
         mapView.map.setOnMarkerClickListener { marker ->
             (marker.`object` as? String)?.let(onMarkerClick)
@@ -426,17 +441,15 @@ fun AmapComposeMap(
                     val renderGeneration = callbackGuard.beginRender()
                     runCatching {
                         consent.validateActive()
-                        var layerFailure: Throwable? = null
                         host.render(
                             model,
                             layer,
                             { markerKey -> callbackGuard.dispatch(renderGeneration) { onMarkerClick(markerKey) } },
                             { poi -> callbackGuard.dispatch(renderGeneration) { onMapPoiClick(poi) } },
                         ) { error, retainedLayer ->
-                            layerFailure = error
-                            callbackGuard.reportError(renderGeneration, error) { onLayerError(it, retainedLayer) }
+                            callbackGuard.dispatch(renderGeneration) { onLayerError(error, retainedLayer) }
                         }
-                        if (layerFailure == null) callbackGuard.reportReady(renderGeneration, onMapReady)
+                        callbackGuard.reportReady(renderGeneration, onMapReady)
                     }.onFailure { error ->
                         callbackGuard.reportError(renderGeneration, error) { mapFailureState.value = it }
                     }

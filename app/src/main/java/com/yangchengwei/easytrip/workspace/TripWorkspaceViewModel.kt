@@ -59,6 +59,8 @@ data class TripWorkspaceUiState(
     val searchSelection: SearchResultSelection? = null,
     val mapLayer: MapLayer = MapLayer.STANDARD,
     val overlay: WorkspaceOverlay = WorkspaceOverlay.None,
+    val isItineraryAllEmpty: Boolean = false,
+    val isWorkspaceAllEmpty: Boolean = false,
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -170,6 +172,10 @@ class TripWorkspaceViewModel(
         @Suppress("UNCHECKED_CAST") val emittedSnapshots = values[2] as List<DayMapSnapshot>
         val currentDayIds = currentTrip.days.mapTo(mutableSetOf(), TripDay::id)
         val currentSnapshots = emittedSnapshots.filter { it.itinerary.dayId in currentDayIds }
+        val isItineraryAllEmpty = currentDayIds.isNotEmpty() &&
+            currentSnapshots.mapTo(mutableSetOf()) { it.itinerary.dayId } == currentDayIds &&
+            currentSnapshots.all { it.itinerary.items.isEmpty() }
+        val isWorkspaceAllEmpty = isItineraryAllEmpty && currentPlaces.isEmpty()
         val currentSection = values[3] as WorkspaceSection
         val requestedItineraryScope = values[4] as ItineraryScope?
         val currentItineraryScope = reconcileItineraryScope(requestedItineraryScope, previousDays, currentTrip.days)
@@ -216,6 +222,8 @@ class TripWorkspaceViewModel(
             searchSelection = activeFocusedId?.let { id -> focusPoint?.let { SearchResultSelection(id, it) } },
             mapLayer = values[10] as MapLayer,
             overlay = values[12] as WorkspaceOverlay,
+            isItineraryAllEmpty = isItineraryAllEmpty,
+            isWorkspaceAllEmpty = isWorkspaceAllEmpty,
         )
     }
 

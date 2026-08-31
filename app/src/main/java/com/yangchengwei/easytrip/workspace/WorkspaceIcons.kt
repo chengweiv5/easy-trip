@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -56,8 +57,7 @@ internal fun WorkspaceLocateIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
-internal fun WorkspaceLayerIcon(modifier: Modifier = Modifier) {
-    val color = MaterialTheme.colorScheme.onSurface
+internal fun WorkspaceLayerIcon(modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurface) {
     Canvas(modifier) {
         val stroke = Stroke(size.minDimension / 14f, join = StrokeJoin.Round)
         fun layer(centerY: Float) {
@@ -86,8 +86,7 @@ internal fun WorkspaceCloseIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
-internal fun WorkspaceCheckIcon(modifier: Modifier = Modifier) {
-    val color = MaterialTheme.colorScheme.onSurface
+internal fun WorkspaceCheckIcon(modifier: Modifier = Modifier, color: Color = MaterialTheme.colorScheme.onSurface) {
     Canvas(modifier) {
         val stroke = size.minDimension / 10f
         drawLine(color, Offset(size.width * .2f, size.height * .5f), Offset(size.width * .42f, size.height * .72f), stroke, StrokeCap.Round)

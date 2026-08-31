@@ -18,7 +18,12 @@ data class V1ScenarioVariant(
     val parentNumber: Int,
     val name: String,
     val frameId: String,
-)
+    private val executableFactory: (() -> V1ScenarioExecutable)? = null,
+) {
+    fun createExecutable(): V1ScenarioExecutable = checkNotNull(executableFactory) {
+        "Variant $frameId does not declare a typed executable"
+    }.invoke()
+}
 
 data class ScenarioAssertion(
     val category: BlockerCategory,
@@ -43,9 +48,41 @@ object V1ScenarioFixtures {
 
     val scenarios = listOf(
         scenario(1, "我的旅行", "K9h3r", "RqVLv", "hVIMZ", "existing-trips", BlockerCategory.DATA_CONSISTENCY, "主卡仅通过继续规划进入，旅行名称、日期、天数和方式保持一致；主卡与其他卡的设置、删除均由各自 ··· 菜单承载", variants = listOf(V1ScenarioVariant(1, "我的旅行 · 删除后", "d1sTtb"))),
-        scenario(2, "工作台·地点池", "A9EKX", "IpuKg", "xENWi", "trip-with-saved-places", BlockerCategory.KEY_INTERACTION),
+        scenario(
+            2,
+            "工作台·地点池",
+            "A9EKX",
+            "IpuKg",
+            "xENWi",
+            "trip-with-saved-places",
+            BlockerCategory.KEY_INTERACTION,
+            variants = listOf(
+                V1ScenarioVariant(
+                    parentNumber = 2,
+                    name = "工作台·全空",
+                    frameId = "BrYVA",
+                    executableFactory = { V1ScenarioExecutableFactory.workspaceAllEmpty("workspace-all-empty") },
+                ),
+            ),
+        ),
         scenario(3, "搜索地点", "ofdn5", "V7cr3b", "eHTbI", "search-results", BlockerCategory.BASIC_ACCESSIBILITY, "搜索页不显示加入行程入口"),
-        scenario(4, "工作台·行程", "LFmzR", "o4Wcz", "CW0vn", "day-itinerary", BlockerCategory.REACHABILITY),
+        scenario(
+            4,
+            "工作台·行程",
+            "LFmzR",
+            "o4Wcz",
+            "CW0vn",
+            "day-itinerary",
+            BlockerCategory.REACHABILITY,
+            variants = listOf(
+                V1ScenarioVariant(
+                    parentNumber = 4,
+                    name = "工作台·行程全空",
+                    frameId = "WFOpg",
+                    executableFactory = { V1ScenarioExecutableFactory.itineraryAllEmpty("itinerary-all-empty") },
+                ),
+            ),
+        ),
         scenario(6, "全程行程", "FTIOF", "q08to1", "a5GvBo", "whole-trip-itinerary", BlockerCategory.KEY_INTERACTION, "全程视图不显示编辑或拖动入口"),
         scenario(7, "创建旅行", "dzhkC", "xP91E", "fIkSG", "empty-trip-list", BlockerCategory.BASIC_ACCESSIBILITY, "创建保留旅行名称、开始日期、天数和出行方式，并通过生产提交入口创建旅行"),
         scenario(8, "旅行设置", "U06l7P", "y3rP1", null, "existing-trip", BlockerCategory.REACHABILITY, "设置页不显示添加一天入口"),

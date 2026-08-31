@@ -67,6 +67,45 @@ class V1ScenarioMetadataTest {
     }
 
     @Test
+    fun workspaceAllEmptyFramesAreReachableTypedVariants() {
+        val variants = V1ScenarioFixtures.scenarios
+            .flatMap(V1Scenario::variants)
+            .associateBy(V1ScenarioVariant::frameId)
+
+        assertTrue(variants.containsKey("BrYVA"))
+        assertTrue(variants.containsKey("WFOpg"))
+        assertEquals(2, variants.getValue("BrYVA").parentNumber)
+        assertEquals(4, variants.getValue("WFOpg").parentNumber)
+    }
+
+    @Test fun BrYVAExecutesProductionWorkspaceVariant() = executeVariant("BrYVA")
+
+    @Test fun WFOpgExecutesProductionWorkspaceVariant() = executeVariant("WFOpg")
+
+    @Test fun WFOpgFixtureMatchesReachableWorkspaceState() {
+        val fixture = V1ScenarioExecutableFactory.itineraryAllEmptyFixture()
+
+        assertFalse(fixture.ready.isWorkspaceAllEmpty)
+        assertTrue(fixture.ready.isItineraryAllEmpty)
+        assertTrue(fixture.placeState.rows.isNotEmpty())
+        assertEquals(fixture.ready.days.map { it.id }, fixture.ready.wholeTripDays.map { it.dayId })
+        assertTrue(fixture.ready.wholeTripDays.all { it.items.isEmpty() })
+        assertTrue(fixture.itineraryState.days.isNotEmpty())
+    }
+
+    private fun executeVariant(frameId: String) {
+        val executable = V1ScenarioFixtures.scenarios
+            .flatMap(V1Scenario::variants)
+            .first { it.frameId == frameId }
+            .createExecutable()
+        executable.setup()
+        executable.render(compose)
+        compose.waitForIdle()
+        executable.actions(compose)
+        executable.assertions(compose)
+    }
+
+    @Test
     fun coversSevenJourneysAndSixMatrices() {
         assertEquals(V1ScenarioFixtures.journeyIds, V1ScenarioFixtures.scenarios.mapNotNull { it.journey }.toSet())
         assertEquals(V1ScenarioFixtures.matrixIds, V1ScenarioFixtures.scenarios.mapNotNull { it.matrix }.toSet())

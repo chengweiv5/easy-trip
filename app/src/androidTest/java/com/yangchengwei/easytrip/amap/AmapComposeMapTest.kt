@@ -358,12 +358,14 @@ class AmapComposeMapTest {
         assertEquals(1, errors)
     }
 
-    @Test fun layerFailureDoesNotReportMapReady() {
+    @Test fun layerFailureRetainsMapAndReportsLocalFailureWithoutTerminalMapError() {
         val context = androidx.test.core.app.ApplicationProvider.getApplicationContext<android.content.Context>()
         val gate = TestConsentGate()
         gate.show()
         val token = requireNotNull(gate.decide(true))
         val layerReported = CountDownLatch(1)
+        val ready = CountDownLatch(1)
+        var mapErrors = 0
         var readyCount = 0
         rule.scenario.onActivity { activity ->
             activity.setContent {
@@ -381,13 +383,19 @@ class AmapComposeMapTest {
                             onLayerError(IllegalStateException("layer"), MapLayer.STANDARD)
                         }
                     } },
-                    onLayerError = { _, _ -> layerReported.countDown() },
-                    onMapReady = { readyCount++ },
+                    onLayerError = { _, retained ->
+                        assertEquals(MapLayer.STANDARD, retained)
+                        layerReported.countDown()
+                    },
+                    onMapError = { mapErrors++ },
+                    onMapReady = { readyCount++; ready.countDown() },
                 )
             }
         }
         assertTrue(layerReported.await(5, TimeUnit.SECONDS))
-        assertEquals(0, readyCount)
+        assertTrue(ready.await(5, TimeUnit.SECONDS))
+        assertEquals(0, mapErrors)
+        assertEquals(1, readyCount)
     }
 
     @Test fun successfulRenderReportsMapReadyOnceAcrossUpdates() {

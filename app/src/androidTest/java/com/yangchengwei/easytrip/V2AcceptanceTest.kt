@@ -170,10 +170,9 @@ class V2AcceptanceTest {
 
         compose.onNodeWithTag("section-ITINERARY").performClick()
         compose.onNodeWithTag("section-ITINERARY").assertIsSelected()
-        compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
-
-        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
-        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").assertIsSelected()
+        waitFor("itinerary all-empty state") { hasTag("itinerary-all-empty") }
+        compose.onNodeWithTag("itinerary-all-empty").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-scope-rail").assertDoesNotExist()
     }
 
     private fun candidate(id: String, name: String, latitude: Double, longitude: Double) =

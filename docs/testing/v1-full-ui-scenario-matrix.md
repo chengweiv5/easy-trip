@@ -10,7 +10,7 @@ The automated gate blocks functional/state errors, data inconsistency, crashes, 
 - Variant: `d1sTtb` belongs to scenario `01` and does not create scenario `05`.
 - Journeys: `RqVLv`, `IpuKg`, `V7cr3b`, `o4Wcz`, `q08to1`, `xP91E`, `y3rP1`.
 - Matrices: `hVIMZ`, `xENWi`, `eHTbI`, `CW0vn`, `a5GvBo`, `fIkSG`.
-- `V1ScenarioFixtures` binds each entry to a typed `V1ScenarioExecutable` with fixture, reachable path, setup, production rendering, actions, and assertions. `V1FullUiAcceptanceTest` parameterizes over all 47 entries and executes that contract directly; `V1ScenarioCatalogTest` verifies catalog completeness and screen bindings without reflection.
+- `V1ScenarioFixtures` binds each parent entry to a typed `V1ScenarioExecutable` with fixture, reachable path, setup, production rendering, actions, and assertions. `V1FullUiAcceptanceTest` parameterizes over the 47 parent entries and executes that contract directly; `V1ScenarioCatalogTest` verifies catalog completeness and screen bindings without reflection. Variants do not increase the 47 count and are executed separately by `V1ScenarioMetadataTest`; all Device UI statuses remain `PENDING` until physical-device acceptance.
 
 ## Scenario directory
 
@@ -18,9 +18,11 @@ The automated gate blocks functional/state errors, data inconsistency, crashes, 
 |---:|---|---|---|---|---|---|---|
 | 01 | `K9h3r` | 我的旅行 | existing-trips | `V1ScenarioCatalogTest#executesProductionScenario` + `V1PencilFlowTest#createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction` | 启动应用 → 我的旅行 → 继续规划 | 唯一主入口；旅行名/日期/天数/方式 | PENDING |
 | 01v | `d1sTtb` | 我的旅行 · 删除后 | variant of 01 | `V1ScenarioCatalogTest#executesProductionScenario`（场景 13 可控列表闭环） | 我的旅行 → `···` → 删除 → 确认 | 目标卡消失且保留旅行仍在 | PENDING |
-| 02 | `A9EKX` | 工作台·地点池 | trip-with-saved-places | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 我的旅行 → 旅行 → 地点池 | key interaction | PENDING |
+| 02 | `A9EKX` | 工作台·地点池 | trip-with-saved-places | `V1ScenarioCatalogTest#executesProductionScenario` | 我的旅行 → 旅行 → 地点池 | key interaction | PENDING |
+| 02v | `BrYVA` | 工作台·全空 | variant of 02 | `V1ScenarioMetadataTest#BrYVAExecutesProductionWorkspaceVariant` | 工作台 → 地点池（联合全空 UiState） | 生产 Compose host 显示联合全空，不创建新 route | PENDING |
 | 03 | `ofdn5` | 搜索地点 | search-results | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 工作台 → 搜索地点 | no itinerary action | PENDING |
-| 04 | `LFmzR` | 工作台·行程 | day-itinerary | `V1AcceptanceTest#threeDayTripPersistsRepeatedPlacesEdgesOverridesAndMapScopes` | 工作台 → 行程 | reachability | PENDING |
+| 04 | `LFmzR` | 工作台·行程 | day-itinerary | `V1ScenarioCatalogTest#executesProductionScenario` | 工作台 → 行程 | reachability | PENDING |
+| 04v | `WFOpg` | 工作台·行程全空 | variant of 04 | `V1ScenarioMetadataTest#WFOpgExecutesProductionWorkspaceVariant` | 工作台 → 行程（所有旅行日无行程项 UiState） | 生产 Compose host 显示全空，无 scope rail，不创建新 route | PENDING |
 | 06 | `FTIOF` | 全程行程 | whole-trip-itinerary | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 行程 → 全程 | no edit/drag | PENDING |
 | 07 | `dzhkC` | 创建旅行 | empty-trip-list | `V1ScenarioCatalogTest#executesProductionScenario` + `V1PencilFlowTest#createBackAndReopenUsesRoomAndNavigatesExactlyOncePerAction` | 我的旅行 → 创建 → `create-submit` | 名称/开始日期/天数/方式 | PENDING |
 | 08 | `U06l7P` | 旅行设置 | existing-trip | focused Content test | 工作台 → 更多 → 设置 | no add-day | PENDING |
@@ -32,7 +34,7 @@ The automated gate blocks functional/state errors, data inconsistency, crashes, 
 | 14 | `DxZ2a` | 状态规范 | component-states | `ConfirmationDialogTest#narrowLargeFontDialogKeepsActionsReachableWithFullImpactList` | 验收目录 → 状态矩阵 | clipping | PENDING |
 | 15 | `p7U8B` | 无旅行日 | trip-without-days | `ItineraryEditingTest#emptyDayShowsEmptyState` | 工作台 → 行程 | crash-free | PENDING |
 | 16 | `ijpZD` | 工作台设置直达 | existing-trip | typed executable | 工作台 → 设置 | production UI has a direct settings action, not a more menu | PENDING |
-| 17 | `shoPV` | 地图图层 | map-ready | `V2AcceptanceTest#searchCollectionMapAndRestorationFlow` | 工作台 → 地图图层 | interaction | PENDING |
+| 17 | `shoPV` | 地图图层 | map-ready | `V1ScenarioCatalogTest#executesProductionScenario` + `WorkspaceChromeTest` + `VisualBatch0EvidenceTest#productionComposeWorkspaceHostWithDeterministicFakeMapSurface_shoPV` | 工作台 → 地图图层 | 三选项、选中态、遮罩、外部关闭与输入阻断 | PENDING |
 | 18 | `zvO9Z` | 添加旅行日 | dated-trip | `V1AcceptanceTest#threeDayTripPersistsRepeatedPlacesEdgesOverridesAndMapScopes` | 行程 → 添加一天 | data consistency | PENDING |
 | 19 | `Pqdkf` | 从地点池添加地点 | saved-place-and-days | V1 acceptance | 地点池 → 地点 → 加入行程 | interaction | PENDING |
 | 20 | `X3rm1` | 旅程 C 选择 | multi-day-add-target | `PlacePoolFlowTest#longDayListScrollsAtNarrowLargeTextWhileSubmitStaysReachable` | 地点详情 → 选择旅行日 | reachability | PENDING |

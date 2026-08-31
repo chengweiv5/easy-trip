@@ -306,6 +306,72 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("地点内容").assertIsDisplayed()
     }
 
+    @Test fun persistedSatelliteFailureRemainsVisibleAfterMapReadyThenAutoDismisses() {
+        compose.mainClock.autoAdvance = false
+        try {
+            val preferences = InMemoryMapPreferences(MapLayer.SATELLITE)
+            val model = TripWorkspaceViewModel(
+                "trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle(), mapPreferences = preferences,
+            )
+            compose.setContent {
+                TripWorkspaceScreen(
+                    viewModel = model,
+                    consent = consentToken(),
+                    onBack = {},
+                    onSettings = {},
+                    placeContent = { Text("地点内容") },
+                    dayItineraryContent = { Text("行程内容") },
+                    mapHostFactory = { context -> FirstSatelliteFailingMapHost(context) },
+                )
+            }
+
+            compose.mainClock.advanceTimeByFrame()
+            compose.onNodeWithTag("map-layer-failure").assertIsDisplayed()
+            compose.onNodeWithTag("workspace-map-fallback").assertDoesNotExist()
+            compose.mainClock.advanceTimeBy(4_001)
+            compose.onNodeWithTag("map-layer-failure").assertDoesNotExist()
+        } finally {
+            compose.mainClock.autoAdvance = true
+        }
+    }
+
+    @Test fun layerFailureRestoresPreferenceThenNextSuccessfulSelectionDismissesLocalFeedback() {
+        val preferences = InMemoryMapPreferences()
+        val renderedLayers = mutableListOf<MapLayer>()
+        val model = TripWorkspaceViewModel(
+            "trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle(), mapPreferences = preferences,
+        )
+        compose.setContent {
+            TripWorkspaceScreen(
+                viewModel = model,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                placeContent = { Text("地点内容") },
+                dayItineraryContent = { Text("行程内容") },
+                mapHostFactory = { context -> LayerFailingMapHost(context, renderedLayers) },
+            )
+        }
+
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("layer-menu").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("layer-menu").performClick()
+        compose.onNodeWithTag("layer-SATELLITE").performClick()
+        compose.waitUntil(5_000) {
+            renderedLayers.contains(MapLayer.SATELLITE) &&
+                preferences.layer.value == MapLayer.STANDARD &&
+                renderedLayers.lastOrNull() == MapLayer.STANDARD
+        }
+
+        compose.onNodeWithText("图层切换失败，已保留当前图层").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-map-fallback").assertDoesNotExist()
+        compose.onNodeWithTag("map-retry").assertDoesNotExist()
+
+        compose.onNodeWithTag("layer-menu").performClick()
+        compose.onNodeWithTag("layer-SATELLITE_ROAD").performClick()
+        compose.waitUntil(5_000) { preferences.layer.value == MapLayer.SATELLITE_ROAD }
+        compose.onNodeWithTag("map-layer-failure").assertDoesNotExist()
+    }
+
     @Test fun routeBackClosesOverlayBeforeLeavingAndTopBackUsesSamePriority() {
         val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         var backCount = 0
@@ -1175,7 +1241,42 @@ class WorkspaceFlowTest {
             onMarkerClick: (String) -> Unit,
             onMapPoiClick: (MapPoiUi) -> Unit,
             onLayerError: (Throwable, MapLayer) -> Unit,
-        ) = onLayerError(IllegalStateException("map unavailable"), layer)
+        ) = error("map unavailable")
+    }
+
+    private class FirstSatelliteFailingMapHost(context: Context) : AmapMapHost {
+        override val view = View(context)
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun render(
+            model: MapUiModel,
+            layer: MapLayer,
+            onMarkerClick: (String) -> Unit,
+            onMapPoiClick: (MapPoiUi) -> Unit,
+            onLayerError: (Throwable, MapLayer) -> Unit,
+        ) {
+            if (layer == MapLayer.SATELLITE) onLayerError(IllegalStateException("layer unavailable"), MapLayer.STANDARD)
+        }
+    }
+
+    private class LayerFailingMapHost(context: Context, private val renderedLayers: MutableList<MapLayer>) : AmapMapHost {
+        override val view = View(context)
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun render(
+            model: MapUiModel,
+            layer: MapLayer,
+            onMarkerClick: (String) -> Unit,
+            onMapPoiClick: (MapPoiUi) -> Unit,
+            onLayerError: (Throwable, MapLayer) -> Unit,
+        ) {
+            renderedLayers += layer
+            if (layer == MapLayer.SATELLITE) onLayerError(IllegalStateException("layer unavailable"), MapLayer.STANDARD)
+        }
     }
 
     private class PoiHost(context: android.content.Context) : AmapMapHost {

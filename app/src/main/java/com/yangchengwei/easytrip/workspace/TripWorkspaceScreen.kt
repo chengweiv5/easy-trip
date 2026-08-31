@@ -91,6 +91,7 @@ fun TripWorkspaceScreen(
     var mapAttempt by remember { mutableIntStateOf(0) }
     var mapHostState: MapHostState by remember(consent) { mutableStateOf(MapHostState.Loading) }
     var failedAttempt by remember(consent) { mutableStateOf<Int?>(null) }
+    var layerFailureMessage by remember(consent) { mutableStateOf<String?>(null) }
     LaunchedEffect(consent) {
         mapAttempt++
         failedAttempt = null
@@ -110,9 +111,13 @@ fun TripWorkspaceScreen(
         onMapRetry = {
             mapAttempt++
             failedAttempt = null
+            layerFailureMessage = null
             mapHostState = MapHostState.Loading
         },
-        onAction = onAction,
+        onAction = { action ->
+            if (action is TripWorkspaceAction.SelectMapLayer) layerFailureMessage = null
+            onAction(action)
+        },
         placeState = placeState,
         onPlaceAction = onPlaceAction,
         itineraryState = itineraryState,
@@ -120,6 +125,8 @@ fun TripWorkspaceScreen(
         placeContent = placeContent,
         dayItineraryContent = dayItineraryContent,
         searchReturn = searchReturn,
+        layerFailureMessage = layerFailureMessage,
+        onLayerFailureMessageDismissed = { layerFailureMessage = null },
         mapContent = {
             val token = consent
             if (token != null && ready != null) key(mapAttempt) {
@@ -135,9 +142,8 @@ fun TripWorkspaceScreen(
                     hostFactory = mapHostFactory,
                     onLayerError = { _, retainedLayer ->
                         if (attemptId == mapAttempt) {
-                            failedAttempt = attemptId
                             onAction(TripWorkspaceAction.SelectMapLayer(retainedLayer))
-                            mapHostState = MapHostState.Failed("地图图层切换失败，已保留当前图层")
+                            layerFailureMessage = "图层切换失败，已保留当前图层"
                         }
                     },
                     onMapError = {
@@ -147,7 +153,9 @@ fun TripWorkspaceScreen(
                         }
                     },
                     onMapReady = {
-                        if (attemptId == mapAttempt && failedAttempt != attemptId) mapHostState = MapHostState.Ready
+                        if (attemptId == mapAttempt && failedAttempt != attemptId) {
+                            mapHostState = MapHostState.Ready
+                        }
                     },
                 )
             }

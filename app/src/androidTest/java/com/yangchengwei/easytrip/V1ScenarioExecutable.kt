@@ -16,6 +16,7 @@ import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.AndroidComposeTestRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
@@ -156,6 +157,12 @@ data class WorkspaceSheetScenarioSpec(
     }
 }
 
+data class WorkspaceEmptyScenarioFixture(
+    val ready: TripWorkspaceReadyState,
+    val placeState: PlacePoolUiState,
+    val itineraryState: DayItineraryUiState,
+)
+
 object V1ScenarioExecutableFactory {
     fun create(number: Int, frameId: String, fixtureId: String): V1ScenarioExecutable = when (number) {
         1 -> existingTrips(fixtureId)
@@ -206,6 +213,101 @@ object V1ScenarioExecutableFactory {
         47 -> invalidCreate(fixtureId)
         48 -> editSaveFailure(fixtureId)
         else -> error("Unsupported V1 scenario: $number")
+    }
+
+    fun workspaceAllEmpty(fixtureId: String): V1ScenarioExecutable = workspaceEmptyScenario(
+        fixtureId = fixtureId,
+        section = WorkspaceSection.PLACE_POOL,
+        isWorkspaceAllEmpty = true,
+        isItineraryAllEmpty = true,
+        expectedTag = "workspace-all-empty",
+        expectedText = "旅行还是空的",
+    )
+
+    fun itineraryAllEmpty(fixtureId: String): V1ScenarioExecutable = workspaceEmptyScenario(
+        fixtureId = fixtureId,
+        section = WorkspaceSection.ITINERARY,
+        isWorkspaceAllEmpty = false,
+        isItineraryAllEmpty = true,
+        expectedTag = "itinerary-all-empty",
+        expectedText = "还没有安排行程",
+    )
+
+    fun itineraryAllEmptyFixture(): WorkspaceEmptyScenarioFixture {
+        val day = TripDay("day-1", 0)
+        val placeState = PlacePoolUiState(rows = listOf(SavedPlaceRowUi(savedPlace(), 0, false)))
+        val wholeTripDays = listOf(WholeTripDayUi(day.id, 1, emptyList(), emptyList()))
+        return WorkspaceEmptyScenarioFixture(
+            ready = TripWorkspaceReadyState(
+                tripName = "杭州周末",
+                days = listOf(day),
+                section = WorkspaceSection.ITINERARY,
+                itineraryScope = ItineraryScope.Day(day.id),
+                wholeTripDays = wholeTripDays,
+                sheetLevel = WorkspaceSheetLevel.HALF,
+                map = MapUiModel(),
+                mapLayer = MapLayer.STANDARD,
+                selectedMarker = null,
+                selectedMarkerPoi = null,
+                selectedMapPoi = null,
+                overlay = WorkspaceOverlay.None,
+                isItineraryAllEmpty = true,
+                isWorkspaceAllEmpty = false,
+            ),
+            placeState = placeState,
+            itineraryState = DayItineraryUiState(days = listOf(day), selectedDayId = day.id),
+        )
+    }
+
+    private fun workspaceEmptyScenario(
+        fixtureId: String,
+        section: WorkspaceSection,
+        isWorkspaceAllEmpty: Boolean,
+        isItineraryAllEmpty: Boolean,
+        expectedTag: String,
+        expectedText: String,
+    ): V1ScenarioExecutable {
+        val day = TripDay("day-1", 0)
+        val reachableFixture = if (isItineraryAllEmpty && !isWorkspaceAllEmpty) itineraryAllEmptyFixture() else null
+        val ready = reachableFixture?.ready ?: TripWorkspaceReadyState(
+            tripName = "杭州周末",
+            days = listOf(day),
+            section = section,
+            itineraryScope = ItineraryScope.Day(day.id),
+            wholeTripDays = emptyList(),
+            sheetLevel = WorkspaceSheetLevel.HALF,
+            map = MapUiModel(),
+            mapLayer = MapLayer.STANDARD,
+            selectedMarker = null,
+            selectedMarkerPoi = null,
+            selectedMapPoi = null,
+            overlay = WorkspaceOverlay.None,
+            isItineraryAllEmpty = isItineraryAllEmpty,
+            isWorkspaceAllEmpty = isWorkspaceAllEmpty,
+        )
+        return ComposeScenario(
+            ScenarioFixture(fixtureId, ScenarioScreen.WORKSPACE),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
+            content = {
+                TripWorkspaceContent(
+                    pageState = TripWorkspacePageState.Ready(ready),
+                    mapState = WorkspaceMapState.Ready,
+                    onAction = {},
+                    placeState = reachableFixture?.placeState ?: PlacePoolUiState(),
+                    onPlaceAction = {},
+                    itineraryState = reachableFixture?.itineraryState ?: DayItineraryUiState(days = listOf(day), selectedDayId = day.id),
+                    onItineraryAction = {},
+                    mapContent = {},
+                )
+            },
+            verify = {
+                onNodeWithTag(expectedTag).assertIsDisplayed()
+                onNodeWithText(expectedText).assertIsDisplayed()
+                if (isItineraryAllEmpty && !isWorkspaceAllEmpty) {
+                    onAllNodesWithTag("itinerary-scope-rail").assertCountEquals(0)
+                }
+            },
+        )
     }
 
     private fun savedPlace() = SavedPlace("place-1", "trip-1", "poi-1", "西湖", "杭州市西湖区", GeoPoint(30.25, 120.15), "湖边散步", emptyList())

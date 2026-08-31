@@ -11,7 +11,7 @@ import com.yangchengwei.easytrip.trip.domain.TripDay
 import java.time.LocalDate
 
 enum class MapScope { PLACE_POOL, SINGLE_DAY, WHOLE_TRIP }
-enum class MapLayer { STANDARD, SATELLITE_ROAD }
+enum class MapLayer { STANDARD, SATELLITE, SATELLITE_ROAD }
 
 data class OccurrenceUi(
     val itemId: String,
