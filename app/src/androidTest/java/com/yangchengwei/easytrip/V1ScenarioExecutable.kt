@@ -36,7 +36,11 @@ import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep
+import com.yangchengwei.easytrip.itinerary.ui.AddToItinerarySubmissionResult
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryResultContent
+import com.yangchengwei.easytrip.itinerary.ui.FailedItineraryAddition
+import com.yangchengwei.easytrip.itinerary.ui.UndoCreatedItemsBatch
 import com.yangchengwei.easytrip.itinerary.ui.AddTripDayContent
 import com.yangchengwei.easytrip.itinerary.ui.SelectPlacesContent
 import com.yangchengwei.easytrip.itinerary.ui.SelectTargetDayContent
@@ -173,17 +177,17 @@ object V1ScenarioExecutableFactory {
         6 -> wholeTripItinerary(fixtureId)
         7 -> validCreate(fixtureId)
         8 -> tripSettings(fixtureId)
-        9 -> dateSelection(fixtureId)
+        9 -> singlePlaceMultiDaySelection(fixtureId)
         10 -> placeDetail(fixtureId)
         11 -> itemEdit(fixtureId)
         12 -> routeEdit(fixtureId)
         13 -> deleteTripConfirmation(fixtureId)
         14 -> statusMatrix(fixtureId)
-        15 -> noTripDays(fixtureId)
+        15 -> noTripDaysAddGuidance(fixtureId)
         16 -> workspaceSettings(fixtureId)
         17 -> mapLayer(fixtureId)
         18 -> addTripDay(fixtureId)
-        19 -> selectPlaces(fixtureId)
+        19 -> selectedDayMultiPlacePicker(fixtureId)
         20 -> targetDay(fixtureId, targetMissing = false, submitting = false)
         21 -> addComplete(fixtureId)
         22 -> workspaceSheet(number, frameId, fixtureId, WorkspaceSheetScenarioSpec(22, "kCc5z", "workspace-drawer-collapsed", WorkspaceSheetLevel.COLLAPSED))
@@ -195,18 +199,18 @@ object V1ScenarioExecutableFactory {
         28 -> waitingForNetwork(fixtureId)
         29 -> failedRoute(fixtureId)
         30 -> permission(fixtureId)
-        31 -> addComplete(fixtureId)
+        31 -> addSuccessResult(fixtureId)
         32 -> deleteItineraryItem(fixtureId)
-        33 -> longTargetDays(fixtureId)
+        33 -> longAddTargetDayList(fixtureId)
         34 -> permission(fixtureId)
         35 -> permission(fixtureId, clickConfirm = true)
         36 -> emptyTrips(fixtureId)
         37 -> emptyDay(fixtureId)
         38 -> searchState(fixtureId, PlaceSearchPhase.NetworkFailure("无法搜索新的地点"), "网络连接失败")
-        39 -> partialRouteSuccess(fixtureId)
+        39 -> addPartialSuccessResult(fixtureId)
         40 -> changeDateRange(fixtureId)
         41 -> targetDay(fixtureId, targetMissing = false, submitting = true)
-        42 -> targetDay(fixtureId, targetMissing = true, submitting = false)
+        42 -> missingAddTargetDayResult(fixtureId)
         43 -> undoSuccess(fixtureId)
         44 -> searchLoading(fixtureId)
         45 -> mapLoading(fixtureId)
@@ -448,7 +452,7 @@ object V1ScenarioExecutableFactory {
         verify = {
             if (targetMissing) onNodeWithText("所选旅行日已不存在，请重新选择").assertIsDisplayed()
             else if (submitting) onNodeWithText("正在创建行程项，请勿重复操作").assertIsDisplayed()
-            else onNodeWithText("加入哪一天？").assertIsDisplayed()
+            else onNodeWithText("加入行程").assertIsDisplayed()
         },
     )
 
@@ -458,6 +462,99 @@ object V1ScenarioExecutableFactory {
         content = { SelectTargetDayContent((0 until 30).map { TripDay("day-$it", it) }, AddToItineraryUiState(selectedPlaceIds = listOf("place-1"), validityInitialized = true, step = AddToItineraryStep.SELECT_TARGET_DAY), {}, {}, {}) },
         verify = { onNodeWithTag("select-target-day-list").assertIsDisplayed(); onNodeWithText("请选择旅行日").assertIsDisplayed() },
     )
+
+    private fun singlePlaceMultiDaySelection(id: String): V1ScenarioExecutable {
+        var state by mutableStateOf(
+            AddToItineraryUiState(
+                selectedPlaceIds = listOf("place-1"),
+                editingTarget = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForPlace("place-1"),
+                validityInitialized = true,
+                step = AddToItineraryStep.SELECT_TARGET_DAY,
+            ),
+        )
+        val days = listOf(TripDay("day-1", 0), TripDay("day-2", 1))
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.TARGET_DAY),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
+            reset = { state = state.copy(selectedTargetDayIds = emptyList(), targetDayId = null) },
+            content = {
+                SelectTargetDayContent(
+                    days = days,
+                    state = state,
+                    onSelectDay = {},
+                    onToggleDay = { dayId ->
+                        val selected = state.selectedTargetDayIds.toMutableList().apply {
+                            if (!remove(dayId)) add(dayId)
+                        }
+                        state = state.copy(selectedTargetDayIds = selected, targetDayId = selected.firstOrNull())
+                    },
+                    onSubmit = {},
+                    selectedPlaceName = "西湖",
+                )
+            },
+            interact = { onNodeWithTag("target-day-day-1").performClick(); onNodeWithTag("target-day-day-2").performClick() },
+            verify = { onNodeWithText("西湖").assertIsDisplayed(); onNodeWithText("加入 2 天").assertIsDisplayed() },
+        )
+    }
+
+    private fun noTripDaysAddGuidance(id: String) = ComposeScenario(
+        ScenarioFixture(id, ScenarioScreen.TARGET_DAY),
+        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
+        content = {
+            SelectTargetDayContent(
+                days = emptyList(),
+                state = AddToItineraryUiState(
+                    selectedPlaceIds = listOf("place-1"),
+                    editingTarget = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForPlace("place-1"),
+                    step = AddToItineraryStep.SELECT_TARGET_DAY,
+                ),
+                onSelectDay = {}, onSubmit = {}, selectedPlaceName = "西湖",
+            )
+        },
+        verify = { onNodeWithText("还没有旅行日").assertIsDisplayed(); onNodeWithTag("go-to-itinerary-add-day").assertIsDisplayed() },
+    )
+
+    private fun longAddTargetDayList(id: String): V1ScenarioExecutable {
+        val days = (0 until 30).map { TripDay("day-$it", it) }
+        var state by mutableStateOf(
+            AddToItineraryUiState(
+                selectedPlaceIds = listOf("place-1"),
+                editingTarget = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForPlace("place-1"),
+                validityInitialized = true,
+                step = AddToItineraryStep.SELECT_TARGET_DAY,
+            ),
+        )
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.TARGET_DAY),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
+            reset = { state = state.copy(selectedTargetDayIds = emptyList(), targetDayId = null) },
+            content = { SelectTargetDayContent(days, state, {}, { dayId -> state = state.copy(selectedTargetDayIds = listOf(dayId), targetDayId = dayId) }, {}, selectedPlaceName = "西湖") },
+            interact = {
+                onNodeWithTag("select-target-day-list").performTouchInput { swipeUp() }
+                onNodeWithTag("target-day-day-29").performScrollTo().performClick()
+            },
+            verify = { onNodeWithText("加入第 30 天").assertIsDisplayed(); onNodeWithTag("select-target-day-submit").assertIsDisplayed() },
+        )
+    }
+
+    private fun selectedDayMultiPlacePicker(id: String): V1ScenarioExecutable {
+        val rows = listOf(
+            SavedPlaceRowUi(savedPlace().copy(id = "place-1", name = "西湖"), 0, false),
+            SavedPlaceRowUi(savedPlace().copy(id = "place-2", name = "灵隐寺"), 0, false),
+        )
+        var state by mutableStateOf(
+            AddToItineraryUiState(targetDayId = "day-1", editingTarget = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForDay("day-1"), step = AddToItineraryStep.SELECT_PLACES),
+        )
+        var continued = false
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.PLACE_POOL),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.PLACE_POOL)),
+            reset = { state = state.copy(selectedPlaceIds = emptyList()); continued = false },
+            content = { SelectPlacesContent(rows, state, { placeId -> state = state.copy(selectedPlaceIds = state.selectedPlaceIds.toMutableList().apply { if (!remove(placeId)) add(placeId) }) }, { continued = true }, {}) },
+            interact = { onNodeWithTag("select-place-place-1").performClick(); onNodeWithTag("select-place-place-2").performClick(); onNodeWithTag("select-places-continue").performClick() },
+            verify = { onNodeWithText("已选 2 个").assertIsDisplayed(); check(continued) },
+        )
+    }
 
     private fun addComplete(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.ITINERARY),
@@ -642,6 +739,63 @@ object V1ScenarioExecutableFactory {
             },
         )
     }
+
+    private fun addSuccessResult(id: String) = addResultScenario(
+        id = id,
+        fixtureId = "add-success-result",
+        state = AddToItineraryUiState(
+            submissionResult = AddToItinerarySubmissionResult(createdItemsByDay = listOf(UndoCreatedItemsBatch("day-1", listOf("item-1")))),
+            undoBatches = listOf(UndoCreatedItemsBatch("day-1", listOf("item-1"))),
+        ),
+        verify = { onNodeWithText("已加入第 1 天").assertIsDisplayed(); onNodeWithText("撤销").assertIsDisplayed() },
+    )
+
+    private fun addPartialSuccessResult(id: String) = addResultScenario(
+        id = id,
+        fixtureId = "add-partial-success-result",
+        state = AddToItineraryUiState(
+            submissionResult = AddToItinerarySubmissionResult(
+                createdItemsByDay = listOf(UndoCreatedItemsBatch("day-1", listOf("item-1"))),
+                failedAdditions = listOf(FailedItineraryAddition("day-2", "place-1")),
+                retryTargetDayIds = listOf("day-2"),
+            ),
+            undoBatches = listOf(UndoCreatedItemsBatch("day-1", listOf("item-1"))),
+        ),
+        verify = { onNodeWithText("部分地点已加入行程").assertIsDisplayed(); onNodeWithText("第 2 天 · 西湖：未加入").assertIsDisplayed() },
+    )
+
+    private fun missingAddTargetDayResult(id: String) = addResultScenario(
+        id = id,
+        fixtureId = "missing-add-target-day-result",
+        state = AddToItineraryUiState(
+            submissionResult = AddToItinerarySubmissionResult(
+                createdItemsByDay = listOf(UndoCreatedItemsBatch("day-1", listOf("item-1"))),
+                missingTargetDayIds = listOf("day-2"),
+                missingTargetDayLabels = mapOf("day-2" to "第 2 天"),
+            ),
+            undoBatches = listOf(UndoCreatedItemsBatch("day-1", listOf("item-1"))),
+        ),
+        verify = { onNodeWithText("所选旅行日已不存在").assertIsDisplayed(); onNodeWithText("请重新选择旅行日").assertIsDisplayed() },
+    )
+
+    private fun addResultScenario(
+        id: String,
+        fixtureId: String,
+        state: AddToItineraryUiState,
+        verify: V1ComposeRule.() -> Unit,
+    ) = ComposeScenario(
+        ScenarioFixture(fixtureId, ScenarioScreen.WORKSPACE),
+        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
+        content = {
+            AddToItineraryResultContent(
+                state = state,
+                days = listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
+                placeNameForId = { "西湖" },
+                onUndo = {}, onRetryFailed = {}, onReselectDates = {}, onViewResult = {}, onViewPlacePool = {}, onClose = {},
+            )
+        },
+        verify = verify,
+    )
 
     private fun partialRouteSuccess(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<DayItineraryAction>()
@@ -923,41 +1077,14 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    private fun undoSuccess(id: String): V1ScenarioExecutable {
-        var closed = false
-        return ComposeScenario(
-            ScenarioFixture(id, ScenarioScreen.PLACE_POOL),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
-            reset = { closed = false },
-            content = {
-                val ready = readyState(overlay = WorkspaceOverlay.AddToItineraryResult)
-                TripWorkspaceScreen(
-                    pageState = TripWorkspacePageState.Ready(ready),
-                    consent = null,
-                    onAction = {},
-                    onMarkerClick = {},
-                    onMapPoiClick = {},
-                    placeState = PlacePoolUiState(),
-                    onPlaceAction = {},
-                    itineraryState = DayItineraryUiState(days = ready.days, selectedDayId = ready.days.first().id),
-                    addToItineraryState = AddToItineraryUiState(
-                        step = AddToItineraryStep.COMPLETED,
-                        result = AddPlacesOutcome.Success("day-1", listOf("item-1")),
-                        undoBatches = emptyList(),
-                    ),
-                    onItineraryAction = {},
-                    onCloseOverlay = { closed = true },
-                    onDismissMapPlace = {},
-                )
-            },
-            interact = {
-                onNodeWithText("已撤销本次新增，收藏地点仍保留。").assertIsDisplayed()
-                onNodeWithText("撤销").assertIsNotEnabled()
-                onNodeWithText("关闭").performClick()
-            },
-            verify = { check(closed) },
-        )
-    }
+    private fun undoSuccess(id: String) = addResultScenario(
+        id = id,
+        fixtureId = "add-undo-success-result",
+        state = AddToItineraryUiState(
+            submissionResult = AddToItinerarySubmissionResult(createdItemsByDay = listOf(UndoCreatedItemsBatch("day-1", listOf("item-1")))),
+        ),
+        verify = { onNodeWithText("已从第 1 天移除，收藏地点仍保留").assertIsDisplayed(); onNodeWithText("查看地点池").assertIsDisplayed() },
+    )
 
     private fun validCreate(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<CreateTripAction>()

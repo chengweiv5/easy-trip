@@ -52,6 +52,7 @@ data class TripWorkspaceReadyState(
     val isWorkspaceAllEmpty: Boolean = false,
     val schedulesByPlaceId: Map<String, PlaceScheduleSummaryUi> = emptyMap(),
     val dateLabel: String? = null,
+    val startDate: java.time.LocalDate? = null,
 )
 
 internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
@@ -71,6 +72,7 @@ internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
     isItineraryAllEmpty = isItineraryAllEmpty,
     isWorkspaceAllEmpty = isWorkspaceAllEmpty,
     schedulesByPlaceId = schedulesByPlaceId,
+    startDate = startDate,
 )
 
 sealed interface TripWorkspacePageState {

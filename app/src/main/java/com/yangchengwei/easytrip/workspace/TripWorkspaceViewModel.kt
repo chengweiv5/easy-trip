@@ -45,6 +45,7 @@ data class SearchResultSelection(
 data class TripWorkspaceUiState(
     val tripName: String = "",
     val dateLabel: String? = null,
+    val startDate: java.time.LocalDate? = null,
     val days: List<TripDay> = emptyList(),
     val section: WorkspaceSection = WorkspaceSection.PLACE_POOL,
     val itineraryScope: ItineraryScope = ItineraryScope.WholeTrip,
@@ -244,6 +245,7 @@ class TripWorkspaceViewModel(
             isItineraryAllEmpty = isItineraryAllEmpty,
             isWorkspaceAllEmpty = isWorkspaceAllEmpty,
             schedulesByPlaceId = schedulesByPlaceId,
+            startDate = currentTrip.startDate,
         )
     }
 

@@ -121,22 +121,26 @@
 
 | 设计界面 | Frame ID | 入口 | 核心状态/交互 | 状态 |
 |---|---|---|---|---|
-| 单地点选择日期 | `xQfD0` | 地点池单地点加号 | 选择一个或多个旅行日 | 待分析 |
-| 长日期列表 | `cRdBn` | 单地点入口且日期较多 | 中间列表滚动，标题和操作固定 | 待分析 |
-| 从地点池添加 | `Pqdkf` | 行程页某天添加地点 | 批量选择多个收藏地点 | 待分析 |
-| 无旅行日 | `p7U8B` | 单地点入口 | 前往行程添加旅行日 | 待分析 |
-| 成功反馈 | `yNKT4` | 两种入口提交成功 | 撤销和查看结果 | 待分析 |
-| 部分成功 | `mGhKO` | 批量提交 | 区分成功和失败项 | 待分析 |
-| 旅行日已删除 | `D3XZi` | 提交期间状态变化 | 重新选择旅行日 | 待分析 |
-| 撤销成功 | `KPBBb` | 成功反馈撤销 | 删除安排，保留收藏 | 待分析 |
+| 单地点选择日期 | `xQfD0` | 地点池单地点加号 | 选择一个或多个旅行日 | 已测试 |
+| 长日期列表 | `cRdBn` | 单地点入口且日期较多 | 中间列表滚动，标题和操作固定 | 已测试 |
+| 从地点池添加 | `Pqdkf` | 行程页某天添加地点 | 批量选择多个收藏地点 | 已测试 |
+| 无旅行日 | `p7U8B` | 单地点入口 | 前往行程添加旅行日 | 已测试 |
+| 成功反馈 | `yNKT4` | 两种入口提交成功 | 撤销和查看结果 | 已测试 |
+| 部分成功 | `mGhKO` | 批量提交 | 区分成功和失败项 | 已测试 |
+| 旅行日已删除 | `D3XZi` | 提交期间状态变化 | 重新选择旅行日 | 已测试 |
+| 撤销成功 | `KPBBb` | 成功反馈撤销 | 删除安排，保留收藏 | 已测试 |
 
 ### Batch 4 完成条件
 
-- [ ] 两个入口都能端到端完成加入行程。
-- [ ] 单地点入口支持多个旅行日。
-- [ ] 旅行日入口支持多个地点。
-- [ ] 无旅行日、部分成功、目标日失效和撤销状态正确。
-- [ ] 重复加入同一地点不会被 UI 自动去重。
+自动化与模拟器验证已完成；Huawei 物理设备已完成当前真实数据可达的双入口、成功、查看与撤销闭环，长日期、部分成功和目标日并发删除仍待后续专项设备验收。
+
+- [x] 两个入口都能端到端完成加入行程。
+- [x] 单地点入口支持多个旅行日。
+- [x] 旅行日入口支持多个地点。
+- [x] 无旅行日、部分成功、目标日失效和撤销状态正确。
+- [x] 重复加入同一地点不会被 UI 自动去重。
+- [x] 聚合结果、异常中断后的已创建项、精确重试及结果/撤销状态可跨 Activity/进程重建恢复。
+- [x] Huawei 物理设备完成当前真实数据可达的双入口、成功、查看和撤销验收；长日期、部分成功和目标日并发删除保留为专项设备验收项。
 
 ## Batch 5：行程编辑和路线
 
@@ -236,6 +240,40 @@
 - 设备验证：Huawei ALN-AL00 上真实 AMap 标准/卫星/卫星路网切换成功；真实搜索 `WestLake` 返回结果，连续收藏两个地点并同步地点池；仅收藏详情、加入第 1 天及已安排摘要完成闭环，修复后确认显示“第 1 天 · 1 次”。后续发现地点详情 Dialog 反复开关并已定位修复；因一次误在 Huawei 启动 instrumentation 后原两地点数据不再存在，未使用旧数据完成修复后的同场景重放。真实设备仅验证两个地点，未宣称设计中的 8 点首次全览已验收。
 - 已知非阻塞差异：fake map evidence 不替代真实 AMap；间距、字体和小型视觉差异留到最终物理设备验收。
 - 下一批入口：按实现计划进入下一未完成批次；先完成 frame → Composable → UiState → 导航 → 测试映射并等待批准。
+
+### 2026-09-02 · Batch 4 / Task 4 · 多日与长列表日期选择
+
+- 实现：单地点入口复用 `SelectTargetDayContent`，以 checkbox 切换有序多日选择；固定旅行日入口仍使用 radio 且不暴露多选。目标日条目显示第几天、可用日期和现有安排次数；单地点模式显示地点名。确认按钮仅在存在有效选择、且非提交/撤销中可用，并按一日或多日生成准确文案。
+- 设计 frame：`xQfD0`、`cRdBn`、`p7U8B`；日期列表为唯一滚动区，固定标题和底部确认/提示；无日状态复用 Task 3 的“前往行程”及“暂不添加”路由。
+- 修改文件：`SelectTargetDayContent`、`TripWorkspaceScreen`、`TripWorkspaceViewModel`、`WorkspaceUiModels`、`WorkspaceFlowTest`。
+- 自动化验证：新增 Compose RED 用例先失败（缺少日期/次数、确认文案与末日可选择）；GREEN 后 focused 2/2 和 `WorkspaceFlowTest` 39/39 通过；`AddToItineraryStateTest`、`assembleDebug`、`assembleDebugAndroidTest`、`git diff --check` 通过。
+- 设备验证：在 `easy_trip_p60pro(AVD) - 12` 完成 focused 与完整工作台 Compose 流程；未做实体设备操作。
+- 已知非阻塞差异：未运行 `lintDebug`；`graphify update .` 仍报告未触及的 `NetworkMonitor.kt` 和 `RoutePlanner.kt` 语法解析警告。
+- 下一批入口：Task 5 成功、部分成功、目标日失效与撤销的最终反馈 UI。
+
+### 2026-09-02 · Batch 4 / Task 5 · 参数化加入结果
+
+- 实现：新增 `AddToItineraryResultContent`，使用 Task 2 的聚合结果表达成功、部分成功、目标日失效和撤销成功。成功可选择单日或全程行程；部分成功逐日显示已加入/未加入组合并保留收藏；失效目标日明确重新选择且不重投；撤销后仅显示地点池入口。仍复用单一 overlay host、既有导航和 ViewModel。
+- 设计 frame：`yNKT4`、`mGhKO`、`D3XZi`、`KPBBb`。
+- 修改文件：`AddToItineraryResultContent`、`AddToItineraryViewModel`、`TripWorkspaceScreen`、`TripWorkspaceRoute`、`WorkspaceFlowTest`、`AddToItineraryStateTest`。
+- 自动化验证：新增结果 Compose 测试先 RED（旧通用结果体缺少成功/部分/失效/撤销状态文案）；GREEN 后 focused 2/2 与完整 `WorkspaceFlowTest` 43/43 通过；`AddToItineraryStateTest`、`assembleDebug`、`assembleDebugAndroidTest`、`git diff --check` 通过。
+- 设备验证：在 `easy_trip_p60pro(AVD) - 12` 执行完整 Compose 工作台流程；未做实体设备验收。
+- 已知非阻塞差异：未运行 `lintDebug`；`graphify update .` 报告未触及 `NetworkMonitor.kt` 与 `RoutePlanner.kt` 的语法解析警告。
+
+### 2026-09-02 · Batch 4 / Task 6 · 场景、证据和自动化收口
+
+- 场景：保持 47 个编号 parent 不变；将 `xQfD0`、`cRdBn`、`Pqdkf`、`p7U8B`、`yNKT4`、`mGhKO`、`D3XZi`、`KPBBb` 分别重绑至加入行程的 typed fixture/executable。`xQfD0` 不再复用创建旅行日期表单，`mGhKO` 不再表示路线部分成功。
+- 证据边界：typed executable 使用生产 Compose content 与受控 UiState；这些受控状态不是实际 Room 触发，且未声明真实 AMap 证据。所有物理设备状态仍为 `PENDING`。
+- 自动化验证：新增 catalog metadata RED 先因 `xQfD0` 仍指向 `dated-trip-form` 失败；修复后 metadata 测试通过。`AddToItineraryStateTest`、`WorkspaceFlowTest` 47/47、`PlacePoolFlowTest` 25/25 均通过（`easy_trip_p60pro(AVD) - 12`）。最终静态门禁结果见 Task 6 report。
+- 设备验证：Huawei ALN-AL00 使用 `adb install -r` 覆盖安装并保留现有数据/授权。以真实 3 天旅行“登封”和高德搜索结果完成：连续收藏“少林寺”“中国嵩山少林旅游武术购物城”；单地点勾选第 1、3 天并显示“加入 2 天”；提交后显示“已加入第 1 天、第 3 天”及撤销/查看行程；查看行程后全程视图中第 1、3 天均有新增地点、第 2 天为空；第 1 天入口选择两个收藏地点后直接提交，不出现重复日期选择，并显示“已加入第 1 天”；撤销后显示“已从第 1 天移除，收藏地点仍保留”，返回地点池仍有 2 个收藏地点。过程中无 crash/ANR、无 Dialog 闪烁。当前旅行仅 3 天且真实 repository 未注入失败/并发删除，故长日期、部分成功、目标日删除仅由自动化和 controlled evidence 覆盖。
+- 已知非阻塞差异：模拟器日志持续出现 SDK XML v4/工具仅理解至 v3 的环境 warning；不代表产品断言失败。真实 Room 触发、真实 AMap 与物理设备验收尚未完成。
+
+### 2026-09-02 · Batch 4 / Task 6 · Fix round 2 · 宿主级场景证据
+
+- 证据：八个 Batch 4 frame 现均由参数化 `TripWorkspaceScreen` + 对应 `WorkspaceOverlay` 的 controlled UiState 通过同一 production workspace host 运行；map 使用 deterministic fake `AmapMapHost`。metadata 明确说明这不是 Room 触发状态，也不是 real AMap 证据。
+- 场景交互：`Pqdkf` typed executable 真实点击两个地点并确认“已选 2 个”及 Continue；`cRdBn` typed executable 滚动后选择第 30 天，并验证确认 footer。完整工作台 `WorkspaceFlowTest` 仍提供真实 host 中长列表末日和 footer 可达的证据。
+- 自动化验证：新增宿主证据 metadata 测试先编译 RED（证据 catalog 不存在），随后 GREEN；最终命令和结果见 Task 6 report。
+- 设备验证：Huawei ALN-AL00 使用 `adb install -r` 保留数据与既有授权覆盖安装。以真实 3 天旅行“登封”和高德搜索结果完成：连续收藏“少林寺”“中国嵩山少林旅游武术购物城”；单地点同时选择第 1、3 天，确认按钮显示“加入 2 天”，成功结果显示“已加入第 1 天、第 3 天”；“查看行程”进入全程视图，第 1、3 天有新增地点，第 2 天为空；第 1 天入口实际多选两个收藏地点并直接提交，无重复日期选择，结果显示“已加入第 1 天”；撤销后显示“已从第 1 天移除，收藏地点仍保留”，返回地点池仍有 2 个收藏地点。未发现 crash、ANR 或 Dialog 闪烁。当前真实旅行仅 3 天，部分失败和目标日并发删除无法自然触发，仍由自动化与 controlled evidence 覆盖。
 
 每次完成一批后追加：
 

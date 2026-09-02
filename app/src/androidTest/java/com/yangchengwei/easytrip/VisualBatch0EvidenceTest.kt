@@ -1,7 +1,9 @@
 package com.yangchengwei.easytrip
 
+import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
+import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -22,6 +24,12 @@ import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep
+import com.yangchengwei.easytrip.itinerary.ui.AddToItinerarySubmissionResult
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.FailedItineraryAddition
+import com.yangchengwei.easytrip.itinerary.ui.UndoCreatedItemsBatch
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryContent
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi
@@ -51,9 +59,15 @@ import com.yangchengwei.easytrip.trip.ui.TripListPageState
 import com.yangchengwei.easytrip.trip.ui.TripListUiState
 import com.yangchengwei.easytrip.trip.ui.TripSettingsContent
 import com.yangchengwei.easytrip.trip.ui.TripSettingsUiState
+import com.yangchengwei.easytrip.workspace.AmapMapHost
 import com.yangchengwei.easytrip.workspace.ItineraryScope
+import com.yangchengwei.easytrip.workspace.MapLayer
+import com.yangchengwei.easytrip.workspace.MapPoiUi
+import com.yangchengwei.easytrip.workspace.MapUiModel
 import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 import com.yangchengwei.easytrip.workspace.TripWorkspaceContent
+import com.yangchengwei.easytrip.workspace.TripWorkspaceScreen
+import com.yangchengwei.easytrip.workspace.WorkspaceOverlay
 import com.yangchengwei.easytrip.workspace.TripWorkspacePageState
 import com.yangchengwei.easytrip.workspace.TripWorkspaceUiState
 import com.yangchengwei.easytrip.workspace.WorkspaceMapState
@@ -71,8 +85,63 @@ import org.junit.Test
 import org.junit.rules.TestName
 
 class VisualBatch0EvidenceTest {
+    data class ControlledWorkspaceEvidence(
+        val host: String,
+        val stateSource: String,
+        val mapSurface: String,
+    )
+
+    companion object {
+        val batch4WorkspaceHostEvidence = setOf("xQfD0", "cRdBn", "Pqdkf", "p7U8B", "yNKT4", "mGhKO", "D3XZi", "KPBBb")
+            .associateWith {
+                ControlledWorkspaceEvidence(
+                    host = "production Compose workspace host",
+                    stateSource = "controlled UiState; not Room-triggered",
+                    mapSurface = "deterministic fake map surface; not a real map host",
+                )
+            }
+    }
+
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     @get:Rule val testName = TestName()
+
+    @Test fun batch4FramesRenderThroughProductionWorkspaceHostWithControlledState() {
+        val place = savedPlace(searchCandidates()[1], "batch4-place")
+        val frames = listOf(
+            "xQfD0" to Batch4HostState(WorkspaceOverlay.SelectAddTargetDay, AddToItineraryUiState(selectedPlaceIds = listOf(place.id), editingTarget = AddToItineraryEditingTarget.ForPlace(place.id), validityInitialized = true, step = AddToItineraryStep.SELECT_TARGET_DAY), listOf(TripDay("day-1", 0), TripDay("day-2", 1)), "加入行程"),
+            "cRdBn" to Batch4HostState(WorkspaceOverlay.SelectAddTargetDay, AddToItineraryUiState(selectedPlaceIds = listOf(place.id), editingTarget = AddToItineraryEditingTarget.ForPlace(place.id), validityInitialized = true, step = AddToItineraryStep.SELECT_TARGET_DAY), (0 until 30).map { TripDay("day-$it", it) }, "加入行程"),
+            "Pqdkf" to Batch4HostState(WorkspaceOverlay.SelectAddPlaces, AddToItineraryUiState(selectedPlaceIds = listOf(place.id), targetDayId = "day-1", editingTarget = AddToItineraryEditingTarget.ForDay("day-1"), step = AddToItineraryStep.SELECT_PLACES), workspaceDays(), "从地点池添加"),
+            "p7U8B" to Batch4HostState(WorkspaceOverlay.SelectAddTargetDay, AddToItineraryUiState(selectedPlaceIds = listOf(place.id), editingTarget = AddToItineraryEditingTarget.ForPlace(place.id), step = AddToItineraryStep.SELECT_TARGET_DAY), emptyList(), "还没有旅行日"),
+            "yNKT4" to Batch4HostState(WorkspaceOverlay.AddToItineraryResult, AddToItineraryUiState(submissionResult = AddToItinerarySubmissionResult(createdItemsByDay = listOf(UndoCreatedItemsBatch("day-1", listOf("item")))), undoBatches = listOf(UndoCreatedItemsBatch("day-1", listOf("item")))), workspaceDays(), "已加入第 1 天"),
+            "mGhKO" to Batch4HostState(WorkspaceOverlay.AddToItineraryResult, AddToItineraryUiState(submissionResult = AddToItinerarySubmissionResult(createdItemsByDay = listOf(UndoCreatedItemsBatch("day-1", listOf("item"))), failedAdditions = listOf(FailedItineraryAddition("day-2", place.id)), retryTargetDayIds = listOf("day-2")), undoBatches = listOf(UndoCreatedItemsBatch("day-1", listOf("item")))), workspaceDays(), "部分地点已加入行程"),
+            "D3XZi" to Batch4HostState(WorkspaceOverlay.AddToItineraryResult, AddToItineraryUiState(submissionResult = AddToItinerarySubmissionResult(missingTargetDayIds = listOf("day-2"), missingTargetDayLabels = mapOf("day-2" to "第 2 天"))), workspaceDays(), "所选旅行日已不存在"),
+            "KPBBb" to Batch4HostState(WorkspaceOverlay.AddToItineraryResult, AddToItineraryUiState(submissionResult = AddToItinerarySubmissionResult(createdItemsByDay = listOf(UndoCreatedItemsBatch("day-1", listOf("item"))))), workspaceDays(), "已从第 1 天移除"),
+        )
+        val current = androidx.compose.runtime.mutableStateOf(frames.first())
+        compose.setContent {
+            val (_, hostState) = current.value
+            TripWorkspaceScreen(
+                pageState = TripWorkspacePageState.Ready(workspaceState(WorkspaceSection.PLACE_POOL).content.copy(days = hostState.days, overlay = hostState.overlay)),
+                consent = acceptedConsentToken(), onAction = {}, onMarkerClick = {}, onMapPoiClick = {},
+                placeState = PlacePoolUiState(rows = listOf(SavedPlaceRowUi(place, 0, false))), onPlaceAction = {},
+                itineraryState = DayItineraryUiState(days = hostState.days, selectedDayId = hostState.days.firstOrNull()?.id),
+                addToItineraryState = hostState.addState, onItineraryAction = {}, onCloseOverlay = {}, onDismissMapPlace = {},
+                mapHostFactory = ::DeterministicFakeMapHost,
+            )
+        }
+        frames.forEach { frame ->
+            compose.runOnIdle { current.value = frame }
+            compose.waitForIdle()
+            compose.onNodeWithText(frame.second.expectedText, substring = true).assertIsDisplayed()
+        }
+    }
+
+    private data class Batch4HostState(
+        val overlay: WorkspaceOverlay,
+        val addState: AddToItineraryUiState,
+        val days: List<TripDay>,
+        val expectedText: String,
+    )
 
     @Test fun evidenceManifestRecordsJUnitMethodAndRuntimeSerial() {
         val manifest = evidenceManifest(
@@ -126,10 +195,11 @@ class VisualBatch0EvidenceTest {
             evidenceHost = "production Compose workspace host",
             mapSurface = "deterministic fake map surface; not a real map host",
         ) {
-            TripWorkspaceContent(
+            TripWorkspaceScreen(
                 pageState = workspaceState(WorkspaceSection.PLACE_POOL).let { state ->
                     TripWorkspacePageState.Ready(
                         state.content.copy(
+                            overlay = WorkspaceOverlay.PlaceDetail(1L),
                             schedulesByPlaceId = mapOf(
                                 place.id to PlaceScheduleSummaryUi(
                                     isKnown = true,
@@ -143,22 +213,19 @@ class VisualBatch0EvidenceTest {
                         ),
                     )
                 },
-                mapState = WorkspaceMapState.Ready,
-                onAction = {},
+                consent = acceptedConsentToken(),
+                onAction = {}, onMarkerClick = {}, onMapPoiClick = {},
                 placeState = PlacePoolUiState(
                     rows = listOf(SavedPlaceRowUi(place, 3, scheduled = true)),
                     savedPoiIds = setOf(place.amapPoiId),
                     selectedDetailPlaceId = place.id,
                     selectedDetailPlace = place,
                 ),
-                onPlaceAction = {},
-                itineraryState = DayItineraryUiState(),
-                onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
-                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                onPlaceAction = {}, itineraryState = DayItineraryUiState(), onItineraryAction = {},
+                onCloseOverlay = {}, onDismissMapPlace = {}, mapHostFactory = ::DeterministicFakeMapHost,
             )
         }
-        assertWorkspaceHost()
+        compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         compose.onNodeWithText("已加入行程").assertIsDisplayed()
         compose.onNodeWithText("加入行程").assertIsDisplayed()
     }
@@ -278,28 +345,28 @@ class VisualBatch0EvidenceTest {
             evidenceHost = "production Compose workspace host",
             mapSurface = "deterministic fake map surface; not a real map host",
         ) {
-            TripWorkspaceContent(
+            TripWorkspaceScreen(
                 pageState = workspaceState(WorkspaceSection.PLACE_POOL).let { state ->
                     TripWorkspacePageState.Ready(
-                        state.content.copy(schedulesByPlaceId = mapOf(place.id to PlaceScheduleSummaryUi(isKnown = true))),
+                        state.content.copy(
+                            overlay = WorkspaceOverlay.PlaceDetail(1L),
+                            schedulesByPlaceId = mapOf(place.id to PlaceScheduleSummaryUi(isKnown = true)),
+                        ),
                     )
                 },
-                mapState = WorkspaceMapState.Ready,
-                onAction = {},
+                consent = acceptedConsentToken(),
+                onAction = {}, onMarkerClick = {}, onMapPoiClick = {},
                 placeState = PlacePoolUiState(
                     rows = listOf(SavedPlaceRowUi(place, 0, scheduled = false)),
                     savedPoiIds = setOf(place.amapPoiId),
                     selectedDetailPlaceId = place.id,
                     selectedDetailPlace = place,
                 ),
-                onPlaceAction = {},
-                itineraryState = DayItineraryUiState(),
-                onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
-                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                onPlaceAction = {}, itineraryState = DayItineraryUiState(), onItineraryAction = {},
+                onCloseOverlay = {}, onDismissMapPlace = {}, mapHostFactory = ::DeterministicFakeMapHost,
             )
         }
-        assertWorkspaceHost()
+        compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         compose.onNodeWithTag("place-detail-bookmark-outline").assertIsDisplayed()
         compose.onNodeWithText("加入行程").assertIsDisplayed()
         compose.onAllNodesWithTag("place-detail-schedule").assertCountEquals(0)
@@ -624,6 +691,27 @@ class VisualBatch0EvidenceTest {
     }
 
     private fun normalizedDeviceSerial(value: String?): String = value?.trim().takeUnless { it.isNullOrEmpty() || it == Build.UNKNOWN } ?: "unknown"
+
+    private fun acceptedConsentToken(): com.yangchengwei.easytrip.amap.AmapConsentToken {
+        val gate = com.yangchengwei.easytrip.amap.TestConsentGate()
+        gate.show()
+        return requireNotNull(gate.decide(true))
+    }
+
+    private class DeterministicFakeMapHost(context: Context) : AmapMapHost {
+        override val view = View(context).apply { setBackgroundColor(android.graphics.Color.rgb(220, 232, 223)) }
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun render(
+            model: MapUiModel,
+            layer: MapLayer,
+            onMarkerClick: (String) -> Unit,
+            onMapPoiClick: (MapPoiUi) -> Unit,
+            onLayerError: (Throwable, MapLayer) -> Unit,
+        ) = Unit
+    }
 
     @androidx.compose.runtime.Composable
     private fun DeterministicFakeMapSurface() {

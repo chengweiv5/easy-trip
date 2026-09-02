@@ -120,6 +120,33 @@ class V1ScenarioMetadataTest {
     }
 
     @Test
+    fun batch4AddToItineraryFramesUseTypedAddFixturesInsteadOfLegacyTripAndRouteFixtures() {
+        val scenarios = V1ScenarioFixtures.scenarios.associateBy(V1Scenario::number)
+
+        assertEquals("single-place-multi-day-selection", scenarios.getValue(9).createExecutable().fixture.id)
+        assertEquals("no-trip-days-add-guidance", scenarios.getValue(15).createExecutable().fixture.id)
+        assertEquals("selected-day-multi-place-picker", scenarios.getValue(19).createExecutable().fixture.id)
+        assertEquals("add-success-result", scenarios.getValue(31).createExecutable().fixture.id)
+        assertEquals("long-add-target-day-list", scenarios.getValue(33).createExecutable().fixture.id)
+        assertEquals("add-partial-success-result", scenarios.getValue(39).createExecutable().fixture.id)
+        assertEquals("missing-add-target-day-result", scenarios.getValue(42).createExecutable().fixture.id)
+        assertEquals("add-undo-success-result", scenarios.getValue(43).createExecutable().fixture.id)
+    }
+
+    @Test
+    fun batch4FramesDeclareControlledProductionWorkspaceHostEvidence() {
+        val frames = setOf("xQfD0", "cRdBn", "Pqdkf", "p7U8B", "yNKT4", "mGhKO", "D3XZi", "KPBBb")
+        val evidence = VisualBatch0EvidenceTest.batch4WorkspaceHostEvidence
+
+        assertEquals(frames, evidence.keys)
+        evidence.values.forEach { descriptor ->
+            assertEquals("production Compose workspace host", descriptor.host)
+            assertEquals("controlled UiState; not Room-triggered", descriptor.stateSource)
+            assertEquals("deterministic fake map surface; not a real map host", descriptor.mapSurface)
+        }
+    }
+
+    @Test
     fun everyScenarioHasTypedExecutableFixturePathAndAssertions() {
         V1ScenarioFixtures.scenarios.forEach { scenario ->
             val executable = scenario.createExecutable()
@@ -165,13 +192,13 @@ class V1ScenarioMetadataTest {
             6 to ScenarioScreen.ITINERARY,
             7 to ScenarioScreen.CREATE_TRIP,
             8 to ScenarioScreen.TRIP_SETTINGS,
-            9 to ScenarioScreen.DATE_PICKER,
+            9 to ScenarioScreen.TARGET_DAY,
             10 to ScenarioScreen.PLACE_DETAIL,
             11 to ScenarioScreen.ITEM_EDITOR,
             12 to ScenarioScreen.ROUTE_EDITOR,
             13 to ScenarioScreen.TRIP_LIST,
             14 to ScenarioScreen.STATUS_MATRIX,
-            15 to ScenarioScreen.ITINERARY,
+            15 to ScenarioScreen.TARGET_DAY,
             16 to ScenarioScreen.WORKSPACE,
             17 to ScenarioScreen.WORKSPACE,
             18 to ScenarioScreen.TRIP_SETTINGS,
@@ -187,7 +214,7 @@ class V1ScenarioMetadataTest {
             28 to ScenarioScreen.ITINERARY,
             29 to ScenarioScreen.ITINERARY,
             30 to ScenarioScreen.PERMISSION,
-            31 to ScenarioScreen.ITINERARY,
+            31 to ScenarioScreen.WORKSPACE,
             32 to ScenarioScreen.ITINERARY,
             33 to ScenarioScreen.TARGET_DAY,
             34 to ScenarioScreen.PERMISSION,
@@ -195,11 +222,11 @@ class V1ScenarioMetadataTest {
             36 to ScenarioScreen.TRIP_LIST,
             37 to ScenarioScreen.ITINERARY,
             38 to ScenarioScreen.SEARCH,
-            39 to ScenarioScreen.ITINERARY,
+            39 to ScenarioScreen.WORKSPACE,
             40 to ScenarioScreen.TRIP_SETTINGS,
             41 to ScenarioScreen.TARGET_DAY,
-            42 to ScenarioScreen.TARGET_DAY,
-            43 to ScenarioScreen.PLACE_POOL,
+            42 to ScenarioScreen.WORKSPACE,
+            43 to ScenarioScreen.WORKSPACE,
             44 to ScenarioScreen.SEARCH,
             45 to ScenarioScreen.WORKSPACE,
             46 to ScenarioScreen.WORKSPACE,
@@ -227,7 +254,7 @@ class V1ScenarioMetadataTest {
 
     @Test fun createTripEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(7)
 
-    @Test fun datePickerEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(9)
+    @Test fun singlePlaceTargetEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(9)
 
     @Test fun deletionEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(13)
 

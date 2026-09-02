@@ -402,6 +402,24 @@ class TripWorkspaceNavigationStateTest {
         )
     }
 
+    @Test fun `aggregate mixed result advances active add overlay regardless of legacy outcome`() {
+        val addState = AddToItineraryUiState(
+            editingTarget = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForPlace("hotel"),
+            step = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep.SELECT_TARGET_DAY,
+            result = com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.Success("day-2", listOf("created-2")),
+            submissionResult = com.yangchengwei.easytrip.itinerary.ui.AddToItinerarySubmissionResult(
+                createdItemsByDay = listOf(com.yangchengwei.easytrip.itinerary.ui.UndoCreatedItemsBatch("day-2", listOf("created-2"))),
+                failedAdditions = listOf(com.yangchengwei.easytrip.itinerary.ui.FailedItineraryAddition("day-1", "hotel")),
+                retryTargetDayIds = listOf("day-1"),
+            ),
+        )
+
+        assertEquals(
+            WorkspaceOverlay.AddToItineraryResult,
+            addOverlayToPresent(WorkspaceOverlay.SelectAddTargetDay, addState),
+        )
+    }
+
     @Test fun `selected saved-place detail remains open when not editing`() {
         assertFalse(
             shouldClosePlaceDetailOverlay(

@@ -66,9 +66,12 @@ internal fun addOverlayToPresent(
     addToItinerary: AddToItineraryUiState,
 ): WorkspaceOverlay? {
     val desired = when {
-        addToItinerary.result is com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.PartialSuccess ||
-            addToItinerary.result is com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome.TargetDayMissing ->
-            WorkspaceOverlay.AddToItineraryResult
+        (addToItinerary.result != null || addToItinerary.step == AddToItineraryStep.COMPLETED || addToItinerary.errorMessage != null) &&
+            addToItinerary.submissionResult?.let { result ->
+                result.createdItemsByDay.isNotEmpty() ||
+                    result.failedAdditions.isNotEmpty() ||
+                    result.missingTargetDayIds.isNotEmpty()
+            } == true -> WorkspaceOverlay.AddToItineraryResult
         addToItinerary.step == AddToItineraryStep.SELECT_PLACES -> WorkspaceOverlay.SelectAddPlaces
         addToItinerary.step == AddToItineraryStep.SELECT_TARGET_DAY -> WorkspaceOverlay.SelectAddTargetDay
         addToItinerary.step == AddToItineraryStep.COMPLETED -> WorkspaceOverlay.AddToItineraryResult
@@ -236,7 +239,12 @@ fun TripWorkspaceRoute(
         ) return
         placeViewModel?.dismissDetail()
         dismissPendingDialogs()
-        if (overlay.isAddToItineraryOverlay()) addToItineraryViewModel?.cancel()
+        if (overlay.isAddToItineraryOverlay() ||
+            (overlay == WorkspaceOverlay.AddTripDay &&
+                !itinerary.isAppendingDay &&
+                itinerary.appendDayCompletionToken == null &&
+                addToItinerary.step != AddToItineraryStep.IDLE)
+        ) addToItineraryViewModel?.cancel()
         if (overlay is WorkspaceOverlay.PermissionExplanation) locationPermissionCoordinator.dismissExplanation()
         viewModel.closeOverlay()
     }
@@ -283,8 +291,12 @@ fun TripWorkspaceRoute(
             AppendDayCompletionDecision.None -> Unit
             is AppendDayCompletionDecision.Consume -> itineraryViewModel?.consumeAppendDayCompletion(decision.token)
             is AppendDayCompletionDecision.CloseOverlayAndConsume -> {
-                viewModel.closeOverlay()
                 itineraryViewModel?.consumeAppendDayCompletion(decision.token)
+                if (addToItinerary.step == AddToItineraryStep.SELECT_TARGET_DAY) {
+                    viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
+                } else {
+                    viewModel.closeOverlay()
+                }
             }
         }
     }
@@ -440,9 +452,7 @@ fun TripWorkspaceRoute(
                 }
                 is PlacePoolAction.StartAddSingle -> {
                     dismissPendingDialogs()
-                    if (ready?.days.isNullOrEmpty()) {
-                        viewModel.openOverlay(WorkspaceOverlay.AddTripDay)
-                    } else if (addToItineraryViewModel?.startForPlace(action.placeId) == true) {
+                    if (addToItineraryViewModel?.startForPlace(action.placeId) == true) {
                         viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
                     }
                 }
@@ -454,10 +464,32 @@ fun TripWorkspaceRoute(
         addToItineraryState = addToItinerary,
         onToggleAddPlace = { addToItineraryViewModel?.togglePlace(it) },
         onContinueAddPlaces = { addToItineraryViewModel?.continueToTargetDay() },
+        onToggleAddTargetDay = { addToItineraryViewModel?.toggleTargetDay(it) },
+        onGoToItineraryAddDay = {
+            viewModel.selectSection(WorkspaceSection.ITINERARY)
+            viewModel.openOverlay(WorkspaceOverlay.AddTripDay)
+        },
         onSelectAddTargetDay = { addToItineraryViewModel?.selectTargetDay(it) },
         onSubmitAddPlaces = { addToItineraryViewModel?.submit() },
         onUndoAddPlaces = { addToItineraryViewModel?.undo() },
         onRetryPartialAdd = { addToItineraryViewModel?.retryPartial() },
+        onReselectAddTargetDays = {
+            addToItineraryViewModel?.reselectTargetDays()
+            viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
+        },
+        onViewAddResult = { dayIds ->
+            viewModel.selectSection(WorkspaceSection.ITINERARY)
+            viewModel.selectItineraryScope(
+                dayIds.singleOrNull()?.let(ItineraryScope::Day) ?: ItineraryScope.WholeTrip,
+            )
+            addToItineraryViewModel?.cancel()
+            viewModel.closeOverlay()
+        },
+        onViewPlacePoolAfterUndo = {
+            viewModel.selectSection(WorkspaceSection.PLACE_POOL)
+            addToItineraryViewModel?.cancel()
+            viewModel.closeOverlay()
+        },
         onItineraryAction = { action ->
             when (action) {
                 DayItineraryAction.AppendTripDay -> dispatchItinerary(action)

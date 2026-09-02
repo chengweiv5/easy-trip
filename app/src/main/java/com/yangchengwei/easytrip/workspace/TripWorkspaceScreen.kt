@@ -37,7 +37,7 @@ import com.yangchengwei.easytrip.permission.LocationPermissionUiState
 import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationDialog
-import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryResultContent
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.AddTripDayContent
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
@@ -70,10 +70,15 @@ fun TripWorkspaceScreen(
     addToItineraryState: AddToItineraryUiState = AddToItineraryUiState(),
     onToggleAddPlace: (String) -> Unit = {},
     onContinueAddPlaces: () -> Unit = {},
+    onToggleAddTargetDay: (String) -> Unit = {},
+    onGoToItineraryAddDay: () -> Unit = {},
     onSelectAddTargetDay: (String) -> Unit = {},
     onSubmitAddPlaces: () -> Unit = {},
     onUndoAddPlaces: () -> Unit = {},
     onRetryPartialAdd: () -> Unit = {},
+    onReselectAddTargetDays: () -> Unit = {},
+    onViewAddResult: (List<String>) -> Unit = {},
+    onViewPlacePoolAfterUndo: () -> Unit = {},
     onItineraryAction: (DayItineraryAction) -> Unit,
     placeContent: (@Composable () -> Unit)? = null,
     dayItineraryContent: (@Composable () -> Unit)? = null,
@@ -172,10 +177,15 @@ fun TripWorkspaceScreen(
             addToItineraryState = addToItineraryState,
             onToggleAddPlace = onToggleAddPlace,
             onContinueAddPlaces = onContinueAddPlaces,
+            onToggleAddTargetDay = onToggleAddTargetDay,
+            onGoToItineraryAddDay = onGoToItineraryAddDay,
             onSelectAddTargetDay = onSelectAddTargetDay,
             onSubmitAddPlaces = onSubmitAddPlaces,
             onUndoAddPlaces = onUndoAddPlaces,
             onRetryPartialAdd = onRetryPartialAdd,
+            onReselectAddTargetDays = onReselectAddTargetDays,
+            onViewAddResult = onViewAddResult,
+            onViewPlacePoolAfterUndo = onViewPlacePoolAfterUndo,
             onItineraryAction = onItineraryAction,
             onClose = onCloseOverlay,
             onDismissMapPlace = onDismissMapPlace,
@@ -255,10 +265,15 @@ private fun WorkspaceOverlayContent(
     addToItineraryState: AddToItineraryUiState,
     onToggleAddPlace: (String) -> Unit,
     onContinueAddPlaces: () -> Unit,
+    onToggleAddTargetDay: (String) -> Unit,
+    onGoToItineraryAddDay: () -> Unit,
     onSelectAddTargetDay: (String) -> Unit,
     onSubmitAddPlaces: () -> Unit,
     onUndoAddPlaces: () -> Unit,
     onRetryPartialAdd: () -> Unit,
+    onReselectAddTargetDays: () -> Unit,
+    onViewAddResult: (List<String>) -> Unit,
+    onViewPlacePoolAfterUndo: () -> Unit,
     onItineraryAction: (DayItineraryAction) -> Unit,
     onClose: () -> Unit,
     onDismissMapPlace: () -> Unit,
@@ -383,42 +398,20 @@ private fun WorkspaceOverlayContent(
             },
         )
         WorkspaceOverlay.AddToItineraryResult -> AlertDialog(
-            onDismissRequest = onClose,
-            title = { Text("已加入行程") },
+            onDismissRequest = { if (!addToItineraryState.isSubmitting && !addToItineraryState.isUndoing) onClose() },
+            confirmButton = {},
             text = {
-                val result = addToItineraryState.result
-                Text(
-                    when {
-                        addToItineraryState.errorMessage != null -> addToItineraryState.errorMessage
-                        result is AddPlacesOutcome.TargetDayMissing &&
-                            addToItineraryState.undoCreatedItemIds.isNotEmpty() ->
-                            "目标日已删除，该日期新增项已随日期移除；其他日期仍有可撤销项。请重新选择日期。"
-                        result is AddPlacesOutcome.TargetDayMissing ->
-                            "目标日已删除，该日期新增项已随日期移除，无可撤销项。请重新选择日期。"
-                        (result is AddPlacesOutcome.Success || result is AddPlacesOutcome.PartialSuccess) &&
-                            addToItineraryState.undoCreatedItemIds.isEmpty() ->
-                            "已撤销本次新增，收藏地点仍保留。"
-                        result is AddPlacesOutcome.Success ->
-                            "已添加 ${result.createdItemIds.size} 个地点，可撤销本次新增。"
-                        result is AddPlacesOutcome.PartialSuccess ->
-                            "已添加 ${result.createdItemIds.size} 个地点，${result.failedPlaceIds.size} 个失败收藏已保留。"
-                        else -> addToItineraryState.errorMessage.orEmpty()
-                    },
+                AddToItineraryResultContent(
+                    state = addToItineraryState,
+                    days = state.days,
+                    placeNameForId = { placeId -> placeState.rows.firstOrNull { it.place.id == placeId }?.place?.name },
+                    onUndo = onUndoAddPlaces,
+                    onRetryFailed = onRetryPartialAdd,
+                    onReselectDates = onReselectAddTargetDays,
+                    onViewResult = onViewAddResult,
+                    onViewPlacePool = onViewPlacePoolAfterUndo,
+                    onClose = onClose,
                 )
-            },
-            confirmButton = {
-                CompactPrimaryButton(
-                    onClick = onUndoAddPlaces,
-                    enabled = addToItineraryState.undoCreatedItemIds.isNotEmpty() && !addToItineraryState.isUndoing,
-                ) { Text("撤销") }
-            },
-            dismissButton = {
-                Row {
-                    if (addToItineraryState.result is AddPlacesOutcome.PartialSuccess) {
-                        CompactSecondaryButton(onRetryPartialAdd) { Text("重试失败地点") }
-                    }
-                    CompactSecondaryButton(onClose) { Text("关闭") }
-                }
             },
         )
         WorkspaceOverlay.SelectAddTargetDay -> AlertDialog(
@@ -427,9 +420,24 @@ private fun WorkspaceOverlayContent(
             text = {
                 SelectTargetDayContent(
                     days = state.days,
+                    startDate = state.startDate,
+                    schedule = addToItineraryState.editingTarget
+                        ?.let { target ->
+                            (target as? com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForPlace)
+                                ?.let { state.schedulesByPlaceId[it.placeId] }
+                        },
+                    selectedPlaceName = addToItineraryState.editingTarget
+                        ?.let { target ->
+                            (target as? com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForPlace)
+                                ?.let { selectedTarget ->
+                                    placeState.rows.firstOrNull { it.place.id == selectedTarget.placeId }?.place?.name
+                                }
+                        },
                     state = addToItineraryState,
                     onSelectDay = onSelectAddTargetDay,
+                    onToggleDay = onToggleAddTargetDay,
                     onSubmit = onSubmitAddPlaces,
+                    onGoToItineraryAddDay = onGoToItineraryAddDay,
                     onClose = onClose,
                     modifier = Modifier.height(550.dp),
                 )
