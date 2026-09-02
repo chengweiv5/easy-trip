@@ -19,6 +19,19 @@ class MapViewportControllerTest {
         assertEquals(listOf(beijing, shanghai), request?.points)
     }
 
+    @Test fun `first eight place points fit once and style-only recomposition does not refit`() {
+        val controller = MapViewportController()
+        val points = List(8) { index -> GeoPoint(30.0 + index, 110.0 + index) }
+
+        val initial = controller.update(points, MapScope.PLACE_POOL, points)
+        val styleOnly = controller.update(points, MapScope.PLACE_POOL, points)
+
+        assertEquals(ViewportReason.INITIAL, initial?.reason)
+        assertEquals(points, initial?.points)
+        assertNull(styleOnly)
+        assertEquals(initial, controller.currentRequest)
+    }
+
     @Test fun `identical or reordered place set emits nothing`() {
         val controller = initializedController()
         assertNull(controller.update(listOf(beijing, shanghai), MapScope.PLACE_POOL, listOf(beijing, shanghai)))

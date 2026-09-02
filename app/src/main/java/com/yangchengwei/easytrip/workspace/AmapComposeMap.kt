@@ -19,7 +19,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableStateOf
+import android.content.Context
+import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.View
@@ -196,6 +200,136 @@ interface AmapMapHost {
     ) = render(model, layer, onMarkerClick, onLayerError)
 }
 
+internal data class NormalizedPoint(val x: Float, val y: Float)
+
+internal val BookmarkGeometry = listOf(
+    NormalizedPoint(0.20f, 0.08f),
+    NormalizedPoint(0.80f, 0.08f),
+    NormalizedPoint(0.80f, 0.92f),
+    NormalizedPoint(0.50f, 0.70f),
+    NormalizedPoint(0.20f, 0.92f),
+)
+
+internal data class MapMarkerRendering(
+    val glyph: String,
+    val geometry: List<NormalizedPoint> = emptyList(),
+    val foregroundColor: Int,
+    val backgroundColor: Int,
+    val borderColor: Int,
+    val borderWidth: Int,
+    val solid: Boolean,
+    val badgeBackgroundColor: Int = 0x00000000,
+    val badgeForegroundColor: Int = 0xFFFFFFFF.toInt(),
+)
+
+internal fun mapMarkerRendering(marker: MapMarkerUi): MapMarkerRendering {
+    val primary = 0xFF2D5E3A.toInt()
+    val focusedBorder = 0xFFD96F3B.toInt()
+    return when (marker.kind) {
+        MapMarkerKind.UNSAVED_SEARCH -> MapMarkerRendering(
+            glyph = "●",
+            foregroundColor = 0xFFFFFFFF.toInt(),
+            backgroundColor = 0xFFD84315.toInt(),
+            borderColor = if (marker.isFocused) focusedBorder else 0xFFFFFFFF.toInt(),
+            borderWidth = if (marker.isFocused) 6 else 3,
+            solid = true,
+        )
+        MapMarkerKind.SAVED_PLACE_POOL -> MapMarkerRendering(
+            glyph = "",
+            geometry = BookmarkGeometry,
+            foregroundColor = if (marker.scheduled) 0xFFFFFFFF.toInt() else primary,
+            backgroundColor = if (marker.scheduled) primary else 0xFFFFFFFF.toInt(),
+            borderColor = if (marker.isFocused) focusedBorder else primary,
+            borderWidth = if (marker.isFocused) 6 else 3,
+            solid = marker.scheduled,
+        )
+        MapMarkerKind.SAVED_ITINERARY -> MapMarkerRendering(
+            glyph = marker.badgeText.orEmpty(),
+            geometry = BookmarkGeometry,
+            foregroundColor = 0xFFFFFFFF.toInt(),
+            backgroundColor = primary,
+            borderColor = if (marker.isFocused) focusedBorder else 0xFFFFFFFF.toInt(),
+            borderWidth = if (marker.isFocused) 6 else 3,
+            solid = true,
+            badgeBackgroundColor = primary,
+            badgeForegroundColor = 0xFFFFFFFF.toInt(),
+        )
+    }
+}
+
+private class MarkerIconView(context: Context, private val marker: MapMarkerUi) : View(context) {
+    private val rendering = mapMarkerRendering(marker)
+    private val density = resources.displayMetrics.density
+    private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+
+    init {
+        val size = if (marker.isFocused) 52 else 44
+        val width = if (marker.badgeText != null) size + 28 else size
+        layoutParams = android.view.ViewGroup.LayoutParams((width * density).toInt(), (size * density).toInt())
+    }
+
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
+        setMeasuredDimension(layoutParams.width, layoutParams.height)
+    }
+
+    override fun onDraw(canvas: AndroidCanvas) {
+        super.onDraw(canvas)
+        val badgeWidth = if (marker.badgeText != null) 28f * density else 0f
+        val iconAreaWidth = width - badgeWidth
+        val cx = iconAreaWidth / 2f
+        val cy = height / 2f
+        val radius = minOf(iconAreaWidth, height.toFloat()) * 0.44f
+        paint.style = Paint.Style.FILL
+        paint.color = rendering.backgroundColor
+        canvas.drawCircle(cx, cy, radius, paint)
+        paint.style = Paint.Style.STROKE
+        paint.strokeWidth = rendering.borderWidth * density
+        paint.color = rendering.borderColor
+        canvas.drawCircle(cx, cy, radius, paint)
+
+        paint.color = rendering.foregroundColor
+        if (rendering.geometry.isEmpty()) {
+            paint.style = Paint.Style.FILL
+            paint.textSize = radius
+            paint.textAlign = Paint.Align.CENTER
+            canvas.drawText(rendering.glyph, cx, cy + paint.textSize * 0.35f, paint)
+        } else {
+            val iconSize = radius * 0.92f
+            val left = cx - iconSize / 2f
+            val top = cy - iconSize / 2f
+            val path = Path()
+            rendering.geometry.forEachIndexed { index, point ->
+                val x = left + point.x * iconSize
+                val y = top + point.y * iconSize
+                if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+            }
+            path.close()
+            paint.style = if (rendering.solid) Paint.Style.FILL else Paint.Style.STROKE
+            paint.strokeWidth = 2f * density
+            canvas.drawPath(path, paint)
+        }
+
+        marker.badgeText?.let { badge ->
+            val badgeCenterX = iconAreaWidth + badgeWidth / 2f
+            paint.style = Paint.Style.FILL
+            paint.color = rendering.badgeBackgroundColor
+            canvas.drawRoundRect(
+                iconAreaWidth,
+                cy - 10f * density,
+                width.toFloat(),
+                cy + 10f * density,
+                10f * density,
+                10f * density,
+                paint,
+            )
+            paint.color = rendering.badgeForegroundColor
+            paint.textSize = 11f * density
+            paint.textAlign = Paint.Align.CENTER
+            canvas.drawText(badge, badgeCenterX, cy + paint.textSize * 0.35f, paint)
+        }
+    }
+}
+
 internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     companion object {
         fun create(context: android.content.Context): AmapMapHost = RealAmapMapHost(context)
@@ -307,30 +441,7 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     }
 
     private fun markerIcon(marker: MapMarkerUi) = BitmapDescriptorFactory.fromView(
-        TextView(mapView.context).apply {
-            text = when (marker.kind) {
-                MapMarkerKind.UNSAVED_SEARCH -> "●"
-                MapMarkerKind.SAVED_PLACE_POOL -> "★"
-                MapMarkerKind.SAVED_ITINERARY -> marker.badgeText?.let { "★ $it" } ?: "★"
-            }
-            setTextColor(Color.WHITE)
-            textSize = if (marker.isFocused) 18f else 14f
-            gravity = Gravity.CENTER
-            val horizontalPadding = if (marker.isFocused) 22 else 16
-            val verticalPadding = if (marker.isFocused) 14 else 10
-            setPadding(horizontalPadding, verticalPadding, horizontalPadding, verticalPadding)
-            background = GradientDrawable().apply {
-                shape = GradientDrawable.RECTANGLE
-                cornerRadius = 28f
-                setColor(
-                    when (marker.kind) {
-                        MapMarkerKind.UNSAVED_SEARCH -> Color.rgb(216, 67, 21)
-                        MapMarkerKind.SAVED_PLACE_POOL, MapMarkerKind.SAVED_ITINERARY -> Color.rgb(25, 118, 210)
-                    },
-                )
-                setStroke(if (marker.isFocused) 6 else 3, if (marker.isFocused) Color.YELLOW else Color.WHITE)
-            }
-        },
+        MarkerIconView(mapView.context, marker),
     )
 
     private fun routeLabelMarker(label: String, color: Int) = BitmapDescriptorFactory.fromView(

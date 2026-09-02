@@ -61,6 +61,7 @@ data class TripWorkspaceUiState(
     val overlay: WorkspaceOverlay = WorkspaceOverlay.None,
     val isItineraryAllEmpty: Boolean = false,
     val isWorkspaceAllEmpty: Boolean = false,
+    val schedulesByPlaceId: Map<String, PlaceScheduleSummaryUi> = emptyMap(),
 )
 
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -172,10 +173,28 @@ class TripWorkspaceViewModel(
         @Suppress("UNCHECKED_CAST") val emittedSnapshots = values[2] as List<DayMapSnapshot>
         val currentDayIds = currentTrip.days.mapTo(mutableSetOf(), TripDay::id)
         val currentSnapshots = emittedSnapshots.filter { it.itinerary.dayId in currentDayIds }
+        val hasCompleteSnapshotDays = currentSnapshots.mapTo(mutableSetOf()) { it.itinerary.dayId } == currentDayIds
         val isItineraryAllEmpty = currentDayIds.isNotEmpty() &&
-            currentSnapshots.mapTo(mutableSetOf()) { it.itinerary.dayId } == currentDayIds &&
+            hasCompleteSnapshotDays &&
             currentSnapshots.all { it.itinerary.items.isEmpty() }
         val isWorkspaceAllEmpty = isItineraryAllEmpty && currentPlaces.isEmpty()
+        val schedulePlaceIds = buildSet {
+            currentPlaces.mapTo(this, SavedPlace::id)
+            currentSnapshots.flatMapTo(this) { snapshot -> snapshot.itinerary.items.map { it.place.id } }
+        }
+        val schedulesByPlaceId = schedulePlaceIds.associateWith { placeId ->
+            if (hasCompleteSnapshotDays) {
+                val days = currentTrip.days.mapNotNull { day ->
+                    val occurrences = currentSnapshots.first { it.itinerary.dayId == day.id }
+                        .itinerary.items
+                        .count { it.place.id == placeId }
+                    PlaceScheduleDayUi(day.id, day.index, occurrences).takeIf { occurrences > 0 }
+                }
+                PlaceScheduleSummaryUi(true, days.sumOf(PlaceScheduleDayUi::occurrences), days)
+            } else {
+                PlaceScheduleSummaryUi(false)
+            }
+        }
         val currentSection = values[3] as WorkspaceSection
         val requestedItineraryScope = values[4] as ItineraryScope?
         val currentItineraryScope = reconcileItineraryScope(requestedItineraryScope, previousDays, currentTrip.days)
@@ -224,6 +243,7 @@ class TripWorkspaceViewModel(
             overlay = values[12] as WorkspaceOverlay,
             isItineraryAllEmpty = isItineraryAllEmpty,
             isWorkspaceAllEmpty = isWorkspaceAllEmpty,
+            schedulesByPlaceId = schedulesByPlaceId,
         )
     }
 

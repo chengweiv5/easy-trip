@@ -4,13 +4,21 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.os.Build
 import androidx.activity.ComponentActivity
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.place.ui.PlaceSearchState
+import com.yangchengwei.easytrip.place.ui.PlaceSearchPhase
+import com.yangchengwei.easytrip.place.ui.PlaceSearchUiState
+import com.yangchengwei.easytrip.place.ui.SearchDisplayMode
 import androidx.compose.ui.unit.DpRect
 import androidx.test.platform.app.InstrumentationRegistry
 import com.yangchengwei.easytrip.BuildConfig
@@ -37,6 +45,33 @@ class PlaceSearchEvidenceTest {
         assertTextInsideRoot("正在搜索地点")
         assertTextInsideRoot("正在查找“西湖”相关结果…")
         assertTextDoesNotOverlap("正在搜索地点", "正在查找“西湖”相关结果…")
+        captureEvidence(evidence)
+    }
+
+    @Test fun captureEmptyEvidence_S0psO_controlledStateRender() {
+        val evidence = evidenceCase("S0psO", "captureEmptyEvidence_S0psO_controlledStateRender", "v1-27-S0psO-empty-controlled.png")
+        clean(evidence)
+        render(PlaceSearchUiState(search = PlaceSearchState(query = QUERY, phase = PlaceSearchPhase.Empty)))
+        assertSharedStructure()
+        compose.onNodeWithText("没有找到相关地点").assertIsDisplayed()
+        compose.onNodeWithText("清空搜索").assertIsDisplayed().assertHasClickAction()
+        assertTextInsideRoot("没有找到相关地点")
+        captureEvidence(evidence)
+    }
+
+    @Test fun captureSearchDetailEvidence_noAddToItinerary() {
+        val evidence = evidenceCase("ofdn5", "captureSearchDetailEvidence_noAddToItinerary", "v1-03-ofdn5-search-detail-no-add-controlled.png")
+        clean(evidence)
+        val candidate = PlaceCandidate("poi-detail", "西湖", "杭州市西湖区", GeoPoint(30.25, 120.15), "0571")
+        render(
+            PlaceSearchUiState(
+                search = PlaceSearchState(query = QUERY, results = listOf(candidate), phase = PlaceSearchPhase.Results),
+                displayMode = SearchDisplayMode.MapDetail(candidate.poiId),
+            ),
+        )
+        compose.onNodeWithTag("place-search-detail-panel").assertIsDisplayed()
+        compose.onNodeWithText("西湖").assertIsDisplayed()
+        compose.onAllNodesWithText("加入行程").assertCountEquals(0)
         captureEvidence(evidence)
     }
 

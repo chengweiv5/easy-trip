@@ -74,13 +74,21 @@ class V1ScenarioMetadataTest {
 
         assertTrue(variants.containsKey("BrYVA"))
         assertTrue(variants.containsKey("WFOpg"))
+        assertTrue(variants.containsKey("jQhXs"))
+        assertTrue(variants.containsKey("XsGon"))
         assertEquals(2, variants.getValue("BrYVA").parentNumber)
         assertEquals(4, variants.getValue("WFOpg").parentNumber)
+        assertEquals(2, variants.getValue("jQhXs").parentNumber)
+        assertEquals(10, variants.getValue("XsGon").parentNumber)
     }
 
     @Test fun BrYVAExecutesProductionWorkspaceVariant() = executeVariant("BrYVA")
 
     @Test fun WFOpgExecutesProductionWorkspaceVariant() = executeVariant("WFOpg")
+
+    @Test fun jQhXsExecutesProductionWorkspaceVariant() = executeVariant("jQhXs")
+
+    @Test fun XsGonExecutesProductionWorkspaceVariant() = executeVariant("XsGon")
 
     @Test fun WFOpgFixtureMatchesReachableWorkspaceState() {
         val fixture = V1ScenarioExecutableFactory.itineraryAllEmptyFixture()

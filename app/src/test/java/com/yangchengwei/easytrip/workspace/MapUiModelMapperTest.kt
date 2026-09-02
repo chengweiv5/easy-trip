@@ -29,6 +29,37 @@ class MapUiModelMapperTest {
         assertEquals(setOf("place-hotel", "place-museum"), model.markers.map { it.key }.toSet())
         assertTrue(model.markers.all { it.kind == MapMarkerKind.SAVED_PLACE_POOL })
         assertTrue(model.markers.all { it.badgeText == null })
+        assertTrue(model.markers.none { it.scheduled })
+    }
+
+    @Test fun `place pool markers distinguish scheduled from saved only`() {
+        val places = listOf(saved("hotel", "酒店", shared), saved("museum", "博物馆", other))
+        val itinerary = snapshot("day-1", listOf(item("i1", hotel)))
+
+        val model = MapUiModelMapper.map(MapScope.PLACE_POOL, places, days, listOf(itinerary))
+
+        assertEquals(true, model.markers.single { it.key == "place-hotel" }.scheduled)
+        assertEquals(false, model.markers.single { it.key == "place-museum" }.scheduled)
+    }
+
+    @Test fun `focused place pool marker retains scheduled state without duplication`() {
+        val place = saved("hotel", "酒店", shared)
+        val result = com.yangchengwei.easytrip.place.amap.PlaceCandidate("poi-hotel", "酒店搜索结果", "", shared, null)
+        val itinerary = snapshot("day-1", listOf(item("i1", hotel)))
+
+        val model = MapUiModelMapper.map(
+            MapScope.PLACE_POOL,
+            listOf(place),
+            days,
+            listOf(itinerary),
+            searchResults = listOf(result),
+            focusedPoiId = result.poiId,
+        )
+
+        val marker = model.markers.single()
+        assertTrue(marker.scheduled)
+        assertTrue(marker.isFocused)
+        assertEquals("place-hotel", marker.key)
     }
 
     @Test fun `single day numbers items and merges equal coordinates without losing occurrences`() {
@@ -234,6 +265,7 @@ class MapUiModelMapperTest {
         assertEquals("1·3", model.markers.single { it.point == shared }.badgeText)
         assertEquals("2·4", model.markers.single { it.point == other }.badgeText)
         assertTrue(model.markers.all { it.kind == MapMarkerKind.SAVED_ITINERARY })
+        assertTrue(model.markers.all { it.scheduled })
     }
 
     @Test fun `whole trip adds one midpoint label for each day with valid routes`() {

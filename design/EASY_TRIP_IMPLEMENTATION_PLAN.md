@@ -99,15 +99,15 @@
 
 | 设计界面 | Frame ID | 现有/目标代码 | 核心状态/交互 | 状态 |
 |---|---|---|---|---|
-| 地点池长列表 | `A9EKX` | `PlacePoolSheet` | 8 个收藏地点、列表滚动、地图全览 | 待分析 |
-| 地点池短列表 | `jQhXs` | `PlacePoolSheet` | 3 个收藏地点、一屏展示 | 待分析 |
+| 地点池长列表 | `A9EKX` | `PlacePoolSheet` | 8 个收藏地点、列表滚动、地图全览 | 已测试（fake map） |
+| 地点池短列表 | `jQhXs` | `PlacePoolSheet` | 3 个收藏地点、一屏展示 | 已测试（fake map） |
 | 地点池空状态 | `lsr1I` | `PlacePoolSheet` | 搜索第一个地点 | 待分析 |
-| 搜索结果 | `ofdn5` | `PlaceSearchContent` | 连续收藏和取消收藏 | 待分析 |
-| 搜索加载中 | `s1OvvX` | `PlaceSearchContent` | 保留关键词和加载反馈 | 待分析 |
-| 搜索无结果 | `S0psO` | `PlaceSearchContent` | 调整关键词 | 待分析 |
-| 搜索网络失败 | `GJo79` | `PlaceSearchContent` | 保留关键词和重试 | 待分析 |
-| 已安排地点详情 | `p4G1tS` | 地点详情页面 | 安排日期、次数和实心书签 | 待分析 |
-| 仅收藏地点详情 | `XsGon` | 地点详情页面 | 空心书签和加入行程入口 | 待分析 |
+| 搜索结果 | `ofdn5` | `PlaceSearchContent` | 连续收藏和取消收藏 | 已测试 |
+| 搜索加载中 | `s1OvvX` | `PlaceSearchContent` | 保留关键词和加载反馈 | 已测试 |
+| 搜索无结果 | `S0psO` | `PlaceSearchContent` | 调整关键词 | 已测试 |
+| 搜索网络失败 | `GJo79` | `PlaceSearchContent` | 保留关键词和重试 | 已测试 |
+| 已安排地点详情 | `p4G1tS` | 地点详情页面 | 安排日期、次数和实心书签 | 已测试（fake map） |
+| 仅收藏地点详情 | `XsGon` | 地点详情页面 | 空心书签和加入行程入口 | 已测试（fake map） |
 
 ### Batch 3 完成条件
 
@@ -215,6 +215,27 @@
 - 未运行检查及原因：真机选择“不同意”高德隐私说明，未代用户接受第三方条款，因此真实 AMap host 的三图层画面切换仍未验证。
 - 已知非阻塞差异：本批已通过 Pencil MCP 核对 `shoPV`、`BrYVA`、`WFOpg` 顶层 frame 与状态语义；fake map surface 和未授权真机均不能替代已授权真实地图渲染证据。
 - 下一步：在用户自行接受高德隐私条款后补充真实 AMap 三图层渲染验证；App 自有 Batch 2 UI 已具备进入下一批的门禁条件。
+
+### 2026-09-01 · Batch 3 / Task 4 · 搜索四态与连续收藏
+
+- 实现：现有 `PlaceSearchReducer`、`PlaceSearchViewModel` 与 `PlaceSearchContent` 已覆盖本任务；未修改生产代码。新增 reducer 专项测试证明 Loading 保留 query、Empty 经清空回 Initial、Failure 保留 query 且 Retry 同关键词进入 Loading。既有 ViewModel/Compose 测试覆盖结果连续收藏、每个 POI 的 busy/error 隔离，以及结果/搜索详情不出现“加入行程”。
+- 设计 frame：`ofdn5`、`s1OvvX`、`S0psO`、`GJo79`；已通过 Pencil MCP 核对可见内容与 context。`S0psO` 保留关键词、引导调整关键词；代码中的“清空搜索”将状态回到 Initial，作为恢复路径。
+- 修改文件：`PlaceSearchReducerTest`、本计划。
+- 自动化验证：focused JVM `PlaceSearchReducerTest` + `PlaceSearchViewModelTest` 50/50 通过；`assembleDebugAndroidTest` 通过；`git diff --check` 通过。
+- 设备验证：未运行 instrumentation；`adb devices` 未发现 emulator/设备。
+- 未运行检查及原因：无可用 emulator/设备，未运行 connected instrumentation；未运行全量 lint/assembleDebug（本任务无生产改动，已执行 Android test compile）。
+- 已知非阻塞差异：无。
+- 下一批入口：Task 5/6 或地点池/地点详情任务，均未在本 Task 4 修改。
+
+### 2026-09-01 · Batch 3 · 地点池、搜索与地点详情
+
+- 实现：地点池支持长、短、空三态；工作台快照原子派生地点逐日安排摘要；地图以实心/空心书签区分已安排与仅收藏；搜索保留结果、加载、无结果和失败四态；地点池行与收藏 marker 汇聚到共享详情，并复用既有加入行程状态机。修复真实设备发现的零基旅行日显示和地点详情双宿主/overlay 清理竞态，避免“第 0 天”和 Dialog 循环闪烁。
+- 设计 frame：`A9EKX`、`jQhXs`、`lsr1I`、`ofdn5`、`s1OvvX`、`S0psO`、`GJo79`、`p4G1tS`、`XsGon`。
+- 场景与证据：scenario 10 更新为地点池详情可加入行程、搜索详情仍无该入口；`jQhXs`（parent 02）、`XsGon`（parent 10）增加 typed variants，`S0psO` 保持 parent 27；47 个 parent 数量不变。`A9EKX`、`jQhXs`、`p4G1tS`、`XsGon` 使用 production Compose workspace host，并明确标注 deterministic fake map surface。
+- 自动化验证：全量 JVM、`lintDebug`、`assembleDebug`、`assembleDebugAndroidTest`、`git diff --check` 通过；`PlacePoolFlowTest` 25/25、`AmapComposeMapTest` 14/14、`VisualBatch0EvidenceTest` 24/24 通过；详情打开与有日/无日加入行程关键流程单项通过。大型 `WorkspaceFlowTest` / 47 项场景聚合运行曾被 emulator 系统或 instrumentation process crash 中断，对应单项未复现产品断言失败。
+- 设备验证：Huawei ALN-AL00 上真实 AMap 标准/卫星/卫星路网切换成功；真实搜索 `WestLake` 返回结果，连续收藏两个地点并同步地点池；仅收藏详情、加入第 1 天及已安排摘要完成闭环，修复后确认显示“第 1 天 · 1 次”。后续发现地点详情 Dialog 反复开关并已定位修复；因一次误在 Huawei 启动 instrumentation 后原两地点数据不再存在，未使用旧数据完成修复后的同场景重放。真实设备仅验证两个地点，未宣称设计中的 8 点首次全览已验收。
+- 已知非阻塞差异：fake map evidence 不替代真实 AMap；间距、字体和小型视觉差异留到最终物理设备验收。
+- 下一批入口：按实现计划进入下一未完成批次；先完成 frame → Composable → UiState → 导航 → 测试映射并等待批准。
 
 每次完成一批后追加：
 

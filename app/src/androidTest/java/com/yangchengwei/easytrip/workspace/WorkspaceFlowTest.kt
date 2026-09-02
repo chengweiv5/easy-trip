@@ -421,6 +421,74 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { backCount == 2 }
     }
 
+    @Test fun savedPlaceRowOpensTheSharedDetailOverlay() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", Places(), null)
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeViewModel = placeModel,
+            )
+        }
+        compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
+
+        compose.onNodeWithTag("open-place-detail-p").performClick()
+        compose.waitUntil(5_000) {
+            workspace.state.value.overlay is WorkspaceOverlay.PlaceDetail &&
+                placeModel.state.value.selectedDetailPlaceId == "p" &&
+                compose.onAllNodesWithTag("place-detail-start-add").fetchSemanticsNodes().size == 1
+        }
+        compose.onNodeWithTag("place-detail-start-add").assertIsDisplayed()
+        pressBack()
+        compose.waitUntil(5_000) { placeModel.state.value.selectedDetailPlaceId == null }
+    }
+
+    @Test fun detailAddOpensTargetDayForExistingTravelDays() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val add = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(Itineraries()), UndoAddedItemsUseCase(Itineraries()), SavedStateHandle())
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", Places(), null)
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace, consent = null, onBack = {}, onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {}, placeViewModel = placeModel, addToItineraryViewModel = add,
+            )
+        }
+        compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
+        compose.onNodeWithTag("open-place-detail-p").performClick()
+        compose.onNodeWithTag("place-detail-start-add").performClick()
+
+        compose.waitUntil(5_000) {
+            workspace.state.value.overlay == WorkspaceOverlay.SelectAddTargetDay &&
+                add.state.value.selectedPlaceIds == listOf("p")
+        }
+    }
+
+    @Test fun detailAddOpensAddDayWhenTripHasNoDays() {
+        val workspace = TripWorkspaceViewModel("trip", NoDayTrips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", Places(), null)
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace, consent = null, onBack = {}, onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {}, placeViewModel = placeModel,
+            )
+        }
+        compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
+        compose.onNodeWithTag("open-place-detail-p").performClick()
+        compose.onNodeWithTag("place-detail-start-add").performClick()
+
+        compose.waitUntil(5_000) { workspace.state.value.overlay == WorkspaceOverlay.AddTripDay }
+    }
+
     @Test fun placeQuickAddOpensTargetDayOnlyForValidPlaceWithAvailableDay() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val repository = Itineraries()

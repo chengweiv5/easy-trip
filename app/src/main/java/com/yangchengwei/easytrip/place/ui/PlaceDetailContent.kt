@@ -44,7 +44,8 @@ fun PlaceDetailContent(
                 PlaceDetailPanelAction.ToggleCollection -> onToggleCollection()
                 PlaceDetailPanelAction.Delete -> onDelete()
                 PlaceDetailPanelAction.SaveEdit -> onSave()
-                PlaceDetailPanelAction.StartEdit -> Unit
+                PlaceDetailPanelAction.StartEdit,
+                PlaceDetailPanelAction.StartAddToItinerary -> Unit
             }
         },
         modifier = modifier,

@@ -40,6 +40,8 @@ data class PlaceDetailDraft(
     val newTagInput: String = "",
 )
 
+fun placePoolCollectionTotal(state: PlacePoolUiState): Int = state.savedPoiIds.size
+
 data class PlacePoolUiState(
     val search: PlaceSearchState = PlaceSearchState(),
     val rows: List<SavedPlaceRowUi> = emptyList(),
@@ -58,6 +60,8 @@ data class PlacePoolUiState(
     val collectionBusyPoiIds: Set<String> = emptySet(),
     val collectionError: String? = null,
     val recentlyCollectedPoiIds: Set<String> = emptySet(),
+    val selectedDetailPlaceId: String? = null,
+    val selectedDetailPlace: SavedPlace? = null,
 )
 
 class PlacePoolViewModel(private val tripId: String, private val repository: SavedPlaceRepository, searchSource: PlaceSearchDataSource?, private val service: PlaceService = PlaceService(repository)) : ViewModel() {
@@ -151,8 +155,20 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             (placeId == null || mutableState.value.pendingCollectionRemoval?.place?.id == placeId) &&
             poiId in mutableState.value.collectionBusyPoiIds
     private var detailEditGeneration = 0L
+    fun openDetail(placeId: String) {
+        allSavedPlaces.firstOrNull { it.id == placeId }?.let { place ->
+            mutableState.update {
+                it.copy(selectedDetailPlaceId = placeId, selectedDetailPlace = place)
+            }
+        }
+    }
+    fun dismissDetail() = clearSelectedDetail()
+    private fun clearSelectedDetail() {
+        mutableState.update { it.copy(selectedDetailPlaceId = null, selectedDetailPlace = null) }
+    }
     fun edit(value: SavedPlace) {
         detailEditGeneration++
+        clearSelectedDetail()
         mutableState.value = mutableState.value.copy(
             editing = value,
             detailDraft = PlaceDetailDraft(value.note, value.tags.mapTo(mutableSetOf(), PlaceTag::name), value.id),
@@ -236,6 +252,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         val retryingImpact = mutableState.value.deleting?.id == place.id &&
             mutableState.value.deletionImpact == null
         val generation = ++deleteGeneration
+        clearSelectedDetail()
         mutableState.value = mutableState.value.copy(
             editing = null,
             detailDraft = null,
@@ -329,6 +346,8 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         when (action) {
             is PlacePoolAction.SetQuery -> setQuery(action.value)
             is PlacePoolAction.ToggleTag -> toggleTag(action.id)
+            is PlacePoolAction.OpenDetail -> openDetail(action.placeId)
+            PlacePoolAction.DismissDetail -> dismissDetail()
             is PlacePoolAction.Edit -> edit(action.place)
             is PlacePoolAction.Delete -> requestDelete(action.place)
             is PlacePoolAction.ToggleCollection -> toggleCollection(action.candidate)
@@ -345,6 +364,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         }
     }
     private var savedByPoiId: Map<String, SavedPlace> = emptyMap()
+    private var allSavedPlaces: List<SavedPlace> = emptyList()
     private var placesJob: kotlinx.coroutines.Job? = null
     private var allPlacesJob: kotlinx.coroutines.Job? = null
     private fun observePlaces() {
@@ -354,12 +374,11 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                 .collect { placesWithUsage ->
                     val places = placesWithUsage.map { it.first }
                     reducer.setSavedPlaces(places)
-                    mutableState.update {
-                        it.copy(
-                            rows = placesWithUsage.map { (place, count) ->
-                                SavedPlaceRowUi(place, count, count > 0)
-                            },
-                        )
+                    mutableState.update { current ->
+                        val rows = placesWithUsage.map { (place, count) ->
+                            SavedPlaceRowUi(place, count, count > 0)
+                        }
+                        current.copy(rows = rows)
                     }
                 }
         }
@@ -367,6 +386,16 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             allPlacesJob = viewModelScope.launch {
                 repository.observePlaces(tripId, emptySet()).collect { places ->
                     savedByPoiId = places.associateBy(SavedPlace::amapPoiId)
+                    allSavedPlaces = places
+                    mutableState.update { current ->
+                        val selected = current.selectedDetailPlaceId
+                            ?.let { id -> places.firstOrNull { it.id == id } }
+                        if (current.selectedDetailPlaceId != null && selected == null) {
+                            current.copy(selectedDetailPlaceId = null, selectedDetailPlace = null)
+                        } else {
+                            current.copy(selectedDetailPlace = selected ?: current.selectedDetailPlace)
+                        }
+                    }
                 }
             }
         }

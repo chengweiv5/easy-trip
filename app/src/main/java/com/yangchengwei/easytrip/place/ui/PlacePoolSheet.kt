@@ -20,6 +20,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -37,6 +38,8 @@ fun PlacePoolSheet(
         modifier = modifier,
         showSearch = showSearch,
         onSearch = onSearch,
+        onOpenDetail = viewModel::openDetail,
+        onDismissDetail = { viewModel.dispatch(PlacePoolAction.DismissDetail) },
         onSetQuery = viewModel::setQuery,
         onToggleTag = viewModel::toggleTag,
         onEdit = viewModel::edit,
@@ -60,6 +63,8 @@ fun PlacePoolSheet(
 sealed interface PlacePoolAction {
     data class SetQuery(val value: String) : PlacePoolAction
     data class ToggleTag(val id: String) : PlacePoolAction
+    data class OpenDetail(val placeId: String) : PlacePoolAction
+    data object DismissDetail : PlacePoolAction
     data class Edit(val place: com.yangchengwei.easytrip.place.domain.SavedPlace) : PlacePoolAction
     data class Delete(val place: com.yangchengwei.easytrip.place.domain.SavedPlace) : PlacePoolAction
     data class ToggleCollection(val candidate: com.yangchengwei.easytrip.place.amap.PlaceCandidate) : PlacePoolAction
@@ -84,12 +89,15 @@ fun PlacePoolContent(
     onSearch: () -> Unit = {},
     showDialogs: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
+    schedulesByPlaceId: Map<String, PlaceScheduleSummaryUi> = emptyMap(),
 ) {
     PlacePoolContent(
         state = state,
         modifier = modifier,
         showSearch = showSearch,
         onSearch = onSearch,
+        onOpenDetail = { onAction(PlacePoolAction.OpenDetail(it)) },
+        onDismissDetail = { onAction(PlacePoolAction.DismissDetail) },
         onSetQuery = { onAction(PlacePoolAction.SetQuery(it)) },
         onToggleTag = { onAction(PlacePoolAction.ToggleTag(it)) },
         onEdit = { onAction(PlacePoolAction.Edit(it)) },
@@ -107,6 +115,7 @@ fun PlacePoolContent(
         onConfirmDelete = { onAction(PlacePoolAction.ConfirmDelete) },
         onStartAdd = { onAction(PlacePoolAction.StartAddToItinerary) },
         onStartAddSingle = { onAction(PlacePoolAction.StartAddSingle(it)) },
+        schedulesByPlaceId = schedulesByPlaceId,
         showDialogs = showDialogs,
         contentPadding = contentPadding,
     )
@@ -118,6 +127,8 @@ fun PlacePoolContent(
     modifier: Modifier = Modifier,
     showSearch: Boolean = true,
     onSearch: () -> Unit = {},
+    onOpenDetail: (String) -> Unit,
+    onDismissDetail: () -> Unit,
     onSetQuery: (String) -> Unit,
     onToggleTag: (String) -> Unit,
     onEdit: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
@@ -135,6 +146,7 @@ fun PlacePoolContent(
     onConfirmDelete: () -> Unit,
     onStartAdd: (() -> Unit)?,
     onStartAddSingle: ((String) -> Unit)?,
+    schedulesByPlaceId: Map<String, PlaceScheduleSummaryUi> = emptyMap(),
     showDialogs: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
 ) {
@@ -151,7 +163,22 @@ fun PlacePoolContent(
                 },
             )
         } else {
-            if (!showSearch && onStartAdd != null) {
+            if (!showSearch) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    Text("已收藏 ${placePoolCollectionTotal(state)} 个", modifier = Modifier.testTag("place-pool-collection-total"))
+                    Text("已排入 · 仅收藏", modifier = Modifier.testTag("place-pool-marker-legend"))
+                    onStartAdd?.let { startAdd ->
+                        EasyTripSecondaryButton(
+                            onClick = startAdd,
+                            modifier = Modifier.testTag("start-add-to-itinerary"),
+                        ) { Text("添加到行程") }
+                    }
+                }
+            } else if (onStartAdd != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.End,
@@ -186,6 +213,7 @@ fun PlacePoolContent(
                     SavedPlaceRow(
                         place = row,
                         onQuickAdd = onStartAddSingle?.let { callback -> { callback(row.place.id) } },
+                        onOpenDetail = { onOpenDetail(row.place.id) },
                         onEdit = { onEdit(row.place) },
                         onDelete = { onDelete(row.place) },
                     )
@@ -204,6 +232,34 @@ fun PlacePoolContent(
         }
     }
     state.collectionError?.let { Text(it, modifier = Modifier.padding(horizontal = 16.dp)) }
+    if (showDialogs) state.selectedDetailPlace?.let { place ->
+            AlertDialog(
+                onDismissRequest = { if (!state.detailSaving) onDismissDetail() },
+                confirmButton = {},
+                text = {
+                    PlaceDetailPanel(
+                        candidate = place.toCandidate(),
+                        savedPlace = place,
+                        editState = null,
+                        source = PlaceDetailSource.PlacePool,
+                        collectionBusy = false,
+                        collectionError = null,
+                        schedule = schedulesByPlaceId[place.id]
+                            ?: PlaceScheduleSummaryUi(isKnown = false),
+                        canStartAddToItinerary = onStartAddSingle != null,
+                        onAction = { action ->
+                            when (action) {
+                                PlaceDetailPanelAction.Dismiss -> onDismissDetail()
+                                PlaceDetailPanelAction.StartEdit -> onEdit(place)
+                                PlaceDetailPanelAction.StartAddToItinerary -> onStartAddSingle?.invoke(place.id)
+                                PlaceDetailPanelAction.Delete -> onDelete(place)
+                                else -> Unit
+                            }
+                        },
+                    )
+                },
+            )
+        }
     if (showDialogs) {
         state.editing?.let { place ->
             val draft = state.detailDraft ?: return@let
@@ -238,6 +294,7 @@ fun PlacePoolContent(
                                 PlaceDetailPanelAction.Delete -> onDelete(place)
                                 PlaceDetailPanelAction.SaveEdit -> onUpdateDetails(draft.note, draft.tags)
                                 PlaceDetailPanelAction.StartEdit,
+                                PlaceDetailPanelAction.StartAddToItinerary,
                                 PlaceDetailPanelAction.ToggleCollection -> Unit
                             }
                         },

@@ -366,6 +366,77 @@ class PlacePoolViewModelTest {
         assertEquals("b", model.state.value.detailDraft?.placeId)
     }
 
+    @Test fun openingDetailTracksSelectedPlaceWithoutEnteringEditMode() = runTest(dispatcher) {
+        val model = PlacePoolViewModel("trip", PoolRepository(listOf(place("a")), emptyMap()), null)
+        advanceUntilIdle()
+
+        model.dispatch(PlacePoolAction.OpenDetail("a"))
+
+        assertEquals("a", model.state.value.selectedDetailPlaceId)
+        assertNull(model.state.value.editing)
+        assertNull(model.state.value.detailDraft)
+    }
+
+    @Test fun deletingSelectedDetailClearsSelectionBeforeDeleteCompletes() = runTest(dispatcher) {
+        val model = PlacePoolViewModel(
+            "trip",
+            PoolRepository(listOf(place("a")), emptyMap(), impact = PlaceDeletionImpact(1, 0)),
+            null,
+        )
+        advanceUntilIdle()
+        model.dispatch(PlacePoolAction.OpenDetail("a"))
+
+        model.requestDelete(place("a"))
+
+        assertNull(model.state.value.selectedDetailPlaceId)
+    }
+
+    @Test fun repositoryRemovalClearsSelectedDetail() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), emptyMap())
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.dispatch(PlacePoolAction.OpenDetail("a"))
+
+        repository.setPlaces(emptyList())
+        advanceUntilIdle()
+
+        assertNull(model.state.value.selectedDetailPlaceId)
+    }
+
+    @Test fun dismissDetailClearsSelectedDetailWithoutTouchingEditState() = runTest(dispatcher) {
+        val model = PlacePoolViewModel("trip", PoolRepository(listOf(place("a")), emptyMap()), null)
+        advanceUntilIdle()
+        model.dispatch(PlacePoolAction.OpenDetail("a"))
+
+        model.dispatch(PlacePoolAction.DismissDetail)
+
+        assertNull(model.state.value.selectedDetailPlaceId)
+        assertNull(model.state.value.editing)
+    }
+
+    @Test fun filteredOutPlaceCanStillOpenDetailFromSavedMarker() = runTest(dispatcher) {
+        val matching = place("matching").copy(tags = listOf(PlaceTag("tag", "景点")))
+        val filteredOut = place("filtered-out")
+        val model = PlacePoolViewModel("trip", PoolRepository(listOf(matching, filteredOut), emptyMap()), null)
+        advanceUntilIdle()
+
+        model.toggleTag("tag")
+        advanceUntilIdle()
+        model.openDetail("filtered-out")
+
+        assertEquals("filtered-out", model.state.value.selectedDetailPlaceId)
+        assertEquals("filtered-out", model.state.value.selectedDetailPlace?.id)
+    }
+
+    @Test fun collectionTotalUsesUnfilteredSavedPoiFact() {
+        val state = PlacePoolUiState(
+            rows = listOf(SavedPlaceRowUi(place("filtered"), 0, false)),
+            savedPoiIds = setOf("poi-filtered", "poi-hidden-a", "poi-hidden-b"),
+        )
+
+        assertEquals(3, placePoolCollectionTotal(state))
+    }
+
     @Test fun deletingEditedPlaceClosesEditAndDoesNotRestoreItAfterConfirmation() = runTest(dispatcher) {
         val repository = PoolRepository(
             listOf(place("a")),
@@ -427,6 +498,9 @@ class PlacePoolViewModelTest {
 
         fun setUsage(placeId: String, count: Int) {
             usageCounts.value = usageCounts.value + (placeId to count)
+        }
+        fun setPlaces(value: List<SavedPlace>) {
+            places.value = value
         }
         override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
         override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()

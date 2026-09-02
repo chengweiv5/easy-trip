@@ -33,6 +33,7 @@ data class MapMarkerUi(
     val badgeText: String? = null,
     val isFocused: Boolean = false,
     val savedPlaceId: String? = null,
+    val scheduled: Boolean = false,
 )
 
 fun formatOccurrenceBadge(orders: List<Int>): String = when {
@@ -165,6 +166,7 @@ object MapUiModelMapper {
                         kind = if (scope == MapScope.PLACE_POOL) MapMarkerKind.SAVED_PLACE_POOL else MapMarkerKind.SAVED_ITINERARY,
                         isFocused = true,
                         savedPlaceId = saved.id,
+                        scheduled = baseMarkers.any { it.savedPlaceId == saved.id && it.scheduled },
                     )
                     markerIndexByPoint[marker.point] = markers.size
                     markerIndexByPoiId[saved.amapPoiId] = markers.size
@@ -202,6 +204,9 @@ object MapUiModelMapper {
             return markers
         }
         if (scope == MapScope.PLACE_POOL) {
+            val scheduledPlaceIds = snapshots
+                .flatMap { snapshot -> snapshot.itinerary.items }
+                .mapTo(mutableSetOf()) { item -> item.place.id }
             val savedMarkers = places.map {
                 MapMarkerUi(
                     key = "place-${it.id}",
@@ -210,6 +215,7 @@ object MapUiModelMapper {
                     occurrences = emptyList(),
                     kind = MapMarkerKind.SAVED_PLACE_POOL,
                     savedPlaceId = it.id,
+                    scheduled = it.id in scheduledPlaceIds,
                 )
             }
             return MapUiModel(withSearchMarkers(savedMarkers))
@@ -242,6 +248,7 @@ object MapUiModelMapper {
                 kind = MapMarkerKind.SAVED_ITINERARY,
                 badgeText = formatOccurrenceBadge(orders),
                 savedPlaceId = saved?.id,
+                scheduled = true,
             )
         }
         val corrupt = mutableListOf<CorruptRoute>()

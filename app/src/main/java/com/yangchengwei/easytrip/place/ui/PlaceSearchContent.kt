@@ -245,7 +245,8 @@ private fun SearchMapDetail(
                             is PlaceDetailPanelAction.RemoveTag -> onAction(PlaceSearchAction.RemoveEditTag(action.name))
                             PlaceDetailPanelAction.SaveEdit -> onAction(PlaceSearchAction.SaveEdit)
                             PlaceDetailPanelAction.CancelEdit -> onAction(PlaceSearchAction.CancelEdit)
-                            PlaceDetailPanelAction.Delete -> Unit
+                            PlaceDetailPanelAction.Delete,
+                            PlaceDetailPanelAction.StartAddToItinerary -> Unit
                         }
                     },
                 )

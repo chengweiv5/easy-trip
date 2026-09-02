@@ -5,6 +5,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -37,6 +38,28 @@ fun WorkspaceOverlay.isAddToItineraryOverlay(): Boolean =
 
 fun canDismissAddOverlay(overlay: WorkspaceOverlay, addToItinerary: AddToItineraryUiState): Boolean =
     !overlay.isAddToItineraryOverlay() || (!addToItinerary.isSubmitting && !addToItinerary.isUndoing)
+
+internal fun placeDetailOverlayToPresent(
+    selectedPlaceId: String?,
+    workspaceOverlay: WorkspaceOverlay,
+): WorkspaceOverlay? = selectedPlaceId
+    ?.takeIf { workspaceOverlay == WorkspaceOverlay.None || workspaceOverlay is WorkspaceOverlay.PlaceDetail }
+    ?.let { WorkspaceOverlay.PlaceDetail(stableWorkspaceOverlayId(it)) }
+
+internal fun shouldClosePlaceDetailOverlay(
+    overlay: WorkspaceOverlay,
+    wasEditingPlace: Boolean,
+    hasEditingPlace: Boolean,
+    selectedDetailPlaceId: String?,
+    hasSelectedMapPoi: Boolean,
+    hasSelectedMarker: Boolean,
+): Boolean =
+    wasEditingPlace &&
+        !hasEditingPlace &&
+        selectedDetailPlaceId == null &&
+        overlay is WorkspaceOverlay.PlaceDetail &&
+        !hasSelectedMapPoi &&
+        !hasSelectedMarker
 
 internal fun addOverlayToPresent(
     workspaceOverlay: WorkspaceOverlay,
@@ -182,6 +205,7 @@ fun TripWorkspaceRoute(
     val dispatchItinerary: (DayItineraryAction) -> Unit = itineraryViewModel?.let { it::dispatch } ?: onItineraryAction
     val locationPermissionUiState = locationPermissionCoordinator.uiState.collectAsStateWithLifecycle().value
     var locateRequest by remember { mutableIntStateOf(0) }
+    var wasEditingPlace by remember { mutableStateOf(false) }
 
     LaunchedEffect(locationPermissionCoordinator) {
         locationPermissionCoordinator.effectFlow.collect { effect ->
@@ -210,6 +234,7 @@ fun TripWorkspaceRoute(
                 placeDeletionBusy = places.deletionBusy || places.collectionBusyPoiIds.isNotEmpty(),
             )
         ) return
+        placeViewModel?.dismissDetail()
         dismissPendingDialogs()
         if (overlay.isAddToItineraryOverlay()) addToItineraryViewModel?.cancel()
         if (overlay is WorkspaceOverlay.PermissionExplanation) locationPermissionCoordinator.dismissExplanation()
@@ -239,6 +264,11 @@ fun TripWorkspaceRoute(
             ready?.days.orEmpty().map { it.id },
             places.rows.mapTo(mutableSetOf()) { it.place.id },
         )
+    }
+    LaunchedEffect(places.selectedDetailPlaceId, ready?.overlay) {
+        placeDetailOverlayToPresent(places.selectedDetailPlaceId, ready?.overlay ?: WorkspaceOverlay.None)
+            ?.takeIf { it != ready?.overlay }
+            ?.let(viewModel::openOverlay)
     }
     LaunchedEffect(addToItinerary.step, addToItinerary.result, ready?.overlay) {
         addOverlayToPresent(ready?.overlay ?: WorkspaceOverlay.None, addToItinerary)?.let(viewModel::openOverlay)
@@ -272,10 +302,21 @@ fun TripWorkspaceRoute(
             )
         }
     }
-    LaunchedEffect(places.editing, ready?.overlay) {
-        if (places.editing == null && ready?.overlay is WorkspaceOverlay.PlaceDetail && ready.selectedMapPoi == null && ready.selectedMarker == null) {
+    LaunchedEffect(places.editing, places.selectedDetailPlaceId, ready?.overlay) {
+        val isEditingPlace = places.editing != null
+        if (
+            shouldClosePlaceDetailOverlay(
+                overlay = ready?.overlay ?: WorkspaceOverlay.None,
+                wasEditingPlace = wasEditingPlace,
+                hasEditingPlace = isEditingPlace,
+                selectedDetailPlaceId = places.selectedDetailPlaceId,
+                hasSelectedMapPoi = ready?.selectedMapPoi != null,
+                hasSelectedMarker = ready?.selectedMarker != null,
+            )
+        ) {
             viewModel.closeOverlay()
         }
+        wasEditingPlace = isEditingPlace
     }
     LaunchedEffect(places.deleting, places.deletionImpact) {
         places.deleting?.let { place ->
@@ -359,13 +400,28 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.CloseOverlay -> closeOverlay()
             }
         },
-        onMarkerClick = viewModel::selectMarker,
+        onMarkerClick = { key ->
+            val marker = ready?.map?.markers?.firstOrNull { it.key == key }
+            if (marker?.kind == MapMarkerKind.SAVED_PLACE_POOL && marker.savedPlaceId != null) {
+                dispatchPlace(PlacePoolAction.OpenDetail(marker.savedPlaceId))
+            } else {
+                viewModel.selectMarker(key)
+            }
+        },
         onMapPoiClick = viewModel::selectMapPoi,
         onConfirmPermissionExplanation = { locationPermissionCoordinator.confirmExplanation() },
         onDismissPermissionExplanation = { locationPermissionCoordinator.dismissExplanation() },
         placeState = places,
         onPlaceAction = { action ->
             when (action) {
+                is PlacePoolAction.OpenDetail -> {
+                    dismissPendingDialogs()
+                    dispatchPlace(action)
+                }
+                PlacePoolAction.DismissDetail -> {
+                    dispatchPlace(action)
+                    if (ready?.overlay is WorkspaceOverlay.PlaceDetail) viewModel.closeOverlay()
+                }
                 is PlacePoolAction.Edit -> {
                     dismissPendingDialogs()
                     dispatchPlace(action)

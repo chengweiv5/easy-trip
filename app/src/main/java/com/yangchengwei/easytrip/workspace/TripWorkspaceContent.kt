@@ -164,6 +164,7 @@ private fun WorkspaceReadyContent(
                         showSearch = false,
                         onAction = onPlaceAction,
                         onSearch = { onAction(TripWorkspaceAction.OpenSearch) },
+                        schedulesByPlaceId = state.schedulesByPlaceId,
                         showDialogs = false,
                         contentPadding = PaddingValues(bottom = 4.dp),
                     )

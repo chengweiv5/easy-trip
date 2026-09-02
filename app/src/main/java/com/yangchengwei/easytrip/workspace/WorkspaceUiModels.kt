@@ -23,6 +23,18 @@ fun resolveWorkspaceMapState(
 
 data class WorkspaceSearchReturn(val recentlyCollectedPoiIds: Set<String>)
 
+data class PlaceScheduleDayUi(
+    val dayId: String,
+    val dayIndex: Int,
+    val occurrences: Int,
+)
+
+data class PlaceScheduleSummaryUi(
+    val isKnown: Boolean,
+    val totalOccurrences: Int = 0,
+    val days: List<PlaceScheduleDayUi> = emptyList(),
+)
+
 data class TripWorkspaceReadyState(
     val tripName: String,
     val days: List<com.yangchengwei.easytrip.trip.domain.TripDay>,
@@ -38,6 +50,7 @@ data class TripWorkspaceReadyState(
     val overlay: WorkspaceOverlay,
     val isItineraryAllEmpty: Boolean = false,
     val isWorkspaceAllEmpty: Boolean = false,
+    val schedulesByPlaceId: Map<String, PlaceScheduleSummaryUi> = emptyMap(),
     val dateLabel: String? = null,
 )
 
@@ -57,6 +70,7 @@ internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
     overlay = overlay,
     isItineraryAllEmpty = isItineraryAllEmpty,
     isWorkspaceAllEmpty = isWorkspaceAllEmpty,
+    schedulesByPlaceId = schedulesByPlaceId,
 )
 
 sealed interface TripWorkspacePageState {

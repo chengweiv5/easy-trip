@@ -6,6 +6,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
@@ -31,6 +32,8 @@ import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.workspace.PlaceScheduleDayUi
+import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
@@ -310,14 +313,11 @@ class PlacePoolFlowTest {
         compose.onNodeWithTag("menu-edit-place-second", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("more-place-second").performClick()
         compose.onNodeWithTag("menu-delete-place-second", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("start-add-to-itinerary").performClick()
-
         assertEquals(
             listOf(
                 PlacePoolAction.StartAddSingle("first"),
                 PlacePoolAction.Edit(second),
                 PlacePoolAction.Delete(second),
-                PlacePoolAction.StartAddToItinerary,
             ),
             actions,
         )
@@ -347,6 +347,24 @@ class PlacePoolFlowTest {
         compose.onNodeWithTag("menu-delete-place-first", useUnmergedTree = true).performClick()
 
         assertEquals(listOf(PlacePoolAction.Delete(first)), actions)
+    }
+
+    @Test fun standaloneDetailUsesSelectedFullPlaceWhenRowIsFilteredOut() {
+        val hidden = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "hidden", "trip", "poi-hidden", "被筛选地点", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                PlacePoolContent(
+                    state = PlacePoolUiState(selectedDetailPlaceId = hidden.id, selectedDetailPlace = hidden),
+                    showSearch = false,
+                    onAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
+        compose.onNodeWithText("被筛选地点").assertIsDisplayed()
     }
 
     @Test fun publicSheetWithoutCoordinatorHidesAddEntrypoints() {
@@ -388,6 +406,171 @@ class PlacePoolFlowTest {
             compose.onNodeWithTag("place-pool-tags").performTouchInput { swipeLeft() }
         }
         compose.onNodeWithTag("tag-8").assertIsDisplayed()
+    }
+
+    @Test fun eightRowsScrollWhileThreeRowsFitWithoutScroll() {
+        fun place(index: Int) = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "place-$index", "trip", "poi-$index", "地点$index", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        val eightRows = (0 until 8).map { SavedPlaceRowUi(place(it), 0, false) }
+        val visibleRows = mutableStateOf(eightRows)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1f)) {
+                EasyTripTheme {
+                    Box(androidx.compose.ui.Modifier.requiredWidth(280.dp).height(432.dp)) {
+                        PlacePoolContent(
+                            state = PlacePoolUiState(
+                                rows = visibleRows.value,
+                                savedPoiIds = visibleRows.value.mapTo(mutableSetOf()) { it.place.amapPoiId },
+                            ),
+                            showSearch = false,
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("workspace-place-list").performScrollToNode(hasTestTag("saved-place-place-7"))
+        compose.onNodeWithTag("saved-place-place-7").assertIsDisplayed()
+
+        compose.runOnIdle { visibleRows.value = eightRows.take(3) }
+        compose.onNodeWithTag("workspace-place-list").performScrollToNode(hasTestTag("saved-place-place-0"))
+        compose.onNodeWithTag("saved-place-place-0").assertIsDisplayed()
+        compose.onNodeWithTag("saved-place-place-1").assertIsDisplayed()
+        compose.onNodeWithTag("saved-place-place-2").assertIsDisplayed()
+    }
+
+    @Test fun collectionTotalIgnoresTagFilteredRows() {
+        val visible = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "visible", "trip", "poi-visible", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                PlacePoolContent(
+                    state = PlacePoolUiState(
+                        rows = listOf(SavedPlaceRowUi(visible, 0, false)),
+                        savedPoiIds = setOf("poi-visible", "poi-hidden-a", "poi-hidden-b"),
+                    ),
+                    showSearch = false,
+                    onAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("已收藏 3 个").assertIsDisplayed()
+    }
+
+    @Test fun placePoolShowsCollectionTotalLegendAndOpenDetailSeparateFromQuickAdd() {
+        val first = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "first", "trip", "poi-first", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        val second = first.copy(id = "second", amapPoiId = "poi-second", name = "灵隐寺")
+        val actions = mutableListOf<PlacePoolAction>()
+        compose.setContent {
+            EasyTripTheme {
+                PlacePoolContent(
+                    state = PlacePoolUiState(
+                        rows = listOf(SavedPlaceRowUi(first, 0, false), SavedPlaceRowUi(second, 1, true)),
+                        savedPoiIds = setOf(first.amapPoiId, second.amapPoiId),
+                    ),
+                    showSearch = false,
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        compose.onNodeWithText("已收藏 2 个").assertIsDisplayed()
+        compose.onNodeWithText("已排入 · 仅收藏").assertIsDisplayed()
+        compose.onNodeWithContentDescription("查看西湖详情").performClick()
+        compose.onNodeWithContentDescription("添加西湖到行程").performClick()
+
+        assertEquals(
+            listOf(PlacePoolAction.OpenDetail("first"), PlacePoolAction.StartAddSingle("first")),
+            actions,
+        )
+    }
+
+    @Test fun workspaceDetailUsesCompleteScheduleAndForwardsSingleAddAction() {
+        val place = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "place", "trip", "poi-place", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        val actions = mutableListOf<PlacePoolAction>()
+        compose.setContent {
+            EasyTripTheme {
+                PlacePoolContent(
+                    state = PlacePoolUiState(
+                        rows = listOf(SavedPlaceRowUi(place, 3, true)),
+                        savedPoiIds = setOf(place.amapPoiId),
+                        selectedDetailPlaceId = place.id,
+                        selectedDetailPlace = place,
+                    ),
+                    showSearch = false,
+                    schedulesByPlaceId = mapOf(
+                        place.id to PlaceScheduleSummaryUi(
+                            isKnown = true,
+                            totalOccurrences = 3,
+                            days = listOf(PlaceScheduleDayUi("day-1", 0, 2), PlaceScheduleDayUi("day-3", 2, 1)),
+                        ),
+                    ),
+                    onAction = actions::add,
+                )
+            }
+        }
+
+        compose.onNodeWithText("已加入行程").assertIsDisplayed()
+        compose.onNodeWithText("第 1 天 · 2 次").assertIsDisplayed()
+        compose.onNodeWithText("第 3 天 · 1 次").assertIsDisplayed()
+        compose.onNodeWithText("加入行程").performClick()
+
+        assertEquals(listOf(PlacePoolAction.StartAddSingle(place.id)), actions)
+    }
+
+    @Test fun standaloneDetailWithoutAddCapabilityDoesNotShowAddOrCrash() {
+        val place = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "place", "trip", "poi-place", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        val model = PlacePoolViewModel("trip", object : com.yangchengwei.easytrip.place.domain.SavedPlaceRepository {
+            override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
+            override fun observeTags(tripId: String) = flowOf(emptyList<com.yangchengwei.easytrip.place.domain.PlaceTag>())
+            override fun observeSavedPoiIds(tripId: String) = flowOf(setOf(place.amapPoiId))
+            override suspend fun save(tripId: String, candidate: PlaceCandidate) = com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved(place.id)
+            override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+            override suspend fun usageCount(placeId: String) = 0
+            override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(0, 0)
+            override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+        }, null)
+        compose.setContent { EasyTripTheme { PlacePoolSheet(model, showSearch = false) } }
+        compose.waitUntil(5_000) { model.state.value.rows.isNotEmpty() }
+        compose.runOnIdle { model.openDetail(place.id) }
+
+        compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
+        compose.onAllNodesWithText("加入行程").assertCountEquals(0)
+    }
+
+    @Test fun workspaceDetailOnlyCollectedPlaceHasNoScheduleBlock() {
+        val place = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "place", "trip", "poi-place", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                PlacePoolContent(
+                    state = PlacePoolUiState(
+                        rows = listOf(SavedPlaceRowUi(place, 0, false)),
+                        savedPoiIds = setOf(place.amapPoiId),
+                        selectedDetailPlaceId = place.id,
+                        selectedDetailPlace = place,
+                    ),
+                    showSearch = false,
+                    schedulesByPlaceId = mapOf(place.id to PlaceScheduleSummaryUi(isKnown = true)),
+                    onAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("place-detail-bookmark-outline").assertIsDisplayed()
+        compose.onAllNodesWithText("已加入行程").assertCountEquals(0)
+        compose.onAllNodesWithText("第 1 天 ·").assertCountEquals(0)
     }
 
     @Test fun emptyPoolProvidesSearchAction() {

@@ -34,6 +34,7 @@ import androidx.compose.ui.unit.dp
 fun SavedPlaceRow(
     place: SavedPlaceRowUi,
     onQuickAdd: (() -> Unit)?,
+    onOpenDetail: () -> Unit,
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
@@ -45,7 +46,15 @@ fun SavedPlaceRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Column(Modifier.weight(1f).widthIn(min = 0.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Column(
+                Modifier
+                    .weight(1f)
+                    .widthIn(min = 0.dp)
+                    .testTag("open-place-detail-${place.id}")
+                    .semantics { contentDescription = "查看${place.name}详情" }
+                    .clickable(onClick = onOpenDetail),
+                verticalArrangement = Arrangement.spacedBy(4.dp),
+            ) {
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
                     Text(
                         place.name,

@@ -21,6 +21,8 @@ import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavedPlace
+import com.yangchengwei.easytrip.workspace.PlaceScheduleDayUi
+import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
@@ -45,14 +47,52 @@ class PlaceDetailPanelTest {
         compose.onAllNodesWithText("加入行程").assertCountEquals(0)
     }
 
-    @Test fun placePoolShowsEditAndDeleteButNoCollectionOrAdd() {
-        setContent(source = PlaceDetailSource.PlacePool, savedPlace = savedPlace())
+    @Test fun placePoolScheduledPlaceShowsDailyScheduleFilledBookmarkAndStartsAdd() {
+        val actions = mutableListOf<PlaceDetailPanelAction>()
+        setContent(
+            source = PlaceDetailSource.PlacePool,
+            savedPlace = savedPlace(),
+            schedule = PlaceScheduleSummaryUi(
+                isKnown = true,
+                totalOccurrences = 3,
+                days = listOf(PlaceScheduleDayUi("day-1", 0, 2), PlaceScheduleDayUi("day-3", 2, 1)),
+            ),
+            onAction = actions::add,
+        )
 
-        compose.onNodeWithText("编辑").assertIsDisplayed()
-        compose.onNodeWithText("删除").assertIsDisplayed()
-        compose.onAllNodesWithText("收藏").assertCountEquals(0)
-        compose.onAllNodesWithText("取消收藏").assertCountEquals(0)
-        compose.onAllNodesWithText("加入行程").assertCountEquals(0)
+        compose.onNodeWithText("已加入行程").assertIsDisplayed()
+        compose.onNodeWithText("第 1 天 · 2 次").assertIsDisplayed()
+        compose.onNodeWithText("第 3 天 · 1 次").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-bookmark-filled").assertIsDisplayed()
+        compose.onNodeWithText("加入行程").performClick()
+
+        compose.runOnIdle { assertEquals(listOf(PlaceDetailPanelAction.StartAddToItinerary), actions) }
+    }
+
+    @Test fun placePoolOnlyCollectedPlaceShowsHollowBookmarkWithoutScheduleBlockAndStartsAdd() {
+        val actions = mutableListOf<PlaceDetailPanelAction>()
+        setContent(
+            source = PlaceDetailSource.PlacePool,
+            savedPlace = savedPlace(),
+            schedule = PlaceScheduleSummaryUi(isKnown = true),
+            onAction = actions::add,
+        )
+
+        compose.onAllNodesWithText("已加入行程").assertCountEquals(0)
+        compose.onNodeWithTag("place-detail-bookmark-outline").assertIsDisplayed()
+        compose.onNodeWithText("加入行程").performClick()
+
+        compose.runOnIdle { assertEquals(listOf(PlaceDetailPanelAction.StartAddToItinerary), actions) }
+    }
+
+    @Test fun placePoolUnknownScheduleExplainsThatArrangementIsUnavailable() {
+        setContent(
+            source = PlaceDetailSource.PlacePool,
+            savedPlace = savedPlace(),
+            schedule = PlaceScheduleSummaryUi(isKnown = false),
+        )
+
+        compose.onNodeWithText("行程安排暂不可用").assertIsDisplayed()
     }
 
     @Test fun readOnlyShowsAddressNoteAndTagFallbacks() {
@@ -220,6 +260,7 @@ class PlaceDetailPanelTest {
         savedPlace: SavedPlace? = null,
         source: PlaceDetailSource,
         editState: PlaceDetailEditState? = null,
+        schedule: PlaceScheduleSummaryUi = PlaceScheduleSummaryUi(isKnown = false),
         availableTagNames: List<String> = emptyList(),
         onAction: (PlaceDetailPanelAction) -> Unit = {},
     ) {
@@ -230,6 +271,7 @@ class PlaceDetailPanelTest {
                     savedPlace = savedPlace,
                     editState = editState,
                     source = source,
+                    schedule = schedule,
                     collectionBusy = false,
                     collectionError = null,
                     availableTagNames = availableTagNames,

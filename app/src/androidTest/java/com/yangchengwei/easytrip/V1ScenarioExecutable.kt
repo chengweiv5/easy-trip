@@ -86,6 +86,7 @@ import com.yangchengwei.easytrip.trip.ui.TripListUiState
 import com.yangchengwei.easytrip.workspace.ItineraryScope
 import com.yangchengwei.easytrip.workspace.MapLayer
 import com.yangchengwei.easytrip.workspace.MapUiModel
+import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 import com.yangchengwei.easytrip.workspace.TripWorkspaceContent
 import com.yangchengwei.easytrip.workspace.TripWorkspacePageState
 import com.yangchengwei.easytrip.workspace.TripWorkspaceReadyState
@@ -350,6 +351,69 @@ object V1ScenarioExecutableFactory {
             { PlaceDetailContent(savedPlace(), PlaceDetailDraft("湖边散步", setOf("自然"), "place-1"), false, null, {}, {}, {}, { saved = true }) },
             { onNodeWithText("保存").performClick() },
             { onNodeWithTag("place-detail-title").assertIsDisplayed(); check(saved) },
+        )
+    }
+
+    fun shortPlacePool(id: String): V1ScenarioExecutable {
+        val rows = (1..3).map { index ->
+            SavedPlaceRowUi(savedPlace().copy(id = "place-$index", amapPoiId = "poi-$index", name = "收藏地点$index"), 0, false)
+        }
+        val ready = readyState()
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.WORKSPACE),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
+            content = {
+                TripWorkspaceContent(
+                    pageState = TripWorkspacePageState.Ready(ready.copy(section = WorkspaceSection.PLACE_POOL)),
+                    mapState = WorkspaceMapState.Ready,
+                    onAction = {},
+                    placeState = PlacePoolUiState(rows = rows),
+                    onPlaceAction = {},
+                    itineraryState = DayItineraryUiState(days = ready.days, selectedDayId = ready.days.first().id),
+                    onItineraryAction = {},
+                    mapContent = {},
+                )
+            },
+            verify = { rows.forEach { onNodeWithText(it.place.name).assertIsDisplayed() } },
+        )
+    }
+
+    fun onlyCollectedPlaceDetail(id: String): V1ScenarioExecutable {
+        val place = savedPlace()
+        val ready = readyState()
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.WORKSPACE),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.PLACE_DETAIL)),
+            content = {
+                TripWorkspaceScreen(
+                    pageState = TripWorkspacePageState.Ready(
+                        ready.copy(
+                            section = WorkspaceSection.PLACE_POOL,
+                            overlay = WorkspaceOverlay.PlaceDetail(1L),
+                            schedulesByPlaceId = mapOf(place.id to PlaceScheduleSummaryUi(isKnown = true)),
+                        ),
+                    ),
+                    consent = null,
+                    onAction = {},
+                    onMarkerClick = {},
+                    onMapPoiClick = {},
+                    placeState = PlacePoolUiState(
+                        rows = listOf(SavedPlaceRowUi(place, 0, false)),
+                        selectedDetailPlaceId = place.id,
+                        selectedDetailPlace = place,
+                    ),
+                    onPlaceAction = {},
+                    itineraryState = DayItineraryUiState(days = ready.days, selectedDayId = ready.days.first().id),
+                    onItineraryAction = {},
+                    onCloseOverlay = {},
+                    onDismissMapPlace = {},
+                )
+            },
+            verify = {
+                onNodeWithTag("place-detail-bookmark-outline").assertIsDisplayed()
+                onAllNodesWithText("已加入行程").assertCountEquals(0)
+                onNodeWithText("加入行程").assertIsDisplayed()
+            },
         )
     }
 

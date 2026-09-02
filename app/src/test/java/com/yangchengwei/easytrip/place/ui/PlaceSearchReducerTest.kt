@@ -76,6 +76,41 @@ class PlaceSearchReducerTest {
         assertEquals(PlaceSearchPhase.NetworkFailure("network"), reducer.state.value.phase)
     }
 
+    @Test fun loadingEmptyAndRetryPreserveOrClearQueryAsTheirRecoveryRequires() = runTest {
+        val source = SearchSource()
+        val reducer = PlaceSearchReducer(source, this, StandardTestDispatcher(testScheduler))
+
+        reducer.setQuery("西湖")
+        advanceTimeBy(300)
+        runCurrent()
+        assertEquals(PlaceSearchPhase.Loading, reducer.state.value.phase)
+        assertEquals("西湖", reducer.state.value.query)
+
+        source.completeEmpty("西湖")
+        advanceUntilIdle()
+        assertEquals(PlaceSearchPhase.Empty, reducer.state.value.phase)
+        assertEquals("西湖", reducer.state.value.query)
+
+        reducer.setQuery("")
+        assertEquals(PlaceSearchPhase.Initial, reducer.state.value.phase)
+        assertEquals("", reducer.state.value.query)
+
+        reducer.setQuery("故宫")
+        advanceTimeBy(300)
+        runCurrent()
+        source.fail("故宫", IllegalStateException("network"))
+        advanceUntilIdle()
+        assertEquals(PlaceSearchPhase.NetworkFailure("network"), reducer.state.value.phase)
+        assertEquals("故宫", reducer.state.value.query)
+
+        reducer.retry()
+        runCurrent()
+        assertEquals(PlaceSearchPhase.Loading, reducer.state.value.phase)
+        assertEquals("故宫", reducer.state.value.query)
+        source.complete("故宫", candidate("retried"))
+        advanceUntilIdle()
+    }
+
     @Test fun failureKeepsSavedPlacePool() = runTest {
         val source = SearchSource()
         val reducer = PlaceSearchReducer(source, this, StandardTestDispatcher(testScheduler))

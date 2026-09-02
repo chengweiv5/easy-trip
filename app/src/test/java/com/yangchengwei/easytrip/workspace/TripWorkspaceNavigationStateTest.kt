@@ -47,6 +47,8 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -341,6 +343,36 @@ class TripWorkspaceNavigationStateTest {
         )
     }
 
+    @Test fun selectedPlaceDetailSupersedesMapDetailButNotAddFlow() {
+        assertEquals(
+            WorkspaceOverlay.PlaceDetail(stableWorkspaceOverlayId("saved-place")),
+            placeDetailOverlayToPresent("saved-place", WorkspaceOverlay.PlaceDetail(1L)),
+        )
+        assertEquals(
+            WorkspaceOverlay.PlaceDetail(stableWorkspaceOverlayId("saved-place")),
+            placeDetailOverlayToPresent("saved-place", WorkspaceOverlay.None),
+        )
+        assertNull(placeDetailOverlayToPresent("saved-place", WorkspaceOverlay.SelectAddTargetDay))
+        assertNull(placeDetailOverlayToPresent(null, WorkspaceOverlay.PlaceDetail(1L)))
+    }
+
+    @Test fun detailCloseDoesNotChangeWorkspaceNavigationOrViewport() = runTest(dispatcher) {
+        val model = model(Trips(days("one", "two")))
+        advanceUntilIdle()
+        model.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+        model.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
+        advanceUntilIdle()
+        val sheetBeforeClose = model.state.value.sheetLevel
+        model.openOverlay(WorkspaceOverlay.PlaceDetail(1L))
+
+        model.closeOverlay()
+
+        assertEquals(WorkspaceSection.ITINERARY, model.state.value.section)
+        assertEquals(sheetBeforeClose, model.state.value.sheetLevel)
+        assertEquals(WorkspaceOverlay.None, model.state.value.overlay)
+    }
+
     @Test fun appendCompletionClosesOnlyTheAppendOverlay() {
         assertEquals(
             AppendDayCompletionDecision.CloseOverlayAndConsume(1L),
@@ -367,6 +399,39 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(
             WorkspaceOverlay.SelectAddTargetDay,
             addOverlayToPresent(WorkspaceOverlay.SelectAddPlaces, addState),
+        )
+    }
+
+    @Test fun `selected saved-place detail remains open when not editing`() {
+        assertFalse(
+            shouldClosePlaceDetailOverlay(
+                overlay = WorkspaceOverlay.PlaceDetail(1L),
+                wasEditingPlace = false,
+                hasEditingPlace = false,
+                selectedDetailPlaceId = "place-1",
+                hasSelectedMapPoi = false,
+                hasSelectedMarker = false,
+            ),
+        )
+        assertFalse(
+            shouldClosePlaceDetailOverlay(
+                overlay = WorkspaceOverlay.PlaceDetail(1L),
+                wasEditingPlace = false,
+                hasEditingPlace = false,
+                selectedDetailPlaceId = null,
+                hasSelectedMapPoi = false,
+                hasSelectedMarker = false,
+            ),
+        )
+        assertTrue(
+            shouldClosePlaceDetailOverlay(
+                overlay = WorkspaceOverlay.PlaceDetail(1L),
+                wasEditingPlace = true,
+                hasEditingPlace = false,
+                selectedDetailPlaceId = null,
+                hasSelectedMapPoi = false,
+                hasSelectedMarker = false,
+            ),
         )
     }
 

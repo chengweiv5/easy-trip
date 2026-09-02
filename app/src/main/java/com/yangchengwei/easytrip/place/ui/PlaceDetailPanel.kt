@@ -1,9 +1,15 @@
 package com.yangchengwei.easytrip.place.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
@@ -14,6 +20,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -26,6 +34,7 @@ import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.SavedPlace
+import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 
 
 enum class PlaceDetailSource { Search, PlacePool }
@@ -42,6 +51,7 @@ sealed interface PlaceDetailPanelAction {
     data class RemoveTag(val name: String) : PlaceDetailPanelAction
     data object SaveEdit : PlaceDetailPanelAction
     data object CancelEdit : PlaceDetailPanelAction
+    data object StartAddToItinerary : PlaceDetailPanelAction
 }
 
 @Composable
@@ -55,6 +65,8 @@ fun PlaceDetailPanel(
     onAction: (PlaceDetailPanelAction) -> Unit,
     modifier: Modifier = Modifier,
     availableTagNames: List<String> = emptyList(),
+    schedule: PlaceScheduleSummaryUi = PlaceScheduleSummaryUi(isKnown = false),
+    canStartAddToItinerary: Boolean = true,
 ) {
     val saving = editState?.isSaving == true
     Column(
@@ -85,6 +97,9 @@ fun PlaceDetailPanel(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
+        if (source == PlaceDetailSource.PlacePool) {
+            PlaceDetailSchedule(schedule)
+        }
         if (editState == null) {
             Text(savedPlace?.note?.takeIf(String::isNotBlank) ?: "暂无备注")
             Text(savedPlace?.tags?.map { it.name }?.takeIf(List<String>::isNotEmpty)?.joinToString("、") ?: "暂无标签")
@@ -110,6 +125,12 @@ fun PlaceDetailPanel(
                         }
                     }
                     PlaceDetailSource.PlacePool -> {
+                        if (canStartAddToItinerary) {
+                            EasyTripPrimaryButton(
+                                onClick = { onAction(PlaceDetailPanelAction.StartAddToItinerary) },
+                                modifier = Modifier.weight(1f).testTag("place-detail-start-add"),
+                            ) { Text("加入行程") }
+                        }
                         EasyTripSecondaryButton(
                             onClick = { onAction(PlaceDetailPanelAction.StartEdit) },
                             modifier = Modifier.weight(1f),
@@ -194,6 +215,63 @@ fun PlaceDetailPanel(
                     modifier = Modifier.weight(1f).testTag("place-detail-save"),
                 ) { Text(if (saving) "保存中" else "保存") }
             }
+        }
+    }
+}
+
+@Composable
+private fun PlaceDetailSchedule(schedule: PlaceScheduleSummaryUi) {
+    when {
+        !schedule.isKnown -> Text(
+            "行程安排暂不可用",
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.testTag("place-detail-schedule-unknown"),
+        )
+        schedule.totalOccurrences > 0 -> Column(
+            modifier = Modifier.testTag("place-detail-schedule"),
+            verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.xSmall),
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small)) {
+                PlaceDetailBookmark(filled = true)
+                Text("已加入行程", style = MaterialTheme.typography.titleSmall)
+            }
+            schedule.days.forEach { day ->
+                Text("第 ${day.dayIndex + 1} 天 · ${day.occurrences} 次")
+            }
+        }
+        else -> Box(modifier = Modifier.testTag("place-detail-bookmark")) {
+            PlaceDetailBookmark(filled = false)
+        }
+    }
+}
+
+@Composable
+private fun PlaceDetailBookmark(filled: Boolean) {
+    val primary = MaterialTheme.colorScheme.primary
+    val surface = MaterialTheme.colorScheme.surface
+    val onPrimary = MaterialTheme.colorScheme.onPrimary
+    Box(
+        modifier = Modifier
+            .size(32.dp)
+            .testTag(if (filled) "place-detail-bookmark-filled" else "place-detail-bookmark-outline")
+            .background(if (filled) primary else surface, CircleShape)
+            .border(1.dp, primary, CircleShape),
+        contentAlignment = androidx.compose.ui.Alignment.Center,
+    ) {
+        Canvas(Modifier.size(16.dp)) {
+            val path = Path().apply {
+                moveTo(size.width * .25f, size.height * .12f)
+                lineTo(size.width * .75f, size.height * .12f)
+                lineTo(size.width * .75f, size.height * .88f)
+                lineTo(size.width * .5f, size.height * .7f)
+                lineTo(size.width * .25f, size.height * .88f)
+                close()
+            }
+            drawPath(
+                path,
+                if (filled) onPrimary else primary,
+                style = if (filled) androidx.compose.ui.graphics.drawscope.Fill else Stroke(1.8.dp.toPx()),
+            )
         }
     }
 }

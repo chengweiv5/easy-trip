@@ -187,6 +187,80 @@ class TripWorkspaceContentStateTest {
         assertEquals(false, ready.content.isWorkspaceAllEmpty)
     }
 
+    @Test fun scheduleSummaryCountsRepeatedPlaceWithinOneDay() = runTest(dispatcher) {
+        val trips = Trips()
+        val itineraries = ControlledItineraries(
+            mapOf(
+                "day-1" to DayItinerary("day-1", "trip", listOf(
+                    itineraryItem("item-1", "place-1"),
+                    itineraryItem("item-2", "place-1"),
+                )),
+                "day-2" to DayItinerary("day-2", "trip", emptyList()),
+            ),
+        )
+        val model = TripWorkspaceViewModel("trip", trips, Places(), itineraries, Legs(), SavedStateHandle())
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+
+        val summary = (model.pageState.value as TripWorkspacePageState.Ready).content.schedulesByPlaceId.getValue("place-1")
+        assertEquals(true, summary.isKnown)
+        assertEquals(2, summary.totalOccurrences)
+        assertEquals(listOf(PlaceScheduleDayUi("day-1", 0, 2)), summary.days)
+    }
+
+    @Test fun scheduleSummaryAggregatesRepeatedPlaceAcrossDaysInDayOrder() = runTest(dispatcher) {
+        val trips = Trips()
+        val itineraries = ControlledItineraries(
+            mapOf(
+                "day-1" to DayItinerary("day-1", "trip", listOf(itineraryItem("item-1", "place-1"))),
+                "day-2" to DayItinerary("day-2", "trip", listOf(
+                    itineraryItem("item-2", "place-1"),
+                    itineraryItem("item-3", "place-2"),
+                    itineraryItem("item-4", "place-1"),
+                )),
+            ),
+        )
+        val model = TripWorkspaceViewModel("trip", trips, Places(), itineraries, Legs(), SavedStateHandle())
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+
+        val summary = (model.pageState.value as TripWorkspacePageState.Ready).content.schedulesByPlaceId.getValue("place-1")
+        assertEquals(3, summary.totalOccurrences)
+        assertEquals(
+            listOf(PlaceScheduleDayUi("day-1", 0, 1), PlaceScheduleDayUi("day-2", 1, 2)),
+            summary.days,
+        )
+    }
+
+    @Test fun scheduleSummaryIsUnknownWhenSnapshotDayIdsAreIncomplete() = runTest(dispatcher) {
+        val trips = Trips()
+        val itineraries = ControlledItineraries(
+            mapOf(
+                "day-1" to DayItinerary("day-1", "trip", emptyList()),
+                "day-2" to DayItinerary("stale-day", "trip", emptyList()),
+            ),
+        )
+        val model = TripWorkspaceViewModel("trip", trips, Places(listOf(savedPlace())), itineraries, Legs(), SavedStateHandle())
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+
+        val summary = (model.pageState.value as TripWorkspacePageState.Ready).content.schedulesByPlaceId.getValue("place-1")
+        assertEquals(false, summary.isKnown)
+    }
+
+    @Test fun scheduleSummaryReportsZeroForOnlySavedPlaceAfterCompleteSnapshots() = runTest(dispatcher) {
+        val trips = Trips()
+        val places = Places(listOf(savedPlace()))
+        val model = model(trips, places)
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+
+        val summary = (model.pageState.value as TripWorkspacePageState.Ready).content.schedulesByPlaceId.getValue("place-1")
+        assertEquals(true, summary.isKnown)
+        assertEquals(0, summary.totalOccurrences)
+        assertEquals(emptyList<PlaceScheduleDayUi>(), summary.days)
+    }
+
     @Test fun readyTripExposesWorkspaceDateLabel() = runTest(dispatcher) {
         val trips = Trips()
         val model = model(trips)
@@ -343,9 +417,9 @@ class TripWorkspaceContentStateTest {
         TravelMode.FLEXIBLE,
         listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
     )
-    private fun itineraryItem(id: String) = ItineraryItem(
+    private fun itineraryItem(id: String, placeId: String = "place-$id") = ItineraryItem(
         id,
-        ItineraryPlace("place-$id", "地点", "地址", com.yangchengwei.easytrip.core.model.GeoPoint(39.9, 116.4)),
+        ItineraryPlace(placeId, "地点", "地址", com.yangchengwei.easytrip.core.model.GeoPoint(39.9, 116.4)),
         null,
         null,
     )

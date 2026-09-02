@@ -30,8 +30,6 @@ import com.yangchengwei.easytrip.itinerary.ui.RouteLegUi
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavedPlace
-import com.yangchengwei.easytrip.place.ui.PlaceDetailPanel
-import com.yangchengwei.easytrip.place.ui.PlaceDetailSource
 import com.yangchengwei.easytrip.place.ui.PlacePoolContent
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
 import com.yangchengwei.easytrip.place.ui.PlaceSearchContent
@@ -54,6 +52,7 @@ import com.yangchengwei.easytrip.trip.ui.TripListUiState
 import com.yangchengwei.easytrip.trip.ui.TripSettingsContent
 import com.yangchengwei.easytrip.trip.ui.TripSettingsUiState
 import com.yangchengwei.easytrip.workspace.ItineraryScope
+import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 import com.yangchengwei.easytrip.workspace.TripWorkspaceContent
 import com.yangchengwei.easytrip.workspace.TripWorkspacePageState
 import com.yangchengwei.easytrip.workspace.TripWorkspaceUiState
@@ -119,11 +118,49 @@ class VisualBatch0EvidenceTest {
         compose.onNodeWithText("西湖天地").assertIsDisplayed()
     }
 
-    @Test fun placeDetail_p4G1tS() {
-        render("p4G1tS", "place-detail") {
-            PlaceDetailPanel(searchCandidates()[1], savedPlace(), null, PlaceDetailSource.Search, false, null, {})
+    @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_p4G1tS() {
+        val place = savedPlace(searchCandidates()[1], "saved-scheduled")
+        render(
+            "p4G1tS",
+            "workspace-place-detail-scheduled",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(WorkspaceSection.PLACE_POOL).let { state ->
+                    TripWorkspacePageState.Ready(
+                        state.content.copy(
+                            schedulesByPlaceId = mapOf(
+                                place.id to PlaceScheduleSummaryUi(
+                                    isKnown = true,
+                                    totalOccurrences = 3,
+                                    days = listOf(
+                                        com.yangchengwei.easytrip.workspace.PlaceScheduleDayUi("day-1", 0, 2),
+                                        com.yangchengwei.easytrip.workspace.PlaceScheduleDayUi("day-3", 2, 1),
+                                    ),
+                                ),
+                            ),
+                        ),
+                    )
+                },
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = PlacePoolUiState(
+                    rows = listOf(SavedPlaceRowUi(place, 3, scheduled = true)),
+                    savedPoiIds = setOf(place.amapPoiId),
+                    selectedDetailPlaceId = place.id,
+                    selectedDetailPlace = place,
+                ),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
         }
-        compose.onNodeWithText("西湖天地").assertIsDisplayed()
+        assertWorkspaceHost()
+        compose.onNodeWithText("已加入行程").assertIsDisplayed()
+        compose.onNodeWithText("加入行程").assertIsDisplayed()
     }
 
     @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_shoPV() {
@@ -207,6 +244,65 @@ class VisualBatch0EvidenceTest {
         assertWorkspaceHost()
         compose.onNodeWithTag("itinerary-all-empty").assertIsDisplayed()
         compose.onAllNodesWithTag("itinerary-scope-rail").assertCountEquals(0)
+    }
+
+    @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_jQhXs() {
+        render(
+            "jQhXs",
+            "workspace-place-pool-short-list",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(WorkspaceSection.PLACE_POOL),
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = placePoolState(rows = 3),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
+        }
+        assertWorkspaceHost()
+        compose.onNodeWithText("西湖风景名胜区").assertIsDisplayed()
+        compose.onNodeWithText("知味观·湖滨店").assertIsDisplayed()
+    }
+
+    @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_XsGon() {
+        val place = savedPlace(searchCandidates()[1], "saved-only")
+        render(
+            "XsGon",
+            "workspace-place-detail-only-collected",
+            evidenceHost = "production Compose workspace host",
+            mapSurface = "deterministic fake map surface; not a real map host",
+        ) {
+            TripWorkspaceContent(
+                pageState = workspaceState(WorkspaceSection.PLACE_POOL).let { state ->
+                    TripWorkspacePageState.Ready(
+                        state.content.copy(schedulesByPlaceId = mapOf(place.id to PlaceScheduleSummaryUi(isKnown = true))),
+                    )
+                },
+                mapState = WorkspaceMapState.Ready,
+                onAction = {},
+                placeState = PlacePoolUiState(
+                    rows = listOf(SavedPlaceRowUi(place, 0, scheduled = false)),
+                    savedPoiIds = setOf(place.amapPoiId),
+                    selectedDetailPlaceId = place.id,
+                    selectedDetailPlace = place,
+                ),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(),
+                onItineraryAction = {},
+                mapContent = { DeterministicFakeMapSurface() },
+                modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+            )
+        }
+        assertWorkspaceHost()
+        compose.onNodeWithTag("place-detail-bookmark-outline").assertIsDisplayed()
+        compose.onNodeWithText("加入行程").assertIsDisplayed()
+        compose.onAllNodesWithTag("place-detail-schedule").assertCountEquals(0)
     }
 
     @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_A9EKX() {
@@ -568,8 +664,8 @@ class VisualBatch0EvidenceTest {
         ).toReadyState(),
     )
 
-    private fun placePoolState() = PlacePoolUiState(
-        rows = searchCandidates().mapIndexed { index, candidate ->
+    private fun placePoolState(rows: Int = searchCandidates().size) = PlacePoolUiState(
+        rows = searchCandidates().take(rows).mapIndexed { index, candidate ->
             SavedPlaceRowUi(savedPlace(candidate, "saved-$index"), 0, scheduled = index == 0)
         },
         tags = listOf(PlaceTag("tag-1", "景点"), PlaceTag("tag-2", "散步")),

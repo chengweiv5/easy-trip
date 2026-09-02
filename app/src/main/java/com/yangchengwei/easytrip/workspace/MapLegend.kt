@@ -1,11 +1,13 @@
 package com.yangchengwei.easytrip.workspace
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentWidth
-import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -30,10 +32,25 @@ fun MapLegend(modifier: Modifier = Modifier) {
             horizontalArrangement = Arrangement.spacedBy(8.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(Modifier.size(10.dp).testTag("legend-scheduled-shape"), CircleShape, MaterialTheme.colorScheme.primary) {}
+            BookmarkLegendShape(scheduled = true, Modifier.testTag("legend-scheduled-shape"))
             Text("已排入", style = MaterialTheme.typography.labelSmall)
-            Surface(Modifier.size(10.dp).testTag("legend-saved-shape"), CircleShape, MaterialTheme.colorScheme.secondary) {}
+            BookmarkLegendShape(scheduled = false, Modifier.testTag("legend-saved-shape"))
             Text("仅收藏", style = MaterialTheme.typography.labelSmall)
         }
+    }
+}
+
+@Composable
+private fun BookmarkLegendShape(scheduled: Boolean, modifier: Modifier = Modifier) {
+    val primary = MaterialTheme.colorScheme.primary
+    Canvas(modifier.size(12.dp)) {
+        val path = Path()
+        BookmarkGeometry.forEachIndexed { index, point ->
+            val x = point.x * size.width
+            val y = point.y * size.height
+            if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
+        }
+        path.close()
+        if (scheduled) drawPath(path, primary) else drawPath(path, primary, style = Stroke(width = 1.5.dp.toPx()))
     }
 }

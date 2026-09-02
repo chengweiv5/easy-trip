@@ -48,6 +48,7 @@ import com.yangchengwei.easytrip.itinerary.ui.EditItineraryItemContent
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.ui.PlaceDetailDialog
 import com.yangchengwei.easytrip.place.ui.PlaceDetailSource
+import com.yangchengwei.easytrip.place.ui.toCandidate
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
 import com.yangchengwei.easytrip.permission.PermissionExplanationContent
@@ -273,6 +274,39 @@ private fun WorkspaceOverlayContent(
         is WorkspaceOverlay.PlaceDetail -> {
             when {
                 state.selectedMapPoi != null -> MapPoiDialog(state.selectedMapPoi, isPoiSaved, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
+                placeState.selectedDetailPlace != null -> placeState.selectedDetailPlace.let { place ->
+                        AlertDialog(
+                            onDismissRequest = { onPlaceAction(PlacePoolAction.DismissDetail); onClose() },
+                            confirmButton = {},
+                            text = {
+                                com.yangchengwei.easytrip.place.ui.PlaceDetailPanel(
+                                    candidate = place.toCandidate(),
+                                    savedPlace = place,
+                                    editState = null,
+                                    source = PlaceDetailSource.PlacePool,
+                                    collectionBusy = false,
+                                    collectionError = null,
+                                    schedule = state.schedulesByPlaceId[place.id]
+                                        ?: PlaceScheduleSummaryUi(isKnown = false),
+                                    onAction = { action ->
+                                        when (action) {
+                                            com.yangchengwei.easytrip.place.ui.PlaceDetailPanelAction.Dismiss -> {
+                                                onPlaceAction(PlacePoolAction.DismissDetail)
+                                                onClose()
+                                            }
+                                            com.yangchengwei.easytrip.place.ui.PlaceDetailPanelAction.StartEdit ->
+                                                onPlaceAction(PlacePoolAction.Edit(place))
+                                            com.yangchengwei.easytrip.place.ui.PlaceDetailPanelAction.StartAddToItinerary ->
+                                                onPlaceAction(PlacePoolAction.StartAddSingle(place.id))
+                                            com.yangchengwei.easytrip.place.ui.PlaceDetailPanelAction.Delete ->
+                                                onPlaceAction(PlacePoolAction.Delete(place))
+                                            else -> Unit
+                                        }
+                                    },
+                                )
+                            },
+                        )
+                    }
                 state.selectedMarker != null -> MarkerDialog(state.selectedMarker, state.selectedMarkerPoi, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
                 placeState.editing != null && placeState.detailDraft != null -> PlaceDetailDialog(
                     place = placeState.editing,
