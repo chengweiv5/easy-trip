@@ -59,11 +59,21 @@ data class CorruptRoute(val legId: String, val version: Long)
 
 enum class ViewportReason { INITIAL, PLACE_SET_CHANGED, SCOPE_CHANGED, VISIBLE_SET_CHANGED, SEARCH_FOCUS }
 
+data class MapViewportInsets(
+    val leftPx: Int = 0,
+    val topPx: Int = 0,
+    val rightPx: Int = 0,
+    val bottomPx: Int = 0,
+)
+
 data class MapViewportRequest(
     val id: Long,
     val reason: ViewportReason,
     val points: List<GeoPoint>,
     val singlePointZoom: Float? = null,
+    val scope: MapScope? = null,
+    val selectedDayId: String? = null,
+    val safeInsets: MapViewportInsets = MapViewportInsets(),
 )
 
 const val SEARCH_FOCUS_ZOOM = 15f
@@ -112,6 +122,21 @@ fun mapViewportPoints(scope: MapScope, model: MapUiModel): List<GeoPoint> =
         (model.markers.map(MapMarkerUi::point) + model.polylines.flatMap(MapPolylineUi::points)).distinct()
     }
 
+fun automaticMapViewportPoints(scope: MapScope, model: MapUiModel): List<GeoPoint> =
+    if (scope == MapScope.PLACE_POOL) {
+        model.markers
+            .filter { it.kind == MapMarkerKind.SAVED_PLACE_POOL }
+            .map(MapMarkerUi::point)
+            .distinct()
+    } else {
+        (
+            model.markers
+                .filter { it.occurrences.isNotEmpty() }
+                .map(MapMarkerUi::point) +
+                model.polylines.flatMap(MapPolylineUi::points)
+        ).distinct()
+    }
+
 fun routePalette() = listOf(
     0xFF1565C0,
     0xFFC2185B,
@@ -147,14 +172,13 @@ object MapUiModelMapper {
         fun withSearchMarkers(baseMarkers: List<MapMarkerUi>): List<MapMarkerUi> {
             val markers = baseMarkers.toMutableList()
             val markerIndexByPoint = markers.indices.associateBy { markers[it].point }.toMutableMap()
-            val markerIndexByPoiId = mutableMapOf<String, Int>()
-            markers.forEachIndexed { index, marker ->
-                savedByPoint[marker.point]?.amapPoiId?.let { markerIndexByPoiId[it] = index }
-            }
+            val markerIndexBySavedPlaceId = markers.indices.mapNotNull { index ->
+                markers[index].savedPlaceId?.let { it to index }
+            }.toMap()
 
             if (focusedPoiId != null && focusedPoint != null) {
                 val saved = savedByPoiId[focusedPoiId] ?: savedByPoint[focusedPoint]
-                val existingIndex = markerIndexByPoiId[focusedPoiId] ?: markerIndexByPoint[focusedPoint]
+                val existingIndex = saved?.id?.let(markerIndexBySavedPlaceId::get) ?: markerIndexByPoint[focusedPoint]
                 if (existingIndex != null) {
                     markers[existingIndex] = markers[existingIndex].copy(isFocused = true)
                 } else if (saved != null) {
@@ -169,7 +193,6 @@ object MapUiModelMapper {
                         scheduled = baseMarkers.any { it.savedPlaceId == saved.id && it.scheduled },
                     )
                     markerIndexByPoint[marker.point] = markers.size
-                    markerIndexByPoiId[saved.amapPoiId] = markers.size
                     markers += marker
                 } else {
                     val marker = MapMarkerUi(
@@ -254,8 +277,16 @@ object MapUiModelMapper {
         val corrupt = mutableListOf<CorruptRoute>()
         val polylines = visible.flatMap { snapshot ->
             val dayIndex = dayById[snapshot.itinerary.dayId]?.index ?: 0
+            val adjacentPairs = snapshot.itinerary.items
+                .zipWithNext { from, to -> from.id to to.id }
+                .toSet()
             snapshot.legs.mapNotNull { leg ->
-                if (leg.status != RouteStatus.SUCCESS || leg.polyline == null) return@mapNotNull null
+                if (
+                    leg.tripDayId != snapshot.itinerary.dayId ||
+                    leg.fromItemId to leg.toItemId !in adjacentPairs ||
+                    leg.status != RouteStatus.SUCCESS ||
+                    leg.polyline == null
+                ) return@mapNotNull null
                 PolylineCodec.decode(leg.polyline).fold(
                     onSuccess = { points ->
                         if (points.size < 2 || points.any { !it.latitude.isFinite() || !it.longitude.isFinite() }) {

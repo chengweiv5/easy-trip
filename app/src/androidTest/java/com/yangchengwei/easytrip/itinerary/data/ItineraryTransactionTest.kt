@@ -136,15 +136,56 @@ class ItineraryTransactionTest {
         }
     }
 
-    @Test fun deletingItineraryItemKeepsSavedPlace() = runTest {
+    @Test fun deletingFirstItemRemovesItsInvalidLegAndKeepsSavedPlace() = runTest {
         seedTrip("trip", TravelMode.FLEXIBLE, "day")
-        seedPlace("museum", "trip", 0.0, 0.0)
-        val itemId = repository.addItem("day", "museum", 0)
+        listOf("a", "b", "c").forEachIndexed { index, id -> seedPlace(id, "trip", 0.0, index * 0.001) }
+        val ids = listOf("a", "b", "c").mapIndexed { index, place -> repository.addItem("day", place, index) }
 
-        repository.deleteItem(itemId)
+        repository.deleteItem(ids.first())
 
-        assertEquals(emptyList<ItineraryItemEntity>(), database.itineraryEditingDao().items("day"))
-        assertEquals("museum", database.savedPlaceDao().place("museum")?.id)
+        assertEquals(ids.drop(1), database.itineraryEditingDao().items("day").map { it.id })
+        assertEquals(listOf(ids[1] to ids[2]), database.routeLegDao().legs("day").map { it.fromItemId to it.toItemId })
+        assertEquals("a", database.savedPlaceDao().place("a")?.id)
+    }
+
+    @Test fun deletingMiddleItemCreatesBridgeLegAndKeepsSavedPlace() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        listOf("a", "b", "c").forEachIndexed { index, id -> seedPlace(id, "trip", 0.0, index * 0.001) }
+        val ids = listOf("a", "b", "c").mapIndexed { index, place -> repository.addItem("day", place, index) }
+
+        repository.deleteItem(ids[1])
+
+        assertEquals(listOf(ids[0], ids[2]), database.itineraryEditingDao().items("day").map { it.id })
+        assertEquals(listOf(ids[0] to ids[2]), database.routeLegDao().legs("day").map { it.fromItemId to it.toItemId })
+        assertEquals("b", database.savedPlaceDao().place("b")?.id)
+    }
+
+    @Test fun deletingLastItemRemovesItsInvalidLegAndKeepsSavedPlace() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        listOf("a", "b", "c").forEachIndexed { index, id -> seedPlace(id, "trip", 0.0, index * 0.001) }
+        val ids = listOf("a", "b", "c").mapIndexed { index, place -> repository.addItem("day", place, index) }
+
+        repository.deleteItem(ids.last())
+
+        assertEquals(ids.dropLast(1), database.itineraryEditingDao().items("day").map { it.id })
+        assertEquals(listOf(ids[0] to ids[1]), database.routeLegDao().legs("day").map { it.fromItemId to it.toItemId })
+        assertEquals("c", database.savedPlaceDao().place("c")?.id)
+    }
+
+    @Test fun deleteBridgeLegConflictRollsBackItemsLegsAndSavedPlace() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        listOf("a", "b", "c", "d").forEachIndexed { index, id -> seedPlace(id, "trip", 0.0, index * 0.001) }
+        val ids = listOf("a", "b", "c", "d").mapIndexed { index, place -> repository.addItem("day", place, index) }
+        val beforeItems = database.itineraryEditingDao().items("day")
+        val beforeLegs = database.routeLegDao().legs("day")
+        val conflictingLegId = beforeLegs.first { it.fromItemId == ids[2] && it.toItemId == ids[3] }.id
+        repository = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(), Clock.fixed(now, ZoneOffset.UTC), itemIds, { conflictingLegId }, { true }, ::recommend)
+
+        assertThrows(SQLiteConstraintException::class.java) { kotlinx.coroutines.runBlocking { repository.deleteItem(ids[1]) } }
+
+        assertEquals(beforeItems, database.itineraryEditingDao().items("day"))
+        assertEquals(beforeLegs, database.routeLegDao().legs("day"))
+        assertEquals("b", database.savedPlaceDao().place("b")?.id)
     }
 
     @Test fun timingAndObservationReflectSavedRows() = runTest {
@@ -154,6 +195,28 @@ class ItineraryTransactionTest {
         assertEquals("trip", day.tripId); assertEquals(id, day.items.single().id); assertEquals("hotel", day.items.single().place.id)
         assertEquals(LocalTime.of(9, 30), day.items.single().arrivalTime); assertEquals(480, day.items.single().stayMinutes)
         assertThrows(IllegalArgumentException::class.java) { kotlinx.coroutines.runBlocking { repository.updateTiming(id, null, -1) } }
+    }
+
+    @Test fun updateDetailsAtomicallyPersistsTimingAndTrimmedNote() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day"); seedPlace("hotel", "trip", 0.0, 0.0)
+        val id = repository.addItem("day", "hotel", 0)
+
+        repository.updateDetails(id, LocalTime.of(10, 15), 90, "  Late\ncheckout  ")
+
+        val item = database.itineraryEditingDao().item(id)!!
+        assertEquals(LocalTime.of(10, 15), item.arrivalTime)
+        assertEquals(90, item.stayDurationMinutes)
+        assertEquals("Late\ncheckout", item.note)
+        assertEquals("Late\ncheckout", repository.observeDay("day").first().items.single().note)
+    }
+
+    @Test fun updateDetailsNormalizesBlankNoteToNull() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day"); seedPlace("hotel", "trip", 0.0, 0.0)
+        val id = repository.addItem("day", "hotel", 0)
+
+        repository.updateDetails(id, null, null, "  \n  ")
+
+        assertNull(database.itineraryEditingDao().item(id)!!.note)
     }
 
     @Test fun crossTripReferencesAreRejectedWithoutChanges() = runTest {

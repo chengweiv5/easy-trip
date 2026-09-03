@@ -13,6 +13,7 @@ import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.test.StandardTestDispatcher
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
@@ -414,6 +415,18 @@ class PlacePoolViewModelTest {
         assertNull(model.state.value.editing)
     }
 
+    @Test fun earlyMarkerTapOpensDetailAfterInitialSavedPlacesEmission() = runTest(dispatcher) {
+        val repository = DelayedPlacesRepository()
+        val model = PlacePoolViewModel("trip", repository, null)
+        model.openDetail("late")
+
+        repository.emit(listOf(place("late")))
+        advanceUntilIdle()
+
+        assertEquals("late", model.state.value.selectedDetailPlaceId)
+        assertEquals("late", model.state.value.selectedDetailPlace?.id)
+    }
+
     @Test fun filteredOutPlaceCanStillOpenDetailFromSavedMarker() = runTest(dispatcher) {
         val matching = place("matching").copy(tags = listOf(PlaceTag("tag", "景点")))
         val filteredOut = place("filtered-out")
@@ -480,6 +493,21 @@ class PlacePoolViewModelTest {
         GeoPoint(39.9, 116.4),
         null,
     )
+
+    private class DelayedPlacesRepository : SavedPlaceRepository {
+        private val places = MutableStateFlow<List<SavedPlace>?>(null)
+        fun emit(value: List<SavedPlace>) { places.value = value }
+        override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> =
+            kotlinx.coroutines.flow.flow { places.filterNotNull().collect { emit(it) } }
+        override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()
+        override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
+        override fun observeUsageCounts(tripId: String): Flow<Map<String, Int>> = emptyFlow()
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = PlaceDeletionImpact(0, 0)
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
 
     private class PoolRepository(
         places: List<SavedPlace>,

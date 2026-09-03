@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Column
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
@@ -59,6 +60,39 @@ class ItineraryEditingTest {
         }
     }
 
+    @Test fun everyVisibleRouteStateOpensItsRealLegEditor() {
+        val states = listOf(
+            "pending" to RouteStatus.PENDING,
+            "calculating" to RouteStatus.CALCULATING,
+            "waiting" to RouteStatus.WAITING_NETWORK,
+            "failed" to RouteStatus.FAILED,
+            "ready" to RouteStatus.SUCCESS,
+        )
+        val editedLegIds = mutableListOf<String>()
+        val retriedLegIds = mutableListOf<String>()
+        compose.setContent {
+            Column {
+                states.forEach { (id, status) ->
+                    RouteLegRow(
+                        leg = RouteLegUi(id, "from-$id", "to-$id", TransportMode.TAXI, status, null, null, null),
+                        onMode = { editedLegIds += id },
+                        onRetry = { retriedLegIds += id },
+                    )
+                }
+            }
+        }
+
+        states.forEach { (id, _) ->
+            compose.onNodeWithTag("edit-route-$id").assertIsDisplayed().assertHasClickAction().performClick()
+        }
+        compose.runOnIdle { assertEquals(states.map { it.first }, editedLegIds) }
+        compose.onNodeWithTag("retry-failed").assertIsDisplayed().assertHasClickAction().performClick()
+        compose.runOnIdle { assertEquals(listOf("failed"), retriedLegIds) }
+        listOf("pending", "calculating", "waiting", "ready").forEach { id ->
+            compose.onNodeWithTag("retry-$id").assertDoesNotExist()
+        }
+    }
+
     @Test fun failedRouteShowsErrorAndRetryAction() {
         val coordinator = FakeCoordinator()
         val model = DayItineraryViewModel(
@@ -78,10 +112,11 @@ class ItineraryEditingTest {
     }
 
     @Test fun deleteConfirmationExplainsRetentionAndAdjacentRouteRecalculation() {
+        val itineraries = FakeItineraries()
         val model = DayItineraryViewModel(
             "trip",
             FakeTrips(),
-            FakeItineraries(),
+            itineraries,
             FakeLegs(),
             FakeCoordinator(),
         )
@@ -90,7 +125,10 @@ class ItineraryEditingTest {
 
         compose.onNodeWithTag("more-i2", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-delete-i2", useUnmergedTree = true).performClick()
-        compose.onNodeWithText("仅从当天行程移出，收藏仍保留；相邻路线将重新计算。").assertIsDisplayed()
+        compose.onNodeWithText("仅移除本次安排；收藏仍保留；相邻路线将重新计算。").assertIsDisplayed()
+        compose.onNodeWithText("取消").performClick()
+        compose.waitUntil(5_000) { model.state.value.deleteConfirmation == null }
+        assertEquals(emptyList<String>(), itineraries.deletes)
     }
 
     @Test fun itineraryEditSaveFailureRemainsVisible() {
@@ -207,10 +245,10 @@ class ItineraryEditingTest {
         compose.waitUntil(5_000) { itineraries.adds == listOf(Add("day-1", "hotel", 3)) }
 
         compose.onNodeWithTag("mode-leg-1").performClick()
-        compose.onNodeWithTag("mode-option-WALK").performClick()
-        compose.onNodeWithText("保存").performClick()
-        compose.waitUntil(5_000) { coordinator.overrides.isNotEmpty() }
-        assertEquals("leg-1" to TransportMode.WALK, coordinator.overrides.single())
+        compose.onNodeWithTag("route-mode-option-WALK").performClick()
+        compose.onNodeWithText("保存路段").performClick()
+        compose.waitUntil(5_000) { coordinator.details.isNotEmpty() }
+        assertEquals(RouteDetails("leg-1", TransportMode.WALK, null, null), coordinator.details.single())
 
         compose.onNodeWithTag("retry-leg-2").performClick()
         compose.waitUntil(5_000) { coordinator.retries.isNotEmpty() }
@@ -291,6 +329,12 @@ class ItineraryEditingTest {
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) { moves += Move(itemId, targetDayId, targetIndex) }
         override suspend fun deleteItem(itemId: String) { deletes += itemId }
         override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) { timings += Timing(itemId, arrivalTime, stayMinutes) }
+        override suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?) {
+            timings += Timing(itemId, arrivalTime, stayMinutes)
+            day1.value = day1.value.copy(items = day1.value.items.map { item ->
+                if (item.id == itemId) item.copy(arrivalTime = arrivalTime, stayMinutes = stayMinutes, note = note) else item
+            })
+        }
         override suspend fun removePlaceOccurrences(placeId: String) = Unit
     }
 
@@ -309,18 +353,19 @@ class ItineraryEditingTest {
         override suspend fun releaseClaimIfVersionMatches(legId: String, version: Long, online: Boolean) = false
         override suspend fun completeIfVersionMatches(legId: String, version: Long, result: com.yangchengwei.easytrip.route.domain.RouteResult) = false
         override suspend fun failIfVersionMatches(legId: String, version: Long, failure: com.yangchengwei.easytrip.route.domain.RoutePlanOutcome.Failure) = false
-        override suspend fun overrideMode(legId: String, mode: TransportMode, online: Boolean) = false
+        override suspend fun updateDetails(legId: String, selectedModeOverride: TransportMode?, durationOverrideSeconds: Int?, note: String?, online: Boolean): Boolean = error("Fake route details are not modeled")
         override suspend fun retry(legId: String, online: Boolean) = false
         private fun leg(id:String, from:String,to:String,status:RouteStatus,mode:TransportMode,distance:Int?,duration:Int?) = RouteLegEntity(id,"day-1",from,to,mode,status=status,distanceMeters=distance,durationSeconds=duration,errorCode=if(status==RouteStatus.FAILED)"no route" else null,version=1,updatedAt=Instant.EPOCH)
     }
 
     private class FakeCoordinator : RouteRefreshCoordinator {
-        val overrides=mutableListOf<Pair<String,TransportMode>>(); val retries=mutableListOf<String>()
+        val overrides=mutableListOf<Pair<String,TransportMode>>(); val details=mutableListOf<RouteDetails>(); val retries=mutableListOf<String>()
         override fun start(scope: kotlinx.coroutines.CoroutineScope)=Unit
         override suspend fun retry(legId:String):Boolean { retries+=legId; return true }
-        override suspend fun overrideMode(legId:String,mode:TransportMode):Boolean { overrides+=legId to mode; return true }
+        override suspend fun updateDetails(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?):Boolean { details += RouteDetails(legId, selectedModeOverride, durationOverrideSeconds, note); return true }
     }
     data class Add(val day:String,val place:String,val index:Int)
     data class Move(val item:String,val day:String,val index:Int)
     data class Timing(val item:String,val time:LocalTime?,val minutes:Int?)
+    data class RouteDetails(val legId:String,val selectedModeOverride:TransportMode?,val durationOverrideSeconds:Int?,val note:String?)
 }

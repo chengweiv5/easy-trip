@@ -146,23 +146,25 @@
 
 | 设计界面 | Frame ID | 现有/目标代码 | 核心状态/交互 | 状态 |
 |---|---|---|---|---|
-| 行程页 | `nAdK8` | `WorkspaceItineraryContent` | 某天添加、地点和路段入口 | 待分析 |
-| 行程项编辑 | `K336N` | 行程项编辑页面 | 时间、停留时长和备注 | 待分析 |
-| 编辑完成 | `mz2IS` | 行程页状态 | 保存后展示最新安排 | 待分析 |
-| 删除行程项确认 | `l2xCsM` | `ConfirmationDialog` | 删除安排、保留收藏 | 待分析 |
-| 交通路段编辑 | `T7aESo` | 路段编辑页面 | 方式、耗时和说明 | 待分析 |
-| 单日路线 | `eHTX3` | 单日地图和行程 | 完整路线、安全边距和交通方式 | 待分析 |
-| 全程路线 | `FTIOF` | `WholeTripItineraryContent` | 所有日期分组和全部路线 | 待分析 |
-| 当天无地点 | `Bcf6A` | `WorkspaceItineraryContent` | 保留导航并引导添加 | 待分析 |
-| 添加旅行日 | `zvO9Z` | 旅行日操作 | 追加旅行日 | 待分析 |
-| 删除旅行日确认 | `J7PZ7u` | `ConfirmationDialog` | 删除日期和相关行程项 | 待分析 |
+| 行程页 | `nAdK8` | `WorkspaceItineraryContent` | 某天添加、地点和路段入口 | 自动化、SwiftShader 模拟器真实 AMap、Huawei 物理设备通过 |
+| 行程项编辑 | `K336N` | `EditItineraryItemContent` / `DayItineraryViewModel` | 时间、停留时长和备注；busy 锁定；失败原地保留草稿 | 自动化通过：production UI 三字段编辑、Room 回流与重开 |
+| 编辑完成 | `mz2IS` | 行程页状态 | Room/观察流回流后展示最新安排，重新打开读取持久值 | 自动化通过：production AppNavigation + in-memory Room + recording fake map |
+| 删除行程项确认 | `l2xCsM` | `ConfirmationDialog` | 删除安排、保留收藏与相邻路线重算 | 自动化通过：production UI 删除、SavedPlace 保留、bridge leg 重建 |
+| 交通路段编辑 | `T7aESo` | `EditRouteLegContent` / `DayItineraryViewModel` | 方式、耗时和说明；无地图 coordinator 时 metadata-only 仍可保存 | 自动化、SwiftShader 模拟器、Huawei 15 分钟 override 保存通过 |
+| 单日路线 | `eHTX3` | `MapUiModelMapper` / `MapViewportController` / `AmapComposeMap` | selected day markers、合法同日相邻 route、完整 geometry 与四向安全边距 | 自动化、SwiftShader 模拟器和 Huawei 真实路线/安全 viewport 通过 |
+| 全程路线 | `FTIOF` | `WholeTripItineraryContent` / `MapUiModelMapper` | 日期连续分组、空日、只读 timeline；按 day 保留 route 颜色且不跨日连接 | 自动化、SwiftShader 模拟器和 Huawei 三天分组/只读/多段真实路线通过 |
+| 当天无地点 | `Bcf6A` | `WorkspaceItineraryContent` / `DayItineraryContent` | 保留日期 rail，以当前日 CTA 进入多地点选择；不进入 WFOpg | 自动化通过：production Room-backed 主链 |
+| 添加旅行日 | `zvO9Z` | `DayItineraryViewModel` / 工作台 overlay | 服务返回新日 ID 后等待 Room 观察到该 ID；非 Ready 时不消费完成 token；观察失败只重启观察确认而不重复写入 | 自动化通过：production Room-backed 主链 |
+| 删除旅行日确认 | `J7PZ7u` | `TripSettingsViewModel` / `TripSettingsContent` | 删除影响、取消、busy、重试、日期范围互斥、重新编号/scope 与 Room 回流 | 自动化及 Huawei 追加第 4 天、取消删除、确认删除、日期/scope 回流通过 |
 
 ### Batch 5 完成条件
 
-- [ ] 行程项和交通路段编辑入口可达且保存正确。
-- [ ] 删除行程项和旅行日保持 SavedPlace。
-- [ ] 单日路线完整展示并避开所有浮层。
-- [ ] 全程路线按日期分组且不跨日生成 RouteLeg。
+- [x] 行程项和交通路段编辑入口可达且保存正确。
+- [x] 删除行程项和旅行日保持 SavedPlace。
+- [x] 单日路线完整展示并避开所有浮层。
+- [x] 全程路线按日期分组且不跨日生成 RouteLeg。
+
+App 自有功能与 recording fake map 自动化门禁已完成；SwiftShader 模拟器和 Huawei ALN-AL00 均已完成真实 AMap、搜索收藏、路线、日期操作与重启持久化验收。真实 `MapView` 专用 attach smoke 在 SwiftShader 环境仍可能在 20 秒内未触发 `OnMapLoaded`，但 production host 已稳定显示底图与路线；不影响当前批次门禁结论。
 
 ## Batch 6：异常、权限和最终收敛
 
@@ -267,6 +269,23 @@
 - 自动化验证：新增 catalog metadata RED 先因 `xQfD0` 仍指向 `dated-trip-form` 失败；修复后 metadata 测试通过。`AddToItineraryStateTest`、`WorkspaceFlowTest` 47/47、`PlacePoolFlowTest` 25/25 均通过（`easy_trip_p60pro(AVD) - 12`）。最终静态门禁结果见 Task 6 report。
 - 设备验证：Huawei ALN-AL00 使用 `adb install -r` 覆盖安装并保留现有数据/授权。以真实 3 天旅行“登封”和高德搜索结果完成：连续收藏“少林寺”“中国嵩山少林旅游武术购物城”；单地点勾选第 1、3 天并显示“加入 2 天”；提交后显示“已加入第 1 天、第 3 天”及撤销/查看行程；查看行程后全程视图中第 1、3 天均有新增地点、第 2 天为空；第 1 天入口选择两个收藏地点后直接提交，不出现重复日期选择，并显示“已加入第 1 天”；撤销后显示“已从第 1 天移除，收藏地点仍保留”，返回地点池仍有 2 个收藏地点。过程中无 crash/ANR、无 Dialog 闪烁。当前旅行仅 3 天且真实 repository 未注入失败/并发删除，故长日期、部分成功、目标日删除仅由自动化和 controlled evidence 覆盖。
 - 已知非阻塞差异：模拟器日志持续出现 SDK XML v4/工具仅理解至 v3 的环境 warning；不代表产品断言失败。真实 Room 触发、真实 AMap 与物理设备验收尚未完成。
+
+### 2026-09-03 · Batch 5 / Task 7 · Production E2E 与残余回归收口
+
+- 实现：补齐 production AppNavigation + in-memory Room 路径边界；路段编辑在无 AMap coordinator 时允许 metadata-only 原子保存，mode override 仍明确阻断；0 秒 override 在 repository/UI 边界规范化为无 override；选择态采用可访问 selectable semantics，窄屏大字体下方式横向滚动；工作台删除确认补充相邻路线重算。
+- 恢复/竞态：COMPLETED 加入结果可从空 overlay 安全恢复但不抢占权限、确认、编辑、地点详情；replacement submission 清除已处理 missing；非 Ready 工作台不消费 append completion token；marker 早点击等待首次 saved-place 快照；新 preview 立即失效旧 commit。最终整分支修复进一步以 Room v3 唯一 `idempotencyKey` 和 SavedState operation ID 支持跨进程续跑逐项加入，已提交 occurrence 不重复；undo 按项持久化剩余 ID 且把已不存在 item 视为完成。
+- 设计 frame：`nAdK8`、`K336N`、`mz2IS`、`l2xCsM`、`T7aESo`、`eHTX3`、`FTIOF`、`Bcf6A`、`zvO9Z`、`J7PZ7u`；47 个 parent scenario 保持不变，`nAdK8`/`mz2IS` 作为 parent 04 typed variants。
+- 证据边界：controlled production Compose host 与 production AppNavigation + in-memory Room 分开标注；自动化地图证据均为 recording fake map。用户授权后，`easy_trip_p60pro` 以 `-gpu swiftshader_indirect` 启动并实际验证高德标准/卫星/卫星路网、真实 POI 搜索收藏、单日路线、全程分组与重启持久化。默认 Apple/Metal EGL 后端进入真实 MapView 时稳定触发高德 GLThread `createContext failed: EGL_SUCCESS`，切换 SwiftShader 后消失，判定为 AVD 图形后端兼容问题。Huawei ALN-AL00 已使用保留数据的 `adb install -r` 完成真实 AMap、三天分组、多段路线、路段 override、行程项三字段、追加/取消删除/确认删除第 4 天以及重启持久化验收；本轮临时字段已恢复为空，路段 override 已恢复推荐耗时。永久拒绝定位只显示局部设置引导，已 ready 地图、路线和 marker 保持挂载；同坐标已收藏地点按 saved identity 聚焦。
+
+### 2026-09-03 · Batch 5 / Task 6 · 单日/全程地图和安全 viewport
+
+- 实现：单日地图只保留选中日 markers 与合法同日相邻 route；mapper 过滤 snapshot 中的伪跨日/非相邻 route，切日不残留旧 polyline geometry。全程持续按 day 保留颜色/标签，所有 itinerary days（含空日）按日期顺序进入只读 timeline。Bcf6A 的当前日空态仍保留 scope rail，并由“从地点池添加”进入固定当前日的多地点选择，不混入 WFOpg。
+- viewport：`MapViewportRequest` identity 包含 scope、selected day 与完整 route geometry；普通重组不 fit，scope/day/geometry 各单次触发。Compose render identity 以稳定 `sheetLevel` anchor 注入四向 safeInsets，拖拽过程中不随实时 `dragOffset` refit；工作台 chrome/sheet insets 按可用宽高 clamp 保留正面积。`RealAmapMapHost` 对 bounds 使用 SDK `newLatLngBoundsRect`，对单点使用 deterministic zoom + 正向 center offset scroll。
+- 修正：单点 offset 遵循 AMap `scrollBy` 屏幕坐标，使用 `(right-left)/2`、`(bottom-top)/2`；地点池自动 fit 仅使用已保存地点 marker，搜索结果由显式焦点请求控制。
+- 设计 frame：`eHTX3`、`FTIOF`、`Bcf6A`；已通过 Pencil MCP 读取顶层可见内容与 context。
+- 自动化验证：focused JVM mapper/controller/policy/layout/WholeTrip 通过；全量 JVM、`assembleDebug`、`lintDebug`、`git diff --check`、`graphify update .` 通过。focused connected workspace/WholeTrip 61/61 通过；单独 AMap suite 14/14 通过。
+- 未通过 / 未运行：未完成真实多日路线数据下的实体设备/已授权 AMap viewport 验收。
+- 边界：real host 已接收实际四向 camera update 与单点 offset scroll；JVM/fake host 不等于真实 AMap 底图 viewport 证据。
 
 ### 2026-09-02 · Batch 4 / Task 6 · Fix round 2 · 宿主级场景证据
 

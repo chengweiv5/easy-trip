@@ -16,7 +16,10 @@ class RoomRouteLegRepository(private val dao:RouteLegDao):RouteLegRepository {
  override suspend fun releaseClaimIfVersionMatches(legId:String,version:Long,online:Boolean)=dao.releaseClaim(legId,version,if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK)==1
  override suspend fun completeIfVersionMatches(legId:String,version:Long,result:RouteResult)=dao.complete(legId,version,result.distanceMeters,result.durationSeconds,PolylineCodec.encode(result.polyline))==1
  override suspend fun failIfVersionMatches(legId:String,version:Long,failure:RoutePlanOutcome.Failure)=dao.fail(legId,version,failure.kind,failure.code)==1
- override suspend fun overrideMode(legId:String,mode:TransportMode,online:Boolean)=dao.override(legId,mode,if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK)==1
+ override suspend fun updateDetails(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean):Boolean {
+  val normalizedDurationOverrideSeconds = durationOverrideSeconds?.takeIf { it > 0 }
+  return dao.updateDetails(legId,selectedModeOverride,normalizedDurationOverrideSeconds,note,online)==1
+ }
  override suspend fun retry(legId:String,online:Boolean)=dao.retry(legId,if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK)==1
  private suspend fun RouteLegEndpointRow.modelOrRepair():RouteLegWithEndpoints? { val decoded=polyline?.let(PolylineCodec::decode); if(decoded?.isFailure==true){dao.repairPolyline(id,version);return null};return RouteLegWithEndpoints(id,version,status,GeoPoint(originLatitude,originLongitude),GeoPoint(destinationLatitude,destinationLongitude),originCity,destinationCity,recommendedMode,selectedMode,distanceMeters,durationSeconds,decoded?.getOrNull(),errorKind,errorCode) }
 }

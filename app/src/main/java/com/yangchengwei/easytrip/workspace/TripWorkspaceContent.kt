@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.platform.LocalDensity
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.EmptyIllustration
 import com.yangchengwei.easytrip.core.ui.component.EmptyState
@@ -60,7 +61,7 @@ fun TripWorkspaceContent(
     onPlaceAction: (PlacePoolAction) -> Unit,
     itineraryState: DayItineraryUiState,
     onItineraryAction: (DayItineraryAction) -> Unit,
-    mapContent: @Composable BoxScope.() -> Unit,
+    mapContent: @Composable BoxScope.(MapViewportInsets) -> Unit,
     placeContent: (@Composable () -> Unit)? = null,
     dayItineraryContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -114,7 +115,7 @@ private fun WorkspaceReadyContent(
     onPlaceAction: (PlacePoolAction) -> Unit,
     itineraryState: DayItineraryUiState,
     onItineraryAction: (DayItineraryAction) -> Unit,
-    mapContent: @Composable BoxScope.() -> Unit,
+    mapContent: @Composable BoxScope.(MapViewportInsets) -> Unit,
     placeContent: (@Composable () -> Unit)?,
     dayItineraryContent: (@Composable () -> Unit)?,
     modifier: Modifier,
@@ -122,6 +123,7 @@ private fun WorkspaceReadyContent(
     layerFailureMessage: String?,
     onLayerFailureMessageDismissed: () -> Unit,
 ) {
+    val density = LocalDensity.current
     WorkspaceScaffold(
         sheetLevel = state.sheetLevel,
         onSheetLevelChange = { onAction(TripWorkspaceAction.SetSheetLevel(it)) },
@@ -196,7 +198,13 @@ private fun WorkspaceReadyContent(
         },
         map = { metrics ->
             Box(Modifier.fillMaxSize().testTag("workspace-map")) {
-                if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) mapContent()
+                if (
+                    mapState == WorkspaceMapState.Ready ||
+                    mapState == WorkspaceMapState.Loading ||
+                    mapState == WorkspaceMapState.LocationPermanentlyDenied
+                ) {
+                    mapContent(workspaceViewportInsets(metrics, density.density))
+                }
                 if (mapState != WorkspaceMapState.Ready && workspaceMapOverlaysFit(metrics)) {
                     WorkspaceMapFallback(
                         state = mapState,

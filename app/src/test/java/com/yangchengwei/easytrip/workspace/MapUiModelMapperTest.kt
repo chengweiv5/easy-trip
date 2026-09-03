@@ -101,6 +101,31 @@ class MapUiModelMapperTest {
         assertTrue(marker.isFocused)
     }
 
+    @Test fun `focused saved poi uses stable identity when another saved poi shares its coordinate`() {
+        val focusedPlace = saved("a", "地点 A", shared)
+        val sameCoordinatePlace = saved("b", "地点 B", shared)
+        val focusedResult = com.yangchengwei.easytrip.place.amap.PlaceCandidate(
+            focusedPlace.amapPoiId,
+            focusedPlace.name,
+            focusedPlace.address,
+            shared,
+            null,
+        )
+
+        val model = MapUiModelMapper.map(
+            MapScope.PLACE_POOL,
+            listOf(focusedPlace, sameCoordinatePlace),
+            days,
+            emptyList(),
+            searchResults = listOf(focusedResult),
+            focusedPoiId = focusedResult.poiId,
+        )
+
+        val focusedMarker = model.markers.single { it.isFocused }
+        assertEquals("place-a", focusedMarker.key)
+        assertEquals("a", focusedMarker.savedPlaceId)
+    }
+
     @Test fun `focused saved result absent from selected day retains saved identity`() {
         val result = com.yangchengwei.easytrip.place.amap.PlaceCandidate("poi-hotel", "酒店搜索结果", "", shared, null)
         val selectedDay = snapshot("day-1", listOf(item("i4", museum)))
@@ -256,6 +281,46 @@ class MapUiModelMapperTest {
         assertTrue(marker.isFocused)
     }
 
+    @Test fun `single day keeps only its adjacent same day route and replaces old geometry when switching days`() {
+        val dayOneRoutePoint = GeoPoint(40.5, 117.2)
+        val dayTwoRoutePoint = GeoPoint(30.8, 120.9)
+        val first = snapshot(
+            "day-1",
+            listOf(item("i1", hotel), item("i2", museum), item("i3", hotel)),
+            listOf(
+                legWithEndpoints("valid-day-1", "day-1", "i1", "i2", listOf(shared, dayOneRoutePoint, other)),
+                legWithEndpoints("non-adjacent", "day-1", "i1", "i3", listOf(shared, dayOneRoutePoint, shared)),
+                legWithEndpoints("cross-day", "day-2", "i1", "i2", listOf(shared, dayOneRoutePoint, other)),
+            ),
+        )
+        val second = snapshot(
+            "day-2",
+            listOf(item("i4", museum), item("i5", hotel)),
+            listOf(legWithEndpoints("valid-day-2", "day-2", "i4", "i5", listOf(other, dayTwoRoutePoint, shared))),
+        )
+
+        val firstDay = MapUiModelMapper.map(
+            MapScope.SINGLE_DAY,
+            emptyList(),
+            days,
+            listOf(first, second),
+            selectedDayId = "day-1",
+        )
+        val secondDay = MapUiModelMapper.map(
+            MapScope.SINGLE_DAY,
+            emptyList(),
+            days,
+            listOf(first, second),
+            selectedDayId = "day-2",
+        )
+
+        assertEquals(listOf("valid-day-1"), firstDay.polylines.map(MapPolylineUi::legId))
+        assertEquals(setOf(shared, other, dayOneRoutePoint), mapViewportPoints(MapScope.SINGLE_DAY, firstDay).toSet())
+        assertEquals(listOf("valid-day-2"), secondDay.polylines.map(MapPolylineUi::legId))
+        assertEquals(setOf(shared, other, dayTwoRoutePoint), mapViewportPoints(MapScope.SINGLE_DAY, secondDay).toSet())
+        assertTrue(dayOneRoutePoint !in mapViewportPoints(MapScope.SINGLE_DAY, secondDay))
+    }
+
     @Test fun `whole trip numbers places continuously across days`() {
         val first = snapshot("day-1", listOf(item("i1", hotel), item("i2", museum)))
         val second = snapshot("day-2", listOf(item("i3", hotel), item("i4", museum)))
@@ -321,6 +386,27 @@ class MapUiModelMapperTest {
         )
     }
 
+    @Test fun `place pool automatic viewport ignores unsaved search markers`() {
+        val saved = MapMarkerUi(
+            key = "place-hotel",
+            point = shared,
+            label = "酒店",
+            occurrences = emptyList(),
+            kind = MapMarkerKind.SAVED_PLACE_POOL,
+            savedPlaceId = "hotel",
+        )
+        val unsavedSearch = MapMarkerUi(
+            key = "search-cafe",
+            point = other,
+            label = "咖啡馆",
+            occurrences = emptyList(),
+            kind = MapMarkerKind.UNSAVED_SEARCH,
+        )
+        val model = MapUiModel(markers = listOf(saved, unsavedSearch))
+
+        assertEquals(listOf(shared), automaticMapViewportPoints(MapScope.PLACE_POOL, model))
+    }
+
     @Test fun `place pool viewport points ignore route geometry`() {
         val model = MapUiModel(
             markers = listOf(MapMarkerUi("place-hotel", shared, "酒店", emptyList(), MapMarkerKind.SAVED_PLACE_POOL)),
@@ -328,6 +414,34 @@ class MapUiModelMapperTest {
         )
 
         assertEquals(listOf(shared), mapViewportPoints(MapScope.PLACE_POOL, model))
+    }
+
+    @Test fun `automatic itinerary viewport excludes search focus markers but retains route geometry`() {
+        val routePoint = GeoPoint(40.5, 117.2)
+        val itineraryMarker = MapMarkerUi(
+            key = "place-hotel",
+            point = shared,
+            label = "酒店",
+            occurrences = listOf(OccurrenceUi("i1", "day-1", "Day 1", 1, "酒店", "hotel")),
+            kind = MapMarkerKind.SAVED_ITINERARY,
+        )
+        val focusedSearch = MapMarkerUi(
+            key = "search-focus",
+            point = other,
+            label = "搜索地点",
+            occurrences = emptyList(),
+            kind = MapMarkerKind.UNSAVED_SEARCH,
+            isFocused = true,
+        )
+        val model = MapUiModel(
+            markers = listOf(itineraryMarker, focusedSearch),
+            polylines = listOf(MapPolylineUi("leg", "day-1", listOf(shared, routePoint), 0L)),
+        )
+
+        assertEquals(
+            setOf(shared, routePoint),
+            automaticMapViewportPoints(MapScope.SINGLE_DAY, model).toSet(),
+        )
     }
 
     @Test fun `route palette excludes map road colors and day four is purple`() {
@@ -368,7 +482,28 @@ class MapUiModelMapperTest {
 
     private fun saved(id: String, name: String, point: GeoPoint) = SavedPlace(id, "trip", "poi-$id", name, "", point, "", emptyList())
     private fun item(id: String, place: ItineraryPlace) = ItineraryItem(id, place, null, null)
-    private fun snapshot(dayId: String, items: List<ItineraryItem>, legs: List<RouteLegEntity> = emptyList()) = DayMapSnapshot(DayItinerary(dayId, "trip", items), legs)
+    private fun snapshot(dayId: String, items: List<ItineraryItem>, legs: List<RouteLegEntity> = emptyList()) = DayMapSnapshot(
+        DayItinerary(dayId, "trip", items),
+        legs.map { leg ->
+            if (leg.fromItemId == "from-${leg.id}" && items.size >= 2) {
+                leg.copy(tripDayId = dayId, fromItemId = items[0].id, toItemId = items[1].id)
+            } else {
+                leg
+            }
+        },
+    )
     private fun validPolyline() = PolylineCodec.encode(listOf(shared, other))
     private fun leg(id: String, dayId: String, status: RouteStatus, polyline: String?) = RouteLegEntity(id, dayId, "from-$id", "to-$id", TransportMode.WALK, status = status, polyline = polyline, version = 3, updatedAt = Instant.EPOCH)
+    private fun legWithEndpoints(id: String, dayId: String, fromItemId: String, toItemId: String, points: List<GeoPoint>) =
+        RouteLegEntity(
+            id = id,
+            tripDayId = dayId,
+            fromItemId = fromItemId,
+            toItemId = toItemId,
+            recommendedMode = TransportMode.WALK,
+            status = RouteStatus.SUCCESS,
+            polyline = PolylineCodec.encode(points),
+            version = 3,
+            updatedAt = Instant.EPOCH,
+        )
 }

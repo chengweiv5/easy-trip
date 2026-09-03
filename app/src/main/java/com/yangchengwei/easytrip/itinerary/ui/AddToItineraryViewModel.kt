@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
+import java.util.UUID
 
 internal fun mergeUndoIds(oldIds: List<String>, newIds: List<String>): List<String> =
     (oldIds + newIds).distinct()
@@ -50,13 +51,48 @@ internal fun mergeSubmissionResults(
     val created = current.createdItemsByDay.fold(previous?.createdItemsByDay.orEmpty()) { batches, batch ->
         mergeUndoBatch(batches, batch.dayId, batch.itemIds)
     }
-    val missingTargetDayIds = (previous?.missingTargetDayIds.orEmpty() + current.missingTargetDayIds).distinct()
+    val handledDayIds = (
+        current.createdItemsByDay.map(UndoCreatedItemsBatch::dayId) +
+            current.failedAdditions.map(FailedItineraryAddition::dayId) +
+            current.missingTargetDayIds
+        ).toSet()
+    val missingTargetDayIds = (
+        previous?.missingTargetDayIds.orEmpty().filterNot { it in handledDayIds } + current.missingTargetDayIds
+        ).distinct()
     val missingTargetDayLabels = previous?.missingTargetDayLabels.orEmpty() + current.missingTargetDayLabels
     return current.copy(
         createdItemsByDay = created,
         missingTargetDayIds = missingTargetDayIds,
         missingTargetDayLabels = missingTargetDayLabels.filterKeys { it in missingTargetDayIds },
     )
+}
+
+private data class ReplacementRequest(
+    val missingTargetDayId: String,
+    val replacementTargetDayId: String,
+)
+
+private fun reconcileReplacementTargets(
+    pending: List<ReplacementRequest>,
+    missingTargetDayIds: List<String>,
+    selectedTargetDayIds: List<String>,
+): List<ReplacementRequest> {
+    val selected = selectedTargetDayIds.distinct()
+    val matched = pending.filter { it.replacementTargetDayId in selected }
+    val availableTargets = selected.filterNot { target -> matched.any { it.replacementTargetDayId == target } }.toMutableList()
+    val resolvedPending = pending.map { request ->
+        if (request.replacementTargetDayId in selected) request
+        else availableTargets.removeFirstOrNull()?.let { request.copy(replacementTargetDayId = it) } ?: request
+    }
+    val mappedMissingIds = resolvedPending.mapTo(mutableSetOf(), ReplacementRequest::missingTargetDayId)
+    val newMappings = missingTargetDayIds
+        .filterNot { it in mappedMissingIds }
+        .mapNotNull { missingTargetDayId ->
+            availableTargets.removeFirstOrNull()?.let { replacementTargetDayId ->
+                ReplacementRequest(missingTargetDayId, replacementTargetDayId)
+            }
+        }
+    return resolvedPending + newMappings
 }
 
 private fun AddPlacesOutcome.toSubmissionResult(request: AddPlacesRequest): AddToItinerarySubmissionResult = when (this) {
@@ -93,6 +129,17 @@ class AddToItineraryViewModel(
     private var submitJob: Job? = null
     private var undoGeneration = 0L
     private var undoJob: Job? = null
+    private var activeSubmissionOperationId: String? = savedState[SUBMISSION_OPERATION_ID]
+    private var restoredSubmissionNeedsResume: Boolean = activeSubmissionOperationId != null
+    private var replacementMissingTargetDayIds: List<String> =
+        savedState.get<ArrayList<String>>(REPLACEMENT_MISSING_IDS)?.toList().orEmpty()
+    private var replacementRequests: List<ReplacementRequest> =
+        savedState.get<ArrayList<String>>(REPLACEMENT_REQUESTS)
+            ?.mapNotNull(::decodeFields)
+            ?.mapNotNull { fields ->
+                fields.takeIf { it.size == 2 }?.let { ReplacementRequest(it[0], it[1]) }
+            }
+            .orEmpty()
 
     fun startFromPool(): Boolean {
         if (draftLocked()) return false
@@ -190,12 +237,17 @@ class AddToItineraryViewModel(
         }
     }
 
-    fun reconcile(validDayIds: Collection<String>, validPlaceIds: Set<String>) {
+    fun reconcile(validDayIds: Collection<String>?, validPlaceIds: Set<String>?) {
+        if (validDayIds == null || validPlaceIds == null) return
         this.validDayOrder = validDayIds.toList()
         this.validDayIds = validDayOrder.toSet()
         this.validPlaceIds = validPlaceIds
         if (draftLocked()) return
         applyCurrentValidity()
+        if (restoredSubmissionNeedsResume && activeSubmissionOperationId != null) {
+            restoredSubmissionNeedsResume = false
+            submit()
+        }
     }
 
     fun retryPartial() {
@@ -208,6 +260,10 @@ class AddToItineraryViewModel(
         val current = mutableState.value
         val result = current.submissionResult ?: return
         if (draftLocked() || result.missingTargetDayIds.isEmpty()) return
+        replacementMissingTargetDayIds = result.missingTargetDayIds
+        replacementRequests = emptyList()
+        savedState[REPLACEMENT_MISSING_IDS] = ArrayList(replacementMissingTargetDayIds)
+        savedState[REPLACEMENT_REQUESTS] = null
         val remaining = result.retryTargetDayIds.filter { it in validDayIds }
         updateDraft {
             it.copy(
@@ -226,7 +282,17 @@ class AddToItineraryViewModel(
             else -> listOfNotNull(current.targetDayId)
         }
         if (!current.canSubmit || targetDayIds.isEmpty() || targetDayIds.any { it !in validDayIds } || current.selectedPlaceIds.any { it !in validPlaceIds }) return
-        val requests = targetDayIds.map { dayId -> AddPlacesRequest(tripId, dayId, current.selectedPlaceIds) }
+        val operationId = activeSubmissionOperationId ?: UUID.randomUUID().toString().also {
+            activeSubmissionOperationId = it
+            savedState[SUBMISSION_OPERATION_ID] = it
+        }
+        val requests = targetDayIds.map { dayId -> AddPlacesRequest(tripId, dayId, current.selectedPlaceIds, operationId) }
+        replacementRequests = reconcileReplacementTargets(
+            pending = replacementRequests,
+            missingTargetDayIds = replacementMissingTargetDayIds,
+            selectedTargetDayIds = targetDayIds,
+        )
+        persistReplacementRequests()
         val generation = ++submitGeneration
         mutableState.value = current.copy(isSubmitting = true, result = null, errorMessage = null)
         submitJob = viewModelScope.launch {
@@ -254,12 +320,21 @@ class AddToItineraryViewModel(
                 }
                 if (generation == submitGeneration) {
                     if (current.editingTarget is AddToItineraryEditingTarget.ForPlace) {
-                        applyForPlaceOutcomes(requests, outcomes.take(requests.size), current.submissionResult)
+                        applyForPlaceOutcomes(
+                            requests,
+                            outcomes.take(requests.size),
+                            current.submissionResult,
+                            this@AddToItineraryViewModel.replacementRequests,
+                        )
                     } else {
                         applyOutcome(requests.single(), outcomes.single().second)
                     }
                 }
             } catch (failure: CancellationException) {
+                if (generation == submitGeneration) {
+                    mutableState.value = mutableState.value.copy(isSubmitting = false)
+                    persistDraft(mutableState.value)
+                }
                 throw failure
             } catch (_: Throwable) {
                 if (generation == submitGeneration) {
@@ -275,6 +350,7 @@ class AddToItineraryViewModel(
         requests: List<AddPlacesRequest>,
         outcomes: List<Pair<AddPlacesRequest, AddPlacesOutcome>>,
         previousSubmissionResult: AddToItinerarySubmissionResult?,
+        replacementRequests: List<ReplacementRequest>,
     ) {
         val current = mutableState.value
         if (!current.isSubmitting || current.editingTarget !is AddToItineraryEditingTarget.ForPlace || current.selectedTargetDayIds != requests.map { it.dayId }) return
@@ -301,8 +377,21 @@ class AddToItineraryViewModel(
         val mergedUndo = createdBatches.fold(current.undoBatches) { batches, batch -> mergeUndoBatch(batches, batch.dayId, batch.itemIds) }
         val hasRetryableFailures = retryDayIds.isNotEmpty()
         val hasMissingTargets = missingDays.isNotEmpty()
+        val handledReplacementMissingTargetDayIds = replacementRequests.mapNotNull { replacement ->
+            outcomes.firstOrNull { (request, _) -> request.dayId == replacement.replacementTargetDayId }
+                ?.second
+                ?.takeIf { it is AddPlacesOutcome.Success }
+                ?.let { replacement.missingTargetDayId }
+        }.toSet()
         val aggregate = mergeSubmissionResults(
-            previousSubmissionResult,
+            previousSubmissionResult?.copy(
+                missingTargetDayIds = previousSubmissionResult.missingTargetDayIds.filterNot {
+                    it in handledReplacementMissingTargetDayIds
+                },
+                missingTargetDayLabels = previousSubmissionResult.missingTargetDayLabels.filterKeys {
+                    it !in handledReplacementMissingTargetDayIds
+                },
+            ),
             AddToItinerarySubmissionResult(
                 createdItemsByDay = createdBatches,
                 failedAdditions = failed,
@@ -311,6 +400,15 @@ class AddToItineraryViewModel(
                 retryTargetDayIds = retryDayIds,
             ),
         )
+        val pendingReplacementRequests = replacementRequests.filterNot {
+            it.missingTargetDayId in handledReplacementMissingTargetDayIds
+        }
+        replacementMissingTargetDayIds = pendingReplacementRequests.map(ReplacementRequest::missingTargetDayId)
+        this.replacementRequests = pendingReplacementRequests
+        savedState[REPLACEMENT_MISSING_IDS] = ArrayList(replacementMissingTargetDayIds)
+        persistReplacementRequests()
+        activeSubmissionOperationId = null
+        savedState[SUBMISSION_OPERATION_ID] = null
         val next = current.copy(
             selectedPlaceIds = if (hasRetryableFailures || hasMissingTargets) listOf((current.editingTarget as AddToItineraryEditingTarget.ForPlace).placeId) else emptyList(),
             targetDayId = if (hasRetryableFailures) retryDayIds.firstOrNull() else null,
@@ -334,7 +432,18 @@ class AddToItineraryViewModel(
         val generation = ++undoGeneration
         mutableState.value = current.copy(isUndoing = true, errorMessage = null)
         undoJob = viewModelScope.launch {
-            val outcome = undoAddedItems(UndoAddedItemsRequest(itemIds))
+            val outcome = undoAddedItems(UndoAddedItemsRequest(itemIds)) { completedItemId ->
+                if (generation == undoGeneration) {
+                    val checkpointed = mutableState.value.copy(
+                        undoBatches = retainUndoBatches(
+                            mutableState.value.undoBatches,
+                            mutableState.value.undoCreatedItemIds - completedItemId,
+                        ),
+                    )
+                    mutableState.value = checkpointed
+                    persistDraft(checkpointed)
+                }
+            }
             if (generation == undoGeneration) {
                 val currentState = mutableState.value
                 mutableState.value = currentState.copy(
@@ -370,12 +479,21 @@ class AddToItineraryViewModel(
         savedState[SUBMISSION_MISSING_LABELS] = null
         savedState[SUBMISSION_RETRY_DAYS] = null
         savedState[HAS_SUBMISSION_RESULT] = null
+        savedState[REPLACEMENT_MISSING_IDS] = null
+        savedState[REPLACEMENT_REQUESTS] = null
+        savedState[SUBMISSION_OPERATION_ID] = null
+        activeSubmissionOperationId = null
+        restoredSubmissionNeedsResume = false
+        replacementMissingTargetDayIds = emptyList()
+        replacementRequests = emptyList()
         mutableState.value = AddToItineraryUiState(validityInitialized = mutableState.value.validityInitialized)
     }
 
     private fun applyOutcome(request: AddPlacesRequest, outcome: AddPlacesOutcome) {
         val current = mutableState.value
         if (!current.isSubmitting || current.selectedPlaceIds != request.savedPlaceIds || current.targetDayId != request.dayId) return
+        activeSubmissionOperationId = null
+        savedState[SUBMISSION_OPERATION_ID] = null
         val next = when (outcome) {
             is AddPlacesOutcome.Success -> current.copy(
                 selectedPlaceIds = emptyList(),
@@ -431,16 +549,18 @@ class AddToItineraryViewModel(
             val selected = current.selectedPlaceIds.filter { it in validPlaceIds }
             val target = current.targetDayId?.takeIf { it in validDayIds }
             val selectedTargets = current.selectedTargetDayIds.filter { it in validDayIds }
+            val lostSinglePlace = current.editingTarget is AddToItineraryEditingTarget.ForPlace && selected.isEmpty()
             current.copy(
                 selectedPlaceIds = selected,
-                targetDayId = if (current.editingTarget is AddToItineraryEditingTarget.ForPlace) selectedTargets.firstOrNull() else target,
-                selectedTargetDayIds = selectedTargets,
+                targetDayId = if (lostSinglePlace) null else if (current.editingTarget is AddToItineraryEditingTarget.ForPlace) selectedTargets.firstOrNull() else target,
+                selectedTargetDayIds = if (lostSinglePlace) emptyList() else selectedTargets,
+                editingTarget = if (lostSinglePlace) AddToItineraryEditingTarget.FromPlacePool else current.editingTarget,
                 validityInitialized = true,
                 undoBatches = current.undoBatches.filter { it.dayId in validDayIds },
-                step = if (current.targetDayId != null && target == null && selected.isNotEmpty()) {
-                    AddToItineraryStep.SELECT_TARGET_DAY
-                } else {
-                    current.step
+                step = when {
+                    lostSinglePlace -> AddToItineraryStep.SELECT_PLACES
+                    current.targetDayId != null && target == null && selected.isNotEmpty() -> AddToItineraryStep.SELECT_TARGET_DAY
+                    else -> current.step
                 },
             )
         }
@@ -491,6 +611,14 @@ class AddToItineraryViewModel(
             result = restoredResult,
             submissionResult = submissionResult,
             undoBatches = undoBatches,
+        )
+    }
+
+    private fun persistReplacementRequests() {
+        savedState[REPLACEMENT_REQUESTS] = ArrayList(
+            replacementRequests.map { request ->
+                encodeFields(request.missingTargetDayId, request.replacementTargetDayId)
+            },
         )
     }
 
@@ -627,6 +755,9 @@ class AddToItineraryViewModel(
         const val SUBMISSION_MISSING_LABELS = "workspace.addToItinerary.submission.missingLabels"
         const val SUBMISSION_RETRY_DAYS = "workspace.addToItinerary.submission.retryDays"
         const val HAS_SUBMISSION_RESULT = "workspace.addToItinerary.submission.present"
+        const val REPLACEMENT_MISSING_IDS = "workspace.addToItinerary.submission.replacementMissingIds"
+        const val REPLACEMENT_REQUESTS = "workspace.addToItinerary.submission.replacementRequests"
+        const val SUBMISSION_OPERATION_ID = "workspace.addToItinerary.submission.operationId"
         const val FROM_PLACE_POOL = "from-place-pool"
     }
 }

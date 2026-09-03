@@ -61,5 +61,27 @@ class MapMarkerRenderingPolicyTest {
         assertTrue(focused.borderWidth > normal.borderWidth)
     }
 
+    @Test fun `focused marker renders above stable nonfocused order for same coordinate clicks`() {
+        val focused = MapMarkerUi(
+            "place-a",
+            point(),
+            "地点 A",
+            emptyList(),
+            MapMarkerKind.SAVED_PLACE_POOL,
+            isFocused = true,
+            savedPlaceId = "a",
+        )
+        val peer = MapMarkerUi(
+            "place-b",
+            point(),
+            "地点 B",
+            emptyList(),
+            MapMarkerKind.SAVED_PLACE_POOL,
+            savedPlaceId = "b",
+        )
+
+        assertEquals(listOf(peer, focused), markerRenderOrder(listOf(focused, peer)))
+    }
+
     private fun point() = com.yangchengwei.easytrip.core.model.GeoPoint(39.9, 116.4)
 }

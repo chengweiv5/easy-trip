@@ -40,8 +40,12 @@ sealed interface DayItineraryAction {
     data class MoveToDay(val dayId: String) : DayItineraryAction
     data class UpdateArrivalTime(val value: String) : DayItineraryAction
     data class UpdateStayMinutes(val value: String) : DayItineraryAction
+    data class UpdateNote(val value: String) : DayItineraryAction
     data object SaveEdit : DayItineraryAction
     data class SelectMode(val mode: TransportMode) : DayItineraryAction
+    data object ClearSelectedModeOverride : DayItineraryAction
+    data class UpdateRouteDurationMinutes(val value: String) : DayItineraryAction
+    data class UpdateRouteNote(val value: String) : DayItineraryAction
     data object SaveMode : DayItineraryAction
     data object ConfirmDelete : DayItineraryAction
     data object DismissDialogs : DayItineraryAction
@@ -69,7 +73,8 @@ fun DayItineraryContent(
             }
         }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        val byId = state.items.associateBy(ItineraryItemUi::id)
+        val displayItems = currentDisplayItems(state.items, state.previewOrder)
+        val visibleLegs = visibleRouteLegs(state.items, state.previewOrder, state.legs)
         LazyColumn(
             modifier = Modifier.testTag("day-itinerary-timeline"),
             contentPadding = PaddingValues(bottom = 24.dp),
@@ -91,12 +96,12 @@ fun DayItineraryContent(
                     )
                 }
             }
-            itemsIndexed(state.previewOrder, key = { _, id -> id }) { index, id ->
-                val item = byId[id] ?: return@itemsIndexed
+            itemsIndexed(displayItems, key = { _, item -> item.id }) { index, item ->
+                val id = item.id
                 ItineraryItemRow(
                     item,
                     index,
-                    state.previewOrder.size,
+                    displayItems.size,
                     { onAction(DayItineraryAction.PreviewMove(id, it)) },
                     { onAction(DayItineraryAction.CommitMove(id, it)) },
                     { action ->
@@ -109,8 +114,8 @@ fun DayItineraryContent(
                         )
                     },
                 )
-                val next = state.previewOrder.getOrNull(index + 1)
-                state.legs.firstOrNull { it.fromItemId == id && it.toItemId == next }?.let { leg ->
+                val next = displayItems.getOrNull(index + 1)?.id
+                visibleLegs.firstOrNull { it.fromItemId == id && it.toItemId == next }?.let { leg ->
                     RouteLegRow(leg, { onAction(DayItineraryAction.RequestMode(leg.id)) }, { onAction(DayItineraryAction.Retry(leg.id)) })
                 }
             }
@@ -125,6 +130,7 @@ fun DayItineraryContent(
                     draft = draft,
                     onArrivalTimeChange = { onAction(DayItineraryAction.UpdateArrivalTime(it)) },
                     onStayMinutesChange = { onAction(DayItineraryAction.UpdateStayMinutes(it)) },
+                    onNoteChange = { onAction(DayItineraryAction.UpdateNote(it)) },
                     onSave = { onAction(DayItineraryAction.SaveEdit) },
                     onCancel = { onAction(DayItineraryAction.DismissDialogs) },
                 )
@@ -156,7 +162,7 @@ fun DayItineraryContent(
             title = { Text("移出${confirmation.placeName}？") },
             text = {
                 Column {
-                    Text("仅从当天行程移出，收藏仍保留；相邻路线将重新计算。")
+                    Text("仅移除本次安排；收藏仍保留；相邻路线将重新计算。")
                     confirmation.deleteError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 }
             },
@@ -177,31 +183,17 @@ fun DayItineraryContent(
     if (showDialogs) state.modeEditor?.let { editor ->
         AlertDialog(
             onDismissRequest = { if (!editor.isSaving) onAction(DayItineraryAction.DismissDialogs) },
-            title = { Text("选择交通方式") },
+            confirmButton = {},
             text = {
-                Column {
-                    editor.saveError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-                    TransportMode.entries.forEach { mode ->
-                        TextButton(
-                            { onAction(DayItineraryAction.SelectMode(mode)) },
-                            Modifier.testTag("mode-option-${mode.name}"),
-                            enabled = !editor.isSaving,
-                        ) {
-                            Text(when (mode) {
-                                TransportMode.WALK -> "步行"
-                                TransportMode.TAXI -> "打车"
-                                TransportMode.DRIVE -> "驾车"
-                                TransportMode.TRANSIT -> "公交"
-                            })
-                        }
-                    }
-                }
-            },
-            confirmButton = {
-                TextButton(
-                    { onAction(DayItineraryAction.SaveMode) },
-                    enabled = !editor.isSaving,
-                ) { Text(if (editor.isSaving) "保存中…" else "保存") }
+                EditRouteLegContent(
+                    draft = editor,
+                    onSelectMode = { onAction(DayItineraryAction.SelectMode(it)) },
+                    onClearSelectedModeOverride = { onAction(DayItineraryAction.ClearSelectedModeOverride) },
+                    onDurationMinutesChange = { onAction(DayItineraryAction.UpdateRouteDurationMinutes(it)) },
+                    onNoteChange = { onAction(DayItineraryAction.UpdateRouteNote(it)) },
+                    onSave = { onAction(DayItineraryAction.SaveMode) },
+                    onCancel = { onAction(DayItineraryAction.DismissDialogs) },
+                )
             },
         )
     }

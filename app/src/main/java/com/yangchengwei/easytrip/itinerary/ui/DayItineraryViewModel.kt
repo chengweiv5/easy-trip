@@ -15,6 +15,8 @@ import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.cancelAndJoin
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -25,6 +27,15 @@ import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+
+private data class PendingAppendDay(
+    val generation: Long,
+    val baselineDayIds: List<String>,
+    val expectedNewDayId: String? = null,
+    val automaticObservationRetryUsed: Boolean = false,
+) {
+    val serviceCompleted: Boolean get() = expectedNewDayId != null
+}
 
 data class DayItineraryUiState(
     val days: List<TripDay> = emptyList(),
@@ -62,6 +73,13 @@ class DayItineraryViewModel(
     private var externalSelectedDayId: String? = null
     private val mutable = MutableStateFlow(DayItineraryUiState())
     private var nextAppendDayCompletionToken = 0L
+    private var appendDayGeneration = 0L
+    private var pendingAppendDay: PendingAppendDay? = null
+    private var tripObservationJob: Job? = null
+    private var tripObservationGeneration = 0L
+    private var terminatedTripObservationGeneration: Long? = null
+    private var requestedTripObservationRestartGeneration: Long? = null
+    private var mustRestoreTripObservationGeneration: Long? = null
     private var nextEditGeneration = 0L
     private var nextDeleteGeneration = 0L
     private var nextMoveGeneration = 0L
@@ -69,18 +87,7 @@ class DayItineraryViewModel(
     val state: StateFlow<DayItineraryUiState> = mutable.asStateFlow()
 
     init {
-        viewModelScope.launch {
-            trips.observeTrip(tripId).filterNotNull().collect { trip ->
-                val chosen = if (hasExternalSelection) {
-                    externalSelectedDayId?.takeIf { id -> trip.days.any { it.id == id } }
-                } else {
-                    selectedDay.value?.takeIf { id -> trip.days.any { it.id == id } } ?: trip.days.firstOrNull()?.id
-                }
-                selectedDay.value = chosen
-                mutable.value = mutable.value.copy(days = trip.days, selectedDayId = chosen)
-                if (chosen == null) clearDay()
-            }
-        }
+        startTripObservation()
         viewModelScope.launch {
             selectedDay.flatMapLatest { dayId ->
                 if (dayId == null) flowOf(null)
@@ -102,8 +109,110 @@ class DayItineraryViewModel(
         }
     }
 
+    private fun startTripObservation() {
+        if (tripObservationJob?.isActive == true) return
+        launchTripObservation(previous = tripObservationJob)
+    }
+
+    private fun restartTripObservation() {
+        launchTripObservation(previous = tripObservationJob)
+    }
+
+    private fun launchTripObservation(previous: Job?) {
+        val generation = ++tripObservationGeneration
+        terminatedTripObservationGeneration = null
+        requestedTripObservationRestartGeneration = null
+        tripObservationJob = viewModelScope.launch {
+            previous?.cancelAndJoin()
+            try {
+                trips.observeTrip(tripId).filterNotNull().collect { trip ->
+                    if (generation == tripObservationGeneration) acceptTripObservation(trip)
+                }
+                handleTripObservationTermination(generation)
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (_: Throwable) {
+                handleTripObservationTermination(generation)
+            }
+        }
+    }
+
+    private fun handleTripObservationTermination(generation: Long) {
+        if (generation != tripObservationGeneration) return
+        terminatedTripObservationGeneration = generation
+        val mustRestore = mustRestoreTripObservationGeneration == generation
+        if (mustRestore) mustRestoreTripObservationGeneration = null
+        val pending = pendingAppendDay
+        val shouldRestart = when {
+            pending == null -> mustRestore
+            !pending.serviceCompleted -> {
+                mutable.value = mutable.value.copy(appendDayError = "无法加载旅行日，正在等待同步")
+                false
+            }
+            pending.automaticObservationRetryUsed -> {
+                mutable.value = mutable.value.copy(
+                    isAppendingDay = false,
+                    appendDayError = "新增旅行日等待同步失败，请重试",
+                )
+                false
+            }
+            else -> true
+        }
+        if (shouldRestart) requestTripObservationRestart(generation)
+        if (requestedTripObservationRestartGeneration == generation) {
+            performRequestedTripObservationRestart(generation)
+        } else {
+            tripObservationJob = null
+        }
+    }
+
+    private fun ensureTripObservation() {
+        val generation = tripObservationGeneration
+        if (terminatedTripObservationGeneration != generation) return
+        requestTripObservationRestart(generation)
+        if (tripObservationJob?.isActive != true) performRequestedTripObservationRestart(generation)
+    }
+
+    private fun requestTripObservationRestart(generation: Long) {
+        if (generation != tripObservationGeneration || requestedTripObservationRestartGeneration == generation) return
+        requestedTripObservationRestartGeneration = generation
+        pendingAppendDay?.takeIf { it.serviceCompleted }?.let { pending ->
+            pendingAppendDay = pending.copy(automaticObservationRetryUsed = true)
+        }
+    }
+
+    private fun performRequestedTripObservationRestart(generation: Long) {
+        if (generation != tripObservationGeneration || requestedTripObservationRestartGeneration != generation) return
+        val previous = tripObservationJob
+        requestedTripObservationRestartGeneration = null
+        tripObservationJob = viewModelScope.launch {
+            previous?.cancelAndJoin()
+            if (generation == tripObservationGeneration) launchTripObservation(previous = null)
+        }
+    }
+
+    private fun acceptTripObservation(trip: com.yangchengwei.easytrip.trip.domain.TripWithDays) {
+        val chosen = if (hasExternalSelection) {
+            externalSelectedDayId?.takeIf { id -> trip.days.any { it.id == id } }
+        } else {
+            selectedDay.value?.takeIf { id -> trip.days.any { it.id == id } } ?: trip.days.firstOrNull()?.id
+        }
+        selectedDay.value = chosen
+        mutable.value = mutable.value.copy(days = trip.days, selectedDayId = chosen)
+        reconcileAppendDayCompletion(trip.days)
+        if (chosen == null) clearDay()
+    }
+
+    private fun completeAppendService(request: PendingAppendDay, newDayId: String) {
+        if (pendingAppendDay?.generation != request.generation) return
+        pendingAppendDay = request.copy(expectedNewDayId = newDayId)
+        ensureTripObservation()
+        reconcileAppendDayCompletion(state.value.days)
+    }
+
     fun selectDay(id: String?) {
         if (id == selectedDay.value) return
+        nextMoveGeneration++
         selectedDay.value = id
         clearDay(id)
     }
@@ -115,23 +224,55 @@ class DayItineraryViewModel(
     }
 
     fun appendTripDay() {
-        if (mutable.value.isAppendingDay || mutable.value.appendDayCompletionToken != null) return
+        if (mutable.value.appendDayCompletionToken != null) return
+        val existing = pendingAppendDay
+        if (existing != null) {
+            if (!existing.serviceCompleted) return
+            mutable.value = mutable.value.copy(isAppendingDay = true, appendDayError = null)
+            startTripObservation()
+            return
+        }
+        if (mutable.value.isAppendingDay) return
+        val request = PendingAppendDay(++appendDayGeneration, state.value.days.map(TripDay::id))
+        pendingAppendDay = request
         mutable.value = mutable.value.copy(isAppendingDay = true, appendDayError = null)
         viewModelScope.launch {
-            runCatching { tripService.appendTripDay(tripId) }
-                .onSuccess {
+            try {
+                val newDayId = tripService.appendTripDay(tripId)
+                completeAppendService(request, newDayId)
+            } catch (failure: CancellationException) {
+                if (pendingAppendDay?.generation == request.generation) {
+                    pendingAppendDay = null
+                    mutable.value = mutable.value.copy(isAppendingDay = false, appendDayError = null)
+                    mustRestoreTripObservationGeneration = tripObservationGeneration
+                    ensureTripObservation()
+                }
+                throw failure
+            } catch (failure: Throwable) {
+                if (pendingAppendDay?.generation == request.generation) {
+                    pendingAppendDay = null
                     mutable.value = mutable.value.copy(
                         isAppendingDay = false,
-                        appendDayCompletionToken = ++nextAppendDayCompletionToken,
+                        appendDayError = failure.message ?: "新增旅行日失败",
                     )
+                    mustRestoreTripObservationGeneration = tripObservationGeneration
+                    ensureTripObservation()
                 }
-                .onFailure {
-                    mutable.value = mutable.value.copy(
-                        isAppendingDay = false,
-                        appendDayError = it.message ?: "新增旅行日失败",
-                    )
-                }
+            }
         }
+    }
+
+    private fun reconcileAppendDayCompletion(days: List<TripDay>) {
+        val pending = pendingAppendDay ?: return
+        if (!pending.serviceCompleted) return
+        if (days.none { it.id == pending.expectedNewDayId }) return
+        mustRestoreTripObservationGeneration = tripObservationGeneration
+        pendingAppendDay = null
+        mutable.value = mutable.value.copy(
+            isAppendingDay = false,
+            appendDayError = null,
+            appendDayCompletionToken = ++nextAppendDayCompletionToken,
+        )
     }
 
     fun consumeAppendDayCompletion(token: Long) {
@@ -141,18 +282,30 @@ class DayItineraryViewModel(
     }
 
     fun previewMove(itemId: String, target: Int) {
+        nextMoveGeneration++
         val order = mutable.value.previewOrder.toMutableList()
         val old = order.indexOf(itemId)
         if (old < 0 || target !in order.indices) return
         order.add(target, order.removeAt(old))
-        mutable.value = mutable.value.copy(previewOrder = order)
+        val visibleLegs = visibleRouteLegs(mutable.value.items, order, mutable.value.legs)
+        val editor = mutable.value.modeEditor?.takeIf { draft -> visibleLegs.any { it.id == draft.legId } }
+        mutable.value = mutable.value.copy(previewOrder = order, modeEditor = editor)
     }
 
     fun commitMove(itemId: String, target: Int) {
         val day = state.value.selectedDayId ?: return
+        val generation = ++nextMoveGeneration
         viewModelScope.launch {
-            runCatching { itineraries.moveItem(itemId, day, target) }
-                .onFailure { mutable.value = mutable.value.copy(previewOrder = mutable.value.items.map(ItineraryItemUi::id)); showError(it) }
+            try {
+                itineraries.moveItem(itemId, day, target)
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Throwable) {
+                if (generation == nextMoveGeneration && state.value.selectedDayId == day) {
+                    mutable.value = mutable.value.copy(previewOrder = mutable.value.items.map(ItineraryItemUi::id))
+                    showError(failure)
+                }
+            }
         }
     }
 
@@ -237,6 +390,7 @@ class DayItineraryViewModel(
                 itemId = itemId,
                 arrivalTimeText = item.arrivalTime?.toString().orEmpty(),
                 stayMinutesText = item.stayMinutes?.toString().orEmpty(),
+                noteText = item.note.orEmpty(),
                 generation = ++nextEditGeneration,
             ),
         )
@@ -253,13 +407,18 @@ class DayItineraryViewModel(
         mutable.value = mutable.value.copy(editDraft = draft.copy(stayMinutesText = value.filter(Char::isDigit), saveError = null))
     }
 
+    fun updateNote(value: String) {
+        val draft = mutable.value.editDraft ?: return
+        mutable.value = mutable.value.copy(editDraft = draft.copy(noteText = value, saveError = null))
+    }
+
     fun saveTiming() {
         val draft = mutable.value.editDraft ?: return
         if (draft.isSaving || !draft.isValid) return
         mutable.value = mutable.value.copy(editDraft = draft.copy(isSaving = true, saveError = null))
         viewModelScope.launch {
             try {
-                itineraries.updateTiming(draft.itemId, draft.arrivalTime, draft.stayMinutes)
+                itineraries.updateDetails(draft.itemId, draft.arrivalTime, draft.stayMinutes, draft.noteText.trim().ifEmpty { null })
                 if (mutable.value.editDraft.matches(draft)) {
                     mutable.value = mutable.value.copy(editDraft = null)
                 }
@@ -282,12 +441,19 @@ class DayItineraryViewModel(
     fun setRouteCoordinator(value: RouteRefreshCoordinator?) { coordinator = value }
 
     fun requestMode(legId: String): Boolean {
-        val leg = state.value.legs.firstOrNull { it.id == legId } ?: return false
-        if (leg.state !is RouteLegUiState.Ready) return false
+        val leg = visibleRouteLegs(state.value.items, state.value.previewOrder, state.value.legs)
+            .firstOrNull { it.id == legId }
+            ?: return false
         mutable.value = mutable.value.copy(
             modeEditor = RouteModeEditDraft(
                 legId = legId,
                 selectedMode = leg.mode,
+                selectedModeOverride = leg.selectedModeOverride,
+                originalSelectedModeOverride = leg.selectedModeOverride,
+                durationMinutesText = leg.durationOverrideSeconds?.takeIf { it > 0 }?.div(60)?.toString().orEmpty(),
+                noteText = leg.note.orEmpty(),
+                plannedDurationSeconds = leg.durationSeconds,
+                originalDurationOverrideSeconds = leg.durationOverrideSeconds?.takeIf { it > 0 },
                 generation = ++nextModeGeneration,
             ),
         )
@@ -297,23 +463,60 @@ class DayItineraryViewModel(
     fun selectMode(mode: TransportMode) {
         val editor = mutable.value.modeEditor ?: return
         if (editor.isSaving) return
-        mutable.value = mutable.value.copy(modeEditor = editor.copy(selectedMode = mode, saveError = null))
+        mutable.value = mutable.value.copy(
+            modeEditor = editor.copy(selectedMode = mode, selectedModeOverride = mode, saveError = null),
+        )
     }
 
-    fun overrideMode() {
-        val editor = state.value.modeEditor ?: return
+    fun clearSelectedModeOverride() {
+        val editor = mutable.value.modeEditor ?: return
         if (editor.isSaving) return
+        mutable.value = mutable.value.copy(modeEditor = editor.copy(selectedModeOverride = null, saveError = null))
+    }
+
+    fun updateRouteDurationMinutes(value: String) {
+        val editor = mutable.value.modeEditor ?: return
+        if (editor.isSaving) return
+        mutable.value = mutable.value.copy(modeEditor = editor.copy(durationMinutesText = value.filter(Char::isDigit), isDurationEdited = true, saveError = null))
+    }
+
+    fun updateRouteNote(value: String) {
+        val editor = mutable.value.modeEditor ?: return
+        if (editor.isSaving) return
+        mutable.value = mutable.value.copy(modeEditor = editor.copy(noteText = value, saveError = null))
+    }
+
+    fun saveRouteEditor() {
+        val editor = state.value.modeEditor ?: return
+        if (editor.isSaving || !editor.isValid) return
         val started = editor.copy(isSaving = true, saveError = null)
         mutable.value = mutable.value.copy(modeEditor = started)
         viewModelScope.launch {
             try {
-                val saved = coordinator?.overrideMode(started.legId, started.selectedMode) ?: false
+                val modeChanged = started.selectedModeOverride != started.originalSelectedModeOverride
+                val routeCoordinator = coordinator
+                val saved = when {
+                    routeCoordinator != null -> routeCoordinator.updateDetails(
+                        started.legId,
+                        started.selectedModeOverride,
+                        started.durationOverrideSeconds,
+                        started.noteText.trim().ifEmpty { null },
+                    )
+                    !modeChanged -> routeLegs.updateDetails(
+                        started.legId,
+                        started.selectedModeOverride,
+                        started.durationOverrideSeconds,
+                        started.noteText.trim().ifEmpty { null },
+                        online = false,
+                    )
+                    else -> false
+                }
                 val current = mutable.value.modeEditor
                 if (current.matches(started)) {
                     mutable.value = mutable.value.copy(
                         modeEditor = if (saved) null else current?.copy(
                             isSaving = false,
-                            saveError = "联网并同意高德隐私政策后才能更新交通方式",
+                            saveError = "联网并同意高德隐私政策后才能保存路段编辑",
                         ),
                     )
                 }
@@ -325,7 +528,7 @@ class DayItineraryViewModel(
                     mutable.value = mutable.value.copy(
                         modeEditor = current?.copy(
                             isSaving = false,
-                            saveError = failure.message ?: "更新交通方式失败",
+                            saveError = failure.message ?: "保存路段编辑失败",
                         ),
                     )
                 }
@@ -371,9 +574,13 @@ class DayItineraryViewModel(
             is DayItineraryAction.MoveToDay -> moveToDay(action.dayId)
             is DayItineraryAction.UpdateArrivalTime -> updateArrivalTime(action.value)
             is DayItineraryAction.UpdateStayMinutes -> updateStayMinutes(action.value)
+            is DayItineraryAction.UpdateNote -> updateNote(action.value)
             DayItineraryAction.SaveEdit -> saveTiming()
             is DayItineraryAction.SelectMode -> selectMode(action.mode)
-            DayItineraryAction.SaveMode -> overrideMode()
+            DayItineraryAction.ClearSelectedModeOverride -> clearSelectedModeOverride()
+            is DayItineraryAction.UpdateRouteDurationMinutes -> updateRouteDurationMinutes(action.value)
+            is DayItineraryAction.UpdateRouteNote -> updateRouteNote(action.value)
+            DayItineraryAction.SaveMode -> saveRouteEditor()
             DayItineraryAction.ConfirmDelete -> confirmDelete()
             DayItineraryAction.DismissDialogs -> dismissDialogs()
         }
@@ -395,12 +602,20 @@ class DayItineraryViewModel(
     private fun applyDay(day: DayItinerary, legs: List<RouteLegEntity>) {
         val items = day.items.map { it.toItineraryItemUi() }
         val previous = mutable.value
+        val activeEdit = previous.editDraft?.takeIf { draft -> items.any { it.id == draft.itemId } }
         val officialOrder = items.map(ItineraryItemUi::id)
         val keepPreview = previous.items.map(ItineraryItemUi::id) == officialOrder && previous.previewOrder.toSet() == officialOrder.toSet()
+        val previewOrder = if (keepPreview) previous.previewOrder else officialOrder
+        val rawLegs = legs.map { it.toRouteLegUi() }
+        val activeRouteEditor = previous.modeEditor?.takeIf { draft ->
+            visibleRouteLegs(items, previewOrder, rawLegs).any { it.id == draft.legId }
+        }
         mutable.value = previous.copy(
             items = items,
-            previewOrder = if (keepPreview) previous.previewOrder else officialOrder,
-            legs = legs.map { it.toRouteLegUi() },
+            previewOrder = previewOrder,
+            legs = rawLegs,
+            editDraft = activeEdit,
+            modeEditor = activeRouteEditor,
         )
     }
 

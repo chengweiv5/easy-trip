@@ -51,6 +51,41 @@ class WholeTripItineraryContentTest {
     }
 
     @Test
+    fun singleEmptyDayKeepsScopeRailAndAddsFromCurrentDayInsteadOfWholeTripEmptyState() {
+        var selected: ItineraryScope = ItineraryScope.Day("day-2")
+        var addClicks = 0
+        compose.setContent {
+            WorkspaceItineraryContent(
+                days = listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
+                selected = selected,
+                wholeTripDays = listOf(
+                    WholeTripDayUi("day-1", 1, listOf(item("first", "早餐店")), emptyList()),
+                    WholeTripDayUi("day-2", 2, emptyList(), emptyList()),
+                ),
+                onSelect = { selected = it },
+                onAddDay = {},
+                dayContent = {
+                    DayItineraryContent(
+                        state = DayItineraryUiState(
+                            days = listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
+                            selectedDayId = "day-2",
+                        ),
+                        onAction = { if (it == DayItineraryAction.AddPlaces) addClicks++ },
+                        showDialogs = false,
+                    )
+                },
+            )
+        }
+
+        compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-scope-day-2").assertIsDisplayed()
+        compose.onNodeWithText("第2天 · 暂无行程").assertIsDisplayed()
+        compose.onNodeWithTag("add-places-to-selected-day").performClick()
+        assertEquals(1, addClicks)
+        compose.onAllNodesWithTag("itinerary-all-empty").assertCountEquals(0)
+    }
+
+    @Test
     fun daysRenderInOrderWithEmptyDayAndReadOnlyTimeline() {
         val first = item("first", "早餐店")
         val second = item("second", "博物馆")

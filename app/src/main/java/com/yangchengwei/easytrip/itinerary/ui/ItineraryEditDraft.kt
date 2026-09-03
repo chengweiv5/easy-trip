@@ -7,6 +7,7 @@ data class ItineraryEditDraft(
     val itemId: String,
     val arrivalTimeText: String,
     val stayMinutesText: String,
+    val noteText: String = "",
     val isSaving: Boolean = false,
     val saveError: String? = null,
     val generation: Long = 0,
@@ -36,10 +37,24 @@ data class CrossDayMoveDraft(
 data class RouteModeEditDraft(
     val legId: String,
     val selectedMode: TransportMode,
+    val selectedModeOverride: TransportMode? = null,
+    val originalSelectedModeOverride: TransportMode? = null,
+    val durationMinutesText: String = "",
+    val noteText: String = "",
+    val plannedDurationSeconds: Int? = null,
+    val originalDurationOverrideSeconds: Int? = null,
+    val isDurationEdited: Boolean = false,
     val isSaving: Boolean = false,
     val saveError: String? = null,
     val generation: Long = 0,
-)
+) {
+    val durationOverrideSeconds: Int?
+        get() = if (!isDurationEdited) originalDurationOverrideSeconds else durationMinutesText.takeIf(String::isNotBlank)?.toIntOrNull()?.times(60)
+
+    val isValid: Boolean
+        get() = durationMinutesText.isBlank() || durationMinutesText.toIntOrNull() in 1..1_440
+}
+
 
 data class ItineraryDeleteConfirmation(
     val itemId: String,

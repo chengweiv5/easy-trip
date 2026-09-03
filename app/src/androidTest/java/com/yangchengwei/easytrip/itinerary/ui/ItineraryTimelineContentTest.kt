@@ -17,12 +17,14 @@ import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -32,6 +34,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.Density
@@ -49,6 +52,112 @@ import org.junit.Test
 
 class ItineraryTimelineContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test
+    fun longNoteKeepsSaveAndCancelFixedInsideConstrainedEditor() {
+        var saved = false
+        var cancelled = false
+        compose.setContent {
+            EasyTripTheme {
+                EditItineraryItemContent(
+                    draft = ItineraryEditDraft("i1", "09:30", "60", noteText = (1..30).joinToString("\n") { "长备注第${it}行" }),
+                    onArrivalTimeChange = {},
+                    onStayMinutesChange = {},
+                    onNoteChange = {},
+                    onSave = { saved = true },
+                    onCancel = { cancelled = true },
+                    modifier = Modifier.height(220.dp),
+                )
+            }
+        }
+
+        compose.onNodeWithText("保存时间").assertIsDisplayed().performClick()
+        compose.onNodeWithText("取消").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertTrue(saved); assertTrue(cancelled) }
+    }
+
+    @Test
+    fun itemEditContainsMultilineNoteAndLocksEveryActionWhileSaving() {
+        val draft = ItineraryEditDraft(
+            itemId = "i1",
+            arrivalTimeText = "09:30",
+            stayMinutesText = "60",
+            noteText = "第一行\n第二行",
+            isSaving = true,
+            saveError = "保存失败",
+        )
+        compose.setContent {
+            EasyTripTheme {
+                EditItineraryItemContent(
+                    draft = draft,
+                    onArrivalTimeChange = {},
+                    onStayMinutesChange = {},
+                    onNoteChange = {},
+                    onSave = {},
+                    onCancel = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
+        compose.onNodeWithText("第一行\n第二行").assertIsDisplayed()
+        compose.onNodeWithText("保存失败").assertIsDisplayed()
+        compose.onNodeWithText("保存中…").assertIsNotEnabled()
+        compose.onNodeWithText("取消").assertIsNotEnabled()
+    }
+
+    @Test
+    fun routeEditorExposesSelectedModeAndKeepsEveryChoiceReachableAtNarrowLargeFont() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
+                EasyTripTheme {
+                    EditRouteLegContent(
+                        draft = RouteModeEditDraft(
+                            legId = "leg",
+                            selectedMode = TransportMode.DRIVE,
+                            selectedModeOverride = TransportMode.DRIVE,
+                        ),
+                        onSelectMode = {},
+                        onClearSelectedModeOverride = {},
+                        onDurationMinutesChange = {},
+                        onNoteChange = {},
+                        onSave = {},
+                        onCancel = {},
+                        modifier = Modifier.width(220.dp).height(520.dp),
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("route-mode-option-DRIVE").assertIsSelected().assertIsDisplayed()
+        compose.onNodeWithTag("route-mode-option-WALK").assertIsDisplayed()
+        compose.onNodeWithTag("route-mode-option-TAXI").assertIsDisplayed()
+        compose.onNodeWithTag("route-mode-option-TRANSIT").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("route-mode-auto").assertIsDisplayed()
+    }
+
+    @Test
+    fun recommendedModeChoiceIsSelectedWhenThereIsNoOverride() {
+        compose.setContent {
+            EasyTripTheme {
+                EditRouteLegContent(
+                    draft = RouteModeEditDraft(
+                        legId = "leg",
+                        selectedMode = TransportMode.WALK,
+                        selectedModeOverride = null,
+                    ),
+                    onSelectMode = {},
+                    onClearSelectedModeOverride = {},
+                    onDurationMinutesChange = {},
+                    onNoteChange = {},
+                    onSave = {},
+                    onCancel = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("route-mode-auto").assertIsSelected()
+    }
 
     @Test
     fun dayTimelineInterleavesPreviewItemsAndAdjacentLegs() {

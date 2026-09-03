@@ -205,6 +205,7 @@ class MapLayerFlowTest {
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
         override suspend fun deleteItem(itemId: String) = Unit
         override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?) = error("Fake itinerary details are not modeled")
         override suspend fun removePlaceOccurrences(placeId: String) = Unit
     }
 
@@ -220,7 +221,7 @@ class MapLayerFlowTest {
         override suspend fun releaseClaimIfVersionMatches(legId: String, version: Long, online: Boolean) = false
         override suspend fun completeIfVersionMatches(legId: String, version: Long, result: RouteResult) = false
         override suspend fun failIfVersionMatches(legId: String, version: Long, failure: RoutePlanOutcome.Failure) = false
-        override suspend fun overrideMode(legId: String, mode: com.yangchengwei.easytrip.core.model.TransportMode, online: Boolean) = false
+        override suspend fun updateDetails(legId: String, selectedModeOverride: com.yangchengwei.easytrip.core.model.TransportMode?, durationOverrideSeconds: Int?, note: String?, online: Boolean): Boolean = error("Fake route details are not modeled")
         override suspend fun retry(legId: String, online: Boolean) = false
     }
 }

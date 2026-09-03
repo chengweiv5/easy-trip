@@ -52,6 +52,96 @@ class WorkspaceLayoutMetricsTest {
         assertTrue(workspaceMapOverlaysFit(baseline))
     }
 
+    @Test fun `viewport safe insets mirror asymmetric workspace chrome and sheet anchor`() {
+        val metrics = workspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            visibleSheetHeight = 432.dp,
+        )
+
+        assertEquals(
+            MapViewportInsets(leftPx = 20, topPx = 72, rightPx = 68, bottomPx = 510),
+            workspaceViewportInsets(metrics, density = 1f),
+        )
+    }
+
+    @Test fun `viewport safe insets use stable anchor instead of live drag height`() {
+        val metrics = WorkspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            sheetHeight = 320.dp,
+            sheetTop = 462.dp,
+            overlayBottomInset = 340.dp,
+            stableSheetHeight = 432.dp,
+        )
+
+        assertEquals(
+            MapViewportInsets(leftPx = 20, topPx = 72, rightPx = 68, bottomPx = 510),
+            workspaceViewportInsets(metrics, density = 1f),
+        )
+    }
+
+    @Test fun `viewport safe insets stay identical across drag frames until level settles`() {
+        val firstFrame = workspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            visibleSheetHeight = 320.dp,
+        ).copy(stableSheetHeight = 432.dp)
+        val secondFrame = workspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            visibleSheetHeight = 380.dp,
+        ).copy(stableSheetHeight = 432.dp)
+        val settled = workspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            visibleSheetHeight = 432.dp,
+        ).copy(stableSheetHeight = 432.dp)
+
+        assertEquals(
+            workspaceViewportInsets(firstFrame, density = 1f),
+            workspaceViewportInsets(secondFrame, density = 1f),
+        )
+        assertEquals(
+            workspaceViewportInsets(secondFrame, density = 1f),
+            workspaceViewportInsets(settled, density = 1f),
+        )
+    }
+
+    @Test fun `viewport safe insets clamp expanded sheet to a positive map rectangle`() {
+        val metrics = WorkspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            sheetHeight = 720.dp,
+            sheetTop = 62.dp,
+            overlayBottomInset = 740.dp,
+            stableSheetHeight = 720.dp,
+        )
+
+        val insets = workspaceViewportInsets(metrics, density = 1f)
+
+        assertTrue(insets.leftPx >= 0 && insets.topPx >= 0 && insets.rightPx >= 0 && insets.bottomPx >= 0)
+        assertTrue(insets.leftPx + insets.rightPx <= 389)
+        assertTrue(insets.topPx + insets.bottomPx <= 781)
+    }
+
+    @Test fun `viewport safe insets clamp tiny windows without inverting map rectangle`() {
+        val metrics = WorkspaceLayoutMetrics(
+            availableWidth = 100.dp,
+            availableHeight = 90.dp,
+            sheetHeight = 84.dp,
+            sheetTop = 6.dp,
+            overlayBottomInset = 104.dp,
+            stableSheetHeight = 84.dp,
+        )
+
+        val insets = workspaceViewportInsets(metrics, density = 1f)
+
+        assertTrue(insets.leftPx >= 0 && insets.topPx >= 0 && insets.rightPx >= 0 && insets.bottomPx >= 0)
+        assertTrue(insets.leftPx + insets.rightPx <= 99)
+        assertTrue(insets.topPx + insets.bottomPx <= 89)
+    }
+
     @Test fun `layer menu requires safe workspace width and height`() {
         val tooShort = WorkspaceLayoutMetrics(
             availableWidth = 390.dp,

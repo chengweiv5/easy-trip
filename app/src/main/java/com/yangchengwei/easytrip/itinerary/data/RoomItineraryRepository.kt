@@ -6,9 +6,11 @@ import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.itinerary.domain.AddItineraryItemResult
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
 import com.yangchengwei.easytrip.itinerary.domain.Edge
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryItemNotFoundException
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException
@@ -52,11 +54,35 @@ class RoomItineraryRepository(
                 ),
                 row.arrivalTime,
                 row.stayDurationMinutes,
+                row.note,
             )
         })
     }
 
-    override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int): String = database.withTransaction {
+    override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int): String =
+        addItemInternal(dayId, savedPlaceId, targetIndex, idempotencyKey = null).itemId
+
+    override suspend fun addItemIdempotently(
+        dayId: String,
+        savedPlaceId: String,
+        targetIndex: Int,
+        idempotencyKey: String,
+    ): AddItineraryItemResult = addItemInternal(dayId, savedPlaceId, targetIndex, idempotencyKey)
+
+    private suspend fun addItemInternal(
+        dayId: String,
+        savedPlaceId: String,
+        targetIndex: Int,
+        idempotencyKey: String?,
+    ): AddItineraryItemResult = database.withTransaction {
+        idempotencyKey?.let { key ->
+            itineraryDao.itemByIdempotencyKey(key)?.let { existing ->
+                require(existing.tripDayId == dayId && existing.savedPlaceId == savedPlaceId) {
+                    "Idempotency key reused for another occurrence: $key"
+                }
+                return@withTransaction AddItineraryItemResult(existing.id, created = false)
+            }
+        }
         val tripId = itineraryDao.tripIdForDay(dayId) ?: throw TargetDayNotFoundException(dayId)
         val place = itineraryDao.savedPlace(savedPlaceId) ?: throw RecoverablePlaceAddException(savedPlaceId)
         if (place.tripId != tripId) throw RecoverablePlaceAddException(savedPlaceId)
@@ -64,15 +90,23 @@ class RoomItineraryRepository(
         require(targetIndex in 0..old.size) { "Invalid target index: $targetIndex" }
         park(old)
         val id = itemIdFactory()
-        itineraryDao.insertItem(ItineraryItemEntity(id, dayId, tripId, savedPlaceId, NEW_ITEM_POSITION))
-        val new = old.toMutableList().apply { add(targetIndex, ItineraryItemEntity(id, dayId, tripId, savedPlaceId, NEW_ITEM_POSITION)) }
+        val item = ItineraryItemEntity(
+            id = id,
+            tripDayId = dayId,
+            tripId = tripId,
+            savedPlaceId = savedPlaceId,
+            position = NEW_ITEM_POSITION,
+            idempotencyKey = idempotencyKey,
+        )
+        itineraryDao.insertItem(item)
+        val new = old.toMutableList().apply { add(targetIndex, item) }
         reorder(new)
         syncLegs(dayId, old.map { it.id }, new.map { it.id })
-        id
+        AddItineraryItemResult(id, created = true)
     }
 
     override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = database.withTransaction {
-        val item = requireNotNull(itineraryDao.item(itemId)) { "Unknown item: $itemId" }
+        val item = itineraryDao.item(itemId) ?: throw ItineraryItemNotFoundException(itemId)
         val targetTripId = requireNotNull(itineraryDao.tripIdForDay(targetDayId)) { "Unknown day: $targetDayId" }
         require(item.tripId == targetTripId) { "Cannot move item across trips" }
         val sourceOld = itineraryDao.items(item.tripDayId)
@@ -103,7 +137,7 @@ class RoomItineraryRepository(
     }
 
     override suspend fun deleteItem(itemId: String) = database.withTransaction {
-        val item = requireNotNull(itineraryDao.item(itemId)) { "Unknown item: $itemId" }
+        val item = itineraryDao.item(itemId) ?: throw ItineraryItemNotFoundException(itemId)
         val old = itineraryDao.items(item.tripDayId)
         park(old)
         require(itineraryDao.deleteRow(itemId) == 1)
@@ -115,6 +149,12 @@ class RoomItineraryRepository(
     override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) {
         require(stayMinutes == null || stayMinutes >= 0)
         require(itineraryDao.timing(itemId, arrivalTime, stayMinutes) == 1) { "Unknown item: $itemId" }
+    }
+
+    override suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?) {
+        require(stayMinutes == null || stayMinutes >= 0)
+        val normalizedNote = note?.trim()?.ifEmpty { null }
+        require(itineraryDao.details(itemId, arrivalTime, stayMinutes, normalizedNote) == 1) { "Unknown item: $itemId" }
     }
 
     override suspend fun removePlaceOccurrences(placeId: String) = database.withTransaction {

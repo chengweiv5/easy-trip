@@ -84,7 +84,9 @@ class AppContainer(
     context: Context,
     applicationScope: CoroutineScope,
     databaseFactory: (Context) -> EasyTripDatabase = {
-        Room.databaseBuilder(it, EasyTripDatabase::class.java, "easy-trip.db").build()
+        Room.databaseBuilder(it, EasyTripDatabase::class.java, "easy-trip.db")
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3)
+            .build()
     },
     networkFactory: (Context, CoroutineScope) -> NetworkMonitor = ::ConnectivityNetworkMonitor,
 ) {

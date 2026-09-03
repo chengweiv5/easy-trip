@@ -18,6 +18,6 @@ interface RouteLegRepository {
  suspend fun releaseClaimIfVersionMatches(legId:String,version:Long,online:Boolean):Boolean
  suspend fun completeIfVersionMatches(legId:String,version:Long,result:RouteResult):Boolean
  suspend fun failIfVersionMatches(legId:String,version:Long,failure:RoutePlanOutcome.Failure):Boolean
- suspend fun overrideMode(legId:String,mode:TransportMode,online:Boolean):Boolean
+ suspend fun updateDetails(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean):Boolean
  suspend fun retry(legId:String,online:Boolean):Boolean
 }

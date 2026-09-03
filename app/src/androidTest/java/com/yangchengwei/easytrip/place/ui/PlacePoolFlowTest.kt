@@ -119,6 +119,7 @@ class PlacePoolFlowTest {
             override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
             override suspend fun deleteItem(itemId: String) = Unit
             override suspend fun updateTiming(itemId: String, arrivalTime: java.time.LocalTime?, stayMinutes: Int?) = Unit
+            override suspend fun updateDetails(itemId: String, arrivalTime: java.time.LocalTime?, stayMinutes: Int?, note: String?) = error("Fake itinerary details are not modeled")
             override suspend fun removePlaceOccurrences(placeId: String) = Unit
         }
         val viewModel = AddToItineraryViewModel(

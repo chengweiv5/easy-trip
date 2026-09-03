@@ -77,8 +77,9 @@ internal fun addOverlayToPresent(
         addToItinerary.step == AddToItineraryStep.COMPLETED -> WorkspaceOverlay.AddToItineraryResult
         else -> null
     }
+    val restoringResult = workspaceOverlay == WorkspaceOverlay.None && desired == WorkspaceOverlay.AddToItineraryResult
     return desired?.takeIf {
-        workspaceOverlay.isAddToItineraryOverlay() && workspaceOverlay != desired
+        (restoringResult || workspaceOverlay.isAddToItineraryOverlay()) && workspaceOverlay != desired
     }
 }
 
@@ -124,11 +125,11 @@ internal fun itineraryOverlayToPresent(
     deleteConfirmation != null -> WorkspaceOverlay.Confirmation(
         confirmation(
             "移出${deleteConfirmation.placeName}？",
-            "仅从当天行程移出，收藏仍保留。",
+            "仅移除本次安排；收藏仍保留；相邻路线将重新计算。",
             "确认移出",
         ),
     )
-    modeEditor != null -> WorkspaceOverlay.EditRouteLeg(stableWorkspaceOverlayId(modeEditor.legId))
+    modeEditor != null -> WorkspaceOverlay.EditRouteLeg(modeEditor.legId)
     else -> null
 }
 
@@ -166,8 +167,9 @@ internal sealed interface AppendDayCompletionDecision {
 internal fun appendDayCompletionDecision(
     overlay: WorkspaceOverlay,
     completionToken: Long?,
+    workspaceReady: Boolean,
 ): AppendDayCompletionDecision = when {
-    completionToken == null -> AppendDayCompletionDecision.None
+    completionToken == null || !workspaceReady -> AppendDayCompletionDecision.None
     overlay == WorkspaceOverlay.AddTripDay -> AppendDayCompletionDecision.CloseOverlayAndConsume(completionToken)
     else -> AppendDayCompletionDecision.Consume(completionToken)
 }
@@ -267,10 +269,16 @@ fun TripWorkspaceRoute(
         }
     }
 
-    LaunchedEffect(ready?.days, places.rows) {
+    val authoritativeDays = ready?.days
+    val authoritativePlaceIds = if (places.placesReady && ready != null) {
+        places.rows.mapTo(mutableSetOf()) { it.place.id }
+    } else {
+        null
+    }
+    LaunchedEffect(authoritativeDays, authoritativePlaceIds) {
         addToItineraryViewModel?.reconcile(
-            ready?.days.orEmpty().map { it.id },
-            places.rows.mapTo(mutableSetOf()) { it.place.id },
+            authoritativeDays?.map { it.id },
+            authoritativePlaceIds,
         )
     }
     LaunchedEffect(places.selectedDetailPlaceId, ready?.overlay) {
@@ -281,11 +289,12 @@ fun TripWorkspaceRoute(
     LaunchedEffect(addToItinerary.step, addToItinerary.result, ready?.overlay) {
         addOverlayToPresent(ready?.overlay ?: WorkspaceOverlay.None, addToItinerary)?.let(viewModel::openOverlay)
     }
-    LaunchedEffect(itinerary.appendDayCompletionToken) {
+    LaunchedEffect(itinerary.appendDayCompletionToken, ready != null) {
         when (
             val decision = appendDayCompletionDecision(
                 ready?.overlay ?: WorkspaceOverlay.None,
                 itinerary.appendDayCompletionToken,
+                workspaceReady = ready != null,
             )
         ) {
             AppendDayCompletionDecision.None -> Unit

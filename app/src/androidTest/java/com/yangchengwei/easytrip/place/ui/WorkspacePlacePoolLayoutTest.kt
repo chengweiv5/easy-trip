@@ -91,7 +91,7 @@ class WorkspacePlacePoolLayoutTest {
                     onPlaceAction = {},
                     itineraryState = DayItineraryUiState(),
                     onItineraryAction = {},
-                    mapContent = { Text("地图就绪") },
+                    mapContent = { _ -> Text("地图就绪") },
                     modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                 )
             }

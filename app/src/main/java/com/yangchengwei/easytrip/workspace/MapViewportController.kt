@@ -7,6 +7,7 @@ class MapViewportController {
     private var observedNonemptyPlaces = false
     private var placeIdentity: Set<GeoPoint> = emptySet()
     private var scope: MapScope? = null
+    private var selectedDayId: String? = null
     private var visibleIdentity: Set<GeoPoint> = emptySet()
     private var retainedPlaceChange: GeoPoint? = null
 
@@ -17,6 +18,7 @@ class MapViewportController {
         placePoints: List<GeoPoint>,
         scope: MapScope,
         visiblePoints: List<GeoPoint>,
+        selectedDayId: String? = null,
     ): MapViewportRequest? {
         val normalizedPlaces = placePoints.toSet()
         val normalizedVisible = visiblePoints.toSet()
@@ -29,6 +31,7 @@ class MapViewportController {
             retainedChange != null -> null
             observedNonemptyPlaces && normalizedPlaces != placeIdentity -> ViewportReason.PLACE_SET_CHANGED
             this.scope != null && this.scope != scope -> ViewportReason.SCOPE_CHANGED
+            this.scope == scope && this.selectedDayId != selectedDayId -> ViewportReason.VISIBLE_SET_CHANGED
             this.scope == scope && scope != MapScope.PLACE_POOL && normalizedVisible != visibleIdentity -> ViewportReason.VISIBLE_SET_CHANGED
             else -> null
         }
@@ -36,10 +39,11 @@ class MapViewportController {
         placeIdentity = normalizedPlaces
         visibleIdentity = normalizedVisible
         this.scope = scope
+        this.selectedDayId = selectedDayId
         if (visiblePoints.isEmpty() && currentRequest?.reason != ViewportReason.SEARCH_FOCUS) {
             currentRequest = null
         }
-        return emit(reason, visiblePoints)
+        return emit(reason, visiblePoints, scope = scope, selectedDayId = selectedDayId)
     }
 
     fun retainViewportForPlaceChange(point: GeoPoint) {
@@ -53,13 +57,22 @@ class MapViewportController {
         reason: ViewportReason?,
         points: List<GeoPoint>,
         singlePointZoom: Float? = null,
+        scope: MapScope? = null,
+        selectedDayId: String? = null,
     ): MapViewportRequest? {
         if (reason == null) return null
         if (points.isEmpty()) {
             if (currentRequest?.reason != ViewportReason.SEARCH_FOCUS) currentRequest = null
             return null
         }
-        return MapViewportRequest(nextRequestId++, reason, points.distinct(), singlePointZoom).also {
+        return MapViewportRequest(
+            id = nextRequestId++,
+            reason = reason,
+            points = points.distinct(),
+            singlePointZoom = singlePointZoom,
+            scope = scope,
+            selectedDayId = selectedDayId,
+        ).also {
             currentRequest = it
         }
     }

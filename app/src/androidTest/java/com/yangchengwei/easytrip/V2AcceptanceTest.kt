@@ -7,6 +7,8 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertTextContains
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
@@ -14,7 +16,11 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.swipeUp
 import androidx.room.Room
 import com.yangchengwei.easytrip.amap.TestConsentGate
 import com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore
@@ -35,10 +41,13 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.runBlocking
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -123,7 +132,7 @@ class V2AcceptanceTest {
                             object : com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator {
                                 override fun start(scope: CoroutineScope) = Unit
                                 override suspend fun retry(legId: String) = false
-                                override suspend fun overrideMode(legId: String, mode: com.yangchengwei.easytrip.core.model.TransportMode) = false
+                                override suspend fun updateDetails(legId: String, selectedModeOverride: com.yangchengwei.easytrip.core.model.TransportMode?, durationOverrideSeconds: Int?, note: String?) = false
                             },
                         )
                     },
@@ -175,12 +184,342 @@ class V2AcceptanceTest {
         compose.onNodeWithTag("itinerary-scope-rail").assertDoesNotExist()
     }
 
+    internal fun executeBatch5ProductionNavigationRoomMainFlow(): Set<Batch5FrameCheckpoint> =
+        runBatch5ProductionNavigationRoomMainFlow()
+
+    @Test fun batch5ProductionNavigationRoomMainFlow() {
+        Batch5ExecutableEvidence.ProductionNavigationMainFlow.verifyCheckpoints(this)
+    }
+
+    private fun runBatch5ProductionNavigationRoomMainFlow(): Set<Batch5FrameCheckpoint> {
+        val checkpoints = linkedSetOf<Batch5FrameCheckpoint>()
+        val trips = RoomTripRepository(
+            database.tripDao(),
+            idFactory = { "e2e-${nextId++}" },
+            database = database,
+            isOnline = { false },
+        )
+        val places = RoomSavedPlaceRepository(database, idFactory = { "e2e-place-${nextId++}" })
+        val itineraries = RoomItineraryRepository(
+            database,
+            database.itineraryEditingDao(),
+            database.routeLegDao(),
+            itemIdFactory = { "e2e-item-${nextId++}" },
+            legIdFactory = { "e2e-leg-${nextId++}" },
+            isOnline = { false },
+        )
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        val service = com.yangchengwei.easytrip.trip.domain.TripService(trips)
+        val tripId: String
+        val originalDays: List<com.yangchengwei.easytrip.trip.domain.TripDay>
+        val firstPlaceId: String
+        val middlePlaceId: String
+        val firstItem: String
+        val middleItem: String
+        val lastItem: String
+        val secondDayItem: String
+        val originalLegIds: List<String>
+        runBlocking {
+            tripId = trips.createTrip(CreateTrip("旅程 C", 2, startDate = java.time.LocalDate.parse("2026-09-01")))
+            originalDays = requireNotNull(trips.observeTrip(tripId).first()).days
+            firstPlaceId = (places.save(tripId, candidate("e2e-west-lake", "西湖", 30.25, 120.15)) as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+            middlePlaceId = (places.save(tripId, candidate("e2e-museum", "博物馆", 30.26, 120.16)) as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+            val lastPlace = (places.save(tripId, candidate("e2e-park", "公园", 30.27, 120.17)) as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+            firstItem = itineraries.addItem(originalDays[0].id, firstPlaceId, 0)
+            middleItem = itineraries.addItem(originalDays[0].id, middlePlaceId, 1)
+            lastItem = itineraries.addItem(originalDays[0].id, lastPlace, 2)
+            secondDayItem = itineraries.addItem(originalDays[1].id, firstPlaceId, 0)
+            originalLegIds = database.routeLegDao().legs(originalDays[0].id).map { it.id }
+        }
+        val navigationRoutes = java.util.concurrent.CopyOnWriteArrayList<String>()
+        val hosts = java.util.concurrent.CopyOnWriteArrayList<RecordingHost>()
+        setProductionNavigation(trips, places, itineraries, routes, navigationRoutes, hosts)
+
+        compose.onNodeWithTag("continue-trip-$tripId").performClick()
+        waitForTag("workspace-top-bar")
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        waitForTag("item-$middleItem")
+        waitFor("recording map host") { hosts.isNotEmpty() }
+        checkpoint(checkpoints, Batch5FrameCheckpoint.ItineraryPage)
+        checkpoint(checkpoints, Batch5FrameCheckpoint.ItemEditor)
+
+        compose.onNodeWithTag("more-$middleItem", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-timing-$middleItem", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("arrival-time-input").performTextInput("09:30")
+        compose.onNodeWithTag("stay-minutes-input").performTextInput("60")
+        compose.onNodeWithTag("itinerary-note-input").performTextInput("二层入口集合")
+        compose.onNodeWithText("保存时间").performClick()
+        compose.waitUntil(5_000) {
+            runBlocking { database.itineraryEditingDao().item(middleItem) }?.let {
+                it.arrivalTime == java.time.LocalTime.of(9, 30) &&
+                    it.stayDurationMinutes == 60 &&
+                    it.note == "二层入口集合"
+            } == true
+        }
+        compose.onNodeWithText("09:30").assertIsDisplayed()
+        compose.onNodeWithText("停留 60 分钟").assertIsDisplayed()
+        compose.onNodeWithTag("more-$middleItem", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-timing-$middleItem", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("arrival-time-input").assertTextContains("09:30")
+        compose.onNodeWithTag("stay-minutes-input").assertTextContains("60")
+        compose.onNodeWithTag("itinerary-note-input").assertTextContains("二层入口集合")
+        compose.onNodeWithText("取消").performClick()
+        checkpoint(checkpoints, Batch5FrameCheckpoint.ItemEditComplete)
+
+        val editedLegId = originalLegIds.last()
+        compose.onNodeWithTag("edit-route-$editedLegId").performScrollTo().performClick()
+        compose.onNodeWithTag("route-mode-option-DRIVE").performClick()
+        compose.onNodeWithTag("route-duration-minutes-input").performTextInput("20")
+        compose.onNodeWithTag("route-note-input").performTextInput("避开拥堵")
+        compose.onNodeWithText("保存路段").performClick()
+        compose.waitUntil(5_000) {
+            runBlocking { database.routeLegDao().leg(editedLegId) }?.let {
+                it.selectedMode == com.yangchengwei.easytrip.core.model.TransportMode.DRIVE &&
+                    it.durationOverrideSeconds == 1_200 &&
+                    it.note == "避开拥堵"
+            } == true
+        }
+        waitForTag("edit-route-$editedLegId")
+        compose.onNodeWithTag("edit-route-$editedLegId").performScrollTo().performClick()
+        compose.onNodeWithTag("route-mode-option-DRIVE").assertIsSelected()
+        compose.onNodeWithTag("route-duration-minutes-input").assertTextContains("20")
+        compose.onNodeWithTag("route-note-input").assertTextContains("避开拥堵")
+        compose.onNodeWithText("取消").performClick()
+        checkpoint(checkpoints, Batch5FrameCheckpoint.RouteEditor)
+        runBlocking {
+            val pending = requireNotNull(routes.get(editedLegId))
+            assertTrue(routes.claimIfVersionMatches(editedLegId, pending.version))
+            assertTrue(
+                routes.completeIfVersionMatches(
+                    editedLegId,
+                    pending.version,
+                    com.yangchengwei.easytrip.route.domain.RouteResult(
+                        distanceMeters = 1_500,
+                        durationSeconds = 900,
+                        polyline = listOf(GeoPoint(30.26, 120.16), GeoPoint(30.27, 120.17)),
+                    ),
+                ),
+            )
+        }
+        waitFor("recorded same-day route") {
+            hosts.lastOrNull()?.lastModel?.polylines?.isNotEmpty() == true
+        }
+        checkpoint(checkpoints, Batch5FrameCheckpoint.SingleDayMap)
+
+        compose.onNodeWithTag("more-$middleItem", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-delete-$middleItem", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("仅移除本次安排；收藏仍保留；相邻路线将重新计算。").assertIsDisplayed()
+        compose.onNodeWithText("确认移出").performClick()
+        compose.waitUntil(5_000) {
+            runBlocking { database.itineraryEditingDao().items(originalDays[0].id) }.map { it.id } == listOf(firstItem, lastItem)
+        }
+        assertTrue(runBlocking { database.itineraryEditingDao().savedPlace(middlePlaceId) } != null)
+        val bridge = runBlocking { database.routeLegDao().legs(originalDays[0].id) }.single()
+        assertEquals(firstItem, bridge.fromItemId)
+        assertEquals(lastItem, bridge.toItemId)
+        assertFalse(bridge.id in originalLegIds)
+        checkpoint(checkpoints, Batch5FrameCheckpoint.ItemDelete)
+
+        compose.onNodeWithTag("itinerary-add-day").performClick()
+        compose.onNodeWithText("添加旅行日").assertIsDisplayed()
+        compose.onNodeWithText("添加一天").performClick()
+        compose.waitUntil(5_000) { runBlocking { trips.observeTrip(tripId).first() }?.days?.size == 3 }
+        val appendedDay = requireNotNull(runBlocking { trips.observeTrip(tripId).first() }).days.last()
+        checkpoint(checkpoints, Batch5FrameCheckpoint.AppendDay)
+        compose.onNodeWithTag("itinerary-scope-${appendedDay.id}").performScrollTo().performClick()
+        compose.onNodeWithText("第3天 · 暂无行程").assertIsDisplayed()
+        compose.onNodeWithTag("add-places-to-selected-day").performClick()
+        compose.onNodeWithTag("select-places-continue").assertIsDisplayed()
+        compose.onNodeWithText("取消").performClick()
+        checkpoint(checkpoints, Batch5FrameCheckpoint.EmptyDay)
+
+        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
+        compose.onNodeWithTag("whole-trip-content").assertIsDisplayed()
+        compose.onNodeWithTag("whole-trip-day-${originalDays[0].id}").assertIsDisplayed()
+        compose.onNodeWithTag("whole-trip-day-${originalDays[1].id}").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("whole-trip-day-${appendedDay.id}").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("leg-${runBlocking { database.routeLegDao().legs(originalDays[0].id) }.single().id}").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithTag("more-$firstItem", useUnmergedTree = true).assertCountEquals(0)
+        compose.onAllNodesWithTag("more-$lastItem", useUnmergedTree = true).assertCountEquals(0)
+        assertTrue(runBlocking { database.routeLegDao().legsForTrip(tripId) }.all { leg ->
+            val from = runBlocking { database.itineraryEditingDao().item(leg.fromItemId) }
+            val to = runBlocking { database.itineraryEditingDao().item(leg.toItemId) }
+            from?.tripDayId == to?.tripDayId && from?.tripDayId == leg.tripDayId
+        })
+        checkpoint(checkpoints, Batch5FrameCheckpoint.WholeTrip)
+
+        compose.onNodeWithTag("itinerary-scope-${originalDays[1].id}").performClick()
+        compose.onNodeWithTag("workspace-more").performClick()
+        waitForTag("settings-date-row")
+        compose.onNodeWithTag("delete-day-${originalDays[0].id}").performScrollTo().performClick()
+        compose.onNodeWithText("取消").performClick()
+        assertEquals(3, requireNotNull(runBlocking { trips.observeTrip(tripId).first() }).days.size)
+        checkpoint(checkpoints, Batch5FrameCheckpoint.DeleteDay)
+        compose.onNodeWithTag("delete-day-${originalDays[0].id}").performScrollTo().performClick()
+        compose.onNodeWithText("确认删除").performClick()
+        compose.waitUntil(5_000) {
+            runBlocking { trips.observeTrip(tripId).first() }?.days?.map { it.id } == listOf(originalDays[1].id, appendedDay.id)
+        }
+        val remainingDays = requireNotNull(runBlocking { trips.observeTrip(tripId).first() }).days
+        assertEquals(listOf(0, 1), remainingDays.map { it.index })
+        compose.onNodeWithTag("settings-back").performClick()
+        waitForTag("workspace-top-bar")
+        compose.onNodeWithTag("section-ITINERARY").assertIsSelected()
+        compose.onNodeWithTag("itinerary-scope-${originalDays[1].id}").assertIsSelected()
+        compose.onNodeWithTag("item-$secondDayItem").assertIsDisplayed()
+        assertEquals("trips/$tripId/settings", navigationRoutes.last())
+        return checkpoints
+    }
+
+    private fun checkpoint(
+        checkpoints: MutableSet<Batch5FrameCheckpoint>,
+        checkpoint: Batch5FrameCheckpoint,
+    ) {
+        checkpoints += checkpoint
+    }
+
+    @Test fun batch5RoomRepositoriesPreserveItemRouteDeleteAppendAndWholeTripContracts() = runBlocking {
+        val trips = RoomTripRepository(database.tripDao(), idFactory = { "batch5-${nextId++}" })
+        val places = RoomSavedPlaceRepository(database, idFactory = { "batch5-place-${nextId++}" })
+        val itineraries = RoomItineraryRepository(
+            database,
+            database.itineraryEditingDao(),
+            database.routeLegDao(),
+            itemIdFactory = { "batch5-item-${nextId++}" },
+            legIdFactory = { "batch5-leg-${nextId++}" },
+        )
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        val tripId = trips.createTrip(CreateTrip("Batch5", 2))
+        val days = requireNotNull(trips.observeTrip(tripId).first()).days
+        val firstDay = days[0]
+        val secondDay = days[1]
+        val museum = (places.save(tripId, candidate("batch5-museum", "博物馆", 39.91, 116.41)) as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+        val park = (places.save(tripId, candidate("batch5-park", "公园", 39.92, 116.42)) as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+        val firstItem = itineraries.addItem(firstDay.id, museum, 0)
+        val secondItem = itineraries.addItem(firstDay.id, park, 1)
+        val bridge = database.routeLegDao().legs(firstDay.id).single()
+
+        itineraries.updateDetails(firstItem, java.time.LocalTime.of(9, 30), 60, "早到")
+        routes.updateDetails(bridge.id, com.yangchengwei.easytrip.core.model.TransportMode.DRIVE, 1_200, "收费路段", online = true)
+        val savedRoute = database.routeLegDao().legs(firstDay.id).single()
+        assertEquals(com.yangchengwei.easytrip.core.model.TransportMode.DRIVE, savedRoute.selectedMode)
+        assertEquals(1_200, savedRoute.durationOverrideSeconds)
+        assertEquals("收费路段", savedRoute.note)
+        val reopened = itineraries.observeDay(firstDay.id).first().items.first { it.id == firstItem }
+        assertEquals(java.time.LocalTime.of(9, 30), reopened.arrivalTime)
+        assertEquals(60, reopened.stayMinutes)
+        assertEquals("早到", reopened.note)
+
+        itineraries.deleteItem(firstItem)
+        assertEquals(museum, database.itineraryEditingDao().savedPlace(museum)?.id)
+        assertTrue(database.routeLegDao().legs(firstDay.id).isEmpty())
+        assertEquals(listOf(secondItem), itineraries.observeDay(firstDay.id).first().items.map { it.id })
+
+        val beforeAppend = requireNotNull(trips.observeTrip(tripId).first()).days.map { it.id }
+        val appendedDay = trips.insertDay(tripId, null, com.yangchengwei.easytrip.trip.domain.InsertSide.AFTER)
+        val afterAppend = requireNotNull(trips.observeTrip(tripId).first()).days
+        assertEquals(beforeAppend, afterAppend.dropLast(1).map { it.id })
+        assertEquals(appendedDay, afterAppend.last().id)
+        assertTrue(itineraries.observeDay(secondDay.id).first().items.isEmpty())
+    }
+
+    private fun setProductionNavigation(
+        trips: RoomTripRepository,
+        places: RoomSavedPlaceRepository,
+        itineraries: RoomItineraryRepository,
+        routes: RoomRouteLegRepository,
+        navigationRoutes: MutableList<String>,
+        hosts: MutableList<RecordingHost>,
+    ) {
+        compose.setContent {
+            AppNavigation(
+                service = com.yangchengwei.easytrip.trip.domain.TripService(trips),
+                repository = trips,
+                impacts = com.yangchengwei.easytrip.trip.ui.RoomDeleteImpactProvider(database.deleteImpactDao()),
+                dependencies = AppNavigationDependencies(
+                    savedPlaceRepository = places,
+                    itineraryRepository = itineraries,
+                    routeLegRepository = routes,
+                    mapPreferences = com.yangchengwei.easytrip.workspace.InMemoryMapPreferences(),
+                    locationPermissionRequestStore = InMemoryLocationPermissionRequestStore(),
+                    routeCoordinator = object : com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator {
+                        override fun start(scope: CoroutineScope) = Unit
+                        override suspend fun retry(legId: String) = false
+                        override suspend fun updateDetails(
+                            legId: String,
+                            selectedModeOverride: com.yangchengwei.easytrip.core.model.TransportMode?,
+                            durationOverrideSeconds: Int?,
+                            note: String?,
+                        ) = routes.updateDetails(legId, selectedModeOverride, durationOverrideSeconds, note, online = false)
+                    },
+                    consentStore = acceptedConsentStore(),
+                    runtimeSessionFactory = { fact ->
+                        com.yangchengwei.easytrip.AmapRuntimeSession(
+                            fact.generation,
+                            fact.token,
+                            object : PlaceSearchDataSource {
+                                override suspend fun search(keyword: String, city: String?) = emptyList<PlaceCandidate>()
+                            },
+                            object : com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator {
+                                override fun start(scope: CoroutineScope) = Unit
+                                override suspend fun retry(legId: String) = false
+                                override suspend fun updateDetails(
+                                    legId: String,
+                                    selectedModeOverride: com.yangchengwei.easytrip.core.model.TransportMode?,
+                                    durationOverrideSeconds: Int?,
+                                    note: String?,
+                                ) = routes.updateDetails(legId, selectedModeOverride, durationOverrideSeconds, note, online = false)
+                            },
+                        )
+                    },
+                ),
+                navigationObserver = AppNavigationObserver(navigationRoutes::add),
+                mapHostFactory = { RecordingHost(it).also(hosts::add) },
+            )
+        }
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("continue-trip-${runBlocking { trips.observeTrips().first().single().id }}")
+                .fetchSemanticsNodes().isNotEmpty()
+        }
+    }
+
+    private fun acceptedConsentStore() = com.yangchengwei.easytrip.amap.AmapConsentStore(
+        persistence = object : com.yangchengwei.easytrip.amap.AmapConsentPersistence {
+            override fun readDecision(): Boolean? = true
+            override fun writeDecision(accepted: Boolean) = Unit
+        },
+        reporter = object : com.yangchengwei.easytrip.amap.AmapPrivacyReporter {
+            override suspend fun reportShown() = Unit
+            override suspend fun reportDecision(accepted: Boolean) = Unit
+        },
+        registry = com.yangchengwei.easytrip.amap.ConsentRegistry(),
+    ).also { store ->
+        runBlocking {
+            store.reportShown().getOrThrow()
+            store.decide(true).getOrThrow()
+        }
+    }
+
+    private fun waitForTag(tag: String) {
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty() }
+    }
+
+    private fun waitFor(stage: String, condition: () -> Boolean) {
+        try {
+            compose.waitUntil(5_000, condition)
+        } catch (failure: Throwable) {
+            throw AssertionError("$stage failed", failure)
+        }
+    }
+
     private fun candidate(id: String, name: String, latitude: Double, longitude: Double) =
         PlaceCandidate(id, name, "地址", GeoPoint(latitude, longitude), "010")
 
     private class RecordingHost(context: Context) : AmapMapHost {
         override val view = View(context)
         private var poiCallback: (MapPoiUi) -> Unit = {}
+        var lastModel: MapUiModel? = null
+            private set
         override fun onCreate() = Unit
         override fun onResume() = Unit
         override fun onPause() = Unit
@@ -192,6 +531,7 @@ class V2AcceptanceTest {
             onMapPoiClick: (MapPoiUi) -> Unit,
             onLayerError: (Throwable, MapLayer) -> Unit,
         ) {
+            lastModel = model
             poiCallback = onMapPoiClick
         }
         fun emit(poi: MapPoiUi) = poiCallback(poi)

@@ -11,6 +11,14 @@ import org.junit.Assert.fail
 import org.junit.Test
 
 class AddPlacesToDayUseCaseTest {
+    @Test fun `fake itinerary repository preserves explicit detail fields`() = runTest {
+        val repository = FakeItineraryRepository(null)
+
+        repository.updateDetails("item", java.time.LocalTime.of(8, 30), 45, "note")
+
+        assertEquals(listOf(ItineraryDetailCall("item", java.time.LocalTime.of(8, 30), 45, "note")), repository.detailCalls)
+    }
+
     @Test fun `appends duplicate places in selection order after existing items`() = runTest {
         val repository = FakeItineraryRepository(day(items = listOf(item("old", "old-place"))))
 
@@ -118,6 +126,8 @@ class AddPlacesToDayUseCaseTest {
 }
 
 internal data class AddCall(val dayId: String, val placeId: String, val targetIndex: Int)
+internal data class ItineraryDetailCall(val itemId: String, val arrivalTime: java.time.LocalTime?, val stayMinutes: Int?, val note: String?)
+
 
 internal class FakeItineraryRepository(
     private var day: DayItinerary?,
@@ -127,6 +137,8 @@ internal class FakeItineraryRepository(
 ) : ItineraryRepository {
     val addCalls = mutableListOf<AddCall>()
     val deletedItemIds = mutableListOf<String>()
+    val missingDeleteIds = mutableSetOf<String>()
+    val detailCalls = mutableListOf<ItineraryDetailCall>()
     private var createdCount = 0
 
     override fun observeDay(dayId: String): Flow<DayItinerary> = day?.let(::flowOf) ?: throw TargetDayNotFoundException(dayId)
@@ -144,7 +156,13 @@ internal class FakeItineraryRepository(
     }
 
     override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
-    override suspend fun deleteItem(itemId: String) { deletedItemIds += itemId }
+    override suspend fun deleteItem(itemId: String) {
+        if (itemId in missingDeleteIds) throw ItineraryItemNotFoundException(itemId)
+        deletedItemIds += itemId
+    }
     override suspend fun updateTiming(itemId: String, arrivalTime: java.time.LocalTime?, stayMinutes: Int?) = Unit
+    override suspend fun updateDetails(itemId: String, arrivalTime: java.time.LocalTime?, stayMinutes: Int?, note: String?) {
+        detailCalls += ItineraryDetailCall(itemId, arrivalTime, stayMinutes, note)
+    }
     override suspend fun removePlaceOccurrences(placeId: String) = error("Undo must not delete by place")
 }

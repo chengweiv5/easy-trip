@@ -202,7 +202,7 @@ class TripWorkspaceNavigationStateTest {
 
         assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.EditItineraryItem("item"), AddToItineraryUiState(), saving))
         assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.SelectMoveTargetDay("item"), AddToItineraryUiState(), moving))
-        assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.EditRouteLeg(1L), AddToItineraryUiState(), savingMode))
+        assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.EditRouteLeg("leg-1"), AddToItineraryUiState(), savingMode))
         assertEquals(false, canDismissWorkspaceOverlay(WorkspaceOverlay.Confirmation(confirmationModel()), AddToItineraryUiState(), deleting))
         assertEquals(true, canDismissWorkspaceOverlay(WorkspaceOverlay.LayerMenu, AddToItineraryUiState(), saving))
         assertEquals(
@@ -274,7 +274,7 @@ class TripWorkspaceNavigationStateTest {
             itineraryOverlayToPresent(null, move, null, null),
         )
         assertEquals(
-            WorkspaceOverlay.EditRouteLeg(stableWorkspaceOverlayId("leg-3")),
+            WorkspaceOverlay.EditRouteLeg("leg-3"),
             itineraryOverlayToPresent(null, null, null, mode),
         )
     }
@@ -288,13 +288,13 @@ class TripWorkspaceNavigationStateTest {
         assertEquals("leg-1", model.state.value.modeEditor?.legId)
     }
 
-    @Test fun failedLegDoesNotCreateModeEditor() = runTest(dispatcher) {
+    @Test fun failedLegCreatesRouteEditorForSameLeg() = runTest(dispatcher) {
         val model = itineraryModelWithLeg(com.yangchengwei.easytrip.core.model.RouteStatus.FAILED)
         advanceUntilIdle()
 
         model.dispatch(DayItineraryAction.RequestMode("leg-1"))
 
-        assertNull(model.state.value.modeEditor)
+        assertEquals("leg-1", model.state.value.modeEditor?.legId)
     }
 
     @Test fun itineraryOverlayReplacesStaleContextAfterNewContextIsEstablished() {
@@ -373,19 +373,37 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(WorkspaceOverlay.None, model.state.value.overlay)
     }
 
-    @Test fun appendCompletionClosesOnlyTheAppendOverlay() {
+    @Test fun appendCompletionWaitsForReadyWorkspaceAndClosesOnlyTheAppendOverlay() {
         assertEquals(
             AppendDayCompletionDecision.CloseOverlayAndConsume(1L),
-            appendDayCompletionDecision(WorkspaceOverlay.AddTripDay, completionToken = 1L),
+            appendDayCompletionDecision(WorkspaceOverlay.AddTripDay, completionToken = 1L, workspaceReady = true),
         )
         assertEquals(
             AppendDayCompletionDecision.Consume(1L),
-            appendDayCompletionDecision(WorkspaceOverlay.LayerMenu, completionToken = 1L),
+            appendDayCompletionDecision(WorkspaceOverlay.LayerMenu, completionToken = 1L, workspaceReady = true),
         )
         assertEquals(
             AppendDayCompletionDecision.None,
-            appendDayCompletionDecision(WorkspaceOverlay.AddTripDay, completionToken = null),
+            appendDayCompletionDecision(WorkspaceOverlay.AddTripDay, completionToken = null, workspaceReady = true),
         )
+        assertEquals(
+            AppendDayCompletionDecision.None,
+            appendDayCompletionDecision(WorkspaceOverlay.None, completionToken = 1L, workspaceReady = false),
+        )
+    }
+
+    @Test fun `restored completed add result reopens only from an empty overlay`() {
+        val restored = AddToItineraryUiState(
+            step = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep.COMPLETED,
+            submissionResult = com.yangchengwei.easytrip.itinerary.ui.AddToItinerarySubmissionResult(
+                createdItemsByDay = listOf(com.yangchengwei.easytrip.itinerary.ui.UndoCreatedItemsBatch("day-1", listOf("created"))),
+            ),
+        )
+
+        assertEquals(WorkspaceOverlay.AddToItineraryResult, addOverlayToPresent(WorkspaceOverlay.None, restored))
+        assertNull(addOverlayToPresent(WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION), restored))
+        assertNull(addOverlayToPresent(WorkspaceOverlay.EditItineraryItem("item"), restored))
+        assertNull(addOverlayToPresent(WorkspaceOverlay.PlaceDetail(1L), restored))
     }
 
     @Test fun `old target-day draft cannot open from no overlay but active add flow can advance`() {
@@ -707,6 +725,7 @@ class TripWorkspaceNavigationStateTest {
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
         override suspend fun deleteItem(itemId: String) = Unit
         override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun updateDetails(itemId: String, arrivalTime: java.time.LocalTime?, stayMinutes: Int?, note: String?) = error("Fake itinerary details are not modeled")
         override suspend fun removePlaceOccurrences(placeId: String) = Unit
     }
 
@@ -718,6 +737,7 @@ class TripWorkspaceNavigationStateTest {
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
         override suspend fun deleteItem(itemId: String) = Unit
         override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun updateDetails(itemId: String, arrivalTime: java.time.LocalTime?, stayMinutes: Int?, note: String?) = error("Fake itinerary details are not modeled")
         override suspend fun removePlaceOccurrences(placeId: String) = Unit
     }
 
@@ -735,7 +755,7 @@ class TripWorkspaceNavigationStateTest {
         override suspend fun releaseClaimIfVersionMatches(legId: String, version: Long, online: Boolean) = false
         override suspend fun completeIfVersionMatches(legId: String, version: Long, result: RouteResult) = false
         override suspend fun failIfVersionMatches(legId: String, version: Long, failure: RoutePlanOutcome.Failure) = false
-        override suspend fun overrideMode(legId: String, mode: com.yangchengwei.easytrip.core.model.TransportMode, online: Boolean) = false
+        override suspend fun updateDetails(legId: String, selectedModeOverride: com.yangchengwei.easytrip.core.model.TransportMode?, durationOverrideSeconds: Int?, note: String?, online: Boolean): Boolean = error("Fake route details are not modeled")
         override suspend fun retry(legId: String, online: Boolean) = false
     }
 }

@@ -220,8 +220,12 @@ class TripWorkspaceViewModel(
             ?: interaction.viewportRequest?.takeIf { it.reason == ViewportReason.SEARCH_FOCUS }?.points?.singleOrNull()
             ?: restoredFocusPoint.takeIf { activeFocusedId != null }
         val mapped = MapUiModelMapper.map(currentMapScope, currentPlaces, currentTrip.days, currentSnapshots, selected, currentTrip.startDate, currentSearch, activeFocusedId, focusPoint, focusedCandidate)
-        val baseMap = MapUiModelMapper.map(currentMapScope, currentPlaces, currentTrip.days, currentSnapshots, selected, currentTrip.startDate)
-        viewportController.update(currentPlaces.map(SavedPlace::point), currentMapScope, mapViewportPoints(currentMapScope, baseMap))
+        viewportController.update(
+            placePoints = currentPlaces.map(SavedPlace::point),
+            scope = currentMapScope,
+            selectedDayId = selected,
+            visiblePoints = automaticMapViewportPoints(currentMapScope, mapped),
+        )
         val model = mapped.copy(viewportRequest = viewportController.currentRequest)
         model.corruptRoutes.forEach { route -> viewModelScope.launch { routes.repairCorruptPolyline(route.legId, route.version) } }
         val selectedMarker = model.markers.firstOrNull { it.key == values[6] as String? }

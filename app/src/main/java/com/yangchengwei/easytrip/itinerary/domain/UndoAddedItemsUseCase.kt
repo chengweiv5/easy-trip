@@ -9,14 +9,21 @@ data class UndoAddedItemsOutcome(
 )
 
 class UndoAddedItemsUseCase(private val repository: ItineraryRepository) {
-    suspend operator fun invoke(request: UndoAddedItemsRequest): UndoAddedItemsOutcome {
+    suspend operator fun invoke(
+        request: UndoAddedItemsRequest,
+        onItemCompleted: suspend (String) -> Unit = {},
+    ): UndoAddedItemsOutcome {
         val deleted = mutableListOf<String>()
         request.createdItemIds.forEachIndexed { index, itemId ->
             try {
                 repository.deleteItem(itemId)
                 deleted += itemId
+                onItemCompleted(itemId)
             } catch (failure: kotlinx.coroutines.CancellationException) {
                 throw failure
+            } catch (_: ItineraryItemNotFoundException) {
+                deleted += itemId
+                onItemCompleted(itemId)
             } catch (failure: Throwable) {
                 return UndoAddedItemsOutcome(deleted, request.createdItemIds.drop(index), failure)
             }

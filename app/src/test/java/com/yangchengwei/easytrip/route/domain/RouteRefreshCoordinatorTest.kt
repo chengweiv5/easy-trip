@@ -25,7 +25,7 @@ class RouteRefreshCoordinatorTest {
         val planner = FakePlanner { if (it.version == 1L) first.await() else RoutePlanOutcome.Success(result(2)) }
         val coordinator = DefaultRouteRefreshCoordinator(repository, planner, FakeNetworkMonitor(true))
         coordinator.start(backgroundScope); runCurrent()
-        coordinator.overrideMode("leg", TransportMode.WALK); runCurrent()
+        coordinator.updateDetails("leg", TransportMode.WALK, null, null); runCurrent()
         assertEquals(2L, repository.current.version); assertEquals(2, repository.current.distanceMeters)
         first.complete(RoutePlanOutcome.Success(result(1))); runCurrent()
         assertEquals(2L, repository.current.version); assertEquals(2, repository.current.distanceMeters)
@@ -87,7 +87,7 @@ class RouteRefreshCoordinatorTest {
         val repository = FakeRepository(leg(recommended = TransportMode.TRANSIT))
         val planner = FakePlanner { RoutePlanOutcome.Success(result(4)) }
         val coordinator = DefaultRouteRefreshCoordinator(repository, planner, FakeNetworkMonitor(true))
-        coordinator.overrideMode("leg", TransportMode.WALK); coordinator.start(backgroundScope); runCurrent()
+        coordinator.updateDetails("leg", TransportMode.WALK, null, null); coordinator.start(backgroundScope); runCurrent()
         assertEquals(TransportMode.WALK, planner.requests.single().actualMode)
         assertEquals(TransportMode.WALK, repository.current.selectedMode)
     }
@@ -232,8 +232,8 @@ private class FakeRepository(initial: RouteLegWithEndpoints, private val requeue
     override suspend fun failIfVersionMatches(legId: String, version: Long, failure: RoutePlanOutcome.Failure) = mutate(legId, version) {
         if (it.status != RouteStatus.CALCULATING) null else it.copy(status=RouteStatus.FAILED,errorKind=failure.kind,errorCode=failure.code)
     }
-    override suspend fun overrideMode(legId: String, mode: TransportMode, online: Boolean): Boolean { val item=get(legId)?:return false; return mutate(legId,item.version){it.copy(version=it.version+1,selectedMode=mode,status=if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK,distanceMeters=null,errorKind=null,errorCode=null)} }
-    override suspend fun retry(legId: String, online: Boolean): Boolean { retryIds += legId; val item=get(legId)?:return false; return mutate(legId,item.version){it.copy(version=it.version+1,status=if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK,distanceMeters=null,errorKind=null,errorCode=null)} }
+    override suspend fun updateDetails(legId: String, selectedModeOverride: TransportMode?, durationOverrideSeconds: Int?, note: String?, online: Boolean): Boolean { val item=get(legId)?:return false; return if (item.selectedMode == selectedModeOverride) true else mutate(legId, item.version) { it.copy(version=it.version+1, selectedMode=selectedModeOverride, status=if(online) RouteStatus.PENDING else RouteStatus.WAITING_NETWORK, distanceMeters=null, errorKind=null, errorCode=null) } }
+        override suspend fun retry(legId: String, online: Boolean): Boolean { retryIds += legId; val item=get(legId)?:return false; return mutate(legId,item.version){it.copy(version=it.version+1,status=if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK,distanceMeters=null,errorKind=null,errorCode=null)} }
     override suspend fun recoverInterruptedCalculations(online: Boolean): Int {
         var count = 0
         state.update { values -> values.map { item ->

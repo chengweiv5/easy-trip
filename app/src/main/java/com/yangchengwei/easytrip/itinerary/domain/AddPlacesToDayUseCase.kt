@@ -7,6 +7,7 @@ data class AddPlacesRequest(
     val tripId: String,
     val dayId: String,
     val savedPlaceIds: List<String>,
+    val operationId: String? = null,
 )
 
 sealed interface AddPlacesOutcome {
@@ -41,10 +42,21 @@ class AddPlacesToDayUseCase(private val repository: ItineraryRepository) {
         val createdItemIds = mutableListOf<String>()
         val failedPlaceIds = mutableListOf<String>()
         var targetIndex = day.items.size
-        request.savedPlaceIds.forEach { placeId ->
+        request.savedPlaceIds.forEachIndexed { placeIndex, placeId ->
             try {
-                createdItemIds += repository.addItem(request.dayId, placeId, targetIndex)
-                targetIndex += 1
+                val result = request.operationId?.let { operationId ->
+                    repository.addItemIdempotently(
+                        request.dayId,
+                        placeId,
+                        targetIndex,
+                        "$operationId:${request.dayId}:$placeIndex",
+                    )
+                } ?: AddItineraryItemResult(
+                    repository.addItem(request.dayId, placeId, targetIndex),
+                    created = true,
+                )
+                createdItemIds += result.itemId
+                if (result.created) targetIndex += 1
             } catch (failure: CancellationException) {
                 throw failure
             } catch (_: TargetDayNotFoundException) {

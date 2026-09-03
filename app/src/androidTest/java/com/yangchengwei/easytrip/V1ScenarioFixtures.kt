@@ -30,6 +30,50 @@ data class ScenarioAssertion(
     val expected: String,
 )
 
+enum class Batch5FrameCheckpoint(val frameId: String) {
+    ItineraryPage("nAdK8"),
+    ItemEditor("K336N"),
+    ItemEditComplete("mz2IS"),
+    ItemDelete("l2xCsM"),
+    RouteEditor("T7aESo"),
+    SingleDayMap("eHTX3"),
+    WholeTrip("FTIOF"),
+    EmptyDay("Bcf6A"),
+    AppendDay("zvO9Z"),
+    DeleteDay("J7PZ7u"),
+}
+
+sealed interface Batch5ExecutableEvidence {
+    val requiredCheckpoints: Set<Batch5FrameCheckpoint>
+    fun execute(test: V2AcceptanceTest): Set<Batch5FrameCheckpoint>
+
+    fun verifyCheckpoints(test: V2AcceptanceTest): Set<Batch5FrameCheckpoint> =
+        execute(test).also { observed ->
+            check(observed == requiredCheckpoints) {
+                "Batch 5 evidence mismatch: missing=${requiredCheckpoints - observed}, unexpected=${observed - requiredCheckpoints}"
+            }
+        }
+
+    data object ProductionNavigationMainFlow : Batch5ExecutableEvidence {
+        override val requiredCheckpoints: Set<Batch5FrameCheckpoint> = Batch5FrameCheckpoint.entries.toSet()
+        override fun execute(test: V2AcceptanceTest): Set<Batch5FrameCheckpoint> =
+            test.executeBatch5ProductionNavigationRoomMainFlow()
+    }
+}
+
+enum class EvidenceHost { ProductionCompose, ProductionAppNavigation }
+enum class EvidenceStateSource { ControlledUiState, InMemoryRoomNavigation }
+enum class EvidenceMapSurface { DeterministicFakeSurface, RecordingFakeMapHost, RealAmap }
+
+data class Batch5FrameEvidence(
+    val scenario: V1ScenarioVariant,
+    val checkpoint: Batch5FrameCheckpoint,
+    val executable: Batch5ExecutableEvidence,
+    val host: EvidenceHost,
+    val stateSource: EvidenceStateSource,
+    val mapSurface: EvidenceMapSurface,
+)
+
 enum class BlockerCategory {
     FUNCTIONAL_STATE,
     DATA_CONSISTENCY,
@@ -86,6 +130,24 @@ object V1ScenarioFixtures {
                     name = "工作台·行程全空",
                     frameId = "WFOpg",
                     executableFactory = { V1ScenarioExecutableFactory.itineraryAllEmpty("itinerary-all-empty") },
+                ),
+                V1ScenarioVariant(
+                    parentNumber = 4,
+                    name = "行程页 · 旅程C",
+                    frameId = "nAdK8",
+                    executableFactory = { V1ScenarioExecutableFactory.workspaceItinerary("batch5-itinerary-page") },
+                ),
+                V1ScenarioVariant(
+                    parentNumber = 4,
+                    name = "行程 · 编辑完成",
+                    frameId = "mz2IS",
+                    executableFactory = { V1ScenarioExecutableFactory.workspaceItemEditComplete("batch5-item-edit-complete") },
+                ),
+                V1ScenarioVariant(
+                    parentNumber = 4,
+                    name = "单日路线",
+                    frameId = "eHTX3",
+                    executableFactory = { V1ScenarioExecutableFactory.workspaceSingleDayRoute("batch5-single-day-route") },
                 ),
             ),
         ),

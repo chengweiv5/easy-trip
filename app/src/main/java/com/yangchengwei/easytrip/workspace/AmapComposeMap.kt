@@ -52,21 +52,47 @@ import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.amap.AmapPrivacyGate
 
 
+data class ViewportCenterOffset(val xPx: Int = 0, val yPx: Int = 0)
+
 sealed interface ViewportCommand {
-    data class SinglePoint(val point: com.yangchengwei.easytrip.core.model.GeoPoint, val zoom: Float) : ViewportCommand
-    data class Bounds(val points: List<com.yangchengwei.easytrip.core.model.GeoPoint>, val paddingPx: Int) : ViewportCommand
+    data class SinglePoint(
+        val point: com.yangchengwei.easytrip.core.model.GeoPoint,
+        val zoom: Float,
+        val centerOffset: ViewportCenterOffset = ViewportCenterOffset(),
+    ) : ViewportCommand
+    data class Bounds(
+        val points: List<com.yangchengwei.easytrip.core.model.GeoPoint>,
+        val safeInsets: MapViewportInsets,
+    ) : ViewportCommand
 }
 
-data class ViewportRendering(val consumedRequestId: Long?, val command: ViewportCommand?)
+data class ViewportRendering(
+    val consumedRequestId: Long?,
+    val consumedSafeInsets: MapViewportInsets = MapViewportInsets(),
+    val command: ViewportCommand?,
+)
 
-fun viewportRendering(consumedRequestId: Long?, request: MapViewportRequest?): ViewportRendering {
-    if (request == null || request.id == consumedRequestId) return ViewportRendering(consumedRequestId, null)
+fun viewportRendering(
+    consumedRequestId: Long?,
+    request: MapViewportRequest?,
+    consumedSafeInsets: MapViewportInsets = MapViewportInsets(),
+): ViewportRendering {
+    if (request == null || (request.id == consumedRequestId && request.safeInsets == consumedSafeInsets)) {
+        return ViewportRendering(consumedRequestId, consumedSafeInsets, null)
+    }
     val command = when (request.points.size) {
         0 -> null
-        1 -> ViewportCommand.SinglePoint(request.points.single(), request.singlePointZoom ?: 15f)
-        else -> ViewportCommand.Bounds(request.points, 96)
+        1 -> ViewportCommand.SinglePoint(
+            point = request.points.single(),
+            zoom = request.singlePointZoom ?: 15f,
+            centerOffset = ViewportCenterOffset(
+                xPx = (request.safeInsets.rightPx - request.safeInsets.leftPx) / 2,
+                yPx = (request.safeInsets.bottomPx - request.safeInsets.topPx) / 2,
+            ),
+        )
+        else -> ViewportCommand.Bounds(request.points, request.safeInsets)
     }
-    return ViewportRendering(request.id, command)
+    return ViewportRendering(request.id, request.safeInsets, command)
 }
 
 data class MapLayerRendering(val mapType: Int, val showMapText: Boolean)
@@ -222,6 +248,12 @@ internal data class MapMarkerRendering(
     val badgeForegroundColor: Int = 0xFFFFFFFF.toInt(),
 )
 
+private const val DEFAULT_MARKER_Z_INDEX = 0f
+private const val FOCUSED_MARKER_Z_INDEX = 1f
+
+internal fun markerRenderOrder(markers: List<MapMarkerUi>): List<MapMarkerUi> =
+    markers.filterNot(MapMarkerUi::isFocused) + markers.filter(MapMarkerUi::isFocused)
+
 internal fun mapMarkerRendering(marker: MapMarkerUi): MapMarkerRendering {
     val primary = 0xFF2D5E3A.toInt()
     val focusedBorder = 0xFFD96F3B.toInt()
@@ -339,6 +371,7 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     private val mapLoadedListener = AMap.OnMapLoadedListener { onReadyListener?.invoke() }
     private var renderedOverlays: MapUiModel? = null
     private var consumedViewportId: Long? = null
+    private var consumedViewportInsets = MapViewportInsets()
     private val layerController = MapLayerApplicationController { rendering ->
         mapView.map.mapType = rendering.mapType
         mapView.map.showMapText(rendering.showMapText)
@@ -392,21 +425,40 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
         mapView.map.setOnPOIClickListener { poi ->
             poi.toMapPoiUi()?.let(onMapPoiClick)
         }
-        viewportRendering(consumedViewportId, model.viewportRequest).let { rendering ->
+        viewportRendering(consumedViewportId, model.viewportRequest, consumedViewportInsets).let { rendering ->
             consumedViewportId = rendering.consumedRequestId
+            consumedViewportInsets = rendering.consumedSafeInsets
             when (val command = rendering.command) {
                 null -> Unit
-                is ViewportCommand.SinglePoint -> mapView.map.moveCamera(
-                    CameraUpdateFactory.newLatLngZoom(
-                        LatLng(command.point.latitude, command.point.longitude),
-                        command.zoom,
-                    ),
-                )
+                is ViewportCommand.SinglePoint -> {
+                    mapView.map.moveCamera(
+                        CameraUpdateFactory.newLatLngZoom(
+                            LatLng(command.point.latitude, command.point.longitude),
+                            command.zoom,
+                        ),
+                    )
+                    if (command.centerOffset.xPx != 0 || command.centerOffset.yPx != 0) {
+                        mapView.map.moveCamera(
+                            CameraUpdateFactory.scrollBy(
+                                command.centerOffset.xPx.toFloat(),
+                                command.centerOffset.yPx.toFloat(),
+                            ),
+                        )
+                    }
+                }
                 is ViewportCommand.Bounds -> {
                     val bounds = LatLngBounds.Builder().apply {
                         command.points.forEach { include(LatLng(it.latitude, it.longitude)) }
                     }.build()
-                    mapView.map.moveCamera(CameraUpdateFactory.newLatLngBounds(bounds, command.paddingPx))
+                    mapView.map.moveCamera(
+                        CameraUpdateFactory.newLatLngBoundsRect(
+                            bounds,
+                            command.safeInsets.leftPx,
+                            command.safeInsets.rightPx,
+                            command.safeInsets.topPx,
+                            command.safeInsets.bottomPx,
+                        ),
+                    )
                 }
             }
         }
@@ -430,12 +482,13 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
                     .icon(routeLabelMarker(label.label, label.colorArgb.toInt())),
             )
         }
-        model.markers.forEach { marker ->
+        markerRenderOrder(model.markers).forEach { marker ->
             mapView.map.addMarker(
                 MarkerOptions()
                     .position(LatLng(marker.point.latitude, marker.point.longitude))
                     .title(marker.label)
-                    .icon(markerIcon(marker)),
+                    .icon(markerIcon(marker))
+                    .zIndex(if (marker.isFocused) FOCUSED_MARKER_Z_INDEX else DEFAULT_MARKER_Z_INDEX),
             ).`object` = marker.key
         }
     }

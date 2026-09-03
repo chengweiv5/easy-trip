@@ -173,8 +173,10 @@ class AmapComposeMapTest {
         val token = AmapConsentToken.issue(registry, active.generation)
         var readyListener: (() -> Unit)? = null
         val listenerRegistered = CountDownLatch(1)
-        var listenerRemoved = 0
-        var destroyed = 0
+        val listenerRemoved = CountDownLatch(1)
+        val hostDestroyed = CountDownLatch(1)
+        var listenerRemovedCount = 0
+        var destroyedCount = 0
         var readyCount = 0
 
         rule.scenario.onActivity { activity ->
@@ -187,12 +189,20 @@ class AmapComposeMapTest {
                         override val view: View = View(context)
                         override fun setOnReadyListener(listener: (() -> Unit)?) {
                             readyListener = listener
-                            if (listener == null) listenerRemoved++ else listenerRegistered.countDown()
+                            if (listener == null) {
+                                listenerRemovedCount++
+                                listenerRemoved.countDown()
+                            } else {
+                                listenerRegistered.countDown()
+                            }
                         }
                         override fun onCreate() = Unit
                         override fun onResume() = Unit
                         override fun onPause() = Unit
-                        override fun onDestroy() { destroyed++ }
+                        override fun onDestroy() {
+                            destroyedCount++
+                            hostDestroyed.countDown()
+                        }
                     } },
                     onMapReady = { readyCount++ },
                 )
@@ -202,12 +212,13 @@ class AmapComposeMapTest {
         assertTrue(listenerRegistered.await(5, TimeUnit.SECONDS))
         val oldCallback = requireNotNull(readyListener)
         registry.decide(false)
-        rule.scenario.onActivity { }
+        assertTrue(listenerRemoved.await(5, TimeUnit.SECONDS))
+        assertTrue(hostDestroyed.await(5, TimeUnit.SECONDS))
         oldCallback.invoke()
         rule.scenario.onActivity { }
 
-        assertEquals(1, listenerRemoved)
-        assertEquals(1, destroyed)
+        assertEquals(1, listenerRemovedCount)
+        assertEquals(1, destroyedCount)
         assertEquals(0, readyCount)
     }
 

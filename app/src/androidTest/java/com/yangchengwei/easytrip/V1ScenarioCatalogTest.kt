@@ -90,6 +90,72 @@ class V1ScenarioMetadataTest {
 
     @Test fun XsGonExecutesProductionWorkspaceVariant() = executeVariant("XsGon")
 
+    @Test fun nAdK8ExecutesProductionWorkspaceVariant() = executeVariant("nAdK8")
+
+    @Test fun mz2ISExecutesProductionWorkspaceVariant() = executeVariant("mz2IS")
+
+    @Test fun batch5FramesKeepTypedMappingAndEvidenceBoundaries() {
+        val frames = setOf("nAdK8", "K336N", "mz2IS", "l2xCsM", "T7aESo", "eHTX3", "FTIOF", "Bcf6A", "zvO9Z", "J7PZ7u")
+        val evidence = VisualBatch0EvidenceTest.batch5Evidence
+
+        assertEquals(frames, evidence.keys)
+        assertEquals(47, V1ScenarioFixtures.scenarios.size)
+        evidence.forEach { (frameId, descriptor) ->
+            assertEquals(frameId, descriptor.scenario.frameId)
+            assertEquals(frameId, descriptor.checkpoint.frameId)
+            assertEquals(Batch5ExecutableEvidence.ProductionNavigationMainFlow, descriptor.executable)
+            assertTrue(descriptor.checkpoint in descriptor.executable.requiredCheckpoints)
+            assertEquals(EvidenceHost.ProductionAppNavigation, descriptor.host)
+            assertEquals(EvidenceStateSource.InMemoryRoomNavigation, descriptor.stateSource)
+            assertEquals(EvidenceMapSurface.RecordingFakeMapHost, descriptor.mapSurface)
+        }
+    }
+
+    @Test fun eHTX3ExecutesProductionWorkspaceVariant() = executeVariant("eHTX3")
+
+    @Test fun batch5ProductionEvidenceContractRequiresEveryTypedCheckpoint() {
+        val contract = Batch5ExecutableEvidence.ProductionNavigationMainFlow
+
+        assertEquals(Batch5FrameCheckpoint.entries.toSet(), contract.requiredCheckpoints)
+        assertEquals(
+            VisualBatch0EvidenceTest.batch5Evidence.keys,
+            contract.requiredCheckpoints.mapTo(mutableSetOf(), Batch5FrameCheckpoint::frameId),
+        )
+    }
+
+    @Test fun nAdK8DistinctExecutableRunsFullContract() = executeBatch5Variant(
+        frameId = "nAdK8",
+        fixtureId = "batch5-itinerary-page",
+        screen = ScenarioScreen.ITINERARY,
+    )
+
+    @Test fun mz2ISDistinctExecutableRunsFullContract() = executeBatch5Variant(
+        frameId = "mz2IS",
+        fixtureId = "batch5-item-edit-complete",
+        screen = ScenarioScreen.ITEM_EDITOR,
+    )
+
+    @Test fun eHTX3DistinctExecutableRunsFullContract() = executeBatch5Variant(
+        frameId = "eHTX3",
+        fixtureId = "batch5-single-day-route",
+        screen = ScenarioScreen.ROUTE_EDITOR,
+    )
+
+    private fun executeBatch5Variant(frameId: String, fixtureId: String, screen: ScenarioScreen) {
+        val executable = V1ScenarioFixtures.scenarios
+            .flatMap(V1Scenario::variants)
+            .first { it.frameId == frameId }
+            .createExecutable()
+        executable.setup()
+        executable.render(compose)
+        compose.waitForIdle()
+        executable.actions(compose)
+        compose.waitForIdle()
+        executable.assertions(compose)
+        assertEquals(fixtureId, executable.fixture.id)
+        assertEquals(screen, executable.fixture.screen)
+    }
+
     @Test fun WFOpgFixtureMatchesReachableWorkspaceState() {
         val fixture = V1ScenarioExecutableFactory.itineraryAllEmptyFixture()
 

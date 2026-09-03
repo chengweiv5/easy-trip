@@ -100,6 +100,32 @@ class VisualBatch0EvidenceTest {
                     mapSurface = "deterministic fake map surface; not a real map host",
                 )
             }
+        private val batch5Frames = setOf(
+            "nAdK8", "K336N", "mz2IS", "l2xCsM", "T7aESo",
+            "eHTX3", "FTIOF", "Bcf6A", "zvO9Z", "J7PZ7u",
+        )
+        val batch5Evidence: Map<String, Batch5FrameEvidence> = V1ScenarioFixtures.scenarios
+            .flatMap { scenario ->
+                listOf(
+                    V1ScenarioVariant(
+                        parentNumber = scenario.number,
+                        name = scenario.name,
+                        frameId = scenario.frameId,
+                        executableFactory = scenario::createExecutable,
+                    ),
+                ) + scenario.variants
+            }
+            .filter { it.frameId in batch5Frames }
+            .associateBy(V1ScenarioVariant::frameId) { scenario ->
+                Batch5FrameEvidence(
+                    scenario = scenario,
+                    checkpoint = Batch5FrameCheckpoint.entries.single { it.frameId == scenario.frameId },
+                    executable = Batch5ExecutableEvidence.ProductionNavigationMainFlow,
+                    host = EvidenceHost.ProductionAppNavigation,
+                    stateSource = EvidenceStateSource.InMemoryRoomNavigation,
+                    mapSurface = EvidenceMapSurface.RecordingFakeMapHost,
+                )
+            }
     }
 
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
@@ -248,7 +274,7 @@ class VisualBatch0EvidenceTest {
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
@@ -278,7 +304,7 @@ class VisualBatch0EvidenceTest {
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
@@ -304,7 +330,7 @@ class VisualBatch0EvidenceTest {
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
@@ -328,7 +354,7 @@ class VisualBatch0EvidenceTest {
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
@@ -387,7 +413,7 @@ class VisualBatch0EvidenceTest {
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
@@ -418,7 +444,7 @@ class VisualBatch0EvidenceTest {
                     legs = itineraryLegs(),
                 ),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
@@ -449,7 +475,7 @@ class VisualBatch0EvidenceTest {
                     legs = itineraryLegs(),
                 ),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
@@ -473,7 +499,7 @@ class VisualBatch0EvidenceTest {
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(days = workspaceDays(), selectedDayId = "day-1", items = itineraryItems()),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
@@ -496,7 +522,7 @@ class VisualBatch0EvidenceTest {
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(days = workspaceDays(), selectedDayId = "day-1", items = itineraryItems(), previewOrder = itineraryItems().map { it.id }, legs = itineraryLegs()),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
@@ -518,7 +544,7 @@ class VisualBatch0EvidenceTest {
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(days = workspaceDays(), selectedDayId = "day-1", items = itineraryItems(), previewOrder = itineraryItems().map { it.id }, legs = itineraryLegs()),
                 onItineraryAction = {},
-                mapContent = { DeterministicFakeMapSurface() },
+                mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }

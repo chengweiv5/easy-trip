@@ -23,6 +23,7 @@ import java.time.Clock
 import java.time.Instant
 import java.time.ZoneOffset
 import java.util.concurrent.atomic.AtomicInteger
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
 import org.junit.After
@@ -70,6 +71,48 @@ class AddPlacesRoomIntegrationTest {
         assertEquals(3, success.createdItemIds.distinct().size)
         assertEquals(listOf(0L, 1_000L, 2_000L, 3_000L), items.map { it.position })
         assertEquals(items.zipWithNext { from, to -> from.id to to.id }, database.routeLegDao().legs("day").map { it.fromItemId to it.toItemId })
+    }
+
+    @Test fun resumedRequestUsesRoomIdempotencyKeyWithoutDuplicatingCommittedOccurrence() = runTest {
+        seedTrip("trip", "day")
+        listOf("first", "second").forEach { seedPlace(it) }
+        val request = AddPlacesRequest(
+            tripId = "trip",
+            dayId = "day",
+            savedPlaceIds = listOf("first", "second"),
+            operationId = "operation",
+        )
+        val interrupted = InterruptAfterCommittedAddRepository(repository)
+
+        assertThrows(CancellationException::class.java) {
+            runBlocking { AddPlacesToDayUseCase(interrupted)(request) }
+        }
+
+        val outcome = AddPlacesToDayUseCase(newRepository())(request) as AddPlacesOutcome.Success
+        val items = database.itineraryEditingDao().items("day")
+
+        assertEquals(listOf("first", "second"), items.map { it.savedPlaceId })
+        assertEquals(2, items.size)
+        assertEquals(items.map { it.id }, outcome.createdItemIds)
+        assertEquals(outcome.createdItemIds, outcome.createdItemIds.distinct())
+    }
+
+    @Test fun undoAfterRestartSkipsAlreadyDeletedItemAndDeletesRemainingRoomRows() = runTest {
+        seedTrip("trip", "day")
+        listOf("first", "second").forEach { seedPlace(it) }
+        val added = addPlaces(
+            AddPlacesRequest("trip", "day", listOf("first", "second"), operationId = "operation"),
+        ) as AddPlacesOutcome.Success
+        repository.deleteItem(added.createdItemIds.first())
+
+        val outcome = UndoAddedItemsUseCase(newRepository())(
+            UndoAddedItemsRequest(added.createdItemIds),
+        )
+
+        assertEquals(added.createdItemIds, outcome.deletedItemIds)
+        assertTrue(outcome.remainingItemIds.isEmpty())
+        assertNull(outcome.failure)
+        assertTrue(database.itineraryEditingDao().items("day").isEmpty())
     }
 
     @Test fun recoverableSinglePlaceFailureContinuesWithoutPositionGap() = runTest {
@@ -201,6 +244,26 @@ class AddPlacesRoomIntegrationTest {
     private class SequenceIds(private val prefix: String) : () -> String {
         private val next = AtomicInteger()
         override fun invoke(): String = "$prefix-${next.getAndIncrement()}"
+    }
+
+    private class InterruptAfterCommittedAddRepository(
+        private val delegate: ItineraryRepository,
+    ) : ItineraryRepository by delegate {
+        private var interrupted = false
+
+        override suspend fun addItemIdempotently(
+            dayId: String,
+            savedPlaceId: String,
+            targetIndex: Int,
+            idempotencyKey: String,
+        ): com.yangchengwei.easytrip.itinerary.domain.AddItineraryItemResult {
+            val result = delegate.addItemIdempotently(dayId, savedPlaceId, targetIndex, idempotencyKey)
+            if (!interrupted) {
+                interrupted = true
+                throw CancellationException("process stopped after commit")
+            }
+            return result
+        }
     }
 
     private class DeleteTargetDayAfterFirstAddRepository(

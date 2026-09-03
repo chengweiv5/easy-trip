@@ -75,7 +75,7 @@ class V1AcceptanceTest {
         assertEquals(RouteStatus.SUCCESS, after.first { it.id == stable.id }.status)
         assertTrue(after.filterNot { it.id == stable.id }.all { it.status == RouteStatus.PENDING })
         val changed = after.last()
-        assertTrue(routes.overrideMode(changed.id, TransportMode.WALK, online = true))
+        assertTrue(routes.updateDetails(changed.id, TransportMode.WALK, null, null, online = true))
         assertEquals(TransportMode.WALK, database.routeLegDao().legs(firstDay).last().selectedMode)
 
         val snapshots = days.map { day -> DayMapSnapshot(itineraries.observeDay(day.id).first(), database.routeLegDao().observeLegs(day.id).first()) }

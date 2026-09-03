@@ -52,6 +52,14 @@ class TripWorkspaceContentTest {
         assertEquals(TripWorkspaceAction.Back, action)
     }
 
+    @Test fun permanentLocationDenialKeepsReadyMapAndShowsSettingsGuidance() {
+        setContent(ready(), WorkspaceMapState.LocationPermanentlyDenied)
+
+        compose.onNodeWithText("地图就绪").assertIsDisplayed()
+        compose.onNodeWithTag("location-permission-denied").assertIsDisplayed()
+        compose.onNodeWithTag("location-open-settings").assertIsDisplayed()
+    }
+
     @Test fun jointWorkspaceEmptyShowsBrYVAWithoutContentCta() {
         setContent(
             TripWorkspacePageState.Ready(
@@ -92,7 +100,7 @@ class TripWorkspaceContentTest {
                     onPlaceAction = {},
                     itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                     onItineraryAction = {},
-                    mapContent = { Text("地图就绪") },
+                    mapContent = { _ -> Text("地图就绪") },
                     modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                 )
             }
@@ -304,7 +312,7 @@ class TripWorkspaceContentTest {
                     onPlaceAction = {},
                     itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                     onItineraryAction = {},
-                    mapContent = { Text("地图就绪") },
+                    mapContent = { _ -> Text("地图就绪") },
                     modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                 )
             }
@@ -449,7 +457,7 @@ class TripWorkspaceContentTest {
                         onPlaceAction = {},
                         itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                         onItineraryAction = {},
-                        mapContent = { Text("地图就绪") },
+                        mapContent = { _ -> Text("地图就绪") },
                         modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     )
                 }
@@ -489,7 +497,7 @@ class TripWorkspaceContentTest {
                         onPlaceAction = {},
                         itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                         onItineraryAction = {},
-                        mapContent = { Text("地图就绪") },
+                        mapContent = { _ -> Text("地图就绪") },
                         modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     )
                 }
@@ -539,7 +547,7 @@ class TripWorkspaceContentTest {
                         onPlaceAction = {},
                         itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                         onItineraryAction = {},
-                        mapContent = { Text("地图就绪") },
+                        mapContent = { _ -> Text("地图就绪") },
                         modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     )
                 }
@@ -678,7 +686,7 @@ class TripWorkspaceContentTest {
                             onPlaceAction = {},
                             itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                             onItineraryAction = {},
-                            mapContent = { Text("地图就绪") },
+                            mapContent = { _ -> Text("地图就绪") },
                             modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                         )
                     }
@@ -710,7 +718,7 @@ class TripWorkspaceContentTest {
                     onPlaceAction = {},
                     itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                     onItineraryAction = {},
-                    mapContent = { Text("地图就绪") },
+                    mapContent = { _ -> Text("地图就绪") },
                     modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     searchReturn = searchReturn.value,
                 )
@@ -791,7 +799,7 @@ class TripWorkspaceContentTest {
                     onPlaceAction = {},
                     itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                     onItineraryAction = {},
-                    mapContent = { Text("地图就绪") },
+                    mapContent = { _ -> Text("地图就绪") },
                     modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                 )
             }
@@ -817,7 +825,7 @@ class TripWorkspaceContentTest {
                     onPlaceAction = {},
                     itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                     onItineraryAction = {},
-                    mapContent = { Text("地图就绪") },
+                    mapContent = { _ -> Text("地图就绪") },
                     dayItineraryContent = { Text("单日内容", Modifier.testTag("day-content")) },
                     modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     searchReturn = searchReturn,

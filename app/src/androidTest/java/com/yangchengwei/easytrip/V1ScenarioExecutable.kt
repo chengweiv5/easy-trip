@@ -302,7 +302,7 @@ object V1ScenarioExecutableFactory {
                     onPlaceAction = {},
                     itineraryState = reachableFixture?.itineraryState ?: DayItineraryUiState(days = listOf(day), selectedDayId = day.id),
                     onItineraryAction = {},
-                    mapContent = {},
+                    mapContent = { _ -> },
                 )
             },
             verify = {
@@ -375,7 +375,7 @@ object V1ScenarioExecutableFactory {
                     onPlaceAction = {},
                     itineraryState = DayItineraryUiState(days = ready.days, selectedDayId = ready.days.first().id),
                     onItineraryAction = {},
-                    mapContent = {},
+                    mapContent = { _ -> },
                 )
             },
             verify = { rows.forEach { onNodeWithText(it.place.name).assertIsDisplayed() } },
@@ -601,9 +601,10 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    private fun workspaceItinerary(id: String): V1ScenarioExecutable {
+    fun workspaceItinerary(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<DayItineraryAction>()
         val day = TripDay("day-1", 0)
+        val items = itineraryItemsForBatch5()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITINERARY),
             ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
@@ -612,15 +613,92 @@ object V1ScenarioExecutableFactory {
                 WorkspaceItineraryContent(
                     days = listOf(day),
                     selected = ItineraryScope.Day(day.id),
-                    wholeTripDays = emptyList(),
+                    wholeTripDays = listOf(WholeTripDayUi(day.id, 1, items, itineraryLegsForBatch5(items))),
                     onSelect = {},
-                    dayContent = { DayItineraryContent(DayItineraryUiState(days = listOf(day), selectedDayId = day.id), onAction = actions::add) },
+                    dayContent = {
+                        DayItineraryContent(
+                            DayItineraryUiState(
+                                days = listOf(day),
+                                selectedDayId = day.id,
+                                items = items,
+                                previewOrder = items.map(ItineraryItemUi::id),
+                                legs = itineraryLegsForBatch5(items),
+                            ),
+                            onAction = actions::add,
+                        )
+                    },
                 )
             },
-            { onNodeWithTag("add-places-to-selected-day").performClick() },
-            { onNodeWithText("第1天 · 暂无行程").assertIsDisplayed(); check(actions == listOf(DayItineraryAction.AddPlaces)) },
+            { onNodeWithTag("more-item-1", useUnmergedTree = true).performClick() },
+            { onNodeWithText("西湖").assertIsDisplayed(); onNodeWithTag("menu-timing-item-1", useUnmergedTree = true).assertIsDisplayed() },
         )
     }
+
+    fun workspaceItemEditComplete(id: String): V1ScenarioExecutable {
+        val actions = mutableListOf<DayItineraryAction>()
+        val item = ItineraryItemUi("item-1", "西湖", "杭州市西湖区", java.time.LocalTime.of(9, 30), 60, "二层入口集合")
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.ITEM_EDITOR),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ITEM_EDITOR)),
+            actions::clear,
+            {
+                DayItineraryContent(
+                    DayItineraryUiState(
+                        days = listOf(TripDay("day-1", 0)),
+                        selectedDayId = "day-1",
+                        items = listOf(item),
+                        previewOrder = listOf(item.id),
+                        editDraft = ItineraryEditDraft(item.id, "09:30", "60", "二层入口集合"),
+                    ),
+                    onAction = actions::add,
+                )
+            },
+            { onNodeWithText("取消").performClick() },
+            {
+                onNodeWithTag("arrival-time-input").assertTextContains("09:30")
+                onNodeWithTag("stay-minutes-input").assertTextContains("60")
+                onNodeWithTag("itinerary-note-input").assertTextContains("二层入口集合")
+                check(actions == listOf(DayItineraryAction.DismissDialogs))
+            },
+        )
+    }
+
+    fun workspaceSingleDayRoute(id: String): V1ScenarioExecutable {
+        val actions = mutableListOf<DayItineraryAction>()
+        val items = itineraryItemsForBatch5()
+        val leg = itineraryLegsForBatch5(items).single()
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.ROUTE_EDITOR),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ROUTE_EDITOR)),
+            actions::clear,
+            {
+                DayItineraryContent(
+                    DayItineraryUiState(
+                        days = listOf(TripDay("day-1", 0)),
+                        selectedDayId = "day-1",
+                        items = items,
+                        previewOrder = items.map(ItineraryItemUi::id),
+                        legs = listOf(leg),
+                    ),
+                    onAction = actions::add,
+                )
+            },
+            { onNodeWithTag("edit-route-${leg.id}").performClick() },
+            {
+                onNodeWithTag("leg-${leg.id}").assertIsDisplayed()
+                check(actions == listOf(DayItineraryAction.RequestMode(leg.id)))
+            },
+        )
+    }
+
+    private fun itineraryItemsForBatch5() = listOf(
+        ItineraryItemUi("item-1", "西湖", "杭州市西湖区", java.time.LocalTime.of(9, 30), 60, "二层入口集合"),
+        ItineraryItemUi("item-2", "博物馆", "杭州市上城区", null, null),
+    )
+
+    private fun itineraryLegsForBatch5(items: List<ItineraryItemUi>) = listOf(
+        RouteLegUi("leg-1", items[0].id, items[1].id, TransportMode.DRIVE, RouteStatus.SUCCESS, 1_200, 900, null, 1_200, "避开拥堵"),
+    )
 
     private fun wholeTripItinerary(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.ITINERARY),
@@ -734,7 +812,7 @@ object V1ScenarioExecutableFactory {
             },
             { onNodeWithText("确认移出").performClick() },
             {
-                onNodeWithText("仅从当天行程移出，收藏仍保留；相邻路线将重新计算。").assertIsDisplayed()
+                onNodeWithText("仅移除本次安排；收藏仍保留；相邻路线将重新计算。").assertIsDisplayed()
                 check(actions == listOf(DayItineraryAction.ConfirmDelete))
             },
         )
@@ -985,7 +1063,7 @@ object V1ScenarioExecutableFactory {
                     onPlaceAction = {},
                     itineraryState = DayItineraryUiState(days = ready.days, selectedDayId = ready.days.first().id),
                     onItineraryAction = {},
-                    mapContent = {},
+                    mapContent = { _ -> },
                 )
             },
             interact = {
@@ -1175,8 +1253,8 @@ object V1ScenarioExecutableFactory {
             ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ROUTE_EDITOR)),
             actions::clear,
             { DayItineraryContent(DayItineraryUiState(legs = listOf(leg), modeEditor = com.yangchengwei.easytrip.itinerary.ui.RouteModeEditDraft("leg-1", TransportMode.WALK)), onAction = actions::add) },
-            { onNodeWithTag("mode-option-DRIVE").performClick() },
-            { onNodeWithText("选择交通方式").assertIsDisplayed(); check(actions == listOf(DayItineraryAction.SelectMode(TransportMode.DRIVE))) },
+            { onNodeWithTag("route-mode-option-DRIVE").performClick() },
+            { onNodeWithText("交通路段编辑").assertIsDisplayed(); check(actions == listOf(DayItineraryAction.SelectMode(TransportMode.DRIVE))) },
         )
     }
 
@@ -1256,7 +1334,7 @@ object V1ScenarioExecutableFactory {
                 onPlaceAction = {},
                 itineraryState = DayItineraryUiState(days = ready.days, selectedDayId = day?.id),
                 onItineraryAction = {},
-                mapContent = {},
+                mapContent = { _ -> },
             )
         },
         interact,
@@ -1311,7 +1389,7 @@ object V1ScenarioExecutableFactory {
                     onPlaceAction = {},
                     itineraryState = DayItineraryUiState(days = listOf(day), selectedDayId = day.id),
                     onItineraryAction = {},
-                    mapContent = {},
+                    mapContent = { _ -> },
                 )
             },
             verify = {

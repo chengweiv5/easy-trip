@@ -566,7 +566,9 @@ class WorkspaceFlowTest {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val repository = Itineraries()
         val saved = SavedStateHandle()
-        var add = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), saved)
+        val add = androidx.compose.runtime.mutableStateOf(
+            AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), saved),
+        )
         val placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
             rows = listOf(
                 com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(
@@ -587,7 +589,7 @@ class WorkspaceFlowTest {
                 onWorkspaceEffect = {},
                 itineraryState = DayItineraryUiState(days = listOf(TripDay("day-1", 0)), selectedDayId = "day-1"),
                 placeState = placeState,
-                addToItineraryViewModel = add,
+                addToItineraryViewModel = add.value,
             )
         }
         compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
@@ -599,11 +601,99 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("已加入第 1 天").assertIsDisplayed()
         compose.onNodeWithText("撤销").assertIsDisplayed()
 
-        add = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), saved)
-        compose.waitForIdle()
+        compose.runOnIdle {
+            add.value = AddToItineraryViewModel(
+                "trip",
+                AddPlacesToDayUseCase(repository),
+                UndoAddedItemsUseCase(repository),
+                SavedStateHandle(),
+            )
+            workspace.closeOverlay()
+        }
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("已加入第 1 天").fetchSemanticsNodes().isEmpty()
+        }
+        val restored = AddToItineraryViewModel(
+            "trip",
+            AddPlacesToDayUseCase(repository),
+            UndoAddedItemsUseCase(repository),
+            saved,
+        )
+        compose.runOnIdle { add.value = restored }
+        compose.waitUntil(5_000) {
+            restored.state.value.step == AddToItineraryStep.COMPLETED &&
+                compose.onAllNodesWithText("已加入第 1 天").fetchSemanticsNodes().isNotEmpty()
+        }
 
         compose.onNodeWithText("已加入第 1 天").assertIsDisplayed()
         compose.onNodeWithText("撤销").assertIsDisplayed()
+    }
+
+    @Test fun loadingWorkspaceDoesNotDestructivelyReconcileRestoredAddDraft() {
+        val trips = DeferredTrips()
+        val workspace = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), SavedStateHandle())
+        val add = AddToItineraryViewModel(
+            "trip",
+            AddPlacesToDayUseCase(Itineraries()),
+            UndoAddedItemsUseCase(Itineraries()),
+            SavedStateHandle(),
+        )
+        add.reconcile(listOf("day-1"), setOf("p"))
+        add.startForPlace("p")
+        add.toggleTargetDay("day-1")
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                addToItineraryViewModel = add,
+            )
+        }
+        compose.onNodeWithText("旅行加载中").assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, add.state.value.step)
+            assertEquals(listOf("p"), add.state.value.selectedPlaceIds)
+            assertEquals(listOf("day-1"), add.state.value.selectedTargetDayIds)
+        }
+    }
+
+    @Test fun readyWorkspaceWaitsForAuthoritativePlacesBeforeDestructiveReconcile() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val placeViewModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", DeferredPlaces(), null)
+        val add = AddToItineraryViewModel(
+            "trip",
+            AddPlacesToDayUseCase(Itineraries()),
+            UndoAddedItemsUseCase(Itineraries()),
+            SavedStateHandle(),
+        )
+        add.reconcile(listOf("day-1", "day-2"), setOf("p"))
+        add.startForPlace("p")
+        add.toggleTargetDay("day-1")
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeViewModel = placeViewModel,
+                addToItineraryViewModel = add,
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+
+        compose.runOnIdle {
+            assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, add.state.value.step)
+            assertEquals(listOf("p"), add.state.value.selectedPlaceIds)
+            assertEquals(listOf("day-1"), add.state.value.selectedTargetDayIds)
+        }
     }
 
     @Test fun failedQuickAddDoesNotExposeOldBulkTargetDayDraft() {
@@ -987,6 +1077,50 @@ class WorkspaceFlowTest {
             assertEquals(ItineraryScope.Day("day-2"), workspace.state.value.itineraryScope)
             assertEquals(1, closed)
         }
+    }
+
+    @Test fun missingResultReselectOpensTargetDayWithoutCancellingDraft() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = MissingTargetItineraries()
+        val restored = AddToItineraryViewModel(
+            "trip",
+            AddPlacesToDayUseCase(repository),
+            UndoAddedItemsUseCase(repository),
+            SavedStateHandle(),
+        )
+        restored.reconcile(listOf("day-1", "deleted-day"), setOf("p"))
+        restored.startForPlace("p")
+        restored.toggleTargetDay("deleted-day")
+        restored.submit()
+        compose.waitUntil(5_000) { restored.state.value.submissionResult?.missingTargetDayIds == listOf("deleted-day") }
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+                    rows = listOf(com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(SavedPlace("p", "trip", "poi", "地点", "地址", GeoPoint(1.0, 2.0), "", emptyList()), 0, false)),
+                ),
+                addToItineraryViewModel = restored,
+            )
+        }
+        compose.waitUntil(5_000) {
+            workspace.pageState.value is TripWorkspacePageState.Ready &&
+                compose.onAllNodesWithText("所选旅行日已不存在").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithText("请重新选择旅行日").performClick()
+
+        compose.waitUntil(5_000) {
+            workspace.state.value.overlay == WorkspaceOverlay.SelectAddTargetDay &&
+                restored.state.value.step == AddToItineraryStep.SELECT_TARGET_DAY
+        }
+        assertEquals(listOf("p"), restored.state.value.selectedPlaceIds)
+        compose.onNodeWithTag("target-day-day-1").assertIsDisplayed()
     }
 
     @Test fun addResultDistinguishesPartialMissingAndUndoStates() {
@@ -1437,9 +1571,10 @@ class WorkspaceFlowTest {
 
         compose.waitUntil {
             state.modeEditor?.legId == "ready" &&
-                workspace.state.value.overlay == WorkspaceOverlay.EditRouteLeg(stableWorkspaceOverlayId("ready"))
+                workspace.state.value.overlay == WorkspaceOverlay.EditRouteLeg("ready")
         }
-        compose.onNodeWithText("选择交通方式").assertIsDisplayed()
+        compose.onNodeWithText("交通路段编辑").assertIsDisplayed()
+        compose.onNodeWithTag("route-duration-minutes-input").assertIsDisplayed()
     }
 
     @Test fun failedLegRetryDoesNotOpenModeOverlay() {
@@ -1679,7 +1814,7 @@ class WorkspaceFlowTest {
         private val coordinator = object : RouteRefreshCoordinator {
             override fun start(scope: CoroutineScope) = Unit
             override suspend fun retry(legId: String) = false
-            override suspend fun overrideMode(legId: String, mode: TransportMode) = false
+            override suspend fun updateDetails(legId: String, selectedModeOverride: TransportMode?, durationOverrideSeconds: Int?, note: String?) = false
         }
         @androidx.compose.runtime.Composable fun render() = renderNavigation(
             AppNavigationDependencies(
@@ -1856,6 +1991,32 @@ class WorkspaceFlowTest {
         fun emit(poi: MapPoiUi) = callback(poi)
     }
 
+    private class DeferredPlaces : SavedPlaceRepository {
+        override fun observePlaces(tripId: String, tagIds: Set<String>) = kotlinx.coroutines.flow.emptyFlow<List<SavedPlace>>()
+        override fun observeTags(tripId: String) = kotlinx.coroutines.flow.emptyFlow<List<PlaceTag>>()
+        override fun observeSavedPoiIds(tripId: String) = kotlinx.coroutines.flow.emptyFlow<Set<String>>()
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("p")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = PlaceDeletionImpact(0, 0)
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
+    private class DeferredTrips : TripRepository {
+        override fun observeTrip(tripId: String) = kotlinx.coroutines.flow.emptyFlow<TripWithDays?>()
+        override fun observeTrips() = flowOf(emptyList<TripSummary>())
+        override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun renameTrip(tripId: String, name: String) = Unit
+        override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
+        override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
+        override suspend fun applyDateRange(command: com.yangchengwei.easytrip.trip.domain.DateRangeApply) = Unit
+        override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit
+        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day"
+        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion) = Unit
+        override suspend fun deleteTrip(tripId: String) = Unit
+    }
+
     private class LongNameTrips(private val name: String) : TripRepository {
         override fun observeTrip(tripId: String) = flowOf(TripWithDays("trip", name, LocalDate.of(2026, 8, 25), TravelMode.FLEXIBLE, listOf(TripDay("day-1", 0))))
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
@@ -1987,6 +2148,18 @@ class WorkspaceFlowTest {
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
     }
 
+    private class MissingTargetItineraries : ItineraryRepository {
+        override fun observeDay(dayId: String) = flowOf(DayItinerary(dayId, "trip", emptyList()))
+        override suspend fun addItem(dayId: String, savedPlaceId: String, targetIndex: Int): String {
+            throw com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException(dayId)
+        }
+        override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
+        override suspend fun deleteItem(itemId: String) = Unit
+        override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?) = Unit
+        override suspend fun removePlaceOccurrences(placeId: String) = Unit
+    }
+
     private class SchedulingItineraries : ItineraryRepository {
         override fun observeDay(dayId: String) = flowOf(
             DayItinerary(
@@ -2001,6 +2174,7 @@ class WorkspaceFlowTest {
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
         override suspend fun deleteItem(itemId: String) = Unit
         override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?) = error("Fake itinerary details are not modeled")
         override suspend fun removePlaceOccurrences(placeId: String) = Unit
     }
 
@@ -2023,6 +2197,7 @@ class WorkspaceFlowTest {
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
         override suspend fun deleteItem(itemId: String) = Unit
         override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+        override suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?) = error("Fake itinerary details are not modeled")
         override suspend fun removePlaceOccurrences(placeId: String) = Unit
     }
 
@@ -2038,7 +2213,7 @@ class WorkspaceFlowTest {
         override suspend fun releaseClaimIfVersionMatches(legId: String, version: Long, online: Boolean) = false
         override suspend fun completeIfVersionMatches(legId: String, version: Long, result: RouteResult) = false
         override suspend fun failIfVersionMatches(legId: String, version: Long, failure: RoutePlanOutcome.Failure) = false
-        override suspend fun overrideMode(legId: String, mode: com.yangchengwei.easytrip.core.model.TransportMode, online: Boolean) = false
+        override suspend fun updateDetails(legId: String, selectedModeOverride: com.yangchengwei.easytrip.core.model.TransportMode?, durationOverrideSeconds: Int?, note: String?, online: Boolean): Boolean = error("Fake route details are not modeled")
         override suspend fun retry(legId: String, online: Boolean) = false
     }
 }

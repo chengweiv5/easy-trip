@@ -228,7 +228,7 @@ class WorkspaceChromeTest {
                         onPlaceAction = {},
                         itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                         onItineraryAction = {},
-                        mapContent = { Text("地图就绪") },
+                        mapContent = { _ -> Text("地图就绪") },
                         modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     )
                 }
@@ -262,7 +262,7 @@ class WorkspaceChromeTest {
                         onPlaceAction = {},
                         itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
                         onItineraryAction = {},
-                        mapContent = { Text("地图就绪") },
+                        mapContent = { _ -> Text("地图就绪") },
                         modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     )
                 }
@@ -294,7 +294,7 @@ class WorkspaceChromeTest {
                         onAction = actions::add,
                         placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(), onPlaceAction = {},
                         itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(), onItineraryAction = {},
-                        mapContent = { Text("地图就绪") }, modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                        mapContent = { _ -> Text("地图就绪") }, modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     )
                 }
             }
@@ -315,7 +315,7 @@ class WorkspaceChromeTest {
                         onAction = actions::add,
                         placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(), onPlaceAction = {},
                         itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(), onItineraryAction = {},
-                        mapContent = { Text("地图就绪") }, modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                        mapContent = { _ -> Text("地图就绪") }, modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     )
                 }
             }
@@ -342,7 +342,7 @@ class WorkspaceChromeTest {
                         onAction = actions::add,
                         placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(), onPlaceAction = {},
                         itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(), onItineraryAction = {},
-                        mapContent = { Box(Modifier.fillMaxSize().clickable { mapClicks++ }) },
+                        mapContent = { _ -> Box(Modifier.fillMaxSize().clickable { mapClicks++ }) },
                         modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                     )
                 }

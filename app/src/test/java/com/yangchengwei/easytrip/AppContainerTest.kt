@@ -176,5 +176,5 @@ private object FakePlaceSearchDataSource : PlaceSearchDataSource {
 private object FakeRouteRefreshCoordinator : RouteRefreshCoordinator {
     override fun start(scope: CoroutineScope) = Unit
     override suspend fun retry(legId: String) = false
-    override suspend fun overrideMode(legId: String, mode: TransportMode) = false
+    override suspend fun updateDetails(legId: String, selectedModeOverride: TransportMode?, durationOverrideSeconds: Int?, note: String?) = false
 }

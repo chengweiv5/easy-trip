@@ -16,6 +16,7 @@ import com.yangchengwei.easytrip.place.data.SavedPlaceEntity
 import com.yangchengwei.easytrip.route.data.RouteLegEntity
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.InsertSide
+import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.ui.CreateTimeMode
@@ -506,6 +507,18 @@ class RoomTripRepositoryTest {
         override fun withZone(zone: ZoneId): Clock = this
         override fun instant(): Instant = value
         fun advance() { value = value.plusSeconds(1) }
+    }
+
+    @Test fun appendKeepsExistingDayPrefixAndAddsReturnedDayAtEnd() = runTest {
+        repository = RoomTripRepository(database.tripDao(), clock, IdFactory(), database)
+        val tripId = repository.createTrip(CreateTrip("Trip", 2))
+        val before = repository.observeTrip(tripId).first()!!.days.map(TripDay::id)
+
+        val returnedDayId = repository.insertDay(tripId, null, InsertSide.AFTER)
+        val after = repository.observeTrip(tripId).first()!!.days.map(TripDay::id)
+
+        assertEquals(before, after.dropLast(1))
+        assertEquals(returnedDayId, after.last())
     }
 
     private class IdFactory : () -> String {

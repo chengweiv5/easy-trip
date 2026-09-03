@@ -133,12 +133,14 @@ fun TripWorkspaceScreen(
         searchReturn = searchReturn,
         layerFailureMessage = layerFailureMessage,
         onLayerFailureMessageDismissed = { layerFailureMessage = null },
-        mapContent = {
+        mapContent = { safeInsets ->
             val token = consent
             if (token != null && ready != null) key(mapAttempt) {
                 val attemptId = mapAttempt
                 AmapComposeMap(
-                    model = ready.map,
+                    model = ready.map.copy(
+                        viewportRequest = ready.map.viewportRequest?.copy(safeInsets = safeInsets),
+                    ),
                     onMarkerClick = onMarkerClick,
                     consent = token,
                     onMapPoiClick = onMapPoiClick,
@@ -354,6 +356,7 @@ private fun WorkspaceOverlayContent(
                         draft = draft,
                         onArrivalTimeChange = { onItineraryAction(DayItineraryAction.UpdateArrivalTime(it)) },
                         onStayMinutesChange = { onItineraryAction(DayItineraryAction.UpdateStayMinutes(it)) },
+                        onNoteChange = { onItineraryAction(DayItineraryAction.UpdateNote(it)) },
                         onSave = { onItineraryAction(DayItineraryAction.SaveEdit) },
                         onCancel = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
                     )
@@ -451,23 +454,17 @@ private fun WorkspaceOverlayContent(
                         onClose()
                     }
                 },
-                title = { Text("选择交通方式") },
+                confirmButton = {},
                 text = {
-                    Column {
-                        editor.saveError?.let { Text(it) }
-                        TransportMode.entries.forEach { mode ->
-                            CompactSecondaryButton(
-                                { onItineraryAction(DayItineraryAction.SelectMode(mode)) },
-                                enabled = !editor.isSaving,
-                            ) { Text(mode.label()) }
-                        }
-                    }
-                },
-                confirmButton = {
-                    CompactPrimaryButton(
-                        { onItineraryAction(DayItineraryAction.SaveMode) },
-                        enabled = !editor.isSaving,
-                    ) { Text(if (editor.isSaving) "保存中…" else "保存") }
+                    com.yangchengwei.easytrip.itinerary.ui.EditRouteLegContent(
+                        draft = editor,
+                        onSelectMode = { onItineraryAction(DayItineraryAction.SelectMode(it)) },
+                        onClearSelectedModeOverride = { onItineraryAction(DayItineraryAction.ClearSelectedModeOverride) },
+                        onDurationMinutesChange = { onItineraryAction(DayItineraryAction.UpdateRouteDurationMinutes(it)) },
+                        onNoteChange = { onItineraryAction(DayItineraryAction.UpdateRouteNote(it)) },
+                        onSave = { onItineraryAction(DayItineraryAction.SaveMode) },
+                        onCancel = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
+                    )
                 },
             )
         }
@@ -484,7 +481,7 @@ private fun WorkspaceOverlayContent(
                     title = { Text("移出${itineraryDelete.placeName}？") },
                     text = {
                         Column {
-                            Text("仅从当天行程移出，收藏仍保留。")
+                            Text("仅移除本次安排；收藏仍保留；相邻路线将重新计算。")
                             itineraryDelete.deleteError?.let { Text(it) }
                         }
                     },

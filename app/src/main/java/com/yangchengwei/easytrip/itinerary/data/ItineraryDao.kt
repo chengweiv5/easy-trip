@@ -16,6 +16,7 @@ data class DayItineraryRow(
     val position: Long?,
     val arrivalTime: LocalTime?,
     val stayDurationMinutes: Int?,
+    val note: String?,
     val placeId: String?,
     val placeName: String?,
     val placeAddress: String?,
@@ -27,7 +28,7 @@ data class DayItineraryRow(
 interface ItineraryDao {
     @Query("""
         SELECT d.id AS dayId, d.tripId,
-               i.id AS itemId, i.position, i.arrivalTime, i.stayDurationMinutes,
+               i.id AS itemId, i.position, i.arrivalTime, i.stayDurationMinutes, i.note,
                p.id AS placeId, p.name AS placeName, p.address AS placeAddress,
                p.latitude, p.longitude
         FROM trip_days d
@@ -45,6 +46,9 @@ interface ItineraryDao {
 
     @Query("SELECT * FROM itinerary_items WHERE id=:itemId")
     suspend fun item(itemId: String): ItineraryItemEntity?
+
+    @Query("SELECT * FROM itinerary_items WHERE idempotencyKey=:idempotencyKey")
+    suspend fun itemByIdempotencyKey(idempotencyKey: String): ItineraryItemEntity?
 
     @Query("SELECT tripId FROM trip_days WHERE id=:dayId")
     suspend fun tripIdForDay(dayId: String): String?
@@ -75,6 +79,9 @@ interface ItineraryDao {
 
     @Query("UPDATE itinerary_items SET arrivalTime=:arrivalTime, stayDurationMinutes=:stayMinutes WHERE id=:itemId")
     suspend fun timing(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?): Int
+
+    @Query("UPDATE itinerary_items SET arrivalTime=:arrivalTime, stayDurationMinutes=:stayMinutes, note=:note WHERE id=:itemId")
+    suspend fun details(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?): Int
 
     @Transaction
     suspend fun dayAndItems(dayId: String): DayItems? {

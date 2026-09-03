@@ -79,46 +79,63 @@ internal fun RouteLegContent(
                         Text(
                             listOfNotNull(
                                 state.distanceMeters?.let(::formatDistance),
-                                state.durationSeconds?.let(::formatDuration),
+                                leg.effectiveDurationSeconds?.let(::formatDuration),
                             ).joinToString(" · "),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    RouteLegUiState.Pending -> RouteLegStatusText("等待计算路线")
-                    RouteLegUiState.Calculating -> RouteLegStatusText("正在计算路线")
-                    RouteLegUiState.WaitingForNetwork -> RouteLegStatusText("联网后计算路线")
-                    is RouteLegUiState.Failed -> Text(
-                        state.message,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.error,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
+                    RouteLegUiState.Pending -> RouteLegStatus(leg, "等待计算路线")
+                    RouteLegUiState.Calculating -> RouteLegStatus(leg, "正在计算路线")
+                    RouteLegUiState.WaitingForNetwork -> RouteLegStatus(leg, "联网后计算路线")
+                    is RouteLegUiState.Failed -> {
+                        Text(
+                            state.message,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.error,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                        leg.effectiveDurationSeconds?.let { duration ->
+                            Text(
+                                "预计 ${formatDuration(duration)}",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            )
+                        }
+                    }
                 }
             }
-            when (state) {
-                RouteLegUiState.Pending -> PendingRouteIndicator()
-                RouteLegUiState.Calculating -> CircularProgressIndicator(
-                    Modifier.size(24.dp).semantics { contentDescription = "路线计算中" },
-                )
-                RouteLegUiState.WaitingForNetwork -> WaitingForNetworkIndicator()
-                is RouteLegUiState.Failed -> onRetry?.let {
-                    TextButton(it, Modifier.testTag("retry-${leg.id}")) { Text("重试") }
+            Column(horizontalAlignment = Alignment.End) {
+                onMode?.let {
+                    TextButton(it, Modifier.testTag("edit-route-${leg.id}")) { Text("编辑路段") }
                 }
-                is RouteLegUiState.Ready -> Unit
+                when (state) {
+                    RouteLegUiState.Pending -> PendingRouteIndicator()
+                    RouteLegUiState.Calculating -> CircularProgressIndicator(
+                        Modifier.size(24.dp).semantics { contentDescription = "路线计算中" },
+                    )
+                    RouteLegUiState.WaitingForNetwork -> WaitingForNetworkIndicator()
+                    is RouteLegUiState.Failed -> onRetry?.let {
+                        TextButton(it, Modifier.testTag("retry-${leg.id}")) { Text("重试") }
+                    }
+                    is RouteLegUiState.Ready -> Unit
+                }
             }
         }
     }
 }
 
 @Composable
-private fun RouteLegStatusText(text: String) {
-    Text(
-        text,
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
-    )
+private fun RouteLegStatus(leg: RouteLegUi, text: String) {
+    Text(text, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    leg.effectiveDurationSeconds?.let { duration ->
+        Text(
+            "预计 ${formatDuration(duration)}",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
 }
 
 @Composable

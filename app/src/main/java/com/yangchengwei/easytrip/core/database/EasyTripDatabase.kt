@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.core.database
 import androidx.room.*
+import androidx.room.migration.Migration
+import androidx.sqlite.db.SupportSQLiteDatabase
 import com.yangchengwei.easytrip.itinerary.data.ItineraryItemEntity
 import com.yangchengwei.easytrip.place.data.*
 import com.yangchengwei.easytrip.route.data.RouteLegEntity
@@ -25,5 +27,22 @@ interface SchemaItineraryDao {
     @Query("SELECT COUNT(*) FROM itinerary_items WHERE tripId=:tripId") suspend fun items(tripId:String):Int
     @Query("SELECT COUNT(*) FROM route_legs WHERE tripDayId IN (SELECT id FROM trip_days WHERE tripId=:tripId)") suspend fun legs(tripId:String):Int
 }
-@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class],version=1,exportSchema=true)
-@TypeConverters(Converters::class) abstract class EasyTripDatabase:RoomDatabase(){ abstract fun tripDao():TripDao; abstract fun placeDao():SchemaPlaceDao; abstract fun savedPlaceDao():com.yangchengwei.easytrip.place.data.PlaceDao; abstract fun itineraryDao():SchemaItineraryDao; abstract fun itineraryEditingDao():com.yangchengwei.easytrip.itinerary.data.ItineraryDao; abstract fun routeDao():SchemaRouteDao; abstract fun routeLegDao():com.yangchengwei.easytrip.route.data.RouteLegDao; abstract fun deleteImpactDao():DeleteImpactDao; abstract fun cascadeCountDao():CascadeCountDao }
+@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class],version=3,exportSchema=true)
+@TypeConverters(Converters::class) abstract class EasyTripDatabase:RoomDatabase(){
+    abstract fun tripDao():TripDao; abstract fun placeDao():SchemaPlaceDao; abstract fun savedPlaceDao():com.yangchengwei.easytrip.place.data.PlaceDao; abstract fun itineraryDao():SchemaItineraryDao; abstract fun itineraryEditingDao():com.yangchengwei.easytrip.itinerary.data.ItineraryDao; abstract fun routeDao():SchemaRouteDao; abstract fun routeLegDao():com.yangchengwei.easytrip.route.data.RouteLegDao; abstract fun deleteImpactDao():DeleteImpactDao; abstract fun cascadeCountDao():CascadeCountDao
+    companion object {
+        val MIGRATION_1_2 = object : Migration(1, 2) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE itinerary_items ADD COLUMN note TEXT")
+                db.execSQL("ALTER TABLE route_legs ADD COLUMN durationOverrideSeconds INTEGER")
+                db.execSQL("ALTER TABLE route_legs ADD COLUMN note TEXT")
+            }
+        }
+        val MIGRATION_2_3 = object : Migration(2, 3) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE itinerary_items ADD COLUMN idempotencyKey TEXT")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_itinerary_items_idempotencyKey ON itinerary_items(idempotencyKey)")
+            }
+        }
+    }
+}

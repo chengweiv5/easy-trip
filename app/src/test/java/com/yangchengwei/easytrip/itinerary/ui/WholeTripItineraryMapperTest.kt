@@ -70,6 +70,7 @@ class WholeTripItineraryMapperTest {
                             distanceMeters = 3200,
                             durationSeconds = 900,
                             error = "未找到可用路线",
+                            selectedModeOverride = TransportMode.TAXI,
                         ),
                     ),
                 ),

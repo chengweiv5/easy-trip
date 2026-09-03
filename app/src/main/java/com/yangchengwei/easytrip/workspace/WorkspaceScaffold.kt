@@ -26,6 +26,7 @@ internal data class WorkspaceLayoutMetrics(
     val sheetHeight: Dp,
     val sheetTop: Dp,
     val overlayBottomInset: Dp,
+    val stableSheetHeight: Dp = sheetHeight,
 )
 
 internal fun workspaceLayoutMetrics(
@@ -55,7 +56,34 @@ internal fun workspaceLayoutMetrics(
         sheetHeight = sheetHeight,
         sheetTop = sheetTop,
         overlayBottomInset = sheetHeight + overlayGap,
+        stableSheetHeight = sheetHeight,
     )
+}
+
+internal fun workspaceViewportInsets(
+    metrics: WorkspaceLayoutMetrics,
+    density: Float,
+): MapViewportInsets {
+    fun Dp.toPixels() = (value * density).toInt()
+    fun clampPair(first: Int, second: Int, available: Int): Pair<Int, Int> {
+        val maxTotal = (available - 1).coerceAtLeast(0)
+        val total = first + second
+        if (total <= maxTotal) return first to second
+        if (total == 0) return 0 to 0
+        val clampedFirst = (first.toLong() * maxTotal / total).toInt()
+        return clampedFirst to (maxTotal - clampedFirst)
+    }
+    val (left, right) = clampPair(
+        20.dp.toPixels(),
+        68.dp.toPixels(),
+        metrics.availableWidth.toPixels(),
+    )
+    val (top, bottom) = clampPair(
+        72.dp.toPixels(),
+        (metrics.stableSheetHeight + 78.dp).toPixels(),
+        metrics.availableHeight.toPixels(),
+    )
+    return MapViewportInsets(left, top, right, bottom)
 }
 
 @Composable
@@ -86,7 +114,7 @@ internal fun WorkspaceScaffold(
             availableHeight = maxHeight,
             visibleSheetHeight = visibleSheetHeight,
             availableWidth = maxWidth,
-        )
+        ).copy(stableSheetHeight = anchors[sheetLevel])
         Box(Modifier.fillMaxSize()) {
             map(metrics)
             topOverlay(metrics)

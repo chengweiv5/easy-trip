@@ -8,6 +8,7 @@ import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.itinerary.domain.UndoAddedItemsUseCase
 import java.time.LocalTime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -993,6 +994,443 @@ class AddToItineraryStateTest {
         assertTrue(viewModel.state.value.selectedTargetDayIds.isEmpty())
     }
 
+    @Test fun `successful replacement submission clears the missing day it handled`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                    Result.success("day-2-hotel"),
+                ),
+            ),
+        )
+        val viewModel = model(repository)
+        ready(viewModel, days = listOf("day-1", "day-2", "day-3"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-3")
+        viewModel.submit()
+        advanceUntilIdle()
+        assertEquals(listOf("day-3"), viewModel.state.value.submissionResult?.missingTargetDayIds)
+
+        viewModel.reselectTargetDays()
+        viewModel.reconcile(listOf("day-1", "day-2"), setOf("hotel", "museum", "park"))
+        viewModel.toggleTargetDay("day-2")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.submissionResult?.missingTargetDayIds.orEmpty().isEmpty())
+        assertTrue(viewModel.state.value.submissionResult?.missingTargetDayLabels.orEmpty().isEmpty())
+        assertEquals(AddToItineraryStep.COMPLETED, viewModel.state.value.step)
+    }
+
+    @Test fun `replacement submission clears only one of multiple missing days`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                    Result.success("day-1-hotel"),
+                ),
+            ),
+        )
+        val viewModel = model(repository)
+        ready(viewModel, days = listOf("day-1", "day-2", "day-3"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-2")
+        viewModel.toggleTargetDay("day-3")
+        viewModel.submit()
+        advanceUntilIdle()
+        assertEquals(listOf("day-2", "day-3"), viewModel.state.value.submissionResult?.missingTargetDayIds)
+
+        viewModel.reselectTargetDays()
+        viewModel.reconcile(listOf("day-1"), setOf("hotel"))
+        viewModel.toggleTargetDay("day-1")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertEquals(listOf("day-3"), viewModel.state.value.submissionResult?.missingTargetDayIds)
+        assertEquals(mapOf("day-3" to "第 3 天"), viewModel.state.value.submissionResult?.missingTargetDayLabels)
+    }
+
+    @Test fun `restored replacement clears only the missing day selected before recreation`() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val originalRepository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                ),
+            ),
+        )
+        val original = model(originalRepository, saved)
+        ready(original, days = listOf("day-1", "day-2", "day-3"))
+        original.startForPlace("hotel")
+        original.toggleTargetDay("day-2")
+        original.toggleTargetDay("day-3")
+        original.submit()
+        advanceUntilIdle()
+        original.reselectTargetDays()
+
+        val restored = model(
+            FakeItineraries(addResults = ArrayDeque(listOf(Result.success("day-1-hotel")))),
+            saved,
+        )
+        restored.reconcile(listOf("day-1"), setOf("hotel"))
+        restored.toggleTargetDay("day-1")
+        restored.submit()
+        advanceUntilIdle()
+
+        assertEquals(listOf("day-3"), restored.state.value.submissionResult?.missingTargetDayIds)
+        assertEquals(mapOf("day-3" to "第 3 天"), restored.state.value.submissionResult?.missingTargetDayLabels)
+    }
+
+    @Test fun `two successful replacement requests clear both mapped missing days`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                    Result.success("day-4-hotel"),
+                    Result.success("day-5-hotel"),
+                ),
+            ),
+        )
+        val viewModel = model(repository)
+        ready(viewModel, days = listOf("day-1", "day-2", "day-3", "day-4", "day-5"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-2")
+        viewModel.toggleTargetDay("day-3")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        viewModel.reselectTargetDays()
+        viewModel.reconcile(listOf("day-1", "day-4", "day-5"), setOf("hotel"))
+        viewModel.toggleTargetDay("day-4")
+        viewModel.toggleTargetDay("day-5")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.submissionResult?.missingTargetDayIds.orEmpty().isEmpty())
+        assertTrue(viewModel.state.value.submissionResult?.missingTargetDayLabels.orEmpty().isEmpty())
+    }
+
+    @Test fun `restored two replacement requests clear both mapped missing days`() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val original = model(
+            FakeItineraries(
+                addResults = ArrayDeque(
+                    listOf(
+                        Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                        Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                    ),
+                ),
+            ),
+            saved,
+        )
+        ready(original, days = listOf("day-1", "day-2", "day-3", "day-4", "day-5"))
+        original.startForPlace("hotel")
+        original.toggleTargetDay("day-2")
+        original.toggleTargetDay("day-3")
+        original.submit()
+        advanceUntilIdle()
+        original.reselectTargetDays()
+
+        val restored = model(
+            FakeItineraries(
+                addResults = ArrayDeque(
+                    listOf(Result.success("day-4-hotel"), Result.success("day-5-hotel")),
+                ),
+            ),
+            saved,
+        )
+        restored.reconcile(listOf("day-1", "day-4", "day-5"), setOf("hotel"))
+        restored.toggleTargetDay("day-4")
+        restored.toggleTargetDay("day-5")
+        restored.submit()
+        advanceUntilIdle()
+
+        assertTrue(restored.state.value.submissionResult?.missingTargetDayIds.orEmpty().isEmpty())
+        assertTrue(restored.state.value.submissionResult?.missingTargetDayLabels.orEmpty().isEmpty())
+    }
+
+    @Test fun `missing replacement clears only requests whose replacements succeeded`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                    Result.success("day-4-hotel"),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("hotel")),
+                ),
+            ),
+        )
+        val viewModel = model(repository)
+        ready(viewModel, days = listOf("day-1", "day-2", "day-3", "day-4", "day-5"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-2")
+        viewModel.toggleTargetDay("day-3")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        viewModel.reselectTargetDays()
+        viewModel.reconcile(listOf("day-1", "day-4", "day-5"), setOf("hotel"))
+        viewModel.toggleTargetDay("day-4")
+        viewModel.toggleTargetDay("day-5")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertEquals(listOf("day-3"), viewModel.state.value.submissionResult?.missingTargetDayIds)
+    }
+
+    @Test fun `failed mapped replacement is retained until retry succeeds`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                    Result.success("day-4-hotel"),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("hotel")),
+                    Result.success("day-5-hotel"),
+                ),
+            ),
+        )
+        val viewModel = model(repository)
+        ready(viewModel, days = listOf("day-1", "day-2", "day-3", "day-4", "day-5"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-2")
+        viewModel.toggleTargetDay("day-3")
+        viewModel.submit()
+        advanceUntilIdle()
+        viewModel.reselectTargetDays()
+        viewModel.reconcile(listOf("day-1", "day-4", "day-5"), setOf("hotel"))
+        viewModel.toggleTargetDay("day-4")
+        viewModel.toggleTargetDay("day-5")
+        viewModel.submit()
+        advanceUntilIdle()
+        assertEquals(listOf("day-3"), viewModel.state.value.submissionResult?.missingTargetDayIds)
+
+        viewModel.retryPartial()
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.submissionResult?.missingTargetDayIds.orEmpty().isEmpty())
+        assertTrue(viewModel.state.value.submissionResult?.missingTargetDayLabels.orEmpty().isEmpty())
+    }
+
+    @Test fun `restored failed mapped replacement clears missing after retry succeeds`() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val original = model(
+            FakeItineraries(
+                addResults = ArrayDeque(
+                    listOf(
+                        Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                        Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                        Result.success("day-4-hotel"),
+                        Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("hotel")),
+                    ),
+                ),
+            ),
+            saved,
+        )
+        ready(original, days = listOf("day-1", "day-2", "day-3", "day-4", "day-5"))
+        original.startForPlace("hotel")
+        original.toggleTargetDay("day-2")
+        original.toggleTargetDay("day-3")
+        original.submit()
+        advanceUntilIdle()
+        original.reselectTargetDays()
+        original.reconcile(listOf("day-1", "day-4", "day-5"), setOf("hotel"))
+        original.toggleTargetDay("day-4")
+        original.toggleTargetDay("day-5")
+        original.submit()
+        advanceUntilIdle()
+        assertEquals(listOf("day-3"), original.state.value.submissionResult?.missingTargetDayIds)
+
+        val restored = model(
+            FakeItineraries(addResults = ArrayDeque(listOf(Result.success("day-5-hotel")))),
+            saved,
+        )
+        restored.reconcile(listOf("day-1", "day-4", "day-5"), setOf("hotel"))
+        restored.retryPartial()
+        restored.submit()
+        advanceUntilIdle()
+
+        assertTrue(restored.state.value.submissionResult?.missingTargetDayIds.orEmpty().isEmpty())
+        assertTrue(restored.state.value.submissionResult?.missingTargetDayLabels.orEmpty().isEmpty())
+    }
+
+    @Test fun `two pending replacements retry only selected target and preserve other mapping`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("hotel")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("hotel")),
+                    Result.success("day-4-hotel"),
+                ),
+            ),
+        )
+        val viewModel = model(repository)
+        ready(viewModel, days = listOf("day-1", "day-2", "day-3", "day-4", "day-5"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-2")
+        viewModel.toggleTargetDay("day-3")
+        viewModel.submit()
+        advanceUntilIdle()
+        viewModel.reselectTargetDays()
+        viewModel.reconcile(listOf("day-1", "day-4", "day-5"), setOf("hotel"))
+        viewModel.toggleTargetDay("day-4")
+        viewModel.toggleTargetDay("day-5")
+        viewModel.submit()
+        advanceUntilIdle()
+        assertEquals(listOf("day-2", "day-3"), viewModel.state.value.submissionResult?.missingTargetDayIds)
+
+        viewModel.retryPartial()
+        viewModel.toggleTargetDay("day-5")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertEquals(listOf("day-3"), viewModel.state.value.submissionResult?.missingTargetDayIds)
+        assertEquals(listOf("day-2:hotel", "day-3:hotel", "day-4:hotel", "day-5:hotel", "day-4:hotel"), repository.addRequests)
+    }
+
+    @Test fun `two pending replacements allow replacing one target without crash or remapping the other`() = runTest(dispatcher) {
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("hotel")),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("hotel")),
+                    Result.success("day-4-hotel"),
+                    Result.success("day-6-hotel"),
+                ),
+            ),
+        )
+        val viewModel = model(repository)
+        ready(viewModel, days = listOf("day-1", "day-2", "day-3", "day-4", "day-5", "day-6"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-2")
+        viewModel.toggleTargetDay("day-3")
+        viewModel.submit()
+        advanceUntilIdle()
+        viewModel.reselectTargetDays()
+        viewModel.reconcile(listOf("day-1", "day-4", "day-5", "day-6"), setOf("hotel"))
+        viewModel.toggleTargetDay("day-4")
+        viewModel.toggleTargetDay("day-5")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        viewModel.retryPartial()
+        viewModel.toggleTargetDay("day-5")
+        viewModel.toggleTargetDay("day-6")
+        viewModel.submit()
+        advanceUntilIdle()
+
+        assertTrue(viewModel.state.value.submissionResult?.missingTargetDayIds.orEmpty().isEmpty())
+        assertEquals(listOf("day-2:hotel", "day-3:hotel", "day-4:hotel", "day-5:hotel", "day-4:hotel", "day-6:hotel"), repository.addRequests)
+    }
+
+    @Test fun `restored two pending replacements keep identity when retrying one target`() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val original = model(
+            FakeItineraries(
+                addResults = ArrayDeque(
+                    listOf(
+                        Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                        Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-3")),
+                        Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("hotel")),
+                        Result.failure(com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException("hotel")),
+                    ),
+                ),
+            ),
+            saved,
+        )
+        ready(original, days = listOf("day-1", "day-2", "day-3", "day-4", "day-5"))
+        original.startForPlace("hotel")
+        original.toggleTargetDay("day-2")
+        original.toggleTargetDay("day-3")
+        original.submit()
+        advanceUntilIdle()
+        original.reselectTargetDays()
+        original.reconcile(listOf("day-1", "day-4", "day-5"), setOf("hotel"))
+        original.toggleTargetDay("day-4")
+        original.toggleTargetDay("day-5")
+        original.submit()
+        advanceUntilIdle()
+
+        val restoredRepository = FakeItineraries(
+            addResults = ArrayDeque(listOf(Result.success("day-4-hotel"))),
+        )
+        val restored = model(restoredRepository, saved)
+        restored.reconcile(listOf("day-1", "day-4", "day-5"), setOf("hotel"))
+        restored.retryPartial()
+        restored.toggleTargetDay("day-5")
+        restored.submit()
+        advanceUntilIdle()
+
+        assertEquals(listOf("day-3"), restored.state.value.submissionResult?.missingTargetDayIds)
+        assertEquals(listOf("day-4:hotel"), restoredRepository.addRequests)
+    }
+
+    @Test fun `unknown validity snapshot preserves draft replacement and undo until ready`() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(
+                listOf(
+                    Result.success("day-1-hotel"),
+                    Result.failure(com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException("day-2")),
+                ),
+            ),
+        )
+        val viewModel = model(repository, saved)
+        ready(viewModel, days = listOf("day-1", "day-2"), places = setOf("hotel"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-1")
+        viewModel.toggleTargetDay("day-2")
+        viewModel.submit()
+        advanceUntilIdle()
+        viewModel.reselectTargetDays()
+        val before = viewModel.state.value
+
+        viewModel.reconcile(validDayIds = null, validPlaceIds = null)
+
+        assertEquals(before, viewModel.state.value)
+        val restored = model(FakeItineraries(), saved)
+        assertEquals(before.selectedPlaceIds, restored.state.value.selectedPlaceIds)
+        assertEquals(before.submissionResult, restored.state.value.submissionResult)
+        assertEquals(before.undoBatches, restored.state.value.undoBatches)
+    }
+
+    @Test fun `authoritative ready snapshot applies pending deletion after unknown snapshot`() = runTest(dispatcher) {
+        val viewModel = model(FakeItineraries())
+        ready(viewModel, days = listOf("day-1"), places = setOf("hotel"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-1")
+
+        viewModel.reconcile(validDayIds = null, validPlaceIds = null)
+        assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, viewModel.state.value.step)
+        viewModel.reconcile(validDayIds = listOf("day-1"), validPlaceIds = emptySet())
+
+        assertEquals(AddToItineraryStep.SELECT_PLACES, viewModel.state.value.step)
+        assertEquals(AddToItineraryEditingTarget.FromPlacePool, viewModel.state.value.editingTarget)
+    }
+
+    @Test fun `reconcile removed selected place returns target-day draft to place selection`() = runTest(dispatcher) {
+        val viewModel = model(FakeItineraries())
+        ready(viewModel, days = listOf("day-1"), places = setOf("hotel"))
+        viewModel.startForPlace("hotel")
+        viewModel.toggleTargetDay("day-1")
+        assertEquals(AddToItineraryStep.SELECT_TARGET_DAY, viewModel.state.value.step)
+
+        viewModel.reconcile(listOf("day-1"), emptySet())
+
+        assertEquals(AddToItineraryStep.SELECT_PLACES, viewModel.state.value.step)
+        assertEquals(AddToItineraryEditingTarget.FromPlacePool, viewModel.state.value.editingTarget)
+        assertTrue(viewModel.state.value.selectedPlaceIds.isEmpty())
+        assertTrue(viewModel.state.value.selectedTargetDayIds.isEmpty())
+    }
+
     @Test fun `missing target is excluded from retryable cross-day failures`() = runTest(dispatcher) {
         val repository = FakeItineraries(
             addResults = ArrayDeque(
@@ -1050,6 +1488,30 @@ class AddToItineraryStateTest {
             ),
             viewModel.state.value.submissionResult?.createdItemsByDay,
         )
+    }
+
+    @Test fun `restored in progress submission resumes without duplicating checkpointed occurrence`() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val repository = FakeItineraries(
+            addResults = ArrayDeque(listOf(Result.success("item-first"), Result.success("item-second"))),
+            cancelAfterSuccessfulAdds = 1,
+        )
+        val original = model(repository, saved)
+        ready(original, places = setOf("first", "second"))
+        original.startFromPool()
+        original.togglePlace("first")
+        original.togglePlace("second")
+        original.selectTargetDay("day-1")
+        original.submit()
+        advanceUntilIdle()
+
+        val restored = model(repository, saved)
+        ready(restored, places = setOf("first", "second"))
+        advanceUntilIdle()
+
+        assertEquals(AddToItineraryStep.COMPLETED, restored.state.value.step)
+        assertEquals(listOf("item-first", "item-second"), restored.state.value.undoCreatedItemIds)
+        assertEquals(listOf("day-1:first", "day-1:second"), repository.addRequests)
     }
 
     @Test fun `completed result and undo batches restore after recreation`() = runTest(dispatcher) {
@@ -1138,6 +1600,7 @@ class AddToItineraryStateTest {
         private val deleteFailures: MutableMap<String, Int> = mutableMapOf(),
         private val createdItemId: String? = null,
         private val addResults: ArrayDeque<Result<String>> = ArrayDeque(),
+        private val cancelAfterSuccessfulAdds: Int? = null,
         private val missingDayIds: Set<String> = emptySet(),
         private val failedDayIds: Set<String> = emptySet(),
         private val throwOnAdd: Boolean = false,
@@ -1146,6 +1609,27 @@ class AddToItineraryStateTest {
         val addRequests = mutableListOf<String>()
         val deletedItemIds = mutableListOf<String>()
         val deleteCalls = mutableListOf<String>()
+        private val itemIdsByIdempotencyKey = mutableMapOf<String, String>()
+        private var successfulAdds = 0
+        private var cancellationDelivered = false
+
+        override suspend fun addItemIdempotently(
+            dayId: String,
+            savedPlaceId: String,
+            targetIndex: Int,
+            idempotencyKey: String,
+        ): com.yangchengwei.easytrip.itinerary.domain.AddItineraryItemResult {
+            itemIdsByIdempotencyKey[idempotencyKey]?.let {
+                return com.yangchengwei.easytrip.itinerary.domain.AddItineraryItemResult(it, created = false)
+            }
+            val itemId = addItem(dayId, savedPlaceId, targetIndex)
+            itemIdsByIdempotencyKey[idempotencyKey] = itemId
+            if (!cancellationDelivered && cancelAfterSuccessfulAdds != null && successfulAdds >= cancelAfterSuccessfulAdds) {
+                cancellationDelivered = true
+                throw CancellationException("process stopped after commit")
+            }
+            return com.yangchengwei.easytrip.itinerary.domain.AddItineraryItemResult(itemId, created = true)
+        }
 
         override fun observeDay(dayId: String): Flow<DayItinerary> =
             if (dayId in missingDayIds) throw com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException(dayId)
@@ -1157,7 +1641,11 @@ class AddToItineraryStateTest {
             addGate?.await()
             if (throwOnAdd) throw IllegalStateException("add failed")
             if (dayId in failedDayIds) throw com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException(savedPlaceId)
-            if (addResults.isNotEmpty()) return addResults.removeFirst().getOrThrow()
+            if (addResults.isNotEmpty()) {
+                val itemId = addResults.removeFirst().getOrThrow()
+                successfulAdds++
+                return itemId
+            }
             val configuredOutcome = outcome
             if (configuredOutcome is AddPlacesOutcome.TargetDayMissing) {
                 if (configuredOutcome.createdItemIds.isNotEmpty()) {
@@ -1168,6 +1656,7 @@ class AddToItineraryStateTest {
                 throw com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException(dayId)
             }
             if (savedPlaceId in failedPlaceIds) throw com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException(savedPlaceId)
+            successfulAdds++
             return createdItemId ?: "created-$savedPlaceId"
         }
         override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = Unit
@@ -1182,6 +1671,7 @@ class AddToItineraryStateTest {
             deletedItemIds += itemId
         }
         override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) = Unit
+    override suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?) = error("Fake itinerary details are not modeled")
         override suspend fun removePlaceOccurrences(placeId: String) = error("undo must not remove occurrences by place")
     }
 }

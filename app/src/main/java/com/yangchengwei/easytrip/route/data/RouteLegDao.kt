@@ -21,8 +21,14 @@ data class RouteLegEndpointRow(val id:String,val version:Long,val status:RouteSt
  @Query("UPDATE route_legs SET status='SUCCESS',distanceMeters=:distance,durationSeconds=:duration,polyline=:polyline,errorKind=NULL,errorCode=NULL WHERE id=:id AND version=:version AND status='CALCULATING'") suspend fun complete(id:String,version:Long,distance:Int,duration:Int,polyline:String):Int
  @Query("UPDATE route_legs SET status='FAILED',errorKind=:kind,errorCode=:code WHERE id=:id AND version=:version AND status='CALCULATING'") suspend fun fail(id:String,version:Long,kind:RouteErrorKind,code:String?):Int
  @Query("UPDATE route_legs SET selectedMode=:mode WHERE id=:legId") suspend fun selectMode(legId:String,mode:TransportMode?):Int
+ @Query("SELECT * FROM route_legs WHERE id=:legId") suspend fun leg(legId:String):RouteLegEntity?
+ @Query("UPDATE route_legs SET durationOverrideSeconds=:durationOverrideSeconds,note=:note WHERE id=:legId") suspend fun updateMetadata(legId:String,durationOverrideSeconds:Int?,note:String?):Int
+ @Query("UPDATE route_legs SET selectedMode=:selectedModeOverride,durationOverrideSeconds=:durationOverrideSeconds,note=:note,version=version+1,status=:status,distanceMeters=NULL,durationSeconds=NULL,polyline=NULL,errorKind=NULL,errorCode=NULL WHERE id=:legId") suspend fun updateModeAndMetadata(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,status:RouteStatus):Int
+ @Transaction suspend fun updateDetails(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean):Int {
+  val current=leg(legId)?:return 0
+  return if(selectedModeOverride == current.selectedMode) updateMetadata(legId,durationOverrideSeconds,note) else updateModeAndMetadata(legId,selectedModeOverride,durationOverrideSeconds,note,if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK)
+ }
  @Query("SELECT * FROM route_legs WHERE tripDayId IN (SELECT id FROM trip_days WHERE tripId=:tripId)") suspend fun legsForTrip(tripId:String):List<RouteLegEntity>
  @Query("UPDATE route_legs SET recommendedMode=:mode,version=version+1,status=:status,distanceMeters=NULL,durationSeconds=NULL,polyline=NULL,errorKind=NULL,errorCode=NULL WHERE id=:id") suspend fun resetRecommendation(id:String,mode:TransportMode,status:RouteStatus):Int
- @Query("UPDATE route_legs SET selectedMode=:mode,version=version+1,status=:status,distanceMeters=NULL,durationSeconds=NULL,polyline=NULL,errorKind=NULL,errorCode=NULL WHERE id=:id") suspend fun override(id:String,mode:TransportMode,status:RouteStatus):Int
  @Query("UPDATE route_legs SET version=version+1,status=:status,distanceMeters=NULL,durationSeconds=NULL,polyline=NULL,errorKind=NULL,errorCode=NULL WHERE id=:id") suspend fun retry(id:String,status:RouteStatus):Int
 }

@@ -96,6 +96,22 @@ class MapViewportControllerTest {
         assertEquals(listOf(shanghai), request?.points)
     }
 
+    @Test fun `viewport request identity retains scope selected day and complete geometry`() {
+        val controller = MapViewportController()
+        val routeGeometry = listOf(beijing, changedBeijing, shanghai)
+
+        val request = controller.update(
+            placePoints = listOf(beijing, shanghai),
+            scope = MapScope.SINGLE_DAY,
+            selectedDayId = "day-1",
+            visiblePoints = routeGeometry,
+        )
+
+        assertEquals(MapScope.SINGLE_DAY, request?.scope)
+        assertEquals("day-1", request?.selectedDayId)
+        assertEquals(routeGeometry, request?.points)
+    }
+
     @Test fun `switching selected day refits changed single day points once`() {
         val controller = initializedController()
         controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(beijing))

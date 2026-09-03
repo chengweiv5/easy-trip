@@ -15,6 +15,7 @@ data class ItineraryItemUi(
     val address: String,
     val arrivalTime: LocalTime?,
     val stayMinutes: Int?,
+    val note: String? = null,
 )
 
 sealed interface RouteLegUiState {
@@ -38,7 +39,12 @@ data class RouteLegUi(
     val distanceMeters: Int?,
     val durationSeconds: Int?,
     val error: String?,
+    val durationOverrideSeconds: Int? = null,
+    val note: String? = null,
+    val selectedModeOverride: TransportMode? = null,
 ) {
+    val effectiveDurationSeconds: Int?
+        get() = durationOverrideSeconds ?: durationSeconds
     val state: RouteLegUiState
         get() = when (status) {
             RouteStatus.SUCCESS -> RouteLegUiState.Ready(distanceMeters, durationSeconds)
@@ -47,6 +53,33 @@ data class RouteLegUi(
             RouteStatus.WAITING_NETWORK -> RouteLegUiState.WaitingForNetwork
             RouteStatus.FAILED -> RouteLegUiState.Failed(error ?: "路线计算失败")
         }
+}
+
+internal fun currentDisplayItems(
+    items: List<ItineraryItemUi>,
+    previewOrder: List<String>,
+): List<ItineraryItemUi> {
+    val byId = items.associateBy(ItineraryItemUi::id)
+    return if (
+        previewOrder.size == items.size &&
+        previewOrder.distinct().size == items.size &&
+        previewOrder.all(byId::containsKey)
+    ) {
+        previewOrder.map(byId::getValue)
+    } else {
+        items
+    }
+}
+
+internal fun visibleRouteLegs(
+    items: List<ItineraryItemUi>,
+    previewOrder: List<String>,
+    legs: List<RouteLegUi>,
+): List<RouteLegUi> {
+    val adjacentPairs = currentDisplayItems(items, previewOrder)
+        .zipWithNext { from, to -> from.id to to.id }
+        .toSet()
+    return legs.filter { it.fromItemId to it.toItemId in adjacentPairs }
 }
 
 data class WholeTripDayUi(
@@ -82,6 +115,7 @@ internal fun ItineraryItem.toItineraryItemUi() = ItineraryItemUi(
     address = place.address,
     arrivalTime = arrivalTime,
     stayMinutes = stayMinutes,
+    note = note,
 )
 
 internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(
@@ -92,6 +126,9 @@ internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(
     status = status,
     distanceMeters = distanceMeters,
     durationSeconds = durationSeconds,
+    durationOverrideSeconds = durationOverrideSeconds,
+    note = note,
+    selectedModeOverride = selectedMode,
     error = errorKind.toRouteErrorSummary() ?: errorCode,
 )
 
