@@ -77,6 +77,113 @@ class ItineraryTimelineContentTest {
     }
 
     @Test
+    fun saveFailureContentIsOrderedAccessibleAndActionableAt280DpWithTwoTimesFontScale() {
+        var keepEditing = 0
+        var retrySave = 0
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                EasyTripTheme {
+                    Box(
+                        Modifier
+                            .width(280.dp)
+                            .height(600.dp)
+                            .testTag("save-failure-container"),
+                    ) {
+                        ItinerarySaveFailureContent(
+                            onKeepEditing = { keepEditing++ },
+                            onRetrySave = { retrySave++ },
+                            modifier = Modifier.width(280.dp),
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("itinerary-save-failure").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
+        )
+        compose.onNodeWithText("修改尚未保存", useUnmergedTree = true)
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        val container = compose.onNodeWithTag("save-failure-container").getUnclippedBoundsInRoot()
+        val title = compose.onNodeWithText("修改尚未保存").getUnclippedBoundsInRoot()
+        val body = compose.onNodeWithText("到达时间、停留时长和备注仍保留在当前页面。请重新保存，或稍后再试。")
+            .getUnclippedBoundsInRoot()
+        val keep = compose.onNodeWithTag("itinerary-save-failure-keep-editing")
+            .assertIsDisplayed().assertHasClickAction().getUnclippedBoundsInRoot()
+        val retry = compose.onNodeWithTag("itinerary-save-failure-retry")
+            .assertIsDisplayed().assertHasClickAction().getUnclippedBoundsInRoot()
+        assertTrue("title=$title body=$body", title.top < body.top)
+        assertTrue("body=$body keep=$keep", body.bottom <= keep.top)
+        assertTrue("keep=$keep retry=$retry", keep.bottom <= retry.top)
+        listOf(keep, retry).forEach { action ->
+            assertTrue("action=$action", action.right - action.left >= 48.dp && action.bottom - action.top >= 48.dp)
+            assertTrue("container=$container action=$action", action.left >= container.left && action.right <= container.right)
+            assertTrue("container=$container action=$action", action.top >= container.top && action.bottom <= container.bottom)
+        }
+        assertTrue("keep=$keep retry=$retry", keep.right <= retry.left || retry.right <= keep.left || keep.bottom <= retry.top || retry.bottom <= keep.top)
+
+        compose.onNodeWithTag("itinerary-save-failure-keep-editing").performClick()
+        compose.onNodeWithTag("itinerary-save-failure-retry").performClick()
+        compose.runOnIdle {
+            assertEquals(1, keepEditing)
+            assertEquals(1, retrySave)
+        }
+    }
+
+    @Test
+    fun saveFailureFooterRemainsFixedInsideShort280DpTwoTimesFontContainer() {
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                EasyTripTheme {
+                    Box(
+                        Modifier
+                            .width(280.dp)
+                            .height(300.dp)
+                            .testTag("save-failure-short-container"),
+                    ) {
+                        ItinerarySaveFailureContent(
+                            onKeepEditing = {},
+                            onRetrySave = {},
+                            modifier = Modifier.width(280.dp).height(300.dp),
+                        )
+                    }
+                }
+            }
+        }
+
+        val container = compose.onNodeWithTag("save-failure-short-container").getUnclippedBoundsInRoot()
+        val scroll = compose.onNodeWithTag("itinerary-save-failure-scroll").getUnclippedBoundsInRoot()
+        val keep = compose.onNodeWithTag("itinerary-save-failure-keep-editing").getUnclippedBoundsInRoot()
+        val retry = compose.onNodeWithTag("itinerary-save-failure-retry").getUnclippedBoundsInRoot()
+        listOf(keep, retry).forEach { action ->
+            assertTrue("container=$container action=$action", action.left >= container.left && action.right <= container.right)
+            assertTrue("container=$container action=$action", action.top >= container.top && action.bottom <= container.bottom)
+            assertTrue("action=$action", action.right - action.left >= 48.dp && action.bottom - action.top >= 48.dp)
+        }
+        assertTrue("scroll=$scroll keep=$keep", scroll.bottom <= keep.top)
+        assertTrue("keep=$keep retry=$retry", keep.bottom <= retry.top)
+    }
+
+    @Test
+    fun itemEditorDoesNotRenderSaveErrorOutsideRecoveryContent() {
+        compose.setContent {
+            EasyTripTheme {
+                EditItineraryItemContent(
+                    draft = ItineraryEditDraft("item", "09:30", "60", saveError = "保存失败"),
+                    onArrivalTimeChange = {},
+                    onStayMinutesChange = {},
+                    onSave = {},
+                    onCancel = {},
+                )
+            }
+        }
+
+        compose.onAllNodesWithText("保存失败").assertCountEquals(0)
+    }
+
+    @Test
     fun itemEditContainsMultilineNoteAndLocksEveryActionWhileSaving() {
         val draft = ItineraryEditDraft(
             itemId = "i1",
@@ -101,7 +208,7 @@ class ItineraryTimelineContentTest {
 
         compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
         compose.onNodeWithText("第一行\n第二行").assertIsDisplayed()
-        compose.onNodeWithText("保存失败").assertIsDisplayed()
+        compose.onAllNodesWithText("保存失败").assertCountEquals(0)
         compose.onNodeWithText("保存中…").assertIsNotEnabled()
         compose.onNodeWithText("取消").assertIsNotEnabled()
     }
@@ -680,10 +787,10 @@ class ItineraryTimelineContentTest {
             SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
         )
         compose.onNodeWithText("正在计算路线").assertIsDisplayed()
-        compose.onNodeWithText("联网后计算路线").assertIsDisplayed()
+        compose.onNodeWithText("等待联网后计算").assertIsDisplayed()
         compose.onNodeWithText("路线暂时不可用").assertIsDisplayed()
         compose.onNodeWithContentDescription("路线计算中").assertIsDisplayed()
-        compose.onNodeWithContentDescription("离线，联网后计算路线").assertIsDisplayed()
+        compose.onNodeWithContentDescription("离线，等待联网后计算").assertIsDisplayed()
     }
 
     @Test
@@ -702,10 +809,10 @@ class ItineraryTimelineContentTest {
 
         compose.onNodeWithText("等待计算路线").assertIsDisplayed()
         compose.onNodeWithText("正在计算路线").assertIsDisplayed()
-        compose.onNodeWithText("联网后计算路线").assertIsDisplayed()
+        compose.onNodeWithText("等待联网后计算").assertIsDisplayed()
         compose.onNodeWithContentDescription("等待计算路线").assertIsDisplayed()
         compose.onNodeWithContentDescription("路线计算中").assertIsDisplayed()
-        compose.onNodeWithContentDescription("离线，联网后计算路线").assertIsDisplayed()
+        compose.onNodeWithContentDescription("离线，等待联网后计算").assertIsDisplayed()
         compose.onNodeWithTag("state-calculating").assert(
             SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
         )
@@ -732,13 +839,14 @@ class ItineraryTimelineContentTest {
     }
 
     @Test
-    fun onlyReadyLegOpensModeEditor() {
+    fun readySiblingRemainsEditableWhileEveryNonReadyLegHasNoEditAction() {
         val opened = mutableListOf<String>()
         compose.setContent {
             EasyTripTheme {
                 androidx.compose.foundation.layout.Column {
                     listOf(
                         routeLeg("ready", RouteStatus.SUCCESS),
+                        routeLeg("pending", RouteStatus.PENDING),
                         routeLeg("calculating", RouteStatus.CALCULATING),
                         routeLeg("waiting", RouteStatus.WAITING_NETWORK),
                         routeLeg("failed", RouteStatus.FAILED, error = "失败"),
@@ -753,11 +861,170 @@ class ItineraryTimelineContentTest {
             }
         }
 
-        compose.onNodeWithTag("mode-ready").assertHasClickAction().performClick()
-        compose.onAllNodesWithTag("mode-calculating").assertCountEquals(0)
-        compose.onAllNodesWithTag("mode-waiting").assertCountEquals(0)
-        compose.onAllNodesWithTag("mode-failed").assertCountEquals(0)
+        compose.onNodeWithTag("edit-route-ready").assertHasClickAction().performClick()
+        listOf("pending", "calculating", "waiting", "failed").forEach { id ->
+            compose.onAllNodesWithTag("edit-route-$id").assertCountEquals(0)
+        }
         compose.runOnIdle { assertEquals(listOf("ready"), opened) }
+    }
+
+    @Test
+    fun waitingShowsExactMessageWithoutEditOrRetry() {
+        compose.setContent {
+            EasyTripTheme {
+                RouteLegContent(
+                    routeLeg("waiting", RouteStatus.WAITING_NETWORK),
+                    onMode = {},
+                    onRetry = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("等待联网后计算").assertIsDisplayed()
+        compose.onAllNodesWithTag("edit-route-waiting").assertCountEquals(0)
+        compose.onAllNodesWithTag("retry-waiting").assertCountEquals(0)
+    }
+
+    @Test
+    fun failedShowsRecoverySummaryAndOnlyRetriesItsOwnLeg() {
+        val retried = mutableListOf<String>()
+        compose.setContent {
+            EasyTripTheme {
+                androidx.compose.foundation.layout.Column {
+                    RouteLegContent(
+                        routeLeg("failed", RouteStatus.FAILED, error = "底层异常"),
+                        onMode = { retried += "edited" },
+                        onRetry = { retried += "failed" },
+                    )
+                    RouteLegContent(
+                        routeLeg("ready", RouteStatus.SUCCESS),
+                        onRetry = { retried += "ready" },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("路线计算失败").assertIsDisplayed()
+        compose.onNodeWithText("底层异常").assertIsDisplayed()
+        compose.onAllNodesWithTag("edit-route-failed").assertCountEquals(0)
+        compose.onNodeWithTag("retry-failed").performClick()
+        compose.onAllNodesWithTag("retry-ready").assertCountEquals(0)
+        compose.runOnIdle { assertEquals(listOf("failed"), retried) }
+    }
+
+    @Test
+    fun routeRecoveryStatesRemainAccessibleAt280DpWithTwoTimesFontScale() {
+        val actions = mutableListOf<String>()
+        val failureDetail = "路线服务暂时不可用，请稍后重新计算"
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                EasyTripTheme {
+                    androidx.compose.foundation.layout.Column(
+                        Modifier.width(280.dp).testTag("route-recovery-container"),
+                    ) {
+                        RouteLegContent(
+                            leg = routeLeg("waiting-2x", RouteStatus.WAITING_NETWORK),
+                            modifier = Modifier.width(280.dp).testTag("route-waiting-2x"),
+                            onMode = { actions += "waiting-edit" },
+                            onRetry = { actions += "waiting-retry" },
+                        )
+                        RouteLegContent(
+                            leg = routeLeg("failed-2x", RouteStatus.FAILED, error = failureDetail),
+                            modifier = Modifier.width(280.dp).testTag("route-failed-2x"),
+                            onMode = { actions += "failed-edit" },
+                            onRetry = { actions += "failed-retry" },
+                        )
+                        RouteLegContent(
+                            leg = routeLeg("ready-2x", RouteStatus.SUCCESS),
+                            modifier = Modifier.width(280.dp).testTag("route-ready-2x"),
+                            onMode = { actions += "ready-edit" },
+                            onRetry = { actions += "ready-retry" },
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("route-waiting-2x").assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
+        )
+        compose.onNodeWithText("等待联网后计算").assertIsDisplayed()
+        compose.onNodeWithContentDescription("离线，等待联网后计算").assertIsDisplayed()
+        compose.onAllNodesWithTag("edit-route-waiting-2x").assertCountEquals(0)
+        compose.onAllNodesWithTag("retry-waiting-2x").assertCountEquals(0)
+
+        compose.onNodeWithTag("route-failed-2x")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+            .assert(SemanticsMatcher("has no content description") {
+                !it.config.contains(SemanticsProperties.ContentDescription)
+            })
+        compose.onNodeWithText("路线计算失败").assertIsDisplayed()
+        compose.onNodeWithText(failureDetail).assertIsDisplayed()
+        compose.onAllNodesWithTag("retry-failed-2x").assertCountEquals(1)
+        compose.onAllNodesWithTag("edit-route-failed-2x").assertCountEquals(0)
+        compose.onNodeWithTag("edit-route-ready-2x").assertHasClickAction()
+
+        val container = compose.onNodeWithTag("route-recovery-container").getUnclippedBoundsInRoot()
+        val failed = compose.onNodeWithTag("route-failed-2x").getUnclippedBoundsInRoot()
+        val retry = compose.onNodeWithTag("retry-failed-2x").getUnclippedBoundsInRoot()
+        val title = compose.onNodeWithText("路线计算失败").getUnclippedBoundsInRoot()
+        val detail = compose.onNodeWithText(failureDetail).getUnclippedBoundsInRoot()
+        val edit = compose.onNodeWithTag("edit-route-ready-2x").getUnclippedBoundsInRoot()
+        assertTrue("retry=$retry", retry.right - retry.left >= 48.dp && retry.bottom - retry.top >= 48.dp)
+        assertTrue("container=$container retry=$retry", retry.left >= container.left && retry.right <= container.right)
+        assertTrue("failed=$failed retry=$retry", retry.top >= failed.top && retry.bottom <= failed.bottom)
+        assertTrue("title=$title retry=$retry", title.right <= retry.left || retry.right <= title.left || title.bottom <= retry.top || retry.bottom <= title.top)
+        assertTrue("detail=$detail retry=$retry", detail.right <= retry.left || retry.right <= detail.left || detail.bottom <= retry.top || retry.bottom <= detail.top)
+        assertTrue("retry=$retry edit=$edit", retry.right <= edit.left || edit.right <= retry.left || retry.bottom <= edit.top || edit.bottom <= retry.top)
+
+        compose.onNodeWithTag("retry-failed-2x").performClick()
+        compose.onNodeWithTag("edit-route-ready-2x").performClick()
+        compose.runOnIdle { assertEquals(listOf("failed-retry", "ready-edit"), actions) }
+    }
+
+    @Test
+    fun dayItineraryDispatchesOnlyFailedLegRetryWhileReadySiblingRemainsEditable() {
+        val actions = mutableListOf<DayItineraryAction>()
+        val items = listOf(
+            itineraryItem("i1", "第一站", "地址 1", "09:00", 30),
+            itineraryItem("i2", "第二站", "地址 2", "10:00", 30),
+            itineraryItem("i3", "第三站", "地址 3", "11:00", 30),
+        )
+        val state = DayItineraryUiState(
+            items = items,
+            previewOrder = items.map(ItineraryItemUi::id),
+            legs = listOf(
+                routeLeg("failed", RouteStatus.FAILED, error = "失败", fromItemId = "i1", toItemId = "i2"),
+                routeLeg("ready", RouteStatus.SUCCESS, fromItemId = "i2", toItemId = "i3"),
+            ),
+        )
+        compose.setContent {
+            EasyTripTheme { DayItineraryContent(state, onAction = actions::add, showDialogs = false) }
+        }
+
+        compose.onNodeWithTag("retry-failed").performClick()
+        compose.onNodeWithTag("edit-route-ready").assertHasClickAction()
+        compose.runOnIdle { assertEquals(listOf(DayItineraryAction.Retry("failed", 1)), actions) }
+    }
+
+    @Test
+    fun failedRouteWithoutErrorDoesNotDuplicateFailureAnnouncement() {
+        compose.setContent {
+            EasyTripTheme {
+                RouteLegContent(
+                    routeLeg("failed-default", RouteStatus.FAILED, error = null),
+                    Modifier.testTag("failed-default"),
+                )
+            }
+        }
+
+        compose.onNodeWithTag("failed-default")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+            .assert(SemanticsMatcher("has no content description") {
+                !it.config.contains(SemanticsProperties.ContentDescription)
+            })
+        compose.onAllNodesWithText("路线计算失败").assertCountEquals(1)
     }
 
     @Test
@@ -794,7 +1061,7 @@ class ItineraryTimelineContentTest {
         }
 
         listOf("calculating", "waiting").forEach { id ->
-            compose.onAllNodesWithTag("mode-$id").assertCountEquals(0)
+            compose.onAllNodesWithTag("edit-route-$id").assertCountEquals(0)
             compose.onAllNodesWithTag("retry-$id").assertCountEquals(0)
         }
     }
@@ -910,6 +1177,7 @@ class ItineraryTimelineContentTest {
         distanceMeters = distance,
         durationSeconds = duration,
         error = error,
+        version = 1,
     )
 
     private fun androidx.compose.ui.test.TouchInjectionScope.longPressDragBy(deltaY: Float) {

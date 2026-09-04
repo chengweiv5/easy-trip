@@ -36,12 +36,13 @@ sealed interface DayItineraryAction {
     data class RequestCrossDay(val itemId: String) : DayItineraryAction
     data class RequestDelete(val itemId: String) : DayItineraryAction
     data class RequestMode(val legId: String) : DayItineraryAction
-    data class Retry(val legId: String) : DayItineraryAction
+    data class Retry(val legId: String, val expectedVersion: Long) : DayItineraryAction
     data class MoveToDay(val dayId: String) : DayItineraryAction
     data class UpdateArrivalTime(val value: String) : DayItineraryAction
     data class UpdateStayMinutes(val value: String) : DayItineraryAction
     data class UpdateNote(val value: String) : DayItineraryAction
     data object SaveEdit : DayItineraryAction
+    data object DismissEditSaveError : DayItineraryAction
     data class SelectMode(val mode: TransportMode) : DayItineraryAction
     data object ClearSelectedModeOverride : DayItineraryAction
     data class UpdateRouteDurationMinutes(val value: String) : DayItineraryAction
@@ -116,24 +117,49 @@ fun DayItineraryContent(
                 )
                 val next = displayItems.getOrNull(index + 1)?.id
                 visibleLegs.firstOrNull { it.fromItemId == id && it.toItemId == next }?.let { leg ->
-                    RouteLegRow(leg, { onAction(DayItineraryAction.RequestMode(leg.id)) }, { onAction(DayItineraryAction.Retry(leg.id)) })
+                    RouteLegRow(
+                        leg = leg,
+                        onMode = if (leg.state is RouteLegUiState.Ready) {
+                            { onAction(DayItineraryAction.RequestMode(leg.id)) }
+                        } else {
+                            null
+                        },
+                        onRetry = if (leg.state is RouteLegUiState.Failed) {
+                            { onAction(DayItineraryAction.Retry(leg.id, leg.version)) }
+                        } else {
+                            null
+                        },
+                    )
                 }
             }
         }
     }
     if (showDialogs) state.editDraft?.let { draft ->
         AlertDialog(
-            onDismissRequest = { if (!draft.isSaving) onAction(DayItineraryAction.DismissDialogs) },
+            onDismissRequest = {
+                when {
+                    draft.isSaving -> Unit
+                    draft.saveError != null -> onAction(DayItineraryAction.DismissEditSaveError)
+                    else -> onAction(DayItineraryAction.DismissDialogs)
+                }
+            },
             confirmButton = {},
             text = {
-                EditItineraryItemContent(
-                    draft = draft,
-                    onArrivalTimeChange = { onAction(DayItineraryAction.UpdateArrivalTime(it)) },
-                    onStayMinutesChange = { onAction(DayItineraryAction.UpdateStayMinutes(it)) },
-                    onNoteChange = { onAction(DayItineraryAction.UpdateNote(it)) },
-                    onSave = { onAction(DayItineraryAction.SaveEdit) },
-                    onCancel = { onAction(DayItineraryAction.DismissDialogs) },
-                )
+                if (draft.saveError != null) {
+                    ItinerarySaveFailureContent(
+                        onKeepEditing = { onAction(DayItineraryAction.DismissEditSaveError) },
+                        onRetrySave = { onAction(DayItineraryAction.SaveEdit) },
+                    )
+                } else {
+                    EditItineraryItemContent(
+                        draft = draft,
+                        onArrivalTimeChange = { onAction(DayItineraryAction.UpdateArrivalTime(it)) },
+                        onStayMinutesChange = { onAction(DayItineraryAction.UpdateStayMinutes(it)) },
+                        onNoteChange = { onAction(DayItineraryAction.UpdateNote(it)) },
+                        onSave = { onAction(DayItineraryAction.SaveEdit) },
+                        onCancel = { onAction(DayItineraryAction.DismissDialogs) },
+                    )
+                }
             },
         )
     }

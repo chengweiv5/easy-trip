@@ -3,9 +3,11 @@ package com.yangchengwei.easytrip
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.Text
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
@@ -67,6 +69,7 @@ import com.yangchengwei.easytrip.place.ui.PlaceSearchPhase
 import com.yangchengwei.easytrip.place.ui.PlaceSearchState
 import com.yangchengwei.easytrip.place.ui.PlaceSearchUiState
 import com.yangchengwei.easytrip.permission.PermissionExplanationContent
+import com.yangchengwei.easytrip.permission.LocationPermissionSettingsContent
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.ui.CreateTimeMode
 import com.yangchengwei.easytrip.trip.ui.CreateTripAction
@@ -129,6 +132,7 @@ enum class ScenarioScreen(val label: String) {
 interface V1ScenarioExecutable {
     val fixture: ScenarioFixture
     val reachablePath: ScenarioPath
+    val factoryIdentity: String
     fun setup()
     fun render(compose: V1ComposeRule)
     fun actions(compose: V1ComposeRule)
@@ -142,6 +146,7 @@ private class ComposeScenario(
     private val content: @androidx.compose.runtime.Composable () -> Unit,
     private val interact: V1ComposeRule.() -> Unit = {},
     private val verify: V1ComposeRule.() -> Unit,
+    override val factoryIdentity: String = fixture.id,
 ) : V1ScenarioExecutable {
     override fun setup() = reset()
     override fun render(compose: V1ComposeRule) = compose.setContent { EasyTripTheme { content() } }
@@ -198,12 +203,12 @@ object V1ScenarioExecutableFactory {
         27 -> searchState(fixtureId, PlaceSearchPhase.Empty, "没有找到相关地点")
         28 -> waitingForNetwork(fixtureId)
         29 -> failedRoute(fixtureId)
-        30 -> permission(fixtureId)
+        30 -> mapConsentExplanation(fixtureId)
         31 -> addSuccessResult(fixtureId)
         32 -> deleteItineraryItem(fixtureId)
         33 -> longAddTargetDayList(fixtureId)
-        34 -> permission(fixtureId)
-        35 -> permission(fixtureId, clickConfirm = true)
+        34 -> locationExplanation(fixtureId)
+        35 -> locationSettingsRecovery(fixtureId)
         36 -> emptyTrips(fixtureId)
         37 -> emptyDay(fixtureId)
         38 -> searchState(fixtureId, PlaceSearchPhase.NetworkFailure("无法搜索新的地点"), "网络连接失败")
@@ -767,10 +772,13 @@ object V1ScenarioExecutableFactory {
             )
         },
         verify = {
-            onNodeWithText("联网后计算路线").assertIsDisplayed()
-            onNodeWithContentDescription("离线，联网后计算路线").assertIsDisplayed()
+            onNodeWithText("等待联网后计算").assertIsDisplayed()
+            onNodeWithContentDescription("离线，等待联网后计算").assertIsDisplayed()
+            onAllNodesWithTag("edit-route-leg-1").assertCountEquals(0)
+            onAllNodesWithTag("retry-leg-1").assertCountEquals(0)
             onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
         },
+        factoryIdentity = "batch6-waiting-for-network",
     )
 
     private fun failedRoute(id: String): V1ScenarioExecutable {
@@ -794,7 +802,13 @@ object V1ScenarioExecutableFactory {
                 )
             },
             { onNodeWithTag("retry-leg-1").performClick() },
-            { onNodeWithText("路线失败").assertIsDisplayed(); check(actions == listOf(DayItineraryAction.Retry("leg-1"))) },
+            {
+                onNodeWithText("路线计算失败").assertIsDisplayed()
+                onNodeWithText("路线失败").assertIsDisplayed()
+                onAllNodesWithTag("edit-route-leg-1").assertCountEquals(0)
+                check(actions == listOf(DayItineraryAction.Retry("leg-1", 0)))
+            },
+            factoryIdentity = "batch6-failed-route",
         )
     }
 
@@ -903,7 +917,7 @@ object V1ScenarioExecutableFactory {
             {
                 onNodeWithText("800 米 · 10 分钟").assertIsDisplayed()
                 onNodeWithText("部分路线失败").assertIsDisplayed()
-                check(actions == listOf(DayItineraryAction.Retry("failed")))
+                check(actions == listOf(DayItineraryAction.Retry("failed", 0)))
             },
         )
     }
@@ -1271,8 +1285,8 @@ object V1ScenarioExecutableFactory {
             ScenarioPath(listOf(ScenarioScreen.STATUS_MATRIX)),
             content = { Column { legs.forEach { RouteLegContent(it) } } },
             verify = {
-                onNodeWithText("联网后计算路线").assertIsDisplayed()
-                onNodeWithContentDescription("离线，联网后计算路线").assertIsDisplayed()
+                onNodeWithText("等待联网后计算").assertIsDisplayed()
+                onNodeWithContentDescription("离线，等待联网后计算").assertIsDisplayed()
                 onAllNodesWithText("正在计算路线").assertCountEquals(1)
                 onNodeWithText("路线失败").assertIsDisplayed()
             },
@@ -1316,6 +1330,7 @@ object V1ScenarioExecutableFactory {
         onMapRetry: () -> Unit = { actions.add(com.yangchengwei.easytrip.workspace.TripWorkspaceAction.Retry) },
         interact: V1ComposeRule.() -> Unit = {},
         verify: V1ComposeRule.() -> Unit,
+        factoryIdentity: String = id,
     ) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.WORKSPACE),
         ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
@@ -1339,6 +1354,7 @@ object V1ScenarioExecutableFactory {
         },
         interact,
         verify,
+        factoryIdentity,
     )
 
     private fun settingsScenario(
@@ -1394,9 +1410,11 @@ object V1ScenarioExecutableFactory {
             },
             verify = {
                 onNodeWithTag("workspace-map-loading").assertIsDisplayed()
-                onNodeWithText("地图加载中").assertIsDisplayed()
+                onNodeWithText("正在加载地图").assertIsDisplayed()
+                onNodeWithText("地点和行程仍可继续查看").assertIsDisplayed()
                 onNodeWithText("第1天 · 暂无行程").assertIsDisplayed()
             },
+            factoryIdentity = "batch6-map-loading",
         )
     }
 
@@ -1457,21 +1475,91 @@ object V1ScenarioExecutableFactory {
         verify = { onNodeWithText(message).assertIsDisplayed() },
     )
 
-    private fun permission(
-        id: String,
-        clickConfirm: Boolean = false,
-    ): V1ScenarioExecutable {
-        var confirmed = false
+    private fun mapConsentExplanation(id: String): V1ScenarioExecutable {
+        var allowed = false
+        var declined = false
+        var dialogVisible by mutableStateOf(true)
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.PERMISSION),
             ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
-            { confirmed = false },
-            { PermissionExplanationContent({ confirmed = true }, {}) },
-            { if (clickConfirm) onNodeWithTag("permission-explanation-confirm").performClick() },
+            { allowed = false; declined = false; dialogVisible = true },
             {
-                onNodeWithTag("permission-explanation-confirm").assertIsDisplayed()
-                if (clickConfirm) check(confirmed)
+                val store = remember {
+                    com.yangchengwei.easytrip.amap.AmapConsentStore(
+                        persistence = object : com.yangchengwei.easytrip.amap.AmapConsentPersistence {
+                            override fun readDecision(): Boolean? = null
+                            override fun writeDecision(accepted: Boolean) = Unit
+                        },
+                        reporter = object : com.yangchengwei.easytrip.amap.AmapPrivacyReporter {
+                            override suspend fun reportShown() = Unit
+                            override suspend fun reportDecision(accepted: Boolean) {
+                                if (accepted) allowed = true else declined = true
+                            }
+                        },
+                        registry = com.yangchengwei.easytrip.amap.ConsentRegistry(),
+                    )
+                }
+                if (dialogVisible) {
+                    com.yangchengwei.easytrip.AmapConsentDialog(
+                        store = store,
+                        policyRead = true,
+                        onPolicyReadChange = {},
+                        onClose = { dialogVisible = false },
+                        onDecisionSuccess = { dialogVisible = false },
+                        context = LocalContext.current,
+                    )
+                }
             },
+            { onNodeWithText("允许使用地图").performClick() },
+            {
+                onNodeWithText("允许 Easy Trip 使用地图").assertDoesNotExist()
+                check(allowed)
+                check(!declined)
+                check(!dialogVisible)
+            },
+            factoryIdentity = "batch6-map-consent-explanation",
+        )
+    }
+
+    private fun locationExplanation(id: String): V1ScenarioExecutable {
+        var continued = false
+        var dismissed = false
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.PERMISSION),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
+            { continued = false; dismissed = false },
+            { PermissionExplanationContent({ continued = true }, { dismissed = true }) },
+            { onNodeWithText("继续").performClick() },
+            {
+                onNodeWithText("允许 Easy Trip 获取你的位置").assertIsDisplayed()
+                onNodeWithText("用于在地图上定位当前位置。只有点击定位按钮时才会使用，拒绝后仍可正常规划行程。").assertIsDisplayed()
+                onNodeWithText("继续").assertIsDisplayed()
+                onNodeWithText("暂不使用").assertIsDisplayed()
+                check(continued)
+                check(!dismissed)
+            },
+            factoryIdentity = "batch6-location-explanation",
+        )
+    }
+
+    private fun locationSettingsRecovery(id: String): V1ScenarioExecutable {
+        var opened = false
+        var dismissed = false
+        return ComposeScenario(
+            ScenarioFixture(id, ScenarioScreen.PERMISSION),
+            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
+            { opened = false; dismissed = false },
+            { LocationPermissionSettingsContent({ opened = true }, { dismissed = true }) },
+            { onNodeWithText("前往设置").performClick() },
+            {
+                onNodeWithText("定位权限未开启").assertIsDisplayed()
+                onNodeWithText("请前往系统设置，为 Easy Trip 开启定位权限。地图和行程仍可正常使用。").assertIsDisplayed()
+                onNodeWithText("前往设置").assertIsDisplayed()
+                onNodeWithText("取消").assertIsDisplayed()
+                check(opened)
+                check(!dismissed)
+            },
+            factoryIdentity = "batch6-location-settings-recovery",
         )
     }
 
@@ -1490,6 +1578,7 @@ object V1ScenarioExecutableFactory {
                 onNodeWithText("第1天 · 暂无行程").assertIsDisplayed()
                 check(retryCalls == 1)
             },
+            factoryIdentity = "batch6-map-failure",
         )
     }
 
@@ -1505,8 +1594,16 @@ object V1ScenarioExecutableFactory {
                     onAction = actions::add,
                 )
             },
-            { onNodeWithText("保存时间").performClick() },
-            { onNodeWithText("保存失败").assertIsDisplayed(); check(actions == listOf(DayItineraryAction.SaveEdit)) },
+            { onNodeWithTag("itinerary-save-failure-retry").performClick() },
+            {
+                onNodeWithTag("itinerary-save-failure").assertIsDisplayed()
+                onNodeWithText("修改尚未保存").assertIsDisplayed()
+                onNodeWithText("到达时间、停留时长和备注仍保留在当前页面。请重新保存，或稍后再试。").assertIsDisplayed()
+                onNodeWithText("继续编辑").assertIsDisplayed()
+                onNodeWithText("重新保存").assertIsDisplayed()
+                check(actions == listOf(DayItineraryAction.SaveEdit))
+            },
+            factoryIdentity = "batch6-edit-save-failure",
         )
     }
 

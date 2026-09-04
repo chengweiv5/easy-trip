@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.ui.Alignment
 import androidx.compose.material3.Text
 import androidx.compose.runtime.mutableStateOf
@@ -52,12 +53,11 @@ class TripWorkspaceContentTest {
         assertEquals(TripWorkspaceAction.Back, action)
     }
 
-    @Test fun permanentLocationDenialKeepsReadyMapAndShowsSettingsGuidance() {
-        setContent(ready(), WorkspaceMapState.LocationPermanentlyDenied)
+    @Test fun readyMapRemainsMountedWhilePermissionGuidanceUsesIndependentOverlay() {
+        setContent(ready(), WorkspaceMapState.Ready)
 
         compose.onNodeWithText("地图就绪").assertIsDisplayed()
-        compose.onNodeWithTag("location-permission-denied").assertIsDisplayed()
-        compose.onNodeWithTag("location-open-settings").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-map-fallback").assertDoesNotExist()
     }
 
     @Test fun jointWorkspaceEmptyShowsBrYVAWithoutContentCta() {
@@ -173,6 +173,114 @@ class TripWorkspaceContentTest {
         compose.waitForIdle()
         assertEquals(1, retryCalls.get())
         assertTrue(actions.isEmpty())
+    }
+
+    @Test fun mapFailureRetryRemainsReachableAtEverySheetLevelInSmallWindow() {
+        val level = mutableStateOf(WorkspaceSheetLevel.COLLAPSED)
+        val retryCalls = AtomicInteger()
+        compose.setContent {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, 2f),
+            ) {
+                EasyTripTheme {
+                    Box(Modifier.width(280.dp).height(280.dp).testTag("small-failed-workspace")) {
+                        TripWorkspaceContent(
+                            pageState = ready(level.value),
+                            mapState = WorkspaceMapState.Failed("地图加载失败"),
+                            onAction = {},
+                            onMapRetry = { retryCalls.incrementAndGet() },
+                            placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                            onPlaceAction = {},
+                            itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                            onItineraryAction = {},
+                            mapContent = { _ -> Text("地图就绪") },
+                            placeContent = { Text("地点内容保持可见", Modifier.testTag("failure-place-content")) },
+                            modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                        )
+                    }
+                }
+            }
+        }
+
+        WorkspaceSheetLevel.entries.forEachIndexed { index, sheetLevel ->
+            compose.runOnIdle { level.value = sheetLevel }
+            val retry = compose.onNodeWithTag("map-retry")
+                .assertIsDisplayed()
+                .assertHasClickAction()
+            val bounds = retry.getUnclippedBoundsInRoot()
+            assertTrue(
+                "level=$sheetLevel retry=$bounds",
+                bounds.right - bounds.left >= 48.dp && bounds.bottom - bounds.top >= 48.dp,
+            )
+            listOf(
+                "workspace-top-bar",
+                "workspace-trip-title",
+                "workspace-back",
+                "workspace-more",
+                "workspace-tabs",
+                "workspace-sheet-handle-control",
+            ).forEach { tag ->
+                assertNoOverlap(sheetLevel.name, bounds, compose.onNodeWithTag(tag).getUnclippedBoundsInRoot())
+            }
+            assertContainedBy(
+                sheetLevel.name,
+                bounds,
+                compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot(),
+            )
+            compose.onAllNodesWithTag("map-retry").assertCountEquals(1)
+            compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
+            retry.performClick()
+            compose.runOnIdle { assertEquals(index + 1, retryCalls.get()) }
+        }
+    }
+
+    @Test fun mapConsentRecoveryRemainsReachableAtEverySheetLevelInSmallWindow() {
+        val level = mutableStateOf(WorkspaceSheetLevel.COLLAPSED)
+        val openCalls = AtomicInteger()
+        compose.setContent {
+            val density = androidx.compose.ui.platform.LocalDensity.current
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density.density, 2f),
+            ) {
+                EasyTripTheme {
+                    Box(Modifier.width(280.dp).height(280.dp)) {
+                        TripWorkspaceContent(
+                            pageState = ready(level.value),
+                            mapState = WorkspaceMapState.ConsentRequired,
+                            onAction = {},
+                            onOpenConsent = { openCalls.incrementAndGet() },
+                            placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                            onPlaceAction = {},
+                            itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                            onItineraryAction = {},
+                            mapContent = { _ -> Text("地图就绪") },
+                            modifier = Modifier.fillMaxSize(),
+                        )
+                    }
+                }
+            }
+        }
+
+        WorkspaceSheetLevel.entries.forEachIndexed { index, sheetLevel ->
+            compose.runOnIdle { level.value = sheetLevel }
+            val open = compose.onNodeWithTag("map-consent-open")
+                .assertIsDisplayed()
+                .assertHasClickAction()
+            val bounds = open.getUnclippedBoundsInRoot()
+            assertTrue(
+                "level=$sheetLevel open=$bounds",
+                bounds.right - bounds.left >= 48.dp && bounds.bottom - bounds.top >= 48.dp,
+            )
+            assertContainedBy(
+                sheetLevel.name,
+                bounds,
+                compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot(),
+            )
+            compose.onAllNodesWithTag("map-consent-open").assertCountEquals(1)
+            open.performClick()
+            compose.runOnIdle { assertEquals(index + 1, openCalls.get()) }
+        }
     }
 
     @Test fun readyKeepsSearchSettingsBackAndItineraryActions() {
@@ -471,12 +579,17 @@ class TripWorkspaceContentTest {
         }
     }
 
-    @Test fun expandedSheetHidesMapFailureFallbackInsteadOfClippingItUnderTopBar() {
+    @Test fun expandedSheetHidesMapFailureFallbackAndKeepsRetryInsideSheet() {
         setContent(ready(WorkspaceSheetLevel.EXPANDED), WorkspaceMapState.Failed("地图加载失败"))
 
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
-        compose.onNodeWithTag("map-failed").assertDoesNotExist()
-        compose.onNodeWithTag("map-retry").assertDoesNotExist()
+        compose.onNodeWithTag("map-load-failed").assertDoesNotExist()
+        val retry = compose.onNodeWithTag("map-retry").assertIsDisplayed().assertHasClickAction()
+        assertContainedBy(
+            "EXPANDED",
+            retry.getUnclippedBoundsInRoot(),
+            compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot(),
+        )
     }
 
     @Test fun layerMenuPanelStaysBelowTopBarAtStandardHalfHeight() {
@@ -786,6 +899,28 @@ class TripWorkspaceContentTest {
         val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
         val visibleCard = compose.onNodeWithTag("saved-place-8").getUnclippedBoundsInRoot()
         assertTrue("root=$root card=$visibleCard", visibleCard.bottom <= root.bottom - 24.dp)
+    }
+
+    private fun assertNoOverlap(
+        label: String,
+        first: androidx.compose.ui.unit.DpRect,
+        second: androidx.compose.ui.unit.DpRect,
+    ) {
+        val overlaps = first.left < second.right && first.right > second.left &&
+            first.top < second.bottom && first.bottom > second.top
+        assertTrue("$label first=$first second=$second", !overlaps)
+    }
+
+    private fun assertContainedBy(
+        label: String,
+        child: androidx.compose.ui.unit.DpRect,
+        parent: androidx.compose.ui.unit.DpRect,
+    ) {
+        assertTrue(
+            "$label child=$child parent=$parent",
+            child.left >= parent.left && child.right <= parent.right &&
+                child.top >= parent.top && child.bottom <= parent.bottom,
+        )
     }
 
     private fun setContentForLevel(level: androidx.compose.runtime.State<WorkspaceSheetLevel>) {

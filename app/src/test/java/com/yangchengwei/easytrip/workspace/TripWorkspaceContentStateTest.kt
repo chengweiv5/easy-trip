@@ -55,34 +55,31 @@ class TripWorkspaceContentStateTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
-    @Test fun consentRequiredTakesPriorityOverFailureAndPermanentLocationDenial() {
+    @Test fun consentRequiredTakesPriorityOverMapFailureIndependentlyOfLocationPrompt() {
         val state = resolveWorkspaceMapState(
             consentFact = declinedFact(),
             mapHostState = MapHostState.Failed("offline"),
-            locationPermanentlyDenied = true,
         )
 
         assertEquals(WorkspaceMapState.ConsentRequired, state)
     }
 
-    @Test fun mapFailureTakesPriorityOverPermanentLocationDenial() {
+    @Test fun mapFailureIsIndependentOfLocationPrompt() {
         val state = resolveWorkspaceMapState(
             consentFact = acceptedFact(),
             mapHostState = MapHostState.Failed("offline"),
-            locationPermanentlyDenied = true,
         )
 
         assertEquals(WorkspaceMapState.Failed("offline"), state)
     }
 
-    @Test fun permanentLocationDenialPreservesReadyHostBehindLocalGuidance() {
+    @Test fun readyMapStateDoesNotDependOnPermanentLocationDenial() {
         val state = resolveWorkspaceMapState(
             consentFact = acceptedFact(),
             mapHostState = MapHostState.Ready,
-            locationPermanentlyDenied = true,
         )
 
-        assertEquals(WorkspaceMapState.LocationPermanentlyDenied, state)
+        assertEquals(WorkspaceMapState.Ready, state)
     }
 
     @Test fun initialStateIsLoading() = runTest(dispatcher) {

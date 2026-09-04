@@ -33,7 +33,7 @@ import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 
 @Composable
-fun RouteLegRow(leg: RouteLegUi, onMode: () -> Unit, onRetry: () -> Unit) {
+fun RouteLegRow(leg: RouteLegUi, onMode: (() -> Unit)? = null, onRetry: (() -> Unit)? = null) {
     RouteLegContent(
         leg = leg,
         modifier = Modifier.fillMaxWidth().testTag("leg-${leg.id}"),
@@ -50,10 +50,14 @@ internal fun RouteLegContent(
     onRetry: (() -> Unit)? = null,
 ) {
     val state = leg.state
-    val stateModifier = if (state == RouteLegUiState.Calculating) {
-        Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-    } else {
-        Modifier
+    val editAction = onMode?.takeIf { state is RouteLegUiState.Ready }
+    val retryAction = onRetry?.takeIf { state is RouteLegUiState.Failed }
+    val stateModifier = when (state) {
+        RouteLegUiState.Calculating,
+        RouteLegUiState.WaitingForNetwork,
+        is RouteLegUiState.Failed,
+        -> Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+        else -> Modifier
     }
     Row(
         modifier.then(stateModifier).padding(start = 28.dp).height(IntrinsicSize.Min),
@@ -87,15 +91,22 @@ internal fun RouteLegContent(
                     }
                     RouteLegUiState.Pending -> RouteLegStatus(leg, "等待计算路线")
                     RouteLegUiState.Calculating -> RouteLegStatus(leg, "正在计算路线")
-                    RouteLegUiState.WaitingForNetwork -> RouteLegStatus(leg, "联网后计算路线")
+                    RouteLegUiState.WaitingForNetwork -> RouteLegStatus(leg, "等待联网后计算")
                     is RouteLegUiState.Failed -> {
                         Text(
-                            state.message,
+                            "路线计算失败",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.error,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis,
                         )
+                        if (state.message != "路线计算失败") {
+                            Text(
+                                state.message,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
                         leg.effectiveDurationSeconds?.let { duration ->
                             Text(
                                 "预计 ${formatDuration(duration)}",
@@ -107,7 +118,7 @@ internal fun RouteLegContent(
                 }
             }
             Column(horizontalAlignment = Alignment.End) {
-                onMode?.let {
+                editAction?.let {
                     TextButton(it, Modifier.testTag("edit-route-${leg.id}")) { Text("编辑路段") }
                 }
                 when (state) {
@@ -116,7 +127,7 @@ internal fun RouteLegContent(
                         Modifier.size(24.dp).semantics { contentDescription = "路线计算中" },
                     )
                     RouteLegUiState.WaitingForNetwork -> WaitingForNetworkIndicator()
-                    is RouteLegUiState.Failed -> onRetry?.let {
+                    is RouteLegUiState.Failed -> retryAction?.let {
                         TextButton(it, Modifier.testTag("retry-${leg.id}")) { Text("重试") }
                     }
                     is RouteLegUiState.Ready -> Unit
@@ -159,7 +170,7 @@ private fun WaitingForNetworkIndicator() {
     Canvas(
         Modifier
             .size(24.dp)
-            .semantics { contentDescription = "离线，联网后计算路线" },
+            .semantics { contentDescription = "离线，等待联网后计算" },
     ) {
         drawCircle(color, radius = 2.dp.toPx(), center = Offset(size.width / 2f, size.height * 0.75f))
         drawArc(

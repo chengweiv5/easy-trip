@@ -20,4 +20,5 @@ interface RouteLegRepository {
  suspend fun failIfVersionMatches(legId:String,version:Long,failure:RoutePlanOutcome.Failure):Boolean
  suspend fun updateDetails(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean):Boolean
  suspend fun retry(legId:String,online:Boolean):Boolean
+ suspend fun retry(legId:String,expectedVersion:Long,online:Boolean):Boolean = false
 }

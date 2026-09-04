@@ -80,6 +80,7 @@ import java.security.MessageDigest
 import java.time.LocalDate
 import org.json.JSONObject
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.rules.TestName
@@ -104,6 +105,12 @@ class VisualBatch0EvidenceTest {
             "nAdK8", "K336N", "mz2IS", "l2xCsM", "T7aESo",
             "eHTX3", "FTIOF", "Bcf6A", "zvO9Z", "J7PZ7u",
         )
+        val batch6Evidence: Map<String, List<Batch6FrameEvidence>> = Batch6TypedScenario.entries
+            .associate { typed ->
+                val scenario = V1ScenarioFixtures.scenarios.single { it.number == typed.number }
+                val checkpoint = Batch6FrameCheckpoint.entries.single { it.frameId == typed.frameId }
+                typed.frameId to batch6EvidenceFor(scenario, checkpoint, typed.fixtureId)
+            }
         val batch5Evidence: Map<String, Batch5FrameEvidence> = V1ScenarioFixtures.scenarios
             .flatMap { scenario ->
                 listOf(
@@ -126,10 +133,115 @@ class VisualBatch0EvidenceTest {
                     mapSurface = EvidenceMapSurface.RecordingFakeMapHost,
                 )
             }
+
+        private fun batch6EvidenceFor(
+            scenario: V1Scenario,
+            checkpoint: Batch6FrameCheckpoint,
+            fixtureId: String,
+        ): List<Batch6FrameEvidence> {
+            val controlled = Batch6FrameEvidence(
+                scenario = scenario,
+                checkpoint = checkpoint,
+                fixtureId = fixtureId,
+                host = EvidenceHost.ProductionCompose,
+                stateSource = EvidenceStateSource.ControlledUiState,
+                mapSurface = EvidenceMapSurface.None,
+                permissionSurface = if (checkpoint in setOf(
+                    Batch6FrameCheckpoint.MapConsentExplanation,
+                    Batch6FrameCheckpoint.LocationExplanation,
+                    Batch6FrameCheckpoint.LocationSettingsRecovery,
+                )) EvidencePermissionSurface.ControlledSnapshot else EvidencePermissionSurface.None,
+                automatedEntry = "com.yangchengwei.easytrip.V1ScenarioMetadataTest#${checkpoint.frameId}ExecutesBatch6TypedScenario",
+                limitations = "production Composable with controlled UiState; not Room, navigation, SDK, or Android-system evidence",
+            )
+            val higherLevel = when (checkpoint) {
+                Batch6FrameCheckpoint.WaitingForNetwork -> Batch6FrameEvidence(
+                    scenario, checkpoint, fixtureId,
+                    EvidenceHost.ProductionRepository,
+                    EvidenceStateSource.FileBackedRoomReopen,
+                    EvidenceMapSurface.None,
+                    EvidencePermissionSurface.None,
+                    "com.yangchengwei.easytrip.OfflineRecoveryTest#persistedRoutesRecoverInterruptedWorkWithoutTouchingSuccess",
+                    "reopens a file-backed Room database, then starts production RoomRouteLegRepository + DefaultRouteRefreshCoordinator across offline-to-online recovery; planner remains controlled, and this is not a full navigation flow or installed-app restart",
+                )
+                Batch6FrameCheckpoint.FailedRoute -> Batch6FrameEvidence(
+                    scenario, checkpoint, fixtureId,
+                    EvidenceHost.ProductionCompose,
+                    EvidenceStateSource.ControlledUiState,
+                    EvidenceMapSurface.None,
+                    EvidencePermissionSurface.None,
+                    "com.yangchengwei.easytrip.itinerary.ui.ItineraryEditingTest#failedRouteShowsErrorAndRetryAction",
+                    "production itinerary host with controlled repositories; not Room persistence or real AMap evidence",
+                )
+                Batch6FrameCheckpoint.MapConsentExplanation -> Batch6FrameEvidence(
+                    scenario, checkpoint, fixtureId,
+                    EvidenceHost.ProductionAppNavigation,
+                    EvidenceStateSource.HandwrittenRepositoryFakes,
+                    EvidenceMapSurface.None,
+                    EvidencePermissionSurface.ControlledSnapshot,
+                    "com.yangchengwei.easytrip.workspace.WorkspaceFlowTest#undecidedWorkspaceEntryShowsConsentExplanationUntilDecision",
+                    "consent store and handwritten repository fakes are controlled; no map host is created, and this is not Android system permission or real AMap evidence",
+                )
+                Batch6FrameCheckpoint.LocationExplanation,
+                Batch6FrameCheckpoint.LocationSettingsRecovery -> Batch6FrameEvidence(
+                    scenario, checkpoint, fixtureId,
+                    EvidenceHost.ProductionAppNavigation,
+                    EvidenceStateSource.HandwrittenRepositoryFakes,
+                    EvidenceMapSurface.RecordingFakeMapHost,
+                    EvidencePermissionSurface.ActivityResultContract,
+                    "com.yangchengwei.easytrip.workspace.WorkspaceFlowTest#appNavigationBindsPermissionCallbackToRequestThenSettingsResumeGrantShowsLocationOnce",
+                    "Activity Result contract and handwritten repository fakes are injected; LocationRecordingHost records the single post-settings location call, while Android system settings UI is not exercised",
+                )
+                Batch6FrameCheckpoint.MapLoading -> Batch6FrameEvidence(
+                    scenario, checkpoint, fixtureId,
+                    EvidenceHost.ProductionCompose,
+                    EvidenceStateSource.ControlledUiState,
+                    EvidenceMapSurface.RecordingFakeMapHost,
+                    EvidencePermissionSurface.None,
+                    "com.yangchengwei.easytrip.workspace.WorkspaceFlowTest#neverReadyMapShowsApprovedFallbackKeepsContentAndRetryRecreatesOnlyHost",
+                    "production workspace host records controlled fake-host creation, disposal, and retry; not real AMap rendering",
+                )
+                Batch6FrameCheckpoint.MapFailure -> Batch6FrameEvidence(
+                    scenario, checkpoint, fixtureId,
+                    EvidenceHost.ProductionCompose,
+                    EvidenceStateSource.ControlledUiState,
+                    EvidenceMapSurface.FailureInjectingFakeMapHost,
+                    EvidencePermissionSurface.None,
+                    "com.yangchengwei.easytrip.workspace.WorkspaceFlowTest#mapFailureKeepsLocalTabsAndActionsReachable",
+                    "production workspace host uses a failure-injecting fake map host; not real AMap rendering",
+                )
+                Batch6FrameCheckpoint.EditSaveFailure -> Batch6FrameEvidence(
+                    scenario, checkpoint, fixtureId,
+                    EvidenceHost.ProductionAppNavigation,
+                    EvidenceStateSource.InMemoryRoomNavigation,
+                    EvidenceMapSurface.RecordingFakeMapHost,
+                    EvidencePermissionSurface.None,
+                    "com.yangchengwei.easytrip.V2AcceptanceTest#productionNavigationSaveFailurePreservesDraftAndRetriesOnceAgainstRoom",
+                    "in-memory Room and recording fake map host; no installed-app restart or real AMap evidence",
+                )
+            }
+            return listOf(controlled, higherLevel)
+        }
     }
 
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     @get:Rule val testName = TestName()
+
+    @Test fun batch6EvidenceManifestHasEveryControlledFrameAndNoUnobservedSurface() {
+        val evidence = batch6Evidence
+
+        assertEquals(Batch6FrameCheckpoint.entries.map(Batch6FrameCheckpoint::frameId).toSet(), evidence.keys)
+        evidence.values.flatten().forEach { record ->
+            assertEquals(record.fixtureId, record.executable().fixture.id)
+            assertTrue(record.limitations.isNotBlank())
+        }
+        assertTrue(evidence.values.flatten().none {
+            it.host == EvidenceHost.PhysicalDevice ||
+                it.stateSource == EvidenceStateSource.InstalledAppRestart ||
+                it.mapSurface == EvidenceMapSurface.RealAmap ||
+                it.permissionSurface == EvidencePermissionSurface.AndroidSystem
+        })
+    }
 
     @Test fun batch4FramesRenderThroughProductionWorkspaceHostWithControlledState() {
         val place = savedPlace(searchCandidates()[1], "batch4-place")
@@ -565,7 +677,7 @@ class VisualBatch0EvidenceTest {
         }
         compose.onNodeWithText("等待计算路线").assertIsDisplayed()
         compose.onNodeWithText("正在计算路线").assertIsDisplayed()
-        compose.onNodeWithText("联网后计算路线").assertIsDisplayed()
+        compose.onNodeWithText("等待联网后计算").assertIsDisplayed()
         compose.onNodeWithText(longError).assertIsDisplayed()
     }
 
@@ -726,6 +838,7 @@ class VisualBatch0EvidenceTest {
 
     private class DeterministicFakeMapHost(context: Context) : AmapMapHost {
         override val view = View(context).apply { setBackgroundColor(android.graphics.Color.rgb(220, 232, 223)) }
+        override fun canRenderBeforeReady() = true
         override fun onCreate() = Unit
         override fun onResume() = Unit
         override fun onPause() = Unit

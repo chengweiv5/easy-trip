@@ -100,23 +100,42 @@ class DayItineraryViewModelTest {
         assertFalse(draft.isSaving)
     }
 
-    @Test fun `retry saves current draft and clears editor only after success`() = runTest(dispatcher) {
-        val repository = Itineraries().apply { timingFailure = IllegalStateException("失败") }
+    @Test fun `save failure keeps the complete draft and clear failure keeps it open without another repository call`() = runTest(dispatcher) {
+        val repository = Itineraries().apply { timingFailure = IllegalStateException("保存失败") }
         val model = model(repository)
         advanceUntilIdle()
         model.requestTiming("item-alpha")
         model.updateArrivalTime("08:30")
         model.updateStayMinutes("90")
+        model.updateNote("保留\n备注")
+        val generation = requireNotNull(model.state.value.editDraft).generation
+
         model.saveTiming()
         advanceUntilIdle()
-        model.updateArrivalTime("10:15")
-        model.updateStayMinutes("120")
+
+        assertEquals(
+            ItineraryEditDraft("item-alpha", "08:30", "90", "保留\n备注", saveError = "保存失败", generation = generation),
+            model.state.value.editDraft,
+        )
+        val persistedItem = model.state.value.items.first { it.id == "item-alpha" }
+        assertEquals(LocalTime.of(8, 0), persistedItem.arrivalTime)
+        assertEquals(60, persistedItem.stayMinutes)
+        assertEquals("已有\n备注", persistedItem.note)
+        val callsBeforeClear = repository.detailCalls.size
+        model.dispatch(DayItineraryAction.DismissEditSaveError)
+
+        assertEquals(
+            ItineraryEditDraft("item-alpha", "08:30", "90", "保留\n备注", generation = generation),
+            model.state.value.editDraft,
+        )
+        assertEquals(callsBeforeClear, repository.detailCalls.size)
+
         repository.timingFailure = null
-
-        model.saveTiming()
+        model.dispatch(DayItineraryAction.SaveEdit)
         advanceUntilIdle()
 
-        assertEquals(Details("item-alpha", LocalTime.of(10, 15), 120, "已有\n备注"), repository.detailCalls.last())
+        assertEquals(callsBeforeClear + 1, repository.detailCalls.size)
+        assertEquals(Details("item-alpha", LocalTime.of(8, 30), 90, "保留\n备注"), repository.detailCalls.last())
         assertNull(model.state.value.editDraft)
     }
 
@@ -710,6 +729,91 @@ class DayItineraryViewModelTest {
         assertEquals(RouteLegUiState.Failed("no route"), route.toRouteLegUi().state)
     }
 
+    @Test fun `retry ignores a leg that has become ready and preserves ready route data`() = runTest(dispatcher) {
+        val coordinator = Coordinator()
+        val legs = Legs(listOf(legEntity("retry-target", RouteStatus.FAILED)))
+        val model = model(Itineraries(), coordinator, legs)
+        advanceUntilIdle()
+
+        legs.emit(
+            listOf(
+                legEntity("retry-target", RouteStatus.SUCCESS, distance = 1_200, duration = 300).copy(version = 2),
+                legEntity("ready-sibling", RouteStatus.SUCCESS, distance = 800, duration = 180).copy(version = 4),
+            ),
+        )
+        advanceUntilIdle()
+        model.retry("retry-target", expectedVersion = 1)
+        advanceUntilIdle()
+
+        assertTrue(coordinator.retries.isEmpty())
+        assertEquals(
+            listOf(
+                RouteLegUiState.Ready(1_200, 300),
+                RouteLegUiState.Ready(800, 180),
+            ),
+            model.state.value.legs.map(RouteLegUi::state),
+        )
+    }
+
+    @Test fun `retry ignores a stale failed version`() = runTest(dispatcher) {
+        val coordinator = Coordinator()
+        val legs = Legs(listOf(legEntity("retry-target", RouteStatus.FAILED).copy(version = 1)))
+        val model = model(Itineraries(), coordinator, legs)
+        advanceUntilIdle()
+
+        legs.emit(listOf(legEntity("retry-target", RouteStatus.FAILED).copy(version = 2)))
+        advanceUntilIdle()
+        model.dispatch(DayItineraryAction.Retry("retry-target", expectedVersion = 1))
+        advanceUntilIdle()
+
+        assertTrue(coordinator.retries.isEmpty())
+        assertEquals(RouteLegUiState.Failed("路线计算失败"), model.state.value.legs.single().state)
+    }
+
+    @Test fun `failed retry calls coordinator once and leaves ready sibling intact`() = runTest(dispatcher) {
+        val coordinator = Coordinator()
+        val model = model(
+            Itineraries(),
+            coordinator,
+            Legs(
+                listOf(
+                    legEntity("failed", RouteStatus.FAILED),
+                    legEntity("ready-sibling", RouteStatus.SUCCESS, distance = 800, duration = 180).copy(version = 4),
+                ),
+            ),
+        )
+        advanceUntilIdle()
+
+        model.dispatch(DayItineraryAction.Retry("failed", expectedVersion = 1))
+        advanceUntilIdle()
+
+        assertEquals(listOf("failed" to 1L), coordinator.retries)
+        assertEquals(
+            RouteLegUiState.Ready(800, 180),
+            model.state.value.legs.single { it.id == "ready-sibling" }.state,
+        )
+    }
+
+    @Test fun `duplicate failed retry is single flight`() = runTest(dispatcher) {
+        val coordinator = Coordinator().apply { overrideGate = CompletableDeferred() }
+        val model = model(
+            Itineraries(),
+            coordinator,
+            Legs(listOf(legEntity("failed", RouteStatus.FAILED))),
+        )
+        advanceUntilIdle()
+
+        model.dispatch(DayItineraryAction.Retry("failed", expectedVersion = 1))
+        dispatcher.scheduler.runCurrent()
+        model.dispatch(DayItineraryAction.Retry("failed", expectedVersion = 1))
+        dispatcher.scheduler.runCurrent()
+
+        assertEquals(listOf("failed" to 1L), coordinator.retries)
+        coordinator.overrideGate?.complete(Unit)
+        advanceUntilIdle()
+        assertNull(model.state.value.error)
+    }
+
     @Test fun `failed same day reorder rolls preview back to official order`() = runTest(dispatcher) {
         val repository = Itineraries().apply { moveFailure = IllegalStateException("排序失败") }
         val model = model(repository)
@@ -814,7 +918,7 @@ class DayItineraryViewModelTest {
         assertNull(model.state.value.crossDayMove)
     }
 
-    @Test fun `route editor opens for every visible route status`() = runTest(dispatcher) {
+    @Test fun `route editor accepts ready leg and rejects every visible non ready leg`() = runTest(dispatcher) {
         val model = model(
             Itineraries(),
             legs = Legs(
@@ -823,24 +927,62 @@ class DayItineraryViewModelTest {
                     legEntity("calculating", RouteStatus.CALCULATING),
                     legEntity("waiting", RouteStatus.WAITING_NETWORK),
                     legEntity("failed", RouteStatus.FAILED),
-                    legEntity("success", RouteStatus.SUCCESS),
+                    legEntity("ready", RouteStatus.SUCCESS),
                 ),
             ),
         )
         advanceUntilIdle()
 
-        listOf("pending", "calculating", "waiting", "failed", "success").forEach { id ->
-            assertTrue(model.requestMode(id))
-            assertEquals(id, model.state.value.modeEditor?.legId)
+        listOf("pending", "calculating", "waiting", "failed").forEach { id ->
+            assertFalse(model.requestMode(id))
+            assertNull(model.state.value.modeEditor)
         }
+        assertTrue(model.requestMode("ready"))
+        assertEquals("ready", model.state.value.modeEditor?.legId)
         assertFalse(model.requestMode("missing"))
-        assertEquals("success", model.state.value.modeEditor?.legId)
+        assertEquals("ready", model.state.value.modeEditor?.legId)
+    }
+
+    @Test fun `route editor closes when its ready leg becomes non ready`() = runTest(dispatcher) {
+        listOf(
+            RouteStatus.PENDING,
+            RouteStatus.CALCULATING,
+            RouteStatus.WAITING_NETWORK,
+            RouteStatus.FAILED,
+        ).forEach { status ->
+            val legs = Legs(listOf(legEntity("route", RouteStatus.SUCCESS)))
+            val model = model(Itineraries(), legs = legs)
+            advanceUntilIdle()
+            assertTrue(model.requestMode("route"))
+
+            legs.emit(listOf(legEntity("route", status)))
+            advanceUntilIdle()
+
+            assertNull(model.state.value.modeEditor)
+        }
+    }
+
+    @Test fun `saving after a route loses ready eligibility clears editor without repository call`() = runTest(dispatcher) {
+        val coordinator = Coordinator()
+        val legs = Legs(listOf(legEntity("route", RouteStatus.SUCCESS)))
+        val model = model(Itineraries(), coordinator, legs)
+        advanceUntilIdle()
+        assertTrue(model.requestMode("route"))
+
+        legs.emit(listOf(legEntity("route", RouteStatus.WAITING_NETWORK)))
+        advanceUntilIdle()
+        model.saveRouteEditor()
+        advanceUntilIdle()
+
+        assertNull(model.state.value.modeEditor)
+        assertTrue(coordinator.details.isEmpty())
+        assertTrue(legs.details.isEmpty())
     }
 
     @Test fun `preview move immediately clears editor for its old adjacent pair and rejects that leg`() = runTest(dispatcher) {
         val model = model(
             Itineraries(),
-            legs = Legs(listOf(legEntity("alpha-beta", RouteStatus.PENDING))),
+            legs = Legs(listOf(legEntity("alpha-beta", RouteStatus.SUCCESS))),
         )
         advanceUntilIdle()
         assertTrue(model.requestMode("alpha-beta"))
@@ -858,7 +1000,7 @@ class DayItineraryViewModelTest {
             legs = Legs(
                 listOf(
                     legEntity("alpha-beta", RouteStatus.PENDING),
-                    legEntity("beta-alpha", RouteStatus.FAILED).copy(fromItemId = "item-beta", toItemId = "item-alpha"),
+                    legEntity("beta-alpha", RouteStatus.SUCCESS).copy(fromItemId = "item-beta", toItemId = "item-alpha"),
                 ),
             ),
         )
@@ -873,7 +1015,7 @@ class DayItineraryViewModelTest {
     @Test fun `route editor rejects non-adjacent leg and clears it when a visible row becomes stale`() = runTest(dispatcher) {
         val legs = Legs(
             listOf(
-                legEntity("adjacent", RouteStatus.PENDING),
+                legEntity("adjacent", RouteStatus.SUCCESS),
                 legEntity("stale", RouteStatus.FAILED).copy(fromItemId = "item-beta", toItemId = "item-alpha"),
             ),
         )
@@ -884,7 +1026,7 @@ class DayItineraryViewModelTest {
         assertFalse(model.requestMode("stale"))
         assertEquals("adjacent", model.state.value.modeEditor?.legId)
 
-        legs.emit(listOf(legEntity("adjacent", RouteStatus.PENDING).copy(fromItemId = "item-beta", toItemId = "item-alpha")))
+        legs.emit(listOf(legEntity("adjacent", RouteStatus.SUCCESS).copy(fromItemId = "item-beta", toItemId = "item-alpha")))
         advanceUntilIdle()
 
         assertNull(model.state.value.modeEditor)
@@ -895,7 +1037,7 @@ class DayItineraryViewModelTest {
         val model = model(
             Itineraries(),
             coordinator,
-            Legs(listOf(legEntity("leg-alpha", RouteStatus.PENDING).copy(durationOverrideSeconds = 75))),
+            Legs(listOf(legEntity("leg-alpha", RouteStatus.SUCCESS).copy(durationOverrideSeconds = 75))),
         )
         advanceUntilIdle()
 
@@ -1284,8 +1426,18 @@ class DayItineraryViewModelTest {
         var detailsGate: CompletableDeferred<Unit>? = null
         val overrides = mutableListOf<Pair<String, TransportMode>>()
         val details = mutableListOf<RouteDetails>()
+        val legacyRetries = mutableListOf<String>()
+        val retries = mutableListOf<Pair<String, Long>>()
         override fun start(scope: kotlinx.coroutines.CoroutineScope) = Unit
-        override suspend fun retry(legId: String) = true
+        override suspend fun retry(legId: String): Boolean {
+            legacyRetries += legId
+            return true
+        }
+        override suspend fun retry(legId: String, expectedVersion: Long): Boolean {
+            retries += legId to expectedVersion
+            overrideGate?.await()
+            return overrideResult
+        }
         override suspend fun updateDetails(legId: String, selectedModeOverride: TransportMode?, durationOverrideSeconds: Int?, note: String?): Boolean {
             details += RouteDetails(legId, selectedModeOverride, durationOverrideSeconds, note)
             detailsGate?.await()

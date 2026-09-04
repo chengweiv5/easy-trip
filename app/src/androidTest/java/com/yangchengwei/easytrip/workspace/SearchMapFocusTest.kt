@@ -216,6 +216,7 @@ class SearchMapFocusTest {
 
     private class RecordingHost(context: android.content.Context) : AmapMapHost {
         override val view = View(context)
+        override fun canRenderBeforeReady() = true
         var lastModel: MapUiModel? = null
         var lastLayer: MapLayer? = null
         var viewportCalls = 0

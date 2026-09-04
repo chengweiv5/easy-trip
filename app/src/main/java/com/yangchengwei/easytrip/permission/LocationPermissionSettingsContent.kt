@@ -20,15 +20,15 @@ import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
 import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
 
 @Composable
-fun PermissionExplanationContent(
-    onConfirm: () -> Unit,
+fun LocationPermissionSettingsContent(
+    onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
     busy: Boolean = false,
     error: String? = null,
 ) {
     EasyTripDialogSurface(onDismiss = onDismiss) {
-        PermissionExplanationBody(
-            onConfirm = onConfirm,
+        LocationPermissionSettingsBody(
+            onOpenSettings = onOpenSettings,
             onDismiss = onDismiss,
             busy = busy,
             error = error,
@@ -37,8 +37,8 @@ fun PermissionExplanationContent(
 }
 
 @Composable
-fun PermissionExplanationBody(
-    onConfirm: () -> Unit,
+fun LocationPermissionSettingsBody(
+    onOpenSettings: () -> Unit,
     onDismiss: () -> Unit,
     busy: Boolean = false,
     error: String? = null,
@@ -48,12 +48,12 @@ fun PermissionExplanationBody(
         verticalArrangement = Arrangement.spacedBy(14.dp),
     ) {
         Text(
-            "允许 Easy Trip 获取你的位置",
+            "定位权限未开启",
             modifier = Modifier.semantics { heading() },
             style = MaterialTheme.typography.titleLarge,
         )
         Text(
-            "用于在地图上定位当前位置。只有点击定位按钮时才会使用，拒绝后仍可正常规划行程。",
+            "请前往系统设置，为 Easy Trip 开启定位权限。地图和行程仍可正常使用。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
@@ -61,7 +61,7 @@ fun PermissionExplanationBody(
             Text(
                 text = it,
                 modifier = Modifier
-                    .testTag("permission-explanation-error")
+                    .testTag("location-settings-error")
                     .semantics { liveRegion = LiveRegionMode.Polite },
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.error,
@@ -71,12 +71,12 @@ fun PermissionExplanationBody(
             Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            EasyTripSecondaryButton(onDismiss, Modifier.weight(1f)) { Text("暂不使用") }
+            EasyTripSecondaryButton(onDismiss, Modifier.weight(1f)) { Text("取消") }
             EasyTripPrimaryButton(
-                onClick = onConfirm,
-                modifier = Modifier.weight(1f).testTag("permission-explanation-confirm"),
+                onClick = onOpenSettings,
+                modifier = Modifier.weight(1f).testTag("location-settings-open"),
                 enabled = !busy,
-            ) { Text("继续") }
+            ) { Text("前往设置") }
         }
     }
 }

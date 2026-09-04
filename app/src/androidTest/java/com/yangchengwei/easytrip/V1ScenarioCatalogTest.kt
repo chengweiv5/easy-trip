@@ -113,6 +113,137 @@ class V1ScenarioMetadataTest {
 
     @Test fun eHTX3ExecutesProductionWorkspaceVariant() = executeVariant("eHTX3")
 
+    @Test
+    fun batch6FramesKeepDistinctTypedFactoryIdentityAndExactScenarioBindings() {
+        val scenarios = V1ScenarioFixtures.scenarios.associateBy(V1Scenario::number)
+
+        assertEquals(8, Batch6TypedScenario.entries.size)
+        Batch6TypedScenario.entries.forEach { expected ->
+            val scenario = scenarios.getValue(expected.number)
+            val executable = scenario.createExecutable()
+
+            assertEquals(expected.frameId, scenario.frameId)
+            assertEquals(expected.fixtureId, executable.fixture.id)
+            assertEquals(expected.screen, executable.fixture.screen)
+            assertEquals(expected.factoryIdentity, executable.factoryIdentity)
+        }
+        assertEquals(
+            Batch6TypedScenario.entries.map(Batch6TypedScenario::factoryIdentity).toSet().size,
+            Batch6TypedScenario.entries.size,
+        )
+        assertEquals(47, V1ScenarioFixtures.scenarios.size)
+    }
+
+    @Test
+    fun batch6FramesDeclareControlledEvidenceAndOnlyObservedHigherLevelBoundaries() {
+        val evidence = VisualBatch0EvidenceTest.batch6Evidence
+
+        assertEquals(Batch6FrameCheckpoint.entries.map(Batch6FrameCheckpoint::frameId).toSet(), evidence.keys)
+        evidence.forEach { (frameId, records) ->
+            val checkpoint = Batch6FrameCheckpoint.entries.single { it.frameId == frameId }
+            val scenario = V1ScenarioFixtures.scenarios.single { it.frameId == frameId }
+
+            assertTrue(records.any { record ->
+                record.checkpoint == checkpoint &&
+                    record.scenario.number == scenario.number &&
+                    record.fixtureId == scenario.createExecutable().fixture.id &&
+                    record.host == EvidenceHost.ProductionCompose &&
+                    record.stateSource == EvidenceStateSource.ControlledUiState
+            })
+            records.forEach { record ->
+                assertEquals(frameId, record.checkpoint.frameId)
+                assertEquals(frameId, record.scenario.frameId)
+                assertEquals(record.fixtureId, record.executable().fixture.id)
+                assertTrue(record.automatedEntry.isExecutableTestReference())
+                assertTrue(record.limitations.isNotBlank())
+            }
+        }
+        assertTrue(evidence.getValue("P7k0M").any {
+            it.host == EvidenceHost.ProductionRepository &&
+                it.stateSource == EvidenceStateSource.FileBackedRoomReopen
+        })
+        assertTrue(evidence.getValue("EHOHC").any {
+            it.host == EvidenceHost.ProductionAppNavigation &&
+                it.stateSource == EvidenceStateSource.HandwrittenRepositoryFakes &&
+                it.mapSurface == EvidenceMapSurface.None &&
+                it.permissionSurface == EvidencePermissionSurface.ControlledSnapshot
+        })
+        setOf("JFhZ7", "HYCsZ").forEach { frameId ->
+            assertTrue(evidence.getValue(frameId).any {
+                it.host == EvidenceHost.ProductionAppNavigation &&
+                    it.stateSource == EvidenceStateSource.HandwrittenRepositoryFakes &&
+                    it.mapSurface == EvidenceMapSurface.RecordingFakeMapHost &&
+                    it.permissionSurface == EvidencePermissionSurface.ActivityResultContract
+            })
+        }
+        assertTrue(evidence.getValue("U8R5i").any {
+            it.mapSurface == EvidenceMapSurface.FailureInjectingFakeMapHost
+        })
+        evidence.filterKeys { it !in setOf("EHOHC", "JFhZ7", "HYCsZ") }.values.flatten().forEach {
+            assertEquals(EvidencePermissionSurface.None, it.permissionSurface)
+        }
+        assertTrue(evidence.getValue("GoxB6").any {
+            it.mapSurface == EvidenceMapSurface.RecordingFakeMapHost
+        })
+        assertTrue(evidence.getValue("U8R5i").any {
+            it.mapSurface == EvidenceMapSurface.FailureInjectingFakeMapHost
+        })
+        assertTrue(evidence.getValue("OOEsk").any {
+            it.host == EvidenceHost.ProductionAppNavigation &&
+                it.stateSource == EvidenceStateSource.InMemoryRoomNavigation &&
+                it.mapSurface == EvidenceMapSurface.RecordingFakeMapHost
+        })
+        assertTrue(evidence.values.flatten().none {
+            it.host == EvidenceHost.PhysicalDevice ||
+                it.stateSource == EvidenceStateSource.InstalledAppRestart ||
+                it.mapSurface == EvidenceMapSurface.RealAmap ||
+                it.permissionSurface == EvidencePermissionSurface.AndroidSystem
+        })
+    }
+
+    private fun String.isExecutableTestReference(): Boolean {
+        val (simpleClassName, methodName) = split('#', limit = 2).let { parts ->
+            require(parts.size == 2) { "Evidence entry must be Class#method: $this" }
+            parts[0] to parts[1]
+        }
+        val className = simpleClassName.takeIf { it.startsWith("com.yangchengwei.easytrip.") }
+            ?: "com.yangchengwei.easytrip.$simpleClassName"
+        val testClass = Class.forName(className)
+        return testClass.declaredMethods.any { method ->
+            method.name == methodName && method.getAnnotation(Test::class.java) != null
+        }
+    }
+
+    @Test fun P7k0MExecutesBatch6TypedScenario() = executeBatch6Scenario(Batch6TypedScenario.WaitingForNetwork)
+
+    @Test fun E3EhSvExecutesBatch6TypedScenario() = executeBatch6Scenario(Batch6TypedScenario.FailedRoute)
+
+    @Test fun EHOHCExecutesBatch6TypedScenario() = executeBatch6Scenario(Batch6TypedScenario.MapConsentExplanation)
+
+    @Test fun JFhZ7ExecutesBatch6TypedScenario() = executeBatch6Scenario(Batch6TypedScenario.LocationExplanation)
+
+    @Test fun HYCsZExecutesBatch6TypedScenario() = executeBatch6Scenario(Batch6TypedScenario.LocationSettingsRecovery)
+
+    @Test fun GoxB6ExecutesBatch6TypedScenario() = executeBatch6Scenario(Batch6TypedScenario.MapLoading)
+
+    @Test fun U8R5iExecutesBatch6TypedScenario() = executeBatch6Scenario(Batch6TypedScenario.MapFailure)
+
+    @Test fun OOEskExecutesBatch6TypedScenario() = executeBatch6Scenario(Batch6TypedScenario.EditSaveFailure)
+
+    private fun executeBatch6Scenario(expected: Batch6TypedScenario) {
+        val scenario = V1ScenarioFixtures.scenarios.single { it.number == expected.number }
+        val executable = scenario.createExecutable()
+        executable.setup()
+        executable.render(compose)
+        compose.waitForIdle()
+        executable.actions(compose)
+        compose.waitForIdle()
+        executable.assertions(compose)
+        assertEquals(expected.frameId, scenario.frameId)
+        assertEquals(expected.fixtureId, executable.fixture.id)
+        assertEquals(expected.factoryIdentity, executable.factoryIdentity)
+    }
+
     @Test fun batch5ProductionEvidenceContractRequiresEveryTypedCheckpoint() {
         val contract = Batch5ExecutableEvidence.ProductionNavigationMainFlow
 

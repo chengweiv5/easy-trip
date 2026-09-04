@@ -234,6 +234,7 @@ private class FakeRepository(initial: RouteLegWithEndpoints, private val requeue
     }
     override suspend fun updateDetails(legId: String, selectedModeOverride: TransportMode?, durationOverrideSeconds: Int?, note: String?, online: Boolean): Boolean { val item=get(legId)?:return false; return if (item.selectedMode == selectedModeOverride) true else mutate(legId, item.version) { it.copy(version=it.version+1, selectedMode=selectedModeOverride, status=if(online) RouteStatus.PENDING else RouteStatus.WAITING_NETWORK, distanceMeters=null, errorKind=null, errorCode=null) } }
         override suspend fun retry(legId: String, online: Boolean): Boolean { retryIds += legId; val item=get(legId)?:return false; return mutate(legId,item.version){it.copy(version=it.version+1,status=if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK,distanceMeters=null,errorKind=null,errorCode=null)} }
+        override suspend fun retry(legId: String, expectedVersion: Long, online: Boolean): Boolean { retryIds += legId; val item=get(legId)?:return false; return if (item.version == expectedVersion && item.status == RouteStatus.FAILED) mutate(legId,expectedVersion){it.copy(version=it.version+1,status=if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK,distanceMeters=null,errorKind=null,errorCode=null)} else false }
     override suspend fun recoverInterruptedCalculations(online: Boolean): Int {
         var count = 0
         state.update { values -> values.map { item ->

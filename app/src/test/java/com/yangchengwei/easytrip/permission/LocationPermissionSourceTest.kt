@@ -2,6 +2,8 @@ package com.yangchengwei.easytrip.permission
 
 import java.nio.file.Files
 import java.nio.file.Paths
+import com.yangchengwei.easytrip.workspace.PermissionKind
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -21,13 +23,11 @@ class LocationPermissionSourceTest {
         assertFalse(coordinator.contains("Context"))
     }
 
-    @Test fun permissionKindsExcludeConsentAndSettingsDialogSemantics() {
-        val overlay = source("src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt")
-        val explanation = source("src/main/java/com/yangchengwei/easytrip/permission/PermissionExplanationContent.kt")
-        assertFalse(overlay.contains("MAP_SERVICE_CONSENT"))
-        assertFalse(overlay.contains("DEVICE_LOCATION_SETTINGS"))
-        assertFalse(explanation.contains("打开应用设置"))
-        assertTrue(explanation.contains("定位仅在你主动点击后用于在地图上显示当前位置"))
+    @Test fun permissionKindsModelOnlyTheTwoDeviceLocationPrompts() {
+        assertEquals(
+            setOf(PermissionKind.DEVICE_LOCATION, PermissionKind.DEVICE_LOCATION_SETTINGS),
+            PermissionKind.entries.toSet(),
+        )
     }
 
     private fun source(path: String) = String(Files.readAllBytes(Paths.get(path)))

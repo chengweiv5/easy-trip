@@ -9,16 +9,24 @@ import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.test.SemanticsMatcher
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertIsOff
+import androidx.compose.ui.test.assertIsOn
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithContentDescription
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
@@ -41,7 +49,11 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
 import com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore
+import com.yangchengwei.easytrip.permission.LocationPermissionSnapshot
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
+import androidx.lifecycle.Lifecycle
+import java.util.concurrent.atomic.AtomicInteger
+import java.util.concurrent.atomic.AtomicReference
 import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
 import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
@@ -159,16 +171,63 @@ class WorkspaceFlowTest {
         }
     }
 
-    @Test fun firstWorkspaceEntryShowsConsentExplanationOnce() {
+    @Test fun undecidedWorkspaceEntryShowsConsentExplanationUntilDecision() {
         val fixture = consentNavigationFixture(null)
         compose.setContent { fixture.render() }
         enterWorkspace()
 
-        compose.onNodeWithText("高德服务隐私说明").assertIsDisplayed()
+        compose.onNodeWithText("允许 Easy Trip 使用地图").assertIsDisplayed()
+        compose.onNodeWithText("地图用于展示收藏地点、每天的路线和交通距离。暂不允许也可以继续编辑地点池和行程。").assertIsDisplayed()
+        compose.onNodeWithText("允许使用地图").assertIsDisplayed()
+        compose.onNodeWithText("暂不允许").assertIsDisplayed()
         compose.runOnIdle { assertEquals(1, fixture.reporter.shownCalls) }
         compose.onNodeWithTag("workspace-back").performClick()
         compose.onNodeWithTag("continue-trip-trip").performClick()
-        compose.onNodeWithText("高德服务隐私说明").assertDoesNotExist()
+        compose.onNodeWithText("允许 Easy Trip 使用地图").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, fixture.reporter.shownCalls) }
+    }
+
+    @Test fun mapConsentDialogExposesOrderedPolicyGateAndAcceptsOnlyAfterConfirmation() {
+        val fixture = consentNavigationFixture(null)
+        compose.setContent { fixture.render() }
+        enterWorkspace()
+
+        compose.onNodeWithText("允许 Easy Trip 使用地图", useUnmergedTree = true)
+            .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+        compose.onAllNodesWithTag("map-consent-policy-confirmation", useUnmergedTree = true)
+            .assertCountEquals(1)
+        compose.onNodeWithTag("map-consent-policy-confirmation", useUnmergedTree = true)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Role, androidx.compose.ui.semantics.Role.Checkbox))
+        val title = compose.onNodeWithText("允许 Easy Trip 使用地图").getUnclippedBoundsInRoot()
+        val purpose = compose.onNodeWithText("地图用于展示收藏地点、每天的路线和交通距离。暂不允许也可以继续编辑地点池和行程。")
+            .getUnclippedBoundsInRoot()
+        val policy = compose.onNodeWithText("阅读高德隐私权政策").assertHasClickAction().getUnclippedBoundsInRoot()
+        val checkbox = compose.onNodeWithTag("map-consent-policy-confirmation").assertIsOff()
+        val checkboxBounds = checkbox.getUnclippedBoundsInRoot()
+        val allow = compose.onNodeWithText("允许使用地图").assertIsNotEnabled().getUnclippedBoundsInRoot()
+        val decline = compose.onNodeWithText("暂不允许").assertIsEnabled().getUnclippedBoundsInRoot()
+        assertTrue("title=$title purpose=$purpose", title.top < purpose.top)
+        assertTrue("purpose=$purpose policy=$policy", purpose.top < policy.top)
+        assertTrue("policy=$policy checkbox=$checkboxBounds", policy.top < checkboxBounds.top)
+        assertTrue("checkbox=$checkboxBounds allow=$allow decline=$decline", checkboxBounds.bottom <= allow.top && checkboxBounds.bottom <= decline.top)
+
+        compose.onNodeWithText("我已阅读高德隐私权政策").performClick()
+        compose.onNodeWithTag("map-consent-policy-confirmation").assertIsOn()
+        compose.onAllNodesWithContentDescription("我已阅读高德隐私权政策").assertCountEquals(0)
+        compose.onNodeWithText("允许使用地图").assertIsEnabled().performClick()
+        compose.waitUntil(5_000) { fixture.reporter.decisions == listOf(true) }
+        compose.onNodeWithText("允许 Easy Trip 使用地图").assertDoesNotExist()
+        compose.runOnIdle { assertEquals(1, fixture.runtimeSessions) }
+    }
+
+    @Test fun alreadyReportedUndecidedWorkspaceStillShowsConsentExplanation() {
+        val fixture = consentNavigationFixture(null)
+        runBlocking { fixture.store.reportShown().getOrThrow() }
+        compose.setContent { fixture.render() }
+
+        enterWorkspace()
+
+        compose.onNodeWithText("允许 Easy Trip 使用地图").assertIsDisplayed()
         compose.runOnIdle { assertEquals(1, fixture.reporter.shownCalls) }
     }
 
@@ -179,11 +238,11 @@ class WorkspaceFlowTest {
         enterWorkspace()
 
         compose.onNodeWithText("隐私说明展示失败，请重试").assertIsDisplayed()
-        compose.onNodeWithText("不同意").assertIsNotEnabled()
+        compose.onNodeWithText("暂不允许").assertIsNotEnabled()
         compose.onNodeWithText("重试").performClick()
         compose.waitUntil(5_000) { fixture.reporter.shownCalls == 2 }
-        compose.onNodeWithText("不同意").assertIsEnabled().performClick()
-        compose.onNodeWithText("高德服务隐私说明").assertDoesNotExist()
+        compose.onNodeWithText("暂不允许").assertIsEnabled().performClick()
+        compose.onNodeWithText("允许 Easy Trip 使用地图").assertDoesNotExist()
     }
 
     @Test fun persistedDeclineDoesNotAutoPromptOnReentry() {
@@ -191,7 +250,8 @@ class WorkspaceFlowTest {
         compose.setContent { fixture.render() }
         enterWorkspace()
 
-        compose.onNodeWithText("高德服务隐私说明").assertDoesNotExist()
+        compose.onNodeWithText("允许 Easy Trip 使用地图").assertDoesNotExist()
+        compose.onNodeWithText("地点池").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0, fixture.reporter.shownCalls) }
     }
 
@@ -201,8 +261,153 @@ class WorkspaceFlowTest {
         enterWorkspace()
 
         compose.onNodeWithTag("map-consent-open").performClick()
-        compose.onNodeWithText("高德服务隐私说明").assertIsDisplayed()
+        compose.onNodeWithText("允许 Easy Trip 使用地图").assertIsDisplayed()
         compose.runOnIdle { assertEquals(1, fixture.reporter.shownCalls) }
+    }
+
+    @Test fun appNavigationBindsPermissionCallbackToRequestThenSettingsResumeGrantShowsLocationOnce() {
+        val requestStore = InMemoryLocationPermissionRequestStore()
+        val permissionSnapshot = AtomicReference(LocationPermissionSnapshot(granted = false, shouldShowRationale = true))
+        val launches = mutableListOf<Array<String>>()
+        var permissionResult: ((LocationPermissionSnapshot) -> Unit)? = null
+        var settingsLaunches = 0
+        val locationCalls = AtomicInteger()
+        compose.setContent {
+            AppNavigation(
+                service = TripService(Trips()),
+                repository = Trips(),
+                impacts = EmptyDeleteImpactProvider,
+                dependencies = productionLocationDependencies(requestStore),
+                mapHostFactory = { context -> LocationRecordingHost(context, locationCalls) },
+                onLaunchLocationPermission = { permissions, onResult ->
+                    launches += permissions
+                    permissionResult = onResult
+                    Result.success(Unit)
+                },
+                onOpenApplicationSettings = {
+                    settingsLaunches++
+                    Result.success(Unit)
+                },
+                locationPermissionSnapshot = permissionSnapshot::get,
+            )
+        }
+
+        enterWorkspace()
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.onNodeWithText("允许 Easy Trip 获取你的位置").assertIsDisplayed()
+        compose.onNodeWithText("继续").performClick()
+        compose.waitUntil(5_000) { launches.size == 1 && requestStore.hasRequested && permissionResult != null }
+        compose.runOnIdle { assertEquals(2, launches.single().size) }
+
+        permissionResult!!.invoke(LocationPermissionSnapshot(granted = false, shouldShowRationale = false))
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("定位权限未开启").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithText("前往设置").performClick()
+        compose.waitUntil(5_000) { settingsLaunches == 1 }
+
+        permissionSnapshot.set(LocationPermissionSnapshot(granted = true, shouldShowRationale = false))
+        compose.activityRule.scenario.moveToState(Lifecycle.State.STARTED)
+        compose.activityRule.scenario.moveToState(Lifecycle.State.RESUMED)
+        compose.waitUntil(5_000) { locationCalls.get() == 1 }
+        compose.runOnIdle { assertEquals(1, locationCalls.get()) }
+    }
+
+    @Test fun appNavigationIgnoresPermissionCallbackAfterWorkspaceDisposes() {
+        val requestStore = InMemoryLocationPermissionRequestStore()
+        var permissionResult: ((LocationPermissionSnapshot) -> Unit)? = null
+        val locationCalls = AtomicInteger()
+        compose.setContent {
+            AppNavigation(
+                service = TripService(Trips()),
+                repository = Trips(),
+                impacts = EmptyDeleteImpactProvider,
+                dependencies = productionLocationDependencies(requestStore),
+                mapHostFactory = { context -> LocationRecordingHost(context, locationCalls) },
+                onLaunchLocationPermission = { _, onResult ->
+                    permissionResult = onResult
+                    Result.success(Unit)
+                },
+            )
+        }
+
+        enterWorkspace()
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.onNodeWithText("继续").performClick()
+        compose.waitUntil(5_000) { requestStore.hasRequested && permissionResult != null }
+        compose.onNodeWithTag("workspace-back").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("workspace-search-launcher").fetchSemanticsNodes().isEmpty()
+        }
+
+        permissionResult!!.invoke(LocationPermissionSnapshot(granted = true, shouldShowRationale = false))
+        compose.waitForIdle()
+
+        assertEquals(0, locationCalls.get())
+    }
+
+    @Test fun appNavigationIgnoresOlderPermissionCallbackAfterNewerRequest() {
+        val requestStore = InMemoryLocationPermissionRequestStore()
+        val callbacks = mutableListOf<(LocationPermissionSnapshot) -> Unit>()
+        val locationCalls = AtomicInteger()
+        val permissionSnapshot = AtomicReference(LocationPermissionSnapshot(granted = false, shouldShowRationale = true))
+        compose.setContent {
+            AppNavigation(
+                service = TripService(Trips()),
+                repository = Trips(),
+                impacts = EmptyDeleteImpactProvider,
+                dependencies = productionLocationDependencies(requestStore),
+                mapHostFactory = { context -> LocationRecordingHost(context, locationCalls) },
+                onLaunchLocationPermission = { _, onResult ->
+                    callbacks += onResult
+                    Result.success(Unit)
+                },
+                locationPermissionSnapshot = permissionSnapshot::get,
+            )
+        }
+
+        enterWorkspace()
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.onNodeWithText("继续").performClick()
+        compose.waitUntil(5_000) { callbacks.size == 1 && requestStore.hasRequested }
+        callbacks.single().invoke(LocationPermissionSnapshot(granted = false, shouldShowRationale = true))
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("允许 Easy Trip 获取你的位置").fetchSemanticsNodes().isEmpty()
+        }
+
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.onNodeWithText("继续").performClick()
+        compose.waitUntil(5_000) { callbacks.size == 2 }
+
+        callbacks.first().invoke(LocationPermissionSnapshot(granted = true, shouldShowRationale = false))
+        compose.waitForIdle()
+        assertEquals(0, locationCalls.get())
+    }
+
+    @Test fun synchronousPermissionCallbackWaitsForLaunchRecordingBeforePermanentDenial() {
+        val requestStore = InMemoryLocationPermissionRequestStore()
+        compose.setContent {
+            AppNavigation(
+                service = TripService(Trips()),
+                repository = Trips(),
+                impacts = EmptyDeleteImpactProvider,
+                dependencies = productionLocationDependencies(requestStore),
+                mapHostFactory = ::TestMapHost,
+                onLaunchLocationPermission = { _, onResult ->
+                    onResult(LocationPermissionSnapshot(granted = false, shouldShowRationale = false))
+                    Result.success(Unit)
+                },
+            )
+        }
+
+        enterWorkspace()
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.onNodeWithText("继续").performClick()
+
+        compose.waitUntil(5_000) {
+            requestStore.hasRequested &&
+                compose.onAllNodesWithText("定位权限未开启").fetchSemanticsNodes().isNotEmpty()
+        }
     }
 
     @Test fun withdrawalStopsSearchAndMapWithoutResettingWorkspace() {
@@ -258,6 +463,51 @@ class WorkspaceFlowTest {
         }
     }
 
+    @Test fun newCompositionStartsFreshMapAttemptWithoutReusingFailureOverlay() {
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        var composition by mutableIntStateOf(0)
+        val hosts = mutableListOf<AmapMapHost>()
+        compose.setContent {
+            key(composition) {
+                TripWorkspaceScreen(
+                    viewModel = model,
+                    consent = consentToken(),
+                    onBack = {},
+                    onSettings = {},
+                    placeContent = { Text("地点内容") },
+                    dayItineraryContent = { Text("行程内容") },
+                    mapHostFactory = { context ->
+                        val host: AmapMapHost = if (hosts.isEmpty()) {
+                            FailingMapHost(context)
+                        } else {
+                            object : AmapMapHost {
+                                override val view = View(context)
+                                override fun setOnReadyListener(listener: (() -> Unit)?) = Unit
+                                override fun onCreate() = Unit
+                                override fun onResume() = Unit
+                                override fun onPause() = Unit
+                                override fun onDestroy() = Unit
+                            }
+                        }
+                        hosts.add(host)
+                        host
+                    },
+                    mapReadyTimeoutMillis = 60_000,
+                )
+            }
+        }
+
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("map-load-failed").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.runOnUiThread { composition++ }
+        compose.waitUntil(5_000) { hosts.size == 2 }
+
+        compose.onNodeWithTag("workspace-map-loading").assertIsDisplayed()
+        compose.onAllNodesWithTag("map-load-failed").assertCountEquals(0)
+        compose.onAllNodesWithTag("map-retry").assertCountEquals(0)
+    }
+
     @Test fun mapRetryRecreatesOnlyMapHostAndKeepsWorkspaceContext() {
         val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         var attempt by mutableIntStateOf(0)
@@ -278,12 +528,291 @@ class WorkspaceFlowTest {
 
         compose.waitUntil(5_000) { compose.onAllNodesWithTag("map-retry").fetchSemanticsNodes().isNotEmpty() }
         model.selectSection(WorkspaceSection.ITINERARY)
+        model.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
+        compose.waitUntil(5_000) {
+            model.state.value.section == WorkspaceSection.ITINERARY &&
+                model.state.value.sheetLevel == WorkspaceSheetLevel.EXPANDED
+        }
         val identity = model
-        compose.onNodeWithTag("map-retry").performClick()
+        compose.onNodeWithText("行程内容").assertIsDisplayed()
+        val retry = compose.onNodeWithTag("map-retry").assertIsDisplayed().assertHasClickAction()
+        retry.assertHeightIsAtLeast(48.dp)
+        retry.performClick()
         compose.waitUntil(5_000) { hosts == 2 }
 
         assertEquals(identity, model)
         assertEquals(WorkspaceSection.ITINERARY, model.state.value.section)
+        assertEquals(WorkspaceSheetLevel.EXPANDED, model.state.value.sheetLevel)
+        compose.onNodeWithText("行程内容").assertIsDisplayed()
+    }
+
+    @Test fun locateRequestedWhileLoadingIsForwardedToReplacementAttempt() {
+        val token = consentToken()
+        var locateRequest by mutableIntStateOf(0)
+        val hosts = AtomicInteger()
+        val locationCalls = AtomicInteger()
+        compose.setContent {
+            TripWorkspaceScreen(
+                pageState = TripWorkspacePageState.Ready(
+                    TripWorkspaceUiState(tripName = "测试旅行").toReadyState(),
+                ),
+                consent = token,
+                onAction = {},
+                onMarkerClick = {},
+                onMapPoiClick = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                onPlaceAction = {},
+                itineraryState = DayItineraryUiState(),
+                onItineraryAction = {},
+                onCloseOverlay = {},
+                onDismissMapPlace = {},
+                locateRequest = locateRequest,
+                mapReadyTimeoutMillis = 400,
+                mapHostFactory = { context ->
+                    val attempt = hosts.getAndIncrement()
+                    object : AmapMapHost {
+                        private var readyListener: (() -> Unit)? = null
+                        override val view = View(context)
+                        override fun canRenderBeforeReady() = attempt == 1
+                        override fun setOnReadyListener(listener: (() -> Unit)?) {
+                            readyListener = listener
+                        }
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() = Unit
+                        override fun showCurrentLocation() {
+                            locationCalls.incrementAndGet()
+                        }
+                    }
+                },
+            )
+        }
+
+        compose.waitUntil(5_000) { hosts.get() == 1 }
+        compose.runOnUiThread { locateRequest = 1 }
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("map-retry").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("map-retry").performClick()
+        compose.waitUntil(5_000) { hosts.get() == 2 && locationCalls.get() == 1 }
+        compose.runOnIdle { assertEquals(1, locationCalls.get()) }
+    }
+
+    @Test fun neverReadyMapShowsApprovedFallbackKeepsContentAndRetryRecreatesOnlyHost() {
+        val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val created = mutableListOf<Int>()
+        val destroyed = mutableListOf<Int>()
+        compose.setContent {
+            TripWorkspaceScreen(
+                viewModel = model,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                placeContent = { Text("地点内容保持可见") },
+                dayItineraryContent = { Text("行程内容保持可见") },
+                mapReadyTimeoutMillis = 400,
+                mapHostFactory = { context ->
+                    val attempt = created.size
+                    created += attempt
+                    object : AmapMapHost {
+                        override val view = View(context)
+                        override fun canRenderBeforeReady() = attempt == 1
+                        override fun setOnReadyListener(listener: (() -> Unit)?) = Unit
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() { destroyed += attempt }
+                    }
+                },
+            )
+        }
+
+        compose.waitUntil(5_000) { compose.onAllNodesWithText("地图暂时无法加载").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithText("地点和行程仍可查看，请稍后重试").assertIsDisplayed()
+        compose.onNodeWithText("地点内容保持可见").assertIsDisplayed()
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        compose.onNodeWithText("行程内容保持可见").assertIsDisplayed()
+        compose.onNodeWithTag("map-retry").performClick()
+        compose.waitUntil(5_000) { created.size == 2 && destroyed.contains(0) }
+        compose.onNodeWithTag("workspace-map-fallback").assertDoesNotExist()
+
+        assertEquals(WorkspaceSection.ITINERARY, model.state.value.section)
+    }
+
+    @Test fun grantedLocateBeforeFirstConsentMountRunsExactlyOnceWhenMapBecomesReady() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val coordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore())
+        coordinator.attachWorkspace("trip")
+        var consent by androidx.compose.runtime.mutableStateOf<com.yangchengwei.easytrip.amap.AmapConsentToken?>(null)
+        val locationCalls = AtomicInteger()
+        var hosts = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = consent,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = coordinator,
+                locationPermissionSnapshot = { LocationPermissionSnapshot(granted = true, shouldShowRationale = false) },
+                onWorkspaceEffect = {},
+                mapHostFactory = { context ->
+                    LocationRecordingHost(context, locationCalls).also { hosts++ }
+                },
+            )
+        }
+        compose.waitUntil(5_000) {
+            workspace.pageState.value is TripWorkspacePageState.Ready &&
+                compose.onAllNodesWithTag("map-consent-required").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.runOnIdle {
+            assertEquals(0, hosts)
+            assertEquals(0, locationCalls.get())
+        }
+
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.waitForIdle()
+        compose.runOnUiThread { consent = consentToken() }
+
+        compose.waitUntil(5_000) { hosts > 0 && locationCalls.get() == 1 }
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        compose.onNodeWithTag("section-PLACE_POOL").performClick()
+        compose.runOnIdle {
+            assertEquals(1, hosts)
+            assertEquals(1, locationCalls.get())
+        }
+    }
+
+    @Test fun permanentLocationDenialKeepsReadyMapAndSettingsOverlayCancelOrBackPreservesFact() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val coordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore(hasRequested = true))
+        coordinator.attachWorkspace("trip")
+        var rendered = 0
+        var destroyed = 0
+        var settingsEffects = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = coordinator,
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = { effect ->
+                    if (effect is com.yangchengwei.easytrip.permission.WorkspaceEffect.OpenApplicationSettings) settingsEffects++
+                },
+                mapHostFactory = { context ->
+                    object : AmapMapHost {
+                        override val view = View(context)
+                        override fun canRenderBeforeReady() = true
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() { destroyed++ }
+                        override fun render(
+                            model: MapUiModel,
+                            layer: MapLayer,
+                            onMarkerClick: (String) -> Unit,
+                            onMapPoiClick: (MapPoiUi) -> Unit,
+                            onLayerError: (Throwable, MapLayer) -> Unit,
+                        ) { rendered++ }
+                    }
+                },
+            )
+        }
+        compose.waitUntil(5_000) { rendered > 0 }
+
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.onNodeWithText("定位权限未开启").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-map").assertIsDisplayed()
+        compose.onAllNodesWithTag("workspace-map-fallback").assertCountEquals(0)
+        compose.runOnIdle { assertEquals(0, destroyed) }
+
+        compose.onNodeWithText("取消").performClick()
+        compose.waitUntil(5_000) { workspace.state.value.overlay == WorkspaceOverlay.None }
+        compose.runOnIdle { assertTrue(coordinator.uiState.value.permanentlyDenied) }
+
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.onNodeWithText("前往设置").performClick()
+        compose.waitUntil(5_000) { settingsEffects == 1 }
+        compose.onNodeWithTag("location-settings-open").assertIsNotEnabled().performClick()
+        compose.runOnIdle { assertEquals(1, settingsEffects) }
+        pressBack()
+        compose.waitUntil(5_000) { workspace.state.value.overlay == WorkspaceOverlay.None }
+        compose.runOnIdle {
+            assertTrue(coordinator.uiState.value.permanentlyDenied)
+            assertEquals(0, destroyed)
+        }
+    }
+
+    @Test fun permissionLauncherFailureKeepsSingleOverlayShowsErrorAndAllowsRetry() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val coordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore())
+        coordinator.attachWorkspace("trip")
+        var permissionEffects = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = coordinator,
+                locationPermissionSnapshot = { LocationPermissionSnapshot(false, true) },
+                onWorkspaceEffect = { effect ->
+                    if (effect is com.yangchengwei.easytrip.permission.WorkspaceEffect.RequestLocationPermission) {
+                        permissionEffects++
+                        coordinator.onPermissionLaunchFailed(effect.generation)
+                    }
+                },
+                mapHostFactory = ::TestMapHost,
+            )
+        }
+
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.onNodeWithText("继续").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("无法打开系统权限请求，请重试").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithText("无法打开系统权限请求，请重试")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, androidx.compose.ui.semantics.LiveRegionMode.Polite))
+        compose.onAllNodesWithText("允许 Easy Trip 获取你的位置").assertCountEquals(1)
+        compose.onNodeWithTag("permission-explanation-confirm").assertIsEnabled().performClick()
+        compose.waitUntil(5_000) { permissionEffects == 2 }
+    }
+
+    @Test fun settingsLauncherFailureKeepsSingleOverlayShowsErrorAndAllowsRetry() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val coordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore(hasRequested = true))
+        coordinator.attachWorkspace("trip")
+        var settingsEffects = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = coordinator,
+                locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = { effect ->
+                    if (effect is com.yangchengwei.easytrip.permission.WorkspaceEffect.OpenApplicationSettings) {
+                        settingsEffects++
+                        coordinator.onSettingsLaunchFailed(effect.generation)
+                    }
+                },
+                mapHostFactory = ::TestMapHost,
+            )
+        }
+
+        compose.onNodeWithTag("workspace-locate").performClick()
+        compose.onNodeWithText("前往设置").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("无法打开应用设置，请重试").fetchSemanticsNodes().isNotEmpty()
+        }
+
+        compose.onNodeWithText("无法打开应用设置，请重试")
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, androidx.compose.ui.semantics.LiveRegionMode.Polite))
+        compose.onAllNodesWithText("定位权限未开启").assertCountEquals(1)
+        compose.onNodeWithTag("location-settings-open").assertIsEnabled().performClick()
+        compose.waitUntil(5_000) { settingsEffects == 2 }
     }
 
     @Test fun mapFailureKeepsLocalTabsAndActionsReachable() {
@@ -1530,6 +2059,106 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("移出酒店？").assertIsDisplayed()
     }
 
+    @Test fun saveFailureUsesSharedRecoveryContentInsideTheExistingItineraryOverlay() {
+        val ready = TripWorkspaceUiState(tripName = "测试旅行").toReadyState()
+        var itineraryState by androidx.compose.runtime.mutableStateOf(
+            DayItineraryUiState(
+                editDraft = ItineraryEditDraft(
+                    itemId = "item-1",
+                    arrivalTimeText = "09:30",
+                    stayMinutesText = "60",
+                    noteText = "仍在编辑的备注",
+                    saveError = "保存失败",
+                ),
+            ),
+        )
+        val actions = mutableListOf<DayItineraryAction>()
+        var overlayCloseCalls = 0
+        compose.setContent {
+            TripWorkspaceScreen(
+                pageState = TripWorkspacePageState.Ready(ready.copy(overlay = WorkspaceOverlay.EditItineraryItem("item-1"))),
+                consent = null,
+                onAction = {},
+                onMarkerClick = {},
+                onMapPoiClick = {},
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                onPlaceAction = {},
+                itineraryState = itineraryState,
+                onItineraryAction = { action ->
+                    actions += action
+                    if (action::class.java.simpleName == "DismissEditSaveError") {
+                        itineraryState = itineraryState.copy(editDraft = itineraryState.editDraft?.copy(saveError = null))
+                    }
+                },
+                onCloseOverlay = { overlayCloseCalls++ },
+                onDismissMapPlace = {},
+            )
+        }
+
+        compose.onNodeWithTag("itinerary-save-failure").assertIsDisplayed()
+        compose.onAllNodesWithTag("arrival-time-input").assertCountEquals(0)
+        compose.onNodeWithTag("itinerary-save-failure-retry").performClick()
+        compose.runOnIdle { assertEquals(1, actions.count { it == DayItineraryAction.SaveEdit }) }
+        compose.onNodeWithTag("itinerary-save-failure-keep-editing").performClick()
+        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
+        compose.onNodeWithTag("stay-minutes-input").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
+        compose.onNodeWithText("仍在编辑的备注").assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(0, overlayCloseCalls)
+            assertEquals(1, actions.count { it == DayItineraryAction.SaveEdit })
+        }
+    }
+
+    @Test fun routeBackFromItinerarySaveFailureOnlyClearsErrorAndKeepsOverlay() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        var itineraryState by androidx.compose.runtime.mutableStateOf(
+            DayItineraryUiState(
+                editDraft = ItineraryEditDraft(
+                    itemId = "item-1",
+                    arrivalTimeText = "09:30",
+                    stayMinutesText = "60",
+                    noteText = "仍在编辑的备注",
+                    saveError = "保存失败",
+                ),
+            ),
+        )
+        var leaveCalls = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = { leaveCalls++ },
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                itineraryState = itineraryState,
+                onItineraryAction = { action ->
+                    if (action == DayItineraryAction.DismissEditSaveError) {
+                        itineraryState = itineraryState.copy(editDraft = itineraryState.editDraft?.copy(saveError = null))
+                    }
+                },
+            )
+        }
+        compose.waitUntil(5_000) {
+            workspace.state.value.overlay == WorkspaceOverlay.EditItineraryItem("item-1")
+        }
+        compose.onNodeWithTag("itinerary-save-failure").assertIsDisplayed()
+
+        pressBack()
+
+        compose.waitUntil(5_000) { itineraryState.editDraft?.saveError == null }
+        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
+        compose.onNodeWithTag("stay-minutes-input").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
+        compose.onNodeWithText("仍在编辑的备注").assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals(WorkspaceOverlay.EditItineraryItem("item-1"), workspace.state.value.overlay)
+            assertEquals(0, leaveCalls)
+        }
+    }
+
     @Test fun readyLegOpensModeOverlayForSameLeg() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val items = listOf(
@@ -1611,7 +2240,7 @@ class WorkspaceFlowTest {
 
         compose.onNodeWithTag("retry-failed").performClick()
 
-        assertEquals(listOf(DayItineraryAction.Retry("failed")), actions)
+        assertEquals(listOf(DayItineraryAction.Retry("failed", 0)), actions)
         assertEquals(WorkspaceOverlay.None, workspace.state.value.overlay)
     }
 
@@ -1783,6 +2412,45 @@ class WorkspaceFlowTest {
         compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed()
     }
 
+    private fun productionLocationDependencies(
+        requestStore: InMemoryLocationPermissionRequestStore,
+    ): AppNavigationDependencies {
+        val source = object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?) = emptyList<PlaceCandidate>()
+        }
+        val routeCoordinator = object : RouteRefreshCoordinator {
+            override fun start(scope: CoroutineScope) = Unit
+            override suspend fun retry(legId: String) = false
+            override suspend fun updateDetails(
+                legId: String,
+                selectedModeOverride: TransportMode?,
+                durationOverrideSeconds: Int?,
+                note: String?,
+            ) = false
+        }
+        val consentStore = AmapConsentStore(
+            MemoryConsentPersistence(true),
+            RecordingConsentReporter(),
+            ConsentRegistry(),
+        )
+        return AppNavigationDependencies(
+            savedPlaceRepository = Places(),
+            itineraryRepository = Itineraries(),
+            routeLegRepository = Legs(),
+            mapPreferences = InMemoryMapPreferences(),
+            locationPermissionRequestStore = requestStore,
+            consentStore = consentStore,
+            runtimeSessionFactory = { fact ->
+                AmapRuntimeSession(fact.generation, fact.token, source, routeCoordinator)
+            },
+        )
+    }
+
+    private val EmptyDeleteImpactProvider = object : com.yangchengwei.easytrip.trip.ui.DeleteImpactProvider {
+        override suspend fun trip(tripId: String) = com.yangchengwei.easytrip.trip.ui.TripDeleteImpact(0, 0, 0, 0, 0)
+        override suspend fun day(dayId: String) = com.yangchengwei.easytrip.trip.ui.DayDeleteImpact(0, 0, 0)
+    }
+
     private fun consentNavigationFixture(decision: Boolean?): ConsentNavigationFixture {
         val persistence = MemoryConsentPersistence(decision)
         val reporter = RecordingConsentReporter()
@@ -1841,6 +2509,7 @@ class WorkspaceFlowTest {
     private class RecordingConsentReporter : AmapPrivacyReporter {
         var shownCalls = 0
         var failShown = false
+        val decisions = mutableListOf<Boolean>()
         override suspend fun reportShown() {
             shownCalls++
             if (failShown) {
@@ -1848,7 +2517,7 @@ class WorkspaceFlowTest {
                 throw IllegalStateException("show failed")
             }
         }
-        override suspend fun reportDecision(accepted: Boolean) = Unit
+        override suspend fun reportDecision(accepted: Boolean) { decisions += accepted }
     }
 
     private class EditingPlaces : SavedPlaceRepository {
@@ -1907,8 +2576,29 @@ class WorkspaceFlowTest {
         return requireNotNull(gate.decide(true))
     }
 
+    private class LocationRecordingHost(
+        context: Context,
+        private val locationCalls: AtomicInteger,
+    ) : AmapMapHost {
+        override val view = View(context)
+        override fun canRenderBeforeReady() = true
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun showCurrentLocation() { locationCalls.incrementAndGet() }
+        override fun render(
+            model: MapUiModel,
+            layer: MapLayer,
+            onMarkerClick: (String) -> Unit,
+            onMapPoiClick: (MapPoiUi) -> Unit,
+            onLayerError: (Throwable, MapLayer) -> Unit,
+        ) = Unit
+    }
+
     private class TestMapHost(context: Context) : AmapMapHost {
         override val view = View(context)
+        override fun canRenderBeforeReady() = true
         override fun onCreate() = Unit
         override fun onResume() = Unit
         override fun onPause() = Unit
@@ -1924,6 +2614,7 @@ class WorkspaceFlowTest {
 
     private class FailingMapHost(context: Context) : AmapMapHost {
         override val view = View(context)
+        override fun canRenderBeforeReady() = true
         override fun onCreate() = Unit
         override fun onResume() = Unit
         override fun onPause() = Unit
@@ -1939,6 +2630,7 @@ class WorkspaceFlowTest {
 
     private class FirstSatelliteFailingMapHost(context: Context) : AmapMapHost {
         override val view = View(context)
+        override fun canRenderBeforeReady() = true
         override fun onCreate() = Unit
         override fun onResume() = Unit
         override fun onPause() = Unit
@@ -1956,6 +2648,7 @@ class WorkspaceFlowTest {
 
     private class LayerFailingMapHost(context: Context, private val renderedLayers: MutableList<MapLayer>) : AmapMapHost {
         override val view = View(context)
+        override fun canRenderBeforeReady() = true
         override fun onCreate() = Unit
         override fun onResume() = Unit
         override fun onPause() = Unit
@@ -1974,6 +2667,7 @@ class WorkspaceFlowTest {
 
     private class PoiHost(context: android.content.Context) : AmapMapHost {
         override val view = android.view.View(context)
+        override fun canRenderBeforeReady() = true
         private var callback: (MapPoiUi) -> Unit = {}
         override fun onCreate() = Unit
         override fun onResume() = Unit

@@ -30,5 +30,5 @@ data class RouteLegEndpointRow(val id:String,val version:Long,val status:RouteSt
  }
  @Query("SELECT * FROM route_legs WHERE tripDayId IN (SELECT id FROM trip_days WHERE tripId=:tripId)") suspend fun legsForTrip(tripId:String):List<RouteLegEntity>
  @Query("UPDATE route_legs SET recommendedMode=:mode,version=version+1,status=:status,distanceMeters=NULL,durationSeconds=NULL,polyline=NULL,errorKind=NULL,errorCode=NULL WHERE id=:id") suspend fun resetRecommendation(id:String,mode:TransportMode,status:RouteStatus):Int
- @Query("UPDATE route_legs SET version=version+1,status=:status,distanceMeters=NULL,durationSeconds=NULL,polyline=NULL,errorKind=NULL,errorCode=NULL WHERE id=:id") suspend fun retry(id:String,status:RouteStatus):Int
+ @Query("UPDATE route_legs SET version=version+1,status=:status,distanceMeters=NULL,durationSeconds=NULL,polyline=NULL,errorKind=NULL,errorCode=NULL WHERE id=:id AND status='FAILED' AND version=:version") suspend fun retry(id:String,version:Long,status:RouteStatus):Int
 }

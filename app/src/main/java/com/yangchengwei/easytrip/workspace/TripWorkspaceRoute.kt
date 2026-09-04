@@ -10,6 +10,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
+import com.yangchengwei.easytrip.permission.LocationPermissionPrompt
 import com.yangchengwei.easytrip.permission.LocationPermissionSnapshot
 import com.yangchengwei.easytrip.permission.WorkspaceEffect
 import com.yangchengwei.easytrip.amap.AmapConsentToken
@@ -31,6 +32,19 @@ import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
 
 enum class WorkspaceBackDecision { Ignore, CloseOverlay, LeaveWorkspace }
 
+enum class WorkspaceOverlayCloseDecision { CloseOverlay, KeepItineraryOverlay }
+
+internal fun workspaceOverlayCloseDecision(
+    overlay: WorkspaceOverlay,
+    itinerary: DayItineraryUiState,
+): WorkspaceOverlayCloseDecision =
+    if (overlay is WorkspaceOverlay.EditItineraryItem && itinerary.editDraft?.saveError != null) {
+        WorkspaceOverlayCloseDecision.KeepItineraryOverlay
+    } else {
+        WorkspaceOverlayCloseDecision.CloseOverlay
+    }
+
+
 fun WorkspaceOverlay.isAddToItineraryOverlay(): Boolean =
     this == WorkspaceOverlay.SelectAddPlaces ||
         this == WorkspaceOverlay.SelectAddTargetDay ||
@@ -38,6 +52,20 @@ fun WorkspaceOverlay.isAddToItineraryOverlay(): Boolean =
 
 fun canDismissAddOverlay(overlay: WorkspaceOverlay, addToItinerary: AddToItineraryUiState): Boolean =
     !overlay.isAddToItineraryOverlay() || (!addToItinerary.isSubmitting && !addToItinerary.isUndoing)
+
+internal fun locationPermissionOverlayToPresent(
+    prompt: LocationPermissionPrompt,
+    current: WorkspaceOverlay,
+): WorkspaceOverlay? {
+    val desired = when (prompt) {
+        LocationPermissionPrompt.NONE -> null
+        LocationPermissionPrompt.EXPLANATION -> WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION)
+        LocationPermissionPrompt.SETTINGS -> WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION_SETTINGS)
+    }
+    return desired?.takeIf {
+        current == WorkspaceOverlay.None || current is WorkspaceOverlay.PermissionExplanation
+    }
+}
 
 internal fun placeDetailOverlayToPresent(
     selectedPlaceId: String?,
@@ -217,11 +245,13 @@ fun TripWorkspaceRoute(
             if (effect is WorkspaceEffect.ShowCurrentLocation) locateRequest++ else onWorkspaceEffect(effect)
         }
     }
-    LaunchedEffect(locationPermissionUiState.explanationVisible, ready?.overlay) {
-        if (locationPermissionUiState.explanationVisible && ready?.overlay != WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION)) {
-            viewModel.openOverlay(WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION))
-        } else if (!locationPermissionUiState.explanationVisible && ready?.overlay is WorkspaceOverlay.PermissionExplanation) {
-            viewModel.closeOverlay()
+    LaunchedEffect(locationPermissionUiState.prompt, ready?.overlay) {
+        val current = ready?.overlay ?: WorkspaceOverlay.None
+        val desired = locationPermissionOverlayToPresent(locationPermissionUiState.prompt, current)
+        when {
+            desired != null && desired != current -> viewModel.openOverlay(desired)
+            locationPermissionUiState.prompt == LocationPermissionPrompt.NONE && current is WorkspaceOverlay.PermissionExplanation ->
+                viewModel.closeOverlay()
         }
     }
 
@@ -239,6 +269,10 @@ fun TripWorkspaceRoute(
                 placeDeletionBusy = places.deletionBusy || places.collectionBusyPoiIds.isNotEmpty(),
             )
         ) return
+        if (workspaceOverlayCloseDecision(overlay, itinerary) == WorkspaceOverlayCloseDecision.KeepItineraryOverlay) {
+            dispatchItinerary(DayItineraryAction.DismissEditSaveError)
+            return
+        }
         placeViewModel?.dismissDetail()
         dismissPendingDialogs()
         if (overlay.isAddToItineraryOverlay() ||
@@ -247,7 +281,12 @@ fun TripWorkspaceRoute(
                 itinerary.appendDayCompletionToken == null &&
                 addToItinerary.step != AddToItineraryStep.IDLE)
         ) addToItineraryViewModel?.cancel()
-        if (overlay is WorkspaceOverlay.PermissionExplanation) locationPermissionCoordinator.dismissExplanation()
+        if (overlay is WorkspaceOverlay.PermissionExplanation) {
+            when (overlay.kind) {
+                PermissionKind.DEVICE_LOCATION -> locationPermissionCoordinator.dismissExplanation()
+                PermissionKind.DEVICE_LOCATION_SETTINGS -> locationPermissionCoordinator.dismissSettings()
+            }
+        }
         viewModel.closeOverlay()
     }
     fun leaveOrCloseOverlay() {
@@ -432,6 +471,7 @@ fun TripWorkspaceRoute(
         onMapPoiClick = viewModel::selectMapPoi,
         onConfirmPermissionExplanation = { locationPermissionCoordinator.confirmExplanation() },
         onDismissPermissionExplanation = { locationPermissionCoordinator.dismissExplanation() },
+        onDismissLocationSettings = { locationPermissionCoordinator.dismissSettings() },
         placeState = places,
         onPlaceAction = { action ->
             when (action) {

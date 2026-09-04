@@ -11,11 +11,9 @@ sealed interface MapHostState {
 fun resolveWorkspaceMapState(
     consentFact: AmapConsentFact?,
     mapHostState: MapHostState,
-    locationPermanentlyDenied: Boolean,
 ): WorkspaceMapState = when {
     consentFact !is AmapConsentFact.Accepted -> WorkspaceMapState.ConsentRequired
     mapHostState is MapHostState.Failed -> WorkspaceMapState.Failed(mapHostState.message)
-    locationPermanentlyDenied -> WorkspaceMapState.LocationPermanentlyDenied
     mapHostState is MapHostState.Loading -> WorkspaceMapState.Loading
     mapHostState is MapHostState.Ready -> WorkspaceMapState.Ready
     else -> WorkspaceMapState.Loading
@@ -86,7 +84,6 @@ sealed interface WorkspaceMapState {
     data object Loading : WorkspaceMapState
     data object Ready : WorkspaceMapState
     data object ConsentRequired : WorkspaceMapState
-    data object LocationPermanentlyDenied : WorkspaceMapState
     data class Failed(val message: String) : WorkspaceMapState
 }
 

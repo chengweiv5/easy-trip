@@ -66,4 +66,60 @@ class MapHostCallbackGuardTest {
         assertEquals(0, readyCount)
         assertEquals(0, errorCount)
     }
+
+    @Test
+    fun deactivatedGuardDoesNotReportLateDisposalError() {
+        val guard = MapHostCallbackGuard()
+        var errors = 0
+
+        guard.deactivate()
+        guard.reportDisposalError(IllegalStateException("late destroy")) { errors++ }
+
+        assertEquals(0, errors)
+    }
+
+    @Test
+    fun activeGuardReportsDisposalErrorOnlyOnce() {
+        val guard = MapHostCallbackGuard()
+        var errors = 0
+
+        guard.reportDisposalError(IllegalStateException("destroy")) { errors++ }
+        guard.reportDisposalError(IllegalStateException("again")) { errors++ }
+
+        assertEquals(1, errors)
+    }
+
+    @Test
+    fun readyIgnoresLaterInitialFailuresButKeepsDispatchActive() {
+        val guard = MapHostCallbackGuard()
+        val generation = guard.beginRender()
+        var ready = 0
+        var errors = 0
+        var dispatched = 0
+
+        guard.reportReady(generation) { ready++ }
+        guard.reportError(generation, IllegalStateException("render after ready")) { errors++ }
+        guard.reportHostError(IllegalStateException("lifecycle after ready")) { errors++ }
+        guard.reportDisposalError(IllegalStateException("destroy after ready")) { errors++ }
+        guard.dispatch(generation) { dispatched++ }
+
+        assertEquals(1, ready)
+        assertEquals(0, errors)
+        assertEquals(1, dispatched)
+    }
+
+    @Test
+    fun hostFailureBeforeReadyBlocksReadyExactlyOnce() {
+        val guard = MapHostCallbackGuard()
+        val generation = guard.beginRender()
+        var ready = 0
+        var errors = 0
+
+        guard.reportHostError(IllegalStateException("resume")) { errors++ }
+        guard.reportReady(generation) { ready++ }
+        guard.reportError(generation, IllegalStateException("again")) { errors++ }
+
+        assertEquals(0, ready)
+        assertEquals(1, errors)
+    }
 }

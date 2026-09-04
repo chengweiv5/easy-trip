@@ -20,6 +20,10 @@ class RoomRouteLegRepository(private val dao:RouteLegDao):RouteLegRepository {
   val normalizedDurationOverrideSeconds = durationOverrideSeconds?.takeIf { it > 0 }
   return dao.updateDetails(legId,selectedModeOverride,normalizedDurationOverrideSeconds,note,online)==1
  }
- override suspend fun retry(legId:String,online:Boolean)=dao.retry(legId,if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK)==1
+ override suspend fun retry(legId:String,online:Boolean):Boolean {
+  val version=dao.leg(legId)?.version?:return false
+  return retry(legId,version,online)
+ }
+ override suspend fun retry(legId:String,expectedVersion:Long,online:Boolean)=dao.retry(legId,expectedVersion,if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK)==1
  private suspend fun RouteLegEndpointRow.modelOrRepair():RouteLegWithEndpoints? { val decoded=polyline?.let(PolylineCodec::decode); if(decoded?.isFailure==true){dao.repairPolyline(id,version);return null};return RouteLegWithEndpoints(id,version,status,GeoPoint(originLatitude,originLongitude),GeoPoint(destinationLatitude,destinationLongitude),originCity,destinationCity,recommendedMode,selectedMode,distanceMeters,durationSeconds,decoded?.getOrNull(),errorKind,errorCode) }
 }

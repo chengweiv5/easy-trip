@@ -42,6 +42,7 @@ data class RouteLegUi(
     val durationOverrideSeconds: Int? = null,
     val note: String? = null,
     val selectedModeOverride: TransportMode? = null,
+    val version: Long = 0,
 ) {
     val effectiveDurationSeconds: Int?
         get() = durationOverrideSeconds ?: durationSeconds
@@ -129,6 +130,7 @@ internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(
     durationOverrideSeconds = durationOverrideSeconds,
     note = note,
     selectedModeOverride = selectedMode,
+    version = version,
     error = errorKind.toRouteErrorSummary() ?: errorCode,
 )
 

@@ -18,9 +18,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/OfflineRecoveryTest.kt": {
-    "mtime": 1788338745.0429153,
-    "seen": 1788339135.190347,
-    "ast_hash": "95913b04311b423cdfb859e29c4e7948",
+    "mtime": 1788458137.3072238,
+    "seen": 1788458417.289203,
+    "ast_hash": "b623503ae1f1f2d6aa8582cce9608f9c",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1AcceptanceTest.kt": {
@@ -30,9 +30,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapComposeMapTest.kt": {
-    "mtime": 1788383713.4599853,
-    "seen": 1788385417.846796,
-    "ast_hash": "b464d34aa38450ffec67137b43326628",
+    "mtime": 1788472498.0188043,
+    "seen": 1788472767.956982,
+    "ast_hash": "e4f1145fbbc4817383cb1e4e3acde246",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapSmokeTest.kt": {
@@ -54,9 +54,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditingTest.kt": {
-    "mtime": 1788360075.0809436,
-    "seen": 1788360426.42835,
-    "ast_hash": "bb3892c64ba7b2bb143730a87d0d5b84",
+    "mtime": 1788468478.693074,
+    "seen": 1788468675.422094,
+    "ast_hash": "7ee2b184c67123ff5aacabb311880f7e",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/place/data/RoomSavedPlaceRepositoryTest.kt": {
@@ -72,9 +72,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepositoryTest.kt": {
-    "mtime": 1788380910.5929198,
-    "seen": 1788382370.3185,
-    "ast_hash": "1612036137a9edbca4e1f18d6598526f",
+    "mtime": 1788487362.3703718,
+    "seen": 1788488197.522215,
+    "ast_hash": "5f0360db21164c42b9bc08413a4ab70a",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/trip/data/RoomTripRepositoryTest.kt": {
@@ -96,9 +96,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceFlowTest.kt": {
-    "mtime": 1788388747.4483848,
-    "seen": 1788389008.013196,
-    "ast_hash": "cb46ec8dbd57187ba94a0a8bfffddc93",
+    "mtime": 1788486245.7632275,
+    "seen": 1788488197.522225,
+    "ast_hash": "3f8a59a9011f664b271930ace1bd11e8",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/AppContainer.kt": {
@@ -108,9 +108,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt": {
-    "mtime": 1788338744.6984265,
-    "seen": 1788339135.190382,
-    "ast_hash": "77725c6aed39a159d6a612eead929743",
+    "mtime": 1788479324.7525682,
+    "seen": 1788480564.572057,
+    "ast_hash": "4d3760ba7e6ee5c9ff0b01dce8dc82de",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/EasyTripApplication.kt": {
@@ -240,15 +240,15 @@
     "semantic_hash": "2647883925e8392ebde944d05b91c511"
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItinerarySheet.kt": {
-    "mtime": 1788361359.358747,
-    "seen": 1788362336.658614,
-    "ast_hash": "063ae1be591cd2a323516e137bd28da1",
+    "mtime": 1788496763.3529756,
+    "seen": 1788497326.256535,
+    "ast_hash": "47ffcc4423878e0ed6f9e8c5c06f5819",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModel.kt": {
-    "mtime": 1788381308.1573737,
-    "seen": 1788382370.31854,
-    "ast_hash": "5d69530681c19868641e8e064c1677fa",
+    "mtime": 1788497174.4333634,
+    "seen": 1788497326.256536,
+    "ast_hash": "79b12f045a7c47b178df786e3294c2cf",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DaySelector.kt": {
@@ -270,9 +270,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/RouteLegRow.kt": {
-    "mtime": 1788358885.421458,
-    "seen": 1788360426.428406,
-    "ast_hash": "b4f23f18b27c8690ad6f4e2fb4186679",
+    "mtime": 1788451125.4320233,
+    "seen": 1788452551.939761,
+    "ast_hash": "6125202e5c47324bba7edb6d9dc1871c",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/amap/AmapPlaceDataSource.kt": {
@@ -354,15 +354,15 @@
     "semantic_hash": "f2543fb959d6481c45c7486b9978add7"
   },
   "app/src/main/java/com/yangchengwei/easytrip/route/data/RoomRouteLegRepository.kt": {
-    "mtime": 1788381126.2152786,
-    "seen": 1788382370.318568,
-    "ast_hash": "50ba3488ea12035ad242fdeac81c90fb",
+    "mtime": 1788468106.662858,
+    "seen": 1788468675.422179,
+    "ast_hash": "58fe8f83464ac9c235dfb453b3fcf315",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/route/data/RouteLegDao.kt": {
-    "mtime": 1788359772.9799716,
-    "seen": 1788360426.428431,
-    "ast_hash": "52755c776fdaac2053c8ad25e39ade1e",
+    "mtime": 1788466711.787848,
+    "seen": 1788468675.422179,
+    "ast_hash": "6ac9164a1b44e0516dd5309e892cbeac",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/route/data/RouteLegEntity.kt": {
@@ -378,9 +378,9 @@
     "semantic_hash": "d3435a2e6d56b71044f74b77ed407fe5"
   },
   "app/src/main/java/com/yangchengwei/easytrip/route/domain/RouteLegRepository.kt": {
-    "mtime": 1788359701.960594,
-    "seen": 1788360426.428433,
-    "ast_hash": "bb8b1ffa59d912e06ed51550245b6c32",
+    "mtime": 1788496984.534865,
+    "seen": 1788497326.2565691,
+    "ast_hash": "aea1cf486b2f8caf66844067d4cfeacf",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/route/domain/RouteModels.kt": {
@@ -396,9 +396,9 @@
     "semantic_hash": "27fcfd1fd276d435981e7d1a4f26583b"
   },
   "app/src/main/java/com/yangchengwei/easytrip/route/domain/RouteRefreshCoordinator.kt": {
-    "mtime": 1788357055.8341587,
-    "seen": 1788357756.673723,
-    "ast_hash": "94360e4858885ab3442ee1596fc0b9d5",
+    "mtime": 1788496996.9947102,
+    "seen": 1788497326.2565708,
+    "ast_hash": "2661b425ea5675763e59843889fe2a59",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/route/domain/TransportModeRecommender.kt": {
@@ -462,9 +462,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/AmapComposeMap.kt": {
-    "mtime": 1788393646.3857465,
-    "seen": 1788393922.480791,
-    "ast_hash": "d20435a2686a697546f7a58baa0e6010",
+    "mtime": 1788479288.1474614,
+    "seen": 1788480564.57214,
+    "ast_hash": "cfa8e89a8d4e3d47282a595efb9f4c6b",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/MapFacade.kt": {
@@ -480,9 +480,9 @@
     "semantic_hash": "2657e665276c353325e422507451d5b7"
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt": {
-    "mtime": 1788381738.0550828,
-    "seen": 1788382370.318593,
-    "ast_hash": "3431637759da85adf29cd43cb5adc109",
+    "mtime": 1788488038.750953,
+    "seen": 1788488197.522319,
+    "ast_hash": "1f4ef89a52ac39c2990df5734f4fcee8",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceViewModel.kt": {
@@ -558,9 +558,9 @@
     "semantic_hash": "86976e8d6be4f6d2abf3460195fd3d68"
   },
   "app/src/test/java/com/yangchengwei/easytrip/route/domain/RouteRefreshCoordinatorTest.kt": {
-    "mtime": 1788359867.111455,
-    "seen": 1788360426.4284852,
-    "ast_hash": "033663baddfdcd39b8ccd298c3f05fad",
+    "mtime": 1788468723.1519613,
+    "seen": 1788470441.812151,
+    "ast_hash": "da4decccbc8f353c916b6b7fdb496424",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/route/domain/TransportModeRecommenderTest.kt": {
@@ -666,9 +666,9 @@
     "semantic_hash": "27b76ce025e7f7800f97a61f1281cd6f"
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V2AcceptanceTest.kt": {
-    "mtime": 1788386921.0484061,
-    "seen": 1788387521.1929421,
-    "ast_hash": "a2bc09102939ffe6b29c0da4c2245723",
+    "mtime": 1788440868.2030451,
+    "seen": 1788440943.007339,
+    "ast_hash": "5f09b0c6e6475a4c1110794011fe7001",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/core/ui/component/SelectablePillTest.kt": {
@@ -684,9 +684,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt": {
-    "mtime": 1788359783.254166,
-    "seen": 1788360426.428364,
-    "ast_hash": "48a436b255b23eff0d7c7abba58465c0",
+    "mtime": 1788418478.3665369,
+    "seen": 1788418722.721161,
+    "ast_hash": "c80e61a35f799319653fb3bf1a075166",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceSearchTabsTest.kt": {
@@ -840,9 +840,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryUiModels.kt": {
-    "mtime": 1788361006.223785,
-    "seen": 1788362336.658622,
-    "ast_hash": "cf6d17fd468f090cf7947384007142c8",
+    "mtime": 1788468127.4533222,
+    "seen": 1788468675.422154,
+    "ast_hash": "764c9d48e95258dbf30b5138f176381a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContent.kt": {
@@ -906,9 +906,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/TripWorkspaceNavigationStateTest.kt": {
-    "mtime": 1788380878.0310593,
-    "seen": 1788382370.31863,
-    "ast_hash": "1f63da60531d632ba89b1e46d8a6b3be",
+    "mtime": 1788422785.3880093,
+    "seen": 1788426104.8832881,
+    "ast_hash": "bd70722c807b7908fcec02c5ce8d895b",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/WorkspaceNavigationTest.kt": {
@@ -948,9 +948,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1PencilFlowTest.kt": {
-    "mtime": 1788338745.044785,
-    "seen": 1788339135.190349,
-    "ast_hash": "aa465dfe84bf118c357e8cdcf75c975c",
+    "mtime": 1788428616.110159,
+    "seen": 1788430076.815087,
+    "ast_hash": "a6c92041517cdda2651206d6d0ca2134",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/core/ui/component/EasyTripButtonTest.kt": {
@@ -972,9 +972,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContentTest.kt": {
-    "mtime": 1788391404.1299133,
-    "seen": 1788393036.8714619,
-    "ast_hash": "3a63cd666c7914d34e8f8fed3ec0fbaf",
+    "mtime": 1788493837.0443726,
+    "seen": 1788493918.1534069,
+    "ast_hash": "016afc8eaf6c33377c67e57651800394",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/EasyTripButton.kt": {
@@ -1044,21 +1044,21 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContent.kt": {
-    "mtime": 1788391439.9750135,
-    "seen": 1788393036.871551,
-    "ast_hash": "a3776aa86f3c8f071ad4b221991ff202",
+    "mtime": 1788495504.0314972,
+    "seen": 1788497326.256593,
+    "ast_hash": "2243f55a7ac6ac83ee254eb89406931e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceMapFallback.kt": {
-    "mtime": 1788338744.7289572,
-    "seen": 1788339135.190461,
-    "ast_hash": "7a0b38f8a7a07702e7defb836c06f467",
+    "mtime": 1788451030.27832,
+    "seen": 1788452551.9398148,
+    "ast_hash": "4d2068423ab9abe3e199fdb8db641ab2",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt": {
-    "mtime": 1788391450.577862,
-    "seen": 1788393036.871559,
-    "ast_hash": "e8cf937811f3dc7aab747d07976357bd",
+    "mtime": 1788422531.4449477,
+    "seen": 1788426104.883252,
+    "ast_hash": "441475e07e171ec84a4b536149193156",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/trip/ui/CreateTripValidatorTest.kt": {
@@ -1086,15 +1086,15 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/MapHostCallbackGuardTest.kt": {
-    "mtime": 1788338744.9637702,
-    "seen": 1788339135.190488,
-    "ast_hash": "5748faf6992b97a3550b85483e6d7bfe",
+    "mtime": 1788419206.1365929,
+    "seen": 1788421193.55183,
+    "ast_hash": "f6ed67f2d4784e40374baa9b679a4e43",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContentStateTest.kt": {
-    "mtime": 1788391455.6474433,
-    "seen": 1788393036.8715892,
-    "ast_hash": "bca0c63784030f3f9d3128979f8d41b1",
+    "mtime": 1788422477.1699066,
+    "seen": 1788426104.883287,
+    "ast_hash": "7d0cfb7690a96d4b395dce1443b59da7",
     "semantic_hash": ""
   },
   "app/src/main/res/font/licenses/FunnelSans-OFL.txt": {
@@ -1152,9 +1152,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt": {
-    "mtime": 1788338745.0894175,
-    "seen": 1788339135.190368,
-    "ast_hash": "9d8e3dfd7b55cd93940ea54e5fab38b1",
+    "mtime": 1788418494.733322,
+    "seen": 1788418722.7211509,
+    "ast_hash": "b588536d4cfc4cef30c0f01df0d1c42b",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/CreateTripContentTest.kt": {
@@ -1224,15 +1224,15 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceRoute.kt": {
-    "mtime": 1788388817.7714772,
-    "seen": 1788389008.0132859,
-    "ast_hash": "ba0c151cc5da4c950115a2ee198e75cf",
+    "mtime": 1788423320.0875375,
+    "seen": 1788426104.883244,
+    "ast_hash": "8a6df7e87ba933d06fa410ed6b5db6d7",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt": {
-    "mtime": 1788342995.6769195,
-    "seen": 1788343552.3633149,
-    "ast_hash": "cedaf6a56ceb049ee2b064e84892198f",
+    "mtime": 1788422832.1301877,
+    "seen": 1788426104.8832488,
+    "ast_hash": "c002657900b485c9f29edc6fd262705b",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/place/amap/AmapPlaceDataSourceTest.kt": {
@@ -1542,9 +1542,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/EditItineraryItemContent.kt": {
-    "mtime": 1788340617.2957687,
-    "seen": 1788341065.019041,
-    "ast_hash": "6b54050569b15d55a870a50338ab15c4",
+    "mtime": 1788413688.83731,
+    "seen": 1788414071.816962,
+    "ast_hash": "f289d859eb0a8c03b77d2f7662ead562",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditDraft.kt": {
@@ -1560,14 +1560,14 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/itinerary/ui/DayItineraryViewModelTest.kt": {
-    "mtime": 1788380859.147705,
-    "seen": 1788382370.3186078,
-    "ast_hash": "3eb2954034f00d3ee568241929b8d6f9",
+    "mtime": 1788497193.0612457,
+    "seen": 1788497326.256612,
+    "ast_hash": "2458ff252aafe5e45aab6159b4f31717",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceBottomSheet.kt": {
-    "mtime": 1788338744.7191234,
-    "seen": 1788339135.19046,
+    "mtime": 1788482034.9624104,
+    "seen": 1788488197.5223198,
     "ast_hash": "ea3f41cff5aee7765d19f3945c08eff8",
     "semantic_hash": ""
   },
@@ -1626,33 +1626,33 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspacePermissionFlowTest.kt": {
-    "mtime": 1788338745.0554216,
-    "seen": 1788339135.190379,
-    "ast_hash": "a924f6ef80330b1bbeea36a389851edc",
+    "mtime": 1788460744.7341726,
+    "seen": 1788461614.0060601,
+    "ast_hash": "956857e71e0649c984292ed421b7bdb3",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/permission/LocationPermissionCoordinator.kt": {
-    "mtime": 1788338744.7670903,
-    "seen": 1788339135.190418,
-    "ast_hash": "085f92a550d1023b7e33f5afeb7141f3",
+    "mtime": 1788470173.976287,
+    "seen": 1788470441.8120809,
+    "ast_hash": "498b064e05dd0224f9f247d9b841645a",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/permission/PermissionExplanationContent.kt": {
-    "mtime": 1788338744.7657118,
-    "seen": 1788339135.190418,
-    "ast_hash": "e5b23adef3a5a65a257659b44551f2b4",
+    "mtime": 1788460621.997841,
+    "seen": 1788461614.0061061,
+    "ast_hash": "91a843f48026138d538e45e8617b826c",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/permission/LocationPermissionCoordinatorTest.kt": {
-    "mtime": 1788338744.9799597,
-    "seen": 1788339135.190475,
-    "ast_hash": "c30a89ebc9bc835eb896cc7e7c7940d8",
+    "mtime": 1788470205.2590292,
+    "seen": 1788470441.812143,
+    "ast_hash": "c537e88140d3ae879c8d324260cae08a",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/permission/LocationPermissionSourceTest.kt": {
-    "mtime": 1788338744.9784951,
-    "seen": 1788339135.190476,
-    "ast_hash": "5a4dea4c66d895e1799798d2f194a2d4",
+    "mtime": 1788423654.2874837,
+    "seen": 1788426104.883265,
+    "ast_hash": "957536b1965b6fd0ec11faaa16ecbd4d",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1FullUiAcceptanceTest.kt": {
@@ -1662,27 +1662,27 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioFixtures.kt": {
-    "mtime": 1788387572.4948897,
-    "seen": 1788387713.103265,
-    "ast_hash": "35549ecdfa1142cc570daa930f9b9b84",
+    "mtime": 1788445597.9058979,
+    "seen": 1788447264.30241,
+    "ast_hash": "17cd277fdd5c4e44672a90bf3d55e270",
     "semantic_hash": ""
   },
   "docs/testing/v1-full-ui-scenario-matrix.md": {
-    "mtime": 1788385188.4203417,
-    "seen": 1788385417.847023,
-    "ast_hash": "6e7a9dd0ecabaa5e362e82a23e7f87e6",
+    "mtime": 1788499580.8625636,
+    "seen": 1788499629.3797271,
+    "ast_hash": "3dfeaf765b947a105285961cf58fce6d",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioCatalogTest.kt": {
-    "mtime": 1788387553.92083,
-    "seen": 1788387713.103263,
-    "ast_hash": "33aab1c30292f9ffadbc09b39771b337",
+    "mtime": 1788446934.4016461,
+    "seen": 1788447264.302408,
+    "ast_hash": "4470552721f34340d23dbeb21f90a48c",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/V1ScenarioExecutable.kt": {
-    "mtime": 1788385065.8166213,
-    "seen": 1788385417.846792,
-    "ast_hash": "5820119d68fd53f3f701470a0fe8a4d8",
+    "mtime": 1788482782.5611773,
+    "seen": 1788488197.522193,
+    "ast_hash": "a436aa5049deb5b02bc318e1900a7674",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceChromeTest.kt": {
@@ -1722,9 +1722,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceScaffold.kt": {
-    "mtime": 1788377748.346023,
-    "seen": 1788378492.163233,
-    "ast_hash": "6be668d9b7bbf2bf4373a2faafbcf22a",
+    "mtime": 1788489184.7863686,
+    "seen": 1788489330.284207,
+    "ast_hash": "5ff836fcc713c39d85274d892bd14aba",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/WorkspaceLayoutMetricsTest.kt": {
@@ -1800,9 +1800,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryTimelineContentTest.kt": {
-    "mtime": 1788382844.8743834,
-    "seen": 1788383383.424445,
-    "ast_hash": "402f4907b44a5f798a72fd74c26a1cb7",
+    "mtime": 1788468406.9518301,
+    "seen": 1788468675.4220958,
+    "ast_hash": "fbcdc18472719da547c5dc35e982444b",
     "semantic_hash": ""
   },
   "docs/superpowers/plans/2026-08-26-easy-trip-itinerary-ui-convergence.md": {
@@ -2088,9 +2088,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripSettingsNavigationTest.kt": {
-    "mtime": 1788338745.109199,
-    "seen": 1788339135.1903749,
-    "ast_hash": "df1e7bee3a92766c67d280bc097dcab1",
+    "mtime": 1788418487.3606703,
+    "seen": 1788418722.72116,
+    "ast_hash": "388faf8c79c189849cf849074ebc5017",
     "semantic_hash": ""
   },
   "docs/testing/trip-settings-date-correctness-acceptance.md": {
@@ -2136,9 +2136,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/VisualBatch0EvidenceTest.kt": {
-    "mtime": 1788387579.0816145,
-    "seen": 1788387713.103267,
-    "ast_hash": "7c4b5f2aa2c966f56f3bb08392097b14",
+    "mtime": 1788454004.5902998,
+    "seen": 1788455294.0766752,
+    "ast_hash": "58ce3d722ce1523f705b706310a7e669",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/EasyTripDialogSurface.kt": {
@@ -2202,9 +2202,9 @@
     "semantic_hash": ""
   },
   "design/EASY_TRIP_IMPLEMENTATION_PLAN.md": {
-    "mtime": 1788405073.4156606,
-    "seen": 1788405227.255108,
-    "ast_hash": "5d95db827f7ddc9ac208d46bf3a0cd01",
+    "mtime": 1788499551.3027942,
+    "seen": 1788499629.379688,
+    "ast_hash": "d6aac1d8273504e91437c19856651ce1",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/MapMarkerRenderingPolicyTest.kt": {
@@ -2241,6 +2241,48 @@
     "mtime": 1788391837.9912064,
     "seen": 1788393036.871426,
     "ast_hash": "49434d5ca41ea11f9855ca87cbaf74dd",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItinerarySaveFailureContent.kt": {
+    "mtime": 1788451063.6819904,
+    "seen": 1788452551.939758,
+    "ast_hash": "b255f10280e9f24d9328697b5a990551",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/yangchengwei/easytrip/workspace/MapReadyWatchdog.kt": {
+    "mtime": 1788417117.1941946,
+    "seen": 1788418369.197492,
+    "ast_hash": "bfa47f622a628c301e2906ce10b56ad8",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/yangchengwei/easytrip/workspace/MapReadyWatchdogTest.kt": {
+    "mtime": 1788416969.4088378,
+    "seen": 1788418369.197529,
+    "ast_hash": "47ba3f496b32f2bdf34e64861648ca30",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/yangchengwei/easytrip/permission/LocationPermissionSettingsContent.kt": {
+    "mtime": 1788460647.1396391,
+    "seen": 1788461614.0061061,
+    "ast_hash": "67430a916cecebea5fd995a71af0e398",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/yangchengwei/easytrip/ScenarioMatrixReferenceTest.kt": {
+    "mtime": 1788446730.883895,
+    "seen": 1788447264.30254,
+    "ast_hash": "fd8fedd107304f9c62c585f6b7d2f7ef",
+    "semantic_hash": ""
+  },
+  "app/src/androidTest/java/com/yangchengwei/easytrip/Task8PersistenceTest.kt": {
+    "mtime": 1788461096.5437062,
+    "seen": 1788461614.006025,
+    "ast_hash": "b8b8e01d1f62dbd3c68f3483271fa7aa",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/yangchengwei/easytrip/workspace/MapLocateRequestBaselineTrackerTest.kt": {
+    "mtime": 1788487808.883965,
+    "seen": 1788488197.522356,
+    "ast_hash": "82456562d7c17b7cb7c691522adf9587",
     "semantic_hash": ""
   }
 }

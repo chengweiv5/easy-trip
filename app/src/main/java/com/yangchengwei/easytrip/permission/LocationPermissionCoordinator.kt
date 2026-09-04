@@ -23,12 +23,20 @@ data class LocationPermissionSnapshot(
     }
 }
 
+enum class LocationPermissionPrompt { NONE, EXPLANATION, SETTINGS }
+
 data class LocationPermissionUiState(
-    val explanationVisible: Boolean = false,
+    val prompt: LocationPermissionPrompt = LocationPermissionPrompt.NONE,
     val permanentlyDenied: Boolean = false,
     val busy: Boolean = false,
     val error: String? = null,
-)
+) {
+    val explanationVisible: Boolean
+        get() = prompt == LocationPermissionPrompt.EXPLANATION
+
+    val settingsVisible: Boolean
+        get() = prompt == LocationPermissionPrompt.SETTINGS
+}
 
 interface LocationPermissionRequestStore {
     var hasRequested: Boolean
@@ -86,15 +94,19 @@ class LocationPermissionCoordinator(
     }
 
     fun onLocateClick(snapshot: LocationPermissionSnapshot) {
+        if (permissionRequestInFlight) return
         settingsRecovery = null
         val generation = newGeneration()
         if (snapshot.granted) {
             mutableUiState.value = LocationPermissionUiState()
             emitLocationOnce(generation)
         } else if (requestStore.hasRequested && !snapshot.shouldShowRationale) {
-            mutableUiState.value = LocationPermissionUiState(permanentlyDenied = true)
+            mutableUiState.value = LocationPermissionUiState(
+                prompt = LocationPermissionPrompt.SETTINGS,
+                permanentlyDenied = true,
+            )
         } else {
-            mutableUiState.value = LocationPermissionUiState(explanationVisible = true)
+            mutableUiState.value = LocationPermissionUiState(prompt = LocationPermissionPrompt.EXPLANATION)
         }
     }
 
@@ -107,7 +119,20 @@ class LocationPermissionCoordinator(
     }
 
     fun dismissExplanation() {
-        mutableUiState.value = mutableUiState.value.copy(explanationVisible = false)
+        if (mutableUiState.value.prompt == LocationPermissionPrompt.EXPLANATION) {
+            mutableUiState.value = mutableUiState.value.copy(prompt = LocationPermissionPrompt.NONE)
+        }
+    }
+
+    fun dismissSettings() {
+        if (mutableUiState.value.prompt == LocationPermissionPrompt.SETTINGS) {
+            settingsRecovery = null
+            mutableUiState.value = mutableUiState.value.copy(
+                prompt = LocationPermissionPrompt.NONE,
+                busy = false,
+                error = null,
+            )
+        }
     }
 
     fun onPermissionLaunchStarted(generation: Long) {
@@ -117,22 +142,25 @@ class LocationPermissionCoordinator(
     }
 
     fun onPermissionLaunchFailed(generation: Long) {
+        if (generation != activeGeneration || !permissionRequestInFlight) return
         permissionRequestInFlight = false
-        if (generation != activeGeneration) return
         mutableUiState.value = mutableUiState.value.copy(
-            explanationVisible = true,
+            prompt = LocationPermissionPrompt.EXPLANATION,
             busy = false,
             error = "无法打开系统权限请求，请重试",
         )
     }
 
     fun onPermissionResult(generation: Long, snapshot: LocationPermissionSnapshot) {
+        if (generation != activeGeneration || !permissionRequestInFlight) return
         permissionRequestInFlight = false
-        if (generation != activeGeneration) return
         mutableUiState.value = when {
             snapshot.granted -> LocationPermissionUiState()
             requestStore.hasRequested && !snapshot.shouldShowRationale ->
-                LocationPermissionUiState(permanentlyDenied = true)
+                LocationPermissionUiState(
+                    prompt = LocationPermissionPrompt.SETTINGS,
+                    permanentlyDenied = true,
+                )
             else -> LocationPermissionUiState()
         }
         if (snapshot.granted) emitLocationOnce(generation)
@@ -140,10 +168,14 @@ class LocationPermissionCoordinator(
 
     fun requestApplicationSettings() {
         val workspaceId = workspaceId ?: return
-        if (!mutableUiState.value.permanentlyDenied) return
+        if (!mutableUiState.value.permanentlyDenied || settingsRecovery != null) return
         val generation = newGeneration()
         settingsRecovery = SettingsRecovery(generation, workspaceId, launchStarted = false)
-        mutableUiState.value = mutableUiState.value.copy(busy = true, error = null)
+        mutableUiState.value = mutableUiState.value.copy(
+            prompt = LocationPermissionPrompt.SETTINGS,
+            busy = true,
+            error = null,
+        )
         effectChannel.trySend(WorkspaceEffect.OpenApplicationSettings(generation, workspaceId))
     }
 
@@ -151,7 +183,6 @@ class LocationPermissionCoordinator(
         val recovery = settingsRecovery ?: return
         if (recovery.generation != generation || recovery.generation != activeGeneration || recovery.workspaceId != workspaceId) return
         settingsRecovery = recovery.copy(launchStarted = true)
-        mutableUiState.value = mutableUiState.value.copy(busy = false)
     }
 
     fun onSettingsLaunchFailed(generation: Long) {
@@ -159,6 +190,7 @@ class LocationPermissionCoordinator(
         if (recovery.generation != generation || recovery.generation != activeGeneration || recovery.workspaceId != workspaceId) return
         settingsRecovery = null
         mutableUiState.value = mutableUiState.value.copy(
+            prompt = LocationPermissionPrompt.SETTINGS,
             permanentlyDenied = true,
             busy = false,
             error = "无法打开应用设置，请重试",
@@ -172,7 +204,10 @@ class LocationPermissionCoordinator(
         mutableUiState.value = if (snapshot.granted) {
             LocationPermissionUiState()
         } else {
-            LocationPermissionUiState(permanentlyDenied = true)
+            LocationPermissionUiState(
+                prompt = LocationPermissionPrompt.SETTINGS,
+                permanentlyDenied = true,
+            )
         }
         if (snapshot.granted) emitLocationOnce(recovery.generation)
     }

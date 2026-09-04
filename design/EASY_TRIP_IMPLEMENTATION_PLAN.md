@@ -170,21 +170,38 @@ App 自有功能与 recording fake map 自动化门禁已完成；SwiftShader �
 
 | 设计界面 | Frame ID | 核心状态/交互 | 状态 |
 |---|---|---|---|
-| 等待联网 | `P7k0M` | 保留行程，等待路线计算 | 待分析 |
-| 路线计算失败 | `E3EhSv` | 仅失败路段重试 | 待分析 |
-| 地图权限说明 | `EHOHC` | 地图服务授权说明 | 待分析 |
-| 定位权限说明 | `JFhZ7` | 点击定位后的用途说明 | 待分析 |
-| 定位权限前往设置 | `HYCsZ` | 永久拒绝后的系统设置入口 | 待分析 |
-| 地图加载中 | `GoxB6` | 保留工作台框架 | 待分析 |
-| 地图加载失败 | `U8R5i` | 保留地点/行程操作并重试 | 待分析 |
-| 行程保存失败 | `OOEsk` | 保留编辑输入并重试 | 待分析 |
+| 等待联网 | `P7k0M` | 保留行程，等待路线计算 | 已测试（focused） |
+| 路线计算失败 | `E3EhSv` | 仅失败路段重试 | 已测试（focused） |
+| 地图权限说明 | `EHOHC` | 地图服务授权说明 | 已测试（focused） |
+| 定位权限说明 | `JFhZ7` | 点击定位后的用途说明 | 已测试（focused） |
+| 定位权限前往设置 | `HYCsZ` | 永久拒绝后的系统设置入口 | 已测试（focused） |
+| 地图加载中 | `GoxB6` | 保留工作台框架 | 已测试（focused） |
+| 地图加载失败 | `U8R5i` | 保留地点/行程操作并重试 | 已测试（focused） |
+| 行程保存失败 | `OOEsk` | 保留编辑输入并重试 | 已测试（focused） |
 
 ### Batch 6 完成条件
 
-- [ ] 本地数据在网络、地图和路线失败时保持可用。
-- [ ] 权限请求时机和永久拒绝恢复正确。
-- [ ] 字体缩放、长文案、小屏和进程恢复完成核对。
-- [ ] 最终实体设备验收完成。
+Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production `RoomRouteLegRepository` + `DefaultRouteRefreshCoordinator` 完成 offline→online 路线恢复；SharedPreferences concrete wrapper 跨实例保留 AMap consent 与定位 `hasRequested`；新 `DayItineraryViewModel`、`LocationPermissionCoordinator` 和新 composition 不恢复未提交编辑、保存错误、权限 prompt/generation/settings recovery 或地图失败 attempt。模拟器 installed-app `am force-stop` 门禁已执行；不等价于 Activity recreation、真实 AMap、Android 系统权限或物理设备验收。
+
+- [x] 本地数据在网络、地图和路线失败时保持可用。
+- [x] 权限请求时机和永久拒绝恢复正确。
+- [x] 字体缩放、长文案、小屏和进程恢复完成核对。
+- [x] 最终实体设备验收完成（Huawei ALN-AL00；真实 AMap Loading→Ready、标准/卫星/卫星路网、AndroidSystem 定位说明→拒绝→永久拒绝设置引导→设置授予返回、`am force-stop` COLD start 与已提交 Room 数据保留；真实 AMap 故障未自然触发，继续由 failure-injecting host 覆盖恢复分支）。
+
+### 2026-09-04 · Batch 6 / Task 71 · 地图失败恢复可达性与定位意图
+
+- 实现：地图失败时按可用空间提供唯一“重试地图”入口：地图 fallback 可完整展示时复用其按钮；280dp 等空间不足场景在收起/半屏的固定 sheet header 槽位或展开内容首行提供 48dp 以上入口。地图未授权在同一紧凑布局提供唯一“查看并授权”入口，避免 fallback 隐藏后无法恢复。各入口条件互斥，不与 Workspace TopBar、返回/更多、Tabs 或 sheet handle 控件交叠。地点/行程内容与当前 section、sheet level 保持不变，不新增页面或 route。
+- 定位边界：每个 `AmapComposeMap` attempt 默认不重放旧 attempt；Screen 的 tracker 只把 `onLocateRequestConsumed` 回报的 request 视为已消费。若 request 在 Loading 期间产生但 host 在 ready/消费前失败，或在 Failed 后新产生，则显式点击 retry 会把该 pending intent 交给 replacement attempt，使其首次 ready 后恰好执行一次；重复 retry 不覆盖目标 attempt 的 forwarded baseline。目标 attempt ready/failed 后清除 forwarded 状态，同 attempt subtree 重挂仅使用已记录的 consumed baseline，不推断当前 request 已消费；consent/token replacement 通过复合 attempt identity 以当前 request 建立新 baseline，不重放旧 intent。
+- TDD：新增 280dp、2× font scale 下三种 sheet level 的 retry/consent recovery 可达、可点击、最小 48dp 及 TopBar/标题/Back/More/Tabs/handle 非交叠回归。定位补充 JVM tracker 回归，RED 命令 `./gradlew :app:testDebugUnitTest --tests com.yangchengwei.easytrip.workspace.MapLocateRequestBaselineTrackerTest` 先因缺少 attempt API 编译失败，并在 duplicate retry 用例上得到断言失败；GREEN 后 13/13 通过。新增 Screen 集成用例覆盖 Loading 期间 request→timeout failure→显式 retry→replacement ready 后执行一次。
+- 自动化验证：全量 JVM `testDebugUnitTest`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check`、`graphify update .` 通过。恢复 emulator-5554 后，small-window 三 sheet level retry、consent recovery、expanded retry 和 Screen Loading→failure→retry 定位转发均单项通过；`WorkspaceFlowTest` 66/66、`WorkspacePermissionFlowTest` 13/13、`AmapComposeMapTest` 28/28、`RoomRouteLegRepositoryTest` 10/10、`ItineraryTimelineContentTest` 42/42、`ItineraryEditingTest` 10/10、`V1ScenarioCatalogTest` 47/47、`V2AcceptanceTest` 4/4、`Task8PersistenceTest` 4/4 通过。`graphify update` 继续报告未触及的 `NetworkMonitor.kt` / `RoutePlanner.kt` 语法解析 warning；其对新增 Compose 测试的解析 warning 不影响 Kotlin/AndroidTest 编译或 connected 单项结果。
+- 环境说明：`TripWorkspaceContentTest` 整类在 emulator-5554 运行时存在既有 instrumentation 进程被 SIGKILL 的不稳定性；本批新增/修改的地图重试、授权恢复与定位转发用例均已隔离串行通过。已使用 `adb install -r` 恢复最终 APK，并以 `am force-stop` 后 COLD start 验证启动成功；未清应用数据。未执行真实 AMap、Android 系统权限或物理设备最终验收。
+
+### 2026-09-04 · Batch 6 / Task 72 · 首次地图挂载前定位意图
+
+- 实现：`TripWorkspaceScreen` 在当前 composition 内记录地图 host 是否曾经挂载。首次 host 尚不存在时，保留 screen 初始 locate baseline，使 consent/token/ready 后首次 `AmapComposeMap` 能消费期间产生的新定位 request；曾挂载后的 consent/token replacement 以 `consent × mapAttempt` 作为新的 tracker attempt identity，并以当前 request 建立 baseline，不重放旧请求。Task 71 失败态显式 pending forwarding 仍通过前移一格的 baseline 执行一次；ready/resumed gate 与非持久化边界不变。
+- TDD：新增 production `TripWorkspaceRoute` 回归，覆盖 ConsentRequired/no token 下点击已授权定位、确认没有 host，随后提供 consent/token 创建首个 recording host，并断言 `showCurrentLocation` 恰好一次且普通 recomposition 不重复；另以 `MapLocateRequestBaselineTrackerTest` 覆盖首次 baseline、consent replacement 与默认 replacement 不重放。RED 阶段 focused JVM 明确失败于首次 mount 误用当前 request（expected 0, actual 1），以及新 consent attempt API 缺失；GREEN 后 focused JVM 13/13 通过。
+- 自动化验证：全量 JVM `testDebugUnitTest`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check`、`graphify update .` 通过；focused `MapLocateRequestBaselineTrackerTest`、`MapLayerRenderingPolicyTest` 与 `MapPreferencesTest` 通过。emulator-5554 上的 `WorkspaceFlowTest` 66/66、`WorkspacePermissionFlowTest` 13/13、`AmapComposeMapTest` 28/28 已通过；未运行截图类测试。
+- 物理设备验收：Huawei ALN-AL00 使用 `adb install -r` 覆盖安装，未卸载、未清数据。真实 AMap 从工作台加载成功，标准/卫星/卫星路网均可切换；AndroidSystem 定位链完成 JFhZ7 说明、系统拒绝、HYCsZ 设置引导、前往设置授予与返回定位；`am force-stop` 后 COLD start 保留已提交“登封”旅行、地点池和图层偏好，不恢复临时权限弹层。真实 AMap 故障未能自然触发，因此 U8R5i 的真实 SDK 故障证据仍不声明，恢复分支继续由 failure-injecting host 覆盖。验收后已把定位权限恢复为拒绝、地图恢复为标准层。模拟器整类 `TripWorkspaceContentTest` 仍存在环境 SIGKILL，不将该中断冒充通过，相关新增单项已单独串行通过。
 
 ## 附录引用处理
 
@@ -293,6 +310,120 @@ App 自有功能与 recording fake map 自动化门禁已完成；SwiftShader �
 - 场景交互：`Pqdkf` typed executable 真实点击两个地点并确认“已选 2 个”及 Continue；`cRdBn` typed executable 滚动后选择第 30 天，并验证确认 footer。完整工作台 `WorkspaceFlowTest` 仍提供真实 host 中长列表末日和 footer 可达的证据。
 - 自动化验证：新增宿主证据 metadata 测试先编译 RED（证据 catalog 不存在），随后 GREEN；最终命令和结果见 Task 6 report。
 - 设备验证：Huawei ALN-AL00 使用 `adb install -r` 保留数据与既有授权覆盖安装。以真实 3 天旅行“登封”和高德搜索结果完成：连续收藏“少林寺”“中国嵩山少林旅游武术购物城”；单地点同时选择第 1、3 天，确认按钮显示“加入 2 天”，成功结果显示“已加入第 1 天、第 3 天”；“查看行程”进入全程视图，第 1、3 天有新增地点，第 2 天为空；第 1 天入口实际多选两个收藏地点并直接提交，无重复日期选择，结果显示“已加入第 1 天”；撤销后显示“已从第 1 天移除，收藏地点仍保留”，返回地点池仍有 2 个收藏地点。未发现 crash、ANR 或 Dialog 闪烁。当前真实旅行仅 3 天，部分失败和目标日并发删除无法自然触发，仍由自动化与 controlled evidence 覆盖。
+
+### 2026-09-03 · Batch 6 / Task 1 · 等待联网与路线计算失败
+
+- 实现：仅 `Ready` 路段可打开交通路段编辑；`Pending`、`Calculating`、`WaitingForNetwork`、`Failed` 均不暴露编辑入口，且 ViewModel 以相同 `Ready` 条件拒绝绕过 UI 的请求。等待联网文案为“等待联网后计算”且无重试；失败路段显示“路线计算失败”与底层说明，仅可重试当前路段。Calculating 的 live region 语义保持不变。
+- 设计 frame：`P7k0M`、`E3EhSv`。
+- 修改文件：`RouteLegRow`、`DayItinerarySheet`、`DayItineraryViewModel` 及对应 ViewModel/Compose 测试。
+- 自动化验证：JVM RED 为 `DayItineraryViewModelTest` 的 Ready-only 守卫、状态降级清理和保存防线断言；Compose RED 为旧 Waiting 文案、缺少失败恢复摘要、非 Ready 编辑入口及宿主 retry 映射。GREEN 后 `DayItineraryViewModelTest` 53/53、`ItineraryTimelineContentTest` 37/37、`OfflineRecoveryTest` 3/3 通过。
+- 设备验证：`easy_trip_p60pro(AVD) - 12` 上运行 focused Compose 与 OfflineRecovery instrumentation；未进行实体设备操作。
+- 已知非阻塞差异：未运行全量 lint/assemble 或全量 connected suites，本 Task 仅运行要求的 focused suites。
+
+### 2026-09-03 · Batch 6 / Task 3 · 地图加载 watchdog 与失败恢复
+
+- 实现：单次地图 Loading attempt 使用生命周期感知前台 watchdog，生产默认 20_000ms；只有 `RESUMED` 期间消耗时长，pause 冻结、resume 从剩余时长继续。超时以 `MapReadyTimeoutException` 通过既有 `MapHostCallbackGuard` 单次上报并进入当前 `mapAttempt` 的失败态；失败时 map content 退出并 dispose，用户“重试”仅递增 `mapAttempt` 创建新 host，不调用 `TripWorkspaceAction.Retry`，不清理页面、地点、行程或 overlay。旧 host 的迟到 ready/error 仍由既有 guard、composition key 与 `attemptId` 比对隔离。
+- ready 裁决：不将 `onCreate` 成功当作 ready。SDK `OnMapLoaded` 仍可 ready；仅 `RealAmapMapHost` 声明可在 callback 前首次 render，首个 render 成功才视为 ready，覆盖真实可见但 attach callback 缺失的已知路径。默认 fake host 仍须显式 ready listener；never-ready fake 因而保持 Loading 并触发 watchdog。
+- 设计 frame：`GoxB6`、`U8R5i`。文案为“正在加载地图”“地点和行程仍可继续查看”；失败为“地图暂时无法加载”“地点和行程仍可查看，请稍后重试”“重试”。
+- 修改文件：`AmapComposeMap`、`MapReadyWatchdog`、`TripWorkspaceScreen`、`WorkspaceMapFallback`、地图/工作台/权限/场景测试。
+- 自动化验证：先新增 RED：缺少 `MapReadyWatchdog` 的 JVM 编译失败；缺少 `readyTimeoutMillis`/`mapReadyTimeoutMillis` 注入 seam 的 Android test 编译失败。GREEN：JVM `MapReadyWatchdogTest` + `MapLifecycleControllerTest` + `MapHostCallbackGuardTest` 通过；`AmapComposeMapTest`、`WorkspaceFlowTest`、`WorkspacePermissionFlowTest` focused connected instrumentation 78/78 通过（`easy_trip_p60pro(AVD) - 12`）。覆盖 never-ready 超时单次、超时后旧 ready 忽略、pause 不消耗、retry 重建与首 host dispose、生产工作台内容保留、精确文案，以及可提前 render host 在无 SDK callback 时正常 ready。
+- 设备验证：仅 AVD focused instrumentation；未执行实体设备、未进行真实 AMap attach callback 专项复验。
+- 已知限制：真实 `MapView` 的 `OnMapLoaded` 在部分 attach smoke 仍可能不在 20 秒内回调；本 Task 以 `RealAmapMapHost` 首个成功 render 作为有效 ready 兼容路径，尚未以真实设备专门复验该路径。未运行全量 assemble、lint 或全量 connected suites。
+- Fix Round1（focused）：`AmapMapHost.setOnReadyListener` 默认改为 no-op，成功 fake 必须显式 ready 或声明 `canRenderBeforeReady`；watchdog 以可注入时钟覆盖多次 pause/resume 累积、pause 即时超时、zero/negative timeout 与 ready/cancel 后抑制超时；timeout 参数进入内外 composition attempt key，改变时一并重建 host、callback guard 与 watchdog；失活 guard 忽略旧 host dispose 错误。RED 为上述 watchdog/guard 行为失败及默认 host/动态 timeout Android 行为失败；GREEN：`MapReadyWatchdogTest`、`MapLifecycleControllerTest`、`MapHostCallbackGuardTest` 与 `AmapComposeMapTest`、`WorkspaceFlowTest`、`WorkspacePermissionFlowTest` focused 通过，connected 82/82。未执行真实 AMap 或实体设备验收。
+- Fix Round2（focused）：`canRenderBeforeReady` 仅在 lifecycle `RESUMED` 且 `host.onResume()` 成功后允许首个 render/ready，CREATED/STARTED 不 render、不启动 watchdog；resume 失败只上报一次 error，且没有 ready/render。`MapHostCallbackGuard` 在 ready 后忽略 lifecycle/render/disposal 初始错误，但保留 marker、POI、layer error 的业务 dispatch；ready 前失败仍单次终结。旧 disposal 测试增加 first-created/first-destroyed latch，确认首 host 实际创建并销毁后才断言 replacement 不受污染。RED 为 guard ready 后错误、CREATED/STARTED 提前 render、failed resume 误 render 和 ready 后异常污染；GREEN：规定 JVM tests、`compileDebugAndroidTestKotlin` 与三套 focused connected instrumentation 85/85。未执行真实 AMap 或实体设备验收。
+#### Fix Round2 实现落点
+- `AmapComposeMap` 以 `lifecycleResumed` gate `AndroidView.update`；`onResume` 成功后才设置状态、启动 watchdog并允许首个 render；pause/destroy/dispose 清除状态。`MapHostCallbackGuard` 的 initial error/disposal 在 `readyReported` 后不再终结，但普通 generation dispatch 不受 ready 影响。
+- Round2 自动化仅为 focused AVD/本地 JVM 证据，不代表真实 AMap 或实体设备验收。
+
+### 2026-09-03 · Batch 6 / Task 4 · 地图服务与定位权限恢复
+
+- 实现：地图服务 consent 与设备定位拆分为独立状态链。`LocationPermissionUiState` 以 `NONE`、`EXPLANATION`、`SETTINGS` 表达 prompt，另保留永久拒绝事实、busy 与 error；首次定位仅打开 JFhZ7，确认后才发系统权限 effect，暂不使用只关闭 prompt。永久拒绝打开 HYCsZ；取消/Back 仅关闭 prompt 而保留事实，再点定位可重开；前往设置沿用 workspaceId/generation/launchStarted 恢复保护，授予后仅发一次当前定位。`WorkspaceMapState` 只保留 ConsentRequired/Loading/Ready/Failed，定位永久拒绝改为同一 `WorkspaceOverlay.PermissionExplanation` 的 settings kind，不卸载 ready map、marker 或路线。EHOHC 首次真实 workspace 在 `Undecided` 下无论 privacy shown 是否已上报都展示；Declined 不自动重弹，仅 recovery 入口打开。保留政策链接、shown report、policyRead gate、decide failure retry 和 runtime token 失效链。
+- 设计 frame：`EHOHC`、`JFhZ7`、`HYCsZ`。
+- 修改文件：`AppNavigation`、定位 permission coordinator/两种内容组件、workspace map state/fallback/content/route/screen/overlay，以及权限、工作台、导航 focused 测试。
+- 自动化验证：RED：缺少 prompt enum/settings content、map resolver 仍依赖永久定位拒绝、EHOHC 旧 privacyReported gate 都按预期失败；GREEN：`LocationPermissionCoordinatorTest`、`LocationPermissionSourceTest`、`TripWorkspaceNavigationStateTest`、`TripWorkspaceContentStateTest` 通过；AVD `WorkspacePermissionFlowTest`、`TripWorkspaceContentTest`、production `WorkspaceFlowTest` consent/settings focused、`V1PencilFlowTest` 通过；`compileDebugAndroidTestKotlin` 通过。
+- 设备验证：仅 `easy_trip_p60pro(AVD) - 12` 的 focused instrumentation 和 deterministic/recording fake map host；未操作 Android 系统权限页面、未做实体设备验收、未做真实 AMap/MapView 或第三方隐私授权验证。
+- 未运行检查及原因：按 Task4 focused 范围未运行全量 lint、assemble、全量 JVM 或全量 connected suites。
+- 已知非阻塞差异：统一字体缩放/窗口/IME 矩阵与真实系统设置页面留 Task 7/最终设备验收。
+- Fix Round1（focused）：HYCsZ 正文改为 Pencil 原文“请前往系统设置，为 Easy Trip 开启定位权限。地图和行程仍可正常使用。”；`LocationPermissionSettingsContent` 提取同一 production `LocationPermissionSettingsBody`，280dp×600dp 容器以原 density、2x fontScale 直接渲染 body，断言两个按钮均在容器内、互不重叠且各至少 48dp；不宣称真实 Dialog/IME 窗口尺寸已验收。移除无 generation 的 `locationPermissionResults` Flow 注入契约；`AppNavigation` 测试 launcher 改为请求绑定 callback，callback 以 workspace dispose 与 active generation 失效保护。默认 Android Activity Result 路径仍保留 pending generation，并在 launcher 成功后才记录 `hasRequested`；同步 callback 先缓冲、待记录后按同 generation 投递。settings 恢复仅走 `Lifecycle.ON_RESUME` 读取 current snapshot。production root 测试从 trip list 进入 workspace，验证 JFhZ7→launcher callback 拒绝→HYCsZ→settings effect→`STARTED`→`RESUMED` grant→recording host 单次定位，并覆盖 workspace dispose 后和较新请求后旧 callback 均被忽略。完整尺寸矩阵和真实 Dialog/系统字体留 Task 7。
+- 下一批入口：Batch 6 剩余最终可访问性、进程恢复与实体设备验收。
+
+### 2026-09-03 · Batch 6 / Task 2 · 行程修改保存失败恢复
+
+- 实现：`DayItineraryContent(showDialogs=true)` 与 `WorkspaceOverlay.EditItineraryItem` 继续使用各自既有的单一 `AlertDialog`；同一 `editDraft.saveError` 改为切换到共享 `ItinerarySaveFailureContent`，未叠加 Dialog、未新增 Overlay 或平行草稿。恢复内容说明到达时间、停留时长和备注仍保留，提示编辑不会自动回滚；“继续编辑”、失败态 Back 与点外 dismiss 都只清 `saveError`，不写 repository、不关闭 overlay；“重新保存”复用 `SaveEdit`。repository 成功后由 ViewModel 关闭 draft，后续 Room Flow 仅刷新 timeline。
+- 设计 frame：`OOEsk`。
+- 修改文件：`ItinerarySaveFailureContent`、`DayItinerarySheet`、`DayItineraryViewModel`、`TripWorkspaceScreen`、`DayItineraryViewModelTest`、`ItineraryEditingTest`、`ItineraryTimelineContentTest`、`WorkspaceFlowTest`。
+- 自动化验证：初始 RED 为缺少 `DismissEditSaveError` 的 ViewModel 业务断言、standalone/workspace 缺少 `itinerary-save-failure` 恢复内容；Fix Round 1 RED 为失败编辑 Back 丢草稿、workspace Back 关闭 overlay、编辑组件裸显错误及受控窄宽操作区不可达。最终 GREEN 见本 Task 的 focused 测试记录。
+- 设备验证：仅运行 focused instrumentation；未进行实体设备操作或全量验收。
+- 未运行检查及原因：未运行全量 `assemble`、`lint`、全量 unit/connected suites；本任务按 focused 范围验证。
+- 已知非阻塞差异：仅完成 2x 字体/受控 280dp 窄宽的共享失败内容基础检查（滚动正文、窄宽纵向操作区、`imePadding`）；真实 Dialog 的 280dp + IME 验证和统一尺寸矩阵留待 Task 7。
+
+### 2026-09-03 · Batch 6 / Task 5 · 生产 AppNavigation E2E 收口
+
+- 实现：在 `V2AcceptanceTest` 增加 OOEsk production 根链。真实导航从旅行列表进入工作台/行程，以合法 SUCCESS 路段进入编辑；测试 repository decorator 仅让首个 `updateDetails` 在写前失败，第二次委托同一 Room repository。断言失败卡出现、Room 保持旧值、`重新保存` 只发起一次第二次请求、成功后失败卡与 editor 关闭；timeline 显示两个可见字段（到达时间、停留时长），Room 与重开编辑器验证到达时间、停留时长、备注三字段均已回流。既有 Batch5 主链 fixture 同步改为真实 route repository 推进 target leg 至 SUCCESS，保持 Ready-only 编辑语义。
+- 设计 frame：`OOEsk`；其 context 要求保留输入与原数据，并提供重试或取消修改入口。
+- 修改文件：`V2AcceptanceTest`、本计划。
+- 自动化验证：新增 root 测试首次运行已直接 GREEN（Task 2 的既有未提交生产实现已满足该行为，因此本 Task 没有可诚实记录的独立业务 RED；未为制造 RED 改动生产代码）。revised root 1/1、`V2AcceptanceTest` 4/4、`WorkspaceFlowTest` 60/60、`V1PencilFlowTest` 2/2 均通过。
+- 证据边界：`ProductionAppNavigation + InMemoryRoomNavigation + RecordingFake`。
+- 已知非阻塞差异：继续编辑的字段回显由既有 `ItineraryEditingTest` focused 覆盖；本 root 测试选择失败卡的“重新保存”路径以证明精确 call count。
+- 下一批入口：Batch 6 最终可访问性、进程恢复与验收收口。
+
+### 2026-09-03 · Batch 6 / Task 6 · Typed scenario、证据矩阵与回归收口
+
+- 实现：为 `P7k0M`、`E3EhSv`、`EHOHC`、`JFhZ7`、`HYCsZ`、`GoxB6`、`U8R5i`、`OOEsk` 分别建立独立 typed factory/executable identity；30/34/35 不再共用 permission factory，48 运行共享生产保存失败恢复内容，不再仅断言裸错误。所有场景均由生产 Composable + controlled UiState 执行，并精确断言状态文案和恢复入口。
+- 证据：新增 `Batch6FrameCheckpoint` / `Batch6FrameEvidence`，分别记录 host、state source、map surface 与 permission surface；每帧至少保留 `ProductionCompose + ControlledUiState` 证据。实际边界为：路线恢复使用 File-backed Room reopen；EHOHC 使用手写 repository fake 且不创建 map host；JFhZ7/HYCsZ 使用 ActivityResult contract、手写 repository fake 与可记录定位调用的 `LocationRecordingHost`；GoxB6 使用记录 host 创建/销毁/重试的 recording fake host；U8R5i 使用 failure-injecting fake host；保存失败使用 Production AppNavigation + in-memory Room + recording fake map。未声明 `AndroidSystem`、`InstalledAppRestart`、`PhysicalDevice` 或 `RealAmap` 证据。
+- 矩阵：`docs/testing/v1-full-ui-scenario-matrix.md` 已修复八帧测试入口与此前失效的全矩阵引用；新增 JVM `ScenarioMatrixReferenceTest` 从 `user.dir` 向上定位仓库，扫描全部 Android test Kotlin 源的 `@Test fun`，当前报告 `references=47 missing=0`；47 个 parent scenario 数量不变。复审明确禁止运行会生成 PNG 的 `VisualBatch0EvidenceTest` 全类，本轮仅运行无截图 manifest 方法。
+- TDD：metadata/evidence RED 首次 `compileDebugAndroidTestKotlin` 因缺少 Batch6 typed 场景、证据多轴类型和 evidence catalog 失败；最小实现后同一编译任务 GREEN。
+- 自动化验证：本 Task 的完整 compile、metadata/catalog/full UI/evidence 及构建门禁结果见本次任务日志；未创建截图，截图不是批次门禁。
+- 设备验证：本 Task 未新增实体设备或 Android 系统权限/设置页面操作；所有 PhysicalDevice UI 状态保持 `PENDING`。
+- 已知限制：controlled Composable、ActivityResult callback、in-memory/File-backed Room 与 recording fake map 的组合不等价于连续全帧 E2E、真实 AMap、系统权限页、安装后重启或实体设备验收。
+
+### 2026-09-04 · Batch 6 / Task 8 · 文件型恢复与短暂状态边界
+
+- 实现：无生产行为改动。强化 `OfflineRecoveryTest` 为真实文件型 Room close→reopen 后启动 production `RoomRouteLegRepository` + `DefaultRouteRefreshCoordinator`：同日 WAITING_NETWORK / SUCCESS / CALCULATING 三条合法相邻路线中，离线启动只将中断 CALCULATING 恢复为 WAITING_NETWORK 且不调用 planner；联网后只 claim/规划两个待恢复路段，SUCCESS sibling 的状态、版本、距离、耗时、polyline、override 和 note 全部不变。条件等待使用 Room Flow / gate，不使用任意 sleep。
+- 持久与短暂状态：新增 concrete SharedPreferences fresh-instance instrumentation，验证 AMap consent `null→accepted→declined` 及定位 `hasRequested false→true→false`。旧 `LocationPermissionCoordinator` 真实进入 SETTINGS，发出 `OpenApplicationSettings` generation，并记录 settings launch；fresh coordinator 复用同一 persisted `hasRequested` store 后初始 prompt=NONE、busy=false、error=null 且普通 resume 不发 effect，再次点击定位后才进入 SETTINGS，证明 prompt、generation 与 settings recovery 不持久。新 `DayItineraryViewModel` 共用 production file-backed Room repositories，确认 VM1 未提交 draft + saveError 在 VM2 中为空，Room 已提交时间/停留/备注不变，重开 editor 从 Room 旧值读取。
+- 地图生命周期：新增 production `TripWorkspaceScreen` 新 composition 测试；首 composition 的失败 overlay 不被新 host 复用，新 composition 从 Loading / 新 attempt 开始。此项是新 composition 自动化，不冒充 Activity recreation 或 force-stop。
+- TDD：上述新测试针对既有 production 行为首次可执行运行直接 GREEN；没有为了制造 RED 修改生产代码。测试开发中出现的两次失败均为测试假设/同步错误（WAITING leg 在线 claim 不递增版本；`runTest` 虚拟 timeout 与 Room 真实线程不匹配），修正测试后 GREEN。
+- 自动化验证：Task 8 focused instrumentation 8/8（OfflineRecovery 3、Task8Persistence 4、new composition 1）通过；full JVM 667/667 通过；`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check` 通过。非 PNG instrumentation 按类串行共 629 个唯一测试：623 pass、2 skipped、4 failed；4 个失败均在 `AmapSmokeTest`，其中 3 项明确返回 SDK 555570，transit 项未满足预期 structured-failure assertion且日志未直接保留错误码，因此 instrumentation 总门禁不是全绿。`ItineraryEditingTest` 首轮 1 项偶发失败后单项 1/1、全类 10/10 复跑通过。按要求未运行会生成 PNG 的 `VisualBatch0EvidenceTest`。
+- 证据：`P7k0M` 的 `FileBackedRoomReopen` automatedEntry 仍指向 `OfflineRecoveryTest#persistedRoutesRecoverInterruptedWorkWithoutTouchingSuccess`，limitations 已强化为 production repository + coordinator、受控 planner、非导航/非 installed restart。fresh ViewModel/coordinator/composition 分别作为短暂状态边界；Activity recreation：NOT-RUN；RealAmap：NOT-RUN；AndroidSystem：NOT-RUN；PhysicalDevice：NOT-RUN。
+- 模拟器 installed-app restart：emulator-5554 在最终检查时 package 未安装（此前 connected 流程已移除安装态），因此 `adb install -r app/build/outputs/apk/debug/app-debug.apk` 是首次安装，不能证明安装前用户数据保留；随后通过 UI 创建并提交旅行 `Task8Review`。在同一工作台接受高德 consent 后实际点击定位并确认 JFhZ7“允许 Easy Trip 获取你的位置”说明可见，再执行真实 `adb shell am force-stop com.yangchengwei.easytrip` 与 `adb shell am start -W -n com.yangchengwei.easytrip/.MainActivity`。启动返回 `Status: ok`、`LaunchState: COLD`、PID 6751；旅行列表及重入工作台均保留 `Task8Review`，JFhZ7 未恢复，未发生 crash/ANR。该门禁只证明首次安装后新提交旅行及已制造的 location prompt 不跨 force-stop 恢复；edit draft/save error 和 map failure 仍仅由 fresh ViewModel/composition 自动化覆盖，settings recovery 未做 force-stop。已接受地图 consent 但未将这次检查声明为 RealAmap evidence；Permission 不是 AndroidSystem；Activity recreation：NOT-RUN；PhysicalDevice：NOT-RUN。此步骤之后未再运行 connected tests。
+
+### 2026-09-04 · Batch 6 / Task 67 · 定位权限恢复链 final-gate fix
+
+- 实现：permission callback 先同时校验 active generation 与当前 in-flight，再清 single-flight 锁，旧 generation 的 failed/result 不再改变当前 busy、prompt、error 或 effect；settings request 以现有 `SettingsRecovery` 作为 single-flight，第二次请求不创建 generation/effect，且从 launcher 成功到 lifecycle resume 期间持续 busy；launch failure、resume 或用户 dismiss 会结束 recovery，恢复可重试，dismiss 后旧 resume 不再触发定位。JFhZ7/HYCsZ 复用原 `LocationPermissionUiState.busy/error`，不增加 overlay/reducer；主操作 busy 时 disabled，launcher 精确错误原地显示并使用 Polite live region，新 attempt 清 error。
+- TDD：RED 先分别复现旧 callback 释放新锁、重复 settings 覆盖 generation、permission retry 未清 error、settings launch-started 提前解除 busy、dismiss 后旧 recovery 仍生效，以及两种 production content 缺少 `busy/error` 参数；GREEN 采用 generation/in-flight guard、`settingsRecovery != null` gate、resume/failure/dismiss 收口和 Route→Screen→唯一 `WorkspaceOverlay.PermissionExplanation` 状态透传。完整工作台首次复跑暴露旧“发起 permission 后说明 overlay 应关闭”的协议回归，定位为多余 prompt 保留并撤回；settings busy 仍按新 single-flight 需求保持到 resume/failure/dismiss。
+- 自动化验证：`LocationPermissionCoordinatorTest` 30/30、`LocationPermissionSourceTest` 3/3；`WorkspacePermissionFlowTest` 13/13、`WorkspaceFlowTest` 64/64、`Task8PersistenceTest` 4/4 按类串行通过；full JVM 672/672、`compileDebugAndroidTestKotlin`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check` 通过。按要求未运行会生成 PNG 的 `VisualBatch0EvidenceTest`，未执行 force-stop。
+- 边界：本修复在 AVD instrumentation、controlled ActivityResult/settings launcher failure 和 production Compose route 上验证；未操作真实 Android 权限页/系统设置、未做实体设备或真实 AMap 验收，最终安装态留主会话恢复。
+
+### 2026-09-04 · Batch 6 / Task 68 · 失败路段 retry 状态/版本竞态 final-gate fix
+
+- 实现：失败路段 retry action 现在携带 UI 快照的 `expectedVersion`；`DayItineraryViewModel` 在派发前重新验证该路段仍为当前可见 `FAILED` 且版本一致，状态已回流为 `SUCCESS/Ready`、被移出当前相邻可见集或版本变化的旧点击均不调用 coordinator。`RouteLegRepository` 的版本化 retry 继续传给 `DefaultRouteRefreshCoordinator`，最终由 Room 单条 `UPDATE ... WHERE id=:id AND status='FAILED' AND version=:version` 原子裁决；未命中返回 `false`，不会清除已提交的距离、耗时、polyline 或错误以外的路线数据。既有无 version repository/coordinator retry 签名保留为兼容入口，但 production UI 路径只使用版本化重载。
+- 回归边界：当前 Failed 重试仍以 online→`PENDING`、offline→`WAITING_NETWORK` 并递增 version；迟到 Ready/旧 Failed 版本不会重置目标路段；Success sibling 的状态、版本和路线数据不受影响。Ready-only 编辑资格未放宽。
+- TDD：JVM RED 先证明已回流 Ready 的旧 retry 仍调用 coordinator；GREEN 后覆盖 Ready、旧 version 和当前 Failed 三类 ViewModel 入口。Room regression 加入真实 DAO/repository 的 Failed 正常更新、Ready 和 stale version 均返回 false、以及 sibling 不受影响；因本次无连接设备，Room suite 已编译但未实际执行。
+- 自动化验证：`DayItineraryViewModelTest` 56/56、`RouteRefreshCoordinatorTest` 15/15、full JVM 675/675 通过；`compileDebugAndroidTestKotlin`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check`、`graphify update .` 通过。`RoomRouteLegRepositoryTest` 的 connected 执行因 `adb devices` 无设备未运行；未运行截图类测试。
+- 未运行检查及原因：最终门禁交由主会话；无可用 Android 设备，无法运行 Room 和 Compose focused connected suite。跳过所有会生成截图的测试。
+- 设备验证：未运行；未 force-stop。
+- 已知非阻塞差异：无。
+
+### 2026-09-04 · Batch 6 / Task 70 · 定位权限 in-flight Locate 竞态 final-gate
+
+- 实现：`LocationPermissionCoordinator.onLocateClick()` 在权限系统请求 in-flight 时直接忽略重复 Locate，不推进 `activeGeneration`、不清理 busy/error/prompt，也不发起已授权定位 effect；成功、失败和有效 permission result 仍由原 generation 收口。保持 callback 的 generation/workspace 隔离、bridge 默认/注入 launcher 兼容，以及 settings recovery 逻辑不变。
+- TDD：新增 JVM RED 覆盖 in-flight 后重复 denied Locate、in-flight 后重复 granted Locate、旧 generation failure/result 释放锁并恢复状态后 retry 产生新 effect；初始 3 项按预期失败。最小单守卫 GREEN 后 `LocationPermissionCoordinatorTest` 33/33 通过；原 stale callback 测试改用 detach/re-attach 制造真实旧 callback，继续验证 workspace detach 隔离。
+- 自动化验证：`LocationPermissionCoordinatorTest` 33/33、`LocationPermissionSourceTest` 3/3、full JVM、`compileDebugAndroidTestKotlin`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check` 与 `graphify update .` 通过。Graphify 更新报告 6760 nodes / 15774 edges，并继续提示未触及的 `NetworkMonitor.kt`、`RoutePlanner.kt` 既有语法解析 warning。
+- 设备验证：`adb devices -l` 当前无设备；因此未运行 `WorkspacePermissionFlowTest`、`WorkspaceFlowTest`、`Task8PersistenceTest` connected tests，仅完成其 Android test 编译门禁。
+- 已知边界：未操作真实 Android 系统权限页、系统设置页或实体设备；未运行会生成截图的测试。
+
+### 2026-09-03 · Batch 6 / Task 7 · 响应式、IME 与无障碍矩阵
+
+- `P7k0M` / `E3EhSv`：PASS。`ItineraryTimelineContentTest` 以 production `RouteLegContent`、280dp 容器、设备原 density 与 2x fontScale 验证等待联网文案和离线 contentDescription、等待态无编辑/重试、失败标题/详情/唯一重试、Ready sibling 可编辑；Waiting/Failed 均为 Polite live region。retry 使用同一 Compose root 的 `getUnclippedBoundsInRoot` 验证至少 48dp、位于容器和失败路段内，且不与标题、详情或相邻编辑操作重叠。父状态容器不再设置重复 contentDescription；失败 error 为空时只呈现一次“路线计算失败”。
+- `GoxB6` / `U8R5i`：PASS。`WorkspacePermissionFlowTest` 直接渲染 production `WorkspaceMapFallback` 于 280dp、原 density 与 2x fontScale；Loading/Failed 文案和 action 排他，spinner contentDescription 为“地图正在加载”，两个动态状态均为 Polite live region；Failed retry 至少 48dp 且位于同一 root 的本地容器内。父状态容器不设置重复摘要 contentDescription，由 live region、子文本及加载图标语义表达状态。
+- `JFhZ7`：PASS。production `PermissionExplanationContent` 复用新提取的 `PermissionExplanationBody`；直接 body 测试覆盖 280dp/2x、标题 heading、声明/视觉顺序、两个 action 至少 48dp、容器内、不重叠以及 confirm/dismiss callback 分离。未使用独立 Dialog window bounds。
+- `HYCsZ`：PASS。保留并通过既有 `locationSettingsBodyActionsRemainReachableAt280dpWithTwoTimesFontScale`，直接 production body 验证标题 heading、两个 action 的 48dp、本地容器边界和非重叠；未重复建立平行测试。
+- `EHOHC`：PASS。production `AmapConsentDialog` 与测试共享新提取的 `AmapConsentBody`。直接 body 在 280dp、2x、420dp 短高下验证标题 heading、正文/政策/单一 checkbox 语义、滚动正文区和固定 footer；允许/暂不允许均至少 48dp、在本地容器内且不重叠，callback 分离。`WorkspaceFlowTest` 另从 production `AppNavigation` 验证确认阅读 gate、允许决策 `true`、dialog 关闭和 runtime session 创建。未断言 Dialog window bounds，未打开外部政策页面。
+- `OOEsk`：PASS。`ItineraryTimelineContentTest` 直接渲染 production `ItinerarySaveFailureContent` 于 280dp/2x，验证标题 heading、声明/视觉顺序、两个 48dp action 位于本地容器内且不重叠、callback 分离和 Polite live region；另以 300dp 短高模拟 IME 后受限可用空间，正文滚动区不覆盖固定 footer。独立 AlertDialog 的 280dp window bounds 仍为 NOT-RUN。
+- IME：PASS（仅 AVD instrumentation 边界）。`ItineraryEditingTest` 在真实 `DayItinerarySheet` flow 聚焦备注输入，除输入事件外明确等待 `WindowInsetsCompat.Type.ime()` 可见；触发保存失败后再明确等待 IME inset 不可见，确认失败恢复内容的两个操作可达，随后继续编辑并验证备注草稿和保存/取消操作可达。失败态 Back 测试只发送一次 `pressBack()`，不再用条件式第二次 Back 掩盖残留 IME，验证一次 Back 即清除 `saveError` 并返回原草稿。该结果只证明 `easy_trip_p60pro(AVD) - 12` 的系统 IME inset，不外推为实体设备结论。
+- TDD：路线 Waiting/Failed、地图 Loading/Failed、JFhZ7 body API、EHOHC body API/整行单一 checkbox 语义、OOEsk live region/2x 短高 footer、失败状态重复播报和四类标题 heading 均先得到预期 RED，再以最小生产修改转 GREEN。
+- 自动化验证：四类合并曾通过 121/121；最终语义变更后的合并运行在 109/121 时遭遇 instrumentation process SIGKILL，失败点 `itemMenuActionsOpenBusinessOverlaysForSameItem` 单独复跑通过。随后按类稳定复跑 `WorkspaceFlowTest` 61/61，以及 `ItineraryTimelineContentTest` + `ItineraryEditingTest` + `WorkspacePermissionFlowTest` 60/60。审查收紧后的真实 IME 与单次 Back focused 分别复跑 1/1；两项首次合并复跑在第一项已通过后 instrumentation process crash，拆分类复跑均通过。末轮新增的短高 OOEsk、默认失败不重复播报、EHOHC shared body、heading 与 checkbox focused 矩阵 8/8 通过。
+- 证据边界：PASS 仅指 production Composable / production AppNavigation + controlled state / AVD instrumentation。PhysicalDevice：NOT-RUN；真实 AMap/MapView：NOT-RUN；系统定位权限与设置页面：NOT-RUN；独立 Dialog 280dp window bounds：NOT-RUN。未运行会生成 PNG 的 `VisualBatch0EvidenceTest` 全类。
 
 每次完成一批后追加：
 

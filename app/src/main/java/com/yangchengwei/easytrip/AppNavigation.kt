@@ -1,8 +1,18 @@
 package com.yangchengwei.easytrip
 
 import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Button
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Text
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
@@ -37,6 +47,8 @@ import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
 import com.yangchengwei.easytrip.workspace.MapPreferences
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Checkbox
+import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import android.Manifest
 import android.app.Activity
@@ -53,7 +65,6 @@ import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
 import com.yangchengwei.easytrip.permission.LocationPermissionRequestStore
 import com.yangchengwei.easytrip.permission.LocationPermissionSnapshot
 import com.yangchengwei.easytrip.permission.WorkspaceEffect
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.ui.Modifier
 import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.ui.CreateTripRoute
@@ -76,16 +87,52 @@ const val TRIP_SETTINGS_ROUTE = "trips/{tripId}/settings"
 const val TRIP_SEARCH_ROUTE = "trips/{tripId}/search"
 internal const val WORKSPACE_SEARCH_RETURN_KEY = "searchReturnPoiIds"
 
-internal fun dispatchLocationPermissionRequest(
-    generation: Long,
-    launcher: (Array<String>) -> Result<Unit>,
-    coordinator: LocationPermissionCoordinator,
-): Result<Unit> = launcher(
-    arrayOf(Manifest.permission.ACCESS_FINE_LOCATION, Manifest.permission.ACCESS_COARSE_LOCATION),
-).onSuccess {
-    coordinator.onPermissionLaunchStarted(generation)
-}.onFailure {
-    coordinator.onPermissionLaunchFailed(generation)
+private class LocationPermissionLaunchBridge(
+    val generation: Long,
+    private val coordinator: LocationPermissionCoordinator,
+) {
+    private var active = true
+    val isActive: Boolean
+        get() = active
+    private var launchSucceeded = false
+    private var resultDelivered = false
+    private var bufferedSnapshot: LocationPermissionSnapshot? = null
+
+    fun onResult(snapshot: LocationPermissionSnapshot) {
+        if (!active || resultDelivered) return
+        if (!launchSucceeded) {
+            bufferedSnapshot = snapshot
+            return
+        }
+        deliver(snapshot)
+    }
+
+    fun onLaunchFinished(result: Result<Unit>) {
+        if (!active) return
+        result.onSuccess {
+            launchSucceeded = true
+            coordinator.onPermissionLaunchStarted(generation)
+            bufferedSnapshot?.let { snapshot ->
+                bufferedSnapshot = null
+                deliver(snapshot)
+            }
+        }.onFailure {
+            active = false
+            bufferedSnapshot = null
+            coordinator.onPermissionLaunchFailed(generation)
+        }
+    }
+
+    fun invalidate() {
+        active = false
+        bufferedSnapshot = null
+    }
+
+    private fun deliver(snapshot: LocationPermissionSnapshot) {
+        if (!active || resultDelivered) return
+        resultDelivered = true
+        coordinator.onPermissionResult(generation, snapshot)
+    }
 }
 
 internal fun dispatchApplicationSettingsRequest(
@@ -133,30 +180,17 @@ internal fun AmapConsentDialog(
     }
     AlertDialog(
         onDismissRequest = onClose,
-        title = { Text("高德服务隐私说明") },
+        confirmButton = {},
         text = {
-            Column {
-                Text("搜索地点会调用高德地图服务。不同意仍可使用本地点池。")
-                shownError?.let {
-                    Text(it)
-                    TextButton(onClick = { shownAttempt++ }) { Text("重试") }
-                }
-                consentError?.let { Text(it) }
-                TextButton(onClick = {
+            AmapConsentBody(
+                policyRead = policyRead,
+                onPolicyReadChange = onPolicyReadChange,
+                onOpenPolicy = {
                     context.startActivity(
                         Intent(Intent.ACTION_VIEW, Uri.parse("https://lbs.amap.com/home/privacy/")).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK),
                     )
-                }) { Text("阅读高德隐私权政策") }
-                androidx.compose.foundation.layout.Row {
-                    Checkbox(policyRead, onPolicyReadChange)
-                    Text("我已阅读高德隐私权政策")
-                }
-            }
-        },
-        confirmButton = {
-            TextButton(
-                enabled = privacyReported && policyRead,
-                onClick = {
+                },
+                onAllow = {
                     coroutineScope.launch {
                         applyConsentDecision(
                             result = store.decide(true),
@@ -166,12 +200,7 @@ internal fun AmapConsentDialog(
                         )
                     }
                 },
-            ) { Text("同意并启用搜索") }
-        },
-        dismissButton = {
-            TextButton(
-                enabled = privacyReported,
-                onClick = {
+                onDecline = {
                     coroutineScope.launch {
                         applyConsentDecision(
                             result = store.decide(false),
@@ -181,9 +210,79 @@ internal fun AmapConsentDialog(
                         )
                     }
                 },
-            ) { Text("不同意") }
+                allowEnabled = privacyReported && policyRead,
+                declineEnabled = privacyReported,
+                shownError = shownError,
+                consentError = consentError,
+                onRetryShown = { shownAttempt++ },
+            )
         },
     )
+}
+
+@Composable
+internal fun AmapConsentBody(
+    policyRead: Boolean,
+    onPolicyReadChange: (Boolean) -> Unit,
+    onOpenPolicy: () -> Unit,
+    onAllow: () -> Unit,
+    onDecline: () -> Unit,
+    allowEnabled: Boolean,
+    declineEnabled: Boolean,
+    modifier: Modifier = Modifier,
+    shownError: String? = null,
+    consentError: String? = null,
+    onRetryShown: () -> Unit = {},
+) {
+    Column(
+        modifier = modifier,
+        verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+    ) {
+        Column(
+            modifier = Modifier
+                .weight(1f, fill = false)
+                .heightIn(max = 220.dp)
+                .verticalScroll(rememberScrollState())
+                .testTag("map-consent-scroll"),
+            verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(12.dp),
+        ) {
+            Text("允许 Easy Trip 使用地图", Modifier.semantics { heading() })
+            Text("地图用于展示收藏地点、每天的路线和交通距离。暂不允许也可以继续编辑地点池和行程。")
+            shownError?.let {
+                Text(it)
+                TextButton(onClick = onRetryShown) { Text("重试") }
+            }
+            consentError?.let { Text(it) }
+            TextButton(onClick = onOpenPolicy) { Text("阅读高德隐私权政策") }
+            Row(
+                Modifier
+                    .fillMaxWidth()
+                    .semantics(mergeDescendants = true) {}
+                    .toggleable(
+                        value = policyRead,
+                        role = Role.Checkbox,
+                        onValueChange = onPolicyReadChange,
+                    )
+                    .testTag("map-consent-policy-confirmation"),
+            ) {
+                Checkbox(checked = policyRead, onCheckedChange = null)
+                Text("我已阅读高德隐私权政策")
+            }
+        }
+        BoxWithConstraints(Modifier.fillMaxWidth()) {
+            if (maxWidth < 330.dp) {
+                Column(verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    Button(onClick = onAllow, enabled = allowEnabled, modifier = Modifier.fillMaxWidth()) { Text("允许使用地图") }
+                    TextButton(onClick = onDecline, enabled = declineEnabled, modifier = Modifier.fillMaxWidth()) { Text("暂不允许") }
+                }
+            } else {
+                Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)) {
+                    TextButton(onClick = onDecline, enabled = declineEnabled, modifier = Modifier.weight(1f)) { Text("暂不允许") }
+                    Button(onClick = onAllow, enabled = allowEnabled, modifier = Modifier.weight(1f)) { Text("允许使用地图") }
+                }
+            }
+        }
+    }
 }
 
 fun tripSearchRoute(tripId: String): String = "trips/$tripId/search"
@@ -245,7 +344,7 @@ fun AppNavigation(
     dependencies: AppNavigationDependencies? = null,
     navigationObserver: AppNavigationObserver? = null,
     mapHostFactory: ((android.content.Context) -> com.yangchengwei.easytrip.workspace.AmapMapHost)? = null,
-    onLaunchLocationPermission: ((Array<String>) -> Result<Unit>)? = null,
+    onLaunchLocationPermission: ((Array<String>, (LocationPermissionSnapshot) -> Unit) -> Result<Unit>)? = null,
     onOpenApplicationSettings: (() -> Result<Unit>)? = null,
     locationPermissionSnapshot: (() -> LocationPermissionSnapshot)? = null,
 ) {
@@ -300,10 +399,9 @@ fun AppNavigation(
             else {
                 val consentStore = workspaceDependencies.consentStore
                 val consentState = consentStore?.state?.collectAsStateWithLifecycle()?.value
-                val privacyReported = consentStore?.shown?.collectAsStateWithLifecycle()?.value ?: true
                 val consentFact = consentState?.fact
                 var runtimeSession by remember { mutableStateOf<AmapRuntimeSession?>(null) }
-                var showConsent by remember { mutableStateOf(consentFact is AmapConsentFact.Undecided && !privacyReported) }
+                var showConsent by remember { mutableStateOf(consentFact is AmapConsentFact.Undecided) }
                 var policyRead by remember { mutableStateOf(false) }
                 val openConsentRequest by entry.savedStateHandle.getStateFlow("openConsent", false).collectAsStateWithLifecycle()
                 LaunchedEffect(openConsentRequest) {
@@ -358,14 +456,14 @@ fun AppNavigation(
                     },
                 )
                 var pendingPermissionGeneration by remember { mutableStateOf<Long?>(null) }
+                var activePermissionBridge by remember { mutableStateOf<LocationPermissionLaunchBridge?>(null) }
                 val locationPermissionLauncher = rememberLauncherForActivityResult(
                     ActivityResultContracts.RequestMultiplePermissions(),
                 ) {
-                    val generation = pendingPermissionGeneration
+                    val generation = pendingPermissionGeneration ?: return@rememberLauncherForActivityResult
                     pendingPermissionGeneration = null
-                    generation?.let {
-                        locationCoordinator.onPermissionResult(it, readLocationPermissionSnapshot())
-                    }
+                    activePermissionBridge?.takeIf { it.generation == generation }
+                        ?.onResult(readLocationPermissionSnapshot())
                 }
                 DisposableEffect(entry, id, locationCoordinator) {
                     locationCoordinator.attachWorkspace(id)
@@ -377,6 +475,8 @@ fun AppNavigation(
                     entry.lifecycle.addObserver(observer)
                     onDispose {
                         entry.lifecycle.removeObserver(observer)
+                        activePermissionBridge?.invalidate()
+                        activePermissionBridge = null
                         pendingPermissionGeneration = null
                         locationCoordinator.detachWorkspace(id)
                     }
@@ -436,15 +536,45 @@ fun AppNavigation(
                     onWorkspaceEffect = { effect ->
                         when (effect) {
                             is WorkspaceEffect.RequestLocationPermission -> {
-                                if (pendingPermissionGeneration != null) return@TripWorkspaceRoute
-                                val result = dispatchLocationPermissionRequest(
-                                    generation = effect.generation,
-                                    launcher = onLaunchLocationPermission ?: { permissions ->
-                                        runCatching { locationPermissionLauncher.launch(permissions) }
-                                    },
-                                    coordinator = locationCoordinator,
-                                )
-                                if (result.isSuccess) pendingPermissionGeneration = effect.generation
+                                if (onLaunchLocationPermission != null) {
+                                    activePermissionBridge?.invalidate()
+                                    LocationPermissionLaunchBridge(
+                                        generation = effect.generation,
+                                        coordinator = locationCoordinator,
+                                    ).also { bridge ->
+                                        activePermissionBridge = bridge
+                                        bridge.onLaunchFinished(
+                                            onLaunchLocationPermission(
+                                                arrayOf(
+                                                    Manifest.permission.ACCESS_FINE_LOCATION,
+                                                    Manifest.permission.ACCESS_COARSE_LOCATION,
+                                                ),
+                                                bridge::onResult,
+                                            ),
+                                        )
+                                    }
+                                } else {
+                                    if (pendingPermissionGeneration != null) return@TripWorkspaceRoute
+                                    activePermissionBridge?.invalidate()
+                                    LocationPermissionLaunchBridge(
+                                        generation = effect.generation,
+                                        coordinator = locationCoordinator,
+                                    ).also { bridge ->
+                                        activePermissionBridge = bridge
+                                        pendingPermissionGeneration = effect.generation
+                                        bridge.onLaunchFinished(
+                                            runCatching {
+                                                locationPermissionLauncher.launch(
+                                                    arrayOf(
+                                                        Manifest.permission.ACCESS_FINE_LOCATION,
+                                                        Manifest.permission.ACCESS_COARSE_LOCATION,
+                                                    ),
+                                                )
+                                            },
+                                        )
+                                        if (!bridge.isActive) pendingPermissionGeneration = null
+                                    }
+                                }
                             }
                             is WorkspaceEffect.ShowCurrentLocation -> Unit
                             is WorkspaceEffect.OpenApplicationSettings -> {

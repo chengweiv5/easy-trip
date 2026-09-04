@@ -20,6 +20,7 @@ sealed interface WorkspaceOverlay {
 
 enum class PermissionKind {
     DEVICE_LOCATION,
+    DEVICE_LOCATION_SETTINGS,
 }
 
 data class FeedbackUiModel(

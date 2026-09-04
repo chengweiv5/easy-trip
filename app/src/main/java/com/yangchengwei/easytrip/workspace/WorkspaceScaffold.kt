@@ -94,8 +94,8 @@ internal fun WorkspaceScaffold(
     map: @Composable BoxScope.(WorkspaceLayoutMetrics) -> Unit,
     topOverlay: @Composable BoxScope.(WorkspaceLayoutMetrics) -> Unit,
     modalOverlay: @Composable BoxScope.(WorkspaceLayoutMetrics) -> Unit = {},
-    sheetHeader: @Composable () -> Unit,
-    sheetContent: @Composable () -> Unit,
+    sheetHeader: @Composable (WorkspaceLayoutMetrics) -> Unit,
+    sheetContent: @Composable (WorkspaceLayoutMetrics) -> Unit,
     collapsedContent: @Composable () -> Unit = {},
 ) {
     BoxWithConstraints(
@@ -125,8 +125,8 @@ internal fun WorkspaceScaffold(
             onValueChange = onSheetLevelChange,
             dragOffsetPx = dragOffsetPx,
             onDragOffsetChange = { dragOffsetPx = it },
-            header = sheetHeader,
-            content = sheetContent,
+            header = { sheetHeader(metrics) },
+            content = { sheetContent(metrics) },
             collapsedContent = collapsedContent,
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
         )

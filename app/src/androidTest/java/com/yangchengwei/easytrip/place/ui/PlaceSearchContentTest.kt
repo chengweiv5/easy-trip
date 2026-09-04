@@ -186,6 +186,7 @@ class PlaceSearchContentTest {
         var poiClicks = 0
         val host = object : AmapMapHost {
             override val view: View = View(context)
+            override fun canRenderBeforeReady() = true
             override fun onCreate() = Unit
             override fun onResume() = Unit
             override fun onPause() = Unit

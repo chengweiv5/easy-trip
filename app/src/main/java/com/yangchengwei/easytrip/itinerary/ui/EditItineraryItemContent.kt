@@ -58,7 +58,6 @@ fun EditItineraryItemContent(
                 enabled = !draft.isSaving,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp).testTag("itinerary-note-input"),
             )
-            draft.saveError?.let { Text(it) }
         }
         CompactPrimaryButton(onClick = onSave, enabled = draft.isValid && !draft.isSaving) {
             Text(if (draft.isSaving) "保存中…" else "保存时间")

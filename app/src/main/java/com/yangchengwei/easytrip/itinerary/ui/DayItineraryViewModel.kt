@@ -412,6 +412,12 @@ class DayItineraryViewModel(
         mutable.value = mutable.value.copy(editDraft = draft.copy(noteText = value, saveError = null))
     }
 
+    fun dismissEditSaveError() {
+        val draft = mutable.value.editDraft ?: return
+        if (draft.isSaving || draft.saveError == null) return
+        mutable.value = mutable.value.copy(editDraft = draft.copy(saveError = null))
+    }
+
     fun saveTiming() {
         val draft = mutable.value.editDraft ?: return
         if (draft.isSaving || !draft.isValid) return
@@ -443,6 +449,7 @@ class DayItineraryViewModel(
     fun requestMode(legId: String): Boolean {
         val leg = visibleRouteLegs(state.value.items, state.value.previewOrder, state.value.legs)
             .firstOrNull { it.id == legId }
+            ?.takeIf { it.state is RouteLegUiState.Ready }
             ?: return false
         mutable.value = mutable.value.copy(
             modeEditor = RouteModeEditDraft(
@@ -489,9 +496,23 @@ class DayItineraryViewModel(
     fun saveRouteEditor() {
         val editor = state.value.modeEditor ?: return
         if (editor.isSaving || !editor.isValid) return
+        val isReady = visibleRouteLegs(state.value.items, state.value.previewOrder, state.value.legs)
+            .any { it.id == editor.legId && it.state is RouteLegUiState.Ready }
+        if (!isReady) {
+            mutable.value = mutable.value.copy(modeEditor = null)
+            return
+        }
         val started = editor.copy(isSaving = true, saveError = null)
         mutable.value = mutable.value.copy(modeEditor = started)
         viewModelScope.launch {
+            val isStillReady = visibleRouteLegs(state.value.items, state.value.previewOrder, state.value.legs)
+                .any { it.id == started.legId && it.state is RouteLegUiState.Ready }
+            if (!isStillReady) {
+                if (mutable.value.modeEditor.matches(started)) {
+                    mutable.value = mutable.value.copy(modeEditor = null)
+                }
+                return@launch
+            }
             try {
                 val modeChanged = started.selectedModeOverride != started.originalSelectedModeOverride
                 val routeCoordinator = coordinator
@@ -536,11 +557,27 @@ class DayItineraryViewModel(
         }
     }
 
-    fun retry(legId: String) {
+    private val retryingLegs = mutableSetOf<Pair<String, Long>>()
+
+    fun retry(legId: String, expectedVersion: Long) {
+        val current = visibleRouteLegs(state.value.items, state.value.previewOrder, state.value.legs)
+            .firstOrNull { it.id == legId }
+            ?: return
+        if (
+            current.status != com.yangchengwei.easytrip.core.model.RouteStatus.FAILED ||
+            expectedVersion != current.version
+        ) return
+        val retryKey = legId to expectedVersion
+        if (!retryingLegs.add(retryKey)) return
         viewModelScope.launch {
-            runCatching { coordinator?.retry(legId) ?: false }
-                .onSuccess { if (!it) showError(IllegalStateException("联网并同意高德隐私政策后才能重试")) }
-                .onFailure(::showError)
+            try {
+                val retried = coordinator?.retry(legId, expectedVersion) ?: false
+                if (!retried) showError(IllegalStateException("联网并同意高德隐私政策后才能重试"))
+            } catch (error: Throwable) {
+                showError(error)
+            } finally {
+                retryingLegs.remove(retryKey)
+            }
         }
     }
 
@@ -570,12 +607,13 @@ class DayItineraryViewModel(
             is DayItineraryAction.RequestCrossDay -> requestCrossDay(action.itemId)
             is DayItineraryAction.RequestDelete -> requestDelete(action.itemId)
             is DayItineraryAction.RequestMode -> requestMode(action.legId)
-            is DayItineraryAction.Retry -> retry(action.legId)
+            is DayItineraryAction.Retry -> retry(action.legId, action.expectedVersion)
             is DayItineraryAction.MoveToDay -> moveToDay(action.dayId)
             is DayItineraryAction.UpdateArrivalTime -> updateArrivalTime(action.value)
             is DayItineraryAction.UpdateStayMinutes -> updateStayMinutes(action.value)
             is DayItineraryAction.UpdateNote -> updateNote(action.value)
             DayItineraryAction.SaveEdit -> saveTiming()
+            DayItineraryAction.DismissEditSaveError -> dismissEditSaveError()
             is DayItineraryAction.SelectMode -> selectMode(action.mode)
             DayItineraryAction.ClearSelectedModeOverride -> clearSelectedModeOverride()
             is DayItineraryAction.UpdateRouteDurationMinutes -> updateRouteDurationMinutes(action.value)
@@ -608,7 +646,8 @@ class DayItineraryViewModel(
         val previewOrder = if (keepPreview) previous.previewOrder else officialOrder
         val rawLegs = legs.map { it.toRouteLegUi() }
         val activeRouteEditor = previous.modeEditor?.takeIf { draft ->
-            visibleRouteLegs(items, previewOrder, rawLegs).any { it.id == draft.legId }
+            visibleRouteLegs(items, previewOrder, rawLegs)
+                .any { it.id == draft.legId && it.state is RouteLegUiState.Ready }
         }
         mutable.value = previous.copy(
             items = items,

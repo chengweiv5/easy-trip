@@ -38,6 +38,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.platform.LocalDensity
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.EmptyIllustration
+import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton
 import com.yangchengwei.easytrip.core.ui.component.EmptyState
 import com.yangchengwei.easytrip.core.ui.component.SelectablePill
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
@@ -56,7 +57,6 @@ fun TripWorkspaceContent(
     onPageRetry: () -> Unit = { onAction(TripWorkspaceAction.Retry) },
     onOpenConsent: () -> Unit = { onAction(TripWorkspaceAction.OpenPrivacySettings) },
     onMapRetry: () -> Unit = { onAction(TripWorkspaceAction.Retry) },
-    onOpenLocationSettings: () -> Unit = {},
     placeState: PlacePoolUiState,
     onPlaceAction: (PlacePoolAction) -> Unit,
     itineraryState: DayItineraryUiState,
@@ -79,7 +79,6 @@ fun TripWorkspaceContent(
             onAction,
             onOpenConsent,
             onMapRetry,
-            onOpenLocationSettings,
             placeState,
             onPlaceAction,
             itineraryState,
@@ -110,7 +109,6 @@ private fun WorkspaceReadyContent(
     onAction: (TripWorkspaceAction) -> Unit,
     onOpenConsent: () -> Unit,
     onMapRetry: () -> Unit,
-    onOpenLocationSettings: () -> Unit,
     placeState: PlacePoolUiState,
     onPlaceAction: (PlacePoolAction) -> Unit,
     itineraryState: DayItineraryUiState,
@@ -128,24 +126,59 @@ private fun WorkspaceReadyContent(
         sheetLevel = state.sheetLevel,
         onSheetLevelChange = { onAction(TripWorkspaceAction.SetSheetLevel(it)) },
         modifier = modifier,
-        sheetHeader = {
+        sheetHeader = { metrics ->
             Column(Modifier.fillMaxWidth()) {
                 WorkspaceSheetHandle()
-                WorkspaceTabs(
-                    selected = state.section,
-                    onSelect = { onAction(TripWorkspaceAction.SelectSection(it)) },
-                )
+                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                    WorkspaceTabs(
+                        selected = state.section,
+                        onSelect = { onAction(TripWorkspaceAction.SelectSection(it)) },
+                        modifier = Modifier.weight(1f),
+                    )
+                    if (!workspaceMapOverlaysFit(metrics) && state.sheetLevel != WorkspaceSheetLevel.EXPANDED) {
+                        when (mapState) {
+                            is WorkspaceMapState.Failed -> CompactPrimaryButton(
+                                onClick = onMapRetry,
+                                modifier = Modifier.testTag("map-retry"),
+                            ) { Text("重试") }
+                            WorkspaceMapState.ConsentRequired -> CompactPrimaryButton(
+                                onClick = onOpenConsent,
+                                modifier = Modifier.testTag("map-consent-open"),
+                            ) { Text("授权") }
+                            else -> Unit
+                        }
+                    }
+                }
             }
         },
-        collapsedContent = {
-            WorkspaceCollapsedSummary(
-                state = state,
-                placeState = placeState,
-                itineraryState = itineraryState,
-            )
-        },
-        sheetContent = {
+            collapsedContent = {
+                WorkspaceCollapsedSummary(
+                    state = state,
+                    placeState = placeState,
+                    itineraryState = itineraryState,
+                )
+            },
+        sheetContent = { metrics ->
             Column(Modifier.fillMaxSize()) {
+                if (state.sheetLevel == WorkspaceSheetLevel.EXPANDED && !workspaceMapOverlaysFit(metrics)) {
+                    when (mapState) {
+                        is WorkspaceMapState.Failed -> MapRecoveryAction(
+                            label = "重试地图",
+                            testTag = "map-retry",
+                            onClick = onMapRetry,
+                        )
+                        WorkspaceMapState.ConsentRequired -> MapRecoveryAction(
+                            label = "查看并授权",
+                            testTag = "map-consent-open",
+                            onClick = onOpenConsent,
+                        )
+                        WorkspaceMapState.Loading -> Text(
+                            "正在加载地图 · 地点和行程仍可继续查看",
+                            Modifier.testTag("map-loading-compact"),
+                        )
+                        else -> Unit
+                    }
+                }
                 when (state.section) {
                     WorkspaceSection.PLACE_POOL -> if (state.isWorkspaceAllEmpty) {
                         EmptyState(
@@ -198,11 +231,7 @@ private fun WorkspaceReadyContent(
         },
         map = { metrics ->
             Box(Modifier.fillMaxSize().testTag("workspace-map")) {
-                if (
-                    mapState == WorkspaceMapState.Ready ||
-                    mapState == WorkspaceMapState.Loading ||
-                    mapState == WorkspaceMapState.LocationPermanentlyDenied
-                ) {
+                if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) {
                     mapContent(workspaceViewportInsets(metrics, density.density))
                 }
                 if (mapState != WorkspaceMapState.Ready && workspaceMapOverlaysFit(metrics)) {
@@ -210,7 +239,6 @@ private fun WorkspaceReadyContent(
                         state = mapState,
                         onOpenConsent = onOpenConsent,
                         onRetryMap = onMapRetry,
-                        onOpenLocationSettings = onOpenLocationSettings,
                         modifier = Modifier.padding(bottom = metrics.sheetHeight),
                     )
                 }
@@ -293,6 +321,20 @@ private fun WorkspaceReadyContent(
             }
         },
     )
+}
+
+@Composable
+private fun MapRecoveryAction(
+    label: String,
+    testTag: String,
+    onClick: () -> Unit,
+) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
+        CompactPrimaryButton(
+            onClick = onClick,
+            modifier = Modifier.height(50.dp).testTag(testTag),
+        ) { Text(label) }
+    }
 }
 
 @Composable
@@ -392,7 +434,10 @@ private fun WorkspaceSummaryIcon(section: WorkspaceSection, modifier: Modifier =
 
 @Composable
 internal fun WorkspaceSheetHandle(modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().height(24.dp), contentAlignment = Alignment.Center) {
+    Box(
+        modifier.fillMaxWidth().height(24.dp).testTag("workspace-sheet-handle-control"),
+        contentAlignment = Alignment.Center,
+    ) {
         Surface(Modifier.fillMaxWidth(.1f).height(4.dp), shape = RoundedCornerShape(2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .4f)) {}
     }
 }

@@ -2,16 +2,20 @@ package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertContentDescriptionEquals
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
@@ -21,6 +25,9 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
@@ -60,7 +67,7 @@ class ItineraryEditingTest {
         }
     }
 
-    @Test fun everyVisibleRouteStateOpensItsRealLegEditor() {
+    @Test fun onlyReadyRouteStateOpensItsRealLegEditor() {
         val states = listOf(
             "pending" to RouteStatus.PENDING,
             "calculating" to RouteStatus.CALCULATING,
@@ -82,14 +89,15 @@ class ItineraryEditingTest {
             }
         }
 
-        states.forEach { (id, _) ->
-            compose.onNodeWithTag("edit-route-$id").assertIsDisplayed().assertHasClickAction().performClick()
+        listOf("pending", "calculating", "waiting", "failed").forEach { id ->
+            compose.onAllNodesWithTag("edit-route-$id").assertCountEquals(0)
         }
-        compose.runOnIdle { assertEquals(states.map { it.first }, editedLegIds) }
+        compose.onNodeWithTag("edit-route-ready").assertIsDisplayed().assertHasClickAction().performClick()
+        compose.runOnIdle { assertEquals(listOf("ready"), editedLegIds) }
         compose.onNodeWithTag("retry-failed").assertIsDisplayed().assertHasClickAction().performClick()
         compose.runOnIdle { assertEquals(listOf("failed"), retriedLegIds) }
         listOf("pending", "calculating", "waiting", "ready").forEach { id ->
-            compose.onNodeWithTag("retry-$id").assertDoesNotExist()
+            compose.onAllNodesWithTag("retry-$id").assertCountEquals(0)
         }
     }
 
@@ -131,18 +139,118 @@ class ItineraryEditingTest {
         assertEquals(emptyList<String>(), itineraries.deletes)
     }
 
-    @Test fun itineraryEditSaveFailureRemainsVisible() {
+    @Test fun itineraryEditSaveFailureShowsRecoveryInsteadOfBareEditorAndReturnsToSameInput() {
+        var state by androidx.compose.runtime.mutableStateOf(
+            DayItineraryUiState(
+                editDraft = ItineraryEditDraft("item", "09:30", "60", "保留的备注", saveError = "保存失败"),
+            ),
+        )
+        var saveCalls = 0
         compose.setContent {
-            EditItineraryItemContent(
-                draft = ItineraryEditDraft("item", "09:30", "60", saveError = "保存失败"),
-                onArrivalTimeChange = {},
-                onStayMinutesChange = {},
-                onSave = {},
-                onCancel = {},
+            DayItineraryContent(
+                state = state,
+                onAction = { action ->
+                    when (action) {
+                        DayItineraryAction.DismissEditSaveError ->
+                            state = state.copy(editDraft = state.editDraft?.copy(saveError = null))
+                        DayItineraryAction.SaveEdit -> saveCalls++
+                        else -> Unit
+                    }
+                },
             )
         }
 
-        compose.onNodeWithText("保存失败").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-save-failure").assertIsDisplayed()
+        compose.onNodeWithText("修改尚未保存").assertIsDisplayed()
+        compose.onNodeWithText("到达时间、停留时长和备注仍保留在当前页面。请重新保存，或稍后再试。").assertIsDisplayed()
+        compose.onNodeWithText("当前编辑内容不会自动回滚").assertIsDisplayed()
+        compose.onAllNodesWithTag("arrival-time-input").assertCountEquals(0)
+        compose.onNodeWithTag("itinerary-save-failure-retry").performClick()
+        compose.runOnIdle { assertEquals(1, saveCalls) }
+        compose.onNodeWithTag("itinerary-save-failure-keep-editing").performClick()
+        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
+        compose.onNodeWithTag("stay-minutes-input").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
+        compose.onNodeWithText("保留的备注").assertIsDisplayed()
+        compose.runOnIdle { assertEquals(1, saveCalls) }
+    }
+
+    @Test fun saveFailureContinueEditingRestoresDraftAfterSystemImeWasVisible() {
+        val itineraries = FakeItineraries(failDetails = true)
+        val model = DayItineraryViewModel(
+            "trip",
+            FakeTrips(),
+            itineraries,
+            FakeLegs(),
+            FakeCoordinator(),
+        )
+        compose.setContent { DayItinerarySheet(model) }
+        compose.waitUntil(5_000) { model.state.value.items.size == 3 }
+
+        compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-timing-i1", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("itinerary-note-input").performClick().performTextInput("系统键盘草稿")
+        compose.waitUntil(5_000) {
+            ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        }
+        compose.onNodeWithText("保存时间").performClick()
+        compose.waitUntil(5_000) { model.state.value.editDraft?.saveError == "保存失败" }
+        compose.waitUntil(5_000) {
+            ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == false
+        }
+        compose.onNodeWithTag("itinerary-save-failure-keep-editing").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-save-failure-retry").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-save-failure-keep-editing").performClick()
+
+        compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
+        compose.onNodeWithText("系统键盘草稿").assertIsDisplayed()
+        compose.onNodeWithText("保存时间").assertIsDisplayed()
+        compose.onNodeWithText("取消").assertIsDisplayed()
+        compose.runOnIdle { assertEquals("系统键盘草稿", model.state.value.editDraft?.noteText) }
+    }
+
+    @Test fun backFromSaveFailureKeepsDraftAndReturnsToInputsThroughDayItinerarySheet() {
+        val itineraries = FakeItineraries(failDetails = true)
+        val model = DayItineraryViewModel(
+            "trip",
+            FakeTrips(),
+            itineraries,
+            FakeLegs(),
+            FakeCoordinator(),
+        )
+        compose.setContent { DayItinerarySheet(model) }
+        compose.waitUntil(5_000) { model.state.value.items.size == 3 }
+
+        compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-timing-i1", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("arrival-time-input").performTextClearance()
+        compose.onNodeWithTag("arrival-time-input").performTextInput("09:30")
+        compose.onNodeWithTag("stay-minutes-input").performTextClearance()
+        compose.onNodeWithTag("stay-minutes-input").performTextInput("90")
+        compose.onNodeWithTag("itinerary-note-input").performTextInput("保留备注")
+        compose.onNodeWithText("保存时间").performClick()
+        compose.waitUntil(5_000) { model.state.value.editDraft?.saveError == "保存失败" }
+        compose.waitUntil(5_000) {
+            ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == false
+        }
+
+        pressBack()
+
+        compose.waitUntil(5_000) { model.state.value.editDraft?.saveError == null }
+        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
+        compose.onNodeWithTag("stay-minutes-input").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
+        compose.onNodeWithText("保留备注").assertIsDisplayed()
+        compose.runOnIdle {
+            assertEquals("i1", model.state.value.editDraft?.itemId)
+            assertEquals("09:30", model.state.value.editDraft?.arrivalTimeText)
+            assertEquals("90", model.state.value.editDraft?.stayMinutesText)
+            assertEquals("保留备注", model.state.value.editDraft?.noteText)
+            assertEquals(1, itineraries.timings.size)
+        }
     }
 
     @Test fun emptyDayShowsEmptyState() {
@@ -173,7 +281,7 @@ class ItineraryEditingTest {
         compose.setContent { DayItinerarySheet(model) }
         compose.waitUntil(5_000) { model.state.value.items.size == 3 }
 
-        compose.onNodeWithText("联网后计算路线").assertIsDisplayed()
+        compose.onNodeWithText("等待联网后计算").assertIsDisplayed()
         compose.onNodeWithTag("item-i2")
             .assert(SemanticsMatcher("has both reorder actions") { node ->
                 node.config[SemanticsActions.CustomActions].map { it.label } == listOf("上移", "下移")
@@ -318,7 +426,7 @@ class ItineraryEditingTest {
         override suspend fun deleteTrip(tripId: String) = Unit
     }
 
-    private class FakeItineraries : ItineraryRepository {
+    private class FakeItineraries(private val failDetails: Boolean = false) : ItineraryRepository {
         private val hotel = ItineraryPlace("hotel", "酒店", "酒店地址", GeoPoint(1.0, 2.0))
         private val museum = ItineraryPlace("museum", "博物馆", "", GeoPoint(1.1, 2.1))
         private val day1 = MutableStateFlow(DayItinerary("day-1", "trip", listOf(ItineraryItem("i1", hotel, null, null), ItineraryItem("i2", hotel, null, null), ItineraryItem("i3", museum, null, null))))
@@ -331,6 +439,7 @@ class ItineraryEditingTest {
         override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) { timings += Timing(itemId, arrivalTime, stayMinutes) }
         override suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?) {
             timings += Timing(itemId, arrivalTime, stayMinutes)
+            if (failDetails) throw IllegalStateException("保存失败")
             day1.value = day1.value.copy(items = day1.value.items.map { item ->
                 if (item.id == itemId) item.copy(arrivalTime = arrivalTime, stayMinutes = stayMinutes, note = note) else item
             })
@@ -362,6 +471,7 @@ class ItineraryEditingTest {
         val overrides=mutableListOf<Pair<String,TransportMode>>(); val details=mutableListOf<RouteDetails>(); val retries=mutableListOf<String>()
         override fun start(scope: kotlinx.coroutines.CoroutineScope)=Unit
         override suspend fun retry(legId:String):Boolean { retries+=legId; return true }
+        override suspend fun retry(legId:String,expectedVersion:Long):Boolean { retries+=legId; return true }
         override suspend fun updateDetails(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?):Boolean { details += RouteDetails(legId, selectedModeOverride, durationOverrideSeconds, note); return true }
     }
     data class Add(val day:String,val place:String,val index:Int)

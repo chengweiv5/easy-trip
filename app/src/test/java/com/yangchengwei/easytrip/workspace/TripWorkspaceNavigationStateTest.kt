@@ -6,6 +6,7 @@ import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
+import com.yangchengwei.easytrip.permission.LocationPermissionPrompt
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
@@ -186,6 +187,22 @@ class TripWorkspaceNavigationStateTest {
         )
     }
 
+    @Test fun failedItineraryEditCloseKeepsOverlayForRecovery() {
+        val failed = DayItineraryUiState(
+            editDraft = ItineraryEditDraft("item", "09:00", "30", saveError = "保存失败"),
+        )
+        val ordinary = failed.copy(editDraft = failed.editDraft?.copy(saveError = null))
+
+        assertEquals(
+            WorkspaceOverlayCloseDecision.KeepItineraryOverlay,
+            workspaceOverlayCloseDecision(WorkspaceOverlay.EditItineraryItem("item"), failed),
+        )
+        assertEquals(
+            WorkspaceOverlayCloseDecision.CloseOverlay,
+            workspaceOverlayCloseDecision(WorkspaceOverlay.EditItineraryItem("item"), ordinary),
+        )
+    }
+
     @Test fun itineraryMutationClosePolicyMatchesBackPolicy() {
         val saving = DayItineraryUiState(
             editDraft = ItineraryEditDraft("item", "09:00", "30", isSaving = true),
@@ -288,13 +305,13 @@ class TripWorkspaceNavigationStateTest {
         assertEquals("leg-1", model.state.value.modeEditor?.legId)
     }
 
-    @Test fun failedLegCreatesRouteEditorForSameLeg() = runTest(dispatcher) {
+    @Test fun failedLegDoesNotCreateRouteEditor() = runTest(dispatcher) {
         val model = itineraryModelWithLeg(com.yangchengwei.easytrip.core.model.RouteStatus.FAILED)
         advanceUntilIdle()
 
         model.dispatch(DayItineraryAction.RequestMode("leg-1"))
 
-        assertEquals("leg-1", model.state.value.modeEditor?.legId)
+        assertNull(model.state.value.modeEditor)
     }
 
     @Test fun itineraryOverlayReplacesStaleContextAfterNewContextIsEstablished() {
@@ -389,6 +406,24 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(
             AppendDayCompletionDecision.None,
             appendDayCompletionDecision(WorkspaceOverlay.None, completionToken = 1L, workspaceReady = false),
+        )
+    }
+
+    @Test fun locationPermissionPromptMapsToOnlyItsOwnOverlay() {
+        assertEquals(
+            WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION),
+            locationPermissionOverlayToPresent(LocationPermissionPrompt.EXPLANATION, WorkspaceOverlay.None),
+        )
+        assertEquals(
+            WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION_SETTINGS),
+            locationPermissionOverlayToPresent(LocationPermissionPrompt.SETTINGS, WorkspaceOverlay.None),
+        )
+        assertNull(locationPermissionOverlayToPresent(LocationPermissionPrompt.NONE, WorkspaceOverlay.None))
+        assertNull(
+            locationPermissionOverlayToPresent(
+                LocationPermissionPrompt.SETTINGS,
+                WorkspaceOverlay.EditItineraryItem("draft"),
+            ),
         )
     }
 

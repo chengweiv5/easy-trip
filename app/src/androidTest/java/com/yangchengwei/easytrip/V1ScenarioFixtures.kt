@@ -61,9 +61,52 @@ sealed interface Batch5ExecutableEvidence {
     }
 }
 
-enum class EvidenceHost { ProductionCompose, ProductionAppNavigation }
-enum class EvidenceStateSource { ControlledUiState, InMemoryRoomNavigation }
-enum class EvidenceMapSurface { DeterministicFakeSurface, RecordingFakeMapHost, RealAmap }
+enum class EvidenceHost { ProductionCompose, ProductionAppNavigation, ProductionRepository, PhysicalDevice }
+enum class EvidenceStateSource { ControlledUiState, InMemoryRoomNavigation, FileBackedRoomReopen, HandwrittenRepositoryFakes, InstalledAppRestart }
+enum class EvidenceMapSurface { None, DeterministicFakeSurface, RecordingFakeMapHost, NonRecordingFakeMapHost, FailureInjectingFakeMapHost, RealAmap }
+enum class EvidencePermissionSurface { None, ControlledSnapshot, ActivityResultContract, AndroidSystem }
+
+enum class Batch6FrameCheckpoint(val frameId: String) {
+    WaitingForNetwork("P7k0M"),
+    FailedRoute("E3EhSv"),
+    MapConsentExplanation("EHOHC"),
+    LocationExplanation("JFhZ7"),
+    LocationSettingsRecovery("HYCsZ"),
+    MapLoading("GoxB6"),
+    MapFailure("U8R5i"),
+    EditSaveFailure("OOEsk"),
+}
+
+enum class Batch6TypedScenario(
+    val number: Int,
+    val frameId: String,
+    val fixtureId: String,
+    val screen: ScenarioScreen,
+    val factoryIdentity: String,
+) {
+    WaitingForNetwork(28, "P7k0M", "offline-pending-routes", ScenarioScreen.ITINERARY, "batch6-waiting-for-network"),
+    FailedRoute(29, "E3EhSv", "failed-route", ScenarioScreen.ITINERARY, "batch6-failed-route"),
+    MapConsentExplanation(30, "EHOHC", "map-consent-required", ScenarioScreen.PERMISSION, "batch6-map-consent-explanation"),
+    LocationExplanation(34, "JFhZ7", "location-rationale", ScenarioScreen.PERMISSION, "batch6-location-explanation"),
+    LocationSettingsRecovery(35, "HYCsZ", "location-permanently-denied", ScenarioScreen.PERMISSION, "batch6-location-settings-recovery"),
+    MapLoading(45, "GoxB6", "map-loading", ScenarioScreen.WORKSPACE, "batch6-map-loading"),
+    MapFailure(46, "U8R5i", "map-load-error", ScenarioScreen.WORKSPACE, "batch6-map-failure"),
+    EditSaveFailure(48, "OOEsk", "itinerary-save-error", ScenarioScreen.ITEM_EDITOR, "batch6-edit-save-failure"),
+}
+
+data class Batch6FrameEvidence(
+    val scenario: V1Scenario,
+    val checkpoint: Batch6FrameCheckpoint,
+    val fixtureId: String,
+    val host: EvidenceHost,
+    val stateSource: EvidenceStateSource,
+    val mapSurface: EvidenceMapSurface,
+    val permissionSurface: EvidencePermissionSurface,
+    val automatedEntry: String,
+    val limitations: String,
+) {
+    fun executable(): V1ScenarioExecutable = scenario.createExecutable()
+}
 
 data class Batch5FrameEvidence(
     val scenario: V1ScenarioVariant,

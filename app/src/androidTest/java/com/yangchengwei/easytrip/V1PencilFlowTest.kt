@@ -183,6 +183,7 @@ class V1PencilFlowTest {
 
     private class TestMapHost(context: Context) : AmapMapHost {
         override val view = View(context)
+        override fun canRenderBeforeReady() = true
         override fun onCreate() = Unit
         override fun onResume() = Unit
         override fun onPause() = Unit
