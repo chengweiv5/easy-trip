@@ -23,7 +23,7 @@ Gradle 配置阶段以显式 `workingDir(rootDir)` 执行 Git：
 - `BuildConfig.SOURCE_STATE`：状态为空时 `CLEAN`；存在 staged、unstaged 或 untracked 项时为 `DIRTY:<sha256>`，hash 输入是 `git status --porcelain=v1 -z`。
 - Git 或 `.git` 不可用时两者为 `UNAVAILABLE`，普通 App 构建仍可继续。
 
-证据测试只接受 40 位 Git SHA 且 `SOURCE_STATE == CLEAN`；`DIRTY` 与 `UNAVAILABLE` 一律在截图前拒绝发布。因此 dirty hash 仅用于普通构建诊断，不承担证据内容绑定，避免把只反映路径状态的 hash 当作源码内容证明。设备 provenance 来自 target device 的 `Build.FINGERPRINT`、`MODEL`、SDK；serial 因应用内不可可靠读取而标记 `unavailable`，ADB serial 仅用于外部选机。
+证据测试一律要求 40 位 Git SHA；仅当 instrumentation 参数 `formalEvidenceArchive=true` 时另要求 `SOURCE_STATE == CLEAN`。普通 controlled-state render 可在 `SOURCE_STATE=CLEAN` 或 `DIRTY:<sha256>` 下生成 PNG / manifest / `.complete`；DIRTY manifest 必须如实记录该 provenance，且只能作为受控渲染诊断，不可宣称 clean formal archive。Git 或 `.git` 不可用时普通 App 构建可继续，但 `BuildConfig.GIT_SHA=UNAVAILABLE` 不符合证据测试的 40 位 SHA guard，普通 controlled evidence 与 formal archive 均会在截图前拒绝发布；不能将 `UNAVAILABLE` 写为可发布 evidence provenance。dirty hash 不承担源码内容绑定，避免把只反映路径状态的 hash 当作源码内容证明。设备 provenance 来自 target device 的 `Build.FINGERPRINT`、`MODEL`、SDK；serial 因应用内不可可靠读取而标记 `unavailable`，ADB serial 仅用于外部选机。
 
 ## 发布与消费协议
 
@@ -39,12 +39,30 @@ Gradle 配置阶段以显式 `workingDir(rootDir)` 执行 Git：
 
 manifest 固定标记 `controlled-state-render` 和 `not_production_real_trigger=true`。它不证明正式导航或真实请求触发状态。状态来源另由 `PlaceSearchReducerTest`、`PlaceSearchViewModelTest`、`AmapPlaceDataSourceTest` 证明；隐私拒绝不能冒充网络失败。
 
+## 2026-09-05 Batch 10 归档核对
+
+- 只读核对 `PlaceSearchEvidenceTest#captureLoadingEvidence_s1OvvX_controlledStateRender` 与 `#captureNetworkFailureEvidence_GJo79_controlledStateRender`：两者分别注入 `Loading` / `NetworkFailure` 到同一个生产 `PlaceSearchContent`；代码固定写入 `evidence_type="controlled-state-render"` 与 `not_production_real_trigger=true`。
+- 当前 HEAD `1923ccb45716a5242d6dee13c020e4ba7b7cc91a` 的仓库 tracked 文件和可访问工作树中，均未找到 `s1OvvX` / `GJo79` 的 PNG、manifest、`.complete` 三件套；因此没有可验证的 manifest hash、PNG hash 或 published complete 链。
+- 当前工作树含禁止触碰的未跟踪 `.kotlin/`、`diagrams/`，为 DIRTY；可以运行普通 controlled evidence 并让 manifest 如实记录 `DIRTY:<sha256>`，但不得加 `formalEvidenceArchive=true` 或宣称 clean provenance。后续应在同 HEAD 的 clean checkout 以 `formalEvidenceArchive=true` 运行规定 instrumentation、拉取三件套并按本文件发布协议复核。
+- 四个搜索 frame 继续是同一 `PlaceSearchContent` 的参数化状态，不新增 route；本次无归档不得把 controlled render 标为 production-real-trigger 或 physical `PASS`。
+
 ## 单设备 agent 命令
+
+普通 controlled evidence（允许 manifest 记录 `DIRTY:<sha256>`，不作为 formal archive）：
 
 ```bash
 export ANDROID_SERIAL=<approved-serial>
 ANDROID_SERIAL="$ANDROID_SERIAL" ./gradlew connectedDebugAndroidTest \
   -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.place.ui.PlaceSearchEvidenceTest
+```
+
+正式 clean archive（必须在同 HEAD clean checkout；显式开启 formal gate）：
+
+```bash
+export ANDROID_SERIAL=<approved-serial>
+ANDROID_SERIAL="$ANDROID_SERIAL" ./gradlew connectedDebugAndroidTest \
+  -Pandroid.testInstrumentationRunnerArguments.class=com.yangchengwei.easytrip.place.ui.PlaceSearchEvidenceTest \
+  -Pandroid.testInstrumentationRunnerArguments.formalEvidenceArchive=true
 ```
 
 产物目录：
