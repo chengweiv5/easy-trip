@@ -1,28 +1,37 @@
 package com.yangchengwei.easytrip
 
+data class V1ScenarioIdentity(
+    val parentNumber: Int,
+    val frameId: String,
+    val fixtureId: String,
+    val screen: ScenarioScreen,
+    val factoryIdentity: String,
+) {
+    val signature: String
+        get() = "$parentNumber|$frameId|$fixtureId|${screen.name}|$factoryIdentity"
+}
+
 data class V1Scenario(
     val number: Int,
     val name: String,
     val frameId: String,
     val journey: String?,
     val matrix: String?,
-    private val executableFactory: () -> V1ScenarioExecutable,
+    val declaredIdentity: V1ScenarioIdentity,
     val assertions: List<ScenarioAssertion>,
     val variants: List<V1ScenarioVariant> = emptyList(),
     val physicalDeviceUiStatus: PhysicalDeviceUiStatus = PhysicalDeviceUiStatus.PENDING,
 ) {
-    fun createExecutable(): V1ScenarioExecutable = executableFactory()
+    fun createExecutable(): V1ScenarioExecutable = V1ScenarioExecutableFactory.create(declaredIdentity)
 }
 
 data class V1ScenarioVariant(
     val parentNumber: Int,
     val name: String,
     val frameId: String,
-    private val executableFactory: (() -> V1ScenarioExecutable)? = null,
+    val declaredIdentity: V1ScenarioIdentity,
 ) {
-    fun createExecutable(): V1ScenarioExecutable = checkNotNull(executableFactory) {
-        "Variant $frameId does not declare a typed executable"
-    }.invoke()
+    fun createExecutable(): V1ScenarioExecutable = V1ScenarioExecutableFactory.create(declaredIdentity)
 }
 
 data class ScenarioAssertion(
@@ -133,8 +142,22 @@ object V1ScenarioFixtures {
     val journeyIds = setOf("RqVLv", "IpuKg", "V7cr3b", "o4Wcz", "q08to1", "xP91E", "y3rP1")
     val matrixIds = setOf("hVIMZ", "xENWi", "eHTbI", "CW0vn", "a5GvBo", "fIkSG")
 
+    private fun variant(
+        parentNumber: Int,
+        name: String,
+        frameId: String,
+        fixtureId: String,
+        screen: ScenarioScreen,
+        factoryIdentity: String = fixtureId,
+    ) = V1ScenarioVariant(
+        parentNumber = parentNumber,
+        name = name,
+        frameId = frameId,
+        declaredIdentity = V1ScenarioIdentity(parentNumber, frameId, fixtureId, screen, factoryIdentity),
+    )
+
     val scenarios = listOf(
-        scenario(1, "我的旅行", "K9h3r", "RqVLv", "hVIMZ", "existing-trips", BlockerCategory.DATA_CONSISTENCY, "主卡仅通过继续规划进入，旅行名称、日期、天数和方式保持一致；主卡与其他卡的设置、删除均由各自 ··· 菜单承载", variants = listOf(V1ScenarioVariant(1, "我的旅行 · 删除后", "d1sTtb"))),
+        scenario(1, "我的旅行", "K9h3r", "RqVLv", "hVIMZ", "existing-trips", BlockerCategory.DATA_CONSISTENCY, "主卡仅通过继续规划进入，旅行名称、日期、天数和方式保持一致；主卡与其他卡的设置、删除均由各自 ··· 菜单承载", variants = listOf(variant(1, "我的旅行 · 删除后", "d1sTtb", "trip-list-deleted-final-state", ScenarioScreen.TRIP_LIST, "variant-d1sTtb-deleted-final-state"))),
         scenario(
             2,
             "工作台·地点池",
@@ -144,18 +167,8 @@ object V1ScenarioFixtures {
             "trip-with-saved-places",
             BlockerCategory.KEY_INTERACTION,
             variants = listOf(
-                V1ScenarioVariant(
-                    parentNumber = 2,
-                    name = "工作台·全空",
-                    frameId = "BrYVA",
-                    executableFactory = { V1ScenarioExecutableFactory.workspaceAllEmpty("workspace-all-empty") },
-                ),
-                V1ScenarioVariant(
-                    parentNumber = 2,
-                    name = "地点池·短列表",
-                    frameId = "jQhXs",
-                    executableFactory = { V1ScenarioExecutableFactory.shortPlacePool("place-pool-short-list") },
-                ),
+                variant(2, "工作台·全空", "BrYVA", "workspace-all-empty", ScenarioScreen.WORKSPACE),
+                variant(2, "地点池·短列表", "jQhXs", "place-pool-short-list", ScenarioScreen.WORKSPACE),
             ),
         ),
         scenario(3, "搜索地点", "ofdn5", "V7cr3b", "eHTbI", "search-results", BlockerCategory.BASIC_ACCESSIBILITY, "搜索页不显示加入行程入口"),
@@ -168,30 +181,10 @@ object V1ScenarioFixtures {
             "day-itinerary",
             BlockerCategory.REACHABILITY,
             variants = listOf(
-                V1ScenarioVariant(
-                    parentNumber = 4,
-                    name = "工作台·行程全空",
-                    frameId = "WFOpg",
-                    executableFactory = { V1ScenarioExecutableFactory.itineraryAllEmpty("itinerary-all-empty") },
-                ),
-                V1ScenarioVariant(
-                    parentNumber = 4,
-                    name = "行程页 · 旅程C",
-                    frameId = "nAdK8",
-                    executableFactory = { V1ScenarioExecutableFactory.workspaceItinerary("batch5-itinerary-page") },
-                ),
-                V1ScenarioVariant(
-                    parentNumber = 4,
-                    name = "行程 · 编辑完成",
-                    frameId = "mz2IS",
-                    executableFactory = { V1ScenarioExecutableFactory.workspaceItemEditComplete("batch5-item-edit-complete") },
-                ),
-                V1ScenarioVariant(
-                    parentNumber = 4,
-                    name = "单日路线",
-                    frameId = "eHTX3",
-                    executableFactory = { V1ScenarioExecutableFactory.workspaceSingleDayRoute("batch5-single-day-route") },
-                ),
+                variant(4, "工作台·行程全空", "WFOpg", "itinerary-all-empty", ScenarioScreen.WORKSPACE),
+                variant(4, "行程页 · 旅程C", "nAdK8", "batch5-itinerary-page", ScenarioScreen.ITINERARY),
+                variant(4, "行程 · 编辑完成", "mz2IS", "batch5-item-edit-complete", ScenarioScreen.ITEM_EDITOR),
+                variant(4, "单日路线", "eHTX3", "batch5-single-day-route", ScenarioScreen.ROUTE_EDITOR),
             ),
         ),
         scenario(6, "全程行程", "FTIOF", "q08to1", "a5GvBo", "whole-trip-itinerary", BlockerCategory.KEY_INTERACTION, "全程视图不显示编辑或拖动入口"),
@@ -208,12 +201,7 @@ object V1ScenarioFixtures {
             BlockerCategory.REACHABILITY,
             "地点池详情保留加入行程入口；搜索详情不显示加入行程入口",
             variants = listOf(
-                V1ScenarioVariant(
-                    parentNumber = 10,
-                    name = "地点详情·仅收藏",
-                    frameId = "XsGon",
-                    executableFactory = { V1ScenarioExecutableFactory.onlyCollectedPlaceDetail("only-collected-place-detail") },
-                ),
+                variant(10, "地点详情·仅收藏", "XsGon", "only-collected-place-detail", ScenarioScreen.WORKSPACE),
             ),
         ),
         scenario(11, "行程项编辑", "K336N", null, null, "editable-itinerary-item", BlockerCategory.DATA_CONSISTENCY),
@@ -256,6 +244,44 @@ object V1ScenarioFixtures {
         scenario(48, "行程修改保存失败", "OOEsk", null, null, "itinerary-save-error", BlockerCategory.DATA_CONSISTENCY),
     )
 
+    val parentIdentities: List<V1ScenarioIdentity>
+        get() = scenarios.map(V1Scenario::declaredIdentity)
+
+    val variantIdentities: List<V1ScenarioIdentity>
+        get() = scenarios.flatMap(V1Scenario::variants).map(V1ScenarioVariant::declaredIdentity)
+
+    val allIdentities: List<V1ScenarioIdentity>
+        get() = parentIdentities + variantIdentities
+
+    private fun screenFor(number: Int): ScenarioScreen = when (number) {
+        1, 13, 36 -> ScenarioScreen.TRIP_LIST
+        2, 19, 26 -> ScenarioScreen.PLACE_POOL
+        3, 27, 38, 44 -> ScenarioScreen.SEARCH
+        4, 6, 21, 28, 29, 32, 37 -> ScenarioScreen.ITINERARY
+        7, 47 -> ScenarioScreen.CREATE_TRIP
+        8, 18, 25, 40 -> ScenarioScreen.TRIP_SETTINGS
+        9, 15, 20, 33, 41 -> ScenarioScreen.TARGET_DAY
+        10 -> ScenarioScreen.PLACE_DETAIL
+        11, 48 -> ScenarioScreen.ITEM_EDITOR
+        12 -> ScenarioScreen.ROUTE_EDITOR
+        14 -> ScenarioScreen.STATUS_MATRIX
+        16, 17, 22, 23, 24, 31, 39, 42, 43, 45, 46 -> ScenarioScreen.WORKSPACE
+        30, 34, 35 -> ScenarioScreen.PERMISSION
+        else -> error("Unsupported V1 scenario: $number")
+    }
+
+    private fun factoryIdentityFor(number: Int, fixture: String): String = when (number) {
+        28 -> "batch6-waiting-for-network"
+        29 -> "batch6-failed-route"
+        30 -> "batch6-map-consent-explanation"
+        34 -> "batch6-location-explanation"
+        35 -> "batch6-location-settings-recovery"
+        45 -> "batch6-map-loading"
+        46 -> "batch6-map-failure"
+        48 -> "batch6-edit-save-failure"
+        else -> fixture
+    }
+
     private fun scenario(
         number: Int,
         name: String,
@@ -272,7 +298,7 @@ object V1ScenarioFixtures {
         frameId = frameId,
         journey = journey,
         matrix = matrix,
-        executableFactory = { V1ScenarioExecutableFactory.create(number, frameId, fixture) },
+        declaredIdentity = V1ScenarioIdentity(number, frameId, fixture, screenFor(number), factoryIdentityFor(number, fixture)),
         assertions = listOf(
             ScenarioAssertion(BlockerCategory.FUNCTIONAL_STATE, expected),
             ScenarioAssertion(blocker, "$name 不触发 ${blocker.name.lowercase()} blocker"),

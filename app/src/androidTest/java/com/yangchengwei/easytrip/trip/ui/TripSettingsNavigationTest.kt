@@ -4,6 +4,7 @@ import android.content.Context
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
+import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
@@ -39,6 +40,18 @@ import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
+import com.yangchengwei.easytrip.trip.data.TripEntity
+import com.yangchengwei.easytrip.trip.data.TripDayEntity
+import com.yangchengwei.easytrip.place.data.SavedPlaceEntity
+import com.yangchengwei.easytrip.place.data.TagEntity
+import com.yangchengwei.easytrip.place.data.SavedPlaceTagCrossRef
+import com.yangchengwei.easytrip.itinerary.data.ItineraryItemEntity
+import com.yangchengwei.easytrip.route.data.RouteLegEntity
+import com.yangchengwei.easytrip.core.model.RouteStatus
+import com.yangchengwei.easytrip.core.model.TimeMode
+import com.yangchengwei.easytrip.core.model.TransportMode
+import java.time.Instant
+import java.util.concurrent.atomic.AtomicInteger
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.DateRangeApply
 import com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts
@@ -73,6 +86,7 @@ class TripSettingsNavigationTest {
 
     private lateinit var database: EasyTripDatabase
     private lateinit var repository: RoomTripRepository
+    private val seededRows = AtomicInteger()
 
     @Before fun setUp() {
         val context = ApplicationProvider.getApplicationContext<Context>()
@@ -179,10 +193,89 @@ class TripSettingsNavigationTest {
         assertEquals(routesAfterDeletion, routes)
     }
 
-    private fun createTrip() = runBlocking {
+    @Test fun settingsDeleteRemovesOwnedRowsKeepsOtherTripAndClearsWorkspaceBackStack() {
+        val remaining = seedTripWithOwnedRows("川西小环线")
+        val deleted = seedTripWithOwnedRows("杭州 · 春日慢游")
+        setNavigation(expectedTripId = deleted.id)
+
+        compose.onNodeWithTag("continue-trip-${deleted.id}").performClick()
+        compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("settings-delete-trip").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("确认删除旅行").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("confirmation-confirm").performClick()
+
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("primary-trip-${remaining.id}").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("primary-trip-${remaining.id}").assertIsDisplayed()
+        compose.onAllNodesWithTag("continue-trip-${deleted.id}").assertCountEquals(0)
+        assertOwnedRows(deleted, expected = 0)
+        assertOwnedRows(remaining, expected = 1)
+        assertEquals(null, runBlocking { database.routeLegDao().leg(deleted.legId) })
+        assertNotNull(runBlocking { database.routeLegDao().leg(remaining.legId) })
+
+        assertThrows(NoActivityResumedException::class.java) { pressBack() }
+    }
+
+    private data class OwnedTripRows(
+        val id: String,
+        val dayId: String,
+        val placeId: String,
+        val tagId: String,
+        val itemIds: List<String>,
+        val legId: String,
+    )
+
+    private fun seedTripWithOwnedRows(name: String): OwnedTripRows = runBlocking {
+        val sequence = seededRows.incrementAndGet()
+        val tripId = "seeded-trip-$sequence"
+        val dayId = "seeded-day-$sequence"
+        val placeId = "seeded-place-$sequence"
+        val secondPlaceId = "seeded-place-$sequence-b"
+        val tagId = "seeded-tag-$sequence"
+        val firstItemId = "seeded-item-$sequence-a"
+        val secondItemId = "seeded-item-$sequence-b"
+        val legId = "seeded-leg-$sequence"
+        val now = Instant.parse("2026-10-01T00:00:00Z").plusSeconds(sequence.toLong())
+        database.tripDao().insertTrip(TripEntity(tripId, name, TimeMode.DATED, LocalDate.parse("2026-10-01"), com.yangchengwei.easytrip.core.model.TravelMode.FLEXIBLE, now, now))
+        database.tripDao().insertDay(TripDayEntity(dayId, tripId, 0))
+        database.savedPlaceDao().insertPlace(SavedPlaceEntity(placeId, tripId, "poi-$sequence", "地点 $sequence", "地址", 30.2, 120.1))
+        database.savedPlaceDao().insertPlace(SavedPlaceEntity(secondPlaceId, tripId, "poi-$sequence-b", "地点 $sequence B", "地址", 30.3, 120.2))
+        database.savedPlaceDao().insertTag(TagEntity(tagId, tripId, "标签 $sequence", "tag-$sequence"))
+        database.savedPlaceDao().insertCrossRefs(listOf(SavedPlaceTagCrossRef(placeId, tagId, tripId)))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity(firstItemId, dayId, tripId, placeId, 0))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity(secondItemId, dayId, tripId, secondPlaceId, 1_000))
+        database.routeLegDao().insert(
+            RouteLegEntity(
+                id = legId,
+                tripDayId = dayId,
+                fromItemId = firstItemId,
+                toItemId = secondItemId,
+                recommendedMode = TransportMode.TRANSIT,
+                status = RouteStatus.PENDING,
+                updatedAt = now,
+            ),
+        )
+        OwnedTripRows(tripId, dayId, placeId, tagId, listOf(firstItemId, secondItemId), legId)
+    }
+
+    private fun assertOwnedRows(rows: OwnedTripRows, expected: Int) = runBlocking {
+        val counts = database.cascadeCountDao()
+        assertEquals(expected, counts.trips(rows.id))
+        assertEquals(expected, counts.days(rows.id))
+        assertEquals(expected * 2, counts.places(rows.id))
+        assertEquals(expected, counts.tags(rows.id))
+        assertEquals(expected, counts.crossRefs(rows.id))
+        assertEquals(expected * 2, counts.items(rows.id))
+        assertEquals(expected, counts.legs(rows.id))
+    }
+
+    private fun createTrip(name: String = "真实设置导航") = runBlocking {
         repository.createTrip(
             CreateTrip(
-                name = "真实设置导航",
+                name = name,
                 dayCount = 3,
                 startDate = LocalDate.parse("2026-10-01"),
             ),
@@ -190,13 +283,14 @@ class TripSettingsNavigationTest {
     }
 
     private fun setNavigation(
-        routes: MutableList<String>,
+        routes: MutableList<String> = mutableListOf(),
         places: RoomSavedPlaceRepository = RoomSavedPlaceRepository(database),
         itineraries: RoomItineraryRepository = RoomItineraryRepository(
             database,
             database.itineraryEditingDao(),
             database.routeLegDao(),
         ),
+        expectedTripId: String? = null,
     ) {
         compose.setContent {
             AppNavigation(
@@ -214,7 +308,7 @@ class TripSettingsNavigationTest {
                 mapHostFactory = ::TestMapHost,
             )
         }
-        val tripId = runBlocking { repository.observeTrips().first().single().id }
+        val tripId = expectedTripId ?: runBlocking { repository.observeTrips().first().single().id }
         compose.waitUntil(5_000) {
             compose.onAllNodesWithTag("continue-trip-$tripId").fetchSemanticsNodes().isNotEmpty()
         }

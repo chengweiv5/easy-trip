@@ -188,7 +188,7 @@ class TripListViewModel(
                         deletion = TripDeletionUiState.Ready(
                             tripId = tripId,
                             tripName = tripName,
-                            confirmation = impact.toConfirmation(tripName),
+                            confirmation = impact.toConfirmationUiModel(tripName),
                         ),
                     )
                 }
@@ -302,23 +302,6 @@ class TripListViewModel(
         is TripDeletionUiState.ImpactFailure -> tripId
         is TripDeletionUiState.Ready -> tripId
     }
-
-    private fun TripDeleteImpact.toConfirmation(tripName: String) = ConfirmationUiModel(
-        title = "删除$tripName？",
-        message = "此操作将永久删除旅行及其中的所有内容，无法撤销。",
-        deletedItems = listOf(
-            "$days 个旅行日",
-            "$places 个收藏地点",
-            "$tags 个标签",
-            "$itineraryItems 个行程项",
-            "$routeLegs 个路线段",
-        ),
-        retainedItems = listOf("其他旅行及其内容"),
-        confirmLabel = "确认删除旅行",
-        dismissLabel = "取消",
-        destructive = true,
-        reversible = false,
-    )
 
     class Factory(
         private val service: TripService,

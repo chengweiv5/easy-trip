@@ -93,6 +93,7 @@ sealed interface TripWorkspaceAction {
     data object OpenPrivacySettings : TripWorkspaceAction
     data object OpenSearch : TripWorkspaceAction
     data object Locate : TripWorkspaceAction
+    data object MapGesture : TripWorkspaceAction
     data object Retry : TripWorkspaceAction
     data class SelectSection(val section: WorkspaceSection) : TripWorkspaceAction
     data class SelectItineraryScope(val scope: ItineraryScope) : TripWorkspaceAction

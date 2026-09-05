@@ -33,6 +33,9 @@ fun ConfirmationDialog(
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
     busy: Boolean = false,
+    dismissible: Boolean = !busy,
+    dismissEnabled: Boolean = !busy,
+    showDismissAction: Boolean = true,
     errorMessage: String? = null,
     confirmLabel: String = model.confirmLabel,
     deletedItemTags: List<String>? = null,
@@ -41,7 +44,7 @@ fun ConfirmationDialog(
     EasyTripDialogSurface(
         onDismiss = onDismiss,
         modifier = modifier,
-        dismissible = !busy,
+        dismissible = dismissible,
         width = EasyTripTheme.sizes.dialogWidth,
     ) {
         Column(
@@ -89,9 +92,9 @@ fun ConfirmationDialog(
                     }
                 }
                 Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    EasyTripSecondaryButton(
+                    if (showDismissAction) EasyTripSecondaryButton(
                         onClick = onDismiss,
-                        enabled = !busy,
+                        enabled = dismissEnabled,
                         modifier = Modifier.weight(1f).height(48.dp).testTag("confirmation-dismiss"),
                     ) { Text(model.dismissLabel) }
                     if (model.destructive) {

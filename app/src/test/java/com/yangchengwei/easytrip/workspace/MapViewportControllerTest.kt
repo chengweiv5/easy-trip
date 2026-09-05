@@ -96,6 +96,88 @@ class MapViewportControllerTest {
         assertEquals(listOf(shanghai), request?.points)
     }
 
+    @Test fun `manual map movement clears pending automatic request and suppresses navigation refits`() {
+        val controller = initializedController()
+
+        controller.onUserGesture()
+
+        assertNull(controller.currentRequest)
+        assertNull(controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(shanghai), "day-1"))
+        assertNull(controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(beijing), "day-2"))
+        assertNull(controller.update(listOf(beijing, shanghai), MapScope.WHOLE_TRIP, listOf(beijing, shanghai)))
+        assertNull(controller.update(listOf(beijing, shanghai), MapScope.PLACE_POOL, listOf(beijing, shanghai)))
+        assertNull(controller.currentRequest)
+    }
+
+    @Test fun `in app zoom reports a user viewport operation before zoom and suppresses tab fits`() {
+        val controller = initializedController()
+        val events = mutableListOf<String>()
+
+        performUserViewportOperation(
+            onUserViewportOperation = {
+                events += "viewport"
+                controller.onUserGesture()
+            },
+            operation = { events += "zoom-in" },
+        )
+
+        assertEquals(listOf("viewport", "zoom-in"), events)
+        assertNull(controller.currentRequest)
+        assertNull(controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(shanghai), "day-1"))
+        assertNull(controller.update(listOf(beijing, shanghai), MapScope.WHOLE_TRIP, listOf(beijing, shanghai)))
+        assertNull(controller.update(listOf(beijing, shanghai), MapScope.PLACE_POOL, listOf(beijing, shanghai)))
+    }
+
+    @Test fun `place change after manual movement refits once and clears suppression`() {
+        val controller = initializedController()
+        controller.onUserGesture()
+        controller.update(listOf(beijing, shanghai), MapScope.SINGLE_DAY, listOf(shanghai), "day-1")
+
+        val changed = controller.update(
+            listOf(beijing, shanghai, changedBeijing),
+            MapScope.SINGLE_DAY,
+            listOf(shanghai, changedBeijing),
+            "day-1",
+        )
+
+        assertEquals(ViewportReason.PLACE_SET_CHANGED, changed?.reason)
+        assertNull(
+            controller.update(
+                listOf(beijing, shanghai, changedBeijing),
+                MapScope.SINGLE_DAY,
+                listOf(shanghai, changedBeijing),
+                "day-1",
+            ),
+        )
+        assertEquals(
+            ViewportReason.SCOPE_CHANGED,
+            controller.update(
+                listOf(beijing, shanghai, changedBeijing),
+                MapScope.WHOLE_TRIP,
+                listOf(beijing, shanghai, changedBeijing),
+            )?.reason,
+        )
+    }
+
+    @Test fun `explicit search focus is not blocked by manual movement`() {
+        val controller = initializedController()
+        controller.onUserGesture()
+
+        val request = controller.focusSearchResult(changedBeijing)
+
+        assertEquals(ViewportReason.SEARCH_FOCUS, request.reason)
+        assertEquals(listOf(changedBeijing), request.points)
+    }
+
+    @Test fun `manual movement after search focus clears the pending focus request`() {
+        val controller = initializedController()
+        controller.focusSearchResult(changedBeijing)
+
+        controller.onUserGesture()
+
+        assertNull(controller.currentRequest)
+    }
+
     @Test fun `viewport request identity retains scope selected day and complete geometry`() {
         val controller = MapViewportController()
         val routeGeometry = listOf(beijing, changedBeijing, shanghai)

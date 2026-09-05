@@ -61,6 +61,8 @@ import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.ui.RoomDeleteImpactProvider
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso.pressBack
 import androidx.lifecycle.SavedStateHandle
@@ -638,6 +640,67 @@ class WorkspaceFlowTest {
         assertEquals(WorkspaceSection.ITINERARY, model.state.value.section)
     }
 
+    @Test fun zoomButtonsReportExactlyOneViewportOperationBeforeHostZoom() {
+        val events = mutableListOf<String>()
+        compose.setContent {
+            AmapComposeMap(
+                model = MapUiModel(),
+                onMarkerClick = {},
+                consent = consentToken(),
+                hostFactory = { context -> object : AmapMapHost {
+                    override val view = View(context)
+                    override fun canRenderBeforeReady() = true
+                    override fun onCreate() = Unit
+                    override fun onResume() = Unit
+                    override fun onPause() = Unit
+                    override fun onDestroy() = Unit
+                    override fun zoomIn() { events += "zoom-in" }
+                    override fun zoomOut() { events += "zoom-out" }
+                } },
+                onUserGesture = { events += "viewport" },
+            )
+        }
+
+        compose.onNodeWithTag("zoom-in").performClick()
+        compose.onNodeWithTag("zoom-out").performClick()
+        compose.runOnIdle {
+            assertEquals(listOf("viewport", "zoom-in", "viewport", "zoom-out"), events)
+        }
+    }
+
+    @Test fun zoomButtonClearsViewportAndSuppressesSectionFits() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        lateinit var host: ZoomRecordingHost
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                mapHostFactory = { context -> ZoomRecordingHost(context).also { host = it } },
+            )
+        }
+        compose.waitUntil(5_000) {
+            workspace.pageState.value is TripWorkspacePageState.Ready &&
+                runCatching { host.viewportCalls == 1 }.getOrDefault(false)
+        }
+
+        compose.onNodeWithTag("zoom-in").performClick()
+        compose.waitUntil(5_000) { host.zoomInCalls == 1 && workspace.state.value.map.viewportRequest == null }
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        compose.onNodeWithTag("section-PLACE_POOL").performClick()
+        compose.waitForIdle()
+
+        compose.runOnIdle {
+            assertEquals(1, host.zoomInCalls)
+            assertEquals(1, host.viewportCalls)
+            assertEquals(null, workspace.state.value.map.viewportRequest)
+        }
+    }
+
     @Test fun grantedLocateBeforeFirstConsentMountRunsExactlyOnceWhenMapBecomesReady() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val coordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore())
@@ -954,32 +1017,162 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { backCount == 2 }
     }
 
-    @Test fun savedPlaceRowOpensTheSharedDetailOverlay() {
+    @Test fun savedPlaceRowOpensBottomSheetWithoutRecreatingMapOrViewport() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", Places(), null)
+        val hostCreations = AtomicInteger()
+        lateinit var host: TestMapHost
         compose.setContent {
             TripWorkspaceRoute(
                 viewModel = workspace,
-                consent = null,
+                consent = consentToken(),
                 onBack = {},
                 onSettings = {},
                 locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
                 locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
                 onWorkspaceEffect = {},
                 placeViewModel = placeModel,
+                mapHostFactory = { context ->
+                    hostCreations.incrementAndGet()
+                    TestMapHost(context).also { host = it }
+                },
             )
         }
-        compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
+        compose.waitUntil(5_000) {
+            placeModel.state.value.rows.isNotEmpty() &&
+                hostCreations.get() == 1 &&
+                runCatching { host.viewportCalls }.getOrDefault(0) == 1
+        }
+        val viewportBeforeOpen = workspace.state.value.map.viewportRequest
+        val viewportCallsBeforeOpen = host.viewportCalls
 
         compose.onNodeWithTag("open-place-detail-p").performClick()
         compose.waitUntil(5_000) {
             workspace.state.value.overlay is WorkspaceOverlay.PlaceDetail &&
                 placeModel.state.value.selectedDetailPlaceId == "p" &&
-                compose.onAllNodesWithTag("place-detail-start-add").fetchSemanticsNodes().size == 1
+                compose.onAllNodesWithTag("place-detail-bottom-sheet").fetchSemanticsNodes().size == 1
         }
-        compose.onNodeWithTag("place-detail-start-add").assertIsDisplayed()
+
+        compose.onNodeWithTag("place-detail-bottom-sheet").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-bottom-sheet")
+            .assert(hasAnyAncestor(hasTestTag("workspace-screen-root")))
+        compose.onNodeWithTag("workspace-map").assertIsDisplayed()
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(SemanticsProperties.IsDialog)).assertCountEquals(0)
+        val sheetBounds = compose.onNodeWithTag("place-detail-bottom-sheet").getUnclippedBoundsInRoot()
+        val mapBounds = compose.onNodeWithTag("workspace-map").getUnclippedBoundsInRoot()
+        compose.runOnIdle {
+            assertTrue("map=$mapBounds sheet=$sheetBounds", sheetBounds.top > mapBounds.top)
+            assertEquals(mapBounds.bottom, sheetBounds.bottom)
+            assertEquals(1, hostCreations.get())
+            assertEquals(viewportCallsBeforeOpen, host.viewportCalls)
+            assertEquals(viewportBeforeOpen, workspace.state.value.map.viewportRequest)
+        }
+
         pressBack()
         compose.waitUntil(5_000) { placeModel.state.value.selectedDetailPlaceId == null }
+        compose.runOnIdle {
+            assertEquals(1, hostCreations.get())
+            assertEquals(viewportCallsBeforeOpen, host.viewportCalls)
+            assertEquals(viewportBeforeOpen, workspace.state.value.map.viewportRequest)
+        }
+    }
+
+    @Test fun savedMarkerOpensTheSameBottomSheetWithoutNewViewportRequest() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", Places(), null)
+        lateinit var host: MarkerClickHost
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = consentToken(),
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeViewModel = placeModel,
+                mapHostFactory = { context -> MarkerClickHost(context).also { host = it } },
+            )
+        }
+        compose.waitUntil(5_000) {
+            placeModel.state.value.rows.isNotEmpty() &&
+                runCatching { host.hasSavedPlaceMarker() && host.viewportCalls == 1 }.getOrDefault(false)
+        }
+        val viewportBeforeOpen = workspace.state.value.map.viewportRequest
+        val viewportCallsBeforeOpen = host.viewportCalls
+
+        compose.runOnIdle { host.clickSavedPlaceMarker() }
+
+        compose.waitUntil(5_000) {
+            placeModel.state.value.selectedDetailPlaceId == "p" &&
+                compose.onAllNodesWithTag("place-detail-bottom-sheet").fetchSemanticsNodes().size == 1
+        }
+        compose.runOnIdle {
+            assertEquals(viewportCallsBeforeOpen, host.viewportCalls)
+            assertEquals(viewportBeforeOpen, workspace.state.value.map.viewportRequest)
+        }
+    }
+
+    @Test fun editingStaysInTheSameSheetAndSavingBlocksBackUntilCompletion() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = DelayedUpdatePlaces()
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", repository, null)
+        val hostCreations = AtomicInteger()
+        lateinit var host: TestMapHost
+        var leaveCalls = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = consentToken(),
+                onBack = { leaveCalls++ },
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                placeViewModel = placeModel,
+                mapHostFactory = { context ->
+                    hostCreations.incrementAndGet()
+                    TestMapHost(context).also { host = it }
+                },
+            )
+        }
+        compose.waitUntil(5_000) {
+            placeModel.state.value.rows.isNotEmpty() &&
+                hostCreations.get() == 1 &&
+                runCatching { host.viewportCalls }.getOrDefault(0) == 1
+        }
+        val viewportCallsBeforeEdit = host.viewportCalls
+        compose.onNodeWithTag("open-place-detail-saved").performClick()
+        compose.onNodeWithText("编辑").performClick()
+
+        compose.waitUntil(5_000) { placeModel.state.value.editing?.id == "saved" }
+        compose.onAllNodesWithTag("place-detail-bottom-sheet").assertCountEquals(1)
+        compose.onNodeWithTag("place-detail-note-input").performTextInput("保存中的备注")
+        compose.onNodeWithTag("place-detail-save").performClick()
+        compose.waitUntil(5_000) { placeModel.state.value.detailSaving }
+
+        pressBack()
+        compose.waitForIdle()
+        compose.onNodeWithTag("workspace-back").performClick()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("place-detail-bottom-sheet").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-dismiss").assertIsNotEnabled()
+        compose.runOnIdle {
+            assertEquals(0, leaveCalls)
+            assertEquals(1, hostCreations.get())
+            assertEquals(viewportCallsBeforeEdit, host.viewportCalls)
+            assertEquals(1, repository.updateCalls)
+        }
+
+        compose.runOnIdle { repository.updateGate.complete(Unit) }
+        compose.waitUntil(5_000) {
+            placeModel.state.value.editing == null && workspace.state.value.overlay == WorkspaceOverlay.None
+        }
+        compose.runOnIdle {
+            assertEquals(1, hostCreations.get())
+            assertEquals(viewportCallsBeforeEdit, host.viewportCalls)
+        }
     }
 
     @Test fun detailAddOpensTargetDayForExistingTravelDays() {
@@ -1000,8 +1193,10 @@ class WorkspaceFlowTest {
 
         compose.waitUntil(5_000) {
             workspace.state.value.overlay == WorkspaceOverlay.SelectAddTargetDay &&
-                add.state.value.selectedPlaceIds == listOf("p")
+                add.state.value.selectedPlaceIds == listOf("p") &&
+                placeModel.state.value.selectedDetailPlaceId == null
         }
+        compose.onNodeWithTag("place-detail-bottom-sheet").assertDoesNotExist()
     }
 
     @Test fun detailAddOpensNoDayGuidanceWhenTripHasNoDays() {
@@ -2520,6 +2715,23 @@ class WorkspaceFlowTest {
         override suspend fun reportDecision(accepted: Boolean) { decisions += accepted }
     }
 
+    private class DelayedUpdatePlaces : SavedPlaceRepository {
+        val updateGate = CompletableDeferred<Unit>()
+        var updateCalls = 0
+        private val place = SavedPlace("saved", "trip", "saved-poi", "保存地点", "地址", GeoPoint(39.8, 116.3), "", emptyList())
+        override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
+        override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
+        override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("saved-poi"))
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+            updateCalls++
+            updateGate.await()
+        }
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = PlaceDeletionImpact(0, 0)
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
     private class EditingPlaces : SavedPlaceRepository {
         private val place = SavedPlace("saved", "trip", "saved-poi", "新编辑地点", "新地址", GeoPoint(39.8, 116.3), "", emptyList())
         override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(listOf(place))
@@ -2576,6 +2788,38 @@ class WorkspaceFlowTest {
         return requireNotNull(gate.decide(true))
     }
 
+    private class ZoomRecordingHost(context: Context) : AmapMapHost {
+        override val view = View(context)
+        override fun canRenderBeforeReady() = true
+        private var consumedViewportId: Long? = null
+        private var consumedViewportInsets = MapViewportInsets()
+        var viewportCalls = 0
+            private set
+        var zoomInCalls = 0
+            private set
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun zoomIn() { zoomInCalls++ }
+        override fun render(
+            model: MapUiModel,
+            layer: MapLayer,
+            onMarkerClick: (String) -> Unit,
+            onMapPoiClick: (MapPoiUi) -> Unit,
+            onLayerError: (Throwable, MapLayer) -> Unit,
+        ) {
+            val rendering = viewportRendering(
+                consumedViewportId,
+                model.viewportRequest,
+                consumedViewportInsets,
+            )
+            consumedViewportId = rendering.consumedRequestId
+            consumedViewportInsets = rendering.consumedSafeInsets
+            if (rendering.command != null) viewportCalls++
+        }
+    }
+
     private class LocationRecordingHost(
         context: Context,
         private val locationCalls: AtomicInteger,
@@ -2599,6 +2843,10 @@ class WorkspaceFlowTest {
     private class TestMapHost(context: Context) : AmapMapHost {
         override val view = View(context)
         override fun canRenderBeforeReady() = true
+        private var consumedViewportId: Long? = null
+        private var consumedViewportInsets = MapViewportInsets()
+        var viewportCalls = 0
+            private set
         override fun onCreate() = Unit
         override fun onResume() = Unit
         override fun onPause() = Unit
@@ -2609,7 +2857,51 @@ class WorkspaceFlowTest {
             onMarkerClick: (String) -> Unit,
             onMapPoiClick: (MapPoiUi) -> Unit,
             onLayerError: (Throwable, MapLayer) -> Unit,
-        ) = Unit
+        ) {
+            val rendering = viewportRendering(
+                consumedViewportId,
+                model.viewportRequest,
+                consumedViewportInsets,
+            )
+            consumedViewportId = rendering.consumedRequestId
+            consumedViewportInsets = rendering.consumedSafeInsets
+            if (rendering.command != null) viewportCalls++
+        }
+    }
+
+    private class MarkerClickHost(context: Context) : AmapMapHost {
+        override val view = View(context)
+        override fun canRenderBeforeReady() = true
+        private var savedPlaceMarkerKey: String? = null
+        private var markerCallback: (String) -> Unit = {}
+        private var consumedViewportId: Long? = null
+        private var consumedViewportInsets = MapViewportInsets()
+        var viewportCalls = 0
+            private set
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun render(
+            model: MapUiModel,
+            layer: MapLayer,
+            onMarkerClick: (String) -> Unit,
+            onMapPoiClick: (MapPoiUi) -> Unit,
+            onLayerError: (Throwable, MapLayer) -> Unit,
+        ) {
+            val rendering = viewportRendering(
+                consumedViewportId,
+                model.viewportRequest,
+                consumedViewportInsets,
+            )
+            consumedViewportId = rendering.consumedRequestId
+            consumedViewportInsets = rendering.consumedSafeInsets
+            if (rendering.command != null) viewportCalls++
+            savedPlaceMarkerKey = model.markers.firstOrNull { it.savedPlaceId == "p" }?.key
+            markerCallback = onMarkerClick
+        }
+        fun hasSavedPlaceMarker() = savedPlaceMarkerKey != null
+        fun clickSavedPlaceMarker() = markerCallback(requireNotNull(savedPlaceMarkerKey))
     }
 
     private class FailingMapHost(context: Context) : AmapMapHost {

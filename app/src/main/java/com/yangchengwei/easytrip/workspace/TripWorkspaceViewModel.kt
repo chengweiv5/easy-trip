@@ -260,6 +260,18 @@ class TripWorkspaceViewModel(
         return "${startDate.label()} — ${startDate.plusDays(dayCount.toLong() - 1).label()}"
     }
 
+    fun onMapGesture() {
+        viewportController.onUserGesture()
+        mutable.value = mutable.value.copy(
+            map = mutable.value.map.copy(viewportRequest = viewportController.currentRequest),
+        )
+        (mutablePageState.value as? TripWorkspacePageState.Ready)?.let { page ->
+            mutablePageState.value = TripWorkspacePageState.Ready(
+                page.content.copy(map = mutable.value.map),
+            )
+        }
+    }
+
     fun selectSection(value: WorkspaceSection) {
         if (section.value == value) return
         savedState[SECTION] = value.name

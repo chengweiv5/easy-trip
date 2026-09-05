@@ -30,70 +30,70 @@
 
 | 设计来源 | Frame ID | 现有/目标代码 | 核对内容 | 测试 | 状态 |
 |---|---|---|---|---|---|
-| Easy Trip UI Kit | `f7rS8` | `EasyTripTokens`、Theme、基础组件 | 颜色、字体、圆角、按钮、状态反馈 | 编译、组件 UI 测试 | 待分析 |
-| 14 状态规范 | `DxZ2a` | `EmptyState`、InlineStatus、Dialog、Snackbar | 六类通用状态和恢复操作 | 组件 UI 测试 | 待分析 |
+| Easy Trip UI Kit | `f7rS8` | `EasyTripTokens`、Theme、基础组件 | 颜色、字体、圆角、按钮、状态反馈 | `CreateTripContentTest`、`TripListContentTest`、`WorkspaceChromeTest` 等组件/宿主测试；Huawei 代表性页面验收 | 已测试（代表性页面已真机验证；未声明整套 UI Kit 逐组件物理验收） |
+| 14 状态规范 | `DxZ2a` | `EmptyState`、InlineStatus、Dialog、Snackbar | 六类通用状态和恢复操作 | `ConfirmationDialogTest`、各业务状态 focused Compose 测试 | 已测试（分散状态证据；整板物理验收 PENDING） |
 | 工作台全空 | `BrYVA` | `TripWorkspaceContent` | 地图、Tab、主抽屉结构 | Workspace UI 测试、typed scenario、模拟器证据 | 已测试 |
 | 行程全空 | `WFOpg` | `WorkspaceItineraryContent` | Tab 切换和空行程状态 | Workspace UI 测试、typed scenario、模拟器证据 | 已测试 |
 | 抽屉收起 | `kCc5z` | `WorkspaceBottomSheet` | `h108`、Tab、真实状态摘要与地图最大空间 | 抽屉状态测试 | 已验收 |
 | 抽屉半屏 | `sWTB3` | `WorkspaceBottomSheet` | `h432`、地图与内容并存 | 抽屉状态测试 | 已验收 |
 | 抽屉展开 | `f2ieZ6` | `WorkspaceBottomSheet` | `h720`、地图浮层按可用空间降级 | 层级和状态测试 | 已验收 |
-| 地图图层 | `shoPV` | 地图图层浮层 | 遮罩、选项和控件层级 | Workspace UI 测试 | 已测试 |
+| 地图图层 | `shoPV` | 地图图层浮层 | 遮罩、选项和控件层级 | Workspace UI 测试 + Huawei RealAmap 三图层 | 已验收 |
 
 ### Batch 0 完成条件
 
 - [ ] 设计 frame 与现有核心 Composable 映射完成。
 - [ ] token 与 UI Kit 一致。
-- [ ] 主抽屉三态通过测试。
-- [ ] Dialog、菜单和操作抽屉不会被地图控件覆盖。
-- [ ] 地图收藏/已安排标记语义统一。
-- [ ] 代表性工作台状态已在设备中操作验证。
+- [x] 主抽屉三态通过测试。
+- [x] Dialog、菜单和操作抽屉不会被地图控件覆盖。
+- [x] 地图收藏/已安排标记语义统一。
+- [x] 代表性工作台状态已在设备中操作验证。
 
 ## Batch 1：我的旅行、创建和设置
 
 | 设计界面 | Frame ID | 现有/目标代码 | 核心状态/交互 | 状态 |
 |---|---|---|---|---|
-| 我的旅行 | `K9h3r` | `TripListContent` | 当前旅行和少量其他旅行 | 待分析 |
-| 单个旅行 | `wJ51c` | `TripListContent` | 仅一个旅行 | 待分析 |
-| 多个旅行 | `pgrb6` | `TripListContent` | 仅其他旅行区域滚动，创建入口固定 | 待分析 |
-| 空状态 | `zIbEu` | `TripListContent` | 创建第一个旅行 | 待分析 |
-| 删除后 | `d1sTtb` | `TripListContent` | 删除杭州后川西成为当前旅行 | 待分析 |
-| 创建旅行初始 | `PnhPb` | 创建旅行页面 | 空字段、按钮可点击 | 待分析 |
-| 创建旅行校验 | `yIGiQ` | 创建旅行页面 | 字段错误，按钮形态不变 | 待分析 |
-| 填写日期 | `YYo6U` | 日期范围选择 | 开始/结束日期和天数 | 待分析 |
-| 创建旅行已填写 | `dzhkC` | 创建旅行页面 | 提交成功进入工作台 | 待分析 |
-| 旅行设置 | `U06l7P` | `TripSettingsContent` | 名称、日期、方式和删除入口 | 待分析 |
-| 修改出行日期 | `IKTv5` | 日期范围选择 | 与创建日期面板一致，缩短范围提示影响 | 待分析 |
-| 删除旅行确认 | `oW9mK` | `ConfirmationDialog` | 影响、保留项和危险操作 | 待分析 |
+| 我的旅行 | `K9h3r` | `TripListContent` | 当前旅行和少量其他旅行 | 已测试；Huawei 代表路径已验收 |
+| 单个旅行 | `wJ51c` | `TripListContent` | 仅一个旅行 | 已测试（controlled Compose；专项物理验收 PENDING） |
+| 多个旅行 | `pgrb6` | `TripListContent` | 仅其他旅行区域滚动，创建入口固定 | 已测试（controlled Compose；专项物理验收 PENDING） |
+| 空状态 | `zIbEu` | `TripListContent` | 创建第一个旅行 | 已验收（Huawei） |
+| 删除后 | `d1sTtb` | `TripListContent` | 删除杭州后川西成为当前旅行 | 已测试（controlled final state + production AppNavigation/Room 删除链；物理验收 PENDING） |
+| 创建旅行初始 | `PnhPb` | 创建旅行页面 | 空字段、按钮可点击 | 已测试；Huawei 代表路径已验收 |
+| 创建旅行校验 | `yIGiQ` | 创建旅行页面 | 字段错误，按钮形态不变 | 已验收（Huawei） |
+| 填写日期 | `YYo6U` | 日期范围选择 | 开始/结束日期和天数 | 已测试；Huawei 代表路径已验收 |
+| 创建旅行已填写 | `dzhkC` | 创建旅行页面 | 提交成功进入工作台 | 已测试；Huawei 代表路径已验收 |
+| 旅行设置 | `U06l7P` | `TripSettingsContent` | 名称、日期、方式和删除入口 | 已测试（production AppNavigation + in-memory Room；Huawei 新删除闭环 PENDING） |
+| 修改出行日期 | `IKTv5` | 日期范围选择 | 与创建日期面板一致，缩短范围提示影响 | 已测试（structured impact；专项物理验收 PENDING） |
+| 删除旅行确认 | `oW9mK` | `ConfirmationDialog` | 影响、保留项和危险操作 | 已测试（production AppNavigation + in-memory Room；物理验收 PENDING） |
 
 ### Batch 1 完成条件
 
-- [ ] 创建、校验、日期和成功进入工作台闭环可达。
-- [ ] 单旅行、多旅行、滚动、空状态和删除后状态正确。
-- [ ] 修改日期正确处理缩短范围影响。
-- [ ] 删除旅行确认和删除后当前旅行切换正确。
+- [x] 创建、校验、日期和成功进入工作台闭环可达。
+- [ ] 单旅行、多旅行和滚动已有 controlled Compose 自动化，专项物理验收 PENDING；空状态已真机验收，删除后已有 controlled final state + production AppNavigation/Room。
+- [x] 修改日期由 structured impact 自动化覆盖；专项物理验收 PENDING。
+- [x] 删除旅行确认和删除后当前旅行切换由 production AppNavigation + in-memory Room 覆盖；Huawei 新删除闭环 PENDING。
 
 ## Batch 2：旅行工作台骨架
 
 | 设计界面 | Frame ID | 现有/目标代码 | 核心状态/交互 | 状态 |
 |---|---|---|---|---|
-| 地点池工作台 | `A9EKX` | `TripWorkspaceContent`、`PlacePoolSheet` | 地图、地点池、滚动和主抽屉 | 待分析 |
-| 行程工作台 | `LFmzR` | `WorkspaceItineraryContent` | 日导航、行程列表和地图 | 待分析 |
+| 地点池工作台 | `A9EKX` | `TripWorkspaceContent`、`PlacePoolSheet` | 地图、地点池、滚动和主抽屉 | 自动化通过；Huawei 自然数据 8→9→10 点、COLD start 初始 fit、手势后 tab 往返保持与集合变化单次 refit 已验收 |
+| 行程工作台 | `LFmzR` | `WorkspaceItineraryContent` | 日导航、行程列表和地图 | 已验收（Batch 5 Huawei 行程/路线主链） |
 | 全空状态 | `BrYVA` | `TripWorkspaceContent` | 地点池与行程均为空 | 已测试 |
 | 行程全空 | `WFOpg` | `WorkspaceItineraryContent` | 所有旅行日无行程项 | 已测试 |
-| 更多菜单 | `ijpZD` | 工作台菜单 | 设置和工作台级入口 | 待分析 |
-| 地图图层 | `shoPV` | 地图图层浮层 | 图层选择和正确层级 | 已测试 |
-| 抽屉三态 | `kCc5z` / `sWTB3` / `f2ieZ6` | `WorkspaceBottomSheet` | 收起、半屏、展开、按实时 sheetTop 降级地图浮层 | 已实现 |
+| 工作台设置直达 | `ijpZD` | 工作台顶部设置操作 | 当前生产 UI 直接进入设置，不声明更多菜单 | 已测试（production navigation） |
+| 地图图层 | `shoPV` | 地图图层浮层 | 图层选择和正确层级 | 已验收（Huawei RealAmap） |
+| 抽屉三态 | `kCc5z` / `sWTB3` / `f2ieZ6` | `WorkspaceBottomSheet` | 收起、半屏、展开、按实时 sheetTop 降级地图浮层 | 已验收（Huawei App 自有 UI） |
 
 ### Batch 2 完成条件
 
-自动化与 App 自有 UI 的物理设备验收已完成；真实 AMap 图层渲染仍因未接受第三方隐私条款而待验证。
+自动化与 App 自有 UI 的物理设备验收已完成；2026-09-04 Huawei ALN-AL00 已在授权后的 production workspace / RealAmap 上完成标准、卫星、卫星路网切换。该证据的 state source 为真实安装态工作台数据，permission surface 为已接受 AMap consent；不外推为 A9EKX 八点自然数据验收。
 
 - [x] 地点池/行程切换正确。
 - [x] 三态抽屉可拖动且状态可恢复。
 - [x] 地图控制、菜单、遮罩和抽屉层级正确。
 - [x] 全空和行程全空状态入口可达。
 - [x] Huawei ALN-AL00 上完成 App 自有 Batch 2 UI 与偏好持久化验收。
-- [ ] 已授权环境中的真实 AMap 三图层渲染验证。
+- [x] 已授权环境中的真实 AMap 三图层渲染验证（Huawei ALN-AL00，production workspace，2026-09-04）。
 
 ## Batch 3：地点池、搜索和地点详情
 
@@ -101,7 +101,7 @@
 |---|---|---|---|---|
 | 地点池长列表 | `A9EKX` | `PlacePoolSheet` | 8 个收藏地点、列表滚动、地图全览 | 已测试（fake map） |
 | 地点池短列表 | `jQhXs` | `PlacePoolSheet` | 3 个收藏地点、一屏展示 | 已测试（fake map） |
-| 地点池空状态 | `lsr1I` | `PlacePoolSheet` | 搜索第一个地点 | 待分析 |
+| 地点池空状态 | `lsr1I` | `PlacePoolSheet` | 搜索第一个地点 | 已验收（Huawei App 自有 UI；map surface 未授权，不声明 RealAmap） |
 | 搜索结果 | `ofdn5` | `PlaceSearchContent` | 连续收藏和取消收藏 | 已测试 |
 | 搜索加载中 | `s1OvvX` | `PlaceSearchContent` | 保留关键词和加载反馈 | 已测试 |
 | 搜索无结果 | `S0psO` | `PlaceSearchContent` | 调整关键词 | 已测试 |
@@ -112,10 +112,10 @@
 ### Batch 3 完成条件
 
 - [ ] 首次进入地点池地图展示全部收藏地点。
-- [ ] 已安排和仅收藏标记与图例一致。
-- [ ] 搜索结果可连续收藏/取消收藏并同步地点池。
-- [ ] 四种搜索状态保留输入和恢复路径。
-- [ ] 两种地点详情状态正确。
+- [x] 已安排和仅收藏标记与图例一致（自动化 + Huawei 两地点真实数据；非八点验收）。
+- [x] 搜索结果可连续收藏/取消收藏并同步地点池。
+- [x] 四种搜索状态保留输入和恢复路径（自动化；专项物理状态注入 PENDING）。
+- [x] 两种地点详情状态正确（production workspace controlled 自动化；Batch 7 bottom sheet 物理验收 PENDING）。
 
 ## Batch 4：加入行程双入口
 
@@ -202,6 +202,43 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 - TDD：新增 production `TripWorkspaceRoute` 回归，覆盖 ConsentRequired/no token 下点击已授权定位、确认没有 host，随后提供 consent/token 创建首个 recording host，并断言 `showCurrentLocation` 恰好一次且普通 recomposition 不重复；另以 `MapLocateRequestBaselineTrackerTest` 覆盖首次 baseline、consent replacement 与默认 replacement 不重放。RED 阶段 focused JVM 明确失败于首次 mount 误用当前 request（expected 0, actual 1），以及新 consent attempt API 缺失；GREEN 后 focused JVM 13/13 通过。
 - 自动化验证：全量 JVM `testDebugUnitTest`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check`、`graphify update .` 通过；focused `MapLocateRequestBaselineTrackerTest`、`MapLayerRenderingPolicyTest` 与 `MapPreferencesTest` 通过。emulator-5554 上的 `WorkspaceFlowTest` 66/66、`WorkspacePermissionFlowTest` 13/13、`AmapComposeMapTest` 28/28 已通过；未运行截图类测试。
 - 物理设备验收：Huawei ALN-AL00 使用 `adb install -r` 覆盖安装，未卸载、未清数据。真实 AMap 从工作台加载成功，标准/卫星/卫星路网均可切换；AndroidSystem 定位链完成 JFhZ7 说明、系统拒绝、HYCsZ 设置引导、前往设置授予与返回定位；`am force-stop` 后 COLD start 保留已提交“登封”旅行、地点池和图层偏好，不恢复临时权限弹层。真实 AMap 故障未能自然触发，因此 U8R5i 的真实 SDK 故障证据仍不声明，恢复分支继续由 failure-injecting host 覆盖。验收后已把定位权限恢复为拒绝、地图恢复为标准层。模拟器整类 `TripWorkspaceContentTest` 仍存在环境 SIGKILL，不将该中断冒充通过，相关新增单项已单独串行通过。
+
+## Batch 7：设置删除、地点详情宿主与证据收口
+
+| 设计界面 | Frame ID | Host / state / surface 边界 | 状态 |
+|---|---|---|---|
+| 旅行设置 | `U06l7P` | production AppNavigation + in-memory Room；recording fake map；未涉及 permission surface | 已测试；Huawei 新闭环 PENDING |
+| 删除旅行确认 | `oW9mK` | production AppNavigation + in-memory Room 精确级联；recording fake map；未涉及 permission surface | 已测试；物理验收 PENDING |
+| 我的旅行 · 删除后 | `d1sTtb` | controlled final-state TripListContent + 上述 production 删除链；不把 declared path 当 executed navigation | 已测试；物理验收 PENDING |
+| 已安排地点详情 | `p4G1tS` | production workspace Compose + controlled repository/UiState + recording/deterministic fake map | saved-place-row flow 已在 AVD 通过；物理验收 PENDING |
+| 仅收藏地点详情 | `XsGon` | production workspace Compose + controlled UiState + deterministic fake map；无 Room/navigation 证据 | 已测试；物理验收 PENDING |
+| 地点池 8 点 | `A9EKX` | JVM viewport/mapper 自动化；Huawei natural data + RealAmap 裁决最终 viewport | 自动化通过；Huawei 8→9→10 点、COLD start、手势保持与单次集合 refit 已验收 |
+
+### 2026-09-04 · Batch 7 / Task 1 · 设置页整次旅行删除状态机
+
+- 实现：`TripSettingsViewModel` 自持有单旅行 `tripDeletion` 状态，复用既有 `TripDeletionUiState` 与 `ConfirmationUiModel`，未复用 `TripListViewModel`，未修改 Compose UI。请求先加载当前旅行精确影响；取消会失效迟到 impact；确认以 generation 和 busy 守卫确保 service exactly-once。service 成功后必须等待当前 `observeTrip` 新一轮 `null` 事实才发送一次 `ReturnToTripList`；若 `null` 先到，则继续等待 service 返回。删除失败保留同一确认可直接重试；观察同步失败保留确认并只重启 observation，不重发 service。整次旅行删除与日期范围、旅行日删除互斥。
+- TDD：focused JVM RED 先因 `tripDeletion` 状态和 request/retry/cancel/confirm/resync API 缺失而编译失败；初始实现阶段的 focused suite 曾记为 51/51。Task 1 报告在补充“旅行日确认阻塞整次旅行删除”等回归后记录 53 tests；review/fix 完成时 progress 记录 54/54，Task 2 后续锁定回归扩展到 58 tests。各数字对应不同提交前阶段，不是同一轮互相矛盾的结果。覆盖精确影响、取消迟到结果、single-flight、两种 service/Room 返回顺序、失败重试、同步重试不重复 service、三类删除互斥及外部删除一次导航。
+- 自动化验证：`testDebugUnitTest`、`assembleDebug`、`lintDebug`、`assembleDebugAndroidTest`、`git diff --check` 与 `graphify update .` 通过。`adb devices -l` 无可用设备，未运行 connected Android UI 测试；本 Task 无 Compose UI 改动。
+- 已知边界：Graphify 更新继续报告未触及的 `TripWorkspaceContentTest.kt`、`NetworkMonitor.kt`、`RoutePlanner.kt` 语法解析 warning；不影响 Kotlin 编译或本 Task 的 JVM 验证。
+
+### 2026-09-04 · Batch 7 / Task 2 · 设置页旅行删除生产闭环
+
+- 实现：`U06l7P → oW9mK → 旅行列表` 已接入 production UI。设置危险区用 48dp 的“删除这次旅行”入口取代“请回列表操作”提示；`TripSettingsRoute` 转发 Task 1 的 request/retry/cancel/confirm/resync API。列表与设置共同使用 `TripDeletionDialog`，统一 Loading / impact failure / Ready / deleting / sync failure 的互斥文案、操作与 busy 锁。既有 `AppNavigation` 的 `onTripDeleted` 仍以 `popUpTo(TRIP_LIST_ROUTE)` 清除设置/工作台返回栈；不新增 route。
+- 设计 frame：`U06l7P`、`oW9mK`，并读取 UI Kit `f7rS8`、状态规范 `DxZ2a`。确认页复用 `ConfirmationDialog` 中“将删除/将保留”的精确影响内容。
+- TDD：新增 Compose/production navigation 测试先 RED，`compileDebugAndroidTestKotlin` 按预期因缺少设置删除 callback/API、测试 import 而失败；最小接线后 GREEN。新增测试覆盖危险入口、五种删除状态的互斥恢复路径、删除后 Room 中目标旅行消失且剩余旅行成为 primary、Back 无法回到已删除设置/工作台，以及 280dp×2x 下入口/确认操作 48dp 可达。
+- 自动化验证：`git diff --check`、`assembleDebug`、`assembleDebugAndroidTest`、`testDebugUnitTest`、`lintDebug`、`compileDebugAndroidTestKotlin` 均通过；`graphify update .` 成功（6799 nodes / 15823 edges）。
+- 设备边界：无连接设备。`connectedDebugAndroidTest` 因 `No connected devices` 未运行；两台本地 AVD 启动均在 macOS Crashpad/NSWorkspace bootstrap 后以 exit 139 退出，因此未进行模拟器/实体机实际操作。未生成截图。
+- 已知边界：图谱更新仍报告未触及的 `TripWorkspaceContentTest.kt`、`NetworkMonitor.kt`、`RoutePlanner.kt` 解析 warning；FSEvents 初始化 warning 和 `EmptyState.kt` 既有 Kotlin annotation warning 不影响构建门禁。
+
+### 2026-09-04 · Batch 7 / Task 3 · 工作台地点详情临时 Sheet
+
+- 实现：`p4G1tS` / `XsGon` 继续复用 `WorkspaceOverlay.PlaceDetail`、`PlacePoolUiState`、`PlaceDetailPanel` 与既有 action；仅将 workspace saved-place 的居中 `AlertDialog` 宿主替换为无遮罩、底部贴齐的 `WorkspacePlaceDetailSheet`。正常高度按可用 workspace 的 `490/782` 比例计算，限制为 320–560dp，并保留至少 96dp 上方地图空间；`<416dp` 的极紧凑窗口优先保证 Sheet 可操作性，可占满全部可用高度。查看与编辑在同一 sheet 切换，正文沿用可滚动面板，操作保持至少 48dp。
+- 状态边界：地点池行与 `SAVED_PLACE_POOL` marker 均进入同一 sheet；打开、关闭与查看→编辑不改变 map subtree 或 viewport request。保存期间 panel 关闭按钮禁用，workspace Back/关闭均忽略；关闭、删除和加入行程先清旧详情状态，避免 overlay 重新打开。
+- TDD：focused JVM 先因缺少响应式高度函数和 `placeDetailSaving` Back 策略编译 RED；随后以临时 mutation 移除两项实现，确认 2/2 行为断言失败，再恢复后 2/2 GREEN。新增 Compose instrumentation 覆盖 row/marker 打开 bottom sheet、无 Dialog 语义、地图仍挂载、host creation=1、viewport 不新增、同 sheet 编辑/保存锁、280dp×2x 下滚动至全部 48dp 操作；设备为空，仅完成 Android test 编译。
+- 自动化验证：`compileDebugAndroidTestKotlin`、focused JVM、full JVM、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check` 通过；`graphify update .` 结果见 Task 报告。
+- 设备验证：`adb devices -l` 无设备，相关 connected Compose 测试 NOT-RUN；未声明真实 AMap 证据。
+- 已知边界：standalone `PlacePoolSheet` 保持现有无生产 route 的 Dialog 宿主，不制造地图宿主；map POI、未收藏 marker、删除/取消收藏确认未扩张。
+- Fix Round 1：`TripWorkspaceScreen` 现在用自身单一 `workspace-screen-root` Box 按 Content→Overlay 顺序叠放，不依赖 NavHost/调用方，且未重复传递外部 modifier。极小高度改为 `<416dp` 时 sheet 充满全部可用高度，优先保证 Sheet 可操作性；正常高度保留至少 96dp 地图空间，并保持 490/782 比例与 320–560dp 上下限。`PlaceDetailPanelTest` 的 Kotlin `assert` 已全部替换为 JUnit 断言。工作台 recording hosts 复用 production `viewportRendering` 消费语义记录实际非空 `ViewportCommand` 次数，证明行打开、marker 打开、查看→编辑与关闭均不增加实际 camera apply；因无设备，该 instrumentation 证据已编译但 NOT-RUN。
 
 ## 附录引用处理
 
@@ -411,6 +448,60 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 - 自动化验证：`LocationPermissionCoordinatorTest` 33/33、`LocationPermissionSourceTest` 3/3、full JVM、`compileDebugAndroidTestKotlin`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check` 与 `graphify update .` 通过。Graphify 更新报告 6760 nodes / 15774 edges，并继续提示未触及的 `NetworkMonitor.kt`、`RoutePlanner.kt` 既有语法解析 warning。
 - 设备验证：`adb devices -l` 当前无设备；因此未运行 `WorkspacePermissionFlowTest`、`WorkspaceFlowTest`、`Task8PersistenceTest` connected tests，仅完成其 Android test 编译门禁。
 - 已知边界：未操作真实 Android 系统权限页、系统设置页或实体设备；未运行会生成截图的测试。
+
+### 2026-09-05 · Batch 7 / Task 4 · 场景身份与 declared path
+
+- 实现：保持 47 个编号 parent，不增加 E2E；所有 parent/variant 通过 number、frame、fixture、screen、factory 五维精确 identity 创建 typed executable，错误维度直接拒绝。`d1sTtb` 使用独立 controlled final state：删除“杭州 · 春日慢游”，保留“川西小环线”为 primary，并保留“泉州古城散步”为其他旅行。
+- 路径边界：`reachablePath` API 完整收敛为 `declaredPath`，仅表示场景终点 metadata；Catalog 和 Full UI 不宣称真实导航。`U06l7P`、`oW9mK`、`d1sTtb` 的 production AppNavigation + in-memory Room 证据来自 `TripSettingsNavigationTest`；`p4G1tS`、`XsGon` 仅声明 production workspace Compose + controlled state + deterministic/recording fake map，不冒充 Room 触发或真实 AMap。
+- TDD：临时弱化 factory identity guard 后，精确 identity 测试按预期因错误 factory 未被拒绝而 RED；恢复 guard 后 GREEN。按 Pencil `d1sTtb` context 增加精确旅行名称与保留卡断言，先因旧占位 fixture 行为 RED，再更新 controlled state 转 GREEN。
+- 自动化验证：Task 4 报告记录的先前 focused connected 合并 run 为 142/142，覆盖 `V1ScenarioMetadataTest`、47 parent `V1ScenarioCatalogTest`、47 parent `V1FullUiAcceptanceTest`、Task 2 设置/删除 production navigation 与地点详情 production workspace 流；当前保留 XML 仅为随后 fix-round 的 Metadata + Catalog + Full UI 141/141，不把报告记录的先前合并 run 冒充为当前原始 XML。其余全量构建门禁见 Task 4 报告。
+- 证据边界：未修改生产业务，不扩大 47 条参数化 E2E；未声明真实 AMap、Android 系统权限、安装态重启或物理设备证据。
+- Fix round 1：fixture-only executable builders 全部收为 factory 私有实现，外部只能以完整 `V1ScenarioIdentity` 创建；返回 executable 现在携带并校验完整 identity，同时再核对 fixture/screen/factory。RED 分别证明缺少 identity/seam 的编译失败，以及错误 fixture、number/frame 的伪造返回值未被旧校验拒绝；GREEN 后 focused identity 4/4 通过。矩阵另明确 `d1sTtb/oW9mK` 的设计声明路径与实际 production E2E 路径不同，后者为旅行列表→继续规划→工作台更多→设置→删除这次旅行→确认→旅行列表。
+
+### 2026-09-05 · Batch 7 / Task 5 · A9EKX 自然数据验收
+
+- 状态：`AUTOMATION_AND_HUAWEI_REAL_AMAP_PASS`。
+- 设计：Pencil `A9EKX` context 明确地点池长列表纵向滚动、首次自动 fit 全部 8 个收藏地点、用户手动移动后才允许部分地点离开视野、主抽屉为 432dp 半屏；必要截图中 marker 位于顶部栏、右侧地图控件与半屏 sheet 之外的可见地图区。
+- 自动化：最终 focused JVM 29/29、当前 fresh full JVM 727/727 通过；覆盖首次 fit、普通重组、scope/day/visible-set gesture suppression、真实地点集合变化单次 `PLACE_SET_CHANGED`、显式 search focus 以及 callback latest/dispose guard。`AmapComposeMapTest` listener lifecycle seam 已编译。
+- 设备：Huawei ALN-AL00 使用 `adb install -r` 覆盖安装，未清数据、未卸载、未安装 test APK、未改权限。COLD start 后 9 点初始 RealAmap fit；真实拖动至西藏/青海后行程→地点池保持；production 搜索收藏“天安门-城楼”为第 10 点后计数更新并单次 fit，5 秒后无二次移动；10 点状态再次拖动/tab 往返仍保持。
+- 既有证据：自然搜索收藏至 8 点与列表滚动已在前一轮 Huawei 验收完成；本轮 9→10 点闭环补齐修复后的真实手势保持与集合变化裁决。
+
+### 2026-09-05 · Batch 7 / A9EKX 手势保持修复
+
+- 根因与实现：真实 AMap 使用不消费 `MapView` 触摸事件的 `AMap.OnMapTouchListener`；`ACTION_DOWN` 仅 arm，drag 超过 touch slop 或 pointer down 才单次通知业务。`AmapComposeMap` 用 latest callback 转发同一 host listener，并在 composition dispose 与 host destroy 时清除 listener。`MapViewportController` 在真实手势发生时立即撤销尚未消费的自动 viewport request，之后抑制 section / scope / selected-day / visible-set 变化及普通重组；真实地点集合变化仍只产生一次 `PLACE_SET_CHANGED` 并解除抑制。显式搜索 focus 与定位命令保持独立，不被抑制。
+- TDD：新增 controller 用例先在旧 partial 实现上因 `currentRequest` 未清除而 RED；新增 production ViewModel seam 用例同样先 RED。新增 `AmapComposeMapTest#gestureListenerUsesLatestComposeCallbackAndIsClearedOnDispose` 覆盖 host 不重建时读取最新 callback、listener 仅注册一次、dispose 清理及迟到 callback 被 guard 忽略；因无设备仅完成 Android test 编译。
+- 自动化验证：focused JVM 29/29、当前 fresh full JVM 727/727、`compileDebugAndroidTestKotlin`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check` 通过。
+- Huawei 复验：ALN-AL00 使用 `adb install -r` 覆盖安装，未清数据、未卸载、未安装 test APK、未改权限。COLD start 后地点池显示 9 个自然收藏并执行初始 RealAmap fit；真实拖动后切换行程→地点池，地图保持在拖动后的西藏/青海视口。随后通过 production 搜索收藏“天安门-城楼”为第 10 点，返回工作台后计数变为 10 并执行一次新 fit；5 秒后画面稳定，无再次自动移动。第 10 点场景再次真实拖动并往返 tab，仍保持拖动视口。
+
+### 2026-09-05 · Batch 7 / Task 6 · 计划与证据账本收口
+
+- Batch 7 结果：`U06l7P/oW9mK/d1sTtb` 已有 production AppNavigation + in-memory Room 的设置进入/返回、确认删除、精确级联、primary 切换与回栈清理证据；`d1sTtb` 另有独立 controlled final-state executable。`p4G1tS` 已在 Task 4 的 `trail_map_api36(AVD) - 16` 合并 run 中通过 production workspace saved-place-row bottom sheet 测试；`XsGon` 只有 production workspace Compose + controlled UiState + deterministic fake map 的 typed/visual 证据。以上均不冒充真实 AMap 或物理设备。
+- 路径语义：scenario catalog 的 `declaredPath` 只记录设计声明终点。实际 production navigation 仅在专门的 AppNavigation/Room 测试明确运行时记为 executed；矩阵并列记录两者，不再由 metadata 推断可达。
+- 历史回填：`f7rS8` 只提升为代表性页面/组件自动化与 Huawei 验收，不宣称逐组件物理验收；`DxZ2a` 只提升为分散状态 focused 自动化，整板物理验收保持 PENDING。Batch 1 按页面逐项回填 controlled、production navigation/Room 与 Huawei 证据；Batch 2 `shoPV` 已由 Huawei production workspace + RealAmap + 已授权 AMap consent 完成三图层切换；Batch 3 `lsr1I` 已在 Huawei App 自有 UI 路径验收，但当次 map surface 未授权，不能作为 RealAmap 证据。
+- `A9EKX`：JVM viewport/mapper 自动化通过；Huawei production installed app 已完成自然搜索收藏 8→9→10 点、列表滚动、COLD start 初始 RealAmap fit、修复后手势/tab 往返保持和地点集合变化单次 fit，状态为 PASS。
+- 自动化门禁：当前保留的 Task 4 XML 证实 `trail_map_api36(AVD) - 16` 的 Metadata + Catalog + Full UI 141/141；Task 2 两项 production navigation 与 Task 3 saved-place-row bottom sheet 仅由 Task 4 报告记录的先前 142/142 合并 run 提供可追溯结果，当前没有该 142 项 run 的原始保留 XML。Task 6 运行 full JVM、assemble、AndroidTest assemble、lint；当前无在线设备，未重跑其余 focused connected。
+- 证据轴：每个 `PASS` 必须同时写明 Host、state source、map surface、permission surface、设备/构建来源；缺任一真实表面时只声明相应 automated/controlled 范围，不提升物理证据。
+
+### 2026-09-05 · Batch 7 / Task #84 · 地图手势语义接管
+
+- 实现：`MapTouchInteractionDetector` 只在 drag 超过 slop 或 pointer-down 时单次上报；tap/down/up 不上报，cancel/reset，dispose 后不再上报。`RealAmapMapHost` 以不消费触摸的 AMap `OnMapTouchListener` 接入，listener replacement/destroy 会 dispose 并 clear。`+/-` 继续由 `performUserViewportOperation` 先通知用户 viewport 操作、再调用 host zoom。controller 手势时撤销旧 request，抑制自动 scope/day/visible fit；真实地点集合变化单次 refit 并解除 suppression；search focus/locate 不受影响。latest callback 与 deactivate guard 保持。
+- 测试宿主：`AmapComposeMapTest` 已恢复为 `createAndroidComposeRule<MainActivity>` 并通过 `scenario = rule.activityRule.scenario` 运行既有 API；28 个基线测试全部保留，新增 gesture seam 与 `zoomButtonsReportViewportOperationExactlyOnceBeforeDelegatingToHost` 后当前共 30 项；WorkspaceFlow zoom 集成测试仍为补充。此前 Huawei 运行整类的 29/30 失败，是错误改为 `ActivityScenarioRule` 后的测试基础设施失败，不作为产品失败；本任务仅编译该 instrumentation。
+- 自动化：`MapTouchInteractionDetectorTest` 覆盖 tap、drag、多指、cancel/reset、dispose；`ACTION_DOWN` 仅 arm，drag 超过 slop 或 pointer down 才通知业务。focused JVM、当前 fresh full JVM 727/727、`compileDebugAndroidTestKotlin`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check`、`graphify update .` 全部通过。根据限制未执行 `connectedDebugAndroidTest`，也未安装 test APK。
+- Huawei：ALN-AL00 只通过 `adb install -r` 覆盖 production APK，未清数据、未卸载。创建真实旅行 `GestureVerify`、接受 AMap consent 后，两次不同方向的真实拖动后 行程→地点池均保持手动视口。空数据 production UI 未呈现内部 `+/-` 控件，故不声明按钮真机点击；单击地图后没有可观察的 scope fit target，亦不声明。
+- 已知边界：真实 AMap 手势主链已通过；`AmapComposeMapTest` 和 WorkspaceFlow zoom instrumentation 仅编译。Graphify 更新为 6949 nodes / 16196 edges / 362 communities，并继续报告未触及的 `TripWorkspaceContentTest.kt`、`NetworkMonitor.kt`、`RoutePlanner.kt` 解析 warning。
+
+### Batch 7 完成条件
+
+- [x] 设置页可直接完成删除旅行，并具备取消、失败、同步恢复和权威 Room 回流。
+- [x] 删除后返回列表且不能返回已删除旅行页面。
+- [x] 已安排/仅收藏地点详情使用同一临时 bottom sheet，并保留地图宿主。
+- [ ] 地点详情全部既有动作和状态迁移无回归：静态/JVM、Android test 编译及 Task 4 报告记录的先前 saved-place-row flow 已通过；marker、仅收藏、查看→编辑、save lock 等 Task 3 新增 connected instrumentation 因本轮无设备待补。
+- [x] `d1sTtb` 有独立 executable；47 parent 和全部 variants identity 完整。
+- [x] declared path 与 executed production navigation 证据明确分离。
+- [x] Batch 0–3 按可追溯证据逐项回填。
+- [x] `A9EKX` Huawei 自然数据 / RealAmap 最终验收：8→9 点既有证据与本轮 9→10 点、手势保持、tab 往返及单次集合 refit。
+- [x] Task 6 仅修改实现计划、场景矩阵、矩阵引用契约和任务报告；Batch 7 Tasks 1–4 明确包含生产/测试代码改动。整批未修改 `.pen`、`.kotlin/`、`diagrams/`，未 commit、未 push。
+- [x] 适用静态门禁通过；无设备导致的 focused connected 未运行项已明确记录。
 
 ### 2026-09-03 · Batch 6 / Task 7 · 响应式、IME 与无障碍矩阵
 

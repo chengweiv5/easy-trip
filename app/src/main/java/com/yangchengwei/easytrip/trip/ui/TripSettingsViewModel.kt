@@ -57,11 +57,13 @@ sealed interface TripSettingsEffect {
 }
 data class TripSettingsUiState(
     val tripId: String,
+    val hasAuthoritativeTrip: Boolean = true,
     val name: String = "",
     val startDate: LocalDate? = null,
     val travelMode: TravelMode = TravelMode.FLEXIBLE,
     val days: List<DayUi> = emptyList(),
     val dateRange: DateRangeChangeUiState = DateRangeChangeUiState(),
+    val tripDeletion: TripDeletionUiState = TripDeletionUiState.Idle,
     val pendingDayDeletion: PendingDayDeletion? = null,
     val dayDeletionRetry: DayUi? = null,
     val dayDeleteInProgress: Boolean = false,
@@ -78,6 +80,26 @@ private data class DateRangeCommitProgress(
     val unknownApplyResult: Boolean = false,
 )
 
+private data class TripDeletionProgress(
+    val generation: Long,
+    val minimumCollectorGeneration: Long,
+    val minimumEmissionVersion: Long,
+    val tripId: String,
+    val serviceCompleted: Boolean = false,
+    val roomConfirmed: Boolean = false,
+)
+
+private const val TRIP_DELETE_IMPACT_FAILURE_MESSAGE = "无法加载删除影响，请重试"
+private const val TRIP_DELETE_FAILURE_MESSAGE = "删除失败，请重试"
+private const val TRIP_DELETE_SYNC_FAILURE_MESSAGE = "删除成功，但同步确认失败，请重新同步"
+
+private fun TripDeletionUiState.tripIdOrNull(): String? = when (this) {
+    TripDeletionUiState.Idle -> null
+    is TripDeletionUiState.LoadingImpact -> tripId
+    is TripDeletionUiState.ImpactFailure -> tripId
+    is TripDeletionUiState.Ready -> tripId
+}
+
 class TripSettingsViewModel(
     savedStateHandle: SavedStateHandle,
     private val service: TripService,
@@ -86,7 +108,7 @@ class TripSettingsViewModel(
     private val dateRanges: TripDateRangeService,
 ) : ViewModel() {
     private val tripId: String = checkNotNull(savedStateHandle["tripId"])
-    private val mutableState = MutableStateFlow(TripSettingsUiState(tripId))
+    private val mutableState = MutableStateFlow(TripSettingsUiState(tripId, hasAuthoritativeTrip = false))
     val state: StateFlow<TripSettingsUiState> = mutableState.asStateFlow()
     private val effectsChannel = Channel<TripSettingsEffect>(Channel.BUFFERED)
     val effects: Flow<TripSettingsEffect> = effectsChannel.receiveAsFlow()
@@ -99,6 +121,10 @@ class TripSettingsViewModel(
     private var terminatedTripObservationGeneration: Long? = null
     private var deleteImpactJob: Job? = null
     private var deleteGeneration = 0L
+    private var tripDeletionJob: Job? = null
+    private var tripDeletionGeneration = 0L
+    private var tripDeletionProgress: TripDeletionProgress? = null
+    private var returnToTripListSent = false
 
     init {
         startTripObservation()
@@ -142,13 +168,32 @@ class TripSettingsViewModel(
             dateRangeGeneration++
             dateRangeCommitProgress = null
             previewJob?.cancel()
+            val progress = tripDeletionProgress
+            val isCurrentDeletion = progress != null &&
+                progress.tripId == tripId &&
+                collectorGeneration >= progress.minimumCollectorGeneration &&
+                tripEmissionVersion > progress.minimumEmissionVersion
+            val updatedProgress = if (isCurrentDeletion) {
+                progress!!.copy(roomConfirmed = true)
+            } else {
+                progress
+            }
+            val deletion = mutableState.value.tripDeletion
+            val deletionCompleted = updatedProgress?.serviceCompleted == true && updatedProgress.roomConfirmed
+            tripDeletionProgress = if (deletionCompleted) null else updatedProgress
             mutableState.value = mutableState.value.copy(
                 dateRange = mutableState.value.dateRange.copy(
                     phase = DateRangeChangePhase.Idle,
                     error = null,
                 ),
+                tripDeletion = if (deletionCompleted) TripDeletionUiState.Idle else deletion,
             )
-            effectsChannel.send(TripSettingsEffect.ReturnToTripList)
+            if (progress == null || deletionCompleted) {
+                if (!returnToTripListSent) {
+                    returnToTripListSent = true
+                    effectsChannel.send(TripSettingsEffect.ReturnToTripList)
+                }
+            }
             return
         }
         val baselineEnd = trip.startDate?.plusDays((trip.days.size - 1).toLong())
@@ -160,6 +205,7 @@ class TripSettingsViewModel(
             range.copy(startDate = trip.startDate, baselineEndDate = baselineEnd, endDate = baselineEnd)
         }
         mutableState.value = current.copy(
+            hasAuthoritativeTrip = true,
             name = trip.name,
             startDate = trip.startDate,
             travelMode = trip.travelMode,
@@ -186,6 +232,21 @@ class TripSettingsViewModel(
     private fun handleTripObservationFailure(collectorGeneration: Long) {
         if (collectorGeneration != tripObservationGeneration) return
         terminatedTripObservationGeneration = collectorGeneration
+        val tripDeletion = tripDeletionProgress
+        val currentTripDeletion = mutableState.value.tripDeletion as? TripDeletionUiState.Ready
+        if (tripDeletion != null && currentTripDeletion?.tripId == tripDeletion.tripId) {
+            if (tripDeletion.serviceCompleted) {
+                mutableState.value = mutableState.value.copy(
+                    tripDeletion = currentTripDeletion.copy(
+                        isDeleting = false,
+                        errorMessage = TRIP_DELETE_SYNC_FAILURE_MESSAGE,
+                        confirmationSyncFailed = true,
+                    ),
+                    observationError = null,
+                )
+            }
+            return
+        }
         val progress = dateRangeCommitProgress
         if (progress == null) {
             mutableState.value = mutableState.value.copy(observationError = "无法加载旅行设置，请重试")
@@ -213,11 +274,21 @@ class TripSettingsViewModel(
         )
     }
 
-    private fun dateMutationLocked(): Boolean = mutableState.value.dateRange.phase !is DateRangeChangePhase.Idle
+    private fun tripDeletionWriteLocked(): Boolean = when (val deletion = mutableState.value.tripDeletion) {
+        TripDeletionUiState.Idle -> false
+        is TripDeletionUiState.LoadingImpact,
+        is TripDeletionUiState.ImpactFailure,
+        is TripDeletionUiState.Ready -> true
+    }
 
-    private fun dayDeletionWriteLocked(): Boolean = dateMutationLocked() || mutableState.value.dayDeleteInProgress
+    private fun dateMutationLocked(): Boolean =
+        mutableState.value.dateRange.phase !is DateRangeChangePhase.Idle || tripDeletionWriteLocked()
 
-    private fun dateRangeWriteLocked(): Boolean = dateMutationLocked() || mutableState.value.dayDeleteInProgress
+    private fun dayDeletionWriteLocked(): Boolean =
+        dateMutationLocked() || mutableState.value.dayDeleteInProgress
+
+    private fun dateRangeWriteLocked(): Boolean =
+        dateMutationLocked() || mutableState.value.dayDeleteInProgress
 
     private fun invalidateDayDeletionForDateMutation() {
         deleteGeneration++
@@ -242,7 +313,7 @@ class TripSettingsViewModel(
 
     fun updateDateEndDraft(endDate: LocalDate?) {
         val range = mutableState.value.dateRange
-        if (range.submitting || range.phase is DateRangeChangePhase.SyncFailed || range.startDate == null) return
+        if (tripDeletionWriteLocked() || range.submitting || range.phase is DateRangeChangePhase.SyncFailed || range.startDate == null) return
         dateRangeGeneration++
         previewJob?.cancel()
         mutableState.value = mutableState.value.copy(
@@ -474,6 +545,156 @@ class TripSettingsViewModel(
                 error = null,
             ),
         )
+    }
+
+    fun requestTripDeletion() {
+        if (
+            !mutableState.value.hasAuthoritativeTrip ||
+            dateMutationLocked() ||
+            mutableState.value.dayDeleteInProgress ||
+            mutableState.value.pendingDayDeletion != null ||
+            mutableState.value.dayDeletionRetry != null
+        ) return
+        loadTripDeletionImpact(mutableState.value.name)
+    }
+
+    private fun loadTripDeletionImpact(tripName: String) {
+        val generation = ++tripDeletionGeneration
+        tripDeletionProgress = null
+        tripDeletionJob?.cancel()
+        mutableState.value = mutableState.value.copy(
+            tripDeletion = TripDeletionUiState.LoadingImpact(tripId, tripName),
+        )
+        tripDeletionJob = viewModelScope.launch {
+            try {
+                val impact = impacts.trip(tripId)
+                if (generation == tripDeletionGeneration && mutableState.value.tripDeletion.tripIdOrNull() == tripId) {
+                    mutableState.value = mutableState.value.copy(
+                        tripDeletion = TripDeletionUiState.Ready(tripId, tripName, impact.toConfirmationUiModel(tripName)),
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Throwable) {
+                if (generation == tripDeletionGeneration && mutableState.value.tripDeletion.tripIdOrNull() == tripId) {
+                    mutableState.value = mutableState.value.copy(
+                        tripDeletion = TripDeletionUiState.ImpactFailure(tripId, tripName, TRIP_DELETE_IMPACT_FAILURE_MESSAGE),
+                    )
+                }
+            }
+        }
+    }
+
+    fun retryTripDeletionImpact() {
+        val deletion = mutableState.value.tripDeletion as? TripDeletionUiState.ImpactFailure ?: return
+        requestTripDeletionFor(deletion.tripName)
+    }
+
+    private fun requestTripDeletionFor(tripName: String) {
+        loadTripDeletionImpact(tripName)
+    }
+
+    fun cancelTripDeletion() {
+        val deletion = mutableState.value.tripDeletion
+        if (deletion is TripDeletionUiState.Ready && (deletion.isDeleting || deletion.confirmationSyncFailed)) return
+        tripDeletionGeneration++
+        tripDeletionProgress = null
+        tripDeletionJob?.cancel()
+        tripDeletionJob = null
+        mutableState.value = mutableState.value.copy(tripDeletion = TripDeletionUiState.Idle)
+    }
+
+    fun confirmTripDeletion() {
+        val deletion = mutableState.value.tripDeletion as? TripDeletionUiState.Ready ?: return
+        if (deletion.isDeleting || deletion.confirmationSyncFailed) return
+        val generation = ++tripDeletionGeneration
+        val progress = TripDeletionProgress(
+            generation = generation,
+            minimumCollectorGeneration = tripObservationGeneration,
+            minimumEmissionVersion = tripEmissionVersion,
+            tripId = deletion.tripId,
+        )
+        tripDeletionProgress = progress
+        mutableState.value = mutableState.value.copy(
+            tripDeletion = deletion.copy(isDeleting = true, errorMessage = null),
+        )
+        tripDeletionJob = viewModelScope.launch {
+            try {
+                service.deleteTrip(deletion.tripId)
+                val currentProgress = tripDeletionProgress
+                if (
+                    generation != tripDeletionGeneration ||
+                    currentProgress?.generation != generation ||
+                    mutableState.value.tripDeletion.tripIdOrNull() != deletion.tripId
+                ) return@launch
+                tripDeletionProgress = currentProgress.copy(serviceCompleted = true)
+                if (completeTripDeletionIfRoomConfirmed(generation, deletion.tripId)) {
+                    return@launch
+                } else if (terminatedTripObservationGeneration == tripObservationGeneration) {
+                    mutableState.value = mutableState.value.copy(
+                        tripDeletion = deletion.copy(
+                            isDeleting = false,
+                            errorMessage = TRIP_DELETE_SYNC_FAILURE_MESSAGE,
+                            confirmationSyncFailed = true,
+                        ),
+                    )
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (_: Throwable) {
+                if (generation == tripDeletionGeneration && mutableState.value.tripDeletion.tripIdOrNull() == deletion.tripId) {
+                    if (!completeTripDeletionIfRoomConfirmed(generation, deletion.tripId)) {
+                        tripDeletionProgress = null
+                        mutableState.value = mutableState.value.copy(
+                            tripDeletion = deletion.copy(
+                                isDeleting = false,
+                                errorMessage = TRIP_DELETE_FAILURE_MESSAGE,
+                            ),
+                        )
+                    }
+                }
+            }
+        }
+    }
+
+    private suspend fun completeTripDeletionIfRoomConfirmed(generation: Long, deletedTripId: String): Boolean {
+        val progress = tripDeletionProgress
+        if (
+            progress?.generation != generation ||
+            progress.tripId != deletedTripId ||
+            !progress.roomConfirmed
+        ) return false
+        tripDeletionProgress = null
+        mutableState.value = mutableState.value.copy(tripDeletion = TripDeletionUiState.Idle)
+        if (!returnToTripListSent) {
+            returnToTripListSent = true
+            effectsChannel.send(TripSettingsEffect.ReturnToTripList)
+        }
+        return true
+    }
+
+    fun retryTripDeletionSync() {
+        val deletion = mutableState.value.tripDeletion as? TripDeletionUiState.Ready ?: return
+        val progress = tripDeletionProgress ?: return
+        if (
+            deletion.isDeleting ||
+            !deletion.confirmationSyncFailed ||
+            !progress.serviceCompleted ||
+            progress.tripId != deletion.tripId
+        ) return
+        tripDeletionProgress = progress.copy(
+            minimumCollectorGeneration = tripObservationGeneration + 1,
+            minimumEmissionVersion = tripEmissionVersion,
+            roomConfirmed = false,
+        )
+        mutableState.value = mutableState.value.copy(
+            tripDeletion = deletion.copy(
+                isDeleting = true,
+                errorMessage = null,
+                confirmationSyncFailed = false,
+            ),
+        )
+        startTripObservation()
     }
 
     fun requestDelete(day: DayUi) {

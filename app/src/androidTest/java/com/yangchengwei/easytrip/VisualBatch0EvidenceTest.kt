@@ -118,7 +118,7 @@ class VisualBatch0EvidenceTest {
                         parentNumber = scenario.number,
                         name = scenario.name,
                         frameId = scenario.frameId,
-                        executableFactory = scenario::createExecutable,
+                        declaredIdentity = scenario.declaredIdentity,
                     ),
                 ) + scenario.variants
             }

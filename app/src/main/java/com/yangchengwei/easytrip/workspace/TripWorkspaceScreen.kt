@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -23,7 +22,6 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -47,9 +45,8 @@ import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.EditItineraryItemContent
 import com.yangchengwei.easytrip.itinerary.ui.ItinerarySaveFailureContent
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
-import com.yangchengwei.easytrip.place.ui.PlaceDetailDialog
-import com.yangchengwei.easytrip.place.ui.PlaceDetailSource
-import com.yangchengwei.easytrip.place.ui.toCandidate
+import com.yangchengwei.easytrip.place.ui.PlaceDetailPanelAction
+import com.yangchengwei.easytrip.place.ui.WorkspacePlaceDetailSheet
 import com.yangchengwei.easytrip.place.ui.PlacePoolAction
 import com.yangchengwei.easytrip.place.ui.PlacePoolUiState
 import com.yangchengwei.easytrip.permission.LocationPermissionSettingsContent
@@ -112,6 +109,15 @@ internal class MapLocateRequestBaselineTracker(private val initialRequest: Int) 
         }
     }
 }
+
+internal enum class WorkspaceRootLayer { Content, Overlay }
+
+internal fun workspaceRootLayers(hasReadyOverlay: Boolean): List<WorkspaceRootLayer> =
+    if (hasReadyOverlay) {
+        listOf(WorkspaceRootLayer.Content, WorkspaceRootLayer.Overlay)
+    } else {
+        listOf(WorkspaceRootLayer.Content)
+    }
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -178,120 +184,126 @@ fun TripWorkspaceScreen(
         mapHostState = mapHostState,
     )
 
-    TripWorkspaceContent(
-        pageState = pageState,
-        mapState = mapState,
-        onMapRetry = {
-            if (mapHostState is MapHostState.Failed) {
-                val replacementAttempt = mapAttempt + 1
-                val requestToForward = pendingLocateRequest
-                    ?: locateBaselineTracker.pendingRequestWhileFailed(locateRequest)
-                requestToForward?.let { request ->
-                    locateBaselineTracker.forwardPendingRequest(consent to replacementAttempt, request)
-                }
-                pendingLocateRequest = null
-                mapAttempt = replacementAttempt
-                failedAttempt = null
-                layerFailureMessage = null
-                mapHostState = MapHostState.Loading
-            }
-        },
-        onAction = { action ->
-            if (action is TripWorkspaceAction.SelectMapLayer) layerFailureMessage = null
-            onAction(action)
-        },
-        placeState = placeState,
-        onPlaceAction = onPlaceAction,
-        itineraryState = itineraryState,
-        onItineraryAction = onItineraryAction,
-        placeContent = placeContent,
-        dayItineraryContent = dayItineraryContent,
-        searchReturn = searchReturn,
-        layerFailureMessage = layerFailureMessage,
-        onLayerFailureMessageDismissed = { layerFailureMessage = null },
-        mapContent = { safeInsets ->
-            val token = consent
-            if (token != null && ready != null) key(mapAttempt, mapReadyTimeoutMillis) {
-                val attemptId = mapAttempt
-                val locateAttemptId = consent to attemptId
-                val initialLocateRequest = locateBaselineTracker.baselineForMount(
-                    attemptId = locateAttemptId,
-                    currentRequest = locateRequest,
-                )
-                AmapComposeMap(
-                    model = ready.map.copy(
-                        viewportRequest = ready.map.viewportRequest?.copy(safeInsets = safeInsets),
-                    ),
-                    onMarkerClick = onMarkerClick,
-                    consent = token,
-                    onMapPoiClick = onMapPoiClick,
-                    layer = ready.mapLayer,
-                    locateRequest = locateRequest,
-                    initialLocateRequest = initialLocateRequest,
-                    modifier = Modifier.fillMaxSize(),
-                    hostFactory = mapHostFactory,
-                    onLayerError = { _, retainedLayer ->
-                        if (attemptId == mapAttempt) {
-                            onAction(TripWorkspaceAction.SelectMapLayer(retainedLayer))
-                            layerFailureMessage = "图层切换失败，已保留当前图层"
+    Box(Modifier.fillMaxSize().testTag("workspace-screen-root")) {
+        workspaceRootLayers(hasReadyOverlay = ready != null).forEach { layer ->
+            when (layer) {
+                WorkspaceRootLayer.Content -> TripWorkspaceContent(
+                    pageState = pageState,
+                    mapState = mapState,
+                    onMapRetry = {
+                        if (mapHostState is MapHostState.Failed) {
+                            val replacementAttempt = mapAttempt + 1
+                            val requestToForward = pendingLocateRequest
+                                ?: locateBaselineTracker.pendingRequestWhileFailed(locateRequest)
+                            requestToForward?.let { request ->
+                                locateBaselineTracker.forwardPendingRequest(consent to replacementAttempt, request)
+                            }
+                            pendingLocateRequest = null
+                            mapAttempt = replacementAttempt
+                            failedAttempt = null
+                            layerFailureMessage = null
+                            mapHostState = MapHostState.Loading
                         }
                     },
-                    onLocateRequestConsumed = { request ->
-                        locateBaselineTracker.recordConsumedRequest(locateAttemptId, request)
+                    onAction = { action ->
+                        if (action is TripWorkspaceAction.SelectMapLayer) layerFailureMessage = null
+                        onAction(action)
                     },
-                    onMapError = {
-                        if (attemptId == mapAttempt) {
-                            failedAttempt = attemptId
-                            pendingLocateRequest = locateBaselineTracker.finishFailedAttempt(
+                    placeState = placeState,
+                    onPlaceAction = onPlaceAction,
+                    itineraryState = itineraryState,
+                    onItineraryAction = onItineraryAction,
+                    placeContent = placeContent,
+                    dayItineraryContent = dayItineraryContent,
+                    searchReturn = searchReturn,
+                    layerFailureMessage = layerFailureMessage,
+                    onLayerFailureMessageDismissed = { layerFailureMessage = null },
+                    mapContent = { safeInsets ->
+                        val token = consent
+                        if (token != null && ready != null) key(mapAttempt, mapReadyTimeoutMillis) {
+                            val attemptId = mapAttempt
+                            val locateAttemptId = consent to attemptId
+                            val initialLocateRequest = locateBaselineTracker.baselineForMount(
                                 attemptId = locateAttemptId,
                                 currentRequest = locateRequest,
                             )
-                            mapHostState = MapHostState.Failed("地图加载失败")
+                            AmapComposeMap(
+                                model = ready.map.copy(
+                                    viewportRequest = ready.map.viewportRequest?.copy(safeInsets = safeInsets),
+                                ),
+                                onMarkerClick = onMarkerClick,
+                                consent = token,
+                                onMapPoiClick = onMapPoiClick,
+                                layer = ready.mapLayer,
+                                locateRequest = locateRequest,
+                                initialLocateRequest = initialLocateRequest,
+                                modifier = Modifier.fillMaxSize(),
+                                hostFactory = mapHostFactory,
+                                onLayerError = { _, retainedLayer ->
+                                    if (attemptId == mapAttempt) {
+                                        onAction(TripWorkspaceAction.SelectMapLayer(retainedLayer))
+                                        layerFailureMessage = "图层切换失败，已保留当前图层"
+                                    }
+                                },
+                                onLocateRequestConsumed = { request ->
+                                    locateBaselineTracker.recordConsumedRequest(locateAttemptId, request)
+                                },
+                                onMapError = {
+                                    if (attemptId == mapAttempt) {
+                                        failedAttempt = attemptId
+                                        pendingLocateRequest = locateBaselineTracker.finishFailedAttempt(
+                                            attemptId = locateAttemptId,
+                                            currentRequest = locateRequest,
+                                        )
+                                        mapHostState = MapHostState.Failed("地图加载失败")
+                                    }
+                                },
+                                onMapReady = {
+                                    if (attemptId == mapAttempt && failedAttempt != attemptId) {
+                                        locateBaselineTracker.finishReadyAttempt(locateAttemptId)
+                                        mapHostState = MapHostState.Ready
+                                    }
+                                },
+                                onUserGesture = { onAction(TripWorkspaceAction.MapGesture) },
+                                readyTimeoutMillis = mapReadyTimeoutMillis,
+                            )
                         }
                     },
-                    onMapReady = {
-                        if (attemptId == mapAttempt && failedAttempt != attemptId) {
-                            locateBaselineTracker.finishReadyAttempt(locateAttemptId)
-                            mapHostState = MapHostState.Ready
-                        }
-                    },
-                    readyTimeoutMillis = mapReadyTimeoutMillis,
                 )
+                WorkspaceRootLayer.Overlay -> ready?.let {
+                    WorkspaceOverlayContent(
+                        state = it,
+                        placeState = placeState,
+                        onPlaceAction = onPlaceAction,
+                        itineraryState = itineraryState,
+                        addToItineraryState = addToItineraryState,
+                        onToggleAddPlace = onToggleAddPlace,
+                        onContinueAddPlaces = onContinueAddPlaces,
+                        onToggleAddTargetDay = onToggleAddTargetDay,
+                        onGoToItineraryAddDay = onGoToItineraryAddDay,
+                        onSelectAddTargetDay = onSelectAddTargetDay,
+                        onSubmitAddPlaces = onSubmitAddPlaces,
+                        onUndoAddPlaces = onUndoAddPlaces,
+                        onRetryPartialAdd = onRetryPartialAdd,
+                        onReselectAddTargetDays = onReselectAddTargetDays,
+                        onViewAddResult = onViewAddResult,
+                        onViewPlacePoolAfterUndo = onViewPlacePoolAfterUndo,
+                        onItineraryAction = onItineraryAction,
+                        onClose = onCloseOverlay,
+                        onDismissMapPlace = onDismissMapPlace,
+                        isPoiSaved = isPoiSaved,
+                        collectionBusyPoiIds = collectionBusyPoiIds,
+                        collectionError = collectionError,
+                        onTogglePoiCollection = onTogglePoiCollection,
+                        locationPermissionUiState = locationPermissionUiState,
+                        onConfirmPermissionExplanation = onConfirmPermissionExplanation,
+                        onDismissPermissionExplanation = onDismissPermissionExplanation,
+                        onDismissLocationSettings = onDismissLocationSettings,
+                        onOpenLocationSettings = onOpenLocationSettings,
+                    )
+                }
             }
-        },
-    )
-
-    ready?.let {
-        WorkspaceOverlayContent(
-            state = it,
-            placeState = placeState,
-            onPlaceAction = onPlaceAction,
-            itineraryState = itineraryState,
-            addToItineraryState = addToItineraryState,
-            onToggleAddPlace = onToggleAddPlace,
-            onContinueAddPlaces = onContinueAddPlaces,
-            onToggleAddTargetDay = onToggleAddTargetDay,
-            onGoToItineraryAddDay = onGoToItineraryAddDay,
-            onSelectAddTargetDay = onSelectAddTargetDay,
-            onSubmitAddPlaces = onSubmitAddPlaces,
-            onUndoAddPlaces = onUndoAddPlaces,
-            onRetryPartialAdd = onRetryPartialAdd,
-            onReselectAddTargetDays = onReselectAddTargetDays,
-            onViewAddResult = onViewAddResult,
-            onViewPlacePoolAfterUndo = onViewPlacePoolAfterUndo,
-            onItineraryAction = onItineraryAction,
-            onClose = onCloseOverlay,
-            onDismissMapPlace = onDismissMapPlace,
-            isPoiSaved = isPoiSaved,
-            collectionBusyPoiIds = collectionBusyPoiIds,
-            collectionError = collectionError,
-            onTogglePoiCollection = onTogglePoiCollection,
-            locationPermissionUiState = locationPermissionUiState,
-            onConfirmPermissionExplanation = onConfirmPermissionExplanation,
-            onDismissPermissionExplanation = onDismissPermissionExplanation,
-            onDismissLocationSettings = onDismissLocationSettings,
-            onOpenLocationSettings = onOpenLocationSettings,
-        )
+        }
     }
 }
 
@@ -323,6 +335,7 @@ fun TripWorkspaceScreen(
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
                 TripWorkspaceAction.Locate -> Unit
+                TripWorkspaceAction.MapGesture -> viewModel.onMapGesture()
                 TripWorkspaceAction.Retry -> viewModel.retry()
                 is TripWorkspaceAction.SelectSection -> viewModel.selectSection(action.section)
                 is TripWorkspaceAction.SelectItineraryScope -> viewModel.selectItineraryScope(action.scope)
@@ -390,60 +403,47 @@ private fun WorkspaceOverlayContent(
         is WorkspaceOverlay.PlaceDetail -> {
             when {
                 state.selectedMapPoi != null -> MapPoiDialog(state.selectedMapPoi, isPoiSaved, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
-                placeState.selectedDetailPlace != null -> placeState.selectedDetailPlace.let { place ->
-                        AlertDialog(
-                            onDismissRequest = { onPlaceAction(PlacePoolAction.DismissDetail); onClose() },
-                            confirmButton = {},
-                            text = {
-                                com.yangchengwei.easytrip.place.ui.PlaceDetailPanel(
-                                    candidate = place.toCandidate(),
-                                    savedPlace = place,
-                                    editState = null,
-                                    source = PlaceDetailSource.PlacePool,
-                                    collectionBusy = false,
-                                    collectionError = null,
-                                    schedule = state.schedulesByPlaceId[place.id]
-                                        ?: PlaceScheduleSummaryUi(isKnown = false),
-                                    onAction = { action ->
-                                        when (action) {
-                                            com.yangchengwei.easytrip.place.ui.PlaceDetailPanelAction.Dismiss -> {
-                                                onPlaceAction(PlacePoolAction.DismissDetail)
-                                                onClose()
-                                            }
-                                            com.yangchengwei.easytrip.place.ui.PlaceDetailPanelAction.StartEdit ->
-                                                onPlaceAction(PlacePoolAction.Edit(place))
-                                            com.yangchengwei.easytrip.place.ui.PlaceDetailPanelAction.StartAddToItinerary ->
-                                                onPlaceAction(PlacePoolAction.StartAddSingle(place.id))
-                                            com.yangchengwei.easytrip.place.ui.PlaceDetailPanelAction.Delete ->
-                                                onPlaceAction(PlacePoolAction.Delete(place))
-                                            else -> Unit
-                                        }
-                                    },
-                                )
+                placeState.selectedDetailPlace != null || placeState.editing != null -> {
+                    val place = placeState.editing ?: placeState.selectedDetailPlace
+                    if (place != null) {
+                        WorkspacePlaceDetailSheet(
+                            state = placeState,
+                            schedule = state.schedulesByPlaceId[place.id]
+                                ?: PlaceScheduleSummaryUi(isKnown = false),
+                            onAction = { action ->
+                                val draft = placeState.detailDraft
+                                when (action) {
+                                    PlaceDetailPanelAction.Dismiss,
+                                    PlaceDetailPanelAction.CancelEdit -> if (!placeState.detailSaving) {
+                                        onPlaceAction(
+                                            if (placeState.editing != null) PlacePoolAction.DismissDialogs
+                                            else PlacePoolAction.DismissDetail,
+                                        )
+                                        onClose()
+                                    }
+                                    PlaceDetailPanelAction.StartEdit -> onPlaceAction(PlacePoolAction.Edit(place))
+                                    PlaceDetailPanelAction.StartAddToItinerary -> onPlaceAction(PlacePoolAction.StartAddSingle(place.id))
+                                    PlaceDetailPanelAction.Delete -> onPlaceAction(PlacePoolAction.Delete(place))
+                                    is PlaceDetailPanelAction.NoteChanged -> draft?.let {
+                                        onPlaceAction(PlacePoolAction.UpdateDraft(action.value, it.tags))
+                                    }
+                                    is PlaceDetailPanelAction.NewTagInputChanged ->
+                                        onPlaceAction(PlacePoolAction.UpdateNewTagInput(action.value))
+                                    PlaceDetailPanelAction.AddTag -> onPlaceAction(PlacePoolAction.AddTag)
+                                    is PlaceDetailPanelAction.AddPresetTag -> draft?.let {
+                                        onPlaceAction(PlacePoolAction.UpdateDraft(it.note, it.tags + action.name))
+                                    }
+                                    is PlaceDetailPanelAction.RemoveTag -> onPlaceAction(PlacePoolAction.RemoveTag(action.name))
+                                    PlaceDetailPanelAction.SaveEdit -> draft?.let {
+                                        onPlaceAction(PlacePoolAction.UpdateDetails(it.note, it.tags))
+                                    }
+                                    PlaceDetailPanelAction.ToggleCollection -> Unit
+                                }
                             },
                         )
                     }
+                }
                 state.selectedMarker != null -> MarkerDialog(state.selectedMarker, state.selectedMarkerPoi, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
-                placeState.editing != null && placeState.detailDraft != null -> PlaceDetailDialog(
-                    place = placeState.editing,
-                    draft = placeState.detailDraft,
-                    saving = placeState.detailSaving,
-                    error = placeState.detailSaveError,
-                    source = PlaceDetailSource.PlacePool,
-                    onNoteChange = { onPlaceAction(PlacePoolAction.UpdateDraft(it, placeState.detailDraft.tags)) },
-                    onTagsChange = { onPlaceAction(PlacePoolAction.UpdateDraft(placeState.detailDraft.note, it)) },
-                    onNewTagInputChange = { onPlaceAction(PlacePoolAction.UpdateNewTagInput(it)) },
-                    onAddTag = { onPlaceAction(PlacePoolAction.AddTag) },
-                    onRemoveTag = { onPlaceAction(PlacePoolAction.RemoveTag(it)) },
-                    onDismiss = {
-                        if (!placeState.detailSaving) {
-                            onPlaceAction(PlacePoolAction.DismissDialogs)
-                            onClose()
-                        }
-                    },
-                    onDelete = { onPlaceAction(PlacePoolAction.Delete(placeState.editing)) },
-                    onSave = { onPlaceAction(PlacePoolAction.UpdateDetails(placeState.detailDraft.note, placeState.detailDraft.tags)) },
-                )
             }
         }
         is WorkspaceOverlay.EditItineraryItem -> itineraryState.editDraft?.let { draft ->

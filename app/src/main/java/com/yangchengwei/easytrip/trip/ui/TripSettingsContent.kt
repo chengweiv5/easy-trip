@@ -72,6 +72,11 @@ fun TripSettingsContent(
     onCancelDeleteDay: () -> Unit,
     onConfirmDeleteDay: () -> Unit,
     onRetryTripObservation: () -> Unit = {},
+    onRequestTripDeletion: () -> Unit = {},
+    onRetryTripDeletionImpact: () -> Unit = {},
+    onCancelTripDeletion: () -> Unit = {},
+    onConfirmTripDeletion: () -> Unit = {},
+    onRetryTripDeletionSync: () -> Unit = {},
 ) {
     var editingName by remember { mutableStateOf(false) }
     var editingDates by remember { mutableStateOf(false) }
@@ -83,8 +88,13 @@ fun TripSettingsContent(
     val dateMutationLocked = datePhase is DateRangeChangePhase.Previewing ||
         datePhase is DateRangeChangePhase.AwaitingConfirmation || dateBusy ||
         datePhase is DateRangeChangePhase.SyncFailed
-    val screenBusy = dateBusy || state.dayDeleteInProgress
-    val settingsWriteLocked = dateMutationLocked || state.dayDeleteInProgress
+    val tripDeletion = state.tripDeletion
+    val tripDeletionLocked = tripDeletion !is TripDeletionUiState.Idle
+    val tripDeleteBusy = tripDeletion is TripDeletionUiState.Ready && tripDeletion.isDeleting
+    val tripDeleteSyncFailed = tripDeletion is TripDeletionUiState.Ready && tripDeletion.confirmationSyncFailed
+    val screenBusy = dateBusy || state.dayDeleteInProgress || tripDeleteBusy || tripDeleteSyncFailed
+    val settingsWriteLocked = dateMutationLocked || state.dayDeleteInProgress || tripDeletionLocked || !state.hasAuthoritativeTrip
+    val tripDeletionEnabled = state.hasAuthoritativeTrip && !settingsWriteLocked
     val hasDates = state.dateRange.startDate != null
     val dateImpact = when (datePhase) {
         is DateRangeChangePhase.AwaitingConfirmation -> datePhase.impact
@@ -194,9 +204,11 @@ fun TripSettingsContent(
             }
             Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("危险操作", color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.labelLarge)
-                Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius), color = MaterialTheme.colorScheme.errorContainer, border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = .25f))) {
-                    Text("删除旅行请返回旅行列表操作", Modifier.padding(14.dp), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-                }
+                EasyTripDangerButton(
+                    onClick = onRequestTripDeletion,
+                    enabled = tripDeletionEnabled,
+                    modifier = Modifier.fillMaxWidth().testTag("settings-delete-trip"),
+                ) { Text("删除这次旅行") }
             }
         }
     }
@@ -233,6 +245,13 @@ fun TripSettingsContent(
             onConfirm = onConfirmDeleteDay, onDismiss = onCancelDeleteDay, busy = state.dayDeleteInProgress, errorMessage = state.dayDeleteError,
         )
     }
+    TripDeletionDialog(
+        deletion = tripDeletion,
+        onCancel = onCancelTripDeletion,
+        onRetryImpact = onRetryTripDeletionImpact,
+        onConfirm = onConfirmTripDeletion,
+        onRetrySync = onRetryTripDeletionSync,
+    )
 }
 
 @Composable

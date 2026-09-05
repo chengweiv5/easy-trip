@@ -21,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.rememberUpdatedState
 import android.content.Context
 import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Color
@@ -28,7 +29,9 @@ import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
+import android.view.MotionEvent
 import android.view.View
+import android.view.ViewConfiguration
 import android.widget.TextView
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -149,6 +152,63 @@ internal fun Poi.toMapPoiUi(address: String = ""): MapPoiUi? {
     )
 }
 
+internal fun performUserViewportOperation(
+    onUserViewportOperation: () -> Unit,
+    operation: () -> Unit,
+) {
+    onUserViewportOperation()
+    operation()
+}
+
+internal class MapTouchInteractionDetector(
+    private val touchSlop: Float,
+    private val onInteraction: () -> Unit,
+) {
+    private var active = true
+    private var armed = false
+    private var reported = false
+    private var downX = 0f
+    private var downY = 0f
+
+    fun onDown(x: Float, y: Float) {
+        if (!active) return
+        armed = true
+        reported = false
+        downX = x
+        downY = y
+    }
+
+    fun onMove(x: Float, y: Float) {
+        if (armed && !reported && exceedsTouchSlop(x, y)) reportInteraction()
+    }
+
+    fun onPointerDown() {
+        if (armed && !reported) reportInteraction()
+    }
+
+    fun onUp() = resetSequence()
+
+    fun onCancel() = resetSequence()
+
+    fun dispose() {
+        active = false
+        resetSequence()
+    }
+
+    private fun exceedsTouchSlop(x: Float, y: Float): Boolean =
+        (x - downX) * (x - downX) + (y - downY) * (y - downY) > touchSlop * touchSlop
+
+    private fun reportInteraction() {
+        reported = true
+        onInteraction()
+    }
+
+    private fun resetSequence() {
+        armed = false
+        reported = false
+    }
+}
+
 internal class MapHostCallbackGuard {
     private var active = true
     private var terminalFailure = false
@@ -156,8 +216,17 @@ internal class MapHostCallbackGuard {
     private var readyReported = false
     private var disposalFailureReported = false
     private var renderGeneration = 0L
+    private var hostCallback: () -> Unit = {}
 
     fun beginRender(): Long = ++renderGeneration
+
+    fun updateHostCallback(callback: () -> Unit) {
+        hostCallback = callback
+    }
+
+    fun dispatchHost() {
+        if (active && !terminalFailure) hostCallback()
+    }
 
     fun dispatchHost(callback: () -> Unit) {
         if (active && !terminalFailure) callback()
@@ -216,6 +285,7 @@ interface AmapMapHost {
     fun zoomIn() = Unit
     fun zoomOut() = Unit
     fun showCurrentLocation() = Unit
+    fun setOnUserGestureListener(listener: (() -> Unit)?) = Unit
     fun render(
         model: MapUiModel,
         layer: MapLayer,
@@ -377,6 +447,7 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     private var renderedOverlays: MapUiModel? = null
     private var consumedViewportId: Long? = null
     private var consumedViewportInsets = MapViewportInsets()
+    private var touchInteractionDetector: MapTouchInteractionDetector? = null
     private val layerController = MapLayerApplicationController { rendering ->
         mapView.map.mapType = rendering.mapType
         mapView.map.showMapText(rendering.showMapText)
@@ -395,6 +466,7 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     override fun onPause() = mapView.onPause()
     override fun onDestroy() {
         setOnReadyListener(null)
+        setOnUserGestureListener(null)
         mapView.onDestroy()
     }
     override fun zoomIn() = mapView.map.animateCamera(CameraUpdateFactory.zoomIn())
@@ -406,6 +478,29 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
                 CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 16f),
             )
         }
+    }
+    override fun setOnUserGestureListener(listener: (() -> Unit)?) {
+        touchInteractionDetector?.dispose()
+        val detector = listener?.let { onUserGesture ->
+            MapTouchInteractionDetector(
+                touchSlop = ViewConfiguration.get(mapView.context).scaledTouchSlop.toFloat(),
+                onInteraction = onUserGesture,
+            )
+        }
+        touchInteractionDetector = detector
+        mapView.map.setOnMapTouchListener(
+            detector?.let {
+                AMap.OnMapTouchListener { event ->
+                    when (event.actionMasked) {
+                        MotionEvent.ACTION_DOWN -> it.onDown(event.x, event.y)
+                        MotionEvent.ACTION_MOVE -> it.onMove(event.x, event.y)
+                        MotionEvent.ACTION_POINTER_DOWN -> it.onPointerDown()
+                        MotionEvent.ACTION_UP -> it.onUp()
+                        MotionEvent.ACTION_CANCEL -> it.onCancel()
+                    }
+                }
+            },
+        )
     }
     override fun render(
         model: MapUiModel,
@@ -537,6 +632,7 @@ fun AmapComposeMap(
     onLocateRequestConsumed: (Int) -> Unit = {},
     onMapError: (Throwable) -> Unit = {},
     onMapReady: () -> Unit = {},
+    onUserGesture: () -> Unit = {},
     retryKey: Int = 0,
     readyTimeoutMillis: Long = DEFAULT_MAP_READY_TIMEOUT_MILLIS,
 ) {
@@ -545,6 +641,7 @@ fun AmapComposeMap(
     if (!consent.isActive(consentSnapshot)) return
     consent.validateActive()
     val lifecycleOwner = LocalLifecycleOwner.current
+    val currentOnUserGesture by rememberUpdatedState(onUserGesture)
     val attemptKey = remember(retryKey, readyTimeoutMillis) { retryKey to readyTimeoutMillis }
     val mapFailureState = remember(context, consent, lifecycleOwner, attemptKey) { mutableStateOf<Throwable?>(null) }
     var mapReady by remember(context, consent, lifecycleOwner, attemptKey) { mutableStateOf(false) }
@@ -552,6 +649,7 @@ fun AmapComposeMap(
     var consumedLocateRequest by remember(context, consent, lifecycleOwner, attemptKey) { mutableIntStateOf(initialLocateRequest) }
     var watchdogRevision by remember(context, consent, lifecycleOwner, attemptKey) { mutableIntStateOf(0) }
     val callbackGuard = remember(context, consent, lifecycleOwner, attemptKey) { MapHostCallbackGuard() }
+    callbackGuard.updateHostCallback(currentOnUserGesture)
     val watchdog = remember(context, consent, lifecycleOwner, attemptKey) {
         MapReadyWatchdog(readyTimeoutMillis) {
             callbackGuard.reportHostError(MapReadyTimeoutException()) { mapFailureState.value = it }
@@ -569,6 +667,7 @@ fun AmapComposeMap(
                         mapReady = true
                     }
                 }
+                host.setOnUserGestureListener(callbackGuard::dispatchHost)
                 host.onCreate()
             }
         }.onFailure { error ->
@@ -634,6 +733,7 @@ fun AmapComposeMap(
             callbackGuard.deactivate()
             watchdog.cancel()
             host.setOnReadyListener(null)
+            host.setOnUserGestureListener(null)
             lifecycleOwner.lifecycle.removeObserver(observer)
             controller.dispose()
         }
@@ -680,8 +780,12 @@ fun AmapComposeMap(
             Modifier.align(Alignment.CenterEnd).padding(end = 10.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp),
         ) {
-            MapZoomButton("+", "zoom-in", host::zoomIn)
-            MapZoomButton("−", "zoom-out", host::zoomOut)
+            MapZoomButton("+", "zoom-in") {
+                performUserViewportOperation(currentOnUserGesture, host::zoomIn)
+            }
+            MapZoomButton("−", "zoom-out") {
+                performUserViewportOperation(currentOnUserGesture, host::zoomOut)
+            }
         }
     }
 }

@@ -53,18 +53,37 @@ class MapHostCallbackGuardTest {
     }
 
     @Test
+    fun hostCallbackUsesLatestCallbackWithoutReplacingRegisteredListener() {
+        val guard = MapHostCallbackGuard()
+        var firstCallbackCount = 0
+        var latestCallbackCount = 0
+
+        guard.updateHostCallback { firstCallbackCount++ }
+        val registeredListener: () -> Unit = { guard.dispatchHost() }
+        guard.updateHostCallback { latestCallbackCount++ }
+        registeredListener()
+
+        assertEquals(0, firstCallbackCount)
+        assertEquals(1, latestCallbackCount)
+    }
+
+    @Test
     fun ignoresCallbacksAfterDeactivation() {
         val guard = MapHostCallbackGuard()
         var readyCount = 0
         var errorCount = 0
+        var hostEventCount = 0
 
         val generation = guard.beginRender()
+        guard.updateHostCallback { hostEventCount++ }
         guard.deactivate()
         guard.reportReady(generation) { readyCount++ }
         guard.reportError(generation, IllegalStateException("late")) { errorCount++ }
+        guard.dispatchHost()
 
         assertEquals(0, readyCount)
         assertEquals(0, errorCount)
+        assertEquals(0, hostEventCount)
     }
 
     @Test

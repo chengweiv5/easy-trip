@@ -42,6 +42,13 @@ internal fun workspaceLayoutMetrics(
     overlayGap = overlayGap,
 )
 
+internal fun workspacePlaceDetailSheetHeight(availableHeight: Dp): Dp {
+    val height = availableHeight.coerceAtLeast(0.dp)
+    if (height < 416.dp) return height
+    val proportionalHeight = height * 490f / 782f
+    return proportionalHeight.coerceIn(320.dp, 560.dp)
+}
+
 internal fun workspaceLayoutMetrics(
     availableHeight: Dp,
     visibleSheetHeight: Dp,

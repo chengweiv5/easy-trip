@@ -157,4 +157,30 @@ class WorkspaceLayoutMetricsTest {
         assertFalse(workspaceLayerMenuFits(tooNarrow))
         assertTrue(workspaceLayerMenuFits(baseline))
     }
+
+    @Test fun `place detail sheet follows design ratio with bounded responsive height`() {
+        assertEquals(490.dp, workspacePlaceDetailSheetHeight(782.dp))
+        assertEquals(320.dp, workspacePlaceDetailSheetHeight(500.dp))
+        assertEquals(560.dp, workspacePlaceDetailSheetHeight(1_000.dp))
+    }
+
+    @Test fun `place detail sheet fills extremely short workspace without invalid height`() {
+        assertEquals(0.dp, workspacePlaceDetailSheetHeight(0.dp))
+        assertEquals(32.dp, workspacePlaceDetailSheetHeight(32.dp))
+        assertEquals(48.dp, workspacePlaceDetailSheetHeight(48.dp))
+        assertEquals(96.dp, workspacePlaceDetailSheetHeight(96.dp))
+        assertEquals(120.dp, workspacePlaceDetailSheetHeight(120.dp))
+        assertEquals(400.dp, workspacePlaceDetailSheetHeight(400.dp))
+    }
+
+    @Test fun `workspace root layers content before an overlay only when ready`() {
+        assertEquals(
+            listOf(WorkspaceRootLayer.Content),
+            workspaceRootLayers(hasReadyOverlay = false),
+        )
+        assertEquals(
+            listOf(WorkspaceRootLayer.Content, WorkspaceRootLayer.Overlay),
+            workspaceRootLayers(hasReadyOverlay = true),
+        )
+    }
 }

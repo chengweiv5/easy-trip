@@ -107,7 +107,7 @@ import java.time.LocalDate
 internal typealias V1ComposeRule = AndroidComposeTestRule<ActivityScenarioRule<ComponentActivity>, ComponentActivity>
 
 data class ScenarioFixture(val id: String, val screen: ScenarioScreen)
-data class ScenarioPath(val steps: List<ScenarioScreen>) {
+data class DeclaredScenarioPath(val steps: List<ScenarioScreen>) {
     init { require(steps.isNotEmpty()) }
     val description: String get() = steps.joinToString(" → ") { it.label }
 }
@@ -130,8 +130,10 @@ enum class ScenarioScreen(val label: String) {
 }
 
 interface V1ScenarioExecutable {
+    val declaredIdentity: V1ScenarioIdentity
+        get() = error("Executable is not bound to a declared scenario identity")
     val fixture: ScenarioFixture
-    val reachablePath: ScenarioPath
+    val declaredPath: DeclaredScenarioPath
     val factoryIdentity: String
     fun setup()
     fun render(compose: V1ComposeRule)
@@ -141,7 +143,7 @@ interface V1ScenarioExecutable {
 
 private class ComposeScenario(
     override val fixture: ScenarioFixture,
-    override val reachablePath: ScenarioPath,
+    override val declaredPath: DeclaredScenarioPath,
     private val reset: () -> Unit = {},
     private val content: @androidx.compose.runtime.Composable () -> Unit,
     private val interact: V1ComposeRule.() -> Unit = {},
@@ -153,6 +155,11 @@ private class ComposeScenario(
     override fun actions(compose: V1ComposeRule) = compose.interact()
     override fun assertions(compose: V1ComposeRule) = compose.verify()
 }
+
+private class IdentityBoundScenario(
+    override val declaredIdentity: V1ScenarioIdentity,
+    executable: V1ScenarioExecutable,
+) : V1ScenarioExecutable by executable
 
 data class WorkspaceSheetScenarioSpec(
     val number: Int,
@@ -174,7 +181,55 @@ data class WorkspaceEmptyScenarioFixture(
 )
 
 object V1ScenarioExecutableFactory {
-    fun create(number: Int, frameId: String, fixtureId: String): V1ScenarioExecutable = when (number) {
+    fun create(identity: V1ScenarioIdentity): V1ScenarioExecutable = create(identity) {
+        IdentityBoundScenario(
+            declaredIdentity = identity,
+            executable = createDeclared(identity.parentNumber, identity.frameId, identity.fixtureId),
+        )
+    }
+
+    internal fun create(
+        identity: V1ScenarioIdentity,
+        executableFactory: () -> V1ScenarioExecutable,
+    ): V1ScenarioExecutable {
+        require(identity in V1ScenarioFixtures.allIdentities) {
+            "Unknown exact scenario identity: ${identity.signature}"
+        }
+        val executable = executableFactory()
+        require(executable.declaredIdentity == identity) {
+            "Scenario ${identity.signature} returned identity ${executable.declaredIdentity.signature}"
+        }
+        require(executable.fixture.id == identity.fixtureId) {
+            "Scenario ${identity.parentNumber}/${identity.frameId} must use fixture ${identity.fixtureId}, was ${executable.fixture.id}"
+        }
+        require(executable.fixture.screen == identity.screen) {
+            "Scenario ${identity.parentNumber}/${identity.frameId} must use screen ${identity.screen}, was ${executable.fixture.screen}"
+        }
+        require(executable.factoryIdentity == identity.factoryIdentity) {
+            "Scenario ${identity.parentNumber}/${identity.frameId} must use factory ${identity.factoryIdentity}, was ${executable.factoryIdentity}"
+        }
+        return executable
+    }
+
+    private fun createDeclared(number: Int, frameId: String, fixtureId: String): V1ScenarioExecutable {
+        require(
+            V1ScenarioFixtures.allIdentities.any { identity ->
+                identity.parentNumber == number &&
+                    identity.frameId == frameId &&
+                    identity.fixtureId == fixtureId
+            },
+        ) { "Unknown scenario identity: number=$number frame=$frameId fixture=$fixtureId" }
+        return when (number to frameId) {
+        1 to "K9h3r" -> existingTrips(fixtureId)
+        1 to "d1sTtb" -> deletedTripFinalState(fixtureId)
+        2 to "BrYVA" -> workspaceAllEmpty(fixtureId)
+        2 to "jQhXs" -> shortPlacePool(fixtureId)
+        4 to "WFOpg" -> itineraryAllEmpty(fixtureId)
+        4 to "nAdK8" -> workspaceItinerary(fixtureId)
+        4 to "mz2IS" -> workspaceItemEditComplete(fixtureId)
+        4 to "eHTX3" -> workspaceSingleDayRoute(fixtureId)
+        10 to "XsGon" -> onlyCollectedPlaceDetail(fixtureId)
+        else -> when (number) {
         1 -> existingTrips(fixtureId)
         2 -> placePool(fixtureId)
         3 -> searchResults(fixtureId)
@@ -223,9 +278,11 @@ object V1ScenarioExecutableFactory {
         47 -> invalidCreate(fixtureId)
         48 -> editSaveFailure(fixtureId)
         else -> error("Unsupported V1 scenario: $number")
+        }
+        }
     }
 
-    fun workspaceAllEmpty(fixtureId: String): V1ScenarioExecutable = workspaceEmptyScenario(
+    private fun workspaceAllEmpty(fixtureId: String): V1ScenarioExecutable = workspaceEmptyScenario(
         fixtureId = fixtureId,
         section = WorkspaceSection.PLACE_POOL,
         isWorkspaceAllEmpty = true,
@@ -234,7 +291,7 @@ object V1ScenarioExecutableFactory {
         expectedText = "旅行还是空的",
     )
 
-    fun itineraryAllEmpty(fixtureId: String): V1ScenarioExecutable = workspaceEmptyScenario(
+    private fun itineraryAllEmpty(fixtureId: String): V1ScenarioExecutable = workspaceEmptyScenario(
         fixtureId = fixtureId,
         section = WorkspaceSection.ITINERARY,
         isWorkspaceAllEmpty = false,
@@ -243,7 +300,7 @@ object V1ScenarioExecutableFactory {
         expectedText = "还没有安排行程",
     )
 
-    fun itineraryAllEmptyFixture(): WorkspaceEmptyScenarioFixture {
+    private fun itineraryAllEmptyFixture(): WorkspaceEmptyScenarioFixture {
         val day = TripDay("day-1", 0)
         val placeState = PlacePoolUiState(rows = listOf(SavedPlaceRowUi(savedPlace(), 0, false)))
         val wholeTripDays = listOf(WholeTripDayUi(day.id, 1, emptyList(), emptyList()))
@@ -297,7 +354,7 @@ object V1ScenarioExecutableFactory {
         )
         return ComposeScenario(
             ScenarioFixture(fixtureId, ScenarioScreen.WORKSPACE),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
             content = {
                 TripWorkspaceContent(
                     pageState = TripWorkspacePageState.Ready(ready),
@@ -328,7 +385,7 @@ object V1ScenarioExecutableFactory {
         val actions = mutableListOf<PlacePoolAction>()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.PLACE_POOL),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
             actions::clear,
             { com.yangchengwei.easytrip.place.ui.PlacePoolContent(PlacePoolUiState(rows = placeRows()), showSearch = false, onAction = actions::add) },
             { onNodeWithTag("start-add-to-itinerary").performClick() },
@@ -338,7 +395,7 @@ object V1ScenarioExecutableFactory {
 
     private fun searchResults(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.SEARCH),
-        ScenarioPath(listOf(ScenarioScreen.WORKSPACE, ScenarioScreen.SEARCH)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.WORKSPACE, ScenarioScreen.SEARCH)),
         content = {
             PlaceSearchContent(
                 PlaceSearchUiState(search = PlaceSearchState("西湖", listOf(PlaceCandidate("poi-1", "西湖", "杭州市西湖区", GeoPoint(30.25, 120.15), "0571")), phase = PlaceSearchPhase.Results)),
@@ -355,7 +412,7 @@ object V1ScenarioExecutableFactory {
         var saved = false
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.PLACE_DETAIL),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.PLACE_DETAIL)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.PLACE_DETAIL)),
             { saved = false },
             { PlaceDetailContent(savedPlace(), PlaceDetailDraft("湖边散步", setOf("自然"), "place-1"), false, null, {}, {}, {}, { saved = true }) },
             { onNodeWithText("保存").performClick() },
@@ -363,14 +420,14 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    fun shortPlacePool(id: String): V1ScenarioExecutable {
+    private fun shortPlacePool(id: String): V1ScenarioExecutable {
         val rows = (1..3).map { index ->
             SavedPlaceRowUi(savedPlace().copy(id = "place-$index", amapPoiId = "poi-$index", name = "收藏地点$index"), 0, false)
         }
         val ready = readyState()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.WORKSPACE),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
             content = {
                 TripWorkspaceContent(
                     pageState = TripWorkspacePageState.Ready(ready.copy(section = WorkspaceSection.PLACE_POOL)),
@@ -387,12 +444,12 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    fun onlyCollectedPlaceDetail(id: String): V1ScenarioExecutable {
+    private fun onlyCollectedPlaceDetail(id: String): V1ScenarioExecutable {
         val place = savedPlace()
         val ready = readyState()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.WORKSPACE),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.PLACE_DETAIL)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.PLACE_DETAIL)),
             content = {
                 TripWorkspaceScreen(
                     pageState = TripWorkspacePageState.Ready(
@@ -430,7 +487,7 @@ object V1ScenarioExecutableFactory {
         var continued = false
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.PLACE_POOL),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
             { continued = false },
             { SelectPlacesContent(placeRows(), AddToItineraryUiState(selectedPlaceIds = listOf("place-1"), step = AddToItineraryStep.SELECT_PLACES), {}, { continued = true }, {}) },
             { onNodeWithTag("select-places-continue").performClick() },
@@ -440,7 +497,7 @@ object V1ScenarioExecutableFactory {
 
     private fun targetDay(id: String, targetMissing: Boolean, submitting: Boolean) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.TARGET_DAY),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
         content = {
             SelectTargetDayContent(
                 listOf(TripDay("day-1", 0), TripDay("day-2", 1)),
@@ -463,7 +520,7 @@ object V1ScenarioExecutableFactory {
 
     private fun longTargetDays(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.TARGET_DAY),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.TARGET_DAY)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.TARGET_DAY)),
         content = { SelectTargetDayContent((0 until 30).map { TripDay("day-$it", it) }, AddToItineraryUiState(selectedPlaceIds = listOf("place-1"), validityInitialized = true, step = AddToItineraryStep.SELECT_TARGET_DAY), {}, {}, {}) },
         verify = { onNodeWithTag("select-target-day-list").assertIsDisplayed(); onNodeWithText("请选择旅行日").assertIsDisplayed() },
     )
@@ -480,7 +537,7 @@ object V1ScenarioExecutableFactory {
         val days = listOf(TripDay("day-1", 0), TripDay("day-2", 1))
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.TARGET_DAY),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
             reset = { state = state.copy(selectedTargetDayIds = emptyList(), targetDayId = null) },
             content = {
                 SelectTargetDayContent(
@@ -504,7 +561,7 @@ object V1ScenarioExecutableFactory {
 
     private fun noTripDaysAddGuidance(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.TARGET_DAY),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
         content = {
             SelectTargetDayContent(
                 days = emptyList(),
@@ -531,7 +588,7 @@ object V1ScenarioExecutableFactory {
         )
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.TARGET_DAY),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY)),
             reset = { state = state.copy(selectedTargetDayIds = emptyList(), targetDayId = null) },
             content = { SelectTargetDayContent(days, state, {}, { dayId -> state = state.copy(selectedTargetDayIds = listOf(dayId), targetDayId = dayId) }, {}, selectedPlaceName = "西湖") },
             interact = {
@@ -553,7 +610,7 @@ object V1ScenarioExecutableFactory {
         var continued = false
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.PLACE_POOL),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.PLACE_POOL)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.PLACE_POOL)),
             reset = { state = state.copy(selectedPlaceIds = emptyList()); continued = false },
             content = { SelectPlacesContent(rows, state, { placeId -> state = state.copy(selectedPlaceIds = state.selectedPlaceIds.toMutableList().apply { if (!remove(placeId)) add(placeId) }) }, { continued = true }, {}) },
             interact = { onNodeWithTag("select-place-place-1").performClick(); onNodeWithTag("select-place-place-2").performClick(); onNodeWithTag("select-places-continue").performClick() },
@@ -563,23 +620,49 @@ object V1ScenarioExecutableFactory {
 
     private fun addComplete(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.ITINERARY),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY, ScenarioScreen.ITINERARY)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL, ScenarioScreen.TARGET_DAY, ScenarioScreen.ITINERARY)),
         content = { DayItineraryContent(DayItineraryUiState(days = listOf(TripDay("day-1", 0)), selectedDayId = "day-1", items = listOf(ItineraryItemUi("item-1", "西湖", "杭州", null, null)), previewOrder = listOf("item-1")), onAction = {}) },
         verify = { onNodeWithText("西湖").assertIsDisplayed() },
     )
 
     private fun emptyPlacePool(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.PLACE_POOL),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PLACE_POOL)),
         content = { com.yangchengwei.easytrip.place.ui.PlacePoolContent(PlacePoolUiState(), showSearch = false, onAction = {}) },
         verify = { onNodeWithText("还没有收藏地点").assertIsDisplayed(); onNodeWithText("搜索地点").assertIsDisplayed() },
+    )
+
+    private fun deletedTripFinalState(id: String): V1ScenarioExecutable = ComposeScenario(
+        ScenarioFixture(id, ScenarioScreen.TRIP_LIST),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
+        content = {
+            TripListContent(
+                TripListUiState(
+                    page = TripListPageState.Content(
+                        primaryTrip = TripCardUiModel("trip-2", "川西小环线", "10 天", "2026年5月15日", "自驾"),
+                        otherTrips = listOf(
+                            TripCardUiModel("trip-3", "泉州古城散步", "7 天", "2026年5月20日", "灵活"),
+                        ),
+                    ),
+                ),
+                onAction = {},
+            )
+        },
+        verify = {
+            onAllNodesWithTag("primary-trip-trip-1").assertCountEquals(0)
+            onAllNodesWithTag("continue-trip-trip-1").assertCountEquals(0)
+            onNodeWithTag("primary-trip-trip-2").assertIsDisplayed()
+            onNodeWithText("川西小环线").assertIsDisplayed()
+            onNodeWithText("泉州古城散步").assertIsDisplayed()
+        },
+        factoryIdentity = "variant-d1sTtb-deleted-final-state",
     )
 
     private fun existingTrips(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<TripListAction>()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.TRIP_LIST),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
             actions::clear,
             {
                 TripListContent(
@@ -606,13 +689,13 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    fun workspaceItinerary(id: String): V1ScenarioExecutable {
+    private fun workspaceItinerary(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<DayItineraryAction>()
         val day = TripDay("day-1", 0)
         val items = itineraryItemsForBatch5()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITINERARY),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
             actions::clear,
             {
                 WorkspaceItineraryContent(
@@ -639,12 +722,12 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    fun workspaceItemEditComplete(id: String): V1ScenarioExecutable {
+    private fun workspaceItemEditComplete(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<DayItineraryAction>()
         val item = ItineraryItemUi("item-1", "西湖", "杭州市西湖区", java.time.LocalTime.of(9, 30), 60, "二层入口集合")
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITEM_EDITOR),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ITEM_EDITOR)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ITEM_EDITOR)),
             actions::clear,
             {
                 DayItineraryContent(
@@ -668,13 +751,13 @@ object V1ScenarioExecutableFactory {
         )
     }
 
-    fun workspaceSingleDayRoute(id: String): V1ScenarioExecutable {
+    private fun workspaceSingleDayRoute(id: String): V1ScenarioExecutable {
         val actions = mutableListOf<DayItineraryAction>()
         val items = itineraryItemsForBatch5()
         val leg = itineraryLegsForBatch5(items).single()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ROUTE_EDITOR),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ROUTE_EDITOR)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ROUTE_EDITOR)),
             actions::clear,
             {
                 DayItineraryContent(
@@ -707,7 +790,7 @@ object V1ScenarioExecutableFactory {
 
     private fun wholeTripItinerary(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.ITINERARY),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
         content = {
             WholeTripItineraryContent(
                 listOf(
@@ -732,7 +815,7 @@ object V1ScenarioExecutableFactory {
         var addRequested = false
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITINERARY),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
             { addRequested = false },
             { Column { WholeTripItineraryContent(emptyList()); AddTripDayContent(false, null, { addRequested = true }, {}) } },
             { onNodeWithText("添加一天").performClick() },
@@ -744,7 +827,7 @@ object V1ScenarioExecutableFactory {
         var confirmed = false
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.TRIP_SETTINGS),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.TRIP_SETTINGS)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.TRIP_SETTINGS)),
             { confirmed = false },
             { AddTripDayContent(false, null, { confirmed = true }, {}) },
             { onNodeWithText("添加一天").performClick() },
@@ -754,7 +837,7 @@ object V1ScenarioExecutableFactory {
 
     private fun waitingForNetwork(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.ITINERARY),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
         content = {
             val items = listOf(
                 ItineraryItemUi("a", "西湖", "杭州", null, null),
@@ -789,7 +872,7 @@ object V1ScenarioExecutableFactory {
         )
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITINERARY),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
             actions::clear,
             {
                 DayItineraryContent(
@@ -816,7 +899,7 @@ object V1ScenarioExecutableFactory {
         val actions = mutableListOf<DayItineraryAction>()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITINERARY),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
             actions::clear,
             {
                 DayItineraryContent(
@@ -877,7 +960,7 @@ object V1ScenarioExecutableFactory {
         verify: V1ComposeRule.() -> Unit,
     ) = ComposeScenario(
         ScenarioFixture(fixtureId, ScenarioScreen.WORKSPACE),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
         content = {
             AddToItineraryResultContent(
                 state = state,
@@ -898,7 +981,7 @@ object V1ScenarioExecutableFactory {
         )
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITINERARY),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
             actions::clear,
             {
                 DayItineraryContent(
@@ -960,7 +1043,7 @@ object V1ScenarioExecutableFactory {
         )
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.TRIP_LIST),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
             {
                 actions.clear()
                 page = TripListPageState.Content(primaryTrip, listOf(retainedTrip))
@@ -1054,7 +1137,7 @@ object V1ScenarioExecutableFactory {
         }
         return ComposeScenario(
             ScenarioFixture(fixtureId, ScenarioScreen.WORKSPACE),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
             reset = {
                 spec.requireIdentity(scenarioNumber, frameId, fixtureId)
                 actions.clear()
@@ -1189,7 +1272,7 @@ object V1ScenarioExecutableFactory {
         )
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.CREATE_TRIP),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.CREATE_TRIP)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.CREATE_TRIP)),
             actions::clear,
             { CreateTripContent(state, actions::add) },
             { onNodeWithTag("create-submit").performClick() },
@@ -1210,7 +1293,7 @@ object V1ScenarioExecutableFactory {
         var state by mutableStateOf(CreateTripUiState("杭州周末", "3", CreateTimeMode.DRAFT))
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.DATE_PICKER),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.CREATE_TRIP, ScenarioScreen.DATE_PICKER)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.CREATE_TRIP, ScenarioScreen.DATE_PICKER)),
             reset = {
                 actions.clear()
                 state = CreateTripUiState("杭州周末", "3", CreateTimeMode.DRAFT)
@@ -1246,7 +1329,7 @@ object V1ScenarioExecutableFactory {
         val actions = mutableListOf<DayItineraryAction>()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITEM_EDITOR),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ITEM_EDITOR)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ITEM_EDITOR)),
             actions::clear,
             {
                 DayItineraryContent(
@@ -1264,7 +1347,7 @@ object V1ScenarioExecutableFactory {
         val leg = RouteLegUi("leg-1", "from", "to", TransportMode.WALK, RouteStatus.SUCCESS, 800, 600, null)
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ROUTE_EDITOR),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ROUTE_EDITOR)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ROUTE_EDITOR)),
             actions::clear,
             { DayItineraryContent(DayItineraryUiState(legs = listOf(leg), modeEditor = com.yangchengwei.easytrip.itinerary.ui.RouteModeEditDraft("leg-1", TransportMode.WALK)), onAction = actions::add) },
             { onNodeWithTag("route-mode-option-DRIVE").performClick() },
@@ -1282,7 +1365,7 @@ object V1ScenarioExecutableFactory {
         )
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.STATUS_MATRIX),
-            ScenarioPath(listOf(ScenarioScreen.STATUS_MATRIX)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.STATUS_MATRIX)),
             content = { Column { legs.forEach { RouteLegContent(it) } } },
             verify = {
                 onNodeWithText("等待联网后计算").assertIsDisplayed()
@@ -1295,7 +1378,7 @@ object V1ScenarioExecutableFactory {
 
     private fun searchLoading(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.SEARCH),
-        ScenarioPath(listOf(ScenarioScreen.WORKSPACE, ScenarioScreen.SEARCH)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.WORKSPACE, ScenarioScreen.SEARCH)),
         content = { PlaceSearchContent(PlaceSearchUiState(search = PlaceSearchState("故宫", phase = PlaceSearchPhase.Loading)), {}) },
         verify = { onNodeWithText("正在搜索地点").assertIsDisplayed(); onNodeWithText("正在查找“故宫”相关结果…").assertIsDisplayed() },
     )
@@ -1333,7 +1416,7 @@ object V1ScenarioExecutableFactory {
         factoryIdentity: String = id,
     ) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.WORKSPACE),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
         {
             actions.clear()
             reset()
@@ -1366,7 +1449,7 @@ object V1ScenarioExecutableFactory {
         verify: V1ComposeRule.() -> Unit,
     ) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.TRIP_SETTINGS),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.TRIP_SETTINGS)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.TRIP_SETTINGS)),
         content = {
             TripSettingsContent(
                 state, {}, {}, {}, {}, {}, {}, onConfirmDateRange, {},
@@ -1395,7 +1478,7 @@ object V1ScenarioExecutableFactory {
         )
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.WORKSPACE),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE)),
             content = {
                 TripWorkspaceContent(
                     pageState = TripWorkspacePageState.Ready(ready),
@@ -1420,7 +1503,7 @@ object V1ScenarioExecutableFactory {
 
     private fun invalidCreate(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.CREATE_TRIP),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.CREATE_TRIP)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.CREATE_TRIP)),
         content = { CreateTripContent(CreateTripUiState(nameError = "请输入旅行名称", dayCountError = "请输入至少 1 天", dateError = "请选择开始日期", timeMode = CreateTimeMode.DATED), {}) },
         verify = {
             listOf(
@@ -1435,7 +1518,7 @@ object V1ScenarioExecutableFactory {
 
     private fun emptyTrips(id: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.TRIP_LIST),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST)),
         content = { TripListContent(TripListUiState(page = TripListPageState.Empty), {}) },
         verify = {
             onNodeWithText("开始规划一次旅行").assertIsDisplayed()
@@ -1448,7 +1531,7 @@ object V1ScenarioExecutableFactory {
         val actions = mutableListOf<DayItineraryAction>()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITINERARY),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
             actions::clear,
             {
                 DayItineraryContent(
@@ -1463,14 +1546,14 @@ object V1ScenarioExecutableFactory {
 
     private fun routeState(id: String, status: RouteStatus, message: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.ITINERARY),
-        ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY)),
         content = { RouteLegContent(RouteLegUi("leg", "a", "b", TransportMode.WALK, status, null, null, message)) },
         verify = { onNodeWithText(message).assertIsDisplayed() },
     )
 
     private fun searchState(id: String, phase: PlaceSearchPhase, message: String) = ComposeScenario(
         ScenarioFixture(id, ScenarioScreen.SEARCH),
-        ScenarioPath(listOf(ScenarioScreen.WORKSPACE, ScenarioScreen.SEARCH)),
+        DeclaredScenarioPath(listOf(ScenarioScreen.WORKSPACE, ScenarioScreen.SEARCH)),
         content = { PlaceSearchContent(PlaceSearchUiState(search = PlaceSearchState("故宫", phase = phase)), {}) },
         verify = { onNodeWithText(message).assertIsDisplayed() },
     )
@@ -1481,7 +1564,7 @@ object V1ScenarioExecutableFactory {
         var dialogVisible by mutableStateOf(true)
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.PERMISSION),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
             { allowed = false; declined = false; dialogVisible = true },
             {
                 val store = remember {
@@ -1526,7 +1609,7 @@ object V1ScenarioExecutableFactory {
         var dismissed = false
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.PERMISSION),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
             { continued = false; dismissed = false },
             { PermissionExplanationContent({ continued = true }, { dismissed = true }) },
             { onNodeWithText("继续").performClick() },
@@ -1547,7 +1630,7 @@ object V1ScenarioExecutableFactory {
         var dismissed = false
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.PERMISSION),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.PERMISSION)),
             { opened = false; dismissed = false },
             { LocationPermissionSettingsContent({ opened = true }, { dismissed = true }) },
             { onNodeWithText("前往设置").performClick() },
@@ -1586,7 +1669,7 @@ object V1ScenarioExecutableFactory {
         val actions = mutableListOf<DayItineraryAction>()
         return ComposeScenario(
             ScenarioFixture(id, ScenarioScreen.ITEM_EDITOR),
-            ScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ITEM_EDITOR)),
+            DeclaredScenarioPath(listOf(ScenarioScreen.TRIP_LIST, ScenarioScreen.WORKSPACE, ScenarioScreen.ITINERARY, ScenarioScreen.ITEM_EDITOR)),
             actions::clear,
             {
                 DayItineraryContent(

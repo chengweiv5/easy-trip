@@ -7,6 +7,23 @@ import com.yangchengwei.easytrip.trip.domain.TripSummary
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 
+fun TripDeleteImpact.toConfirmationUiModel(tripName: String): ConfirmationUiModel = ConfirmationUiModel(
+    title = "删除$tripName？",
+    message = "此操作将永久删除旅行及其中的所有内容，无法撤销。",
+    deletedItems = listOf(
+        "$days 个旅行日",
+        "$places 个收藏地点",
+        "$tags 个标签",
+        "$itineraryItems 个行程项",
+        "$routeLegs 个路线段",
+    ),
+    retainedItems = listOf("其他旅行及其内容"),
+    confirmLabel = "确认删除旅行",
+    dismissLabel = "取消",
+    destructive = true,
+    reversible = false,
+)
+
 sealed interface TripListPageState {
     data object Loading : TripListPageState
     data object Empty : TripListPageState

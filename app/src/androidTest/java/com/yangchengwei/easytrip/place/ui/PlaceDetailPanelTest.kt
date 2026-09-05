@@ -5,7 +5,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -14,7 +16,16 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.requiredWidth
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
 import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
@@ -24,6 +35,7 @@ import com.yangchengwei.easytrip.place.domain.SavedPlace
 import com.yangchengwei.easytrip.workspace.PlaceScheduleDayUi
 import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -195,7 +207,7 @@ class PlaceDetailPanelTest {
         compose.onNodeWithTag("place-detail-dismiss").performClick()
         compose.onNodeWithText("取消").performClick()
 
-        compose.runOnIdle { assert(actions == listOf("dismiss", "dismiss")) }
+        compose.runOnIdle { assertEquals(listOf("dismiss", "dismiss"), actions) }
     }
 
     @Test fun compatibilityWrapperUsesPlacePoolCapabilities() {
@@ -243,7 +255,7 @@ class PlaceDetailPanelTest {
 
         pressBack()
 
-        compose.runOnIdle { assert(!dismissed.value) }
+        compose.runOnIdle { assertTrue(!dismissed.value) }
         compose.onNodeWithText("保存中").assertIsDisplayed()
     }
 
@@ -253,6 +265,40 @@ class PlaceDetailPanelTest {
         compose.onNodeWithTag("place-detail-title")
             .assertTextEquals("故宫博物院")
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
+    }
+
+    @Test fun workspaceSheetEditActionsRemainReachableAtNarrowWidthWithTwoTimesFontScale() {
+        val state = PlacePoolUiState(
+            editing = savedPlace(),
+            detailDraft = PlaceDetailDraft(
+                note = "很长的备注内容用于验证正文能够滚动到底部操作区",
+                tags = (1..8).mapTo(mutableSetOf()) { "标签$it" },
+                placeId = "saved-1",
+            ),
+            tags = (1..8).map { PlaceTag("tag-$it", "标签$it") },
+        )
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                EasyTripTheme {
+                    Box(Modifier.requiredWidth(280.dp).height(400.dp)) {
+                        WorkspacePlaceDetailSheet(
+                            state = state,
+                            schedule = PlaceScheduleSummaryUi(isKnown = true),
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val container = compose.onNodeWithTag("place-detail-bottom-sheet").getUnclippedBoundsInRoot()
+        listOf("place-detail-delete", "place-detail-cancel", "place-detail-save").forEach { tag ->
+            val action = compose.onNodeWithTag(tag).performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+                .getUnclippedBoundsInRoot()
+            assertTrue("action=$action container=$container", action.left >= container.left && action.right <= container.right)
+            assertTrue("action=$action container=$container", action.top >= container.top && action.bottom <= container.bottom)
+        }
     }
 
     private fun setContent(

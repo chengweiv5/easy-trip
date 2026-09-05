@@ -126,6 +126,25 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(WorkspaceBackDecision.LeaveWorkspace, workspaceBackDecision(WorkspaceOverlay.None, AddToItineraryUiState()))
     }
 
+    @Test fun placeDetailBackPolicyLocksOnlyWhileSaving() {
+        assertEquals(
+            WorkspaceBackDecision.CloseOverlay,
+            workspaceBackDecision(
+                WorkspaceOverlay.PlaceDetail(1L),
+                AddToItineraryUiState(),
+                placeDetailSaving = false,
+            ),
+        )
+        assertEquals(
+            WorkspaceBackDecision.Ignore,
+            workspaceBackDecision(
+                WorkspaceOverlay.PlaceDetail(1L),
+                AddToItineraryUiState(),
+                placeDetailSaving = true,
+            ),
+        )
+    }
+
     @Test fun appendDayBackPolicyLocksOnlyItsBusyOverlay() {
         assertEquals(
             WorkspaceBackDecision.Ignore,
@@ -652,6 +671,47 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(2, observedRequests.distinct().size)
     }
 
+    @Test fun `map gesture clears published request and suppresses navigation until place set changes`() = runTest(dispatcher) {
+        val beijingPlace = savedPlace("beijing", 39.9)
+        val shanghaiPlace = savedPlace("shanghai", 31.2)
+        val places = MutablePlaces(listOf(beijingPlace))
+        val model = model(
+            trips = Trips(days("one", "two")),
+            places = places,
+            itineraries = Itineraries(
+                mapOf(
+                    "one" to listOf(item("one-item", 39.9)),
+                    "two" to listOf(item("two-item", 31.2)),
+                ),
+            ),
+        )
+        advanceUntilIdle()
+        assertEquals(ViewportReason.INITIAL, model.state.value.map.viewportRequest?.reason)
+
+        model.onMapGesture()
+        assertNull(model.state.value.map.viewportRequest)
+        model.selectSection(WorkspaceSection.ITINERARY)
+        model.selectItineraryScope(ItineraryScope.Day("two"))
+        model.selectItineraryScope(ItineraryScope.WholeTrip)
+        model.selectSection(WorkspaceSection.PLACE_POOL)
+        advanceUntilIdle()
+        assertNull(model.state.value.map.viewportRequest)
+
+        places.value.value = listOf(beijingPlace, shanghaiPlace)
+        advanceUntilIdle()
+        val changed = model.state.value.map.viewportRequest
+        assertEquals(ViewportReason.PLACE_SET_CHANGED, changed?.reason)
+
+        model.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
+        advanceUntilIdle()
+        assertEquals(changed?.id, model.state.value.map.viewportRequest?.id)
+
+        model.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+        assertEquals(ViewportReason.SCOPE_CHANGED, model.state.value.map.viewportRequest?.reason)
+        assertEquals(changed?.id?.plus(1), model.state.value.map.viewportRequest?.id)
+    }
+
     @Test fun `stale day selection is ignored and real navigation changes request viewport once`() = runTest(dispatcher) {
         val itineraries = Itineraries(
             mapOf(
@@ -683,7 +743,8 @@ class TripWorkspaceNavigationStateTest {
         trips: Trips,
         handle: SavedStateHandle = SavedStateHandle(),
         itineraries: ItineraryRepository = Itineraries(),
-    ) = TripWorkspaceViewModel("trip", trips, Places(), itineraries, Legs(), handle)
+        places: SavedPlaceRepository = Places(),
+    ) = TripWorkspaceViewModel("trip", trips, places, itineraries, Legs(), handle)
 
     private fun itineraryModel() = DayItineraryViewModel(
         tripId = "trip",
@@ -742,8 +803,31 @@ class TripWorkspaceNavigationStateTest {
         override suspend fun deleteTrip(tripId: String) = Unit
     }
 
+    private fun savedPlace(id: String, latitude: Double) = SavedPlace(
+        id = id,
+        tripId = "trip",
+        amapPoiId = "poi-$id",
+        name = id,
+        address = "",
+        point = GeoPoint(latitude, 116.4),
+        note = "",
+        tags = emptyList(),
+    )
+
     private class Places : SavedPlaceRepository {
         override fun observePlaces(tripId: String, tagIds: Set<String>) = flowOf(emptyList<SavedPlace>())
+        override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
+        override fun observeSavedPoiIds(tripId: String) = flowOf(emptySet<String>())
+        override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("place")
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun usageCount(placeId: String) = 0
+        override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
+        override suspend fun deletePlaceAndReferences(placeId: String) = Unit
+    }
+
+    private class MutablePlaces(initial: List<SavedPlace>) : SavedPlaceRepository {
+        val value = MutableStateFlow(initial)
+        override fun observePlaces(tripId: String, tagIds: Set<String>) = value
         override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
         override fun observeSavedPoiIds(tripId: String) = flowOf(emptySet<String>())
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("place")

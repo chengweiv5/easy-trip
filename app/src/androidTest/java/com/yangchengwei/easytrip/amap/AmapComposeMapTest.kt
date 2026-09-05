@@ -4,12 +4,15 @@ import android.view.View
 import androidx.activity.compose.setContent
 import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performClick
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleOwner
 import androidx.lifecycle.LifecycleRegistry
 import androidx.lifecycle.compose.LocalLifecycleOwner
-import androidx.test.ext.junit.rules.ActivityScenarioRule
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import com.yangchengwei.easytrip.MainActivity
 import com.yangchengwei.easytrip.core.model.GeoPoint
@@ -37,7 +40,8 @@ import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class AmapComposeMapTest {
-    @get:Rule val rule = ActivityScenarioRule(MainActivity::class.java)
+    @get:Rule val rule = createAndroidComposeRule<MainActivity>()
+    private val scenario get() = rule.activityRule.scenario
 
     @Test fun sdkPoiTranslationKeepsStableIdAndMarksMissingIdUncollectable() {
         val point = LatLng(39.916, 116.397)
@@ -55,7 +59,7 @@ class AmapComposeMapTest {
         lateinit var locateRequest: androidx.compose.runtime.MutableState<Int>
         val ready = CountDownLatch(1)
         val located = CountDownLatch(1)
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             locateRequest = mutableStateOf(0)
             activity.setContent {
                 AmapComposeMap(
@@ -82,7 +86,7 @@ class AmapComposeMapTest {
         }
 
         assertTrue(ready.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { locateRequest.value = 1 }
+        scenario.onActivity { activity -> locateRequest.value = 1 }
         assertTrue(located.await(5, TimeUnit.SECONDS))
     }
 
@@ -96,7 +100,7 @@ class AmapComposeMapTest {
         val located = CountDownLatch(1)
         var locationCalls = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             owner = MutableLifecycleOwner(Lifecycle.State.RESUMED)
             locateRequest = mutableStateOf(0)
             activity.setContent {
@@ -129,20 +133,20 @@ class AmapComposeMapTest {
         }
 
         assertTrue(listenerRegistered.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { locateRequest.value = 1 }
+        scenario.onActivity { activity -> locateRequest.value = 1 }
         Thread.sleep(300)
         assertEquals(0, locationCalls)
 
-        rule.scenario.onActivity { readyListener() }
+        scenario.onActivity { activity -> readyListener() }
         assertTrue(located.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.STARTED) }
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.RESUMED) }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.STARTED) }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.RESUMED) }
+        scenario.onActivity { activity -> }
         assertEquals(1, locationCalls)
 
-        rule.scenario.onActivity { locateRequest.value = 2 }
+        scenario.onActivity { activity -> locateRequest.value = 2 }
         assertTrue(waitUntil { locationCalls == 2 })
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
         assertEquals(2, locationCalls)
     }
 
@@ -155,7 +159,7 @@ class AmapComposeMapTest {
         val located = CountDownLatch(1)
         var locationCalls = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             owner = MutableLifecycleOwner(Lifecycle.State.RESUMED)
             locateRequest = mutableStateOf(0)
             activity.setContent {
@@ -184,12 +188,12 @@ class AmapComposeMapTest {
         }
 
         assertTrue(ready.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.STARTED) }
-        rule.scenario.onActivity { locateRequest.value = 1 }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.STARTED) }
+        scenario.onActivity { activity -> locateRequest.value = 1 }
+        scenario.onActivity { activity -> }
         assertEquals(0, locationCalls)
 
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.RESUMED) }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.RESUMED) }
         assertTrue(located.await(5, TimeUnit.SECONDS))
         assertEquals(1, locationCalls)
     }
@@ -205,7 +209,7 @@ class AmapComposeMapTest {
         val located = CountDownLatch(1)
         val locatedAttempts = mutableListOf<Int>()
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             retryKey = mutableStateOf(0)
             locateRequest = mutableStateOf(0)
             initialLocateRequest = mutableStateOf(0)
@@ -242,18 +246,18 @@ class AmapComposeMapTest {
         }
 
         assertTrue(listenerRegistered[0].await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { locateRequest.value = 1 }
+        scenario.onActivity { activity -> locateRequest.value = 1 }
         Thread.sleep(300)
         assertTrue(locatedAttempts.isEmpty())
 
-        rule.scenario.onActivity {
+        scenario.onActivity { activity ->
             initialLocateRequest.value = 0
             retryKey.value = 1
         }
         assertTrue(listenerRegistered[1].await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { requireNotNull(readyListeners[1]).invoke() }
+        scenario.onActivity { activity -> requireNotNull(readyListeners[1]).invoke() }
         assertTrue(located.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
         assertEquals(listOf(1), locatedAttempts)
     }
 
@@ -267,7 +271,7 @@ class AmapComposeMapTest {
         val newRequestLocated = CountDownLatch(1)
         val locatedAttempts = mutableListOf<Int>()
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             retryKey = mutableStateOf(0)
             locateRequest = mutableStateOf(0)
             activity.setContent {
@@ -302,19 +306,19 @@ class AmapComposeMapTest {
         }
 
         assertTrue(listenerRegistered[0].await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { locateRequest.value = 1 }
+        scenario.onActivity { activity -> locateRequest.value = 1 }
         Thread.sleep(300)
         assertTrue(locatedAttempts.isEmpty())
 
-        rule.scenario.onActivity { retryKey.value = 1 }
+        scenario.onActivity { activity -> retryKey.value = 1 }
         assertTrue(listenerRegistered[1].await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { requireNotNull(readyListeners[1]).invoke() }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> requireNotNull(readyListeners[1]).invoke() }
+        scenario.onActivity { activity -> }
         assertTrue(locatedAttempts.isEmpty())
 
-        rule.scenario.onActivity { locateRequest.value = 2 }
+        scenario.onActivity { activity -> locateRequest.value = 2 }
         assertTrue(newRequestLocated.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
         assertEquals(listOf(1), locatedAttempts)
     }
 
@@ -329,7 +333,7 @@ class AmapComposeMapTest {
         var locationCalls = 0
         var errors = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             owner = MutableLifecycleOwner(Lifecycle.State.RESUMED)
             locateRequest = mutableStateOf(0)
             activity.setContent {
@@ -360,12 +364,12 @@ class AmapComposeMapTest {
         }
 
         assertTrue(ready.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { locateRequest.value = 1 }
+        scenario.onActivity { activity -> locateRequest.value = 1 }
         assertTrue(attempted.await(5, TimeUnit.SECONDS))
         assertTrue(reported.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.STARTED) }
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.RESUMED) }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.STARTED) }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.RESUMED) }
+        scenario.onActivity { activity -> }
         assertEquals(1, locationCalls)
         assertEquals(1, errors)
     }
@@ -378,7 +382,7 @@ class AmapComposeMapTest {
         val expected = MapPoiUi("B0001", "故宫", "北京市东城区景山前街4号", GeoPoint(39.916, 116.397))
         var received: MapPoiUi? = null
         val emitted = CountDownLatch(1)
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -424,7 +428,7 @@ class AmapComposeMapTest {
         var renderCount = 0
         var readyCount = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -453,10 +457,122 @@ class AmapComposeMapTest {
         assertTrue(listenerRegistered.await(5, TimeUnit.SECONDS))
         assertEquals(0, renderCount)
         assertEquals(0, readyCount)
-        rule.scenario.onActivity { requireNotNull(readyListener).invoke() }
+        scenario.onActivity { activity -> requireNotNull(readyListener).invoke() }
         assertTrue(rendered.await(5, TimeUnit.SECONDS))
         assertTrue(ready.await(5, TimeUnit.SECONDS))
         assertEquals(1, readyCount)
+    }
+
+    @Test fun zoomButtonsReportViewportOperationExactlyOnceBeforeDelegatingToHost() {
+        val registry = ConsentRegistry()
+        val active = registry.decide(true)
+        val token = AmapConsentToken.issue(registry, active.generation)
+        val events = mutableListOf<String>()
+        val rendered = CountDownLatch(1)
+
+        scenario.onActivity { activity ->
+            activity.setContent {
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    hostFactory = { context -> object : AmapMapHost {
+                        override val view = View(context)
+                        override fun canRenderBeforeReady() = true
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() = Unit
+                        override fun zoomIn() { events += "zoom-in" }
+                        override fun zoomOut() { events += "zoom-out" }
+                        override fun render(
+                            model: MapUiModel,
+                            layer: MapLayer,
+                            onMarkerClick: (String) -> Unit,
+                            onLayerError: (Throwable, MapLayer) -> Unit,
+                        ) { rendered.countDown() }
+                    } },
+                    onUserGesture = { events += "viewport" },
+                )
+            }
+        }
+
+        assertTrue(rendered.await(5, TimeUnit.SECONDS))
+        rule.onNodeWithTag("zoom-in").performClick()
+        rule.onNodeWithTag("zoom-out").performClick()
+        rule.waitForIdle()
+
+        assertEquals(listOf("viewport", "zoom-in", "viewport", "zoom-out"), events)
+    }
+
+    @Test fun gestureListenerUsesLatestComposeCallbackAndIsClearedOnDispose() {
+        val registry = ConsentRegistry()
+        val active = registry.decide(true)
+        val token = AmapConsentToken.issue(registry, active.generation)
+        lateinit var callbackVersion: androidx.compose.runtime.MutableState<Int>
+        var gestureListener: (() -> Unit)? = null
+        var firstCallbackCount = 0
+        var latestCallbackCount = 0
+        var listenerRegisteredCount = 0
+        var listenerRemovedCount = 0
+        val listenerRegistered = CountDownLatch(1)
+        val latestCallbackComposed = CountDownLatch(1)
+        val listenerRemoved = CountDownLatch(1)
+
+        scenario.onActivity { activity ->
+            callbackVersion = mutableStateOf(0)
+            activity.setContent {
+                val currentVersion = callbackVersion.value
+                SideEffect {
+                    if (currentVersion == 1) latestCallbackComposed.countDown()
+                }
+                AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    hostFactory = { context -> object : AmapMapHost {
+                        override val view: View = View(context)
+                        override fun canRenderBeforeReady() = true
+                        override fun setOnUserGestureListener(listener: (() -> Unit)?) {
+                            gestureListener = listener
+                            if (listener == null) {
+                                listenerRemovedCount++
+                                listenerRemoved.countDown()
+                            } else {
+                                listenerRegisteredCount++
+                                listenerRegistered.countDown()
+                            }
+                        }
+                        override fun onCreate() = Unit
+                        override fun onResume() = Unit
+                        override fun onPause() = Unit
+                        override fun onDestroy() = Unit
+                    } },
+                    onUserGesture = {
+                        if (currentVersion == 0) firstCallbackCount++ else latestCallbackCount++
+                    },
+                )
+            }
+        }
+
+        assertTrue(listenerRegistered.await(5, TimeUnit.SECONDS))
+        val registeredListener = requireNotNull(gestureListener)
+        scenario.onActivity { activity -> callbackVersion.value = 1 }
+        assertTrue(latestCallbackComposed.await(5, TimeUnit.SECONDS))
+        scenario.onActivity { activity -> registeredListener() }
+        scenario.onActivity { activity -> }
+
+        assertEquals(0, firstCallbackCount)
+        assertEquals(1, latestCallbackCount)
+        assertEquals(1, listenerRegisteredCount)
+
+        registry.decide(false)
+        assertTrue(listenerRemoved.await(5, TimeUnit.SECONDS))
+        registeredListener()
+        scenario.onActivity { activity -> }
+
+        assertEquals(1, latestCallbackCount)
+        assertEquals(1, listenerRemovedCount)
     }
 
     @Test fun withdrawalDisposesActiveMapHostAndIgnoresOldCallbacks() {
@@ -471,7 +587,7 @@ class AmapComposeMapTest {
         var destroyedCount = 0
         var readyCount = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -507,7 +623,7 @@ class AmapComposeMapTest {
         assertTrue(listenerRemoved.await(5, TimeUnit.SECONDS))
         assertTrue(hostDestroyed.await(5, TimeUnit.SECONDS))
         oldCallback.invoke()
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
 
         assertEquals(1, listenerRemovedCount)
         assertEquals(1, destroyedCount)
@@ -526,7 +642,7 @@ class AmapComposeMapTest {
         var renderCount = 0
         var readyCount = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             ownerState = mutableStateOf(TestOwner())
             activity.setContent {
                 CompositionLocalProvider(LocalLifecycleOwner provides ownerState.value) {
@@ -557,14 +673,14 @@ class AmapComposeMapTest {
         }
 
         assertTrue(firstReadyListener.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { ownerState.value = TestOwner() }
+        scenario.onActivity { activity -> ownerState.value = TestOwner() }
         assertTrue(secondReadyListener.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { readyCallbacks.first().invoke() }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> readyCallbacks.first().invoke() }
+        scenario.onActivity { activity -> }
         assertEquals(0, renderCount)
         assertEquals(0, readyCount)
-        rule.scenario.onActivity { readyCallbacks.last().invoke() }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> readyCallbacks.last().invoke() }
+        scenario.onActivity { activity -> }
         assertEquals(1, renderCount)
         assertEquals(1, readyCount)
     }
@@ -578,7 +694,7 @@ class AmapComposeMapTest {
         val destroyedSignal = CountDownLatch(1)
         var errors = 0
         var destroyed = 0
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -596,7 +712,7 @@ class AmapComposeMapTest {
             }
         }
         assertTrue(reported.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
         assertTrue(destroyedSignal.await(5, TimeUnit.SECONDS))
         assertEquals(1, errors)
         assertEquals(1, destroyed)
@@ -610,7 +726,7 @@ class AmapComposeMapTest {
         val events = mutableListOf<String>()
         var errors = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             owner = MutableLifecycleOwner(Lifecycle.State.CREATED)
             activity.setContent {
                 CompositionLocalProvider(LocalLifecycleOwner provides owner) {
@@ -635,11 +751,11 @@ class AmapComposeMapTest {
             }
         }
 
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.STARTED) }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.STARTED) }
         Thread.sleep(500)
         assertEquals(listOf("create"), events)
         assertEquals(0, errors)
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.RESUMED) }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.RESUMED) }
 
         assertTrue(resumedReady.await(2, TimeUnit.SECONDS))
         assertEquals("create", events.first())
@@ -657,7 +773,7 @@ class AmapComposeMapTest {
         var readies = 0
         var errors = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             owner = MutableLifecycleOwner(Lifecycle.State.CREATED)
             activity.setContent {
                 CompositionLocalProvider(LocalLifecycleOwner provides owner) {
@@ -681,7 +797,7 @@ class AmapComposeMapTest {
             }
         }
 
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.RESUMED) }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.RESUMED) }
         assertTrue(error.await(2, TimeUnit.SECONDS))
         assertEquals(0, renders)
         assertEquals(0, readies)
@@ -693,7 +809,7 @@ class AmapComposeMapTest {
         val token = requireNotNull(gate.decide(true))
         val reported = CountDownLatch(1)
         var errors = 0
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -711,7 +827,7 @@ class AmapComposeMapTest {
             }
         }
         assertTrue(reported.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
         assertEquals(1, errors)
     }
 
@@ -722,7 +838,7 @@ class AmapComposeMapTest {
         val token = requireNotNull(gate.decide(true))
         val reported = CountDownLatch(1)
         var errors = 0
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -744,7 +860,7 @@ class AmapComposeMapTest {
             }
         }
         assertTrue(reported.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
         assertEquals(1, errors)
     }
 
@@ -757,7 +873,7 @@ class AmapComposeMapTest {
         val ready = CountDownLatch(1)
         var mapErrors = 0
         var readyCount = 0
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -797,7 +913,7 @@ class AmapComposeMapTest {
         val ready = CountDownLatch(1)
         var readyCount = 0
         lateinit var model: androidx.compose.runtime.MutableState<MapUiModel>
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             model = mutableStateOf(MapUiModel())
             activity.setContent {
                 AmapComposeMap(
@@ -817,8 +933,8 @@ class AmapComposeMapTest {
             }
         }
         assertTrue(ready.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { model.value = model.value.copy(highlightedMarkerKey = "updated") }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> model.value = model.value.copy(highlightedMarkerKey = "updated") }
+        scenario.onActivity { activity -> }
         assertEquals(1, readyCount)
     }
 
@@ -835,7 +951,7 @@ class AmapComposeMapTest {
         val secondReady = CountDownLatch(1)
         var layerErrors = 0
         var readyCount = 0
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             ownerState = mutableStateOf(TestOwner())
             activity.setContent {
                 CompositionLocalProvider(LocalLifecycleOwner provides ownerState.value) {
@@ -868,11 +984,11 @@ class AmapComposeMapTest {
         assertTrue(firstRender.await(5, TimeUnit.SECONDS))
         assertTrue(firstReady.await(5, TimeUnit.SECONDS))
         assertEquals(1, readyCount)
-        rule.scenario.onActivity { ownerState.value = TestOwner() }
+        scenario.onActivity { activity -> ownerState.value = TestOwner() }
         assertTrue(secondRender.await(5, TimeUnit.SECONDS))
         assertTrue(secondReady.await(5, TimeUnit.SECONDS))
         assertEquals(2, readyCount)
-        rule.scenario.onActivity { callbacks.first()(IllegalStateException("late"), MapLayer.STANDARD) }
+        scenario.onActivity { activity -> callbacks.first()(IllegalStateException("late"), MapLayer.STANDARD) }
         assertEquals(0, layerErrors)
     }
 
@@ -885,7 +1001,7 @@ class AmapComposeMapTest {
         var hostCount = 0
         var errors = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             ownerState = mutableStateOf(TestOwner())
             activity.setContent {
                 CompositionLocalProvider(LocalLifecycleOwner provides ownerState.value) {
@@ -916,9 +1032,9 @@ class AmapComposeMapTest {
         }
 
         assertTrue(firstCreated.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { ownerState.value = TestOwner() }
+        scenario.onActivity { activity -> ownerState.value = TestOwner() }
         assertTrue(secondReady.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
 
         assertEquals(0, errors)
     }
@@ -930,7 +1046,7 @@ class AmapComposeMapTest {
         var renders = 0
         var errors = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -962,7 +1078,7 @@ class AmapComposeMapTest {
         var renders = 0
         var errors = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -1003,7 +1119,7 @@ class AmapComposeMapTest {
         var timeout: Throwable? = null
         var readyCount = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             retryKey = mutableStateOf(0)
             activity.setContent {
                 AmapComposeMap(
@@ -1037,10 +1153,10 @@ class AmapComposeMapTest {
 
         assertTrue(firstReady.await(2, TimeUnit.SECONDS))
         assertTrue(errors.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { retryKey.value++ }
+        scenario.onActivity { activity -> retryKey.value++ }
         assertTrue(secondReady.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { readyCallbacks.first().invoke() }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> readyCallbacks.first().invoke() }
+        scenario.onActivity { activity -> }
 
         assertEquals(1, errorCount)
         assertTrue(timeout is MapReadyTimeoutException)
@@ -1059,7 +1175,7 @@ class AmapComposeMapTest {
         val firstCreated = CountDownLatch(1)
         val secondReady = CountDownLatch(1)
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             timeoutMillis = mutableStateOf(400L)
             activity.setContent {
                 AmapComposeMap(
@@ -1090,9 +1206,9 @@ class AmapComposeMapTest {
         }
 
         assertTrue(firstCreated.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { timeoutMillis.value = 800L }
+        scenario.onActivity { activity -> timeoutMillis.value = 800L }
         assertTrue(secondReady.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
 
         assertEquals(listOf(400L, 800L), creations)
         assertEquals(listOf(400L), destroyed)
@@ -1111,7 +1227,7 @@ class AmapComposeMapTest {
         var mapErrors = 0
         var layerErrors = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             owner = MutableLifecycleOwner(Lifecycle.State.RESUMED)
             model = mutableStateOf(MapUiModel())
             activity.setContent {
@@ -1148,12 +1264,12 @@ class AmapComposeMapTest {
 
         assertTrue(ready.await(2, TimeUnit.SECONDS))
         assertTrue(layerReported.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { model.value = model.value.copy(highlightedMarkerKey = "second") }
+        scenario.onActivity { activity -> model.value = model.value.copy(highlightedMarkerKey = "second") }
         assertTrue(secondRender.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.CREATED) }
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.RESUMED) }
-        rule.scenario.onActivity { owner.moveTo(Lifecycle.State.DESTROYED) }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.CREATED) }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.RESUMED) }
+        scenario.onActivity { activity -> owner.moveTo(Lifecycle.State.DESTROYED) }
+        scenario.onActivity { activity -> }
 
         assertEquals(1, readyCount)
         assertEquals(1, layerErrors)
@@ -1169,7 +1285,7 @@ class AmapComposeMapTest {
         val secondReady = CountDownLatch(1)
         var errors = 0
 
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             retryKey = mutableStateOf(0)
             activity.setContent {
                 AmapComposeMap(
@@ -1205,10 +1321,10 @@ class AmapComposeMapTest {
         }
 
         assertTrue(firstCreated.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { retryKey.value++ }
+        scenario.onActivity { activity -> retryKey.value++ }
         assertTrue(firstDestroyed.await(2, TimeUnit.SECONDS))
         assertTrue(secondReady.await(2, TimeUnit.SECONDS))
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
 
         assertEquals(0, errors)
     }
@@ -1220,7 +1336,7 @@ class AmapComposeMapTest {
         val firstError = CountDownLatch(1)
         val secondError = CountDownLatch(1)
         var errors = 0
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             retryKey = mutableStateOf(0)
             activity.setContent {
                 AmapComposeMap(
@@ -1243,9 +1359,9 @@ class AmapComposeMapTest {
             }
         }
         assertTrue(firstError.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { retryKey.value++ }
+        scenario.onActivity { activity -> retryKey.value++ }
         assertTrue(secondError.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> }
         assertEquals(2, errors)
     }
 
@@ -1262,7 +1378,7 @@ class AmapComposeMapTest {
         var renderedMarker: MapMarkerUi? = null
         lateinit var lastOwner: TestOwner
         lateinit var ownerState: androidx.compose.runtime.MutableState<TestOwner>
-        rule.scenario.onActivity { lastOwner = TestOwner(); ownerState = mutableStateOf(lastOwner) }
+        scenario.onActivity { activity -> lastOwner = TestOwner(); ownerState = mutableStateOf(lastOwner) }
         val created = CountDownLatch(1)
         val destroyed = CountDownLatch(1)
         val resumed = CountDownLatch(2)
@@ -1279,7 +1395,7 @@ class AmapComposeMapTest {
             isFocused = true,
         )
         val model = mutableStateOf(MapUiModel(markers = listOf(focusedMarker), viewportRequest = request(1)))
-        rule.scenario.onActivity { activity ->
+        scenario.onActivity { activity ->
             activity.setContent {
                 Text("${state.value}")
                 CompositionLocalProvider(LocalLifecycleOwner provides ownerState.value) {
@@ -1311,22 +1427,22 @@ class AmapComposeMapTest {
         assertTrue(initialViewport.await(5, TimeUnit.SECONDS))
         assertEquals(focusedMarker, renderedMarker)
 
-        rule.scenario.onActivity { state.value++ }
-        rule.scenario.onActivity { model.value = model.value.copy(highlightedMarkerKey = "model-only") }
-        rule.scenario.onActivity { state.value++ }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> state.value++ }
+        scenario.onActivity { activity -> model.value = model.value.copy(highlightedMarkerKey = "model-only") }
+        scenario.onActivity { activity -> state.value++ }
+        scenario.onActivity { activity -> }
         assertEquals(1, creations)
         assertEquals(listOf(1L), viewportIds)
 
-        rule.scenario.onActivity { model.value = model.value.copy(viewportRequest = request(2)) }
+        scenario.onActivity { activity -> model.value = model.value.copy(viewportRequest = request(2)) }
         assertTrue(secondViewport.await(5, TimeUnit.SECONDS))
-        rule.scenario.onActivity { state.value++ }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> state.value++ }
+        scenario.onActivity { activity -> }
         assertEquals(listOf(1L, 2L), viewportIds)
         assertEquals(1, creations)
 
-        rule.scenario.onActivity { lastOwner = TestOwner(); ownerState.value = lastOwner }
-        rule.scenario.onActivity { }
+        scenario.onActivity { activity -> lastOwner = TestOwner(); ownerState.value = lastOwner }
+        scenario.onActivity { activity -> }
         assertTrue(destroyed.await(5, TimeUnit.SECONDS))
         assertEquals(2, creations)
         assertEquals(2, creates)

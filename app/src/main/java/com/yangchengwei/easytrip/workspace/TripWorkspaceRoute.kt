@@ -117,8 +117,10 @@ fun canDismissWorkspaceOverlay(
     itinerary: DayItineraryUiState = DayItineraryUiState(),
     hasPlaceDeleteConfirmation: Boolean = false,
     placeDeletionBusy: Boolean = false,
+    placeDetailSaving: Boolean = false,
 ): Boolean = when {
     overlay == WorkspaceOverlay.AddTripDay && itinerary.isAppendingDay -> false
+    overlay is WorkspaceOverlay.PlaceDetail && placeDetailSaving -> false
     overlay is WorkspaceOverlay.EditItineraryItem && itinerary.editDraft?.isSaving == true -> false
     overlay is WorkspaceOverlay.SelectMoveTargetDay && itinerary.crossDayMove?.isMoving == true -> false
     overlay is WorkspaceOverlay.EditRouteLeg && itinerary.modeEditor?.isSaving == true -> false
@@ -136,9 +138,17 @@ fun workspaceBackDecision(
     itinerary: DayItineraryUiState = DayItineraryUiState(isAppendingDay = isAppendingDay),
     hasPlaceDeleteConfirmation: Boolean = false,
     placeDeletionBusy: Boolean = false,
+    placeDetailSaving: Boolean = false,
 ): WorkspaceBackDecision = when {
     overlay == WorkspaceOverlay.None -> WorkspaceBackDecision.LeaveWorkspace
-    !canDismissWorkspaceOverlay(overlay, addToItinerary, itinerary, hasPlaceDeleteConfirmation, placeDeletionBusy) -> WorkspaceBackDecision.Ignore
+    !canDismissWorkspaceOverlay(
+        overlay,
+        addToItinerary,
+        itinerary,
+        hasPlaceDeleteConfirmation,
+        placeDeletionBusy,
+        placeDetailSaving,
+    ) -> WorkspaceBackDecision.Ignore
     else -> WorkspaceBackDecision.CloseOverlay
 }
 
@@ -267,6 +277,7 @@ fun TripWorkspaceRoute(
                 itinerary,
                 hasPlaceDeleteConfirmation = places.pendingCollectionRemoval != null || places.deleting != null,
                 placeDeletionBusy = places.deletionBusy || places.collectionBusyPoiIds.isNotEmpty(),
+                placeDetailSaving = places.detailSaving,
             )
         ) return
         if (workspaceOverlayCloseDecision(overlay, itinerary) == WorkspaceOverlayCloseDecision.KeepItineraryOverlay) {
@@ -297,6 +308,7 @@ fun TripWorkspaceRoute(
                 itinerary = itinerary,
                 hasPlaceDeleteConfirmation = places.pendingCollectionRemoval != null || places.deleting != null,
                 placeDeletionBusy = places.deletionBusy || places.collectionBusyPoiIds.isNotEmpty(),
+                placeDetailSaving = places.detailSaving,
             )
         ) {
             WorkspaceBackDecision.Ignore -> Unit
@@ -445,6 +457,7 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
                 TripWorkspaceAction.Locate -> locationPermissionCoordinator.onLocateClick(locationPermissionSnapshot())
+                TripWorkspaceAction.MapGesture -> viewModel.onMapGesture()
                 TripWorkspaceAction.Retry -> viewModel.retry()
                 is TripWorkspaceAction.SelectSection -> {
                     if (shouldConsumeSearchReturn(ready?.section, action.section)) onConsumeSearchReturn()
@@ -500,6 +513,7 @@ fun TripWorkspaceRoute(
                     }
                 }
                 is PlacePoolAction.StartAddSingle -> {
+                    dispatchPlace(PlacePoolAction.DismissDetail)
                     dismissPendingDialogs()
                     if (addToItineraryViewModel?.startForPlace(action.placeId) == true) {
                         viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)

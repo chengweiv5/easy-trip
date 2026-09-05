@@ -11,7 +11,10 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithTag
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onNodeWithText
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -29,7 +32,7 @@ class V1ScenarioCatalogTest(private val scenario: V1Scenario) {
     val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test
-    fun executesProductionScenario() {
+    fun executesDeclaredScenarioState() {
         val executable = scenario.createExecutable()
         executable.setup()
         executable.render(compose)
@@ -67,7 +70,186 @@ class V1ScenarioMetadataTest {
     }
 
     @Test
-    fun workspaceAllEmptyFramesAreReachableTypedVariants() {
+    fun factoryDoesNotExposeFixtureOnlyExecutableBuilders() {
+        val fixtureOnlyBuilders = setOf(
+            "workspaceAllEmpty",
+            "itineraryAllEmpty",
+            "itineraryAllEmptyFixture",
+            "shortPlacePool",
+            "onlyCollectedPlaceDetail",
+            "workspaceItinerary",
+            "workspaceItemEditComplete",
+            "workspaceSingleDayRoute",
+        )
+        val exposed = V1ScenarioExecutableFactory::class.java.declaredMethods
+            .filter { java.lang.reflect.Modifier.isPublic(it.modifiers) }
+            .map { it.name }
+            .toSet()
+            .intersect(fixtureOnlyBuilders)
+
+        assertTrue("Fixture-only executable builders must not be public: $exposed", exposed.isEmpty())
+    }
+
+    @Test
+    fun createdExecutableRejectsCustomFactoryWithWrongFixtureDespiteMatchingScreenAndFactory() {
+        val requested = V1ScenarioFixtures.scenarios.first { it.number == 1 }.declaredIdentity
+        val valid = V1ScenarioExecutableFactory.create(requested)
+        val wrongFixture = object : V1ScenarioExecutable by valid {
+            override val declaredIdentity = requested
+            override val fixture = ScenarioFixture("wrong-fixture", requested.screen)
+        }
+
+        assertThrows(IllegalArgumentException::class.java) {
+            V1ScenarioExecutableFactory.create(requested) { wrongFixture }
+        }
+    }
+
+    @Test
+    fun createdExecutableRejectsCustomFactoryWithWrongNumberAndFrame() {
+        val requested = V1ScenarioFixtures.scenarios.first { it.number == 1 }.declaredIdentity
+        val valid = V1ScenarioExecutableFactory.create(requested)
+        val wrongIdentity = object : V1ScenarioExecutable by valid {
+            override val declaredIdentity = requested.copy(parentNumber = 2, frameId = "BrYVA")
+        }
+
+        assertThrows(IllegalArgumentException::class.java) {
+            V1ScenarioExecutableFactory.create(requested) { wrongIdentity }
+        }
+    }
+
+    @Test
+    fun everyDeclaredVariantCreatesATypedExecutable() {
+        V1ScenarioFixtures.scenarios
+            .flatMap(V1Scenario::variants)
+            .forEach(V1ScenarioVariant::createExecutable)
+    }
+
+    @Test
+    fun d1sTtbVariantRendersDedicatedControlledFinalState() {
+        val executable = V1ScenarioFixtures.scenarios
+            .flatMap(V1Scenario::variants)
+            .single { it.frameId == "d1sTtb" }
+            .createExecutable()
+
+        executable.setup()
+        executable.render(compose)
+        compose.waitForIdle()
+        executable.actions(compose)
+        compose.waitForIdle()
+        executable.assertions(compose)
+
+        compose.onNodeWithTag("primary-trip-trip-2").assertIsDisplayed()
+        compose.onAllNodesWithTag("primary-trip-trip-1").assertCountEquals(0)
+        compose.onAllNodesWithText("杭州 · 春日慢游").assertCountEquals(0)
+        compose.onNodeWithText("川西小环线").assertIsDisplayed()
+        compose.onNodeWithText("泉州古城散步").assertIsDisplayed()
+        assertEquals("trip-list-deleted-final-state", executable.fixture.id)
+        assertEquals(ScenarioScreen.TRIP_LIST, executable.fixture.screen)
+        assertEquals("variant-d1sTtb-deleted-final-state", executable.factoryIdentity)
+    }
+
+    @Test
+    fun parentsAndVariantsKeepExactDeclaredIdentityAndRejectEverySwappedDimension() {
+        val expected = setOf(
+            "1|K9h3r|existing-trips|TRIP_LIST|existing-trips",
+            "2|A9EKX|trip-with-saved-places|PLACE_POOL|trip-with-saved-places",
+            "3|ofdn5|search-results|SEARCH|search-results",
+            "4|LFmzR|day-itinerary|ITINERARY|day-itinerary",
+            "6|FTIOF|whole-trip-itinerary|ITINERARY|whole-trip-itinerary",
+            "7|dzhkC|empty-trip-list|CREATE_TRIP|empty-trip-list",
+            "8|U06l7P|existing-trip|TRIP_SETTINGS|existing-trip",
+            "9|xQfD0|single-place-multi-day-selection|TARGET_DAY|single-place-multi-day-selection",
+            "10|p4G1tS|saved-place-detail|PLACE_DETAIL|saved-place-detail",
+            "11|K336N|editable-itinerary-item|ITEM_EDITOR|editable-itinerary-item",
+            "12|T7aESo|editable-route-leg|ROUTE_EDITOR|editable-route-leg",
+            "13|oW9mK|trip-with-delete-impact|TRIP_LIST|trip-with-delete-impact",
+            "14|DxZ2a|component-states|STATUS_MATRIX|component-states",
+            "15|p7U8B|no-trip-days-add-guidance|TARGET_DAY|no-trip-days-add-guidance",
+            "16|ijpZD|existing-trip|WORKSPACE|existing-trip",
+            "17|shoPV|map-ready|WORKSPACE|map-ready",
+            "18|zvO9Z|dated-trip|TRIP_SETTINGS|dated-trip",
+            "19|Pqdkf|selected-day-multi-place-picker|PLACE_POOL|selected-day-multi-place-picker",
+            "20|X3rm1|multi-day-add-target|TARGET_DAY|multi-day-add-target",
+            "21|f25l9|added-itinerary-item|ITINERARY|added-itinerary-item",
+            "22|kCc5z|workspace-drawer-collapsed|WORKSPACE|workspace-drawer-collapsed",
+            "23|sWTB3|workspace-drawer-half|WORKSPACE|workspace-drawer-half",
+            "24|f2ieZ6|workspace-drawer-expanded|WORKSPACE|workspace-drawer-expanded",
+            "25|J7PZ7u|day-with-delete-impact|TRIP_SETTINGS|day-with-delete-impact",
+            "26|lsr1I|empty-place-pool|PLACE_POOL|empty-place-pool",
+            "27|S0psO|empty-search-result|SEARCH|empty-search-result",
+            "28|P7k0M|offline-pending-routes|ITINERARY|batch6-waiting-for-network",
+            "29|E3EhSv|failed-route|ITINERARY|batch6-failed-route",
+            "30|EHOHC|map-consent-required|PERMISSION|batch6-map-consent-explanation",
+            "31|yNKT4|add-success-result|WORKSPACE|add-success-result",
+            "32|l2xCsM|itinerary-delete-impact|ITINERARY|itinerary-delete-impact",
+            "33|cRdBn|long-add-target-day-list|TARGET_DAY|long-add-target-day-list",
+            "34|JFhZ7|location-rationale|PERMISSION|batch6-location-explanation",
+            "35|HYCsZ|location-permanently-denied|PERMISSION|batch6-location-settings-recovery",
+            "36|zIbEu|empty-trip-list|TRIP_LIST|empty-trip-list",
+            "37|Bcf6A|empty-day|ITINERARY|empty-day",
+            "38|GJo79|search-network-error|SEARCH|search-network-error",
+            "39|mGhKO|add-partial-success-result|WORKSPACE|add-partial-success-result",
+            "40|IKTv5|dated-trip-settings|TRIP_SETTINGS|dated-trip-settings",
+            "41|V6RALq|add-place-submitting|TARGET_DAY|add-place-submitting",
+            "42|D3XZi|missing-add-target-day-result|WORKSPACE|missing-add-target-day-result",
+            "43|KPBBb|add-undo-success-result|WORKSPACE|add-undo-success-result",
+            "44|s1OvvX|search-loading|SEARCH|search-loading",
+            "45|GoxB6|map-loading|WORKSPACE|batch6-map-loading",
+            "46|U8R5i|map-load-error|WORKSPACE|batch6-map-failure",
+            "47|yIGiQ|invalid-trip-form|CREATE_TRIP|invalid-trip-form",
+            "48|OOEsk|itinerary-save-error|ITEM_EDITOR|batch6-edit-save-failure",
+            "1|d1sTtb|trip-list-deleted-final-state|TRIP_LIST|variant-d1sTtb-deleted-final-state",
+            "2|BrYVA|workspace-all-empty|WORKSPACE|workspace-all-empty",
+            "2|jQhXs|place-pool-short-list|WORKSPACE|place-pool-short-list",
+            "4|WFOpg|itinerary-all-empty|WORKSPACE|itinerary-all-empty",
+            "4|nAdK8|batch5-itinerary-page|ITINERARY|batch5-itinerary-page",
+            "4|mz2IS|batch5-item-edit-complete|ITEM_EDITOR|batch5-item-edit-complete",
+            "4|eHTX3|batch5-single-day-route|ROUTE_EDITOR|batch5-single-day-route",
+            "10|XsGon|only-collected-place-detail|WORKSPACE|only-collected-place-detail",
+        )
+        val identities = V1ScenarioFixtures.allIdentities
+
+        assertEquals(expected.size, identities.size)
+        assertEquals(expected, identities.map(V1ScenarioIdentity::signature).toSet())
+        assertEquals(47, V1ScenarioFixtures.parentIdentities.size)
+        assertEquals(
+            V1ScenarioFixtures.scenarios.map(V1Scenario::declaredIdentity).toSet(),
+            V1ScenarioFixtures.parentIdentities.toSet(),
+        )
+        assertEquals(
+            V1ScenarioFixtures.scenarios.flatMap(V1Scenario::variants).map(V1ScenarioVariant::declaredIdentity).toSet(),
+            V1ScenarioFixtures.variantIdentities.toSet(),
+        )
+        identities.forEach { identity ->
+            val executable = V1ScenarioExecutableFactory.create(identity)
+            assertEquals(identity, executable.declaredIdentity)
+            assertEquals(identity.fixtureId, executable.fixture.id)
+            assertEquals(identity.screen, executable.fixture.screen)
+            assertEquals(identity.factoryIdentity, executable.factoryIdentity)
+        }
+
+        identities.forEach { identity ->
+            val differentNumber = identities.first { it.parentNumber != identity.parentNumber }
+            val differentFrame = identities.first { it.frameId != identity.frameId }
+            val differentFixture = identities.first { it.fixtureId != identity.fixtureId }
+            val differentScreen = identities.first { it.screen != identity.screen }
+            val differentFactory = identities.first { it.factoryIdentity != identity.factoryIdentity }
+            listOf(
+                identity.copy(parentNumber = differentNumber.parentNumber),
+                identity.copy(frameId = differentFrame.frameId),
+                identity.copy(fixtureId = differentFixture.fixtureId),
+                identity.copy(screen = differentScreen.screen),
+                identity.copy(factoryIdentity = differentFactory.factoryIdentity),
+            ).forEach { swapped ->
+                assertThrows(IllegalArgumentException::class.java) {
+                    V1ScenarioExecutableFactory.create(swapped)
+                }
+            }
+        }
+    }
+
+    @Test
+    fun workspaceAllEmptyFramesHaveTypedDeclaredVariants() {
         val variants = V1ScenarioFixtures.scenarios
             .flatMap(V1Scenario::variants)
             .associateBy(V1ScenarioVariant::frameId)
@@ -287,17 +469,6 @@ class V1ScenarioMetadataTest {
         assertEquals(screen, executable.fixture.screen)
     }
 
-    @Test fun WFOpgFixtureMatchesReachableWorkspaceState() {
-        val fixture = V1ScenarioExecutableFactory.itineraryAllEmptyFixture()
-
-        assertFalse(fixture.ready.isWorkspaceAllEmpty)
-        assertTrue(fixture.ready.isItineraryAllEmpty)
-        assertTrue(fixture.placeState.rows.isNotEmpty())
-        assertEquals(fixture.ready.days.map { it.id }, fixture.ready.wholeTripDays.map { it.dayId })
-        assertTrue(fixture.ready.wholeTripDays.all { it.items.isEmpty() })
-        assertTrue(fixture.itineraryState.days.isNotEmpty())
-    }
-
     private fun executeVariant(frameId: String) {
         val executable = V1ScenarioFixtures.scenarios
             .flatMap(V1Scenario::variants)
@@ -349,11 +520,11 @@ class V1ScenarioMetadataTest {
             val executable = scenario.createExecutable()
             assertTrue("scenario ${scenario.number} frame", scenario.frameId.isNotBlank())
             assertTrue("scenario ${scenario.number} fixture", executable.fixture.id.isNotBlank())
-            assertTrue("scenario ${scenario.number} path", executable.reachablePath.steps.isNotEmpty())
+            assertTrue("scenario ${scenario.number} declared metadata path", executable.declaredPath.steps.isNotEmpty())
             assertEquals(
-                "scenario ${scenario.number} path target",
+                "scenario ${scenario.number} declared metadata target",
                 executable.fixture.screen,
-                executable.reachablePath.steps.last(),
+                executable.declaredPath.steps.last(),
             )
             assertTrue("scenario ${scenario.number} assertions", scenario.assertions.isNotEmpty())
             assertEquals(PhysicalDeviceUiStatus.PENDING, scenario.physicalDeviceUiStatus)
@@ -432,19 +603,6 @@ class V1ScenarioMetadataTest {
         )
 
         assertEquals(expected, V1ScenarioFixtures.scenarios.associate { it.number to it.createExecutable().fixture.screen })
-    }
-
-    @Test
-    fun workspaceSheetScenariosRejectSwappedFixtureIdentities() {
-        val scenarios = V1ScenarioFixtures.scenarios.associateBy(V1Scenario::number)
-
-        listOf(22 to 23, 23 to 24, 24 to 22).forEach { (scenarioNumber, fixtureSourceNumber) ->
-            val fixtureSource = scenarios.getValue(fixtureSourceNumber)
-
-            assertThrows(IllegalArgumentException::class.java) {
-                V1ScenarioExecutableFactory.create(scenarioNumber, fixtureSource.frameId, fixtureSource.createExecutable().fixture.id).setup()
-            }
-        }
     }
 
     @Test fun tripListEntryUsesProductionSelectorsAndSemantics() = assertProductionScenario(1)

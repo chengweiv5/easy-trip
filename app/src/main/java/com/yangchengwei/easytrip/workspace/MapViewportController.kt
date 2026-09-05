@@ -10,6 +10,7 @@ class MapViewportController {
     private var selectedDayId: String? = null
     private var visibleIdentity: Set<GeoPoint> = emptySet()
     private var retainedPlaceChange: GeoPoint? = null
+    private var userMovedViewport = false
 
     var currentRequest: MapViewportRequest? = null
         private set
@@ -30,10 +31,14 @@ class MapViewportController {
             !observedNonemptyPlaces && normalizedPlaces.isNotEmpty() -> ViewportReason.INITIAL
             retainedChange != null -> null
             observedNonemptyPlaces && normalizedPlaces != placeIdentity -> ViewportReason.PLACE_SET_CHANGED
+            userMovedViewport -> null
             this.scope != null && this.scope != scope -> ViewportReason.SCOPE_CHANGED
             this.scope == scope && this.selectedDayId != selectedDayId -> ViewportReason.VISIBLE_SET_CHANGED
             this.scope == scope && scope != MapScope.PLACE_POOL && normalizedVisible != visibleIdentity -> ViewportReason.VISIBLE_SET_CHANGED
             else -> null
+        }
+        if (reason == ViewportReason.INITIAL || reason == ViewportReason.PLACE_SET_CHANGED) {
+            userMovedViewport = false
         }
         if (normalizedPlaces.isNotEmpty()) observedNonemptyPlaces = true
         placeIdentity = normalizedPlaces
@@ -44,6 +49,11 @@ class MapViewportController {
             currentRequest = null
         }
         return emit(reason, visiblePoints, scope = scope, selectedDayId = selectedDayId)
+    }
+
+    fun onUserGesture() {
+        userMovedViewport = true
+        currentRequest = null
     }
 
     fun retainViewportForPlaceChange(point: GeoPoint) {

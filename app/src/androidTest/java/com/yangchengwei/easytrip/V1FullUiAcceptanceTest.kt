@@ -14,6 +14,10 @@ class V1FullUiAcceptanceTest(private val scenario: V1Scenario) {
     @Test
     fun executesDeclaredStateAndBehavior() {
         val executable = scenario.createExecutable()
+        check(executable.declaredIdentity == scenario.declaredIdentity)
+        check(executable.fixture.id == scenario.declaredIdentity.fixtureId)
+        check(executable.fixture.screen == scenario.declaredIdentity.screen)
+        check(executable.factoryIdentity == scenario.declaredIdentity.factoryIdentity)
         executable.setup()
         executable.render(compose)
         compose.waitForIdle()

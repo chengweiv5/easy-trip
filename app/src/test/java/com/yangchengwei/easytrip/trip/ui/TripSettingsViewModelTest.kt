@@ -10,6 +10,7 @@ import kotlin.coroutines.suspendCoroutine
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.flow.Flow
@@ -194,6 +195,394 @@ class TripSettingsViewModelTest {
         assertEquals(true, model.state.value.dateRange.isDirty)
         assertEquals(DateRangeChangePhase.Idle, model.state.value.dateRange.phase)
         assertEquals("无法检查日期范围，请重试", model.state.value.dateRange.error)
+    }
+
+    @Test fun tripDeleteRequestLoadsCurrentTripImpact() = runTest(dispatcher) {
+        val impacts = FakeImpacts().apply { tripImpact = TripDeleteImpact(3, 2, 1, 4, 5) }
+        val model = model(FakeRepository(), impacts)
+        advanceUntilIdle()
+
+        model.requestTripDeletion()
+        advanceUntilIdle()
+
+        val deletion = model.state.value.tripDeletion as TripDeletionUiState.Ready
+        assertEquals("Trip", deletion.tripName)
+        assertEquals(
+            listOf("3 个旅行日", "2 个收藏地点", "1 个标签", "4 个行程项", "5 个路线段"),
+            deletion.confirmation.deletedItems,
+        )
+    }
+
+    @Test fun tripDeletionRequestBeforeFirstAuthoritativeTripEmissionIsIgnored() = runTest(dispatcher) {
+        val initialTrip = CompletableDeferred<TripWithDays?>()
+        val repository = FakeRepository(initialTrip = initialTrip)
+        val impacts = FakeImpacts()
+        val model = model(repository, impacts)
+        runCurrent()
+
+        model.requestTripDeletion()
+        advanceUntilIdle()
+
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
+        assertEquals(0, impacts.tripCalls)
+        initialTrip.complete(repository.currentTrip())
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        assertEquals(1, impacts.tripCalls)
+    }
+
+    @Test fun cancelTripDeletionInvalidatesLateImpact() = runTest(dispatcher) {
+        val impact = CompletableDeferred<TripDeleteImpact>()
+        val impacts = FakeImpacts().apply { tripBlock = impact }
+        val model = model(FakeRepository(), impacts)
+        advanceUntilIdle()
+
+        model.requestTripDeletion()
+        runCurrent()
+        model.cancelTripDeletion()
+        impact.complete(TripDeleteImpact(3, 0, 0, 0, 0))
+        advanceUntilIdle()
+
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
+    }
+
+    @Test fun repeatedTripDeleteConfirmCallsServiceExactlyOnce() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { tripDeleteBlock = CompletableDeferred() }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+
+        model.confirmTripDeletion()
+        model.confirmTripDeletion()
+        runCurrent()
+
+        assertEquals(1, repository.tripDeleteCalls)
+        repository.tripDeleteBlock!!.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test fun tripDeleteWaitsForAuthoritativeNullBeforeReturning() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { autoEmitTripDelete = false }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+
+        model.confirmTripDeletion()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.tripDeleteCalls)
+        assertEquals(true, (model.state.value.tripDeletion as TripDeletionUiState.Ready).isDeleting)
+        val effect = async { model.effects.first() }
+        runCurrent()
+        assertEquals(false, effect.isCompleted)
+
+        repository.emit(null)
+        advanceUntilIdle()
+
+        assertEquals(TripSettingsEffect.ReturnToTripList, effect.await())
+    }
+
+    @Test fun tripDeleteNullDuringServiceCallReturnsWhenServiceCompletes() = runTest(dispatcher) {
+        val repository = FakeRepository().apply {
+            autoEmitTripDelete = false
+            tripDeleteBlock = CompletableDeferred()
+        }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        val effect = async { model.effects.first() }
+        runCurrent()
+
+        model.confirmTripDeletion()
+        runCurrent()
+        repository.emit(null)
+        advanceUntilIdle()
+        assertEquals(true, (model.state.value.tripDeletion as TripDeletionUiState.Ready).isDeleting)
+        assertEquals(false, effect.isCompleted)
+
+        repository.tripDeleteBlock!!.complete(Unit)
+        advanceUntilIdle()
+
+        assertEquals(TripSettingsEffect.ReturnToTripList, effect.await())
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
+    }
+
+    @Test fun roomConfirmedDeletionCompletesOnceWhenLateServiceFails() = runTest(dispatcher) {
+        val repository = FakeRepository().apply {
+            autoEmitTripDelete = false
+            tripDeleteBlock = CompletableDeferred()
+        }
+        val model = model(repository)
+        val effects = mutableListOf<TripSettingsEffect>()
+        val collector = launch { model.effects.collect(effects::add) }
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+
+        model.confirmTripDeletion()
+        runCurrent()
+        repository.emit(null)
+        advanceUntilIdle()
+        assertEquals(true, (model.state.value.tripDeletion as TripDeletionUiState.Ready).isDeleting)
+
+        repository.tripDeleteBlock!!.completeExceptionally(IllegalStateException("Unknown trip"))
+        advanceUntilIdle()
+        repository.emit(null)
+        advanceUntilIdle()
+
+        assertEquals(listOf(TripSettingsEffect.ReturnToTripList), effects)
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
+        collector.cancel()
+    }
+
+    @Test fun serviceFailureBeforeRoomDeletionKeepsConfirmationRetryable() = runTest(dispatcher) {
+        val repository = FakeRepository().apply {
+            autoEmitTripDelete = false
+            tripDeleteFailure = IllegalStateException("write failed")
+        }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        val confirmation = (model.state.value.tripDeletion as TripDeletionUiState.Ready).confirmation
+
+        model.confirmTripDeletion()
+        advanceUntilIdle()
+
+        val failed = model.state.value.tripDeletion as TripDeletionUiState.Ready
+        assertEquals(confirmation, failed.confirmation)
+        assertEquals("删除失败，请重试", failed.errorMessage)
+        assertEquals(true, repository.currentTrip().id == "trip")
+    }
+
+    @Test fun tripDeleteFailureKeepsConfirmationAndCanRetry() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { tripDeleteFailure = IllegalStateException("write failed") }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        val confirmation = (model.state.value.tripDeletion as TripDeletionUiState.Ready).confirmation
+
+        model.confirmTripDeletion()
+        advanceUntilIdle()
+
+        val failed = model.state.value.tripDeletion as TripDeletionUiState.Ready
+        assertEquals(confirmation, failed.confirmation)
+        assertEquals("删除失败，请重试", failed.errorMessage)
+        repository.tripDeleteFailure = null
+        model.confirmTripDeletion()
+        advanceUntilIdle()
+        assertEquals(2, repository.tripDeleteCalls)
+    }
+
+    @Test fun collectorFailureBeforeTripDeleteServiceReturnsShowsOnlyDeletionSyncFailure() = runTest(dispatcher) {
+        val repository = FakeRepository().apply {
+            autoEmitTripDelete = false
+            tripDeleteBlock = CompletableDeferred()
+        }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+
+        model.confirmTripDeletion()
+        runCurrent()
+        repository.failObservation(IllegalStateException("db unavailable"))
+        advanceUntilIdle()
+        assertEquals(null, model.state.value.observationError)
+
+        repository.tripDeleteBlock!!.complete(Unit)
+        advanceUntilIdle()
+
+        val failed = model.state.value.tripDeletion as TripDeletionUiState.Ready
+        assertEquals(true, failed.confirmationSyncFailed)
+        assertEquals("删除成功，但同步确认失败，请重新同步", failed.errorMessage)
+        assertEquals(null, model.state.value.observationError)
+        model.retryTripDeletionSync()
+        repository.emit(null)
+        advanceUntilIdle()
+        assertEquals(1, repository.tripDeleteCalls)
+    }
+
+    @Test fun tripDeleteSyncFailureResyncsWithoutRepeatingService() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { autoEmitTripDelete = false }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        model.confirmTripDeletion()
+        advanceUntilIdle()
+        repository.failObservation(IllegalStateException("db unavailable"))
+        advanceUntilIdle()
+
+        val failed = model.state.value.tripDeletion as TripDeletionUiState.Ready
+        assertEquals(true, failed.confirmationSyncFailed)
+        assertEquals("删除成功，但同步确认失败，请重新同步", failed.errorMessage)
+        model.retryTripDeletionSync()
+        repository.emit(null)
+        advanceUntilIdle()
+
+        assertEquals(1, repository.tripDeleteCalls)
+    }
+
+    @Test fun syncFailedTripDeletionCannotBeCancelledAndKeepsAllWritesLocked() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { autoEmitTripDelete = false }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        model.confirmTripDeletion()
+        advanceUntilIdle()
+        repository.failObservation(IllegalStateException("db unavailable"))
+        advanceUntilIdle()
+        val failed = model.state.value.tripDeletion as TripDeletionUiState.Ready
+
+        model.cancelTripDeletion()
+        model.rename("Renamed")
+        model.setTravelMode(TravelMode.SELF_DRIVE)
+        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.requestDateRangeChange()
+        model.requestDelete(model.state.value.days.last())
+        advanceUntilIdle()
+
+        assertEquals(failed, model.state.value.tripDeletion)
+        assertEquals(0, repository.renameCalls)
+        assertEquals(0, repository.travelModeCalls)
+        assertEquals(DateRangeChangePhase.Idle, model.state.value.dateRange.phase)
+        assertEquals(null, model.state.value.pendingDayDeletion)
+        assertEquals(1, repository.tripDeleteCalls)
+    }
+
+    @Test fun syncFailedAndDeletingTripDeletionRejectDateEndDraftMutations() = runTest(dispatcher) {
+        val syncRepository = FakeRepository().apply { autoEmitTripDelete = false }
+        val syncModel = model(syncRepository)
+        advanceUntilIdle()
+        syncModel.requestTripDeletion()
+        advanceUntilIdle()
+        syncModel.confirmTripDeletion()
+        advanceUntilIdle()
+        syncRepository.failObservation(IllegalStateException("db unavailable"))
+        advanceUntilIdle()
+        val syncRange = syncModel.state.value.dateRange
+        assertEquals(true, (syncModel.state.value.tripDeletion as TripDeletionUiState.Ready).confirmationSyncFailed)
+
+        syncModel.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+
+        assertEquals(syncRange.endDate, syncModel.state.value.dateRange.endDate)
+        assertEquals(syncRange.isDirty, syncModel.state.value.dateRange.isDirty)
+
+        val deletingRepository = FakeRepository().apply { tripDeleteBlock = CompletableDeferred() }
+        val deletingModel = model(deletingRepository)
+        advanceUntilIdle()
+        deletingModel.requestTripDeletion()
+        advanceUntilIdle()
+        deletingModel.confirmTripDeletion()
+        runCurrent()
+        val deletingRange = deletingModel.state.value.dateRange
+        assertEquals(true, (deletingModel.state.value.tripDeletion as TripDeletionUiState.Ready).isDeleting)
+
+        deletingModel.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+
+        assertEquals(deletingRange.endDate, deletingModel.state.value.dateRange.endDate)
+        assertEquals(deletingRange.isDirty, deletingModel.state.value.dateRange.isDirty)
+    }
+
+    @Test fun cancellingLoadingImpactFailureOrReadyNeverDeletesTheTrip() = runTest(dispatcher) {
+        val loadingImpact = CompletableDeferred<TripDeleteImpact>()
+        val impacts = FakeImpacts().apply { tripBlock = loadingImpact }
+        val repository = FakeRepository()
+        val model = model(repository, impacts)
+        advanceUntilIdle()
+
+        model.requestTripDeletion()
+        runCurrent()
+        model.cancelTripDeletion()
+        loadingImpact.complete(TripDeleteImpact(3, 0, 0, 0, 0))
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
+
+        impacts.tripBlock = null
+        impacts.tripFailure = IllegalStateException("impact unavailable")
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.ImpactFailure::class, model.state.value.tripDeletion::class)
+        model.cancelTripDeletion()
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
+
+        impacts.tripFailure = null
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        assertEquals(TripDeletionUiState.Ready::class, model.state.value.tripDeletion::class)
+        model.cancelTripDeletion()
+        advanceUntilIdle()
+
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
+        assertEquals(0, repository.tripDeleteCalls)
+        assertEquals("Trip", repository.currentTrip().name)
+    }
+
+    @Test fun tripDeletionAndDateRangeAndDayDeletionAreMutuallyExclusive() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val model = model(repository)
+        advanceUntilIdle()
+
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        model.requestDelete(model.state.value.days.last())
+        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.requestDateRangeChange()
+        advanceUntilIdle()
+
+        assertEquals(TripDeletionUiState.Ready::class, model.state.value.tripDeletion::class)
+        assertEquals(null, model.state.value.pendingDayDeletion)
+        assertEquals(DateRangeChangePhase.Idle, model.state.value.dateRange.phase)
+    }
+
+    @Test fun pendingDayDeletionBlocksTripDeletionRequest() = runTest(dispatcher) {
+        val model = model(FakeRepository())
+        advanceUntilIdle()
+        model.requestDelete(model.state.value.days.last())
+        advanceUntilIdle()
+
+        model.requestTripDeletion()
+        advanceUntilIdle()
+
+        assertNotNull(model.state.value.pendingDayDeletion)
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
+    }
+
+    @Test fun pendingDateRangeDeletionBlocksTripDeletionRequest() = runTest(dispatcher) {
+        val repository = FakeRepository(counts = DateRangeDeletionCounts(1, 1, 0))
+        val model = model(repository)
+        advanceUntilIdle()
+        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.requestDateRangeChange()
+        advanceUntilIdle()
+
+        model.requestTripDeletion()
+        advanceUntilIdle()
+
+        assertEquals(DateRangeChangePhase.AwaitingConfirmation::class, model.state.value.dateRange.phase::class)
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
+    }
+
+    @Test fun externalTripDeleteEmitsReturnToTripListOnlyOnce() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val model = model(repository)
+        advanceUntilIdle()
+        val effect = async { model.effects.first() }
+        runCurrent()
+
+        repository.emit(null)
+        repository.emit(null)
+        advanceUntilIdle()
+
+        assertEquals(TripSettingsEffect.ReturnToTripList, effect.await())
+        assertEquals(TripDeletionUiState.Idle, model.state.value.tripDeletion)
     }
 
     @Test fun deletedTripPublishesReturnToTripList() = runTest(dispatcher) {
@@ -980,12 +1369,20 @@ class TripSettingsViewModelTest {
     )
 
     private class FakeImpacts : DeleteImpactProvider {
+        var tripImpact = TripDeleteImpact(0, 0, 0, 0, 0)
+        var tripBlock: CompletableDeferred<TripDeleteImpact>? = null
+        var tripFailure: Throwable? = null
+        var tripCalls = 0
         var impact = DayDeleteImpact(1, 1, 0)
         var failure: Throwable? = null
         var dayBlock: CompletableDeferred<Unit>? = null
         var dayCalls = 0
         private var dayContinuation: Continuation<Unit>? = null
-        override suspend fun trip(tripId: String) = TripDeleteImpact(0, 0, 0, 0, 0)
+        override suspend fun trip(tripId: String): TripDeleteImpact {
+            tripCalls++
+            tripFailure?.let { throw it }
+            return tripBlock?.await() ?: tripImpact
+        }
         override suspend fun day(dayId: String): DayDeleteImpact {
             dayCalls++
             if (dayBlock != null) suspendCoroutine { dayContinuation = it }
@@ -1000,11 +1397,14 @@ class TripSettingsViewModelTest {
     private class FakeRepository(
         var counts: DateRangeDeletionCounts = DateRangeDeletionCounts(0, 0, 0),
         dayCount: Int = 3,
+        initialTrip: CompletableDeferred<TripWithDays?>? = null,
     ) : TripRepository {
         private val trip = MutableStateFlow<TripWithDays?>(TripWithDays(
             "trip", "Trip", LocalDate.parse("2026-10-01"), TravelMode.FLEXIBLE,
             List(dayCount) { TripDay("day-${it + 1}", it) },
         ))
+        private val initialTrip = initialTrip
+        private var initialTripAwaited = false
         private val observationFailures = MutableSharedFlow<Throwable>()
         var applyCalls = 0
         var collectorStarts = 0
@@ -1025,6 +1425,10 @@ class TripSettingsViewModelTest {
         var deleteCalls = 0
         var deleteBlock: CompletableDeferred<Unit>? = null
         var deleteFailure: Throwable? = null
+        var tripDeleteCalls = 0
+        var tripDeleteBlock: CompletableDeferred<Unit>? = null
+        var tripDeleteFailure: Throwable? = null
+        var autoEmitTripDelete = true
         var renameCalls = 0
         var travelModeCalls = 0
 
@@ -1054,6 +1458,10 @@ class TripSettingsViewModelTest {
             nextObservationCompletion = null
             return channelFlow {
                 if (initialFailure != null) throw initialFailure
+                if (!initialTripAwaited) {
+                    initialTripAwaited = true
+                    initialTrip?.await()?.let { send(it) }
+                }
                 merge(
                     trip,
                     observationFailures.map { throw it },
@@ -1111,6 +1519,11 @@ class TripSettingsViewModelTest {
         override suspend fun setTravelMode(tripId: String, mode: TravelMode) { travelModeCalls++ }
         override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day"
         override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
-        override suspend fun deleteTrip(tripId: String) = Unit
+        override suspend fun deleteTrip(tripId: String) {
+            tripDeleteCalls++
+            tripDeleteBlock?.await()
+            tripDeleteFailure?.let { throw it }
+            if (autoEmitTripDelete) trip.value = null
+        }
     }
 }

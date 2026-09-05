@@ -1,7 +1,11 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
+import androidx.compose.ui.Modifier
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.SemanticsActions
@@ -18,6 +22,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.click
@@ -373,6 +378,255 @@ class TripSettingsContentTest {
         compose.onNodeWithText("无日期").assertDoesNotExist()
     }
 
+    @Test fun deleteTripIsDisabledUntilAuthoritativeSettingsObservationArrives() {
+        var requests = 0
+        compose.setContent {
+            content(
+                state = TripSettingsUiState(tripId = "trip", name = "暂未加载"),
+                onRequestTripDeletion = { requests++ },
+            )
+        }
+
+        compose.onNodeWithTag("settings-delete-trip").assertIsNotEnabled().performClick()
+        assertEquals(0, requests)
+    }
+
+    @Test fun dangerZoneDeletesThisTripFromSettingsWithAccessibleAction() {
+        var deletionRequests = 0
+        compose.setContent {
+            content(
+                state = datedState().copy(
+                    hasAuthoritativeTrip = true,
+                    dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle),
+                ),
+                onRequestTripDeletion = { deletionRequests++ },
+            )
+        }
+
+        compose.onNodeWithText("删除旅行请返回旅行列表操作").assertDoesNotExist()
+        compose.onNodeWithTag("settings-delete-trip").assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
+        assertEquals(1, deletionRequests)
+    }
+
+    @Test fun tripDeletionStatesExposeOneRecoveryPathAtATime() {
+        var retryImpact = 0
+        var confirmations = 0
+        var syncRetries = 0
+        val confirmation = TripDeleteImpact(3, 8, 0, 8, 5).toConfirmationUiModel("Kyoto")
+        var state by androidx.compose.runtime.mutableStateOf(
+            TripSettingsUiState(
+                tripId = "trip",
+                name = "Kyoto",
+                tripDeletion = TripDeletionUiState.LoadingImpact("trip", "Kyoto"),
+            ),
+        )
+        compose.setContent {
+            content(
+                state = state,
+                onRetryTripDeletionImpact = { retryImpact++ },
+                onConfirmTripDeletion = { confirmations++ },
+                onRetryTripDeletionSync = { syncRetries++ },
+            )
+        }
+
+        compose.onNodeWithText("正在查询删除影响…").assertIsDisplayed()
+        compose.onNodeWithTag("trip-delete-impact-loading").assertIsDisplayed()
+        compose.onNodeWithText("确认删除旅行").assertDoesNotExist()
+
+        compose.runOnIdle {
+            state = state.copy(
+                tripDeletion = TripDeletionUiState.ImpactFailure("trip", "Kyoto", "无法加载删除影响，请重试"),
+            )
+        }
+        compose.onNodeWithText("未删除旅行").assertIsDisplayed()
+        compose.onNodeWithTag("trip-delete-impact-retry").assertIsDisplayed().performClick()
+        assertEquals(1, retryImpact)
+        compose.onNodeWithText("确认删除旅行").assertDoesNotExist()
+
+        compose.runOnIdle {
+            state = state.copy(
+                tripDeletion = TripDeletionUiState.Ready("trip", "Kyoto", confirmation),
+            )
+        }
+        compose.onNodeWithText("删除Kyoto？").assertIsDisplayed()
+        compose.onNodeWithText("确认删除旅行").assertIsDisplayed().performClick()
+        assertEquals(1, confirmations)
+
+        compose.runOnIdle {
+            state = state.copy(
+                tripDeletion = TripDeletionUiState.Ready("trip", "Kyoto", confirmation, isDeleting = true),
+            )
+        }
+        compose.onNodeWithText("处理中…").assertIsDisplayed()
+        compose.onNodeWithTag("confirmation-confirm").assertIsNotEnabled()
+        compose.onNodeWithTag("confirmation-dismiss").assertIsNotEnabled()
+
+        compose.runOnIdle {
+            state = state.copy(
+                tripDeletion = TripDeletionUiState.Ready(
+                    "trip",
+                    "Kyoto",
+                    confirmation,
+                    errorMessage = "删除成功，但同步确认失败，请重新同步",
+                    confirmationSyncFailed = true,
+                ),
+            )
+        }
+        compose.onNodeWithText("删除成功，但同步确认失败，请重新同步").assertIsDisplayed()
+        compose.onNodeWithText("重新同步").assertIsDisplayed().performClick()
+        assertEquals(1, syncRetries)
+    }
+
+    @Test fun loadingImpactFailureAndReadyCancellationDispatchWithoutChangingTripContent() {
+        var cancellations = 0
+        val confirmation = TripDeleteImpact(3, 8, 0, 8, 5).toConfirmationUiModel("Kyoto")
+        val initial = TripSettingsUiState(
+            tripId = "trip",
+            name = "Kyoto",
+            days = listOf(DayUi("day-1", "2026-10-01")),
+            tripDeletion = TripDeletionUiState.LoadingImpact("trip", "Kyoto"),
+        )
+        var state by androidx.compose.runtime.mutableStateOf(initial)
+        compose.setContent {
+            content(
+                state = state,
+                onCancelTripDeletion = {
+                    cancellations++
+                    state = state.copy(tripDeletion = TripDeletionUiState.Idle)
+                },
+            )
+        }
+
+        fun assertLoadingCannotCancel() {
+            compose.onNodeWithTag("trip-delete-impact-cancel").assertIsNotEnabled().performClick()
+            pressBack()
+            compose.waitForIdle()
+            compose.onAllNodes(isRoot())[1].performTouchInput { click(Offset(1f, 1f)) }
+            compose.onNodeWithText("正在查询删除影响…").assertIsDisplayed()
+            assertEquals(0, cancellations)
+            assertEquals(TripDeletionUiState.LoadingImpact("trip", "Kyoto"), state.tripDeletion)
+        }
+
+        fun cancelAndAssertUnchanged() {
+            compose.onNodeWithTag("trip-delete-impact-cancel").performClick()
+            compose.onNodeWithText("Kyoto").assertIsDisplayed()
+            assertEquals(listOf(DayUi("day-1", "2026-10-01")), state.days)
+            assertEquals(TripDeletionUiState.Idle, state.tripDeletion)
+        }
+
+        assertLoadingCannotCancel()
+        compose.runOnIdle {
+            state = initial.copy(
+                tripDeletion = TripDeletionUiState.ImpactFailure("trip", "Kyoto", "无法加载删除影响，请重试"),
+            )
+        }
+        cancelAndAssertUnchanged()
+        compose.runOnIdle {
+            state = initial.copy(
+                tripDeletion = TripDeletionUiState.Ready("trip", "Kyoto", confirmation),
+            )
+        }
+        compose.onNodeWithTag("confirmation-dismiss").performClick()
+        compose.onNodeWithText("Kyoto").assertIsDisplayed()
+        assertEquals(listOf(DayUi("day-1", "2026-10-01")), state.days)
+        assertEquals(TripDeletionUiState.Idle, state.tripDeletion)
+        assertEquals(2, cancellations)
+    }
+
+    @Test fun syncFailureAllowsOnlyResyncAndBlocksDismissBackOutsideAndSettingsWrites() {
+        var cancels = 0
+        var resyncs = 0
+        var backs = 0
+        val confirmation = TripDeleteImpact(3, 8, 0, 8, 5).toConfirmationUiModel("Kyoto")
+        val syncFailure = TripSettingsUiState(
+            tripId = "trip",
+            name = "Kyoto",
+            tripDeletion = TripDeletionUiState.Ready(
+                tripId = "trip",
+                tripName = "Kyoto",
+                confirmation = confirmation,
+                errorMessage = "删除成功，但同步确认失败，请重新同步",
+                confirmationSyncFailed = true,
+            ),
+        )
+        compose.setContent {
+            content(
+                state = syncFailure,
+                onBack = { backs++ },
+                onCancelTripDeletion = { cancels++ },
+                onRetryTripDeletionSync = { resyncs++ },
+            )
+        }
+
+        compose.onNodeWithTag("confirmation-dismiss").assertDoesNotExist()
+        compose.onNodeWithTag("settings-back").assertIsNotEnabled().performClick()
+        compose.onNodeWithTag("settings-rename").assertIsNotEnabled()
+        compose.onNodeWithTag("settings-date-row").assertIsNotEnabled()
+        compose.onNodeWithTag("delete-day-day-3").assertIsNotEnabled()
+        compose.onNodeWithTag("settings-delete-trip").assertIsNotEnabled()
+        pressBack()
+        compose.onNodeWithText("删除成功，但同步确认失败，请重新同步").assertIsDisplayed()
+        compose.onNodeWithText("重新同步").performClick()
+
+        assertEquals(0, cancels)
+        assertEquals(0, backs)
+        assertEquals(1, resyncs)
+    }
+
+    @Test fun deletingTripBlocksBackAndOutsideDismiss() {
+        var cancels = 0
+        var backs = 0
+        val confirmation = TripDeleteImpact(3, 8, 0, 8, 5).toConfirmationUiModel("Kyoto")
+        compose.setContent {
+            content(
+                state = TripSettingsUiState(
+                    tripId = "trip",
+                    name = "Kyoto",
+                    tripDeletion = TripDeletionUiState.Ready("trip", "Kyoto", confirmation, isDeleting = true),
+                ),
+                onBack = { backs++ },
+                onCancelTripDeletion = { cancels++ },
+            )
+        }
+
+        compose.onNodeWithTag("confirmation-dismiss").assertIsNotEnabled().performClick()
+        pressBack()
+        compose.waitForIdle()
+        compose.onAllNodes(isRoot())[1].performTouchInput { click(Offset(1f, 1f)) }
+        compose.onNodeWithText("处理中…").assertIsDisplayed()
+        assertEquals(0, cancels)
+        assertEquals(0, backs)
+    }
+
+    @Test fun tripDeletionEntryAndConfirmationRemainReachableAt280DpAndTwoTimesFontScale() {
+        val tripName = "一段特别特别长而且需要完整换行展示的旅行名称"
+        val confirmation = TripDeleteImpact(3, 8, 0, 8, 5).toConfirmationUiModel(tripName)
+        var deleteRequests = 0
+        var state by androidx.compose.runtime.mutableStateOf(
+            TripSettingsUiState(tripId = "trip", name = tripName),
+        )
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density = 1f, fontScale = 2f),
+            ) {
+                androidx.compose.foundation.layout.Box(Modifier.width(280.dp).height(900.dp)) {
+                    content(
+                        state = state,
+                        onRequestTripDeletion = {
+                            deleteRequests++
+                            state = state.copy(tripDeletion = TripDeletionUiState.Ready("trip", tripName, confirmation))
+                        },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("settings-delete-trip").performScrollTo().assertHeightIsAtLeast(48.dp).performClick()
+        compose.onNodeWithTag("confirmation-confirm").performScrollTo().assertHeightIsAtLeast(48.dp).assertIsDisplayed()
+        compose.onNodeWithTag("confirmation-dismiss").performScrollTo().assertHeightIsAtLeast(48.dp).assertIsDisplayed()
+        assertEquals(1, deleteRequests)
+    }
+
     @androidx.compose.runtime.Composable
     private fun content(
         state: TripSettingsUiState,
@@ -382,6 +636,11 @@ class TripSettingsContentTest {
         onRetryDateRangeSync: () -> Unit = {},
         onRetryDeleteDay: () -> Unit = {},
         onRetryTripObservation: () -> Unit = {},
+        onRequestTripDeletion: () -> Unit = {},
+        onRetryTripDeletionImpact: () -> Unit = {},
+        onCancelTripDeletion: () -> Unit = {},
+        onConfirmTripDeletion: () -> Unit = {},
+        onRetryTripDeletionSync: () -> Unit = {},
     ) = TripSettingsContent(
         state = state,
         onBack = onBack,
@@ -397,6 +656,11 @@ class TripSettingsContentTest {
         onRetryDeleteDay = onRetryDeleteDay,
         onCancelDeleteDay = {},
         onConfirmDeleteDay = {},
+        onRequestTripDeletion = onRequestTripDeletion,
+        onRetryTripDeletionImpact = onRetryTripDeletionImpact,
+        onCancelTripDeletion = onCancelTripDeletion,
+        onConfirmTripDeletion = onConfirmTripDeletion,
+        onRetryTripDeletionSync = onRetryTripDeletionSync,
     )
 
     private fun growthState(
