@@ -10,12 +10,14 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
@@ -26,11 +28,13 @@ import androidx.compose.ui.test.hasClickAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithContentDescription
+import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
@@ -82,6 +86,117 @@ class TripListContentTest {
             .getUnclippedBoundsInRoot()
         assertEquals(primaryBounds.left, createBounds.left)
         assertEquals(primaryBounds.right, createBounds.right)
+    }
+
+    @Test fun singleTripKeepsPrimaryAndCreateReachableWithoutOtherTrips() {
+        setContent(
+            TripListPageState.Content(
+                primaryTrip = trip("trip-1", "京都"),
+                otherTrips = emptyList(),
+            ),
+        )
+
+        compose.onNodeWithTag("primary-trip-trip-1").assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertHeightIsEqualTo(48.dp).assertIsDisplayed()
+        compose.onAllNodesWithText("其他旅行").assertCountEquals(0)
+    }
+
+    @Test fun scrollingOtherTripsKeepsHeaderPrimaryAndCreateBoundsFixed() {
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.requiredWidth(320.dp).height(700.dp)) {
+                    TripListContent(
+                        state = TripListUiState(
+                            page = TripListPageState.Content(
+                                primaryTrip = trip("trip-primary", "京都"),
+                                otherTrips = (1..12).map { index -> trip("trip-$index", "旅行 $index") },
+                            ),
+                        ),
+                        onAction = {},
+                    )
+                }
+            }
+        }
+
+        val headerBounds = compose.onNodeWithTag("trip-list-title").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val primaryBounds = compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val createBounds = compose.onNodeWithTag("create-trip")
+            .assertHeightIsEqualTo(48.dp)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+
+        compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-12"))
+        compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
+
+        assertEquals(headerBounds, compose.onNodeWithTag("trip-list-title").getUnclippedBoundsInRoot())
+        assertEquals(primaryBounds, compose.onNodeWithTag("primary-trip-trip-primary").getUnclippedBoundsInRoot())
+        assertEquals(createBounds, compose.onNodeWithTag("create-trip").getUnclippedBoundsInRoot())
+    }
+
+    @Test fun splitScreenLargeFontKeepsCreateAndAllTripsReachable() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                EasyTripTheme {
+                    Box(Modifier.requiredWidth(320.dp).height(480.dp).testTag("trip-list-container")) {
+                        TripListContent(
+                            state = TripListUiState(
+                                page = TripListPageState.Content(
+                                    primaryTrip = trip("trip-primary", "一段特别特别长而且需要完整换行展示的旅行名称"),
+                                    otherTrips = (1..12).map { index ->
+                                        trip("trip-$index", "另一段同样很长而且需要换行的旅行名称 $index")
+                                    },
+                                ),
+                            ),
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val container = compose.onNodeWithTag("trip-list-container").getUnclippedBoundsInRoot()
+        val create = compose.onNodeWithTag("create-trip")
+            .assertHeightIsAtLeast(48.dp)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        val list = compose.onNodeWithTag("other-trips-list")
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        check(create.top >= container.top && create.bottom <= container.bottom)
+        check(list.bottom > list.top)
+
+        compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-12"))
+        compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
+        compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("primary-trip-trip-primary"))
+        compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertIsDisplayed()
+    }
+
+    @Test fun narrowLargeFontLayoutKeepsFixedActionsAndOtherTripsReachable() {
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+                EasyTripTheme {
+                    Box(Modifier.requiredWidth(280.dp).height(700.dp)) {
+                        TripListContent(
+                            state = TripListUiState(
+                                page = TripListPageState.Content(
+                                    primaryTrip = trip("trip-primary", "一段特别特别长而且需要完整换行展示的旅行名称"),
+                                    otherTrips = (1..12).map { index ->
+                                        trip("trip-$index", "另一段同样很长而且需要换行的旅行名称 $index")
+                                    },
+                                ),
+                            ),
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("continue-trip-trip-primary").assertHeightIsEqualTo(48.dp).assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertHeightIsEqualTo(48.dp).assertIsDisplayed()
+        compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-12"))
+        compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
     }
 
     @Test fun primaryMenuContainsOnlySettingsAndDeleteForBoundTrip() {
@@ -170,11 +285,11 @@ class TripListContentTest {
             }
         }
 
-        compose.onNodeWithTag("continue-trip-trip-long").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("trip-menu-trip-long").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("other-trip-trip-other").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("trip-menu-trip-other").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("continue-trip-trip-long").assertIsDisplayed()
+        compose.onNodeWithTag("trip-menu-trip-long").assertIsDisplayed()
+        compose.onNodeWithTag("other-trip-trip-other").assertIsDisplayed()
+        compose.onNodeWithTag("trip-menu-trip-other").assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertIsDisplayed()
         listOf(
             "primary-trip-name-trip-long",
             "trip-menu-trip-long",

@@ -2,24 +2,34 @@ package com.yangchengwei.easytrip.trip.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.SemanticsProperties.IsDialog
+import androidx.compose.ui.semantics.SemanticsProperties.PaneTitle
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.isRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
@@ -30,6 +40,7 @@ import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.DateRangeChangeImpact
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.Dp
 import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Rule
@@ -102,6 +113,270 @@ class TripSettingsContentTest {
         compose.onNodeWithTag("settings-end-date").performTextReplacement("2026-10-02")
         compose.onNodeWithTag("settings-apply-date-range").performClick()
         assertEquals(1, submissions)
+    }
+
+    @Test fun dateEditorUsesBottomSheetWithScrimAndNoDialogSemantics() {
+        compose.setContent {
+            Box(Modifier.width(390.dp).height(900.dp)) {
+                content(state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)))
+            }
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+
+        compose.onNodeWithTag("settings-date-scrim").assertIsDisplayed()
+        val sheet = compose.onNodeWithTag("settings-date-bottom-sheet").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val root = compose.onRoot().getUnclippedBoundsInRoot()
+        val expectedHeight = minOf(660f, (root.bottom.value - root.top.value) * (660f / 782f))
+        assertEquals(expectedHeight, sheet.bottom.value - sheet.top.value, .5f)
+        assertEquals(root.bottom.value, sheet.bottom.value, .5f)
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(IsDialog)).assertCountEquals(0)
+    }
+
+    @Test fun dateEditorIsAnAccessibilityPaneAndHidesUnderlyingSettingsSemantics() {
+        compose.setContent {
+            content(state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)))
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+
+        compose.onNodeWithTag("settings-date-bottom-sheet").assert(
+            SemanticsMatcher.expectValue(PaneTitle, "修改出行日期"),
+        )
+        compose.onNodeWithTag("settings-back").assertDoesNotExist()
+        compose.onNodeWithTag("settings-delete-trip").assertDoesNotExist()
+        compose.onNodeWithTag("settings-date-row").assertDoesNotExist()
+        compose.onAllNodes(SemanticsMatcher.keyIsDefined(IsDialog)).assertCountEquals(0)
+        compose.onAllNodes(
+            SemanticsMatcher("anonymous clickable") { node ->
+                node.config.contains(SemanticsActions.OnClick) &&
+                    !node.config.contains(SemanticsProperties.ContentDescription) &&
+                    !node.config.contains(SemanticsProperties.Text)
+            },
+        ).assertCountEquals(0)
+    }
+
+    @Test fun dateEditorCancelRestoresBaselineAfterValidAndInvalidLocalEdits() {
+        val drafts = mutableListOf<LocalDate?>()
+        var submissions = 0
+        compose.setContent {
+            content(
+                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                onDateEndDraft = drafts::add,
+                onSubmitDateRange = { submissions++ },
+            )
+        }
+
+        fun openAndAssertBaseline() {
+            compose.onNodeWithTag("settings-date-row").performClick()
+            compose.onNodeWithTag("settings-end-date").assertTextEquals("2026-10-03")
+            compose.onNodeWithTag("settings-date-input-error").assertDoesNotExist()
+        }
+
+        openAndAssertBaseline()
+        compose.onNodeWithTag("settings-end-date").performTextReplacement("2026-10-05")
+        compose.onNodeWithTag("settings-date-cancel").performClick()
+        openAndAssertBaseline()
+        compose.onNodeWithTag("settings-end-date").performTextReplacement("invalid")
+        compose.onNodeWithTag("settings-apply-date-range").performClick()
+        compose.onNodeWithTag("settings-date-input-error").assertIsDisplayed()
+        compose.onNodeWithTag("settings-date-cancel").performClick()
+        openAndAssertBaseline()
+
+        assertEquals(emptyList<LocalDate?>(), drafts)
+        assertEquals(0, submissions)
+    }
+
+    @Test fun dateEditorBackAndScrimRestoreBaselineWithoutDraftOrSubmissionCallbacks() {
+        val drafts = mutableListOf<LocalDate?>()
+        var submissions = 0
+        compose.setContent {
+            content(
+                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                onDateEndDraft = drafts::add,
+                onSubmitDateRange = { submissions++ },
+            )
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+        compose.onNodeWithTag("settings-end-date").performTextReplacement("2026-10-05")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        pressBack()
+        compose.waitForIdle()
+        compose.onNodeWithTag("settings-date-row", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("settings-end-date").assertTextEquals("2026-10-03")
+        compose.onNodeWithTag("settings-end-date").performTextReplacement("invalid")
+        androidx.test.espresso.Espresso.closeSoftKeyboard()
+        compose.onRoot().performTouchInput { click(Offset(1f, 1f)) }
+        compose.onNodeWithTag("settings-date-row", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("settings-end-date").assertTextEquals("2026-10-03")
+        compose.onNodeWithTag("settings-date-input-error").assertDoesNotExist()
+
+        assertEquals(emptyList<LocalDate?>(), drafts)
+        assertEquals(0, submissions)
+    }
+
+    @Test fun dateEditorApplyDispatchesDraftThenSubmitsExactlyOnce() {
+        val callbacks = mutableListOf<String>()
+        compose.setContent {
+            content(
+                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                onDateEndDraft = { callbacks += "draft:$it" },
+                onSubmitDateRange = { callbacks += "submit" },
+            )
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+        compose.onNodeWithTag("settings-end-date").performTextReplacement("2026-10-05")
+        compose.onNodeWithTag("settings-apply-date-range").performClick()
+
+        assertEquals(listOf("draft:2026-10-05", "submit"), callbacks)
+    }
+
+    @Test fun dateEditorKeepsActionsInsideTinyHeightAtTwoTimesFontScale() {
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density = 1f, fontScale = 2f),
+            ) {
+                Box(Modifier.width(280.dp).height(220.dp).testTag("date-editor-container")) {
+                    content(state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)))
+                }
+            }
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+
+        val container = compose.onNodeWithTag("date-editor-container").getUnclippedBoundsInRoot()
+        val sheet = compose.onNodeWithTag("settings-date-bottom-sheet").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val cancel = compose.onNodeWithTag("settings-date-cancel").assertIsDisplayed().assertHeightIsAtLeast(48.dp).getUnclippedBoundsInRoot()
+        val confirm = compose.onNodeWithTag("settings-apply-date-range").assertIsDisplayed().assertHeightIsAtLeast(48.dp).getUnclippedBoundsInRoot()
+        assertEquals(container.top.value, sheet.top.value, .5f)
+        assertEquals(container.bottom.value, sheet.bottom.value, .5f)
+        check(cancel.top.value >= container.top.value && cancel.bottom.value <= container.bottom.value)
+        check(confirm.top.value >= container.top.value && confirm.bottom.value <= container.bottom.value)
+    }
+
+    @Test fun dateEditorActionsStayAboveInjectedBottomSafeInset() {
+        val bottomInset = 36.dp
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(density = 1f, fontScale = 2f),
+            ) {
+                Box(Modifier.width(280.dp).height(220.dp).testTag("date-editor-safe-container")) {
+                    content(
+                        state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                        dateEditorBottomInset = { WindowInsets(bottom = bottomInset) },
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+
+        val container = compose.onNodeWithTag("date-editor-safe-container").getUnclippedBoundsInRoot()
+        val cancel = compose.onNodeWithTag("settings-date-cancel")
+            .assertHeightIsAtLeast(48.dp)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        val confirm = compose.onNodeWithTag("settings-apply-date-range")
+            .assertHeightIsAtLeast(48.dp)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        check(cancel.bottom <= container.bottom - bottomInset)
+        check(confirm.bottom <= container.bottom - bottomInset)
+    }
+
+    @Test fun dateEditorSheetHeightNeverExceedsAvailableHeight() {
+        val method = Class.forName("com.yangchengwei.easytrip.trip.ui.TripSettingsContentKt")
+            .declaredMethods
+            .single { it.name.startsWith("dateEditorSheetHeight-") }
+            .apply { isAccessible = true }
+
+        assertEquals(220f, method.invoke(null, 220f) as Float, .001f)
+        assertEquals(240f, method.invoke(null, 284f) as Float, .001f)
+        assertEquals(660f, method.invoke(null, 900f) as Float, .001f)
+    }
+
+    @Test fun dateEditorBackClosesSheetWithoutLeavingSettingsOrSubmitting() {
+        var backs = 0
+        var submissions = 0
+        compose.setContent {
+            TripSettingsContent(
+                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                onBack = { backs++ }, onRename = {}, onTravelMode = {}, onDateEndDraft = {},
+                onSubmitDateRange = { submissions++ }, onCancelDateRange = {}, onConfirmDateRange = {},
+                onRetryDateRangeSync = {}, onRequestDeleteDay = {}, onRetryDeleteDay = {},
+                onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+            )
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+        pressBack()
+        compose.waitForIdle()
+
+        compose.onNodeWithTag("settings-date-bottom-sheet").assertDoesNotExist()
+        compose.onNodeWithTag("settings-header").assertIsDisplayed()
+        assertEquals(0, backs)
+        assertEquals(0, submissions)
+    }
+
+    @Test fun dateEditorContentTapDoesNotDismissOrSubmit() {
+        var submissions = 0
+        compose.setContent {
+            TripSettingsContent(
+                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                onBack = {}, onRename = {}, onTravelMode = {}, onDateEndDraft = {},
+                onSubmitDateRange = { submissions++ }, onCancelDateRange = {}, onConfirmDateRange = {},
+                onRetryDateRangeSync = {}, onRequestDeleteDay = {}, onRetryDeleteDay = {},
+                onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+            )
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+        compose.onNodeWithTag("settings-date-sheet-handle").performClick()
+
+        compose.onNodeWithTag("settings-date-bottom-sheet").assertIsDisplayed()
+        assertEquals(0, submissions)
+    }
+
+    @Test fun invalidDateKeepsBottomSheetOpenAndDoesNotSubmit() {
+        var submissions = 0
+        compose.setContent {
+            TripSettingsContent(
+                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                onBack = {}, onRename = {}, onTravelMode = {}, onDateEndDraft = {},
+                onSubmitDateRange = { submissions++ }, onCancelDateRange = {}, onConfirmDateRange = {},
+                onRetryDateRangeSync = {}, onRequestDeleteDay = {}, onRetryDeleteDay = {},
+                onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+            )
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+        compose.onNodeWithTag("settings-end-date").performTextReplacement("invalid")
+        compose.onNodeWithTag("settings-apply-date-range").performClick()
+
+        compose.onNodeWithTag("settings-date-bottom-sheet").assertIsDisplayed()
+        compose.onNodeWithTag("settings-date-input-error").assertIsDisplayed()
+        assertEquals(0, submissions)
+    }
+
+    @Test fun dateEditorCancelDoesNotSubmitAndClosesSheet() {
+        var submissions = 0
+        compose.setContent {
+            TripSettingsContent(
+                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
+                onBack = {}, onRename = {}, onTravelMode = {}, onDateEndDraft = {},
+                onSubmitDateRange = { submissions++ }, onCancelDateRange = {}, onConfirmDateRange = {},
+                onRetryDateRangeSync = {}, onRequestDeleteDay = {}, onRetryDeleteDay = {},
+                onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+            )
+        }
+
+        compose.onNodeWithTag("settings-date-row").performClick()
+        compose.onNodeWithTag("settings-date-cancel").performClick()
+
+        compose.onNodeWithTag("settings-date-bottom-sheet").assertDoesNotExist()
+        assertEquals(0, submissions)
     }
 
     @Test fun startDateIsReadOnlyAndOnlyEndDateDispatchesDraft() {
@@ -382,7 +657,7 @@ class TripSettingsContentTest {
         var requests = 0
         compose.setContent {
             content(
-                state = TripSettingsUiState(tripId = "trip", name = "暂未加载"),
+                state = TripSettingsUiState(tripId = "trip", name = "暂未加载", hasAuthoritativeTrip = false),
                 onRequestTripDeletion = { requests++ },
             )
         }
@@ -509,7 +784,7 @@ class TripSettingsContentTest {
 
         fun cancelAndAssertUnchanged() {
             compose.onNodeWithTag("trip-delete-impact-cancel").performClick()
-            compose.onNodeWithText("Kyoto").assertIsDisplayed()
+            compose.onNodeWithTag("delete-day-day-1").assertIsDisplayed()
             assertEquals(listOf(DayUi("day-1", "2026-10-01")), state.days)
             assertEquals(TripDeletionUiState.Idle, state.tripDeletion)
         }
@@ -527,7 +802,7 @@ class TripSettingsContentTest {
             )
         }
         compose.onNodeWithTag("confirmation-dismiss").performClick()
-        compose.onNodeWithText("Kyoto").assertIsDisplayed()
+        compose.onNodeWithTag("delete-day-day-1").assertIsDisplayed()
         assertEquals(listOf(DayUi("day-1", "2026-10-01")), state.days)
         assertEquals(TripDeletionUiState.Idle, state.tripDeletion)
         assertEquals(2, cancellations)
@@ -538,9 +813,8 @@ class TripSettingsContentTest {
         var resyncs = 0
         var backs = 0
         val confirmation = TripDeleteImpact(3, 8, 0, 8, 5).toConfirmationUiModel("Kyoto")
-        val syncFailure = TripSettingsUiState(
-            tripId = "trip",
-            name = "Kyoto",
+        val syncFailure = datedState().copy(
+            dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle),
             tripDeletion = TripDeletionUiState.Ready(
                 tripId = "trip",
                 tripName = "Kyoto",
@@ -558,13 +832,14 @@ class TripSettingsContentTest {
             )
         }
 
-        compose.onNodeWithTag("confirmation-dismiss").assertDoesNotExist()
+        compose.onAllNodesWithTag("confirmation-dismiss").assertCountEquals(0)
         compose.onNodeWithTag("settings-back").assertIsNotEnabled().performClick()
         compose.onNodeWithTag("settings-rename").assertIsNotEnabled()
         compose.onNodeWithTag("settings-date-row").assertIsNotEnabled()
         compose.onNodeWithTag("delete-day-day-3").assertIsNotEnabled()
         compose.onNodeWithTag("settings-delete-trip").assertIsNotEnabled()
         pressBack()
+        compose.waitForIdle()
         compose.onNodeWithText("删除成功，但同步确认失败，请重新同步").assertIsDisplayed()
         compose.onNodeWithText("重新同步").performClick()
 
@@ -632,6 +907,7 @@ class TripSettingsContentTest {
         state: TripSettingsUiState,
         onBack: () -> Unit = {},
         onDateEndDraft: (LocalDate?) -> Unit = {},
+        onSubmitDateRange: () -> Unit = {},
         onCancelDateRange: () -> Unit = {},
         onRetryDateRangeSync: () -> Unit = {},
         onRetryDeleteDay: () -> Unit = {},
@@ -641,13 +917,14 @@ class TripSettingsContentTest {
         onCancelTripDeletion: () -> Unit = {},
         onConfirmTripDeletion: () -> Unit = {},
         onRetryTripDeletionSync: () -> Unit = {},
+        dateEditorBottomInset: @androidx.compose.runtime.Composable () -> WindowInsets = { WindowInsets(0) },
     ) = TripSettingsContent(
         state = state,
         onBack = onBack,
         onRename = {},
         onTravelMode = {},
         onDateEndDraft = onDateEndDraft,
-        onSubmitDateRange = {},
+        onSubmitDateRange = onSubmitDateRange,
         onCancelDateRange = onCancelDateRange,
         onConfirmDateRange = {},
         onRetryDateRangeSync = onRetryDateRangeSync,
@@ -661,6 +938,7 @@ class TripSettingsContentTest {
         onCancelTripDeletion = onCancelTripDeletion,
         onConfirmTripDeletion = onConfirmTripDeletion,
         onRetryTripDeletionSync = onRetryTripDeletionSync,
+        dateEditorBottomInset = dateEditorBottomInset,
     )
 
     private fun growthState(

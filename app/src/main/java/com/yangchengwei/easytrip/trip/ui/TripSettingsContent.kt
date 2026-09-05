@@ -1,18 +1,25 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
@@ -38,9 +45,14 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.isTraversalGroup
+import androidx.compose.ui.semantics.paneTitle
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -77,6 +89,7 @@ fun TripSettingsContent(
     onCancelTripDeletion: () -> Unit = {},
     onConfirmTripDeletion: () -> Unit = {},
     onRetryTripDeletionSync: () -> Unit = {},
+    dateEditorBottomInset: @Composable () -> WindowInsets = { WindowInsets.navigationBars },
 ) {
     var editingName by remember { mutableStateOf(false) }
     var editingDates by remember { mutableStateOf(false) }
@@ -105,6 +118,7 @@ fun TripSettingsContent(
 
     Column(
         Modifier.fillMaxSize()
+            .then(if (editingDates) Modifier.clearAndSetSemantics {} else Modifier)
             .background(EasyTripBackground)
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
@@ -138,7 +152,11 @@ fun TripSettingsContent(
                                 label = "整体出行日期",
                                 value = "${state.dateRange.startDate} — ${state.dateRange.endDate}",
                                 enabled = !settingsWriteLocked,
-                                onClick = { editingDates = true },
+                                onClick = {
+                                    endText = state.dateRange.baselineEndDate?.toString().orEmpty()
+                                    inputError = null
+                                    editingDates = true
+                                },
                                 modifier = Modifier.testTag("settings-date-row"),
                                 grouped = true,
                             )
@@ -214,22 +232,36 @@ fun TripSettingsContent(
     }
 
     if (editingName && dateImpact == null) RenameDialog(name, { name = it }, { onRename(name); editingName = false }, { name = state.name; editingName = false }, !settingsWriteLocked)
-    if (editingDates && hasDates && dateImpact == null) DateEditorDialog(
+    if (editingDates && hasDates && dateImpact == null) DateEditorSheet(
         startDate = state.dateRange.startDate!!,
         endText = endText,
         onEndTextChange = { value ->
             endText = value
-            val parsed = runCatching { value.takeIf(String::isNotBlank)?.let(LocalDate::parse) }
-            inputError = if (parsed.isFailure) "请输入 YYYY-MM-DD 格式日期" else null
-            if (parsed.isSuccess) onDateEndDraft(parsed.getOrNull())
+            inputError = if (runCatching { LocalDate.parse(value) }.isFailure) {
+                "请输入 YYYY-MM-DD 格式日期"
+            } else {
+                null
+            }
         },
-        error = inputError ?: state.dateRange.error,
+        error = inputError,
         onApply = {
-            if (runCatching { LocalDate.parse(endText) }.isFailure) inputError = "请输入 YYYY-MM-DD 格式日期"
-            else { inputError = null; editingDates = false; onSubmitDateRange() }
+            val parsed = runCatching { LocalDate.parse(endText) }
+            if (parsed.isFailure) {
+                inputError = "请输入 YYYY-MM-DD 格式日期"
+            } else {
+                inputError = null
+                editingDates = false
+                onDateEndDraft(parsed.getOrThrow())
+                onSubmitDateRange()
+            }
         },
-        onDismiss = { editingDates = false },
+        onDismiss = {
+            endText = state.dateRange.baselineEndDate?.toString().orEmpty()
+            inputError = null
+            editingDates = false
+        },
         enabled = !settingsWriteLocked,
+        bottomInset = dateEditorBottomInset(),
     )
     dateImpact?.let { impact ->
         editingDates = false
@@ -315,22 +347,95 @@ private fun RenameDialog(name: String, onNameChange: (String) -> Unit, onSave: (
 ) { Column(Modifier.padding(EasyTripTheme.spacing.dialogContentVertical), verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.dialogSectionGap)) { Text("重命名旅行", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); OutlinedTextField(name, onNameChange, label = { Text("旅行名称") }, enabled = enabled, modifier = Modifier.fillMaxWidth()); DialogActions(onDismiss, onSave, "保存名称", enabled && name.isNotBlank(), false) } }
 
 @Composable
-private fun DateEditorDialog(startDate: LocalDate, endText: String, onEndTextChange: (String) -> Unit, error: String?, onApply: () -> Unit, onDismiss: () -> Unit, enabled: Boolean) = EasyTripDialogSurface(
-    onDismiss,
-    dismissible = enabled,
-    width = EasyTripTheme.sizes.dialogWidth,
-) {
-    Column(
-        Modifier.padding(EasyTripTheme.spacing.dialogContentHorizontal),
-        verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsCardGap),
+private fun DateEditorSheet(
+    startDate: LocalDate,
+    endText: String,
+    onEndTextChange: (String) -> Unit,
+    error: String?,
+    onApply: () -> Unit,
+    onDismiss: () -> Unit,
+    enabled: Boolean,
+    bottomInset: WindowInsets,
+) = BoxWithConstraints(Modifier.fillMaxSize()) {
+    val sheetHeight = dateEditorSheetHeight(maxHeight)
+    BackHandler(enabled = enabled, onBack = onDismiss)
+    Surface(
+        modifier = Modifier
+            .fillMaxSize()
+            .pointerInput(enabled) {
+                if (enabled) detectTapGestures(onTap = { onDismiss() })
+            }
+            .testTag("settings-date-scrim")
+            .clearAndSetSemantics {
+                contentDescription = ""
+            },
+        color = Color.Black.copy(alpha = .35f),
+    ) {}
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(sheetHeight)
+            .align(Alignment.BottomCenter)
+            .pointerInput(Unit) {
+                awaitPointerEventScope {
+                    while (true) awaitPointerEvent(PointerEventPass.Initial)
+                }
+            }
+            .testTag("settings-date-bottom-sheet")
+            .semantics {
+                paneTitle = "修改出行日期"
+                isTraversalGroup = true
+            },
+        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = 12.dp,
     ) {
-        Text("修改出行日期", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-        Text("旅行日将根据日期范围自动连续生成，不能单独修改某一天。", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-        DateEditorRow("开始日期", startDate.toString(), Modifier.testTag("settings-start-date"))
-        EditableDateEditorRow("结束日期", endText, onEndTextChange, enabled, Modifier.testTag("settings-end-date"))
-        error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        DialogActions(onDismiss, onApply, "确认修改", enabled, false, Modifier.testTag("settings-apply-date-range"))
+        Column(
+            Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsCardGap),
+        ) {
+            Surface(
+                modifier = Modifier.align(Alignment.CenterHorizontally).width(36.dp).height(4.dp).testTag("settings-date-sheet-handle"),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.outlineVariant,
+            ) {}
+            Text("修改出行日期", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+            Column(
+                Modifier.weight(1f, fill = true).verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsCardGap),
+            ) {
+                Text("旅行日将根据日期范围自动连续生成，不能单独修改某一天。", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
+                DateEditorRow("开始日期", startDate.toString(), Modifier.testTag("settings-start-date"))
+                EditableDateEditorRow("结束日期", endText, onEndTextChange, enabled, Modifier.testTag("settings-end-date"))
+                error?.let { Text(it, Modifier.testTag("settings-date-input-error"), color = MaterialTheme.colorScheme.error) }
+            }
+            DateEditorActions(
+                onDismiss = onDismiss,
+                onConfirm = onApply,
+                enabled = enabled,
+                modifier = Modifier.windowInsetsPadding(bottomInset),
+            )
+        }
     }
+}
+
+private fun dateEditorSheetHeight(availableHeight: androidx.compose.ui.unit.Dp): androidx.compose.ui.unit.Dp {
+    val standardHeight = availableHeight * (660f / 782f)
+    return standardHeight.coerceAtLeast(240.dp).coerceAtMost(660.dp).coerceAtMost(availableHeight)
+}
+
+@Composable
+private fun DateEditorActions(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    enabled: Boolean,
+    modifier: Modifier = Modifier,
+) = Row(
+    modifier.fillMaxWidth(),
+    horizontalArrangement = Arrangement.spacedBy(10.dp),
+) {
+    EasyTripSecondaryButton(onDismiss, Modifier.weight(1f).testTag("settings-date-cancel"), enabled) { Text("取消") }
+    EasyTripPrimaryButton(onConfirm, Modifier.weight(1f).testTag("settings-apply-date-range"), enabled) { Text("确认修改") }
 }
 
 @Composable

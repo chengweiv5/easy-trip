@@ -30,8 +30,8 @@
 
 | 设计来源 | Frame ID | 现有/目标代码 | 核对内容 | 测试 | 状态 |
 |---|---|---|---|---|---|
-| Easy Trip UI Kit | `f7rS8` | `EasyTripTokens`、Theme、基础组件 | 颜色、字体、圆角、按钮、状态反馈 | `CreateTripContentTest`、`TripListContentTest`、`WorkspaceChromeTest` 等组件/宿主测试；Huawei 代表性页面验收 | 已测试（代表性页面已真机验证；未声明整套 UI Kit 逐组件物理验收） |
-| 14 状态规范 | `DxZ2a` | `EmptyState`、InlineStatus、Dialog、Snackbar | 六类通用状态和恢复操作 | `ConfirmationDialogTest`、各业务状态 focused Compose 测试 | 已测试（分散状态证据；整板物理验收 PENDING） |
+| Easy Trip UI Kit | `f7rS8` | `EasyTripTokens`、Theme、基础组件 | 颜色、字体、圆角、按钮、状态反馈 | `CreateTripContentTest`、`TripListContentTest`、`WorkspaceChromeTest` 等组件/宿主测试；Huawei 代表性页面验收 | 已测试（含 Batch 9 代表组件抽查；未声明整套 UI Kit 逐组件物理验收） |
+| 14 状态规范 | `DxZ2a` | `EmptyState`、InlineStatus、Dialog、Snackbar | 六类通用状态和恢复操作 | `ConfirmationDialogTest`、各业务状态 focused Compose 测试 | 已测试（含 Batch 9 代表状态抽查；整板物理验收 PENDING） |
 | 工作台全空 | `BrYVA` | `TripWorkspaceContent` | 地图、Tab、主抽屉结构 | Workspace UI 测试、typed scenario、模拟器证据 | 已测试 |
 | 行程全空 | `WFOpg` | `WorkspaceItineraryContent` | Tab 切换和空行程状态 | Workspace UI 测试、typed scenario、模拟器证据 | 已测试 |
 | 抽屉收起 | `kCc5z` | `WorkspaceBottomSheet` | `h108`、Tab、真实状态摘要与地图最大空间 | 抽屉状态测试 | 已验收 |
@@ -68,9 +68,12 @@
 ### Batch 1 完成条件
 
 - [x] 创建、校验、日期和成功进入工作台闭环可达。
-- [ ] 单旅行、多旅行和滚动已有 controlled Compose 自动化，专项物理验收 PENDING；空状态已真机验收，删除后已有 controlled final state + production AppNavigation/Room。
-- [x] 修改日期由 structured impact 自动化覆盖；专项物理验收 PENDING。
-- [x] 删除旅行确认和删除后当前旅行切换由 production AppNavigation + in-memory Room 覆盖；Huawei 新删除闭环 PENDING。
+- [x] `wJ51c` 单旅行与 `pgrb6` 多旅行：`TripListContentTest` 13/13（`emulator-5554`，即 `easy_trip_p60pro(AVD) - 12`，含 280dp×2 字体）；标准高度保持 header/primary/create 固定、仅 other-list 滚动，`<500dp` 多旅行时降级为 primary 与 other trips 共用滚动区、header/create 仍固定；Huawei ALN-AL00 production UI 从空列表创建 `SingleTrip` 后，再创建七个实际旅行并实操长列表滚动，header/primary/create 持续可见且创建入口可点（实际数据，非精确 Pencil fixture）。
+- [x] `U06l7P`：`TripSettingsContentTest` 36/36（`easy_trip_p60pro(AVD) - 12`，分组、Done/Back、窄宽大字体与危险入口）；Huawei ALN-AL00 production UI 实操分组、完成态及危险区；仅标记实际 physical 操作，不以该安装态数据提升精确 fixture。
+- [x] `IKTv5`：`DateEditorSheet` 的响应式高度、Back/pointer、modal semantics、tiny height、本地草稿事务与 footer `navigationBars` inset 由 `TripSettingsContentTest` 36/36（`easy_trip_p60pro(AVD) - 12`）覆盖；Huawei ALN-AL00 通过 UI 创建 dated 三日 `DateTrip` 后实际打开 Sheet，确认 scrim、开始/结束日期、固定操作、导航栏安全区，且系统 Back 仅关闭 Sheet 并保留 settings。此为实际安装态数据，不等同 Pencil fixture。
+- [x] `oW9mK` / `d1sTtb`：`TripSettingsNavigationTest` 5/5（`easy_trip_p60pro(AVD) - 12`；production AppNavigation + in-memory Room）验证精确级联、杭州移除、川西 primary、泉州保留与回栈清理；Huawei ALN-AL00 实际取消删除后 `DateTrip` 保留，确认后 `DateTrip` 消失、`Dali` 成为 primary、其他旅行保留且系统 Back 不回到已删除 settings/workspace。真机数据不能冒充杭州/川西/泉州精确终态。
+- [x] Final fix wave：`TripListContentTest` 13/13 + `TripSettingsContentTest` 36/36，合并 connected 49/49；仅更新上述 Batch 1 证据，不提升其他 frame。
+- [ ] Batch 1 physical 完成限制：已记录 Huawei ALN-AL00 的实际 production UI 操作；但六帧尚未以严格匹配 Pencil fixture 数据逐项复现，精确终态仍由自动化证明，Device UI 保留 partial/限制说明。
 
 ## Batch 2：旅行工作台骨架
 
@@ -489,6 +492,16 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 - 自动化：`MapTouchInteractionDetectorTest` 覆盖 tap、drag、多指、cancel/reset、dispose；`ACTION_DOWN` 仅 arm，drag 超过 slop 或 pointer down 才通知业务。focused JVM、当前 fresh full JVM 727/727、`compileDebugAndroidTestKotlin`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check`、`graphify update .` 全部通过。根据限制未执行 `connectedDebugAndroidTest`，也未安装 test APK。
 - Huawei：ALN-AL00 只通过 `adb install -r` 覆盖 production APK，未清数据、未卸载。创建真实旅行 `GestureVerify`、接受 AMap consent 后，两次不同方向的真实拖动后 行程→地点池均保持手动视口。空数据 production UI 未呈现内部 `+/-` 控件，故不声明按钮真机点击；单击地图后没有可观察的 scope fit target，亦不声明。
 - 已知边界：真实 AMap 手势主链已通过；`AmapComposeMapTest` 和 WorkspaceFlow zoom instrumentation 仅编译。Graphify 更新为 6949 nodes / 16196 edges / 362 communities，并继续报告未触及的 `TripWorkspaceContentTest.kt`、`NetworkMonitor.kt`、`RoutePlanner.kt` 解析 warning。
+
+### 2026-09-05 · Batch 9 / Task 5 · Batch 1 文档与证据收口
+
+- 范围：仅回填 `wJ51c`、`pgrb6`、`U06l7P`、`IKTv5`、`oW9mK`、`d1sTtb` 的自动化与设备证据；`f7rS8` / `DxZ2a` 只记录本批代表组件/状态抽查，不外推为逐组件、整板或物理验收。
+- 自动化：Task 1 final fix wave 在 `emulator-5554`（即 `easy_trip_p60pro(AVD) - 12`）上 `TripListContentTest` 13/13；标准高度保持 header/primary/create 固定且仅 other-list 滚动，`<500dp` 多旅行启用 primary + other trips 共用滚动区的响应式降级，header/create 仍固定。Task 2 final fix wave 在 `easy_trip_p60pro(AVD) - 12` 上 `TripSettingsContentTest` 36/36，除既有日期 Sheet 的 Back、pointer 防穿透、无障碍 modal 隔离、极小高度、本地草稿事务与 Apply 的 draft→submit exactly-once 外，补充 `DateEditorSheet` footer 的 `navigationBars` inset。Task 3 在 `easy_trip_p60pro(AVD) - 12` 上 `TripSettingsNavigationTest` 5/5；合并 Batch 9 connected 49/49（Task 1 + Task 2），验证 production AppNavigation + in-memory Room 的设置/删除/级联/回栈路径。此处数字不外推到其他 frame。
+- 证据轴：`wJ51c` / `pgrb6` Host=production `TripListContent` Compose，state source=controlled `TripListUiState`，map=无，permission=未涉及，source=`emulator-5554`（`easy_trip_p60pro(AVD) - 12`）上的 `TripListContentTest`。`U06l7P` / `IKTv5` Host=production `TripSettingsContent` Compose，state source=controlled settings UiState，map=无，permission=未涉及，source=`easy_trip_p60pro(AVD) - 12` 上的 `TripSettingsContentTest`。`oW9mK` / `d1sTtb` Host=production `AppNavigation`（`d1sTtb` 另有 controlled final state），state source=in-memory Room，map=recording fake，permission=未涉及，source=`easy_trip_p60pro(AVD) - 12` 上的 `TripSettingsNavigationTest`。
+- Huawei ALN-AL00 actual：production debug APK 仅以 `adb install -r` 覆盖后 cold start，未清数据、未卸载、未安装 test APK。以 production UI 从空列表创建 `SingleTrip`，再创建 `Quanzhou`、`Sichuan`、`Hangzhou`、`Dali`、`Nanjing`、`Qingdao`、`Dunhuang`；长其他旅行列表可滚动，header/primary/create 持续可见且创建入口可点。以 UI 创建 dated 三日 `DateTrip` 后，`IKTv5` Sheet 的 scrim、开始/结束、底部安全区和系统 Back 仅关闭 Sheet 均实测；settings 分组/完成/危险区可达；取消删除保留 `DateTrip`，确认后 `DateTrip` 消失、`Dali` primary、others 保留，Back 不回 deleted settings/workspace。map surface=AMap consent-declined fallback，不声明 RealAmap。上述是真机实际数据，不能冒充精确 Pencil 的杭州删除/川西 primary/泉州 other；该精确终态仍只由 `TripSettingsNavigationTest` E2E 证明。Device UI 记录 Batch 9 actual/partial，严格 fixture 差异/限制保留。
+- Final fix wave：`TripListContent` 在 `<500dp` 多旅行场景采用响应式降级，header/create 保持固定，primary 与 other trips 共用滚动区；标准高度仍保持 only-other scroll。`DateEditorSheet` footer 仅应用可注入 `WindowInsets.navigationBars`，避免底部操作落入导航栏安全区，不改变 sheet 贴底或其他内容高度。
+- 验证：`TripListContentTest` 13/13、`TripSettingsContentTest` 36/36，合并 connected 49/49；`assembleDebug`、`lintDebug`、`git diff --check` 通过。Huawei 当前离线/physical PENDING。
+- 约束：未修改其他 frame 的证据等级；未修改 `.pen`、`.kotlin/`、`diagrams/`；Graphify outputs 留主会话统一；未 commit、未 push。
 
 ### Batch 7 完成条件
 

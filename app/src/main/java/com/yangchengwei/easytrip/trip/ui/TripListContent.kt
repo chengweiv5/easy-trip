@@ -1,8 +1,8 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -54,35 +54,71 @@ fun TripListContent(
                     onCreate = { onAction(TripListAction.CreateTrip) },
                     modifier = Modifier.weight(1f),
                 )
-                is TripListPageState.Content -> LazyColumn(
-                    modifier = Modifier.weight(1f),
-                    contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-                    verticalArrangement = Arrangement.spacedBy(20.dp),
-                ) {
-                    item(key = "primary-${page.primaryTrip.id}") {
-                        PrimaryTripCard(
-                            trip = page.primaryTrip,
-                            menuExpanded = expandedMenuTripId == page.primaryTrip.id,
-                            onMenuExpandedChange = { expanded ->
-                                expandedMenuTripId = page.primaryTrip.id.takeIf { expanded }
-                            },
-                            onAction = onAction,
-                        )
-                    }
-                    if (page.otherTrips.isNotEmpty()) {
-                        item { Text("其他旅行", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold) }
-                        items(page.otherTrips, key = TripCardUiModel::id) { trip ->
-                            OtherTripRow(
-                                trip = trip,
-                                menuExpanded = expandedMenuTripId == trip.id,
+                is TripListPageState.Content -> BoxWithConstraints(Modifier.fillMaxSize()) {
+                    val compactHeight = maxHeight < 500.dp
+                    Column(
+                        modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 24.dp),
+                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                    ) {
+                        if (compactHeight && page.otherTrips.isNotEmpty()) {
+                            LazyColumn(
+                                modifier = Modifier.weight(1f).testTag("other-trips-list"),
+                                verticalArrangement = Arrangement.spacedBy(20.dp),
+                            ) {
+                                item(key = "primary-${page.primaryTrip.id}") {
+                                    PrimaryTripCard(
+                                        trip = page.primaryTrip,
+                                        menuExpanded = expandedMenuTripId == page.primaryTrip.id,
+                                        onMenuExpandedChange = { expanded ->
+                                            expandedMenuTripId = page.primaryTrip.id.takeIf { expanded }
+                                        },
+                                        onAction = onAction,
+                                    )
+                                }
+                                item(key = "other-trips-heading") {
+                                    Text("其他旅行", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                }
+                                items(page.otherTrips, key = TripCardUiModel::id) { trip ->
+                                    OtherTripRow(
+                                        trip = trip,
+                                        menuExpanded = expandedMenuTripId == trip.id,
+                                        onMenuExpandedChange = { expanded ->
+                                            expandedMenuTripId = trip.id.takeIf { expanded }
+                                        },
+                                        onAction = onAction,
+                                    )
+                                }
+                            }
+                        } else {
+                            PrimaryTripCard(
+                                trip = page.primaryTrip,
+                                menuExpanded = expandedMenuTripId == page.primaryTrip.id,
                                 onMenuExpandedChange = { expanded ->
-                                    expandedMenuTripId = trip.id.takeIf { expanded }
+                                    expandedMenuTripId = page.primaryTrip.id.takeIf { expanded }
                                 },
                                 onAction = onAction,
                             )
+                            if (page.otherTrips.isNotEmpty()) {
+                                Text("其他旅行", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+                                LazyColumn(
+                                    modifier = Modifier.weight(1f).testTag("other-trips-list"),
+                                    verticalArrangement = Arrangement.spacedBy(20.dp),
+                                ) {
+                                    items(page.otherTrips, key = TripCardUiModel::id) { trip ->
+                                        OtherTripRow(
+                                            trip = trip,
+                                            menuExpanded = expandedMenuTripId == trip.id,
+                                            onMenuExpandedChange = { expanded ->
+                                                expandedMenuTripId = trip.id.takeIf { expanded }
+                                            },
+                                            onAction = onAction,
+                                        )
+                                    }
+                                }
+                            } else {
+                                Spacer(Modifier.weight(1f))
+                            }
                         }
-                    }
-                    item {
                         EasyTripSecondaryButton(
                             onClick = { onAction(TripListAction.CreateTrip) },
                             modifier = Modifier.fillMaxWidth().height(48.dp).testTag("create-trip"),

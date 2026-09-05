@@ -6,6 +6,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.BackHandler
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertTextEquals
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -193,12 +194,11 @@ class TripSettingsNavigationTest {
         assertEquals(routesAfterDeletion, routes)
     }
 
-    @Test fun settingsDeleteRemovesOwnedRowsKeepsOtherTripAndClearsWorkspaceBackStack() {
-        val remaining = seedTripWithOwnedRows("川西小环线")
-        val deleted = seedTripWithOwnedRows("杭州 · 春日慢游")
-        setNavigation(expectedTripId = deleted.id)
+    @Test fun settingsDeleteRemovesHangzhouPromotesSichuanKeepsQuanzhouAndClearsWorkspaceBackStack() {
+        val trips = seedPencilDeleteScenario()
+        setNavigation(expectedTripId = trips.hangzhou.id)
 
-        compose.onNodeWithTag("continue-trip-${deleted.id}").performClick()
+        compose.onNodeWithTag("continue-trip-${trips.hangzhou.id}").performClick()
         compose.onNodeWithTag("workspace-more").performClick()
         compose.onNodeWithTag("settings-delete-trip").performClick()
         compose.waitUntil(5_000) {
@@ -207,17 +207,51 @@ class TripSettingsNavigationTest {
         compose.onNodeWithTag("confirmation-confirm").performClick()
 
         compose.waitUntil(5_000) {
-            compose.onAllNodesWithTag("primary-trip-${remaining.id}").fetchSemanticsNodes().isNotEmpty()
+            compose.onAllNodesWithTag("primary-trip-${trips.sichuan.id}").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag("primary-trip-${remaining.id}").assertIsDisplayed()
-        compose.onAllNodesWithTag("continue-trip-${deleted.id}").assertCountEquals(0)
-        assertOwnedRows(deleted, expected = 0)
-        assertOwnedRows(remaining, expected = 1)
-        assertEquals(null, runBlocking { database.routeLegDao().leg(deleted.legId) })
-        assertNotNull(runBlocking { database.routeLegDao().leg(remaining.legId) })
+        compose.onNodeWithTag("primary-trip-${trips.sichuan.id}").assertIsDisplayed()
+        compose.onNodeWithText("川西小环线").assertIsDisplayed()
+        compose.onNodeWithTag("other-trip-${trips.quanzhou.id}").assertIsDisplayed()
+        compose.onNodeWithText("泉州古城散步").assertIsDisplayed()
+        compose.onAllNodesWithTag("continue-trip-${trips.hangzhou.id}").assertCountEquals(0)
+        compose.onAllNodesWithText("杭州 · 春日慢游").assertCountEquals(0)
+        assertOwnedRows(trips.hangzhou, expected = 0)
+        assertOwnedRows(trips.sichuan, expected = 1)
+        assertOwnedRows(trips.quanzhou, expected = 1)
+        assertEquals(null, runBlocking { database.routeLegDao().leg(trips.hangzhou.legId) })
+        assertNotNull(runBlocking { database.routeLegDao().leg(trips.sichuan.legId) })
+        assertNotNull(runBlocking { database.routeLegDao().leg(trips.quanzhou.legId) })
 
         assertThrows(NoActivityResumedException::class.java) { pressBack() }
     }
+
+    @Test fun settingsDeleteCancelLeavesRoomUntouchedAndBackReturnsToSameWorkspace() {
+        val trips = seedPencilDeleteScenario()
+        setNavigation(expectedTripId = trips.hangzhou.id)
+
+        compose.onNodeWithTag("continue-trip-${trips.hangzhou.id}").performClick()
+        compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("settings-delete-trip").performClick()
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("确认删除旅行").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("confirmation-dismiss").performClick()
+
+        compose.onNodeWithTag("settings-delete-trip").assertIsDisplayed()
+        assertOwnedRows(trips.hangzhou, expected = 1)
+        assertOwnedRows(trips.sichuan, expected = 1)
+        assertOwnedRows(trips.quanzhou, expected = 1)
+        assertNotNull(runBlocking { database.routeLegDao().leg(trips.hangzhou.legId) })
+        compose.onNodeWithTag("settings-back").performClick()
+        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-trip-title").assertTextEquals("杭州 · 春日慢游")
+    }
+
+    private data class PencilDeleteTrips(
+        val hangzhou: OwnedTripRows,
+        val sichuan: OwnedTripRows,
+        val quanzhou: OwnedTripRows,
+    )
 
     private data class OwnedTripRows(
         val id: String,
@@ -227,6 +261,13 @@ class TripSettingsNavigationTest {
         val itemIds: List<String>,
         val legId: String,
     )
+
+    private fun seedPencilDeleteScenario(): PencilDeleteTrips {
+        val quanzhou = seedTripWithOwnedRows("泉州古城散步")
+        val sichuan = seedTripWithOwnedRows("川西小环线")
+        val hangzhou = seedTripWithOwnedRows("杭州 · 春日慢游")
+        return PencilDeleteTrips(hangzhou, sichuan, quanzhou)
+    }
 
     private fun seedTripWithOwnedRows(name: String): OwnedTripRows = runBlocking {
         val sequence = seededRows.incrementAndGet()
