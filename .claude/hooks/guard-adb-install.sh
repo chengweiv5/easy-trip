@@ -7,11 +7,8 @@ case "$command" in
   *"adb"*" install "*)
     case "$command" in
       *"-s emulator-"*|*"android_serial=emulator-"*) exit 0 ;;
+      *" install -r "*) exit 0 ;;
     esac
-    if [ -f .claude/device-install-approved ]; then
-      rm .claude/device-install-approved
-      exit 0
-    fi
-    printf '%s\n' '{"continue":false,"stopReason":"真机安装默认禁止。请先询问用户是否有其他项目在并行使用该真实设备；仅在用户明确确认后，创建 .claude/device-install-approved 一次性标记再重试。模拟器安装请显式指定 -s emulator-<serial>。"}'
+    printf '%s\n' '{"continue":false,"stopReason":"Easy Trip 真机仅允许通过 adb install -r 覆盖安装；禁止卸载、清数据或非覆盖安装。模拟器安装请显式指定 -s emulator-<serial>。"}'
     ;;
 esac

@@ -61,6 +61,8 @@ import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.ui.RoomDeleteImpactProvider
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.compose.ui.test.hasAnyAncestor
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.unit.dp
@@ -1148,15 +1150,39 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { placeModel.state.value.editing?.id == "saved" }
         compose.onAllNodesWithTag("place-detail-bottom-sheet").assertCountEquals(1)
         compose.onNodeWithTag("place-detail-note-input").performTextInput("保存中的备注")
+        compose.waitUntil(5_000) {
+            ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        }
         compose.onNodeWithTag("place-detail-save").performClick()
         compose.waitUntil(5_000) { placeModel.state.value.detailSaving }
+        compose.waitUntil(5_000) {
+            ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == false
+        }
+        compose.onNodeWithTag("place-detail-dismiss").assertIsNotEnabled()
 
-        pressBack()
-        compose.waitForIdle()
         compose.onNodeWithTag("workspace-back").performClick()
         compose.waitForIdle()
+        compose.runOnIdle {
+            assertTrue(placeModel.state.value.detailSaving)
+            assertEquals("saved", placeModel.state.value.editing?.id)
+            assertTrue(workspace.state.value.overlay is WorkspaceOverlay.PlaceDetail)
+        }
+        compose.onAllNodesWithTag("place-detail-bottom-sheet").assertCountEquals(1)
+        pressBack()
+        compose.waitForIdle()
+        compose.runOnIdle {
+            assertEquals("system Back must preserve detailSaving", true, placeModel.state.value.detailSaving)
+            assertEquals("system Back must preserve editing", "saved", placeModel.state.value.editing?.id)
+            assertEquals(
+                "system Back must preserve PlaceDetail overlay",
+                true,
+                workspace.state.value.overlay is WorkspaceOverlay.PlaceDetail,
+            )
+        }
 
-        compose.onNodeWithTag("place-detail-bottom-sheet").assertIsDisplayed()
+        compose.onAllNodesWithTag("place-detail-bottom-sheet").assertCountEquals(1)
         compose.onNodeWithTag("place-detail-dismiss").assertIsNotEnabled()
         compose.runOnIdle {
             assertEquals(0, leaveCalls)

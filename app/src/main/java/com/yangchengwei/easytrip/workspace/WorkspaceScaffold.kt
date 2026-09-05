@@ -42,6 +42,8 @@ internal fun workspaceLayoutMetrics(
     overlayGap = overlayGap,
 )
 
+internal val workspacePlaceDetailSheetTopCornerRadius = 20.dp
+
 internal fun workspacePlaceDetailSheetHeight(availableHeight: Dp): Dp {
     val height = availableHeight.coerceAtLeast(0.dp)
     if (height < 416.dp) return height

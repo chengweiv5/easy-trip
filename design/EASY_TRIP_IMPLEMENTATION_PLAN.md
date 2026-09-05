@@ -495,13 +495,25 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 - [x] 设置页可直接完成删除旅行，并具备取消、失败、同步恢复和权威 Room 回流。
 - [x] 删除后返回列表且不能返回已删除旅行页面。
 - [x] 已安排/仅收藏地点详情使用同一临时 bottom sheet，并保留地图宿主。
-- [ ] 地点详情全部既有动作和状态迁移无回归：静态/JVM、Android test 编译及 Task 4 报告记录的先前 saved-place-row flow 已通过；marker、仅收藏、查看→编辑、save lock 等 Task 3 新增 connected instrumentation 因本轮无设备待补。
+- [x] 地点详情全部既有动作和状态迁移无回归：Batch 8 在 `easy_trip_p60pro(AVD) - 12` 实际运行 row、saved marker、仅收藏、查看→编辑、save lock、加入行程及无旅行日 focused connected 13/13；另以 production AppNavigation + in-memory Room 完成 `XsGon` 仅收藏→加入行程→`p4G1tS` 已安排回流。地图均为 recording/fake host，不冒充 RealAmap 或物理设备。
 - [x] `d1sTtb` 有独立 executable；47 parent 和全部 variants identity 完整。
 - [x] declared path 与 executed production navigation 证据明确分离。
 - [x] Batch 0–3 按可追溯证据逐项回填。
 - [x] `A9EKX` Huawei 自然数据 / RealAmap 最终验收：8→9 点既有证据与本轮 9→10 点、手势保持、tab 往返及单次集合 refit。
 - [x] Task 6 仅修改实现计划、场景矩阵、矩阵引用契约和任务报告；Batch 7 Tasks 1–4 明确包含生产/测试代码改动。整批未修改 `.pen`、`.kotlin/`、`diagrams/`，未 commit、未 push。
-- [x] 适用静态门禁通过；无设备导致的 focused connected 未运行项已明确记录。
+
+### 2026-09-05 · Batch 8 · 地点详情闭环与证据收口
+
+- 实现：`WorkspacePlaceDetailSheet` 顶部圆角由 12dp 收敛为 Pencil `p4G1tS` / `XsGon` 的 20dp；保留现有 490/782 响应式高度、Insets、底部对齐和地图 subtree。focused connected 暴露 `BackHandler` 闭包可能持有上一帧 `places.detailSaving=false`，导致系统 Back 在真实保存中错误关闭详情并调用 `dismissDialogs()`；`TripWorkspaceRoute` 的返回和关闭裁决现从 `placeViewModel.state.value` 读取当前权威地点状态，工作台 Back 与系统 Back 均保持保存锁。
+- production 闭环：新增 `V2AcceptanceTest` 的 production `AppNavigation` + in-memory Room instrumentation。先创建一个仅收藏“西湖天地”，经真实工作台导航打开 `XsGon` bottom sheet，断言空心书签、无“已加入行程”块和“加入行程”入口；选择唯一旅行日并提交后等待 Room itinerary item 创建，关闭并重开详情，断言 `p4G1tS` 实心书签与“第 1 天 · 1 次”。
+- 设计：Pencil 读取 `XsGon`、`p4G1tS`、`xQfD0` 的 context；`XsGon` 定义仅收藏详情与加入行程，`p4G1tS` 定义日/次数和实心书签，`xQfD0` 定义选择旅行日并确认。
+- TDD：20dp 圆角测试先因缺少 design radius seam 编译 RED，最小生产修改后 GREEN。新增 XsGon production test 首次正确 filtered instrumentation 直接 GREEN，未人为制造 RED。详情矩阵首次实际执行稳定暴露 save-lock 系统 Back 回归；通过交换返回顺序、直接断言 UiState/overlay 和等待真实 IME inset，定位为 stale Compose capture 而非测试顺序或 IME 动画；权威 state 修复后原失败单项及 5 项工作台详情集合均 GREEN。
+- 自动化：`V2AcceptanceTest#savedOnlyPlaceDetailAddsToTravelDayThroughProductionNavigationAndReopensScheduled` 1/1、完整 `V2AcceptanceTest` 5/5；`WorkspaceFlowTest` 地点详情 row/marker/edit-save-lock/add/no-day 5/5；`PlacePoolFlowTest` / `PlaceDetailPanelTest` 已安排、仅收藏、删除/取消、保存筛选及窄宽 2× 字体 8/8，均在 `easy_trip_p60pro(AVD) - 12` 通过。
+- Huawei 设备验收：ALN-AL00 仅以 `adb install -r` 覆盖 production debug APK，未卸载、未清数据、未安装 test APK、未改权限。使用真实安装态旅行 `GestureVerify`，经 production AMap 搜索收藏“杭州索菲特西湖大酒店”，验证 `XsGon` 仅收藏详情：真实 AMap 保持挂载、20dp 顶角 bottom sheet、空心书签、无安排摘要、加入行程/编辑/删除可达；随后加入第 1 天，结果显示“已加入第 1 天”，重开详情显示 `p4G1tS` 的实心书签、“已加入行程”和“第 1 天 · 1 次”。查看→编辑保持同一 sheet，保存备注 `Batch8` 后回流成功；保存完成过快，未在真机上稳定观察 busy 窗口，因此系统 Back/关闭保存锁以 AVD connected 回归为准。
+- 证据边界：自动化地图宿主为 `RecordingHost` / `TestMapHost` / `MarkerClickHost` fake/recording host；production 闭环 state source 为 in-memory Room，其余 focused 为 controlled repository/UiState。Huawei 手工路径使用 production installed app + RealAmap + 真实安装态 Room，permission surface 为既有已授权 AMap consent；未运行 `VisualBatch0EvidenceTest`，未生成测试 PNG。
+- 产品裁决：按实现指南与用户确认，已安排地点仍允许重复加入行程，不按 `p4G1tS` 静态 disabled 表现新增去重或禁用规则。
+
+- [x] 适用 focused connected 已在 AVD 执行；Huawei production installed app + RealAmap 的 Xs→加入行程→p4、地图保留、同 sheet 编辑与保存回流已验收。保存 busy 窗口的 Back/关闭锁仍由 AVD controlled delayed repository 证明，不冒充真机可观察证据。
 
 ### 2026-09-03 · Batch 6 / Task 7 · 响应式、IME 与无障碍矩阵
 

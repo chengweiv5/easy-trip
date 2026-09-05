@@ -525,6 +525,57 @@ class V2AcceptanceTest {
         assertTrue(itineraries.observeDay(secondDay.id).first().items.isEmpty())
     }
 
+    @Test fun savedOnlyPlaceDetailAddsToTravelDayThroughProductionNavigationAndReopensScheduled() {
+        val trips = RoomTripRepository(database.tripDao(), idFactory = { "detail-trip-${nextId++}" })
+        val places = RoomSavedPlaceRepository(database, idFactory = { "detail-place-${nextId++}" })
+        val itineraries = RoomItineraryRepository(
+            database,
+            database.itineraryEditingDao(),
+            database.routeLegDao(),
+            itemIdFactory = { "detail-item-${nextId++}" },
+            legIdFactory = { "detail-leg-${nextId++}" },
+        )
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        val tripId: String
+        val dayId: String
+        val savedPlaceId: String
+        runBlocking {
+            tripId = trips.createTrip(CreateTrip("地点详情闭环", 1))
+            dayId = requireNotNull(trips.observeTrip(tripId).first()).days.single().id
+            savedPlaceId = (places.save(tripId, candidate("detail-only", "西湖天地", 30.24, 120.15))
+                as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+        }
+        val hosts = java.util.concurrent.CopyOnWriteArrayList<RecordingHost>()
+        setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), hosts)
+
+        compose.onNodeWithTag("continue-trip-$tripId").performClick()
+        waitForTag("workspace-top-bar")
+        waitFor("recording fake map host") { hosts.isNotEmpty() }
+        compose.onNodeWithTag("open-place-detail-$savedPlaceId").performClick()
+        waitForTag("place-detail-bottom-sheet")
+        compose.onNodeWithTag("place-detail-bookmark-outline").assertIsDisplayed()
+        compose.onAllNodesWithText("已加入行程").assertCountEquals(0)
+        compose.onNodeWithTag("place-detail-start-add").assertHasClickAction().performClick()
+        waitForTag("target-day-$dayId")
+        compose.onNodeWithTag("target-day-$dayId").performClick()
+        compose.onNodeWithTag("select-target-day-submit").performClick()
+
+        waitFor("Room itinerary item") {
+            runBlocking { database.itineraryEditingDao().items(dayId) }
+                .singleOrNull()?.savedPlaceId == savedPlaceId
+        }
+        compose.onNodeWithText("关闭").performClick()
+        compose.onNodeWithTag("open-place-detail-$savedPlaceId").performClick()
+        waitFor("scheduled place detail") {
+            compose.onAllNodesWithTag("place-detail-bookmark-filled").fetchSemanticsNodes().isNotEmpty() &&
+                compose.onAllNodesWithText("第 1 天 · 1 次").fetchSemanticsNodes().isNotEmpty()
+        }
+        compose.onNodeWithTag("place-detail-bookmark-filled").assertIsDisplayed()
+        compose.onNodeWithText("第 1 天 · 1 次").assertIsDisplayed()
+        assertEquals(1, runBlocking { database.itineraryEditingDao().items(dayId) }.size)
+        assertTrue("map evidence is the recording fake host, not RealAmap", hosts.isNotEmpty())
+    }
+
     private fun setProductionNavigation(
         trips: RoomTripRepository,
         places: RoomSavedPlaceRepository,

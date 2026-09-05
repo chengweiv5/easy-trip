@@ -164,6 +164,10 @@ class WorkspaceLayoutMetricsTest {
         assertEquals(560.dp, workspacePlaceDetailSheetHeight(1_000.dp))
     }
 
+    @Test fun `place detail sheet uses the design top corner radius`() {
+        assertEquals(20.dp, workspacePlaceDetailSheetTopCornerRadius)
+    }
+
     @Test fun `place detail sheet fills extremely short workspace without invalid height`() {
         assertEquals(0.dp, workspacePlaceDetailSheetHeight(0.dp))
         assertEquals(32.dp, workspacePlaceDetailSheetHeight(32.dp))

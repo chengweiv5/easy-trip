@@ -17,6 +17,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 import com.yangchengwei.easytrip.workspace.workspacePlaceDetailSheetHeight
+import com.yangchengwei.easytrip.workspace.workspacePlaceDetailSheetTopCornerRadius
 
 @Composable
 fun WorkspacePlaceDetailSheet(
@@ -48,7 +49,10 @@ fun WorkspacePlaceDetailSheet(
                 .fillMaxWidth()
                 .height(workspacePlaceDetailSheetHeight(maxHeight))
                 .testTag("place-detail-bottom-sheet"),
-            shape = RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp),
+            shape = RoundedCornerShape(
+                topStart = workspacePlaceDetailSheetTopCornerRadius,
+                topEnd = workspacePlaceDetailSheetTopCornerRadius,
+            ),
             color = MaterialTheme.colorScheme.surface,
             tonalElevation = 2.dp,
         ) {

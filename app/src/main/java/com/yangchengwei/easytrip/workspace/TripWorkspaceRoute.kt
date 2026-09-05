@@ -271,13 +271,14 @@ fun TripWorkspaceRoute(
     }
     fun closeOverlay() {
         val overlay = viewModel.state.value.overlay
+        val currentPlaces = placeViewModel?.state?.value ?: places
         if (!canDismissWorkspaceOverlay(
                 overlay,
                 addToItinerary,
                 itinerary,
-                hasPlaceDeleteConfirmation = places.pendingCollectionRemoval != null || places.deleting != null,
-                placeDeletionBusy = places.deletionBusy || places.collectionBusyPoiIds.isNotEmpty(),
-                placeDetailSaving = places.detailSaving,
+                hasPlaceDeleteConfirmation = currentPlaces.pendingCollectionRemoval != null || currentPlaces.deleting != null,
+                placeDeletionBusy = currentPlaces.deletionBusy || currentPlaces.collectionBusyPoiIds.isNotEmpty(),
+                placeDetailSaving = currentPlaces.detailSaving,
             )
         ) return
         if (workspaceOverlayCloseDecision(overlay, itinerary) == WorkspaceOverlayCloseDecision.KeepItineraryOverlay) {
@@ -301,14 +302,15 @@ fun TripWorkspaceRoute(
         viewModel.closeOverlay()
     }
     fun leaveOrCloseOverlay() {
+        val currentPlaces = placeViewModel?.state?.value ?: places
         when (
             workspaceBackDecision(
                 viewModel.state.value.overlay,
                 addToItinerary,
                 itinerary = itinerary,
-                hasPlaceDeleteConfirmation = places.pendingCollectionRemoval != null || places.deleting != null,
-                placeDeletionBusy = places.deletionBusy || places.collectionBusyPoiIds.isNotEmpty(),
-                placeDetailSaving = places.detailSaving,
+                hasPlaceDeleteConfirmation = currentPlaces.pendingCollectionRemoval != null || currentPlaces.deleting != null,
+                placeDeletionBusy = currentPlaces.deletionBusy || currentPlaces.collectionBusyPoiIds.isNotEmpty(),
+                placeDetailSaving = currentPlaces.detailSaving,
             )
         ) {
             WorkspaceBackDecision.Ignore -> Unit
