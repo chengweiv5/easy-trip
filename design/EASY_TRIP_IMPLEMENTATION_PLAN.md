@@ -655,6 +655,15 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 - `graphify update .` 已在 `.git/info/exclude` 本地排除 `.kotlin/`、`diagrams/` 后执行，生成 7098 nodes / 16653 edges / 386 communities。仍报告 4 个部分解析 warning：`TripDateRangePickerSheetTest.kt`、`TripWorkspaceContentTest.kt`、`NetworkMonitor.kt`、`RoutePlanner.kt`；Kotlin 编译、AndroidTest 编译和目标 connected 均通过。该本地 exclude 不进入仓库提交。
 - 未修改 `.pen`，未读取或修改 `.kotlin/`、`diagrams/`，未 commit、未 push。
 
+### 2026-09-06 · 最终全局真机视觉验收
+
+- 环境：Huawei ALN-AL00（1260×2720、520dpi），仅 `adb install -r` 覆盖 production debug APK；保留自然旅行“登封”和既有 Room 数据，未安装 test APK、未卸载、未清数据、未改变 Android 权限。验收前后应用均可正常 cold start，无 crash/ANR。
+- 旅行列表与设置族：`K9h3r` 深绿主卡、真实日期/地点/旅行日/准备度、列表更多菜单和固定创建胶囊完整可达；`U06l7P` 的分组设置、出行方式、4 个旅行日、添加入口和危险区无严重裁切；`IKTv5` 新版范围日历完整展示 paired range、跨月连续选择和固定取消/确认操作；`oW9mK` 真机自然数据准确显示将删除 4 日、6 收藏、0 标签、7 行程项、5 路线段并保留其他旅行，取消后数据未变。
+- 工作台地点族：地图未授权 fallback、顶部栏、图例、定位/图层、搜索和抽屉层级正确；地点池真实 6 条数据的图标、两行信息、`＋`/更多操作可达。已安排“少林寺”详情保持地图区域，bottom sheet 展示安排摘要且不重复显示加入入口；查看→编辑在同一 sheet 中完成，备注、标签和删除/取消/保存均完整，未保存修改。
+- 工作台行程族：收起态显示“第 1 天 · 3 个地点 / 上滑展开”；半屏单日显示 scope rail、3 站摘要、地点卡、路线状态和编辑入口；全程显示“4 天 · 7 站”、连续日期分组和只读时间线。单日正文在 88dp rail 后按窄宽换行，横向收藏 chip 可滚动；UI Automator 边界确认摘要、地点 chip、路线文案和编辑按钮均位于 1260px 屏幕内，不属于严重裁切。再次安排目标日选择和交通路段编辑均完整可达，均取消未写入。
+- 地图与异常族：应用内 AMap consent 当前保持未授权，fallback 文案和“查看并授权”可达；授权说明、隐私政策入口、确认 checkbox、允许/暂不允许操作完整。图层菜单在未授权 fallback 上仍显示标准/卫星/卫星路网且不与顶部栏、搜索或抽屉重叠。未接受第三方条款、未改 Android location permission，因此本轮不重新声明 RealAmap、AndroidSystem 定位或真实 SDK failure；这些能力沿用既有已授权 Huawei 证据与自动化 failure host。
+- 门禁结论：未发现功能/状态错误、数据不一致、崩溃、不可达、严重裁切或关键交互失效。截图仅作诊断；细小间距、字体和像素差异继续作为非阻塞 physical acceptance 项。验收未执行删除、添加旅行日、重复安排、保存编辑或授权等会改变自然数据/权限的确认动作。
+
 每次完成一批后追加：
 
 ```markdown
