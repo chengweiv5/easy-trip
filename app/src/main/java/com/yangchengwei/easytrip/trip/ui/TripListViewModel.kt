@@ -8,6 +8,8 @@ import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
+import java.time.Clock
+import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.channels.Channel
@@ -52,6 +54,7 @@ class TripListViewModel(
     private val service: TripService,
     private val repository: TripRepository,
     private val impacts: DeleteImpactProvider,
+    private val clock: Clock = Clock.systemDefaultZone(),
 ) : ViewModel() {
     private val mutableState = MutableStateFlow(TripListUiState())
     val state: StateFlow<TripListUiState> = mutableState.asStateFlow()
@@ -137,7 +140,7 @@ class TripListViewModel(
                     page = if (trips.isEmpty()) {
                         TripListPageState.Empty
                     } else {
-                        val cards = trips.map(TripSummary::toTripCardUiModel)
+                        val cards = trips.map { it.toTripCardUiModel(clock.today()) }
                         TripListPageState.Content(cards.first(), cards.drop(1))
                     },
                     deletion = deletion,
@@ -145,6 +148,15 @@ class TripListViewModel(
             }
         }
     }
+
+    fun refreshDateDerivedState() {
+        val current = mutableState.value
+        if (current.trips.isEmpty()) return
+        val cards = current.trips.map { it.toTripCardUiModel(clock.today()) }
+        mutableState.value = current.copy(page = TripListPageState.Content(cards.first(), cards.drop(1)))
+    }
+
+    private fun Clock.today(): LocalDate = LocalDate.now(this)
 
     fun onAction(action: TripListAction) {
         when (action) {

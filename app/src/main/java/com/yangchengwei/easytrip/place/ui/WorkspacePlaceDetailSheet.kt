@@ -65,6 +65,7 @@ fun WorkspacePlaceDetailSheet(
                 collectionError = null,
                 availableTagNames = state.tags.map { it.name },
                 schedule = schedule,
+                canStartAddToItinerary = schedule.isKnown && schedule.totalOccurrences == 0,
                 onAction = onAction,
             )
         }

@@ -43,12 +43,129 @@ class TripSettingsViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun updateDateRangeDraftAtomicallyUpdatesBothEndpointsAgainstBaseline() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val model = model(repository)
+        advanceUntilIdle()
+
+        val targetStart = LocalDate.parse("2026-10-05")
+        val targetEnd = LocalDate.parse("2026-10-07")
+        model.updateDateRangeDraft(targetStart, targetEnd)
+
+        val range = model.state.value.dateRange
+        assertEquals(LocalDate.parse("2026-10-01"), range.baselineStartDate)
+        assertEquals(LocalDate.parse("2026-10-03"), range.baselineEndDate)
+        assertEquals(targetStart, range.draftStartDate)
+        assertEquals(targetEnd, range.draftEndDate)
+        assertEquals(true, range.isDirty)
+    }
+
+    @Test fun dirtyRoomEmissionUpdatesBaselinePairWithoutOverwritingDraftPair() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val model = model(repository)
+        advanceUntilIdle()
+        model.updateDateRangeDraft(LocalDate.parse("2026-10-05"), LocalDate.parse("2026-10-07"))
+
+        repository.emit(repository.currentTrip().copy(startDate = LocalDate.parse("2026-10-02"), days = repository.currentTrip().days.take(2)))
+        advanceUntilIdle()
+
+        val range = model.state.value.dateRange
+        assertEquals(LocalDate.parse("2026-10-02"), range.baselineStartDate)
+        assertEquals(LocalDate.parse("2026-10-03"), range.baselineEndDate)
+        assertEquals(LocalDate.parse("2026-10-05"), range.draftStartDate)
+        assertEquals(LocalDate.parse("2026-10-07"), range.draftEndDate)
+        assertEquals(true, range.isDirty)
+    }
+
+    @Test fun sameLengthShiftAppliesWithoutConfirmationAndMatchesTargetRange() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val model = model(repository)
+        advanceUntilIdle()
+
+        model.updateDateRangeDraft(LocalDate.parse("2026-10-05"), LocalDate.parse("2026-10-07"))
+        model.requestDateRangeChange()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.applyCalls)
+        assertEquals(DateRangeChangePhase.Idle, model.state.value.dateRange.phase)
+        assertEquals(LocalDate.parse("2026-10-05"), model.state.value.dateRange.baselineStartDate)
+        assertEquals(LocalDate.parse("2026-10-07"), model.state.value.dateRange.baselineEndDate)
+    }
+
+    @Test fun undatedTripCanSubmitSameLengthRangeWithoutConfirmation() = runTest(dispatcher) {
+        val repository = FakeRepository(startDate = null, dayCount = 3)
+        val model = model(repository)
+        advanceUntilIdle()
+
+        model.updateDateRangeDraft(LocalDate.parse("2026-10-05"), LocalDate.parse("2026-10-07"))
+        model.requestDateRangeChange()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.applyCalls)
+        assertEquals(DateRangeChangePhase.Idle, model.state.value.dateRange.phase)
+        assertEquals(false, model.state.value.dateRange.isDirty)
+        assertEquals(LocalDate.parse("2026-10-05"), model.state.value.dateRange.baselineStartDate)
+        assertEquals(LocalDate.parse("2026-10-07"), model.state.value.dateRange.draftEndDate)
+    }
+
+    @Test fun deletedTripAfterShrinkPreviewReturnsToListOnceWithoutAwaitingRoom() = runTest(dispatcher) {
+        val repository = FakeRepository(counts = DateRangeDeletionCounts(1, 0, 1)).apply {
+            applyFailure = com.yangchengwei.easytrip.trip.domain.TripDateRangeTargetNotFoundException()
+        }
+        val model = model(repository)
+        val effects = mutableListOf<TripSettingsEffect>()
+        val collector = launch { model.effects.collect(effects::add) }
+        advanceUntilIdle()
+        model.updateDateRangeDraft(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-01"))
+        model.requestDateRangeChange()
+        advanceUntilIdle()
+        assertEquals(DateRangeChangePhase.AwaitingConfirmation::class, model.state.value.dateRange.phase::class)
+
+        model.confirmDateRangeChange()
+        advanceUntilIdle()
+
+        assertEquals(1, repository.applyCalls)
+        assertEquals(listOf(TripSettingsEffect.ReturnToTripList), effects)
+        assertEquals(DateRangeChangePhase.Idle, model.state.value.dateRange.phase)
+        assertEquals(false, model.state.value.dateRange.submitting)
+        assertEquals(null, model.state.value.dateRange.error)
+        collector.cancel()
+    }
+
+    @Test fun deletedTripDuringPreviewShowsUserFacingMessageWithoutInternalId() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val model = model(repository)
+        advanceUntilIdle()
+        repository.returnMissingOnNextObservation = true
+
+        model.updateDateRangeDraft(LocalDate.parse("2026-10-05"), LocalDate.parse("2026-10-07"))
+        model.requestDateRangeChange()
+        advanceUntilIdle()
+
+        assertEquals("旅行已不存在，请返回旅行列表", model.state.value.dateRange.error)
+        assertEquals(false, model.state.value.dateRange.error.orEmpty().contains("trip"))
+        assertEquals(0, repository.applyCalls)
+    }
+
+    @Test fun undatedLengthConflictShowsPreservationError() = runTest(dispatcher) {
+        val repository = FakeRepository(startDate = null, dayCount = 3)
+        val model = model(repository)
+        advanceUntilIdle()
+
+        model.updateDateRangeDraft(LocalDate.parse("2026-10-05"), LocalDate.parse("2026-10-06"))
+        model.requestDateRangeChange()
+        advanceUntilIdle()
+
+        assertEquals("为未定日期旅行设置日期时必须保留现有 3 天行程", model.state.value.dateRange.error)
+        assertEquals(0, repository.applyCalls)
+    }
+
     @Test fun overThirtyDaysShowsSpecificErrorWithoutPreviewOrApply() = runTest(dispatcher) {
         val repository = FakeRepository()
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-31"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-31"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -63,11 +180,11 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-09-30"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-09-30"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
-        assertEquals("结束日期不能早于开始日期", model.state.value.dateRange.error)
+        assertEquals("End date cannot be before start date", model.state.value.dateRange.error)
         assertEquals(null, model.state.value.dateRange.confirmation)
         assertEquals(0, repository.applyCalls)
     }
@@ -77,7 +194,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -88,6 +205,14 @@ class TripSettingsViewModelTest {
         assertEquals(5, impact.retainedSavedPlaces)
         model.cancelDateRangeChange()
         advanceUntilIdle()
+
+        val restored = model.state.value.dateRange
+        assertEquals(LocalDate.parse("2026-10-01"), restored.startDate)
+        assertEquals(LocalDate.parse("2026-10-03"), restored.endDate)
+        assertEquals(restored.baselineStartDate, restored.draftStartDate)
+        assertEquals(restored.baselineEndDate, restored.draftEndDate)
+        assertEquals(false, restored.isDirty)
+        assertEquals(DateRangeChangePhase.Idle, restored.phase)
         assertEquals(0, repository.applyCalls)
     }
 
@@ -95,7 +220,7 @@ class TripSettingsViewModelTest {
         val repository = FakeRepository().apply { applyBlock = CompletableDeferred(); applyFailure = IllegalStateException() }
         val model = model(repository)
         advanceUntilIdle()
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -124,7 +249,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-30"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-30"))
         model.requestDateRangeChange()
         model.requestDateRangeChange()
         advanceUntilIdle()
@@ -132,9 +257,6 @@ class TripSettingsViewModelTest {
         assertEquals(1, repository.applyCalls)
         assertEquals(true, model.state.value.dateRange.submitting)
         repository.applyBlock!!.complete(Unit)
-        advanceUntilIdle()
-        assertEquals(true, model.state.value.dateRange.submitting)
-        repository.emit(repository.tripWithDayCount(30))
         advanceUntilIdle()
         assertEquals(false, model.state.value.dateRange.submitting)
     }
@@ -144,10 +266,10 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         advanceUntilIdle()
-        model.updateDateEndDraft(LocalDate.parse("2026-10-05"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-05"))
         repository.countsBlock!!.complete(Unit)
         advanceUntilIdle()
 
@@ -166,12 +288,12 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
         val applying = model.state.value.dateRange.phase
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-06"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-06"))
         model.cancelDateRangeChange()
         model.requestDateRangeChange()
         model.confirmDateRangeChange()
@@ -187,7 +309,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -444,7 +566,7 @@ class TripSettingsViewModelTest {
         model.cancelTripDeletion()
         model.rename("Renamed")
         model.setTravelMode(TravelMode.SELF_DRIVE)
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         model.requestDelete(model.state.value.days.last())
         advanceUntilIdle()
@@ -470,7 +592,7 @@ class TripSettingsViewModelTest {
         val syncRange = syncModel.state.value.dateRange
         assertEquals(true, (syncModel.state.value.tripDeletion as TripDeletionUiState.Ready).confirmationSyncFailed)
 
-        syncModel.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        syncModel.updateDateRangeDraft(syncModel.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
 
         assertEquals(syncRange.endDate, syncModel.state.value.dateRange.endDate)
         assertEquals(syncRange.isDirty, syncModel.state.value.dateRange.isDirty)
@@ -485,7 +607,7 @@ class TripSettingsViewModelTest {
         val deletingRange = deletingModel.state.value.dateRange
         assertEquals(true, (deletingModel.state.value.tripDeletion as TripDeletionUiState.Ready).isDeleting)
 
-        deletingModel.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        deletingModel.updateDateRangeDraft(deletingModel.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
 
         assertEquals(deletingRange.endDate, deletingModel.state.value.dateRange.endDate)
         assertEquals(deletingRange.isDirty, deletingModel.state.value.dateRange.isDirty)
@@ -533,7 +655,7 @@ class TripSettingsViewModelTest {
         model.requestTripDeletion()
         advanceUntilIdle()
         model.requestDelete(model.state.value.days.last())
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -559,7 +681,7 @@ class TripSettingsViewModelTest {
         val repository = FakeRepository(counts = DateRangeDeletionCounts(1, 1, 0))
         val model = model(repository)
         advanceUntilIdle()
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -601,7 +723,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-05"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-05"))
         repository.emit(repository.currentTrip().copy(name = "Renamed"))
         advanceUntilIdle()
 
@@ -628,7 +750,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -655,7 +777,7 @@ class TripSettingsViewModelTest {
         advanceUntilIdle()
 
         val target = LocalDate.parse("2026-10-04")
-        model.updateDateEndDraft(target)
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, target)
         model.requestDateRangeChange()
         advanceUntilIdle()
         repository.emit(repository.tripWithDayCount(4))
@@ -682,7 +804,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
         repository.emit(repository.tripWithDayCount(4))
@@ -706,7 +828,7 @@ class TripSettingsViewModelTest {
         advanceUntilIdle()
 
         val target = LocalDate.parse("2026-10-04")
-        model.updateDateEndDraft(target)
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, target)
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -732,7 +854,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
         repository.failObservation(IllegalStateException("db unavailable"))
@@ -755,7 +877,7 @@ class TripSettingsViewModelTest {
         val repository = FakeRepository().apply { autoEmitApply = false }
         val model = model(repository)
         advanceUntilIdle()
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
         repository.failObservation(IllegalStateException("db unavailable"))
@@ -776,7 +898,7 @@ class TripSettingsViewModelTest {
         val repository = FakeRepository().apply { autoEmitApply = false }
         val model = model(repository)
         advanceUntilIdle()
-        model.updateDateEndDraft(target)
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, target)
         model.requestDateRangeChange()
         advanceUntilIdle()
         repository.failObservation(IllegalStateException("db unavailable"))
@@ -808,7 +930,7 @@ class TripSettingsViewModelTest {
         }
         val model = model(repository)
         advanceUntilIdle()
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -830,7 +952,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -849,7 +971,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -869,7 +991,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -892,7 +1014,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
         repository.emit(repository.currentTrip().copy(days = listOf(
@@ -911,6 +1033,7 @@ class TripSettingsViewModelTest {
             "trip",
             LocalDate.parse("2026-10-01"),
             listOf("day-1", "day-2", "day-3"),
+            LocalDate.parse("2026-10-01"),
             LocalDate.parse("2026-10-03"),
         )
         val trip = TripWithDays(
@@ -927,6 +1050,7 @@ class TripSettingsViewModelTest {
             "trip",
             LocalDate.parse("2026-10-01"),
             listOf("day-1", "day-2", "day-3"),
+            LocalDate.parse("2026-10-01"),
             LocalDate.parse("2026-10-03"),
         )
         val trip = TripWithDays(
@@ -937,6 +1061,23 @@ class TripSettingsViewModelTest {
         assertEquals(false, tripMatchesDateRangeRequest(trip, request, impact(request)))
     }
 
+    @Test fun shiftedSameSizeRangeMatchesTargetStartAndOrderedDayIds() {
+        val request = DateRangeChangeRequest(
+            1,
+            "trip",
+            LocalDate.parse("2026-10-01"),
+            listOf("day-1", "day-2", "day-3"),
+            LocalDate.parse("2026-10-05"),
+            LocalDate.parse("2026-10-07"),
+        )
+        val trip = TripWithDays(
+            "trip", "Trip", request.targetStartDate, TravelMode.FLEXIBLE,
+            listOf(TripDay("day-1", 0), TripDay("day-2", 1), TripDay("day-3", 2)),
+        )
+
+        assertEquals(true, tripMatchesDateRangeRequest(trip, request, impact(request)))
+    }
+
     @Test fun shrinkWrongRetainedIdsDoNotCompleteRoomConfirmation() = runTest(dispatcher) {
         val repository = FakeRepository(counts = DateRangeDeletionCounts(0, 0, 0)).apply {
             autoEmitApply = false
@@ -944,7 +1085,7 @@ class TripSettingsViewModelTest {
         }
         val model = model(repository)
         advanceUntilIdle()
-        model.updateDateEndDraft(LocalDate.parse("2026-10-02"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-02"))
         model.requestDateRangeChange()
         advanceUntilIdle()
         model.confirmDateRangeChange()
@@ -965,7 +1106,7 @@ class TripSettingsViewModelTest {
         }
         val model = model(repository)
         advanceUntilIdle()
-        model.updateDateEndDraft(LocalDate.parse("2026-10-02"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-02"))
         model.requestDateRangeChange()
         advanceUntilIdle()
         model.confirmDateRangeChange()
@@ -1006,7 +1147,7 @@ class TripSettingsViewModelTest {
             val impacts = FakeImpacts()
             val model = model(repository, impacts)
             advanceUntilIdle()
-            model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+            model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
             model.requestDateRangeChange()
             runCurrent()
             assertEquals(DateRangeChangePhase.Previewing::class, model.state.value.dateRange.phase::class)
@@ -1017,7 +1158,7 @@ class TripSettingsViewModelTest {
             val impacts = FakeImpacts()
             val model = model(repository, impacts)
             advanceUntilIdle()
-            model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+            model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
             model.requestDateRangeChange()
             advanceUntilIdle()
             assertEquals(DateRangeChangePhase.AwaitingConfirmation::class, model.state.value.dateRange.phase::class)
@@ -1028,7 +1169,7 @@ class TripSettingsViewModelTest {
             val impacts = FakeImpacts()
             val model = model(repository, impacts)
             advanceUntilIdle()
-            model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+            model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
             model.requestDateRangeChange()
             advanceUntilIdle()
             model.confirmDateRangeChange()
@@ -1041,7 +1182,7 @@ class TripSettingsViewModelTest {
             val impacts = FakeImpacts()
             val model = model(repository, impacts)
             advanceUntilIdle()
-            model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+            model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
             model.requestDateRangeChange()
             advanceUntilIdle()
             assertEquals(DateRangeChangePhase.AwaitingRoom::class, model.state.value.dateRange.phase::class)
@@ -1052,7 +1193,7 @@ class TripSettingsViewModelTest {
             val impacts = FakeImpacts()
             val model = model(repository, impacts)
             advanceUntilIdle()
-            model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+            model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
             model.requestDateRangeChange()
             advanceUntilIdle()
             repository.failObservation(IllegalStateException("db unavailable"))
@@ -1070,7 +1211,7 @@ class TripSettingsViewModelTest {
         model.requestDelete(model.state.value.days.last())
         runCurrent()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         runCurrent()
         assertEquals(DateRangeChangePhase.Previewing::class, model.state.value.dateRange.phase::class)
@@ -1092,7 +1233,7 @@ class TripSettingsViewModelTest {
         advanceUntilIdle()
         assertNotNull(model.state.value.pendingDayDeletion)
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         runCurrent()
 
@@ -1110,7 +1251,7 @@ class TripSettingsViewModelTest {
         model.requestDelete(model.state.value.days.last())
         runCurrent()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         runCurrent()
         repository.failObservation(IllegalStateException("db unavailable"))
@@ -1142,7 +1283,7 @@ class TripSettingsViewModelTest {
         runCurrent()
         assertEquals(true, model.state.value.dayDeleteInProgress)
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         runCurrent()
 
@@ -1243,17 +1384,61 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
         val applying = model.state.value.dateRange.phase as DateRangeChangePhase.Applying
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-06"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-06"))
 
         assertEquals(applying, model.state.value.dateRange.phase)
         val lastApply = repository.lastApply
         assertNotNull(lastApply)
         assertEquals(LocalDate.parse("2026-10-04"), lastApply!!.startDate?.plusDays((lastApply.dayCount - 1).toLong()))
+    }
+
+    @Test fun appendDayUsesSingleFlightAndKeepsDatedTripStartDate() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { insertBlock = CompletableDeferred() }
+        val model = model(repository)
+        advanceUntilIdle()
+
+        model.appendDay()
+        model.appendDay()
+        runCurrent()
+
+        assertEquals(1, repository.insertCalls)
+        assertEquals(LocalDate.parse("2026-10-01"), repository.currentTrip().startDate)
+        repository.insertBlock!!.complete(Unit)
+        advanceUntilIdle()
+    }
+
+    @Test fun datedTripMoveIsRejectedBeforeRepositoryWrite() = runTest(dispatcher) {
+        val repository = FakeRepository()
+        val model = model(repository)
+        advanceUntilIdle()
+
+        model.moveDay(model.state.value.days.first(), 2)
+        advanceUntilIdle()
+
+        assertEquals(0, repository.moveCalls)
+        assertEquals(LocalDate.parse("2026-10-01"), model.state.value.startDate)
+    }
+
+    @Test fun dayManagementLocksFurtherSettingsWrites() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { insertBlock = CompletableDeferred() }
+        val model = model(repository)
+        advanceUntilIdle()
+
+        model.appendDay()
+        runCurrent()
+        model.setTravelMode(TravelMode.SELF_DRIVE)
+        model.rename("不应写入")
+
+        assertEquals(1, repository.insertCalls)
+        assertEquals(0, repository.travelModeCalls)
+        assertEquals(0, repository.renameCalls)
+        repository.insertBlock!!.complete(Unit)
+        advanceUntilIdle()
     }
 
     @Test fun lastDayCannotBeRequestedForDeletion() = runTest(dispatcher) {
@@ -1274,7 +1459,7 @@ class TripSettingsViewModelTest {
         }
         val model = model(repository)
         advanceUntilIdle()
-        model.updateDateEndDraft(LocalDate.parse("2026-10-01"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-01"))
         model.requestDateRangeChange()
         advanceUntilIdle()
         model.confirmDateRangeChange()
@@ -1302,7 +1487,7 @@ class TripSettingsViewModelTest {
         val model = model(repository)
         advanceUntilIdle()
 
-        model.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+        model.updateDateRangeDraft(model.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
         model.requestDateRangeChange()
         advanceUntilIdle()
 
@@ -1397,10 +1582,11 @@ class TripSettingsViewModelTest {
     private class FakeRepository(
         var counts: DateRangeDeletionCounts = DateRangeDeletionCounts(0, 0, 0),
         dayCount: Int = 3,
+        startDate: LocalDate? = LocalDate.parse("2026-10-01"),
         initialTrip: CompletableDeferred<TripWithDays?>? = null,
     ) : TripRepository {
         private val trip = MutableStateFlow<TripWithDays?>(TripWithDays(
-            "trip", "Trip", LocalDate.parse("2026-10-01"), TravelMode.FLEXIBLE,
+            "trip", "Trip", startDate, TravelMode.FLEXIBLE,
             List(dayCount) { TripDay("day-${it + 1}", it) },
         ))
         private val initialTrip = initialTrip
@@ -1425,12 +1611,16 @@ class TripSettingsViewModelTest {
         var deleteCalls = 0
         var deleteBlock: CompletableDeferred<Unit>? = null
         var deleteFailure: Throwable? = null
+        var insertCalls = 0
+        var moveCalls = 0
+        var insertBlock: CompletableDeferred<Unit>? = null
         var tripDeleteCalls = 0
         var tripDeleteBlock: CompletableDeferred<Unit>? = null
         var tripDeleteFailure: Throwable? = null
         var autoEmitTripDelete = true
         var renameCalls = 0
         var travelModeCalls = 0
+        var returnMissingOnNextObservation = false
 
         fun currentTrip(): TripWithDays = requireNotNull(trip.value)
 
@@ -1452,6 +1642,10 @@ class TripSettingsViewModelTest {
 
         override fun observeTrips(): Flow<List<TripSummary>> = MutableStateFlow(emptyList())
         override fun observeTrip(tripId: String): Flow<TripWithDays?> {
+            if (returnMissingOnNextObservation) {
+                returnMissingOnNextObservation = false
+                return kotlinx.coroutines.flow.flowOf(null)
+            }
             val initialFailure = nextObservationFailure
             nextObservationFailure = null
             val completion = nextObservationCompletion
@@ -1504,7 +1698,13 @@ class TripSettingsViewModelTest {
                 val current = requireNotNull(trip.value)
                 trip.value = current.copy(
                     startDate = command.startDate,
-                    days = current.days.take(command.dayCount),
+                    days = if (command.dayCount <= current.days.size) {
+                        current.days.take(command.dayCount)
+                    } else {
+                        current.days + List(command.dayCount - current.days.size) {
+                            TripDay("added-${it + 1}", current.days.size + it)
+                        }
+                    },
                 )
             }
         }
@@ -1517,8 +1717,15 @@ class TripSettingsViewModelTest {
         override suspend fun renameTrip(tripId: String, name: String) { renameCalls++ }
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun setTravelMode(tripId: String, mode: TravelMode) { travelModeCalls++ }
-        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide) = "day"
-        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = Unit
+        override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String {
+            insertCalls++
+            insertBlock?.await()
+            val current = currentTrip()
+            val id = "day-${current.days.size + 1}"
+            trip.value = current.copy(days = current.days + TripDay(id, current.days.size))
+            return id
+        }
+        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) { moveCalls++ }
         override suspend fun deleteTrip(tripId: String) {
             tripDeleteCalls++
             tripDeleteBlock?.await()

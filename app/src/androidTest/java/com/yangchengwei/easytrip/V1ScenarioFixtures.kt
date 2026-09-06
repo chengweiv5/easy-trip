@@ -209,7 +209,7 @@ object V1ScenarioFixtures {
         scenario(13, "删除旅行确认", "oW9mK", null, null, "trip-with-delete-impact", BlockerCategory.KEY_INTERACTION, "从 ··· 菜单进入删除，确认文案精确列出旅行日、收藏地点、标签、行程项、路线段及保留内容"),
         scenario(14, "状态规范", "DxZ2a", null, null, "component-states", BlockerCategory.SEVERE_CLIPPING),
         scenario(15, "无旅行日引导", "p7U8B", null, null, "no-trip-days-add-guidance", BlockerCategory.REACHABILITY, "单地点加入行程时明确引导前往行程添加旅行日，不自动创建旅行日"),
-        scenario(16, "工作台设置直达", "ijpZD", null, null, "existing-trip", BlockerCategory.REACHABILITY, "当前生产工作台通过顶部设置按钮直达设置页，不声称存在更多菜单"),
+        scenario(16, "工作台更多菜单", "ijpZD", null, null, "existing-trip", BlockerCategory.REACHABILITY, "顶部更多菜单提供旅行设置、地图授权和返回我的旅行；旅行设置保持可达"),
         scenario(17, "地图图层", "shoPV", null, null, "map-ready", BlockerCategory.KEY_INTERACTION),
         scenario(18, "添加旅行日", "zvO9Z", null, null, "dated-trip", BlockerCategory.DATA_CONSISTENCY),
         scenario(19, "选定旅行日后选择地点", "Pqdkf", null, null, "selected-day-multi-place-picker", BlockerCategory.KEY_INTERACTION, "固定旅行日入口可选择多个收藏地点并直接提交"),

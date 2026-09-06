@@ -6,6 +6,7 @@ import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.DateRangeApply
 import com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts
+import com.yangchengwei.easytrip.trip.domain.DateRangeDeletionSnapshot
 import com.yangchengwei.easytrip.trip.domain.DateRangeSnapshotChangedException
 import com.yangchengwei.easytrip.trip.domain.DayDeletion
 import com.yangchengwei.easytrip.trip.domain.InsertSide
@@ -18,13 +19,20 @@ import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
+import com.yangchengwei.easytrip.itinerary.data.ItineraryItemEntity
 import com.yangchengwei.easytrip.itinerary.data.haversineMeters
+import com.yangchengwei.easytrip.route.data.RouteLegEntity
 import com.yangchengwei.easytrip.route.domain.TransportModeRecommender
 import java.time.Clock
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+
+data class RoomDateRangeDeletionSnapshot(
+    val items: List<ItineraryItemEntity>,
+    val legs: List<RouteLegEntity>,
+) : DateRangeDeletionSnapshot
 
 class RoomTripRepository(
     private val dao: TripDao,
@@ -34,9 +42,16 @@ class RoomTripRepository(
     private val isOnline: () -> Boolean = { true },
 ) : TripRepository {
     override fun observeTrips(): Flow<List<TripSummary>> = dao.observeTrips().map { trips ->
-        trips.map { value ->
-            val trip = value.trip
-            TripSummary(trip.id, trip.name, trip.startDate, trip.travelMode, value.days.size)
+        trips.map { projection ->
+            TripSummary(
+                id = projection.id,
+                name = projection.name,
+                startDate = projection.startDate,
+                travelMode = projection.travelMode,
+                dayCount = projection.dayCount,
+                placeCount = projection.placeCount,
+                scheduledDistinctPlaceCount = projection.scheduledDistinctPlaceCount,
+            )
         }
     }
 
@@ -87,6 +102,10 @@ class RoomTripRepository(
                 itineraryItems = if (dayIds.isEmpty()) 0 else dao.itemCountForDays(dayIds),
                 routeLegs = if (dayIds.isEmpty()) 0 else dao.legCountForDays(dayIds),
                 retainedSavedPlaces = dao.savedPlaceCount(tripId),
+                snapshot = RoomDateRangeDeletionSnapshot(
+                    dayIds.flatMap { db.itineraryEditingDao().items(it) },
+                    dayIds.flatMap { db.routeLegDao().legs(it) },
+                ),
             )
         }
     }
@@ -96,10 +115,10 @@ class RoomTripRepository(
         require(isTripDateRangeRepresentable(command.startDate, command.dayCount)) { "日期范围超出支持范围" }
         val db = requireNotNull(database) { "Date range changes require a database transaction" }
         db.withTransaction {
-            val trip = requireNotNull(dao.trip(command.tripId)) { "Unknown trip: ${command.tripId}" }
+            val trip = dao.trip(command.tripId)
+                ?: throw com.yangchengwei.easytrip.trip.domain.TripDateRangeTargetNotFoundException()
             val days = dao.days(command.tripId)
             snapshotCheck(trip.startDate == command.expectedStartDate, "Trip start date changed after preview")
-            snapshotCheck(command.startDate == command.expectedStartDate, "Trip start date cannot change in this flow")
             snapshotCheck(days.map(TripDayEntity::id) == command.expectedDayIds, "Trip days changed after preview")
             snapshotCheck(
                 days.drop(command.dayCount).map(TripDayEntity::id) == command.expectedDeletedDayIds,
@@ -113,10 +132,22 @@ class RoomTripRepository(
                 dao.legCountForDays(command.expectedDeletedDayIds) == command.expectedDeletedRouteLegs,
                 "Deleted route legs changed after preview",
             )
-            dao.setStartDate(
+            command.expectedDeletedSnapshot?.let { expected ->
+                val roomSnapshot = expected as? RoomDateRangeDeletionSnapshot
+                    ?: throw DateRangeSnapshotChangedException("Unsupported deletion snapshot")
+                snapshotCheck(
+                    command.expectedDeletedDayIds.flatMap { db.itineraryEditingDao().items(it) } == roomSnapshot.items,
+                    "Deleted itinerary items changed after preview",
+                )
+                snapshotCheck(
+                    command.expectedDeletedDayIds.flatMap { db.routeLegDao().legs(it) } == roomSnapshot.legs,
+                    "Deleted route legs changed after preview",
+                )
+            }
+            dao.setStartDateForDayCount(
                 command.tripId,
                 command.startDate,
-                TimeMode.DATED,
+                command.dayCount,
                 clock.instant(),
             )
             when {

@@ -29,6 +29,11 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.foundation.layout.requiredHeight
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
@@ -56,6 +61,161 @@ class WorkspaceChromeTest {
         compose.onNodeWithText("8月23日 — 8月25日").assertIsDisplayed()
     }
 
+    @Test fun moreMenuShowsThreeActionsAndClosesOnOutsideTap() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        var overlay by mutableStateOf<WorkspaceOverlay>(WorkspaceOverlay.None)
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(
+                            TripWorkspaceUiState(
+                                tripName = "北京",
+                                sheetLevel = WorkspaceSheetLevel.HALF,
+                                overlay = overlay,
+                            ).toReadyState(),
+                        ),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = { action ->
+                            actions += action
+                            overlay = when (action) {
+                                is TripWorkspaceAction.OpenOverlay -> action.overlay
+                                TripWorkspaceAction.CloseOverlay -> WorkspaceOverlay.None
+                                else -> overlay
+                            }
+                        },
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { _ -> Text("地图就绪") },
+                        modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("more-menu-panel").assertIsDisplayed()
+        listOf("旅行设置", "地图授权", "返回我的旅行").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+        listOf("修改名称、日期和旅行日", "管理高德地图权限", "回到旅行列表").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+        val panel = compose.onNodeWithTag("more-menu-panel").getUnclippedBoundsInRoot()
+        org.junit.Assert.assertTrue(panel.right - panel.left >= 180.dp && panel.right - panel.left <= 210.dp)
+        org.junit.Assert.assertTrue(panel.bottom - panel.top >= 170.dp)
+        compose.onNodeWithTag("more-menu-scrim").performClick()
+        org.junit.Assert.assertEquals(
+            listOf(
+                TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.MoreMenu),
+                TripWorkspaceAction.CloseOverlay,
+            ),
+            actions,
+        )
+    }
+
+    @Test fun moreMenuActionsDispatchRoutesWithoutReplacingOverlayModel() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(
+                            TripWorkspaceUiState(
+                                tripName = "北京",
+                                sheetLevel = WorkspaceSheetLevel.HALF,
+                                overlay = WorkspaceOverlay.MoreMenu,
+                            ).toReadyState(),
+                        ),
+                        mapState = WorkspaceMapState.ConsentRequired,
+                        onAction = actions::add,
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { _ -> Text("地图就绪") },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("more-menu-settings").performClick()
+        compose.runOnIdle {
+            org.junit.Assert.assertEquals(
+                listOf(TripWorkspaceAction.CloseOverlay, TripWorkspaceAction.OpenSettings),
+                actions,
+            )
+        }
+    }
+
+    @Test fun moreMenuKeepsThirdActionReachableAtTwoTimesFontScale() {
+        var backCalls = 0
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
+                EasyTripTheme {
+                    Box(Modifier.fillMaxWidth().requiredHeight(360.dp)) {
+                        WorkspaceMoreMenu(
+                            onOpenSettings = {},
+                            onOpenConsent = {},
+                            onBackToTrips = { backCalls++ },
+                        )
+                    }
+                }
+            }
+        }
+
+        val panel = compose.onNodeWithTag("more-menu-panel").getUnclippedBoundsInRoot()
+        val action = compose.onNodeWithTag("more-menu-back-to-trips")
+            .performScrollTo()
+            .assertIsDisplayed()
+            .assertHeightIsAtLeast(52.dp)
+            .getUnclippedBoundsInRoot()
+        org.junit.Assert.assertTrue("panel=$panel action=$action", action.top >= panel.top && action.bottom <= panel.bottom)
+        compose.onNodeWithTag("more-menu-back-to-trips").performClick()
+        compose.runOnIdle { org.junit.Assert.assertEquals(1, backCalls) }
+    }
+
+    @Test fun moreMenuDoesNotCoverAnotherOverlay() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(
+                            TripWorkspaceUiState(
+                                tripName = "北京",
+                                sheetLevel = WorkspaceSheetLevel.HALF,
+                                overlay = WorkspaceOverlay.Confirmation(
+                                    com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel(
+                                        title = "保存中",
+                                        message = "请稍候",
+                                        deletedItems = emptyList(),
+                                        retainedItems = emptyList(),
+                                        confirmLabel = "确认",
+                                        dismissLabel = "取消",
+                                        destructive = false,
+                                        reversible = false,
+                                    ),
+                                ),
+                            ).toReadyState(),
+                        ),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = actions::add,
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { _ -> Text("地图就绪") },
+                        modifier = Modifier.fillMaxSize(),
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("more-menu-panel").assertDoesNotExist()
+        org.junit.Assert.assertTrue(actions.isEmpty())
+    }
+
     @Test fun collapsedSheetPreservesHandleTabsSummaryAndExpandsOnDrag() {
         var level by mutableStateOf(WorkspaceSheetLevel.COLLAPSED)
         compose.setContent {
@@ -79,7 +239,7 @@ class WorkspaceChromeTest {
         }
 
         compose.onNodeWithTag("workspace-sheet-handle")
-            .assertHeightIsEqualTo(68.dp)
+            .assertHeightIsEqualTo(72.dp)
         compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
         compose.onNodeWithTag("sheet-summary").assertIsDisplayed()
         compose.onAllNodesWithTag("business-list").assertCountEquals(0)
@@ -165,7 +325,7 @@ class WorkspaceChromeTest {
         }
 
         compose.onNodeWithTag("workspace-sheet").assertHeightIsEqualTo(96.dp)
-        compose.onNodeWithTag("workspace-sheet-handle").assertHeightIsEqualTo(68.dp)
+        compose.onNodeWithTag("workspace-sheet-handle").assertHeightIsEqualTo(72.dp)
         compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
         compose.onNodeWithTag("small-window-summary").assertIsDisplayed()
     }
@@ -193,9 +353,10 @@ class WorkspaceChromeTest {
             }
         }
 
-        compose.onNodeWithTag("workspace-sheet").assertHeightIsEqualTo(86.dp)
+        val sheet = compose.onNodeWithTag("workspace-sheet").assertHeightIsEqualTo(86.dp).getUnclippedBoundsInRoot()
         compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
-        compose.onNodeWithTag("minimum-window-summary").assertIsDisplayed()
+        val summary = compose.onNodeWithTag("minimum-window-summary").assertIsDisplayed().getUnclippedBoundsInRoot()
+        org.junit.Assert.assertTrue("sheet=$sheet summary=$summary", summary.top >= sheet.top && summary.bottom <= sheet.bottom)
     }
 
     @Test fun workspaceTabsUse44DpTouchHeightAndThreeDpIndicator() {

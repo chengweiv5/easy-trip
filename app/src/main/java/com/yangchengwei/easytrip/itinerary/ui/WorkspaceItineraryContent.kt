@@ -13,6 +13,7 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.workspace.ItineraryScope
+import java.time.LocalDate
 
 @Composable
 fun WorkspaceItineraryContent(
@@ -24,6 +25,7 @@ fun WorkspaceItineraryContent(
     modifier: Modifier = Modifier,
     onAddDay: () -> Unit = {},
     contentPadding: PaddingValues = PaddingValues.Zero,
+    startDate: LocalDate? = null,
 ) {
     Row(modifier.padding(contentPadding)) {
         ItineraryScopeRail(
@@ -38,6 +40,7 @@ fun WorkspaceItineraryContent(
             when (selected) {
                 ItineraryScope.WholeTrip -> WholeTripItineraryContent(
                     days = wholeTripDays,
+                    startDate = startDate,
                     onAddDay = onAddDay,
                     modifier = Modifier.testTag("whole-trip-content"),
                 )

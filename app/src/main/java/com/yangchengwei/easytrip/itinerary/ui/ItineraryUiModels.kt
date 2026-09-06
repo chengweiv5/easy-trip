@@ -16,6 +16,7 @@ data class ItineraryItemUi(
     val arrivalTime: LocalTime?,
     val stayMinutes: Int?,
     val note: String? = null,
+    val placeId: String? = null,
 )
 
 sealed interface RouteLegUiState {
@@ -117,6 +118,7 @@ internal fun ItineraryItem.toItineraryItemUi() = ItineraryItemUi(
     arrivalTime = arrivalTime,
     stayMinutes = stayMinutes,
     note = note,
+    placeId = place.id,
 )
 
 internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(

@@ -83,6 +83,7 @@ import com.yangchengwei.easytrip.itinerary.ui.RouteModeEditDraft
 import com.yangchengwei.easytrip.itinerary.domain.AddPlacesToDayUseCase
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
 import com.yangchengwei.easytrip.itinerary.domain.UndoAddedItemsUseCase
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep
 import com.yangchengwei.easytrip.itinerary.ui.AddToItinerarySubmissionResult
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel
@@ -671,7 +672,14 @@ class WorkspaceFlowTest {
     }
 
     @Test fun zoomButtonClearsViewportAndSuppressesSectionFits() {
-        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val workspace = TripWorkspaceViewModel(
+            "trip",
+            Trips(),
+            Places(),
+            Itineraries(),
+            Legs(),
+            SavedStateHandle(mapOf("workspace.sheet" to WorkspaceSheetLevel.COLLAPSED.name)),
+        )
         lateinit var host: ZoomRecordingHost
         compose.setContent {
             TripWorkspaceRoute(
@@ -690,7 +698,7 @@ class WorkspaceFlowTest {
                 runCatching { host.viewportCalls == 1 }.getOrDefault(false)
         }
 
-        compose.onNodeWithTag("zoom-in").performClick()
+        compose.onNodeWithTag("zoom-in").assertIsDisplayed().assertHasClickAction().performClick()
         compose.waitUntil(5_000) { host.zoomInCalls == 1 && workspace.state.value.map.viewportRequest == null }
         compose.onNodeWithTag("section-ITINERARY").performClick()
         compose.onNodeWithTag("section-PLACE_POOL").performClick()
@@ -1281,6 +1289,50 @@ class WorkspaceFlowTest {
                 workspace.state.value.overlay == WorkspaceOverlay.SelectAddTargetDay
         }
         assertEquals(listOf("p"), add.state.value.selectedPlaceIds)
+    }
+
+    @Test fun itineraryItemScheduleAgainReusesSinglePlaceTargetDaySelection() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val add = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(Itineraries()), UndoAddedItemsUseCase(Itineraries()), SavedStateHandle())
+        val items = listOf(ItineraryItemUi("item-1", "酒店", "地址", null, null, placeId = "p"))
+        val state = DayItineraryUiState(
+            days = listOf(TripDay("day-1", 0)),
+            selectedDayId = "day-1",
+            items = items,
+            previewOrder = items.map(ItineraryItemUi::id),
+        )
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace,
+                consent = null,
+                onBack = {},
+                onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {},
+                itineraryState = state,
+                placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+                    rows = listOf(
+                        com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(
+                            SavedPlace("p", "trip", "poi", "酒店", "地址", GeoPoint(1.0, 2.0), "", emptyList()),
+                            0,
+                            false,
+                        ),
+                    ),
+                ),
+                addToItineraryViewModel = add,
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        compose.onNodeWithTag("more-item-1", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-schedule-again-item-1", useUnmergedTree = true).performClick()
+
+        compose.waitUntil(5_000) {
+            workspace.state.value.overlay == WorkspaceOverlay.SelectAddTargetDay &&
+                add.state.value.selectedPlaceIds == listOf("p") &&
+                add.state.value.editingTarget == AddToItineraryEditingTarget.ForPlace("p")
+        }
     }
 
     @Test fun selectedDayAddOpensPlaceSelection() {
@@ -3135,7 +3187,7 @@ class WorkspaceFlowTest {
             ),
         )
         override fun observeTrips() = flowOf(
-            listOf(TripSummary("trip", "川西", null, TravelMode.FLEXIBLE, 2)),
+            listOf(TripSummary("trip", "川西", null, TravelMode.FLEXIBLE, 2, 0, 0)),
         )
         override suspend fun createTrip(command: CreateTrip) = "trip"
         override suspend fun renameTrip(tripId: String, name: String) = Unit

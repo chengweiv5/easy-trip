@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.requiredHeight
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.clickable
@@ -136,14 +137,18 @@ private fun WorkspaceReadyContent(
                         modifier = Modifier.weight(1f),
                     )
                     if (!workspaceMapOverlaysFit(metrics) && state.sheetLevel != WorkspaceSheetLevel.EXPANDED) {
+                        val recoveryModifier = Modifier
+                            .requiredHeight(48.dp)
+                            .padding(horizontal = 8.dp)
+
                         when (mapState) {
                             is WorkspaceMapState.Failed -> CompactPrimaryButton(
                                 onClick = onMapRetry,
-                                modifier = Modifier.testTag("map-retry"),
+                                modifier = recoveryModifier.testTag("map-retry"),
                             ) { Text("重试") }
                             WorkspaceMapState.ConsentRequired -> CompactPrimaryButton(
                                 onClick = onOpenConsent,
-                                modifier = Modifier.testTag("map-consent-open"),
+                                modifier = recoveryModifier.testTag("map-consent-open"),
                             ) { Text("授权") }
                             else -> Unit
                         }
@@ -218,11 +223,13 @@ private fun WorkspaceReadyContent(
                         onAddDay = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues.Zero,
+                        startDate = state.startDate,
                         dayContent = {
                             if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
                                 state = itineraryState,
                                 onAction = onItineraryAction,
                                 showDialogs = false,
+                                canScheduleAgain = true,
                             )
                         },
                     )
@@ -245,36 +252,76 @@ private fun WorkspaceReadyContent(
             }
         },
         modalOverlay = { metrics ->
-            if (state.overlay == WorkspaceOverlay.LayerMenu && workspaceLayerMenuFits(metrics)) {
-                Box(
-                    Modifier
-                        .fillMaxSize()
-                        .testTag("layer-menu-hit-shield")
-                        .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
-                )
-                Box(
-                    Modifier
-                        .align(Alignment.TopStart)
-                        .offset(y = 128.dp)
-                        .fillMaxWidth()
-                        .height((metrics.sheetTop - 128.dp).coerceAtLeast(0.dp))
-                        .testTag("layer-menu-scrim")
-                        .background(Color(0x1A1B3A28))
-                        .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
-                )
-                Box(
-                    Modifier
-                        .align(Alignment.TopEnd)
-                        .offset(x = (-WorkspaceLayerMenuEndInset), y = WorkspaceLayerMenuTopOffset)
-                        .width(240.dp)
-                        .testTag("layer-menu-picker")
-                        .pointerInput(Unit) { detectTapGestures { } },
-                ) {
-                    MapLayerMenu(
-                        layer = state.mapLayer,
-                        onClose = { onAction(TripWorkspaceAction.CloseOverlay) },
-                        onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
+            when {
+                state.overlay == WorkspaceOverlay.LayerMenu && workspaceLayerMenuFits(metrics) -> {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .testTag("layer-menu-hit-shield")
+                            .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
                     )
+                    Box(
+                        Modifier
+                            .align(Alignment.TopStart)
+                            .offset(y = 128.dp)
+                            .fillMaxWidth()
+                            .height((metrics.sheetTop - 128.dp).coerceAtLeast(0.dp))
+                            .testTag("layer-menu-scrim")
+                            .background(Color(0x1A1B3A28))
+                            .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
+                    )
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = (-WorkspaceLayerMenuEndInset), y = WorkspaceLayerMenuTopOffset)
+                            .width(240.dp)
+                            .testTag("layer-menu-picker")
+                            .pointerInput(Unit) { detectTapGestures { } },
+                    ) {
+                        MapLayerMenu(
+                            layer = state.mapLayer,
+                            onClose = { onAction(TripWorkspaceAction.CloseOverlay) },
+                            onSelectLayer = { onAction(TripWorkspaceAction.SelectMapLayer(it)) },
+                        )
+                    }
+                }
+                state.overlay == WorkspaceOverlay.MoreMenu && workspaceMoreMenuFits(metrics) -> {
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .testTag("more-menu-hit-shield")
+                            .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
+                    )
+                    Box(
+                        Modifier
+                            .fillMaxSize()
+                            .testTag("more-menu-scrim")
+                            .background(Color(0x1A1B3A28))
+                            .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
+                    )
+                    Box(
+                        Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = (-WorkspaceMoreMenuEndInset), y = WorkspaceMoreMenuTopOffset)
+                            .width(WorkspaceMoreMenuWidth)
+                            .testTag("more-menu-picker")
+                            .pointerInput(Unit) { detectTapGestures { } },
+                    ) {
+                        WorkspaceMoreMenu(
+                            onOpenSettings = {
+                                onAction(TripWorkspaceAction.CloseOverlay)
+                                onAction(TripWorkspaceAction.OpenSettings)
+                            },
+                            onOpenConsent = {
+                                onAction(TripWorkspaceAction.CloseOverlay)
+                                onAction(TripWorkspaceAction.OpenPrivacySettings)
+                            },
+                            onBackToTrips = {
+                                onAction(TripWorkspaceAction.CloseOverlay)
+                                onAction(TripWorkspaceAction.LeaveWorkspace)
+                            },
+                        )
+                    }
                 }
             }
         },
@@ -288,8 +335,12 @@ private fun WorkspaceReadyContent(
             }
             val mapOverlaysFit = workspaceMapOverlaysFit(metrics)
             val layerMenuFits = workspaceLayerMenuFits(metrics)
-            LaunchedEffect(state.overlay, layerMenuFits) {
-                if (state.overlay == WorkspaceOverlay.LayerMenu && !layerMenuFits) {
+            val moreMenuFits = workspaceMoreMenuFits(metrics)
+            LaunchedEffect(state.overlay, layerMenuFits, moreMenuFits) {
+                if (
+                    (state.overlay == WorkspaceOverlay.LayerMenu && !layerMenuFits) ||
+                    (state.overlay == WorkspaceOverlay.MoreMenu && !moreMenuFits)
+                ) {
                     onAction(TripWorkspaceAction.CloseOverlay)
                 }
             }
@@ -297,7 +348,11 @@ private fun WorkspaceReadyContent(
                 title = state.tripName,
                 dateLabel = state.dateLabel,
                 onBack = { onAction(TripWorkspaceAction.Back) },
-                onMore = { onAction(TripWorkspaceAction.OpenSettings) },
+                onMore = {
+                    if (state.overlay == WorkspaceOverlay.None) {
+                        onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.MoreMenu))
+                    }
+                },
                 modifier = Modifier.padding(horizontal = 20.dp),
             )
             if (mapOverlaysFit) {
@@ -354,6 +409,10 @@ private val WorkspaceMapOverlayRequiredHeight = 214.dp
 private val WorkspaceLayerMenuTopOffset = 140.dp
 private val WorkspaceLayerMenuHeight = 289.dp
 private val WorkspaceLayerMenuEndInset = 16.dp
+private val WorkspaceMoreMenuTopOffset = 76.dp
+private val WorkspaceMoreMenuWidth = 190.dp
+private val WorkspaceMoreMenuHeight = 260.dp
+private val WorkspaceMoreMenuEndInset = 20.dp
 
 internal fun workspaceMapOverlaysFit(metrics: WorkspaceLayoutMetrics): Boolean =
     metrics.sheetTop >= WorkspaceMapOverlayRequiredHeight
@@ -361,6 +420,10 @@ internal fun workspaceMapOverlaysFit(metrics: WorkspaceLayoutMetrics): Boolean =
 internal fun workspaceLayerMenuFits(metrics: WorkspaceLayoutMetrics): Boolean =
     metrics.availableWidth >= WorkspaceLayerMenuEndInset + 240.dp &&
         metrics.availableHeight >= WorkspaceLayerMenuTopOffset + WorkspaceLayerMenuHeight
+
+internal fun workspaceMoreMenuFits(metrics: WorkspaceLayoutMetrics): Boolean =
+    metrics.availableWidth >= WorkspaceMoreMenuEndInset + WorkspaceMoreMenuWidth &&
+        metrics.availableHeight >= WorkspaceMoreMenuTopOffset + WorkspaceMoreMenuHeight
 
 @Composable
 private fun WorkspaceCollapsedSummary(

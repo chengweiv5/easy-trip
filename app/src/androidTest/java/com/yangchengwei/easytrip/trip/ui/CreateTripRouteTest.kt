@@ -62,7 +62,7 @@ class CreateTripRouteTest {
         }
         compose.runOnIdle {
             viewModel.onAction(CreateTripAction.NameChanged("东京"))
-            viewModel.onAction(CreateTripAction.DayCountChanged("3"))
+            viewModel.onAction(CreateTripAction.DateRangeChanged(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 3)))
             viewModel.onAction(CreateTripAction.Submit)
         }
         compose.waitUntil { viewModel.state.value.isSubmitting }
@@ -89,7 +89,7 @@ class CreateTripRouteTest {
         compose.runOnIdle { generation = 2 }
         compose.runOnIdle {
             viewModel.onAction(CreateTripAction.NameChanged("东京"))
-            viewModel.onAction(CreateTripAction.DayCountChanged("3"))
+            viewModel.onAction(CreateTripAction.DateRangeChanged(LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 3)))
             viewModel.onAction(CreateTripAction.Submit)
         }
         compose.waitUntil { callbacks.size == 1 }

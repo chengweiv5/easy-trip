@@ -19,7 +19,6 @@ import com.yangchengwei.easytrip.trip.domain.InsertSide
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
-import com.yangchengwei.easytrip.trip.ui.CreateTimeMode
 import com.yangchengwei.easytrip.trip.ui.CreateTripAction
 import com.yangchengwei.easytrip.trip.ui.CreateTripEffect
 import com.yangchengwei.easytrip.trip.ui.CreateTripViewModel
@@ -218,9 +217,8 @@ class RoomTripRepositoryTest {
         val savedState = SavedStateHandle(
             mapOf(
                 "trip.create.name" to command.name,
-                "trip.create.days" to command.dayCount.toString(),
-                "trip.create.timeMode" to CreateTimeMode.DATED.name,
                 "trip.create.startDate" to date.toString(),
+                "trip.create.endDate" to date.plusDays(1).toString(),
                 "trip.create.travelMode" to command.travelMode.name,
                 "trip.create.requestId" to command.requestId,
             ),
@@ -409,6 +407,58 @@ class RoomTripRepositoryTest {
             assertEquals(2, tripEvents.receiveUntil("deleted day") { it?.days?.size == 2 && it.days.none { day -> day.id == dayId } }!!.days.size)
             assertEquals(2, listEvents.receiveUntil("trip list count 2") { it.single().dayCount == 2 }.single().dayCount)
             tripEvents.cancel(); listEvents.cancel()
+        }
+    }
+
+    @Test
+    fun observeTripsProjectsSavedPlacesAndDistinctScheduledPlacesAndReemitsOnChanges() = runTest {
+        val tripId = repository.createTrip(CreateTrip("Stats", 3))
+        val dayIds = repository.observeTrip(tripId).first()!!.days.map(TripDay::id)
+        database.savedPlaceDao().insertPlace(SavedPlaceEntity("place-a", tripId, "a", "A", "", 0.0, 0.0))
+        database.savedPlaceDao().insertPlace(SavedPlaceEntity("place-b", tripId, "b", "B", "", 0.0, 0.0))
+        database.savedPlaceDao().insertPlace(SavedPlaceEntity("place-c", tripId, "c", "C", "", 0.0, 0.0))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity("item-a-0", dayIds[0], tripId, "place-a", 0))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity("item-a-1", dayIds[1], tripId, "place-a", 0))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity("item-b-2", dayIds[2], tripId, "place-b", 0))
+
+        coroutineScope {
+            val listEvents = repository.observeTrips().produceIn(this)
+            val initial = listEvents.receiveUntil("initial list statistics") { it.singleOrNull()?.placeCount == 3 }
+                .single()
+            assertEquals(3, initial.dayCount)
+            assertEquals(3, initial.placeCount)
+            assertEquals(2, initial.scheduledDistinctPlaceCount)
+
+            database.itineraryEditingDao().deleteRow("item-a-0")
+            assertEquals(
+                2,
+                listEvents.receiveUntil("two distinct places after one A occurrence is deleted") {
+                    it.singleOrNull()?.scheduledDistinctPlaceCount == 2
+                }.single().scheduledDistinctPlaceCount,
+            )
+
+            database.itineraryEditingDao().deleteRow("item-a-1")
+            assertEquals(
+                1,
+                listEvents.receiveUntil("one distinct place after all A occurrences are deleted") {
+                    it.singleOrNull()?.scheduledDistinctPlaceCount == 1
+                }.single().scheduledDistinctPlaceCount,
+            )
+
+            database.savedPlaceDao().insertPlace(SavedPlaceEntity("place-d", tripId, "d", "D", "", 0.0, 0.0))
+            assertEquals(
+                4,
+                listEvents.receiveUntil("place count after saving D") { it.singleOrNull()?.placeCount == 4 }
+                    .single().placeCount,
+            )
+
+            database.savedPlaceDao().deletePlace("place-d")
+            assertEquals(
+                3,
+                listEvents.receiveUntil("place count after deleting D") { it.singleOrNull()?.placeCount == 3 }
+                    .single().placeCount,
+            )
+            listEvents.cancel()
         }
     }
 

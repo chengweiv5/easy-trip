@@ -47,7 +47,6 @@ import com.yangchengwei.easytrip.place.ui.PlaceSearchUiState
 import com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi
 import com.yangchengwei.easytrip.trip.domain.DateRangeChangeImpact
 import com.yangchengwei.easytrip.trip.domain.TripDay
-import com.yangchengwei.easytrip.trip.ui.CreateTimeMode
 import com.yangchengwei.easytrip.trip.ui.CreateTripContent
 import com.yangchengwei.easytrip.trip.ui.CreateTripUiState
 import com.yangchengwei.easytrip.trip.ui.DateRangeChangePhase
@@ -301,14 +300,26 @@ class VisualBatch0EvidenceTest {
 
     @Test fun settings_U06l7P() {
         render("U06l7P", "settings") {
-            TripSettingsContent(settingsState(DateRangeChangePhase.Idle), {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+            TripSettingsContent(
+                state = settingsState(DateRangeChangePhase.Idle),
+                onBack = {}, onRename = {}, onTravelMode = {}, onSubmitDateRange = {},
+                onCancelDateRange = {}, onConfirmDateRange = {}, onRetryDateRangeSync = {},
+                onRequestDeleteDay = {}, onRetryDeleteDay = {}, onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+                onDateRangeDraft = { _, _ -> },
+            )
         }
         compose.onNodeWithText("整体出行日期").assertIsDisplayed()
     }
 
     @Test fun dateConfirmation_IKTv5() {
         render("IKTv5", "date-confirmation") {
-            TripSettingsContent(settingsState(DateRangeChangePhase.AwaitingConfirmation(request(), impact())), {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {})
+            TripSettingsContent(
+                state = settingsState(DateRangeChangePhase.AwaitingConfirmation(request(), impact())),
+                onBack = {}, onRename = {}, onTravelMode = {}, onSubmitDateRange = {},
+                onCancelDateRange = {}, onConfirmDateRange = {}, onRetryDateRangeSync = {},
+                onRequestDeleteDay = {}, onRetryDeleteDay = {}, onCancelDeleteDay = {}, onConfirmDeleteDay = {},
+                onDateRangeDraft = { _, _ -> },
+            )
         }
         compose.onNodeWithText("确认修改日期范围？").assertIsDisplayed()
     }
@@ -728,7 +739,7 @@ class VisualBatch0EvidenceTest {
     @Test fun create_dzhkC() {
         render("dzhkC", "create") {
             CreateTripContent(
-                CreateTripUiState("杭州·春日慢游", "3", CreateTimeMode.DATED, LocalDate.of(2025, 4, 12), TravelMode.FLEXIBLE),
+                CreateTripUiState("杭州·春日慢游", LocalDate.of(2025, 4, 12), LocalDate.of(2025, 4, 14), TravelMode.FLEXIBLE),
                 {},
             )
         }
@@ -911,7 +922,7 @@ class VisualBatch0EvidenceTest {
         RouteLegUi("leg-2", "item-2", "item-3", TransportMode.DRIVE, RouteStatus.SUCCESS, 11000, 1680, null),
     )
 
-    private fun request() = DateRangeChangeRequest(1, "trip", LocalDate.of(2025, 4, 12), listOf("day-1", "day-2", "day-3"), LocalDate.of(2025, 4, 12))
+    private fun request() = DateRangeChangeRequest(1, "trip", LocalDate.of(2025, 4, 12), listOf("day-1", "day-2", "day-3"), LocalDate.of(2025, 4, 12), LocalDate.of(2025, 4, 12))
     private fun impact() = DateRangeChangeImpact(request(), listOf("day-1"), listOf("day-2", "day-3"), 3, 2, 8)
     private fun settingsState(phase: DateRangeChangePhase) = TripSettingsUiState(
         tripId = "trip", name = "杭州·春日慢游", travelMode = TravelMode.FLEXIBLE,

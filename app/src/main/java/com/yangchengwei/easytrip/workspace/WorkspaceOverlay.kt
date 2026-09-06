@@ -13,6 +13,7 @@ sealed interface WorkspaceOverlay {
     data class EditItineraryItem(val itemId: String) : WorkspaceOverlay
     data class EditRouteLeg(val legId: String) : WorkspaceOverlay
     data object LayerMenu : WorkspaceOverlay
+    data object MoreMenu : WorkspaceOverlay
     data class Confirmation(val model: ConfirmationUiModel) : WorkspaceOverlay
     data class PermissionExplanation(val kind: PermissionKind) : WorkspaceOverlay
     data class Feedback(val model: FeedbackUiModel) : WorkspaceOverlay

@@ -23,6 +23,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeUp
 import androidx.test.espresso.Espresso.pressBack
@@ -32,6 +34,7 @@ import androidx.test.core.app.ApplicationProvider
 import com.yangchengwei.easytrip.AppNavigation
 import com.yangchengwei.easytrip.AppNavigationDependencies
 import com.yangchengwei.easytrip.AppNavigationObserver
+import com.yangchengwei.easytrip.CREATE_TRIP_ROUTE
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
 import com.yangchengwei.easytrip.core.model.GeoPoint
@@ -52,6 +55,7 @@ import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TimeMode
 import com.yangchengwei.easytrip.core.model.TransportMode
 import java.time.Instant
+import java.time.LocalTime
 import java.util.concurrent.atomic.AtomicInteger
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.domain.DateRangeApply
@@ -93,7 +97,11 @@ class TripSettingsNavigationTest {
         val context = ApplicationProvider.getApplicationContext<Context>()
         database = Room.inMemoryDatabaseBuilder(context, EasyTripDatabase::class.java).build()
         var nextId = 0
-        repository = RoomTripRepository(database.tripDao(), idFactory = { "settings-nav-${nextId++}" })
+        repository = RoomTripRepository(
+            database.tripDao(),
+            idFactory = { "settings-nav-${nextId++}" },
+            database = database,
+        )
     }
 
     @After fun tearDown() = database.close()
@@ -119,6 +127,7 @@ class TripSettingsNavigationTest {
         compose.onNodeWithTag("workspace-sheet-handle").performTouchInput { swipeUp() }
         val expandedSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
         compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("more-menu-settings").performClick()
         compose.onNodeWithTag("settings-date-row").assertIsDisplayed()
         compose.runOnIdle { assertEquals("trips/$tripId/settings", routes.last()) }
 
@@ -129,6 +138,66 @@ class TripSettingsNavigationTest {
         assertEquals(expandedSheetTop, compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top)
         assertNotNull(runBlocking { repository.observeTrip(tripId).first() })
         assertEquals("Room 博物馆", runBlocking { itineraries.observeDay(trip.days.first().id).first() }.items.single().place.name)
+    }
+
+    @Test fun productionRangeTripShiftShrinkCancelConfirmAndGrowthPersistExactlyOnce() {
+        val start = LocalDate.parse("2026-10-01")
+        val shiftedStart = LocalDate.parse("2026-10-08")
+        val routes = mutableListOf<String>()
+        val tripId = createRangeTripThroughProductionNavigation("Range 旅行", start, start.plusDays(2), routes)
+        val original = checkNotNull(runBlocking { repository.observeTrip(tripId).first() })
+        val originalDayIds = original.days.map { it.id }
+        val content = originalDayIds.mapIndexed { index, dayId ->
+            seedRecognizableDayContent(tripId, dayId, index)
+        }
+        val savedBefore = runBlocking { database.savedPlaceDao().observePlaces(tripId).first().map { it.id }.toSet() }
+
+        compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("more-menu-settings").performClick()
+
+        selectSettingsDateRange(shiftedStart, shiftedStart.plusDays(2))
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithText("2026-10-08 — 2026-10-10 · 3天2晚").fetchSemanticsNodes().isNotEmpty()
+        }
+        assertEquals(shiftedStart, runBlocking { repository.observeTrip(tripId).first()?.startDate })
+        assertTripDaysAndContent(tripId, originalDayIds, content)
+
+        selectSettingsDateRange(shiftedStart, shiftedStart.plusDays(1))
+        compose.onNodeWithText("确认修改日期范围？").assertIsDisplayed()
+        compose.onNodeWithTag("confirmation-dismiss").performClick()
+        compose.onNodeWithText("2026-10-08 — 2026-10-10 · 3天2晚").assertIsDisplayed()
+        assertTripDaysAndContent(tripId, originalDayIds, content)
+        assertEquals(savedBefore, runBlocking { database.savedPlaceDao().observePlaces(tripId).first().map { it.id }.toSet() })
+
+        selectSettingsDateRange(shiftedStart, shiftedStart.plusDays(1))
+        compose.onNodeWithTag("confirmation-confirm").performClick()
+        compose.waitUntil(5_000) {
+            runBlocking { repository.observeTrip(tripId).first()?.days?.size == 2 }
+        }
+        val shortened = checkNotNull(runBlocking { repository.observeTrip(tripId).first() })
+        assertEquals(originalDayIds.take(2), shortened.days.map { it.id })
+        assertEquals(content.take(2), originalDayIds.take(2).map(::dayContent))
+        assertEquals(emptyList<ItineraryItemEntity>(), runBlocking { database.itineraryEditingDao().items(originalDayIds.last()) })
+        assertEquals(emptyList<RouteLegEntity>(), runBlocking { database.routeLegDao().legs(originalDayIds.last()) })
+        assertEquals(savedBefore, runBlocking { database.savedPlaceDao().observePlaces(tripId).first().map { it.id }.toSet() })
+
+        selectSettingsDateRange(shiftedStart, shiftedStart.plusDays(3))
+        compose.waitUntil(5_000) {
+            runBlocking { repository.observeTrip(tripId).first()?.days?.size == 4 }
+        }
+        val grown = checkNotNull(runBlocking { repository.observeTrip(tripId).first() })
+        assertEquals(originalDayIds.take(2), grown.days.take(2).map { it.id })
+        assertEquals(content.take(2), originalDayIds.take(2).map(::dayContent))
+        assertEquals(true, grown.days.drop(2).all { dayContent(it.id).items.isEmpty() && dayContent(it.id).legs.isEmpty() })
+
+        compose.onNodeWithTag("settings-back").performClick()
+        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
+        pressBack()
+        compose.onNodeWithTag("continue-trip-$tripId").assertIsDisplayed()
+        assertEquals(
+            listOf(CREATE_TRIP_ROUTE, "trips/$tripId", "trips/$tripId/settings"),
+            routes,
+        )
     }
 
     @Test fun growthApplyingAndAwaitingRoomConsumeSystemBackUntilCompletion() {
@@ -154,7 +223,7 @@ class TripSettingsNavigationTest {
         }
         compose.waitUntil { viewModel.state.value.days.size == 3 }
         compose.runOnIdle {
-            viewModel.updateDateEndDraft(LocalDate.parse("2026-10-04"))
+            viewModel.updateDateRangeDraft(viewModel.state.value.dateRange.draftStartDate, LocalDate.parse("2026-10-04"))
             viewModel.requestDateRangeChange()
         }
         compose.waitUntil { viewModel.state.value.dateRange.phase is DateRangeChangePhase.Applying }
@@ -181,6 +250,7 @@ class TripSettingsNavigationTest {
         setNavigation(routes)
         compose.onNodeWithTag("continue-trip-$tripId").performClick()
         compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("more-menu-settings").performClick()
         compose.onNodeWithTag("settings-date-row").assertIsDisplayed()
 
         runBlocking { repository.deleteTrip(tripId) }
@@ -200,6 +270,7 @@ class TripSettingsNavigationTest {
 
         compose.onNodeWithTag("continue-trip-${trips.hangzhou.id}").performClick()
         compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("more-menu-settings").performClick()
         compose.onNodeWithTag("settings-delete-trip").performClick()
         compose.waitUntil(5_000) {
             compose.onAllNodesWithText("确认删除旅行").fetchSemanticsNodes().isNotEmpty()
@@ -231,6 +302,7 @@ class TripSettingsNavigationTest {
 
         compose.onNodeWithTag("continue-trip-${trips.hangzhou.id}").performClick()
         compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("more-menu-settings").performClick()
         compose.onNodeWithTag("settings-delete-trip").performClick()
         compose.waitUntil(5_000) {
             compose.onAllNodesWithText("确认删除旅行").fetchSemanticsNodes().isNotEmpty()
@@ -245,6 +317,90 @@ class TripSettingsNavigationTest {
         compose.onNodeWithTag("settings-back").performClick()
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         compose.onNodeWithTag("workspace-trip-title").assertTextEquals("杭州 · 春日慢游")
+    }
+
+    private data class DayContent(
+        val items: List<ItineraryItemEntity>,
+        val legs: List<RouteLegEntity>,
+    )
+
+    private fun createRangeTripThroughProductionNavigation(
+        name: String,
+        start: LocalDate,
+        end: LocalDate,
+        routes: MutableList<String>,
+    ): String {
+        setNavigation(
+            routes = routes,
+            awaitTripListId = false,
+            initialDateMillis = start.atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(),
+        )
+        compose.onNodeWithTag("create-trip").performClick()
+        compose.onNodeWithTag("create-name").performTextInput(name)
+        compose.onNodeWithTag("create-date-control").performClick()
+        compose.onNodeWithTag("trip-date-$start").performClick()
+        compose.onNodeWithTag("trip-date-$end").performClick()
+        compose.onNodeWithTag("trip-date-range-confirm").performClick()
+        compose.onNodeWithTag("create-submit").performClick()
+        compose.waitUntil(5_000) {
+            runBlocking { repository.observeTrips().first().singleOrNull()?.name == name }
+        }
+        return runBlocking { repository.observeTrips().first().single { it.name == name }.id }
+    }
+
+    private fun selectSettingsDateRange(start: LocalDate, end: LocalDate) {
+        compose.onNodeWithTag("settings-date-row").performScrollTo().performClick()
+        compose.onNodeWithTag("trip-date-$start").performClick()
+        compose.onNodeWithTag("trip-date-$end").performClick()
+        compose.onNodeWithTag("trip-date-range-confirm").performClick()
+    }
+
+    private fun seedRecognizableDayContent(tripId: String, dayId: String, index: Int): DayContent = runBlocking {
+        val places = RoomSavedPlaceRepository(database, idFactory = { "range-place-$index-${seededRows.incrementAndGet()}" })
+        val itineraries = RoomItineraryRepository(
+            database,
+            database.itineraryEditingDao(),
+            database.routeLegDao(),
+            itemIdFactory = { "range-item-$index-${seededRows.incrementAndGet()}" },
+            legIdFactory = { "range-leg-$index-${seededRows.incrementAndGet()}" },
+        )
+        repeat(2) { placeIndex ->
+            val placeId = (places.save(
+                tripId,
+                PlaceCandidate(
+                    "range-poi-$index-$placeIndex",
+                    "第 ${index + 1} 天地点 ${placeIndex + 1}",
+                    "第 ${index + 1} 天地址 ${placeIndex + 1}",
+                    GeoPoint(30.0 + index, 120.0 + placeIndex),
+                    null,
+                ),
+            ) as SavePlaceResult.Saved).id
+            val itemId = itineraries.addItem(dayId, placeId, placeIndex)
+            itineraries.updateDetails(
+                itemId,
+                LocalTime.of(9 + index, placeIndex * 30),
+                45 + index + placeIndex,
+                "day-$index-item-$placeIndex",
+            )
+        }
+        dayContent(dayId)
+    }
+
+    private fun dayContent(dayId: String): DayContent = runBlocking {
+        DayContent(
+            database.itineraryEditingDao().items(dayId),
+            database.routeLegDao().legs(dayId),
+        )
+    }
+
+    private fun assertTripDaysAndContent(
+        tripId: String,
+        expectedDayIds: List<String>,
+        expectedContent: List<DayContent>,
+    ) {
+        val trip = checkNotNull(runBlocking { repository.observeTrip(tripId).first() })
+        assertEquals(expectedDayIds, trip.days.map { it.id })
+        assertEquals(expectedContent, expectedDayIds.map(::dayContent))
     }
 
     private data class PencilDeleteTrips(
@@ -332,12 +488,15 @@ class TripSettingsNavigationTest {
             database.routeLegDao(),
         ),
         expectedTripId: String? = null,
+        awaitTripListId: Boolean = true,
+        initialDateMillis: Long? = null,
     ) {
         compose.setContent {
             AppNavigation(
                 service = TripService(repository),
                 repository = repository,
                 impacts = RoomDeleteImpactProvider(database.deleteImpactDao()),
+                initialDateMillis = initialDateMillis,
                 dependencies = AppNavigationDependencies(
                     savedPlaceRepository = places,
                     itineraryRepository = itineraries,
@@ -349,9 +508,13 @@ class TripSettingsNavigationTest {
                 mapHostFactory = ::TestMapHost,
             )
         }
-        val tripId = expectedTripId ?: runBlocking { repository.observeTrips().first().single().id }
-        compose.waitUntil(5_000) {
-            compose.onAllNodesWithTag("continue-trip-$tripId").fetchSemanticsNodes().isNotEmpty()
+        if (awaitTripListId) {
+            val tripId = expectedTripId ?: runBlocking { repository.observeTrips().first().single().id }
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("continue-trip-$tripId").fetchSemanticsNodes().isNotEmpty()
+            }
+        } else {
+            compose.onNodeWithTag("create-trip").assertIsDisplayed()
         }
     }
 

@@ -146,7 +146,7 @@ class TripWorkspaceContentTest {
         assertEquals(
             listOf(
                 TripWorkspaceAction.SelectSection(WorkspaceSection.ITINERARY),
-                TripWorkspaceAction.OpenSettings,
+                TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.MoreMenu),
             ),
             actions,
         )
@@ -283,7 +283,7 @@ class TripWorkspaceContentTest {
         }
     }
 
-    @Test fun readyKeepsSearchSettingsBackAndItineraryActions() {
+    @Test fun readyKeepsSearchBackAndItineraryActionsWhileMoreOpensOverlay() {
         val actions = mutableListOf<TripWorkspaceAction>()
         setContent(ready(), WorkspaceMapState.Ready, actions::add)
         compose.waitForIdle()
@@ -296,7 +296,7 @@ class TripWorkspaceContentTest {
         assertEquals(
             listOf(
                 TripWorkspaceAction.Back,
-                TripWorkspaceAction.OpenSettings,
+                TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.MoreMenu),
                 TripWorkspaceAction.OpenSearch,
                 TripWorkspaceAction.SelectSection(WorkspaceSection.PLACE_POOL),
                 TripWorkspaceAction.SelectSection(WorkspaceSection.ITINERARY),

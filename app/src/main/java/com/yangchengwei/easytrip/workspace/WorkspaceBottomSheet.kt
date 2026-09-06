@@ -90,7 +90,9 @@ internal fun clampWorkspaceSheetDragOffsetPx(
     currentHeightPx - collapsedHeightPx,
 )
 
-private val WorkspaceSheetHeaderHeight = 68.dp
+private val WorkspaceSheetHeaderHeight = 72.dp
+private val CompactWorkspaceSheetHeaderHeight = 68.dp
+private val MinimumCollapsedSummaryHeight = 18.dp
 
 @Composable
 internal fun WorkspaceBottomSheet(
@@ -112,7 +114,14 @@ internal fun WorkspaceBottomSheet(
     val expandedHeightPx = with(density) { anchors.expanded.toPx() }
     val visibleHeight = with(density) { (currentHeightPx - dragOffsetPx).toDp() }
         .coerceIn(anchors.collapsed, anchors.expanded)
-    val collapsedBottomPadding = if (visibleHeight >= 94.dp) 8.dp else 0.dp
+    val sheetHeaderHeight = if (
+        value == WorkspaceSheetLevel.COLLAPSED && visibleHeight < WorkspaceSheetHeaderHeight + MinimumCollapsedSummaryHeight
+    ) {
+        CompactWorkspaceSheetHeaderHeight
+    } else {
+        WorkspaceSheetHeaderHeight
+    }
+    val collapsedBottomPadding = if (visibleHeight >= 98.dp) 8.dp else 0.dp
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val currentOnDragOffsetChange by rememberUpdatedState(onDragOffsetChange)
     Surface(
@@ -128,7 +137,7 @@ internal fun WorkspaceBottomSheet(
             Box(
                 Modifier
                     .fillMaxWidth()
-                    .height(WorkspaceSheetHeaderHeight)
+                    .height(sheetHeaderHeight)
                     .padding(horizontal = 20.dp)
                     .pointerInput(value, anchors, density) {
                         var gestureDragOffsetPx = 0f

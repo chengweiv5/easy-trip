@@ -4,7 +4,11 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -20,6 +24,8 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
+import java.time.LocalDate
+import java.time.format.DateTimeFormatter
 import com.yangchengwei.easytrip.core.ui.component.EmptyState
 
 @Composable
@@ -27,76 +33,94 @@ fun WholeTripItineraryContent(
     days: List<WholeTripDayUi>,
     onAddDay: () -> Unit = {},
     modifier: Modifier = Modifier,
+    startDate: LocalDate? = null,
 ) {
-    LazyColumn(
-        modifier = modifier.testTag("whole-trip-timeline"),
-        contentPadding = PaddingValues(bottom = 24.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-    ) {
-        if (days.isEmpty()) {
-            item {
-                EmptyState(
-                    title = "暂无旅行日",
-                    message = "新增旅行日，开始规划行程",
-                    emptyIllustration = com.yangchengwei.easytrip.core.ui.component.EmptyIllustration.Itinerary,
-                    verticalPadding = 16.dp,
-                    action = {
-                        TextButton(onAddDay, Modifier.testTag("whole-trip-add-day")) {
-                            Text("新增旅行日")
-                        }
-                    },
-                )
-            }
+    val totalStops = days.sumOf { it.items.size }
+    Column(modifier.fillMaxSize()) {
+        if (days.isNotEmpty()) {
+            Text(
+                text = "全程 · ${days.size} 天 · $totalStops 站",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(bottom = 12.dp)
+                    .semantics { heading() }
+                    .testTag("whole-trip-summary"),
+            )
         }
-        days.forEach { day ->
-            item(key = "heading-${day.dayId}") {
-                Row(
-                    Modifier
-                        .fillMaxWidth()
-                        .testTag("whole-trip-day-${day.dayId}")
-                        .semantics { heading() },
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                ) {
-                    Box(
-                        Modifier
-                            .size(10.dp)
-                            .background(dayColors[wholeTripDayColorIndex(day.dayNumber)])
-                            .testTag("whole-trip-day-marker-${day.dayId}"),
-                    )
-                    Text(
-                        text = dayHeading(day.dayNumber),
-                        style = MaterialTheme.typography.titleLarge,
-                    )
-                    Text(
-                        text = "第 ${day.dayNumber} 日",
-                        style = MaterialTheme.typography.labelMedium,
-                        modifier = Modifier.padding(start = 4.dp),
+        LazyColumn(
+            modifier = Modifier.weight(1f).fillMaxWidth().testTag("whole-trip-timeline"),
+            contentPadding = PaddingValues.Zero,
+            verticalArrangement = Arrangement.spacedBy(8.dp),
+        ) {
+            if (days.isEmpty()) {
+                item {
+                    EmptyState(
+                        title = "暂无旅行日",
+                        message = "新增旅行日，开始规划行程",
+                        emptyIllustration = com.yangchengwei.easytrip.core.ui.component.EmptyIllustration.Itinerary,
+                        verticalPadding = 16.dp,
+                        action = {
+                            TextButton(onAddDay, Modifier.testTag("whole-trip-add-day")) {
+                                Text("新增旅行日")
+                            }
+                        },
                     )
                 }
             }
-            if (day.items.isEmpty()) {
-                item(key = "empty-${day.dayId}") { Text("暂无行程") }
-            } else {
-                day.items.forEachIndexed { index, itineraryItem ->
-                    item(key = "${day.dayId}-item-${itineraryItem.id}") {
-                        ItineraryPlaceRow(
-                            item = itineraryItem,
-                            displayOrder = index + 1,
-                            modifier = Modifier.fillMaxWidth(),
+            days.forEach { day ->
+                item(key = "heading-${day.dayId}") {
+                    Row(
+                        Modifier
+                            .fillMaxWidth()
+                            .testTag("whole-trip-day-${day.dayId}")
+                            .semantics { heading() },
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    ) {
+                        Box(
+                            Modifier
+                                .size(10.dp)
+                                .background(dayColors[wholeTripDayColorIndex(day.dayNumber)])
+                                .testTag("whole-trip-day-marker-${day.dayId}"),
+                        )
+                        Text(
+                            text = wholeTripDayHeading(day.dayNumber, startDate),
+                            style = MaterialTheme.typography.titleMedium,
                         )
                     }
-                    val nextItemId = day.items.getOrNull(index + 1)?.id
-                    day.legs.firstOrNull {
-                        it.fromItemId == itineraryItem.id && it.toItemId == nextItemId
-                    }?.let { leg ->
-                        item(key = "${day.dayId}-leg-${leg.id}") {
-                            RouteLegContent(
-                                leg = leg,
-                                modifier = Modifier.fillMaxWidth().testTag("leg-${leg.id}"),
+                }
+                if (day.items.isEmpty()) {
+                    item(key = "empty-${day.dayId}") {
+                        Text("暂无行程", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
+                } else {
+                    day.items.forEachIndexed { index, itineraryItem ->
+                        item(key = "${day.dayId}-item-${itineraryItem.id}") {
+                            ItineraryPlaceRow(
+                                item = itineraryItem,
+                                displayOrder = index + 1,
+                                modifier = Modifier.fillMaxWidth(),
                             )
                         }
+                        val nextItemId = day.items.getOrNull(index + 1)?.id
+                        day.legs.firstOrNull {
+                            it.fromItemId == itineraryItem.id && it.toItemId == nextItemId
+                        }?.let { leg ->
+                            item(key = "${day.dayId}-leg-${leg.id}") {
+                                RouteLegContent(
+                                    leg = leg,
+                                    modifier = Modifier.fillMaxWidth().testTag("leg-${leg.id}"),
+                                )
+                            }
+                        }
                     }
+                }
+            }
+            if (days.isNotEmpty()) {
+                item(key = "whole-trip-bottom-spacer") {
+                    Spacer(Modifier.height(24.dp).testTag("whole-trip-bottom-spacer"))
                 }
             }
         }
@@ -112,6 +136,14 @@ private val dayColors = listOf(
 )
 
 internal fun wholeTripDayColorIndex(dayNumber: Int): Int = (dayNumber - 1).coerceAtLeast(0) % dayColors.size
+
+private val WholeTripDateFormatter = DateTimeFormatter.ofPattern("M月d日")
+
+internal fun wholeTripDayHeading(dayNumber: Int, startDate: LocalDate?): String =
+    startDate?.plusDays((dayNumber - 1).coerceAtLeast(0).toLong())
+        ?.format(WholeTripDateFormatter)
+        ?.let { "$it · ${dayHeading(dayNumber)}" }
+        ?: dayHeading(dayNumber)
 
 internal fun dayHeading(dayNumber: Int): String = when (dayNumber) {
     1 -> "第一天"

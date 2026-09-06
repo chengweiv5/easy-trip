@@ -12,10 +12,31 @@ data class TripEntityWithDays(
     @Relation(parentColumn = "id", entityColumn = "tripId") val days: List<TripDayEntity>,
 )
 
+data class TripListProjection(
+    val id: String,
+    val name: String,
+    val startDate: LocalDate?,
+    val travelMode: TravelMode,
+    val dayCount: Int,
+    val placeCount: Int,
+    val scheduledDistinctPlaceCount: Int,
+)
+
+private const val TRIP_LIST_PROJECTION = """
+    SELECT t.id, t.name, t.startDate, t.travelMode,
+           (SELECT COUNT(*) FROM trip_days d WHERE d.tripId = t.id) AS dayCount,
+           (SELECT COUNT(*) FROM saved_places p WHERE p.tripId = t.id) AS placeCount,
+           (SELECT COUNT(DISTINCT i.savedPlaceId)
+            FROM itinerary_items i
+            WHERE i.tripId = t.id) AS scheduledDistinctPlaceCount
+    FROM trips t
+    ORDER BY t.updatedAt DESC
+"""
+
 @Dao
 interface TripDao {
-    @Transaction @Query("SELECT * FROM trips ORDER BY updatedAt DESC")
-    fun observeTrips(): Flow<List<TripEntityWithDays>>
+    @Query(TRIP_LIST_PROJECTION)
+    fun observeTrips(): Flow<List<TripListProjection>>
     @Transaction @Query("SELECT * FROM trips WHERE id = :tripId")
     fun observeTrip(tripId: String): Flow<TripEntityWithDays?>
     @Insert fun insertTrip(value: TripEntity)
@@ -54,6 +75,10 @@ interface TripDao {
         require(tripExists(tripId)){"Unknown trip: $tripId"}
         require(com.yangchengwei.easytrip.trip.domain.isTripDateRangeRepresentable(date,days(tripId).size)){"日期范围超出支持范围"}
         require(dateRow(tripId,date,mode,now)==1){"Unknown trip: $tripId"}
+    }
+    suspend fun setStartDateForDayCount(tripId:String,date:LocalDate,dayCount:Int,now:Instant){
+        require(com.yangchengwei.easytrip.trip.domain.isTripDateRangeRepresentable(date,dayCount)){"日期范围超出支持范围"}
+        require(dateRow(tripId,date,TimeMode.DATED,now)==1){"Unknown trip: $tripId"}
     }
     @Transaction suspend fun setTravelMode(tripId:String,mode:TravelMode,now:Instant){ require(modeRow(tripId,mode,now)==1){"Unknown trip: $tripId"} }
     @Transaction suspend fun deleteTripChecked(tripId:String){ require(deleteTripRow(tripId)==1){"Unknown trip: $tripId"} }

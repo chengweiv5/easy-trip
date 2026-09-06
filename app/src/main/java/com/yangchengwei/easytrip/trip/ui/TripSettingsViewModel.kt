@@ -42,9 +42,9 @@ internal fun tripMatchesDateRangeRequest(
     request: DateRangeChangeRequest,
     impact: DateRangeChangeImpact?,
 ): Boolean {
-    if (trip.startDate != request.baselineStartDate || impact == null) return false
+    if (trip.startDate != request.targetStartDate || impact == null) return false
     val actualDayIds = trip.days.map(TripDay::id)
-    val targetDayCount = ChronoUnit.DAYS.between(request.baselineStartDate, request.targetEndDate).toInt() + 1
+    val targetDayCount = ChronoUnit.DAYS.between(request.targetStartDate, request.targetEndDate).toInt() + 1
     return when {
         targetDayCount < request.baselineDayIds.size -> actualDayIds == impact.retainedDayIds
         targetDayCount > request.baselineDayIds.size ->
@@ -68,6 +68,8 @@ data class TripSettingsUiState(
     val dayDeletionRetry: DayUi? = null,
     val dayDeleteInProgress: Boolean = false,
     val dayDeleteError: String? = null,
+    val dayManagementInProgress: Boolean = false,
+    val dayManagementError: String? = null,
     val observationError: String? = null,
 )
 
@@ -124,6 +126,8 @@ class TripSettingsViewModel(
     private var tripDeletionJob: Job? = null
     private var tripDeletionGeneration = 0L
     private var tripDeletionProgress: TripDeletionProgress? = null
+    private var dayManagementJob: Job? = null
+    private var dayManagementGeneration = 0L
     private var returnToTripListSent = false
 
     init {
@@ -200,9 +204,16 @@ class TripSettingsViewModel(
         val current = mutableState.value
         val range = current.dateRange
         val nextRange = if (range.isDirty || range.phase !is DateRangeChangePhase.Idle) {
-            range.copy(startDate = trip.startDate, baselineEndDate = baselineEnd)
+            range.copy(baselineStartDate = trip.startDate, baselineEndDate = baselineEnd)
         } else {
-            range.copy(startDate = trip.startDate, baselineEndDate = baselineEnd, endDate = baselineEnd)
+            range.copy(
+                startDate = trip.startDate,
+                baselineStartDate = trip.startDate,
+                baselineEndDate = baselineEnd,
+                endDate = baselineEnd,
+                draftStartDate = trip.startDate,
+                draftEndDate = baselineEnd,
+            )
         }
         mutableState.value = current.copy(
             hasAuthoritativeTrip = true,
@@ -282,13 +293,18 @@ class TripSettingsViewModel(
     }
 
     private fun dateMutationLocked(): Boolean =
-        mutableState.value.dateRange.phase !is DateRangeChangePhase.Idle || tripDeletionWriteLocked()
+        mutableState.value.dateRange.phase !is DateRangeChangePhase.Idle ||
+            tripDeletionWriteLocked() || mutableState.value.dayManagementInProgress
 
     private fun dayDeletionWriteLocked(): Boolean =
         dateMutationLocked() || mutableState.value.dayDeleteInProgress
 
     private fun dateRangeWriteLocked(): Boolean =
         dateMutationLocked() || mutableState.value.dayDeleteInProgress
+
+    private fun dayManagementWriteLocked(): Boolean =
+        dateMutationLocked() || mutableState.value.dayDeleteInProgress ||
+            mutableState.value.pendingDayDeletion != null || mutableState.value.dayDeletionRetry != null
 
     private fun invalidateDayDeletionForDateMutation() {
         deleteGeneration++
@@ -311,31 +327,36 @@ class TripSettingsViewModel(
         viewModelScope.launch { service.setTravelMode(tripId, value) }
     }
 
-    fun updateDateEndDraft(endDate: LocalDate?) {
+    fun updateDateRangeDraft(startDate: LocalDate?, endDate: LocalDate?) {
         val range = mutableState.value.dateRange
-        if (tripDeletionWriteLocked() || range.submitting || range.phase is DateRangeChangePhase.SyncFailed || range.startDate == null) return
+        if (tripDeletionWriteLocked() || range.submitting || range.phase is DateRangeChangePhase.SyncFailed) return
         dateRangeGeneration++
         previewJob?.cancel()
         mutableState.value = mutableState.value.copy(
             dateRange = range.copy(
+                startDate = startDate,
                 endDate = endDate,
-                isDirty = endDate != range.baselineEndDate,
+                draftStartDate = startDate,
+                draftEndDate = endDate,
+                isDirty = startDate != range.baselineStartDate || endDate != range.baselineEndDate,
                 phase = DateRangeChangePhase.Idle,
                 error = null,
             ),
         )
     }
 
+
     fun requestDateRangeChange() {
         val range = mutableState.value.dateRange
         if (dateRangeWriteLocked()) return
-        if (!range.isDirty || range.startDate == null || range.endDate == null) return
+        if (!range.isDirty || range.draftStartDate == null || range.draftEndDate == null) return
         val request = DateRangeChangeRequest(
             generation = ++dateRangeGeneration,
             tripId = tripId,
-            baselineStartDate = range.startDate,
+            baselineStartDate = range.baselineStartDate,
             baselineDayIds = mutableState.value.days.map(DayUi::id),
-            targetEndDate = range.endDate,
+            targetStartDate = range.draftStartDate,
+            targetEndDate = range.draftEndDate,
         )
         invalidateDayDeletionForDateMutation()
         mutableState.value = mutableState.value.copy(
@@ -362,11 +383,10 @@ class TripSettingsViewModel(
                 throw exception
             } catch (_: DateRangeSnapshotChangedException) {
                 previewFailed(request, "旅行内容已变化，请重新确认")
+            } catch (_: com.yangchengwei.easytrip.trip.domain.TripDateRangeTargetNotFoundException) {
+                previewFailed(request, "旅行已不存在，请返回旅行列表")
             } catch (exception: IllegalArgumentException) {
-                previewFailed(
-                    request,
-                    if (exception.message == "旅行最多 30 天") exception.message!! else "结束日期不能早于开始日期",
-                )
+                previewFailed(request, exception.message ?: "日期范围无效")
             } catch (_: Throwable) {
                 previewFailed(request, "无法检查日期范围，请重试")
             }
@@ -378,7 +398,15 @@ class TripSettingsViewModel(
         if (range.phase !is DateRangeChangePhase.AwaitingConfirmation) return
         dateRangeGeneration++
         mutableState.value = mutableState.value.copy(
-            dateRange = range.copy(phase = DateRangeChangePhase.Idle, error = null),
+            dateRange = range.copy(
+                startDate = range.baselineStartDate,
+                endDate = range.baselineEndDate,
+                draftStartDate = range.baselineStartDate,
+                draftEndDate = range.baselineEndDate,
+                isDirty = false,
+                phase = DateRangeChangePhase.Idle,
+                error = null,
+            ),
         )
     }
 
@@ -465,6 +493,8 @@ class TripSettingsViewModel(
             throw exception
         } catch (_: DateRangeSnapshotChangedException) {
             failDateRangeApply(request, "旅行内容已变化，请重新确认")
+        } catch (_: com.yangchengwei.easytrip.trip.domain.TripDateRangeTargetNotFoundException) {
+            completeMissingTripDateRangeApply(request)
         } catch (_: Throwable) {
             val progress = dateRangeCommitProgress
             if (
@@ -486,6 +516,27 @@ class TripSettingsViewModel(
                 ),
             )
             startTripObservation()
+        }
+    }
+
+    private suspend fun completeMissingTripDateRangeApply(request: DateRangeChangeRequest) {
+        if (
+            request.generation != dateRangeGeneration ||
+            dateRangeCommitProgress?.requestGeneration != request.generation ||
+            (mutableState.value.dateRange.phase as? DateRangeChangePhase.Applying)?.request != request
+        ) return
+        dateRangeGeneration++
+        dateRangeCommitProgress = null
+        mutableState.value = mutableState.value.copy(
+            hasAuthoritativeTrip = false,
+            dateRange = mutableState.value.dateRange.copy(
+                phase = DateRangeChangePhase.Idle,
+                error = null,
+            ),
+        )
+        if (!returnToTripListSent) {
+            returnToTripListSent = true
+            effectsChannel.send(TripSettingsEffect.ReturnToTripList)
         }
     }
 
@@ -538,8 +589,12 @@ class TripSettingsViewModel(
         dateRangeCommitProgress = null
         mutableState.value = current.copy(
             dateRange = current.dateRange.copy(
+                startDate = request.targetStartDate,
+                baselineStartDate = request.targetStartDate,
                 baselineEndDate = request.targetEndDate,
                 endDate = request.targetEndDate,
+                draftStartDate = request.targetStartDate,
+                draftEndDate = request.targetEndDate,
                 isDirty = false,
                 phase = DateRangeChangePhase.Idle,
                 error = null,
@@ -695,6 +750,46 @@ class TripSettingsViewModel(
             ),
         )
         startTripObservation()
+    }
+
+    fun appendDay() {
+        if (dayManagementWriteLocked() || mutableState.value.days.size >= com.yangchengwei.easytrip.trip.domain.MAX_TRIP_DAYS) return
+        runDayManagement { service.appendTripDay(tripId) }
+    }
+
+    fun moveDay(day: DayUi, targetIndex: Int) {
+        val current = mutableState.value
+        val currentIndex = current.days.indexOfFirst { it.id == day.id }
+        if (
+            current.startDate != null ||
+            dayManagementWriteLocked() ||
+            currentIndex < 0 ||
+            targetIndex !in current.days.indices ||
+            targetIndex == currentIndex
+        ) return
+        runDayManagement { service.moveDay(tripId, day.id, targetIndex) }
+    }
+
+    private fun runDayManagement(block: suspend () -> Unit) {
+        val generation = ++dayManagementGeneration
+        mutableState.value = mutableState.value.copy(dayManagementInProgress = true, dayManagementError = null)
+        dayManagementJob = viewModelScope.launch {
+            try {
+                block()
+                if (generation == dayManagementGeneration) {
+                    mutableState.value = mutableState.value.copy(dayManagementInProgress = false, dayManagementError = null)
+                }
+            } catch (exception: CancellationException) {
+                throw exception
+            } catch (exception: Throwable) {
+                if (generation == dayManagementGeneration) {
+                    mutableState.value = mutableState.value.copy(
+                        dayManagementInProgress = false,
+                        dayManagementError = exception.message ?: "旅行日操作失败",
+                    )
+                }
+            }
+        }
     }
 
     fun requestDelete(day: DayUi) {

@@ -331,6 +331,7 @@ fun TripWorkspaceScreen(
         onAction = { action ->
             when (action) {
                 TripWorkspaceAction.Back -> if (!viewModel.handleBack()) onBack()
+                TripWorkspaceAction.LeaveWorkspace -> onBack()
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
@@ -399,7 +400,7 @@ private fun WorkspaceOverlayContent(
     onOpenLocationSettings: () -> Unit,
 ) {
     when (val overlay = state.overlay) {
-        WorkspaceOverlay.None, WorkspaceOverlay.LayerMenu -> Unit
+        WorkspaceOverlay.None, WorkspaceOverlay.LayerMenu, WorkspaceOverlay.MoreMenu -> Unit
         is WorkspaceOverlay.PlaceDetail -> {
             when {
                 state.selectedMapPoi != null -> MapPoiDialog(state.selectedMapPoi, isPoiSaved, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
@@ -471,6 +472,7 @@ private fun WorkspaceOverlayContent(
                             onArrivalTimeChange = { onItineraryAction(DayItineraryAction.UpdateArrivalTime(it)) },
                             onStayMinutesChange = { onItineraryAction(DayItineraryAction.UpdateStayMinutes(it)) },
                             onNoteChange = { onItineraryAction(DayItineraryAction.UpdateNote(it)) },
+                            onScheduleAgain = draft.placeId?.let { { onItineraryAction(DayItineraryAction.ScheduleAgain(draft.itemId)) } },
                             onSave = { onItineraryAction(DayItineraryAction.SaveEdit) },
                             onCancel = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
                         )

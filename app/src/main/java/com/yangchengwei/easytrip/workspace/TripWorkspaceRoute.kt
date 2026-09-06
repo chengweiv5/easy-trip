@@ -324,7 +324,7 @@ fun TripWorkspaceRoute(
 
     val authoritativeDays = ready?.days
     val authoritativePlaceIds = if (places.placesReady && ready != null) {
-        places.rows.mapTo(mutableSetOf()) { it.place.id }
+        places.savedPlaceIds ?: places.rows.mapTo(mutableSetOf()) { it.place.id }
     } else {
         null
     }
@@ -455,6 +455,7 @@ fun TripWorkspaceRoute(
         onAction = { action ->
             when (action) {
                 TripWorkspaceAction.Back -> leaveOrCloseOverlay()
+                TripWorkspaceAction.LeaveWorkspace -> onBack()
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
@@ -515,9 +516,9 @@ fun TripWorkspaceRoute(
                     }
                 }
                 is PlacePoolAction.StartAddSingle -> {
-                    dispatchPlace(PlacePoolAction.DismissDetail)
-                    dismissPendingDialogs()
                     if (addToItineraryViewModel?.startForPlace(action.placeId) == true) {
+                        dispatchPlace(PlacePoolAction.DismissDetail)
+                        dismissPendingDialogs()
                         viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
                     }
                 }
@@ -566,6 +567,13 @@ fun TripWorkspaceRoute(
                 is DayItineraryAction.RequestTiming -> {
                     dismissPendingDialogs()
                     dispatchItinerary(action)
+                }
+                is DayItineraryAction.ScheduleAgain -> {
+                    val placeId = itinerary.items.firstOrNull { it.id == action.itemId }?.placeId
+                    if (placeId != null && addToItineraryViewModel?.startForPlace(placeId) == true) {
+                        dismissPendingDialogs()
+                        viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
+                    }
                 }
                 is DayItineraryAction.RequestCrossDay -> {
                     dismissPendingDialogs()

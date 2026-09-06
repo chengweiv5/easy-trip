@@ -70,6 +70,60 @@ class TripDateRangeRoomTest {
         assertEquals(beforeApply, snapshot(tripId))
     }
 
+    @Test fun shrinkRejectsEqualCountItemReplacementWithoutPartialWrite() = runTest {
+        val repository = repository()
+        val tripId = repository.createTrip(CreateTrip("Trip", 3, startDate = START))
+        val days = repository.observeTrip(tripId).first()!!.days.map { it.id }
+        val original = content(tripId, days.last())
+        val command = shrinkCommand(
+            tripId,
+            days,
+            expectedItems = 2,
+            expectedLegs = 1,
+            expectedSnapshot = RoomDateRangeDeletionSnapshot(
+                database.itineraryEditingDao().items(days.last()),
+                database.routeLegDao().legs(days.last()),
+            ),
+        )
+        val replaced = database.itineraryEditingDao().items(days.last()).first()
+        database.itineraryEditingDao().deleteRow(replaced.id)
+        original.itineraries.addItem(days.last(), original.placeIds.first(), 1)
+        val beforeApply = snapshot(tripId)
+
+        assertThrows(DateRangeSnapshotChangedException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.applyDateRange(command) }
+        }
+
+        assertEquals(beforeApply, snapshot(tripId))
+    }
+
+    @Test fun shrinkRejectsEqualCountRouteReplacementWithoutPartialWrite() = runTest {
+        val repository = repository()
+        val tripId = repository.createTrip(CreateTrip("Trip", 3, startDate = START))
+        val days = repository.observeTrip(tripId).first()!!.days.map { it.id }
+        content(tripId, days.last())
+        val command = shrinkCommand(
+            tripId,
+            days,
+            expectedItems = 2,
+            expectedLegs = 1,
+            expectedSnapshot = RoomDateRangeDeletionSnapshot(
+                database.itineraryEditingDao().items(days.last()),
+                database.routeLegDao().legs(days.last()),
+            ),
+        )
+        val originalLeg = database.routeLegDao().legs(days.last()).single()
+        database.routeLegDao().deleteEdge(days.last(), originalLeg.fromItemId, originalLeg.toItemId)
+        database.routeLegDao().insert(originalLeg.copy(id = "replacement-leg"))
+        val beforeApply = snapshot(tripId)
+
+        assertThrows(DateRangeSnapshotChangedException::class.java) {
+            kotlinx.coroutines.runBlocking { repository.applyDateRange(command) }
+        }
+
+        assertEquals(beforeApply, snapshot(tripId))
+    }
+
     @Test fun shrinkRejectsWhenLegCountChangedAfterPreviewWithoutPartialWrite() = runTest {
         val repository = repository()
         val tripId = repository.createTrip(CreateTrip("Trip", 3, startDate = START))
@@ -103,6 +157,100 @@ class TripDateRangeRoomTest {
         assertEquals(beforeApply, snapshot(tripId))
     }
 
+    @Test fun sameLengthShiftPreservesOrderedDayIdsAndCompleteContentEntities() = runTest {
+        val repository = repository()
+        val tripId = repository.createTrip(CreateTrip("Trip", 3, startDate = START))
+        val original = repository.observeTrip(tripId).first()!!.days.map { it.id }
+        content(tripId, original.first())
+        content(tripId, original.last())
+        val itemsBefore = original.associateWith { database.itineraryEditingDao().items(it) }
+        val legsBefore = original.associateWith { database.routeLegDao().legs(it) }
+
+        repository.applyDateRange(command(tripId, original, targetStart = START.plusDays(5), dayCount = 3))
+
+        val shifted = repository.observeTrip(tripId).first()!!
+        assertEquals(START.plusDays(5), shifted.startDate)
+        assertEquals(original, shifted.days.map { it.id })
+        assertEquals(itemsBefore, original.associateWith { database.itineraryEditingDao().items(it) })
+        assertEquals(legsBefore, original.associateWith { database.routeLegDao().legs(it) })
+        assertEquals(List(3) { it * TripDao.POSITION_STEP }, database.tripDao().dayPositions(tripId))
+    }
+
+    @Test fun shrinkToSingleDayAtLocalDateMaximumUsesTargetDayCountForValidation() = runTest {
+        val repository = repository()
+        val tripId = repository.createTrip(CreateTrip("Trip", 3, startDate = START))
+        val original = repository.observeTrip(tripId).first()!!.days.map { it.id }
+
+        repository.applyDateRange(command(tripId, original, targetStart = LocalDate.MAX, dayCount = 1))
+
+        val result = repository.observeTrip(tripId).first()!!
+        assertEquals(LocalDate.MAX, result.startDate)
+        assertEquals(listOf(original.first()), result.days.map { it.id })
+    }
+
+    @Test fun shiftedGrowthPreservesPrefixContentAndAppendsTail() = runTest {
+        val repository = repository()
+        val tripId = repository.createTrip(CreateTrip("Trip", 3, startDate = START))
+        val original = repository.observeTrip(tripId).first()!!.days.map { it.id }
+        val retained = content(tripId, original[1])
+
+        repository.applyDateRange(command(tripId, original, targetStart = START.plusDays(5), dayCount = 5))
+
+        val grown = repository.observeTrip(tripId).first()!!
+        assertEquals(START.plusDays(5), grown.startDate)
+        assertEquals(original, grown.days.take(original.size).map { it.id })
+        assertEquals(retained.placeIds.toSet(), database.itineraryEditingDao().items(original[1]).map { it.savedPlaceId }.toSet())
+        assertEquals(listOf(0, 1, 2, 3, 4), grown.days.map { it.index })
+        assertEquals(true, grown.days.drop(original.size).all { it.id.startsWith("id-") })
+    }
+
+    @Test fun shiftedShrinkCascadesTrailingContentAndKeepsFavorites() = runTest {
+        val repository = repository()
+        val tripId = repository.createTrip(CreateTrip("Trip", 3, startDate = START))
+        val original = repository.observeTrip(tripId).first()!!.days.map { it.id }
+        val retained = content(tripId, original.first())
+        val deleted = content(tripId, original.last())
+        val savedBefore = savedPlaceIds(tripId)
+
+        repository.applyDateRange(
+            command(
+                tripId,
+                original,
+                targetStart = START.plusDays(5),
+                dayCount = 2,
+                expectedItems = 2,
+                expectedLegs = 1,
+            ),
+        )
+
+        val shrunk = repository.observeTrip(tripId).first()!!
+        assertEquals(START.plusDays(5), shrunk.startDate)
+        assertEquals(original.take(2), shrunk.days.map { it.id })
+        assertEquals(retained.placeIds.toSet(), database.itineraryEditingDao().items(original.first()).map { it.savedPlaceId }.toSet())
+        assertEquals(0, database.itineraryEditingDao().items(original.last()).size)
+        assertEquals(0, database.routeLegDao().legs(original.last()).size)
+        assertEquals(savedBefore, savedPlaceIds(tripId))
+        assertEquals(deleted.placeIds.toSet(), savedBefore - retained.placeIds.toSet())
+    }
+
+    @Test fun undatedThreeDayTripBecomesDatedWithoutChangingIdsOrContent() = runTest {
+        val repository = repository()
+        val tripId = repository.createTrip(CreateTrip("Trip", 3))
+        val original = repository.observeTrip(tripId).first()!!.days.map { it.id }
+        content(tripId, original.first())
+        content(tripId, original.last())
+        val before = snapshot(tripId)
+
+        repository.applyDateRange(command(tripId, original, expectedStart = null, targetStart = START, dayCount = 3))
+
+        val after = snapshot(tripId)
+        assertEquals(START, after.trip.startDate)
+        assertEquals(original, after.trip.days.map { it.id })
+        assertEquals(before.items, after.items)
+        assertEquals(before.legs, after.legs)
+        assertEquals(before.savedPlaces, after.savedPlaces)
+    }
+
     @Test fun growthAppendsTailKeepsOriginalIdsAndContinuousPositions() = runTest {
         val repository = repository()
         val tripId = repository.createTrip(CreateTrip("Trip", 3, startDate = START))
@@ -131,12 +279,13 @@ class TripDateRangeRoomTest {
         val beforeApply = snapshot(tripId)
         val original = beforeApply.trip.days.map { it.id }
 
-        assertThrows(IllegalStateException::class.java) {
+        val error = assertThrows(IllegalStateException::class.java) {
             kotlinx.coroutines.runBlocking {
-                repository.applyDateRange(growthCommand(tripId, original, dayCount = 5))
+                repository.applyDateRange(command(tripId, original, targetStart = START.plusDays(5), dayCount = 5))
             }
         }
 
+        assertEquals("id failure", error.message)
         val afterFailure = snapshot(tripId)
         assertEquals(beforeApply.trip.startDate, afterFailure.trip.startDate)
         assertEquals(beforeApply.trip.days.map { it.id }, afterFailure.trip.days.map { it.id })
@@ -249,6 +398,7 @@ class TripDateRangeRoomTest {
         dayIds: List<String>,
         expectedItems: Int = 0,
         expectedLegs: Int = 0,
+        expectedSnapshot: RoomDateRangeDeletionSnapshot? = null,
     ) = DateRangeApply(
         tripId = tripId,
         expectedStartDate = START,
@@ -258,17 +408,29 @@ class TripDateRangeRoomTest {
         expectedDeletedDayIds = listOf(dayIds.last()),
         expectedDeletedItineraryItems = expectedItems,
         expectedDeletedRouteLegs = expectedLegs,
+        expectedDeletedSnapshot = expectedSnapshot,
     )
 
-    private fun growthCommand(tripId: String, dayIds: List<String>, dayCount: Int) = DateRangeApply(
+    private fun growthCommand(tripId: String, dayIds: List<String>, dayCount: Int) =
+        command(tripId, dayIds, targetStart = START, dayCount = dayCount)
+
+    private fun command(
+        tripId: String,
+        dayIds: List<String>,
+        expectedStart: LocalDate? = START,
+        targetStart: LocalDate,
+        dayCount: Int,
+        expectedItems: Int = 0,
+        expectedLegs: Int = 0,
+    ) = DateRangeApply(
         tripId = tripId,
-        expectedStartDate = START,
-        startDate = START,
+        expectedStartDate = expectedStart,
+        startDate = targetStart,
         dayCount = dayCount,
         expectedDayIds = dayIds,
-        expectedDeletedDayIds = emptyList(),
-        expectedDeletedItineraryItems = 0,
-        expectedDeletedRouteLegs = 0,
+        expectedDeletedDayIds = dayIds.drop(dayCount),
+        expectedDeletedItineraryItems = expectedItems,
+        expectedDeletedRouteLegs = expectedLegs,
     )
 
     private suspend fun savedPlaceIds(tripId: String) =

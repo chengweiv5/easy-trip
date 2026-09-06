@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
@@ -184,6 +185,88 @@ class ItineraryTimelineContentTest {
     }
 
     @Test
+    fun itemEditorOffersExistingTargetDayFlowAndLocksItWhileSaving() {
+        var scheduleAgainCalls = 0
+        val saving = androidx.compose.runtime.mutableStateOf(false)
+        compose.setContent {
+            EasyTripTheme {
+                EditItineraryItemContent(
+                    draft = ItineraryEditDraft(
+                        itemId = "i1",
+                        arrivalTimeText = "09:30",
+                        stayMinutesText = "60",
+                        isSaving = saving.value,
+                        placeId = "place-1",
+                        placeName = "灵隐寺",
+                    ),
+                    onArrivalTimeChange = {},
+                    onStayMinutesChange = {},
+                    onScheduleAgain = { scheduleAgainCalls++ },
+                    onSave = {},
+                    onCancel = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("schedule-again-place").assertIsDisplayed().assertHasClickAction().performClick()
+        compose.runOnIdle {
+            assertEquals(1, scheduleAgainCalls)
+            saving.value = true
+        }
+        compose.onNodeWithTag("schedule-again-place").assertIsNotEnabled()
+    }
+
+    @Test
+    fun routeEditorShowsConcreteEndpointsCurrentRouteAndHonestRecomputeAction() {
+        compose.setContent {
+            EasyTripTheme {
+                EditRouteLegContent(
+                    draft = RouteModeEditDraft(
+                        legId = "leg",
+                        selectedMode = TransportMode.WALK,
+                        selectedModeOverride = TransportMode.DRIVE,
+                        originalSelectedModeOverride = TransportMode.WALK,
+                        plannedDurationSeconds = 600,
+                        fromPlaceName = "酒店",
+                        toPlaceName = "景点",
+                        distanceMeters = 800,
+                    ),
+                    onSelectMode = {},
+                    onClearSelectedModeOverride = {},
+                    onDurationMinutesChange = {},
+                    onNoteChange = {},
+                    onSave = {},
+                    onCancel = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("route-endpoints").assertIsDisplayed()
+        compose.onNodeWithText("酒店 → 景点").assertIsDisplayed()
+        compose.onNodeWithTag("route-current-context").assertIsDisplayed()
+        compose.onNodeWithText("当前路线 · 已规划 · 800 米 · 预计 10 分钟").assertIsDisplayed()
+        compose.onNodeWithTag("save-route").assertHasClickAction()
+        compose.onNodeWithText("保存并重新计算路线").assertIsDisplayed()
+    }
+
+    @Test
+    fun routeRowShowsConcreteEndpointsAndCurrentStatusContext() {
+        compose.setContent {
+            EasyTripTheme {
+                RouteLegRow(
+                    leg = RouteLegUi("leg", "from", "to", TransportMode.WALK, RouteStatus.SUCCESS, 800, 600, null),
+                    fromPlaceName = "酒店",
+                    toPlaceName = "景点",
+                    onMode = {},
+                )
+            }
+        }
+
+        compose.onNodeWithText("酒店 → 景点").assertIsDisplayed()
+        compose.onNodeWithText("已规划 · 800 米 · 预计 10 分钟").assertIsDisplayed()
+    }
+
+    @Test
     fun itemEditContainsMultilineNoteAndLocksEveryActionWhileSaving() {
         val draft = ItineraryEditDraft(
             itemId = "i1",
@@ -211,6 +294,37 @@ class ItineraryTimelineContentTest {
         compose.onAllNodesWithText("保存失败").assertCountEquals(0)
         compose.onNodeWithText("保存中…").assertIsNotEnabled()
         compose.onNodeWithText("取消").assertIsNotEnabled()
+    }
+
+    @Test
+    fun editorsExposeStableHostRootsForSmallWindowAndImeReachability() {
+        compose.setContent {
+            EasyTripTheme {
+                Column {
+                    EditItineraryItemContent(
+                        draft = ItineraryEditDraft("item", "09:30", "60"),
+                        onArrivalTimeChange = {},
+                        onStayMinutesChange = {},
+                        onSave = {},
+                        onCancel = {},
+                        modifier = Modifier.width(280.dp).height(320.dp),
+                    )
+                    EditRouteLegContent(
+                        draft = RouteModeEditDraft("leg", TransportMode.WALK),
+                        onSelectMode = {},
+                        onClearSelectedModeOverride = {},
+                        onDurationMinutesChange = {},
+                        onNoteChange = {},
+                        onSave = {},
+                        onCancel = {},
+                        modifier = Modifier.width(280.dp).height(320.dp),
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("itinerary-item-editor").assertIsDisplayed()
+        compose.onNodeWithTag("route-leg-editor").assertIsDisplayed()
     }
 
     @Test
@@ -288,6 +402,24 @@ class ItineraryTimelineContentTest {
             listOf("item-i3", "leg-first-adjacent", "item-i1", "leg-second-adjacent", "item-i2"),
             timelineTags,
         )
+    }
+
+    @Test
+    fun populatedDayShowsDayAndStopSummaryBeforeTimeline() {
+        val items = listOf(
+            itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+            itineraryItem("i2", "知味观", "仁和路83号", "12:00", 60),
+        )
+        val state = DayItineraryUiState(
+            days = listOf(com.yangchengwei.easytrip.trip.domain.TripDay("day-1", 0)),
+            selectedDayId = "day-1",
+            items = items,
+            previewOrder = items.map(ItineraryItemUi::id),
+        )
+        compose.setContent { EasyTripTheme { DayItineraryContent(state, onAction = {}) } }
+
+        compose.onNodeWithTag("day-itinerary-summary").assertIsDisplayed()
+        compose.onNodeWithText("第 1 天 · 2 站").assertIsDisplayed()
     }
 
     @Test
@@ -479,18 +611,20 @@ class ItineraryTimelineContentTest {
         compose.setContent {
             EasyTripTheme {
                 ItineraryItemRow(
-                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+                    item = itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120).copy(placeId = "p1"),
                     index = 0,
                     count = 1,
                     onPreview = {},
                     onCommit = {},
                     onMenuAction = actions::add,
+                    canScheduleAgain = true,
                 )
             }
         }
 
         listOf(
             "menu-timing-i1" to ItineraryItemMenuAction.EditTiming,
+            "menu-schedule-again-i1" to ItineraryItemMenuAction.ScheduleAgain,
             "menu-move-i1" to ItineraryItemMenuAction.MoveToOtherDay,
             "menu-delete-i1" to ItineraryItemMenuAction.Delete,
         ).forEach { (tag, expected) ->
@@ -782,7 +916,7 @@ class ItineraryTimelineContentTest {
         }
 
         compose.onNodeWithText("步行").assertIsDisplayed()
-        compose.onNodeWithText("1.1 公里 · 5 分钟").assertIsDisplayed()
+        compose.onNodeWithText("已规划 · 1.1 公里 · 预计 5 分钟").assertIsDisplayed()
         compose.onNodeWithTag("calculating").assert(
             SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite),
         )

@@ -59,8 +59,7 @@ class PlaceDetailPanelTest {
         compose.onAllNodesWithText("加入行程").assertCountEquals(0)
     }
 
-    @Test fun placePoolScheduledPlaceShowsDailyScheduleFilledBookmarkAndStartsAdd() {
-        val actions = mutableListOf<PlaceDetailPanelAction>()
+    @Test fun placePoolScheduledPlaceShowsDailyScheduleFilledBookmarkWithoutDuplicateAdd() {
         setContent(
             source = PlaceDetailSource.PlacePool,
             savedPlace = savedPlace(),
@@ -69,16 +68,13 @@ class PlaceDetailPanelTest {
                 totalOccurrences = 3,
                 days = listOf(PlaceScheduleDayUi("day-1", 0, 2), PlaceScheduleDayUi("day-3", 2, 1)),
             ),
-            onAction = actions::add,
         )
 
         compose.onNodeWithText("已加入行程").assertIsDisplayed()
         compose.onNodeWithText("第 1 天 · 2 次").assertIsDisplayed()
         compose.onNodeWithText("第 3 天 · 1 次").assertIsDisplayed()
         compose.onNodeWithTag("place-detail-bookmark-filled").assertIsDisplayed()
-        compose.onNodeWithText("加入行程").performClick()
-
-        compose.runOnIdle { assertEquals(listOf(PlaceDetailPanelAction.StartAddToItinerary), actions) }
+        compose.onAllNodesWithText("加入行程").assertCountEquals(0)
     }
 
     @Test fun placePoolOnlyCollectedPlaceShowsHollowBookmarkWithoutScheduleBlockAndStartsAdd() {
@@ -97,7 +93,7 @@ class PlaceDetailPanelTest {
         compose.runOnIdle { assertEquals(listOf(PlaceDetailPanelAction.StartAddToItinerary), actions) }
     }
 
-    @Test fun placePoolUnknownScheduleExplainsThatArrangementIsUnavailable() {
+    @Test fun placePoolUnknownScheduleExplainsThatArrangementIsUnavailableWithoutAdd() {
         setContent(
             source = PlaceDetailSource.PlacePool,
             savedPlace = savedPlace(),
@@ -105,6 +101,57 @@ class PlaceDetailPanelTest {
         )
 
         compose.onNodeWithText("行程安排暂不可用").assertIsDisplayed()
+        compose.onAllNodesWithText("加入行程").assertCountEquals(0)
+    }
+
+    @Test fun placePoolKnownUnscheduledPlaceShowsHollowBookmarkAndStartsAdd() {
+        val actions = mutableListOf<PlaceDetailPanelAction>()
+        setContent(
+            source = PlaceDetailSource.PlacePool,
+            savedPlace = savedPlace(),
+            schedule = PlaceScheduleSummaryUi(isKnown = true),
+            onAction = actions::add,
+        )
+
+        compose.onNodeWithTag("place-detail-bookmark-outline").assertIsDisplayed()
+        compose.onNodeWithText("加入行程").performClick()
+
+        compose.runOnIdle { assertEquals(listOf(PlaceDetailPanelAction.StartAddToItinerary), actions) }
+    }
+
+    @Test fun placePoolRowUsesTwoLineAddressAndFixedActionRailAtNarrowWidth() {
+        val place = savedPlace().copy(
+            name = "这是一个非常长的地点名称用于验证最多两行",
+            address = "这是一条非常长的地址信息用于验证最多两行并且不挤压右侧操作",
+            note = "安排状态与备注应留在底部辅助信息区域",
+        )
+        compose.setContent {
+            EasyTripTheme {
+                androidx.compose.foundation.layout.Box(Modifier.requiredWidth(280.dp)) {
+                    SavedPlaceRow(
+                        place = SavedPlaceRowUi(place, 0, false),
+                        onQuickAdd = {},
+                        onOpenDetail = {},
+                        onEdit = {},
+                        onDelete = {},
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithTag("quick-add-place-${place.id}").assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithTag("more-place-${place.id}").assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithTag("saved-place-${place.id}").assertIsDisplayed()
+    }
+
+    @Test fun placePoolScheduledPlaceDoesNotExposeDuplicateAddAction() {
+        setContent(
+            source = PlaceDetailSource.PlacePool,
+            savedPlace = savedPlace(),
+            schedule = PlaceScheduleSummaryUi(isKnown = true, totalOccurrences = 1),
+        )
+
+        compose.onAllNodesWithText("加入行程").assertCountEquals(0)
     }
 
     @Test fun readOnlyShowsAddressNoteAndTagFallbacks() {

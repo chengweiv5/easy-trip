@@ -34,18 +34,27 @@ class TripDateRangeServiceTest {
         assertEquals("Trip start date changed after edit began", error.message)
     }
 
-    @Test fun previewKeepsFixedStartDateInImpactRequest() = runTest {
-        val request = request(targetEndDate = LocalDate.parse("2026-10-05"))
+    @Test fun previewRetainsSnapshotAndUsesTargetDateRange() = runTest {
+        val request = request(
+            targetStartDate = LocalDate.parse("2026-10-03"),
+            targetEndDate = LocalDate.parse("2026-10-07"),
+        )
 
         val impact = TripDateRangeService(FakeRepository(trip())).preview(request)
 
         assertSame(request, impact.request)
         assertEquals(LocalDate.parse("2026-10-01"), impact.request.baselineStartDate)
+        assertEquals(LocalDate.parse("2026-10-03"), impact.request.targetStartDate)
+        assertEquals(listOf("day-1", "day-2", "day-3"), impact.retainedDayIds)
+        assertEquals(emptyList<String>(), impact.deletedDayIds)
     }
 
-    @Test fun applyCopiesFullPreviewSnapshotIntoRepositoryCommand() = runTest {
+    @Test fun applyCopiesSnapshotAndTargetDateRangeIntoRepositoryCommand() = runTest {
         val repository = FakeRepository(trip(), DateRangeDeletionCounts(4, 2, 7))
-        val request = request(targetEndDate = LocalDate.parse("2026-10-01"))
+        val request = request(
+            targetStartDate = LocalDate.parse("2026-10-03"),
+            targetEndDate = LocalDate.parse("2026-10-03"),
+        )
         val service = TripDateRangeService(repository)
 
         val impact = service.preview(request)
@@ -55,15 +64,49 @@ class TripDateRangeServiceTest {
             DateRangeApply(
                 tripId = "trip",
                 expectedStartDate = LocalDate.parse("2026-10-01"),
-                startDate = LocalDate.parse("2026-10-01"),
+                startDate = LocalDate.parse("2026-10-03"),
                 dayCount = 1,
                 expectedDayIds = request.baselineDayIds,
                 expectedDeletedDayIds = listOf("day-2", "day-3"),
                 expectedDeletedItineraryItems = 4,
                 expectedDeletedRouteLegs = 2,
+                expectedDeletedSnapshot = null,
             ),
             repository.applied,
         )
+    }
+
+    @Test fun undatedTripRejectsTargetRangeWithDifferentDayCountBeforeDeletionPreview() = runTest {
+        val repository = FakeRepository(trip(startDate = null))
+        val request = request(
+            baselineStartDate = null,
+            targetStartDate = LocalDate.parse("2026-10-03"),
+            targetEndDate = LocalDate.parse("2026-10-04"),
+        )
+
+        val error = assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking { TripDateRangeService(repository).preview(request) }
+        }
+
+        assertEquals("为未定日期旅行设置日期时必须保留现有 3 天行程", error.message)
+        assertEquals(0, repository.countCalls)
+        assertEquals(null, repository.applied)
+    }
+
+    @Test fun undatedTripCanBecomeDatedWithTargetRange() = runTest {
+        val repository = FakeRepository(trip(startDate = null))
+        val request = request(
+            baselineStartDate = null,
+            targetStartDate = LocalDate.parse("2026-10-03"),
+            targetEndDate = LocalDate.parse("2026-10-05"),
+        )
+
+        val impact = TripDateRangeService(repository).preview(request)
+        TripDateRangeService(repository).apply(impact)
+
+        assertEquals(3, repository.applied?.dayCount)
+        assertEquals(null, repository.applied?.expectedStartDate)
+        assertEquals(LocalDate.parse("2026-10-03"), repository.applied?.startDate)
     }
 
     @Test fun endBeforeStartIsInvalid() {
@@ -71,9 +114,63 @@ class TripDateRangeServiceTest {
 
         assertThrows(IllegalArgumentException::class.java) {
             kotlinx.coroutines.runBlocking {
-                service.preview(request(targetEndDate = LocalDate.parse("2026-09-30")))
+                service.preview(
+                    request(
+                        targetStartDate = LocalDate.parse("2026-10-02"),
+                        targetEndDate = LocalDate.parse("2026-10-01"),
+                    ),
+                )
             }
         }
+    }
+
+    @Test fun localDateMaximumIsAcceptedForOneDayAndThirtyDayBoundaryIsEnforced() = runTest {
+        val maximum = LocalDate.MAX
+        val repository = FakeRepository(trip(startDate = maximum))
+
+        TripDateRangeService(repository).preview(
+            request(
+                baselineStartDate = maximum,
+                targetStartDate = maximum,
+                targetEndDate = maximum,
+            ),
+        )
+
+        assertEquals(1, repository.countCalls)
+    }
+
+    @Test fun localDateMinimumThirtyDayRangeIsAccepted() = runTest {
+        val minimum = LocalDate.MIN
+        val repository = FakeRepository(trip(startDate = minimum))
+
+        TripDateRangeService(repository).preview(
+            request(
+                baselineStartDate = minimum,
+                targetStartDate = minimum,
+                targetEndDate = minimum.plusDays(29),
+            ),
+        )
+
+        assertEquals(1, repository.countCalls)
+    }
+
+    @Test fun localDateMinimumThirtyOneDayRangeIsRejectedBeforeDeletionCounts() = runTest {
+        val minimum = LocalDate.MIN
+        val repository = FakeRepository(trip(startDate = minimum))
+
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                TripDateRangeService(repository).preview(
+                    request(
+                        baselineStartDate = minimum,
+                        targetStartDate = minimum,
+                        targetEndDate = minimum.plusDays(30),
+                    ),
+                )
+            }
+        }
+
+        assertEquals(0, repository.countCalls)
     }
 
     @Test fun thirtyDayRangeIsAccepted() = runTest {
@@ -121,7 +218,7 @@ class TripDateRangeServiceTest {
         assertEquals(listOf("day-1", "day-2", "day-3"), impact.retainedDayIds)
         assertEquals(emptyList<String>(), impact.deletedDayIds)
         assertEquals(5, repository.applied?.dayCount)
-        assertEquals(request().baselineStartDate, repository.applied?.startDate)
+        assertEquals(request().targetStartDate, repository.applied?.startDate)
         assertEquals(request().baselineStartDate, repository.applied?.expectedStartDate)
     }
 
@@ -164,13 +261,14 @@ class TripDateRangeServiceTest {
 
     companion object {
         private fun request(
-            baselineStartDate: LocalDate = LocalDate.parse("2026-10-01"),
+            baselineStartDate: LocalDate? = LocalDate.parse("2026-10-01"),
             baselineDayIds: List<String> = listOf("day-1", "day-2", "day-3"),
+            targetStartDate: LocalDate = LocalDate.parse("2026-10-01"),
             targetEndDate: LocalDate = LocalDate.parse("2026-10-03"),
-        ) = DateRangeChangeRequest(1, "trip", baselineStartDate, baselineDayIds, targetEndDate)
+        ) = DateRangeChangeRequest(1, "trip", baselineStartDate, baselineDayIds, targetStartDate, targetEndDate)
 
-        private fun trip() = TripWithDays(
-            "trip", "Kyoto", LocalDate.parse("2026-10-01"), TravelMode.FLEXIBLE,
+        private fun trip(startDate: LocalDate? = LocalDate.parse("2026-10-01")) = TripWithDays(
+            "trip", "Kyoto", startDate, TravelMode.FLEXIBLE,
             listOf(TripDay("day-1", 0), TripDay("day-2", 1), TripDay("day-3", 2)),
         )
     }

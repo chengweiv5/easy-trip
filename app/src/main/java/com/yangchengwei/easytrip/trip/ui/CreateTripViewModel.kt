@@ -8,6 +8,7 @@ import androidx.lifecycle.viewModelScope
 import androidx.lifecycle.viewmodel.CreationExtras
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.trip.domain.TripService
+import com.yangchengwei.easytrip.trip.domain.tripEndDateOrNull
 import java.time.LocalDate
 import java.util.UUID
 import kotlinx.coroutines.CancellationException
@@ -37,10 +38,11 @@ class CreateTripViewModel(
         when (action) {
             CreateTripAction.Back -> viewModelScope.launch { effectChannel.send(CreateTripEffect.NavigateBack) }
             is CreateTripAction.NameChanged -> updateForCommandChange(current, current.copy(name = action.value, nameError = null, submitError = null))
-            is CreateTripAction.DayCountChanged -> updateForCommandChange(current, current.copy(dayCount = action.value.filter(Char::isDigit), dayCountError = null, submitError = null))
-            is CreateTripAction.TimeModeChanged -> updateForCommandChange(current, current.copy(timeMode = action.value, startDate = if (action.value == CreateTimeMode.DRAFT) null else current.startDate, dateError = null))
-            is CreateTripAction.StartDateChanged -> if (action.value != null) updateForCommandChange(current, current.copy(startDate = action.value, dateError = null))
-            is CreateTripAction.TravelModeChanged -> updateForCommandChange(current, current.copy(travelMode = action.value))
+            is CreateTripAction.DateRangeChanged -> updateForCommandChange(
+                current,
+                current.copy(startDate = action.startDate, endDate = action.endDate, dateError = null, submitError = null),
+            )
+            is CreateTripAction.TravelModeChanged -> updateForCommandChange(current, current.copy(travelMode = action.value, submitError = null))
             CreateTripAction.Submit -> submit(current)
         }
     }
@@ -50,7 +52,7 @@ class CreateTripViewModel(
         val validation = validateCreateTrip(current)
         val valid = validation.valid
         if (valid == null) {
-            update(current.copy(nameError = validation.nameError, dayCountError = validation.dayCountError, dateError = validation.dateError))
+            update(current.copy(nameError = validation.nameError, dateError = validation.dateError))
             return
         }
         val requestId = current.requestId ?: requestIdFactory()
@@ -58,7 +60,6 @@ class CreateTripViewModel(
             isSubmitting = true,
             submitError = null,
             nameError = null,
-            dayCountError = null,
             dateError = null,
             requestId = requestId,
         )
@@ -96,9 +97,8 @@ class CreateTripViewModel(
     private fun update(value: CreateTripUiState) {
         mutableState.value = value
         savedState[CREATE_NAME] = value.name
-        savedState[CREATE_DAYS] = value.dayCount
-        savedState[CREATE_TIME_MODE] = value.timeMode.name
         savedState[CREATE_START_DATE] = value.startDate?.toString()
+        savedState[CREATE_END_DATE] = value.endDate?.toString()
         savedState[CREATE_TRAVEL_MODE] = value.travelMode.name
         savedState[CREATE_REQUEST_ID] = value.requestId
     }
@@ -109,6 +109,7 @@ class CreateTripViewModel(
         savedState.remove<String>(CREATE_DAYS)
         savedState.remove<String>(CREATE_TIME_MODE)
         savedState.remove<String>(CREATE_START_DATE)
+        savedState.remove<String>(CREATE_END_DATE)
         savedState.remove<String>(CREATE_TRAVEL_MODE)
         savedState.remove<String>(CREATE_REQUEST_ID)
     }
@@ -118,14 +119,18 @@ class CreateTripViewModel(
         super.onCleared()
     }
 
-    private fun savedCreateState() = CreateTripUiState(
-        name = savedState[CREATE_NAME] ?: "",
-        dayCount = savedState[CREATE_DAYS] ?: "",
-        timeMode = savedState.get<String>(CREATE_TIME_MODE)?.let { saved -> CreateTimeMode.entries.firstOrNull { it.name == saved } } ?: CreateTimeMode.DRAFT,
-        startDate = savedState.get<String>(CREATE_START_DATE)?.let(LocalDate::parse),
-        travelMode = savedState.get<String>(CREATE_TRAVEL_MODE)?.let { saved -> TravelMode.entries.firstOrNull { it.name == saved } } ?: TravelMode.FLEXIBLE,
-        requestId = savedState[CREATE_REQUEST_ID],
-    )
+    private fun savedCreateState(): CreateTripUiState {
+        val startDate = savedState.get<String>(CREATE_START_DATE)?.let(LocalDate::parse)
+        val endDate = savedState.get<String>(CREATE_END_DATE)?.let(LocalDate::parse)
+            ?: savedState.get<String>(CREATE_DAYS)?.toIntOrNull()?.let { days -> tripEndDateOrNull(startDate, days) }
+        return CreateTripUiState(
+            name = savedState[CREATE_NAME] ?: "",
+            startDate = startDate,
+            endDate = endDate,
+            travelMode = savedState.get<String>(CREATE_TRAVEL_MODE)?.let { saved -> TravelMode.entries.firstOrNull { it.name == saved } } ?: TravelMode.FLEXIBLE,
+            requestId = savedState[CREATE_REQUEST_ID],
+        )
+    }
 
     class Factory(private val service: TripService) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
@@ -138,6 +143,7 @@ class CreateTripViewModel(
         private const val CREATE_DAYS = "trip.create.days"
         private const val CREATE_TIME_MODE = "trip.create.timeMode"
         private const val CREATE_START_DATE = "trip.create.startDate"
+        private const val CREATE_END_DATE = "trip.create.endDate"
         private const val CREATE_TRAVEL_MODE = "trip.create.travelMode"
         private const val CREATE_REQUEST_ID = "trip.create.requestId"
     }

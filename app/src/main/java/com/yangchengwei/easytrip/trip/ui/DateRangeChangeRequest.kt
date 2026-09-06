@@ -6,8 +6,9 @@ import java.time.LocalDate
 data class DateRangeChangeRequest(
     val generation: Long,
     val tripId: String,
-    val baselineStartDate: LocalDate,
+    val baselineStartDate: LocalDate?,
     val baselineDayIds: List<String>,
+    val targetStartDate: LocalDate,
     val targetEndDate: LocalDate,
 )
 

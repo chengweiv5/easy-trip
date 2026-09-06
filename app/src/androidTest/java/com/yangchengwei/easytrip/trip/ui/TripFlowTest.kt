@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.trip.ui
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.semantics.ProgressBarRangeInfo
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -135,20 +136,17 @@ class TripFlowTest {
         compose.onNodeWithText("删除影响查询测试？").assertIsDisplayed()
     }
 
-    @Test fun createAndSettingsChoicesUseExclusiveSelectablePills() {
+    @Test fun createUsesRangeSheetAndSettingsChoicesUseExclusiveSelectablePills() {
         val repository = FakeTripRepository().apply { seed("样式测试", 1) }
         compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts()) }
         compose.onNodeWithTag("create-trip").performClick()
-        compose.onNodeWithTag("create-time-DRAFT").assert(hasRole(Role.RadioButton)).assertIsSelected()
-        compose.onNodeWithTag("create-time-DATED").assertIsNotSelected()
-        compose.onNodeWithTag("create-mode-FLEXIBLE").assertIsSelected()
+        compose.onNodeWithTag("create-date-control").assertHasClickAction()
+        compose.onNodeWithTag("create-mode-FLEXIBLE").assert(hasRole(Role.RadioButton)).assertIsSelected()
         compose.onNodeWithTag("create-mode-SELF_DRIVE").assertIsNotSelected().performClick().assertIsSelected()
-        compose.onNodeWithTag("create-time-DATED").performClick()
-        compose.onNodeWithText("确定日期").assertIsDisplayed()
-        assertEquals(0, compose.onAllNodesWithText("选择起始日期").fetchSemanticsNodes().size)
+        compose.onNodeWithTag("create-date-control").performClick()
+        compose.onNodeWithTag("trip-date-range-sheet").assertIsDisplayed()
         pressBack()
-        compose.onNodeWithTag("create-time-DRAFT").assertIsNotSelected()
-        compose.onNodeWithTag("create-time-DATED").assertIsSelected()
+        compose.onNodeWithTag("trip-date-range-sheet").assertDoesNotExist()
         pressBack()
         compose.onNodeWithTag("trip-menu-id-1").performClick()
         compose.onNodeWithTag("trip-menu-settings-id-1").performClick()
@@ -156,42 +154,27 @@ class TripFlowTest {
         compose.onNodeWithTag("settings-mode-SELF_DRIVE").assertIsNotSelected()
     }
 
-    @Test fun createsThreeDayDraftAndDatedSelfDrive() {
+    @Test fun createsRangeDrivenSelfDriveTrip() {
         val repository = FakeTripRepository()
         val march15 = LocalDate.of(2027, 3, 15)
             .atStartOfDay(ZoneOffset.UTC)
             .toInstant()
             .toEpochMilli()
-        compose.setContent {
-            AppNavigation(
-                TripService(repository),
-                repository,
-                FakeImpacts(),
-                march15,
-            )
-        }
-        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithTag("create-name").performTextInput("草案"); compose.onNodeWithTag("create-day-count").performTextInput("3"); compose.onNodeWithTag("create-submit").performClick()
-        compose.waitUntil { repository.trip.value?.name == "草案" }
-        assertEquals(3, repository.trip.value!!.days.size)
-        compose.onNodeWithText("旅行工作区 ${repository.trip.value!!.id}").assertIsDisplayed()
-        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
-        compose.waitUntil(5_000) { compose.onAllNodesWithTag("create-trip").fetchSemanticsNodes().isNotEmpty() }
-        compose.onNodeWithTag("create-trip").performClick(); compose.onNodeWithTag("create-name").performTextInput("日期旅行"); compose.onNodeWithTag("create-day-count").performTextInput("2")
+        compose.setContent { AppNavigation(TripService(repository), repository, FakeImpacts(), march15) }
+
+        compose.onNodeWithTag("create-trip").performClick()
+        compose.onNodeWithTag("create-name").performTextInput("日期旅行")
         compose.onNodeWithTag("create-mode-SELF_DRIVE").performScrollTo().performClick()
-        compose.onNodeWithText("指定日期").performClick()
-        compose.onNodeWithText("确定日期").performClick()
-        compose.onNodeWithText("指定日期").assertIsSelected()
-        compose.onNodeWithText("日期待定").performClick()
-        compose.onNodeWithText("指定日期").assertIsDisplayed().assertIsNotSelected()
-        compose.onNodeWithText("指定日期").performClick()
-        compose.onNodeWithText("确定日期").performClick()
-        compose.onNodeWithText("指定日期").assertIsSelected()
-        compose.onNodeWithText("2027-03-15").assertIsDisplayed()
-        compose.onNodeWithTag("create-mode-SELF_DRIVE").assertIsSelected()
+        compose.onNodeWithTag("create-date-control").performClick()
+        compose.onNodeWithTag("trip-date-2027-03-15").performClick()
+        compose.onNodeWithTag("trip-date-2027-03-16").performClick()
+        compose.onNodeWithTag("trip-date-range-confirm").performClick()
+        compose.onNodeWithText("至 2027-03-16 · 2天1晚").assertIsDisplayed()
         compose.onNodeWithTag("create-submit").performClick()
         compose.waitUntil { repository.trip.value?.name == "日期旅行" }
         assertEquals(TravelMode.SELF_DRIVE, repository.trip.value!!.travelMode)
         assertEquals(LocalDate.of(2027, 3, 15), repository.trip.value!!.startDate)
+        assertEquals(2, repository.trip.value!!.days.size)
     }
 
     private fun hasRole(role: Role) = SemanticsMatcher.expectValue(SemanticsProperties.Role, role)
@@ -234,7 +217,7 @@ class TripFlowTest {
         override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion){deletedDays++;setDays(trip.value!!.days.filterNot{it.id==command.dayId})}
         override suspend fun deleteTrip(tripId:String){deletedTrips += tripId;trip.value=null;trips.value=emptyList()}
         private fun setDays(d:List<TripDay>){trip.value=trip.value!!.copy(days=d.mapIndexed{i,x->x.copy(index=i)});publish()}
-        private fun publish(){trip.value?.let{trips.value=listOf(TripSummary(it.id,it.name,it.startDate,it.travelMode,it.days.size))}}
+        private fun publish(){trip.value?.let{trips.value=listOf(TripSummary(it.id,it.name,it.startDate,it.travelMode,it.days.size,0,0))}}
         private fun id()="id-${nextId++}"
     }
 }

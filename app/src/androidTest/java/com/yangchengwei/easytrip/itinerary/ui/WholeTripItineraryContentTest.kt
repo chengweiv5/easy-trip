@@ -31,6 +31,7 @@ import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.workspace.ItineraryScope
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -83,6 +84,26 @@ class WholeTripItineraryContentTest {
         compose.onNodeWithTag("add-places-to-selected-day").performClick()
         assertEquals(1, addClicks)
         compose.onAllNodesWithTag("itinerary-all-empty").assertCountEquals(0)
+    }
+
+    @Test
+    fun wholeTripHeaderSummarizesDaysAndStopsWhileDayGroupsShowContinuousDates() {
+        compose.setContent {
+            WholeTripItineraryContent(
+                days = listOf(
+                    WholeTripDayUi("day-1", 1, listOf(item("first", "早餐店")), emptyList()),
+                    WholeTripDayUi("day-2", 2, emptyList(), emptyList()),
+                    WholeTripDayUi("day-3", 3, listOf(item("last", "晚餐店")), emptyList()),
+                ),
+                startDate = LocalDate.parse("2026-09-06"),
+            )
+        }
+
+        compose.onNodeWithTag("whole-trip-summary").assertIsDisplayed()
+        compose.onNodeWithText("全程 · 3 天 · 2 站").assertIsDisplayed()
+        compose.onNodeWithText("9月6日 · 第一天").assertIsDisplayed()
+        compose.onNodeWithText("9月7日 · 第二天").assertIsDisplayed()
+        compose.onNodeWithText("9月8日 · 第三天").assertIsDisplayed()
     }
 
     @Test
@@ -190,7 +211,7 @@ class WholeTripItineraryContentTest {
             }
         }
 
-        compose.onNodeWithTag("whole-trip-timeline").performScrollToNode(hasTestTag("item-item-12"))
+        compose.onNodeWithTag("whole-trip-timeline").performScrollToNode(hasTestTag("whole-trip-bottom-spacer"))
         val viewport = compose.onNodeWithTag("whole-trip-viewport").getUnclippedBoundsInRoot()
         val lastItem = compose.onNodeWithTag("item-item-12").assertIsDisplayed().getUnclippedBoundsInRoot()
         assertTrue("viewport=$viewport lastItem=$lastItem", lastItem.bottom <= viewport.bottom - 24.dp)

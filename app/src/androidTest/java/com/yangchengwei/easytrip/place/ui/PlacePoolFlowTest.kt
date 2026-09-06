@@ -492,7 +492,7 @@ class PlacePoolFlowTest {
         )
     }
 
-    @Test fun workspaceDetailUsesCompleteScheduleAndForwardsSingleAddAction() {
+    @Test fun workspaceDetailUsesCompleteScheduleWithoutDuplicateAddAction() {
         val place = com.yangchengwei.easytrip.place.domain.SavedPlace(
             "place", "trip", "poi-place", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
         )
@@ -522,9 +522,9 @@ class PlacePoolFlowTest {
         compose.onNodeWithText("已加入行程").assertIsDisplayed()
         compose.onNodeWithText("第 1 天 · 2 次").assertIsDisplayed()
         compose.onNodeWithText("第 3 天 · 1 次").assertIsDisplayed()
-        compose.onNodeWithText("加入行程").performClick()
+        compose.onAllNodesWithText("加入行程").assertCountEquals(0)
 
-        assertEquals(listOf(PlacePoolAction.StartAddSingle(place.id)), actions)
+        assertTrue(actions.isEmpty())
     }
 
     @Test fun standaloneDetailWithoutAddCapabilityDoesNotShowAddOrCrash() {

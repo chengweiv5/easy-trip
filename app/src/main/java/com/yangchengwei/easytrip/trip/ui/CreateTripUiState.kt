@@ -1,38 +1,38 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import com.yangchengwei.easytrip.core.model.TravelMode
-import com.yangchengwei.easytrip.trip.domain.tripEndDateOrNull
 import java.time.LocalDate
-
-enum class CreateTimeMode { DRAFT, DATED }
+import java.time.temporal.ChronoUnit
 
 data class CreateTripUiState(
     val name: String = "",
-    val dayCount: String = "",
-    val timeMode: CreateTimeMode = CreateTimeMode.DRAFT,
     val startDate: LocalDate? = null,
+    val endDate: LocalDate? = null,
     val travelMode: TravelMode = TravelMode.FLEXIBLE,
     val nameError: String? = null,
-    val dayCountError: String? = null,
     val dateError: String? = null,
     val isSubmitting: Boolean = false,
     val submitError: String? = null,
     val requestId: String? = null,
 ) {
-    val endDate: LocalDate?
-        get() {
-            val days = dayCount.toIntOrNull() ?: return null
-            if (timeMode != CreateTimeMode.DATED || days < 1) return null
-            return tripEndDateOrNull(startDate, days)
+    private val rawDayCount: Long?
+        get() = if (startDate != null && endDate != null && !endDate.isBefore(startDate)) {
+            ChronoUnit.DAYS.between(startDate, endDate) + 1
+        } else {
+            null
         }
+
+    val dayCount: Int?
+        get() = rawDayCount?.takeIf { it in 1L..30L }?.toInt()
+
+    val hasDateRangeOverflow: Boolean
+        get() = rawDayCount != null && rawDayCount !in 1L..30L
 }
 
 sealed interface CreateTripAction {
     data object Back : CreateTripAction
     data class NameChanged(val value: String) : CreateTripAction
-    data class DayCountChanged(val value: String) : CreateTripAction
-    data class TimeModeChanged(val value: CreateTimeMode) : CreateTripAction
-    data class StartDateChanged(val value: LocalDate?) : CreateTripAction
+    data class DateRangeChanged(val startDate: LocalDate, val endDate: LocalDate) : CreateTripAction
     data class TravelModeChanged(val value: TravelMode) : CreateTripAction
     data object Submit : CreateTripAction
 }

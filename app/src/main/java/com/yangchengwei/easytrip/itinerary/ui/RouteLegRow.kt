@@ -33,10 +33,18 @@ import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 
 @Composable
-fun RouteLegRow(leg: RouteLegUi, onMode: (() -> Unit)? = null, onRetry: (() -> Unit)? = null) {
+fun RouteLegRow(
+    leg: RouteLegUi,
+    fromPlaceName: String? = null,
+    toPlaceName: String? = null,
+    onMode: (() -> Unit)? = null,
+    onRetry: (() -> Unit)? = null,
+) {
     RouteLegContent(
         leg = leg,
         modifier = Modifier.fillMaxWidth().testTag("leg-${leg.id}"),
+        fromPlaceName = fromPlaceName,
+        toPlaceName = toPlaceName,
         onMode = onMode,
         onRetry = onRetry,
     )
@@ -46,6 +54,8 @@ fun RouteLegRow(leg: RouteLegUi, onMode: (() -> Unit)? = null, onRetry: (() -> U
 internal fun RouteLegContent(
     leg: RouteLegUi,
     modifier: Modifier = Modifier,
+    fromPlaceName: String? = null,
+    toPlaceName: String? = null,
     onMode: (() -> Unit)? = null,
     onRetry: (() -> Unit)? = null,
 ) {
@@ -70,6 +80,13 @@ internal fun RouteLegContent(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Column(Modifier.weight(1f)) {
+                if (!fromPlaceName.isNullOrBlank() && !toPlaceName.isNullOrBlank()) {
+                    Text(
+                        "$fromPlaceName → $toPlaceName",
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
                 when (state) {
                     is RouteLegUiState.Ready -> {
                         Text(
@@ -81,10 +98,11 @@ internal fun RouteLegContent(
                                 .testTag("mode-${leg.id}"),
                         )
                         Text(
-                            listOfNotNull(
-                                state.distanceMeters?.let(::formatDistance),
-                                leg.effectiveDurationSeconds?.let(::formatDuration),
-                            ).joinToString(" · "),
+                            buildList {
+                                add("已规划")
+                                state.distanceMeters?.let(::formatDistance)?.let(::add)
+                                leg.effectiveDurationSeconds?.let(::formatDuration)?.let { add("预计 $it") }
+                            }.joinToString(" · "),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

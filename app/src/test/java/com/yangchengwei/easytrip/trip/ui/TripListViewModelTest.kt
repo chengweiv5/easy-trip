@@ -7,7 +7,10 @@ import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
+import java.time.Clock
+import java.time.Instant
 import java.time.LocalDate
+import java.time.ZoneId
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
@@ -18,7 +21,9 @@ import kotlinx.coroutines.job
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.emptyFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.onCompletion
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.test.StandardTestDispatcher
@@ -61,6 +66,40 @@ class TripListViewModelTest {
 
         assertEquals(TripListPageState.Error("无法加载旅行"), viewModel.state.value.page)
         assertEquals(emptyList<TripSummary>(), viewModel.state.value.trips)
+    }
+
+    @Test fun foregroundRefreshReprojectsDatesWithoutRepeatingDelete() = runTest(dispatcher) {
+        val clock = MutableClock(Instant.parse("2026-04-10T00:00:00Z"))
+        val datedTrip = TripSummary(
+            id = "trip-1",
+            name = "京都",
+            startDate = LocalDate.of(2026, 4, 11),
+            travelMode = TravelMode.FLEXIBLE,
+            dayCount = 3,
+            placeCount = 3,
+            scheduledDistinctPlaceCount = 2,
+        )
+        val repository = TestTripRepository(listOf(datedTrip))
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts(), clock)
+        val noNavigation = CompletableDeferred<Unit>()
+        val navigationObserver = launch {
+            viewModel.navigation.first()
+            noNavigation.complete(Unit)
+        }
+        advanceUntilIdle()
+        viewModel.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        val deletionBeforeRefresh = viewModel.state.value.deletion
+
+        clock.instant = Instant.parse("2026-04-11T00:00:00Z")
+        viewModel.refreshDateDerivedState()
+
+        val card = (viewModel.state.value.page as TripListPageState.Content).primaryTrip
+        assertEquals("旅行中", card.countdownLabel)
+        assertEquals(deletionBeforeRefresh, viewModel.state.value.deletion)
+        assertEquals(emptyList<String>(), repository.deletedTrips)
+        assertEquals(false, noNavigation.isCompleted)
+        navigationObserver.cancel()
     }
 
     @Test fun newDeleteTargetIgnoresOldImpactCompletion() = runTest(dispatcher) {
@@ -512,7 +551,14 @@ class TripListViewModelTest {
         assertEquals(1, repository.maxActiveCollectors)
     }
 
-    private fun trip(id: String, name: String) = TripSummary(id, name, null, TravelMode.FLEXIBLE, 3)
+    private fun trip(id: String, name: String) = TripSummary(id, name, null, TravelMode.FLEXIBLE, 3, 0, 0)
+
+    private class MutableClock(initialInstant: Instant) : Clock() {
+        var instant = initialInstant
+        override fun getZone(): ZoneId = ZoneId.of("UTC")
+        override fun withZone(zone: ZoneId): Clock = this
+        override fun instant(): Instant = instant
+    }
 
     private class TestImpacts(
         private val behavior: suspend (String) -> TripDeleteImpact = { TripDeleteImpact(0, 0, 0, 0, 0) },

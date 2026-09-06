@@ -8,6 +8,8 @@ data class ItineraryEditDraft(
     val arrivalTimeText: String,
     val stayMinutesText: String,
     val noteText: String = "",
+    val placeId: String? = null,
+    val placeName: String = "",
     val isSaving: Boolean = false,
     val saveError: String? = null,
     val generation: Long = 0,
@@ -47,6 +49,9 @@ data class RouteModeEditDraft(
     val isSaving: Boolean = false,
     val saveError: String? = null,
     val generation: Long = 0,
+    val fromPlaceName: String = "",
+    val toPlaceName: String = "",
+    val distanceMeters: Int? = null,
 ) {
     val durationOverrideSeconds: Int?
         get() = if (!isDurationEdited) originalDurationOverrideSeconds else durationMinutesText.takeIf(String::isNotBlank)?.toIntOrNull()?.times(60)

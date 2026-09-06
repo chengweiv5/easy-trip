@@ -46,6 +46,16 @@ fun SavedPlaceRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            Surface(
+                modifier = Modifier.size(42.dp),
+                shape = RoundedCornerShape(12.dp),
+                color = MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    PlaceIcon(Modifier.size(22.dp))
+                }
+            }
             Column(
                 Modifier
                     .weight(1f)
@@ -55,52 +65,29 @@ fun SavedPlaceRow(
                     .clickable(onClick = onOpenDetail),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        place.name,
-                        modifier = Modifier.weight(1f).widthIn(min = 0.dp),
-                        style = MaterialTheme.typography.titleMedium,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        when {
-                            place.recentlyCollected -> "刚刚收藏 · 待安排行程"
-                            place.scheduled -> "已排入 ${place.itineraryOccurrenceCount} 次"
-                            else -> "仅收藏"
-                        },
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.testTag("place-status-${place.id}"),
-                    )
-                }
+                Text(
+                    place.name,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
                 if (place.address.isNotBlank()) {
                     Text(
                         place.address,
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .72f),
-                        maxLines = 1,
+                        maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                place.note?.let {
-                    Text(
-                        it,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .72f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                if (place.tags.isNotEmpty()) {
-                    Text(
-                        place.tags.joinToString(" · "),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .72f),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                Text(
+                    placeAuxiliaryInfo(place),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.testTag("place-status-${place.id}"),
+                )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 onQuickAdd?.let { quickAdd ->
@@ -145,6 +132,33 @@ fun SavedPlaceRow(
                 }
             }
         }
+    }
+}
+
+private fun placeAuxiliaryInfo(place: SavedPlaceRowUi): String = buildList {
+    add(
+        when {
+            place.recentlyCollected -> "刚刚收藏 · 待安排行程"
+            place.scheduled -> "已排入 ${place.itineraryOccurrenceCount} 次"
+            else -> "仅收藏"
+        },
+    )
+    place.note?.takeIf(String::isNotBlank)?.let(::add)
+    place.tags.takeIf(List<String>::isNotEmpty)?.joinToString(" · ")?.let(::add)
+}.joinToString(" · ")
+
+@Composable
+private fun PlaceIcon(modifier: Modifier = Modifier) {
+    val color = MaterialTheme.colorScheme.onSecondaryContainer
+    Canvas(modifier) {
+        val radius = size.minDimension * .22f
+        drawCircle(color, radius, Offset(size.width / 2f, size.height * .36f))
+        drawLine(
+            color,
+            Offset(size.width / 2f, size.height * .5f),
+            Offset(size.width / 2f, size.height * .82f),
+            size.minDimension / 7f,
+        )
     }
 }
 

@@ -56,9 +56,9 @@ class WholeTripItineraryMapperTest {
                     dayId = "day-1",
                     dayNumber = 1,
                     items = listOf(
-                        ItineraryItemUi("item-1", "早餐店", "东街 1 号", LocalTime.of(8, 30), 45),
-                        ItineraryItemUi("item-2", "博物馆", "西街 2 号", LocalTime.of(10, 0), 120),
-                        ItineraryItemUi("item-3", "公园", "南街 3 号", null, null),
+                        ItineraryItemUi("item-1", "早餐店", "东街 1 号", LocalTime.of(8, 30), 45, placeId = "place-item-1"),
+                        ItineraryItemUi("item-2", "博物馆", "西街 2 号", LocalTime.of(10, 0), 120, placeId = "place-item-2"),
+                        ItineraryItemUi("item-3", "公园", "南街 3 号", null, null, placeId = "place-item-3"),
                     ),
                     legs = listOf(
                         RouteLegUi(

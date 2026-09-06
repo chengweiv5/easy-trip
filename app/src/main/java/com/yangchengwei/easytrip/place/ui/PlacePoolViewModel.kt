@@ -49,6 +49,7 @@ data class PlacePoolUiState(
     val tags: List<PlaceTag> = emptyList(),
     val selectedTagIds: Set<String> = emptySet(),
     val savedPoiIds: Set<String> = emptySet(),
+    val savedPlaceIds: Set<String>? = null,
     val editing: SavedPlace? = null,
     val detailDraft: PlaceDetailDraft? = null,
     val detailSaving: Boolean = false,
@@ -400,9 +401,16 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                         val selected = current.selectedDetailPlaceId
                             ?.let { id -> places.firstOrNull { it.id == id } }
                         if (current.selectedDetailPlaceId != null && selected == null) {
-                            current.copy(selectedDetailPlaceId = null, selectedDetailPlace = null)
+                            current.copy(
+                                savedPlaceIds = places.mapTo(mutableSetOf(), SavedPlace::id),
+                                selectedDetailPlaceId = null,
+                                selectedDetailPlace = null,
+                            )
                         } else {
-                            current.copy(selectedDetailPlace = selected ?: current.selectedDetailPlace)
+                            current.copy(
+                                savedPlaceIds = places.mapTo(mutableSetOf(), SavedPlace::id),
+                                selectedDetailPlace = selected ?: current.selectedDetailPlace,
+                            )
                         }
                     }
                 }

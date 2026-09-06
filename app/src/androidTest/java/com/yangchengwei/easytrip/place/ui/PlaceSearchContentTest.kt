@@ -640,6 +640,34 @@ class PlaceSearchContentTest {
         assertSize("place-search-clear", 48f, 48f)
     }
 
+    @Test fun narrowLargeFontKeepsResultsHeaderAndActionsReachable() {
+        val candidate = PlaceCandidate("no-point", "一个很长的地点名称用于验证标题和数量徽章不挤压", "很长的地址", null, null)
+        val actions = mutableListOf<PlaceSearchAction>()
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
+                EasyTripTheme {
+                    Box(Modifier.requiredWidth(280.dp)) {
+                        PlaceSearchContent(
+                            state = PlaceSearchUiState(
+                                search = PlaceSearchState(
+                                    query = "地点",
+                                    phase = PlaceSearchPhase.Results,
+                                    results = listOf(candidate),
+                                ),
+                            ),
+                            onAction = actions::add,
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("place-search-results-title").assertIsDisplayed()
+        compose.onNodeWithTag("place-search-results-count").assertIsDisplayed()
+        compose.onNodeWithTag("place-search-bookmark-touch-no-point").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(listOf(PlaceSearchAction.ToggleCollection("no-point")), actions) }
+    }
+
     @Test fun narrowLargeFontKeepsResultsEmptyAndFailureInsideContainerWithoutOverlap() {
         val candidate = PlaceCandidate("poi-1", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
         val state = mutableStateOf(PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results)))

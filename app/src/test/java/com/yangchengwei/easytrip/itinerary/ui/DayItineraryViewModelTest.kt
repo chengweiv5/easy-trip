@@ -114,7 +114,7 @@ class DayItineraryViewModelTest {
         advanceUntilIdle()
 
         assertEquals(
-            ItineraryEditDraft("item-alpha", "08:30", "90", "保留\n备注", saveError = "保存失败", generation = generation),
+            ItineraryEditDraft("item-alpha", "08:30", "90", "保留\n备注", placeId = "place-alpha", placeName = "酒店", saveError = "保存失败", generation = generation),
             model.state.value.editDraft,
         )
         val persistedItem = model.state.value.items.first { it.id == "item-alpha" }
@@ -125,7 +125,7 @@ class DayItineraryViewModelTest {
         model.dispatch(DayItineraryAction.DismissEditSaveError)
 
         assertEquals(
-            ItineraryEditDraft("item-alpha", "08:30", "90", "保留\n备注", generation = generation),
+            ItineraryEditDraft("item-alpha", "08:30", "90", "保留\n备注", placeId = "place-alpha", placeName = "酒店", generation = generation),
             model.state.value.editDraft,
         )
         assertEquals(callsBeforeClear, repository.detailCalls.size)

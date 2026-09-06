@@ -46,6 +46,7 @@ internal fun ItineraryItemRow(
     onCommit: (Int) -> Unit,
     onMenuAction: (ItineraryItemMenuAction) -> Unit,
     modifier: Modifier = Modifier,
+    canScheduleAgain: Boolean = false,
 ) {
     var isDragging by remember(item.id) { mutableStateOf(false) }
     var menuExpanded by remember(item.id) { mutableStateOf(false) }
@@ -73,6 +74,7 @@ internal fun ItineraryItemRow(
                 expanded = menuExpanded,
                 onExpandedChange = { menuExpanded = it },
                 onAction = onMenuAction,
+                canScheduleAgain = canScheduleAgain && item.placeId != null,
             )
         },
         containerColor = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,

@@ -19,6 +19,7 @@ import androidx.compose.foundation.layout.requiredSize
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.windowInsetsPadding
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.items
@@ -433,11 +434,19 @@ private fun SearchResults(
         ) {
             Text(
                 "搜索结果 · 可连续收藏",
+                modifier = Modifier.weight(1f).widthIn(min = 0.dp).testTag("place-search-results-title"),
                 color = MaterialTheme.colorScheme.onSurface,
                 style = MaterialTheme.typography.titleMedium,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
             Box(
-                Modifier.height(26.dp).background(MaterialTheme.colorScheme.primaryContainer, CircleShape).padding(horizontal = 10.dp),
+                Modifier
+                    .height(26.dp)
+                    .widthIn(min = 48.dp)
+                    .testTag("place-search-results-count")
+                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                    .padding(horizontal = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
                 Text("${state.search.results.size} 个", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
@@ -568,7 +577,7 @@ private fun SearchResultRow(
                 .size(48.dp)
                 .testTag("place-search-bookmark-touch-${candidate.poiId}")
                 .clip(CircleShape)
-                .clickable(enabled = candidate.point != null && !busy, onClick = onToggleCollection)
+                .clickable(enabled = !busy, onClick = onToggleCollection)
                 .semantics {
                     contentDescription = if (saved) "取消收藏${candidate.name}" else "收藏${candidate.name}"
                     role = Role.Button

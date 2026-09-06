@@ -22,6 +22,8 @@ data class TripSummary(
     val startDate: LocalDate?,
     val travelMode: TravelMode,
     val dayCount: Int,
+    val placeCount: Int,
+    val scheduledDistinctPlaceCount: Int,
 )
 
 data class TripDay(val id: String, val index: Int)

@@ -6,6 +6,7 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -33,12 +34,30 @@ fun EditRouteLegContent(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier.imePadding().testTag("route-leg-editor"),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("交通路段编辑")
+            if (draft.fromPlaceName.isNotBlank() && draft.toPlaceName.isNotBlank()) {
+                Text(
+                    "${draft.fromPlaceName} → ${draft.toPlaceName}",
+                    modifier = Modifier.testTag("route-endpoints"),
+                )
+            }
+            Text(
+                buildList {
+                    add("当前路线")
+                    add("已规划")
+                    draft.distanceMeters?.let { add(formatDistance(it)) }
+                    draft.plannedDurationSeconds?.let { add("预计 ${formatDuration(it)}") }
+                }.joinToString(" · "),
+                modifier = Modifier.testTag("route-current-context"),
+            )
             Row(
                 Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -82,8 +101,19 @@ fun EditRouteLegContent(
             )
             draft.saveError?.let { Text(it) }
         }
-        CompactPrimaryButton(onClick = onSave, enabled = draft.isValid && !draft.isSaving) {
-            Text(if (draft.isSaving) "保存中…" else "保存路段")
+        CompactPrimaryButton(
+            onClick = onSave,
+            enabled = draft.isValid && !draft.isSaving,
+            modifier = Modifier.testTag("save-route"),
+        ) {
+            val recalculates = draft.selectedModeOverride != draft.originalSelectedModeOverride
+            Text(
+                when {
+                    draft.isSaving -> "保存中…"
+                    recalculates -> "保存并重新计算路线"
+                    else -> "保存路段"
+                },
+            )
         }
         CompactSecondaryButton(onClick = onCancel, enabled = !draft.isSaving) { Text("取消") }
     }

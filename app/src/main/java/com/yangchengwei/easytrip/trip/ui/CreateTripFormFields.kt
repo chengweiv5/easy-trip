@@ -1,35 +1,28 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.border
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.BorderStroke
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material3.DatePicker
-import androidx.compose.material3.DatePickerDefaults
-import androidx.compose.material3.DatePickerDialog
-import androidx.compose.material3.DatePickerState
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
-import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -37,86 +30,31 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.error
+import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TravelMode
-import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
-import com.yangchengwei.easytrip.core.ui.component.SelectablePill
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripBorder
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimary
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSecondary
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurface
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
-import java.time.Instant
-import java.time.ZoneOffset
 
-internal data class CreateTripDatePickerPalette(
-    val container: Color,
-    val content: Color,
-    val secondaryContent: Color,
-    val primary: Color,
-    val onPrimary: Color,
-    val outline: Color,
-)
-
-internal fun createTripDatePickerPalette() = CreateTripDatePickerPalette(
-    container = EasyTripSurface,
-    content = EasyTripPrimaryDark,
-    secondaryContent = EasyTripSecondary,
-    primary = EasyTripPrimary,
-    onPrimary = EasyTripSurface,
-    outline = EasyTripBorder,
-)
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun EasyTripDatePicker(
-    state: DatePickerState,
-    modifier: Modifier = Modifier,
-) {
-    val palette = createTripDatePickerPalette()
-    DatePicker(
-        state = state,
-        modifier = modifier,
-        colors = DatePickerDefaults.colors(
-            containerColor = palette.container,
-            titleContentColor = palette.content,
-            headlineContentColor = palette.content,
-            weekdayContentColor = palette.secondaryContent,
-            subheadContentColor = palette.secondaryContent,
-            navigationContentColor = palette.primary,
-            yearContentColor = palette.content,
-            currentYearContentColor = palette.primary,
-            selectedYearContentColor = palette.onPrimary,
-            selectedYearContainerColor = palette.primary,
-            dayContentColor = palette.content,
-            selectedDayContentColor = palette.onPrimary,
-            selectedDayContainerColor = palette.primary,
-            todayContentColor = palette.primary,
-            todayDateBorderColor = palette.outline,
-        ),
-    )
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun CreateTripFormFields(
     state: CreateTripUiState,
     onAction: (CreateTripAction) -> Unit,
-    initialDateMillis: Long?,
+    onOpenDateRangePicker: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var showPicker by remember { mutableStateOf(false) }
     val enabled = !state.isSubmitting
 
     Column(modifier, verticalArrangement = Arrangement.spacedBy(18.dp)) {
@@ -133,7 +71,6 @@ internal fun CreateTripFormFields(
                 isError = state.nameError != null,
                 errorMessage = state.nameError,
                 fieldTag = "create-name",
-                modifier = Modifier,
             )
             Text(
                 state.nameError ?: "一个容易辨认的名称，稍后可以修改",
@@ -157,12 +94,7 @@ internal fun CreateTripFormFields(
                         contentDescription = dateSelectionDescription(state)
                         role = Role.Button
                     }
-                    .clickable(enabled = enabled) {
-                        if (state.timeMode == CreateTimeMode.DRAFT) {
-                            onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DATED))
-                        }
-                        showPicker = true
-                    },
+                    .clickable(enabled = enabled) { onOpenDateRangePicker() },
                 shape = RoundedCornerShape(10.dp),
                 color = EasyTripSurface,
                 border = BorderStroke(if (state.dateError == null) 1.dp else 2.dp, if (state.dateError == null) EasyTripBorder else MaterialTheme.colorScheme.error),
@@ -175,33 +107,20 @@ internal fun CreateTripFormFields(
                     DateFieldIcon(Modifier.size(36.dp).testTag("create-date-leading-icon"))
                     Column(Modifier.weight(1f).testTag("create-date-text")) {
                         Text(
-                            if (state.timeMode == CreateTimeMode.DRAFT) "日期待定" else state.startDate?.toString() ?: "选择出行日期",
+                            state.startDate?.toString() ?: "选择开始和结束日期",
                             style = MaterialTheme.typography.bodyLarge,
                         )
-                        if (state.timeMode == CreateTimeMode.DATED) {
-                            Text(state.endDate?.toString() ?: "选择日期后会自动计算行程天数", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                        }
+                        Text(
+                            state.endDate?.let { endDate ->
+                                val duration = state.dayCount?.let { days -> "${days}天${days - 1}晚" } ?: "范围无效"
+                                "至 $endDate · $duration"
+                            } ?: "完整范围后自动计算行程天数",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
                     }
                     DateChevron(Modifier.size(20.dp))
                 }
-            }
-            Row(Modifier.selectableGroup()) {
-                SelectablePill(
-                    selected = state.timeMode == CreateTimeMode.DRAFT,
-                    onClick = { onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DRAFT)) },
-                    label = { Text("日期待定") },
-                    modifier = Modifier.testTag("create-time-DRAFT"),
-                    enabled = enabled,
-                    role = Role.RadioButton,
-                )
-                SelectablePill(
-                    selected = state.timeMode == CreateTimeMode.DATED,
-                    onClick = { onAction(CreateTripAction.TimeModeChanged(CreateTimeMode.DATED)); showPicker = true },
-                    label = { Text("指定日期") },
-                    modifier = Modifier.testTag("create-time-DATED"),
-                    enabled = enabled,
-                    role = Role.RadioButton,
-                )
             }
             state.dateError?.let {
                 Text(
@@ -210,26 +129,6 @@ internal fun CreateTripFormFields(
                     modifier = Modifier.testTag("create-date-error"),
                     style = MaterialTheme.typography.bodySmall,
                 )
-            }
-        }
-        Column(
-            Modifier.testTag("create-day-count-container"),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            Text("旅行天数", style = MaterialTheme.typography.labelLarge)
-            BrandedField(
-                value = state.dayCount,
-                onValueChange = { onAction(CreateTripAction.DayCountChanged(it)) },
-                placeholder = "至少 1 天",
-                enabled = enabled,
-                isError = state.dayCountError != null,
-                errorMessage = state.dayCountError,
-                fieldTag = "create-day-count",
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                modifier = Modifier,
-            )
-            state.dayCountError?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall)
             }
         }
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -270,29 +169,6 @@ internal fun CreateTripFormFields(
         }
     }
 
-    if (showPicker && enabled) {
-        val millis = state.startDate?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli() ?: initialDateMillis
-        val picker = rememberDatePickerState(initialSelectedDateMillis = millis, initialDisplayedMonthMillis = millis)
-        DatePickerDialog(
-            onDismissRequest = { showPicker = false },
-            confirmButton = {
-                CompactSecondaryButton(
-                    onClick = {
-                        picker.selectedDateMillis?.let {
-                            onAction(CreateTripAction.StartDateChanged(Instant.ofEpochMilli(it).atZone(ZoneOffset.UTC).toLocalDate()))
-                        }
-                        showPicker = false
-                    },
-                    modifier = Modifier.testTag("create-date-confirm"),
-                ) { Text("确定日期") }
-            },
-        ) {
-            EasyTripDatePicker(
-                state = picker,
-                modifier = Modifier.testTag("create-date-picker"),
-            )
-        }
-    }
 }
 
 @Composable
@@ -305,7 +181,6 @@ private fun BrandedField(
     errorMessage: String?,
     fieldTag: String,
     modifier: Modifier = Modifier,
-    keyboardOptions: KeyboardOptions = KeyboardOptions.Default,
 ) {
     val interactionSource = remember { MutableInteractionSource() }
     val focused by interactionSource.collectIsFocusedAsState()
@@ -335,7 +210,6 @@ private fun BrandedField(
             enabled = enabled,
             isError = isError,
             singleLine = true,
-            keyboardOptions = keyboardOptions,
             interactionSource = interactionSource,
             colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
                 focusedBorderColor = Color.Transparent,
@@ -407,10 +281,7 @@ fun TravelModeCard(
 }
 
 private fun dateSelectionDescription(state: CreateTripUiState): String =
-    "选择出行日期，当前范围：" + when (state.timeMode) {
-        CreateTimeMode.DRAFT -> "日期待定"
-        CreateTimeMode.DATED -> "${state.startDate ?: "未选择开始日期"} 至 ${state.endDate ?: "未选择结束日期"}"
-    }
+    "选择出行日期，当前范围：${state.startDate ?: "未选择开始日期"} 至 ${state.endDate ?: "未选择结束日期"}"
 
 private fun Modifier.errorSemantics(message: String?): Modifier =
     if (message == null) this else semantics { error(message) }

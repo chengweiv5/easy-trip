@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip
 import android.content.Context
 import android.view.View
 import androidx.activity.ComponentActivity
+import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
@@ -15,8 +16,10 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
@@ -67,6 +70,7 @@ class V2AcceptanceTest {
     }
 
     @After fun tearDown() {
+        compose.runOnIdle { compose.activity.setContent {} }
         observationScope.cancel()
         database.close()
     }
@@ -191,6 +195,131 @@ class V2AcceptanceTest {
 
     @Test fun batch5ProductionNavigationRoomMainFlow() {
         Batch5ExecutableEvidence.ProductionNavigationMainFlow.verifyCheckpoints(this)
+    }
+
+    @Test fun visualBatch3ProductionWorkspaceFixtureCoversThreeDaysEightStopsAndRouteStates() = runBlocking {
+        val fixture = createVisualBatch3WorkspaceFixture()
+
+        assertEquals(listOf(4, 0, 4), fixture.days.map { day ->
+            database.itineraryEditingDao().items(day.id).size
+        })
+        assertEquals(8, fixture.itemIds.size)
+        assertEquals(
+            setOf(
+                com.yangchengwei.easytrip.core.model.RouteStatus.SUCCESS,
+                com.yangchengwei.easytrip.core.model.RouteStatus.FAILED,
+                com.yangchengwei.easytrip.core.model.RouteStatus.WAITING_NETWORK,
+            ),
+            fixture.days.flatMap { database.routeLegDao().legs(it.id) }.map { it.status }.toSet(),
+        )
+        assertEquals("visual-stop-1", database.itineraryEditingDao().item(fixture.itemIds.first())?.note)
+    }
+
+    @Test fun visualBatch3FixtureRunsInProductionNavigationWithSynchronizedDayAndWholeTripViews() {
+        lateinit var fixture: VisualBatch3WorkspaceFixture
+        val trips = RoomTripRepository(database.tripDao(), idFactory = { "visual-trip-${nextId++}" })
+        val places = RoomSavedPlaceRepository(database, idFactory = { "visual-place-${nextId++}" })
+        val itineraries = RoomItineraryRepository(
+            database,
+            database.itineraryEditingDao(),
+            database.routeLegDao(),
+            itemIdFactory = { "visual-item-${nextId++}" },
+            legIdFactory = { "visual-leg-${nextId++}" },
+            isOnline = { false },
+        )
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        runBlocking { fixture = createVisualBatch3WorkspaceFixture(trips, places, itineraries, routes) }
+        val hosts = java.util.concurrent.CopyOnWriteArrayList<RecordingHost>()
+        setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), hosts)
+
+        compose.onNodeWithTag("continue-trip-${fixture.tripId}").performClick()
+        waitForTag("workspace-top-bar")
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        waitForTag("item-${fixture.itemIds.first()}")
+        compose.onNodeWithText("第 1 天 · 4 站").assertIsDisplayed()
+        waitFor("single-day map scope") {
+            hosts.lastOrNull()?.lastModel?.viewportRequest?.scope == com.yangchengwei.easytrip.workspace.MapScope.SINGLE_DAY
+        }
+        val dayModel = requireNotNull(hosts.lastOrNull()?.lastModel)
+        assertEquals(4, dayModel.markers.size)
+        assertEquals(1, dayModel.polylines.size)
+        assertEquals(com.yangchengwei.easytrip.workspace.MapScope.SINGLE_DAY, dayModel.viewportRequest?.scope)
+        assertEquals(fixture.days.first().id, dayModel.viewportRequest?.selectedDayId)
+        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
+        compose.onNodeWithText("全程 · 3 天 · 8 站").assertIsDisplayed()
+        waitFor("whole-trip map scope") {
+            hosts.lastOrNull()?.lastModel?.viewportRequest?.scope == com.yangchengwei.easytrip.workspace.MapScope.WHOLE_TRIP
+        }
+        val wholeModel = requireNotNull(hosts.lastOrNull()?.lastModel)
+        assertEquals(8, wholeModel.markers.size)
+        assertEquals(1, wholeModel.polylines.size)
+        assertEquals(com.yangchengwei.easytrip.workspace.MapScope.WHOLE_TRIP, wholeModel.viewportRequest?.scope)
+        assertEquals(null, wholeModel.viewportRequest?.selectedDayId)
+        fixture.days.forEach { day ->
+            compose.onNodeWithTag("whole-trip-timeline").performScrollToNode(hasTestTag("whole-trip-day-${day.id}"))
+            compose.onNodeWithTag("whole-trip-day-${day.id}").assertIsDisplayed()
+        }
+        compose.onAllNodesWithTag("more-${fixture.itemIds.first()}", useUnmergedTree = true).assertCountEquals(0)
+
+        compose.onNodeWithTag("itinerary-scope-${fixture.days.first().id}").performClick()
+        waitFor("return to single-day map scope") {
+            hosts.lastOrNull()?.lastModel?.viewportRequest?.scope == com.yangchengwei.easytrip.workspace.MapScope.SINGLE_DAY &&
+                hosts.lastOrNull()?.lastModel?.viewportRequest?.selectedDayId == fixture.days.first().id
+        }
+        val returnedDayModel = requireNotNull(hosts.lastOrNull()?.lastModel)
+        assertEquals(4, returnedDayModel.markers.size)
+        assertEquals(1, returnedDayModel.polylines.size)
+    }
+
+    @Test fun visualBatch3ProductionNavigationEditsAndDeletesRoomItemThenReopensPersistedValue() {
+        lateinit var fixture: VisualBatch3WorkspaceFixture
+        val trips = RoomTripRepository(database.tripDao(), idFactory = { "visual-trip-${nextId++}" })
+        val places = RoomSavedPlaceRepository(database, idFactory = { "visual-place-${nextId++}" })
+        val itineraries = RoomItineraryRepository(
+            database,
+            database.itineraryEditingDao(),
+            database.routeLegDao(),
+            itemIdFactory = { "visual-item-${nextId++}" },
+            legIdFactory = { "visual-leg-${nextId++}" },
+            isOnline = { false },
+        )
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        runBlocking { fixture = createVisualBatch3WorkspaceFixture(trips, places, itineraries, routes) }
+        setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), mutableListOf())
+
+        compose.onNodeWithTag("continue-trip-${fixture.tripId}").performClick()
+        waitForTag("workspace-top-bar")
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        val editedItemId = fixture.itemIds[1]
+        compose.onNodeWithTag("more-$editedItemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-timing-$editedItemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("arrival-time-input").performTextClearance()
+        compose.onNodeWithTag("arrival-time-input").performTextInput("14:20")
+        compose.onNodeWithTag("stay-minutes-input").performTextClearance()
+        compose.onNodeWithTag("stay-minutes-input").performTextInput("75")
+        compose.onNodeWithTag("itinerary-note-input").performTextClearance()
+        compose.onNodeWithTag("itinerary-note-input").performTextInput("Visual Batch 3 持久备注")
+        compose.onNodeWithText("保存时间").performClick()
+        waitFor("edited Room item") {
+            runBlocking { database.itineraryEditingDao().item(editedItemId) }?.let {
+                it.arrivalTime == java.time.LocalTime.of(14, 20) &&
+                    it.stayDurationMinutes == 75 &&
+                    it.note == "Visual Batch 3 持久备注"
+            } == true
+        }
+        compose.onNodeWithTag("more-$editedItemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-timing-$editedItemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("arrival-time-input").assertTextContains("14:20")
+        compose.onNodeWithTag("stay-minutes-input").assertTextContains("75")
+        compose.onNodeWithTag("itinerary-note-input").assertTextContains("Visual Batch 3 持久备注")
+        compose.onNodeWithText("取消").performClick()
+
+        compose.onNodeWithTag("more-$editedItemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-delete-$editedItemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("确认移出").performClick()
+        waitFor("deleted Room item") { runBlocking { database.itineraryEditingDao().item(editedItemId) } == null }
+        assertTrue(runBlocking { database.itineraryEditingDao().savedPlace(fixture.placeIds[1]) } != null)
+        assertEquals(2, runBlocking { database.routeLegDao().legs(fixture.days.first().id) }.size)
     }
 
     private fun runBatch5ProductionNavigationRoomMainFlow(): Set<Batch5FrameCheckpoint> {
@@ -352,8 +481,10 @@ class V2AcceptanceTest {
         compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
         compose.onNodeWithTag("whole-trip-content").assertIsDisplayed()
         compose.onNodeWithTag("whole-trip-day-${originalDays[0].id}").assertIsDisplayed()
-        compose.onNodeWithTag("whole-trip-day-${originalDays[1].id}").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("whole-trip-day-${appendedDay.id}").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("whole-trip-timeline").performScrollToNode(hasTestTag("whole-trip-day-${originalDays[1].id}"))
+        compose.onNodeWithTag("whole-trip-day-${originalDays[1].id}").assertIsDisplayed()
+        compose.onNodeWithTag("whole-trip-timeline").performScrollToNode(hasTestTag("whole-trip-day-${appendedDay.id}"))
+        compose.onNodeWithTag("whole-trip-day-${appendedDay.id}").assertIsDisplayed()
         compose.onNodeWithTag("leg-${runBlocking { database.routeLegDao().legs(originalDays[0].id) }.single().id}").performScrollTo().assertIsDisplayed()
         compose.onAllNodesWithTag("more-$firstItem", useUnmergedTree = true).assertCountEquals(0)
         compose.onAllNodesWithTag("more-$lastItem", useUnmergedTree = true).assertCountEquals(0)
@@ -366,6 +497,7 @@ class V2AcceptanceTest {
 
         compose.onNodeWithTag("itinerary-scope-${originalDays[1].id}").performClick()
         compose.onNodeWithTag("workspace-more").performClick()
+        compose.onNodeWithTag("more-menu-settings").performClick()
         waitForTag("settings-date-row")
         compose.onNodeWithTag("delete-day-${originalDays[0].id}").performScrollTo().performClick()
         compose.onNodeWithText("取消").performClick()
@@ -574,6 +706,64 @@ class V2AcceptanceTest {
         compose.onNodeWithText("第 1 天 · 1 次").assertIsDisplayed()
         assertEquals(1, runBlocking { database.itineraryEditingDao().items(dayId) }.size)
         assertTrue("map evidence is the recording fake host, not RealAmap", hosts.isNotEmpty())
+    }
+
+    private data class VisualBatch3WorkspaceFixture(
+        val tripId: String,
+        val days: List<com.yangchengwei.easytrip.trip.domain.TripDay>,
+        val itemIds: List<String>,
+        val placeIds: List<String>,
+    )
+
+    private suspend fun createVisualBatch3WorkspaceFixture(
+        trips: RoomTripRepository = RoomTripRepository(database.tripDao(), idFactory = { "visual-trip-${nextId++}" }),
+        places: RoomSavedPlaceRepository = RoomSavedPlaceRepository(database, idFactory = { "visual-place-${nextId++}" }),
+        itineraries: RoomItineraryRepository = RoomItineraryRepository(
+            database,
+            database.itineraryEditingDao(),
+            database.routeLegDao(),
+            itemIdFactory = { "visual-item-${nextId++}" },
+            legIdFactory = { "visual-leg-${nextId++}" },
+            isOnline = { false },
+        ),
+        routes: RoomRouteLegRepository = RoomRouteLegRepository(database.routeLegDao()),
+    ): VisualBatch3WorkspaceFixture {
+        val tripId = trips.createTrip(CreateTrip("Visual Batch 3", 3, startDate = java.time.LocalDate.parse("2026-09-06")))
+        val days = requireNotNull(trips.observeTrip(tripId).first()).days
+        val placeIds = (1..8).map { index ->
+            (places.save(
+                tripId,
+                candidate("visual-poi-$index", "Visual Stop $index", 30.0 + index / 100.0, 120.0 + index / 100.0),
+            ) as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+        }
+        val itemIds = placeIds.mapIndexed { index, placeId ->
+            val day = if (index < 4) days.first() else days.last()
+            itineraries.addItem(day.id, placeId, if (index < 4) index else index - 4).also { itemId ->
+                itineraries.updateDetails(itemId, java.time.LocalTime.of(9 + index, 0), 46 + index, "visual-stop-${index + 1}")
+            }
+        }
+        val legs = database.routeLegDao().legs(days.first().id)
+        if (legs.isNotEmpty()) {
+            val success = legs[0]
+            check(routes.claimIfVersionMatches(success.id, success.version))
+            check(
+                routes.completeIfVersionMatches(
+                    success.id,
+                    success.version,
+                    com.yangchengwei.easytrip.route.domain.RouteResult(
+                        1_000,
+                        600,
+                        listOf(GeoPoint(30.01, 120.01), GeoPoint(30.02, 120.02)),
+                    ),
+                ),
+            )
+        }
+        if (legs.size > 1) {
+            val failed = legs[1]
+            check(routes.claimIfVersionMatches(failed.id, failed.version))
+            check(routes.failIfVersionMatches(failed.id, failed.version, com.yangchengwei.easytrip.route.domain.RoutePlanOutcome.Failure(com.yangchengwei.easytrip.route.domain.RouteErrorKind.TRANSIENT, "fixture")))
+        }
+        return VisualBatch3WorkspaceFixture(tripId, days, itemIds, placeIds)
     }
 
     private fun setProductionNavigation(

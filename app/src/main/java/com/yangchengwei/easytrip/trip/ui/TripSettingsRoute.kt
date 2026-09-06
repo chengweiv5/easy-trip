@@ -19,7 +19,7 @@ fun TripSettingsRoute(
     val tripDeletion = state.tripDeletion
     val tripDeleteBusy = tripDeletion is TripDeletionUiState.Ready && tripDeletion.isDeleting
     val tripDeleteSyncFailed = tripDeletion is TripDeletionUiState.Ready && tripDeletion.confirmationSyncFailed
-    val busy = state.dateRange.submitting || state.dayDeleteInProgress || tripDeleteBusy
+    val busy = state.dateRange.submitting || state.dayDeleteInProgress || state.dayManagementInProgress || tripDeleteBusy
     BackHandler(enabled = busy || tripDeleteSyncFailed) {}
     LaunchedEffect(viewModel) {
         viewModel.effects.collect { effect ->
@@ -33,12 +33,14 @@ fun TripSettingsRoute(
         onBack = { if (!busy) currentOnBack() },
         onRename = viewModel::rename,
         onTravelMode = viewModel::setTravelMode,
-        onDateEndDraft = viewModel::updateDateEndDraft,
+        onDateRangeDraft = viewModel::updateDateRangeDraft,
         onSubmitDateRange = viewModel::requestDateRangeChange,
         onCancelDateRange = viewModel::cancelDateRangeChange,
         onConfirmDateRange = viewModel::confirmDateRangeChange,
         onRetryDateRangeSync = viewModel::retryDateRangeSync,
         onRetryTripObservation = viewModel::retryTripObservation,
+        onAppendDay = viewModel::appendDay,
+        onMoveDay = viewModel::moveDay,
         onRequestDeleteDay = viewModel::requestDelete,
         onRetryDeleteDay = viewModel::retryDelete,
         onCancelDeleteDay = viewModel::cancelDelete,

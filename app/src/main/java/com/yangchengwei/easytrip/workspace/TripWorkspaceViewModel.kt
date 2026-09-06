@@ -314,6 +314,7 @@ class TripWorkspaceViewModel(
         }
     }
     fun openOverlay(value: WorkspaceOverlay) {
+        if (value == WorkspaceOverlay.MoreMenu && overlay.value != WorkspaceOverlay.None) return
         clearMapDetail()
         overlay.value = value
     }

@@ -69,6 +69,8 @@ fun PlaceDetailPanel(
     canStartAddToItinerary: Boolean = true,
 ) {
     val saving = editState?.isSaving == true
+    val canShowAddToItinerary = source == PlaceDetailSource.PlacePool &&
+        canStartAddToItinerary && schedule.isKnown && schedule.totalOccurrences == 0
     Column(
         modifier
             .fillMaxWidth()
@@ -125,7 +127,7 @@ fun PlaceDetailPanel(
                         }
                     }
                     PlaceDetailSource.PlacePool -> {
-                        if (canStartAddToItinerary) {
+                        if (canShowAddToItinerary) {
                             EasyTripPrimaryButton(
                                 onClick = { onAction(PlaceDetailPanelAction.StartAddToItinerary) },
                                 modifier = Modifier.weight(1f).testTag("place-detail-start-add"),

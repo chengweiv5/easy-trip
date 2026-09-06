@@ -31,7 +31,11 @@ class TripService(private val repository: TripRepository) {
     }
 
     suspend fun appendTripDay(tripId: String) = insertDay(tripId, null, InsertSide.AFTER)
-    suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) = repository.moveDay(tripId, dayId, targetIndex)
+    suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) {
+        val trip = requireNotNull(repository.observeTrip(tripId).first()) { "Unknown trip: $tripId" }
+        require(trip.startDate == null) { "已设置日期的旅行日按日期连续排列" }
+        repository.moveDay(tripId, dayId, targetIndex)
+    }
     suspend fun deleteDay(command: DayDeletion) = repository.deleteDay(command)
     suspend fun deleteTrip(tripId: String) = repository.deleteTrip(tripId)
 

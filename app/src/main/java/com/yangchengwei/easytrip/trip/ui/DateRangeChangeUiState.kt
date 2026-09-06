@@ -10,7 +10,15 @@ data class DateRangeChangeUiState(
     val isDirty: Boolean = false,
     val phase: DateRangeChangePhase = DateRangeChangePhase.Idle,
     val error: String? = null,
+    val baselineStartDate: LocalDate? = startDate,
+    val draftStartDate: LocalDate? = startDate,
+    val draftEndDate: LocalDate? = endDate,
 ) {
+    val baseline: DateRangeSelection
+        get() = DateRangeSelection(baselineStartDate, baselineEndDate)
+
+    val draft: DateRangeSelection
+        get() = DateRangeSelection(draftStartDate, draftEndDate)
     val confirmation: DateRangeChangeImpact?
         get() = when (val value = phase) {
             is DateRangeChangePhase.AwaitingConfirmation -> value.impact

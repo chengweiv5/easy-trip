@@ -62,7 +62,7 @@
 | 填写日期 | `YYo6U` | 日期范围选择 | 开始/结束日期和天数 | 已测试；Huawei 代表路径已验收 |
 | 创建旅行已填写 | `dzhkC` | 创建旅行页面 | 提交成功进入工作台 | 已测试；Huawei 代表路径已验收 |
 | 旅行设置 | `U06l7P` | `TripSettingsContent` | 名称、日期、方式和删除入口 | 已测试（production AppNavigation + in-memory Room；Huawei 新删除闭环 PENDING） |
-| 修改出行日期 | `IKTv5` | 日期范围选择 | 与创建日期面板一致，缩短范围提示影响 | 已测试（structured impact；专项物理验收 PENDING） |
+| 修改出行日期 | `IKTv5` | 日期范围选择 | 与创建日期面板一致，缩短范围提示影响 | 已测试；Huawei 新版范围日历代表路径已验收（严格 fixture 仍 PARTIAL） |
 | 删除旅行确认 | `oW9mK` | `ConfirmationDialog` | 影响、保留项和危险操作 | 已测试（production AppNavigation + in-memory Room；物理验收 PENDING） |
 
 ### Batch 1 完成条件
@@ -70,7 +70,7 @@
 - [x] 创建、校验、日期和成功进入工作台闭环可达。
 - [x] `wJ51c` 单旅行与 `pgrb6` 多旅行：`TripListContentTest` 13/13（`emulator-5554`，即 `easy_trip_p60pro(AVD) - 12`，含 280dp×2 字体）；标准高度保持 header/primary/create 固定、仅 other-list 滚动，`<500dp` 多旅行时降级为 primary 与 other trips 共用滚动区、header/create 仍固定；Huawei ALN-AL00 production UI 从空列表创建 `SingleTrip` 后，再创建七个实际旅行并实操长列表滚动，header/primary/create 持续可见且创建入口可点（实际数据，非精确 Pencil fixture）。
 - [x] `U06l7P`：`TripSettingsContentTest` 36/36（`easy_trip_p60pro(AVD) - 12`，分组、Done/Back、窄宽大字体与危险入口）；Huawei ALN-AL00 production UI 实操分组、完成态及危险区；仅标记实际 physical 操作，不以该安装态数据提升精确 fixture。
-- [x] `IKTv5`：`DateEditorSheet` 的响应式高度、Back/pointer、modal semantics、tiny height、本地草稿事务与 footer `navigationBars` inset 由 `TripSettingsContentTest` 36/36（`easy_trip_p60pro(AVD) - 12`）覆盖；Huawei ALN-AL00 通过 UI 创建 dated 三日 `DateTrip` 后实际打开 Sheet，确认 scrim、开始/结束日期、固定操作、导航栏安全区，且系统 Back 仅关闭 Sheet 并保留 settings。此为实际安装态数据，不等同 Pencil fixture。
+- [x] `IKTv5`：新版 `TripDateRangePickerSheet` 的响应式高度、Back/scrim 本地草稿、modal semantics、tiny height、成对范围提交与 footer `navigationBars` inset 已由 `emulator-5554` focused 自动化覆盖；Huawei ALN-AL00 仅以 `adb install -r` 覆盖 production APK，从空安装态创建 `RangeHuawei`（2026-09-08…09），在设置中将范围平移至 2026-09-10…11，确认 Room 回流更新两个连续旅行日并同步列表卡片。此为实际安装态代表路径，不等同严格 Pencil fixture；旧 `DateEditorSheet` 真机记录不再作为新版证据。
 - [x] `oW9mK` / `d1sTtb`：`TripSettingsNavigationTest` 5/5（`easy_trip_p60pro(AVD) - 12`；production AppNavigation + in-memory Room）验证精确级联、杭州移除、川西 primary、泉州保留与回栈清理；Huawei ALN-AL00 实际取消删除后 `DateTrip` 保留，确认后 `DateTrip` 消失、`Dali` 成为 primary、其他旅行保留且系统 Back 不回到已删除 settings/workspace。真机数据不能冒充杭州/川西/泉州精确终态。
 - [x] Final fix wave：`TripListContentTest` 13/13 + `TripSettingsContentTest` 36/36，合并 connected 49/49；仅更新上述 Batch 1 证据，不提升其他 frame。
 - [ ] Batch 1 physical 完成限制：已记录 Huawei ALN-AL00 的实际 production UI 操作；但六帧尚未以严格匹配 Pencil fixture 数据逐项复现，精确终态仍由自动化证明，Device UI 保留 partial/限制说明。
@@ -528,6 +528,60 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 
 - [x] 适用 focused connected 已在 AVD 执行；Huawei production installed app + RealAmap 的 Xs→加入行程→p4、地图保留、同 sheet 编辑与保存回流已验收。保存 busy 窗口的 Back/关闭锁仍由 AVD controlled delayed repository 证明，不冒充真机可观察证据。
 
+### 2026-09-06 · Visual Batch 1 · 我的旅行列表族视觉收敛
+
+- 实现：根据 `K9h3r` / `wJ51c` / `pgrb6` 的可见结构，将主卡收敛为 20dp 圆角深绿“下一站”信息卡，展示真实日期范围、天晚数、地点数、旅行日数和准备度；进度条无障碍描述使用原始计数“已安排 X/Y 个收藏地点”。倒计时统一为“日期待定 / 还有 N 天 / 旅行中 / 已结束”。其他旅行行保留整行进入与独立菜单，并增加无重复点击语义的 36dp 视觉箭头；创建入口为右下 142×52dp 胶囊。
+- 数据：旅行列表 Room observable projection 同时统计 `dayCount`、`placeCount`、`scheduledDistinctPlaceCount`；同一收藏地点跨天重复安排只计一次。准备度为已安排去重收藏地点数 / 收藏地点总数，0 地点为 0%；日期、倒计时和百分比只在 UI 层派生，不持久化。
+- 响应式：Header 使用 69dp 最小高度；普通高度固定 Header、主卡和创建入口，仅滚动其他旅行。单旅行短高、320×700 与 2×字体进入共享滚动降级，创建入口仍固定可达。
+- 自动化验证：fresh `testDebugUnitTest`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check` 全部通过。仅在 `emulator-5554` 执行指定 connected 集合，`RoomTripRepositoryTest`、`TripListContentTest`、`TripFlowTest`、`TripSettingsNavigationTest`、`V1ScenarioMetadataTest`、`V1ScenarioCatalogTest` 合计 149/149 通过；最终 scoped review 无 Critical / Important。
+- 设备验证：AVD production installed app 实际创建 `VisualCheck` 三日旅行并返回列表，确认深绿主卡、日期待定、`3天2晚`、`0 个地点`、`3 天行程`、0% 准备度和右下创建胶囊可见，无严重裁切。Huawei ALN-AL00 仅以 `adb install -r` 覆盖 production debug APK，未安装或运行 test APK、未卸载、未清数据、未改权限；设备当时停留在锁屏且需人脸/指纹解锁，无法完成应用内列表验收，因此 Huawei 视觉与触控仍为 NOT-RUN。
+- Graphify：开始前执行 `graphify query` 定位相关代码。早期 Task 1 曾提前运行 `graphify update .` 并改写生成物；最终未再次运行，因为仓库 `.gitignore` 未排除用户要求隔离的 `.kotlin/`、`diagrams/`，不能保证更新不扫描这些目录。当前图谱可能落后于最终修复，作为已知非阻塞维护项保留。
+- 约束与边界：未修改 `.pen`、`.kotlin/`、`diagrams/`；未 commit、未 push。AVD 临时旅行保留，不清应用数据。本批不改变证据矩阵 PASS/PARTIAL/PENDING 数量，也不把 Compose controlled state 或 AVD 结果冒充实体设备 evidence。
+- 下一批入口：继续按视觉差异优先级收敛创建/设置日期的 range-calendar sheet，或工作台行程编辑/全程路线的信息架构；剩余专项证据继续暂停。
+
+### 2026-09-06 · Batch 2 / Task 2 · 创建旅行范围驱动
+
+- 实现：`CreateTripUiState` 改持有 `startDate/endDate`，以闭区间派生 `dayCount`；生产 UI 移除独立天数输入与“日期待定/指定日期”切换。创建必须确认完整范围，`DateRangeChanged` 一次原子提交开始/结束日期，validator 映射既有 `CreateTrip(startDate, dayCount)`。`SavedStateHandle` 持久化两端日期；旧 `startDate + dayCount` 草稿兼容推导结束日期，不完整旧草稿必须重选范围，且会清除旧 requestId；完整、语义等价的范围仍保持 requestId 重试语义。
+- Sheet：创建页接入共享 `TripDateRangePickerModalHost` / `TripDateRangePickerSheet`，背景语义在 modal 打开时隔离；取消、Back 和 scrim 仅关闭本地 sheet 草稿，确认一次才 dispatch `DateRangeChanged`。
+- 测试：更新 CreateTrip validator/ViewModel、Content、Route、TripFlow、V1 scenario、Pencil flow、Room replay 与视觉 fixture，覆盖必填完整范围、闭区间映射、保存恢复/旧草稿迁移、requestId、确认一次和取消不提交。
+- 自动化验证：`CreateTripValidatorTest` + `CreateTripViewModelTest` JVM 通过；`compileDebugAndroidTestKotlin` 通过；`CreateTripContentTest` 7/7、`CreateTripRouteTest`、`TripFlowTest` 6/6、`V1ScenarioCatalogTest` 47/47 均在 `emulator-5554`（`easy_trip_p60pro(AVD) - 12`）通过。
+- 设备验证：仅完成上述 AVD instrumentation；尚未进行 Huawei 生产 UI 或真实 AMap 验收。
+- 约束：未修改 `.pen`、`.kotlin/`、`diagrams/`，未 commit、未 push。Graphify outputs 留待安全隔离扫描后统一维护。
+
+### 2026-09-06 · Batch 2 / Task 3 · 设置日期范围原子平移
+
+- 实现：`DateRangeChangeRequest` 扩展为快照 `baselineStartDate`（可空）和非空 `targetStartDate/targetEndDate`；`TripDateRangeService` 始终按目标闭区间计算 1–30 天的 ordinal prefix，预览/提交仍携带开始日期及有序 day ID 快照。`DateRangeApply.expectedStartDate` 同样可空，Room 单事务先校验旧开始日期、day ID 与待删除内容快照，再写目标开始日期并扩缩 `trip_days`；不增加 `endDate` 列。相同长度平移保留所有 day ID 与内容，扩展保留前缀并追加，缩短级联尾部 content，SavedPlace 保留；未定日期可原子转已定。
+- TDD：JVM 先以新的目标范围和 nullable snapshot API 编译 RED；增加平移范围完成判定后得到 RED（仍按 baseline 校验 startDate），最小修复转 GREEN。Room instrumentation 覆盖同长度平移内容保留、平移扩展、平移缩短级联及收藏保留、未定→已定、ID factory 失败 rollback；domain 覆盖 LocalDate MIN/MAX 与 30 天边界。`SchemaTest` 断言 `trips` 有 `startDate` 且无 `endDate`。
+- 自动化验证：`TripDateRangeServiceTest` 与平移 completion focused JVM 通过。Task 3 当时曾在 emulator-5554 和 Huawei ALN-AL00 运行 `TripDateRangeRoomTest` / `SchemaTest`；Huawei instrumentation 违反本批最终设备约束，记录标记 **INVALID**，不计入任何自动化或物理验收证据。有效 Room/Schema 证据以 Task 6 在 `emulator-5554` 的最终重跑为准。
+- 设备验证：本任务仅运行 in-memory Room instrumentation，不作生产 UI/真实 AMap 手工验收；未提前实现 Task 4 日期范围 UI 状态机。
+- 约束：未修改 `.pen`、`.kotlin/`、`diagrams/`，未 commit、未 push；Graphify 更新待安全隔离扫描统一执行。
+
+### 2026-09-06 · Visual Batch 2 / Task 4 · 设置范围选择状态机
+
+- 实现：设置页改用与创建页共享的 `TripDateRangePickerSheet`，`DateRangeChangeUiState` 同时保存 baseline/draft 的开始与结束日期；已定旅行选择完整闭区间。未定旅行已有 N 个旅行日时只选择开始日，Sheet 自动形成同长度结束日；`fixedDayCount` 进入 remember key，运行中长度变化会重新推导 selection，提交时使用当前长度，domain 再次拒绝不同长度请求并原样呈现保留天数提示，确保 day IDs/content 不被扩缩。日期行显示完整 range 与 `N天M晚`；范围中间日期除背景色外还有连续 2dp 连接条。取消、系统 Back 与 scrim 只关闭本地 Sheet 草稿，paired range 只提交一次；平移、扩展、缩短继续复用 preview/impact/apply/Room 回读及 ViewModel single-flight/互斥状态机。
+- 自动化验证：focused `TripSettingsViewModelTest`、`TripDateRangePickerSheetTest`、`TripSettingsContentTest` 均在 `emulator-5554` 通过；`compileDebugKotlin`、`compileDebugAndroidTestKotlin`、`assembleDebug`、`lintDebug`、`git diff --check` 通过。所有 connected 命令均显式 `ANDROID_SERIAL=emulator-5554`，未在 Huawei 运行 instrumentation。最终 fresh 数量以 Task 6 报告为准，不沿用 Task 4 中途测试计数。
+- 证据边界：本 Task 为 controlled state / production content 自动化，不单独证明 Room 持久化；Room 与 production AppNavigation 联合证据由 Task 6 提供。IKTv5 旧 Huawei 手工记录来自已被替换的文本日期 Sheet，已标记 INVALID，不能作为新版范围日历证据；新版 Huawei 必须 fresh 验收。未修改 `.pen`、`.kotlin/`、`diagrams/`，未运行 `graphify update .`，未 commit、未 push。
+
+### 2026-09-06 · Visual Batch 2 / Task 6 · Production 导航与 Room 集成收口
+
+- 自动化集成：`TripSettingsNavigationTest.productionRangeTripShiftShrinkCancelConfirmAndGrowthPersistExactlyOnce` 使用 production `AppNavigation`、`TripService`、`TripSettingsViewModel`、共享范围 Sheet和 in-memory `EasyTripDatabase`。测试从空列表经生产创建入口创建三日 `Range 旅行`，为首日、中间日和末日写入可识别的 SavedPlace、ItineraryItem 完整字段及相邻 RouteLeg。
+- 平移：在设置页把 2026-10-01…03 同长度平移至 2026-10-08…10，断言旧 day ID 顺序和首/末日可识别 content 实体原样保留。
+- 缩短：先选择两日范围并取消，断言数据库零变化；再次选择并确认，只级联删除尾日 Item/RouteLeg，旧 day ID 前缀、前两日完整 content 和全部 SavedPlace 保留。
+- 扩展：再扩为四日，断言旧 day ID 前缀保持、新增尾日 ID 由 Room 生成且新增日 Item/RouteLeg 为空。每次范围操作只点击一次确认；真正的 exactly-once 写入由既有 ViewModel single-flight 单元测试证明，本 integration 只证明单次 UI 操作链。最终 Settings → Workspace → Trip List 回栈正确，navigation observer 仅记录 create、workspace、settings 三次生产导航。
+- 既有 Room 契约：`TripDateRangeRoomTest` 继续单独覆盖 snapshot 变化拒绝、rollback、LocalDate 边界、未定→已定同长度保持、同长度平移、扩缩级联与 SavedPlace 保留；删除尾部快照使用有序完整 `ItineraryItemEntity` / `RouteLegEntity` typed lists，data-class 全字段比较使等量替换同样拒绝并回滚。Task 6 integration 只补 production AppNavigation 与真实 Room 串接的最小缺口。LocalDate MIN/MAX 月历与边界月份导航另由 picker state/Compose 测试证明。
+- Task 3 证据纠正：Task 3 早期曾在 Huawei ALN-AL00 运行 `TripDateRangeRoomTest` / `SchemaTest` instrumentation；该运行违反最终 connected 设备约束，明确不作为 Visual Batch 2 验收证据，也不冒充 production UI/手工证据。最终所有 Task 6 connected suites 均显式固定 `ANDROID_SERIAL=emulator-5554`。
+- 自动化门禁：`./gradlew :app:testDebugUnitTest :app:assembleDebug :app:assembleDebugAndroidTest :app:lintDebug` fresh 通过（736 JVM tests）；`ANDROID_SERIAL=emulator-5554 ./gradlew :app:connectedDebugAndroidTest -Pandroid.testInstrumentationRunnerArguments.class=<TripDateRangePickerSheetTest,CreateTripContentTest,CreateTripRouteTest,TripSettingsContentTest,TripDateRangeRoomTest,TripSettingsNavigationTest>` 80/80；同设备 `<TripFlowTest,V1PencilFlowTest,V1ScenarioCatalogTest,SchemaTest>` 64/64；最终 residual `<CreateTripContentTest,TripSettingsContentTest#undatedThreeDayTripSelectsStartAndKeepsExistingLength,TripDateRangePickerSheetTest>` 19/19；最终 V1 catalog + metadata 94/94；`git diff --check` 通过。以上命令与计数直接记录于计划，不依赖 gitignored task report。
+- 设备边界：Task 6 自动化仅执行 emulator-5554 instrumentation；随后主会话已完成 Huawei production UI fresh 验收，详见下方完成条件。未读取或修改 `.pen`，未触及 `.kotlin/`、`diagrams/`；未 commit、未 push。
+
+### Visual Batch 2 完成条件
+
+- [x] 共享 1–30 天闭区间选择器及创建页范围驱动完成。
+- [x] 设置页支持同长度平移、扩展、缩短影响确认、取消和单次提交。
+- [x] Room 原子应用保留 ordinal day ID 前缀，扩展只追加空日，缩短只删除尾日内容且保留 SavedPlace。
+- [x] production AppNavigation + in-memory Room 自动化闭环覆盖创建、首/末日内容、平移、缩短取消/确认、扩展、持久化与回栈。
+- [x] 最终 connected 自动化仅使用 `emulator-5554`；Task 3 Huawei instrumentation 已降级为无效验收证据。
+- [x] Huawei production UI fresh 验收：仅 `adb install -r` 覆盖 production debug APK；在空安装态从 `PnhPb` 创建 `RangeHuawei`，打开 `YYo6U` 共享范围日历，选择 2026-09-08…09，确认摘要 `2天1晚` 后创建进入工作台；由工作台进入设置，`U06l7P` 显示完整范围与天晚数，打开 `IKTv5` 新版范围日历并将同长度范围平移至 2026-09-10…11，Room 回流后两个原旅行日连续更新，返回列表卡片同步显示新范围。未运行 test APK、未卸载、未清数据、未改权限；新建旅行保留。
+
 ### 2026-09-03 · Batch 6 / Task 7 · 响应式、IME 与无障碍矩阵
 
 - `P7k0M` / `E3EhSv`：PASS。`ItineraryTimelineContentTest` 以 production `RouteLegContent`、280dp 容器、设备原 density 与 2x fontScale 验证等待联网文案和离线 contentDescription、等待态无编辑/重试、失败标题/详情/唯一重试、Ready sibling 可编辑；Waiting/Failed 均为 Polite live region。retry 使用同一 Compose root 的 `getUnclippedBoundsInRoot` 验证至少 48dp、位于容器和失败路段内，且不与标题、详情或相邻编辑操作重叠。父状态容器不再设置重复 contentDescription；失败 error 为空时只呈现一次“路线计算失败”。
@@ -540,6 +594,66 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 - TDD：路线 Waiting/Failed、地图 Loading/Failed、JFhZ7 body API、EHOHC body API/整行单一 checkbox 语义、OOEsk live region/2x 短高 footer、失败状态重复播报和四类标题 heading 均先得到预期 RED，再以最小生产修改转 GREEN。
 - 自动化验证：四类合并曾通过 121/121；最终语义变更后的合并运行在 109/121 时遭遇 instrumentation process SIGKILL，失败点 `itemMenuActionsOpenBusinessOverlaysForSameItem` 单独复跑通过。随后按类稳定复跑 `WorkspaceFlowTest` 61/61，以及 `ItineraryTimelineContentTest` + `ItineraryEditingTest` + `WorkspacePermissionFlowTest` 60/60。审查收紧后的真实 IME 与单次 Back focused 分别复跑 1/1；两项首次合并复跑在第一项已通过后 instrumentation process crash，拆分类复跑均通过。末轮新增的短高 OOEsk、默认失败不重复播报、EHOHC shared body、heading 与 checkbox focused 矩阵 8/8 通过。
 - 证据边界：PASS 仅指 production Composable / production AppNavigation + controlled state / AVD instrumentation。PhysicalDevice：NOT-RUN；真实 AMap/MapView：NOT-RUN；系统定位权限与设置页面：NOT-RUN；独立 Dialog 280dp window bounds：NOT-RUN。未运行会生成 PNG 的 `VisualBatch0EvidenceTest` 全类。
+
+### 2026-09-06 · Visual Batch 3 · 工作台行程信息架构
+
+- 实现：单日行程在同一 `DayItineraryContent` 内增加“第 N 天 · M 站”摘要；全程行程增加“全程 · N 天 · M 站”摘要，并在已知旅行开始日期时将每个分组标为连续日期与旅行日。全程仍仅复用只读地点/路段 primitive，未暴露拖动、菜单、编辑、删除或失败重试。编辑器增加 `imePadding` 与稳定 host test tag，未改变 ViewModel、Room 事务、地图 scope、权限或路线算法。
+- 生产 fixture：`V2AcceptanceTest` 新增三日、第二日空、八站、SUCCESS/FAILED/WAITING_NETWORK 路段与可识别 metadata 的 Room fixture；production `AppNavigation` + recording fake map 在同一 fixture 下明确验证 day → whole → day 的 `MapScope`、selectedDayId、marker 4→8→4 与合法同日 polyline 1→1→1，并覆盖全程只读、Room 编辑回流、重开持久值、删除后 SavedPlace 保留及 bridge route。
+- TDD：新增全程摘要/连续日期、单日摘要、编辑器 host root、Room fixture、production 单日/全程同步与编辑删除回流用例；先以缺少 `startDate` API 得到预期编译 RED，再最小接线转绿。fixture 初始将 PENDING leg 直接传给 `waitForNetworkIfVersionMatches` 失败；已定位 DAO 该操作仅接受 `PENDING`，在 fixture 中保持由离线 repository 产生的 `WAITING_NETWORK` 初始状态，不修改生产路线状态机。
+- 自动化：全程尾部空间改为可定位的 24dp `whole-trip-bottom-spacer`，测试滚动至 spacer 后验证末项边距；zoom 超时定位为测试 fixture 的 HALF bottom sheet 覆盖控件坐标、点击误命中行程 tab，fixture 改为 COLLAPSED 后恢复真实 `performClick()`。`V2AcceptanceTest` 的 Room closed 竞态定位为 teardown 先关数据库、后卸载 Compose，现改为先 `setContent {}`、再取消 observation scope、最后关闭 Room。最终 fresh `ANDROID_SERIAL=emulator-5554` 目标 connected 集合 80/80；`./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest lintDebug` 通过；`git diff --check` 通过。最终 scoped review 未发现 Critical/Important。
+- Huawei production：仅以 `adb install -r` 覆盖 production debug APK，未安装 test APK、未卸载、未清数据、未直接操作数据库、未改变 Android 系统权限。覆盖后列表为空，旧 `RangeHuawei` 不可见，原因未知；通过 production UI 新建并保留 `Batch3Huawei`（2026-09-08…09），进入工作台后选择“暂不允许”应用内高德地图隐私同意，验证地图未启用 fallback、本地点/行程仍可用、地点池与行程 tab 可切换、空行程状态无崩溃或严重裁切。自然数据不足，未在 Huawei 验证单日/全程多站路线、地点编辑、路段编辑、删除与真实 AMap；不以 fake map 或自动化 fixture 冒充该证据。
+- Graphify：开始前已 query。由于仓库未隔离 `.kotlin/` 与 `diagrams/`，本批未执行最终 `graphify update .`，图谱可能落后于改动；当前 git status 未出现 Graphify 生成物变更。
+- 约束：未读取、修改或清理 `.kotlin/`、`diagrams/`、`design/easy-trip-v2.0.pen`；未 commit、未 push。高德地图隐私同意为应用内 gate，本批未改动 Android 系统权限。
+
+### 2026-09-06 · Visual Batch 4 · 地点发现与加入行程
+
+- 设计映射：`A9EKX/jQhXs/lsr1I` → `PlacePoolContent` / `SavedPlaceRow` / `PlacePoolUiState` / 工作台 `PLACE_POOL`；`ofdn5/s1OvvX/S0psO/GJo79` → `PlaceSearchContent` / `PlaceSearchUiState` / 独立 search destination；`p4G1tS/XsGon` → `WorkspacePlaceDetailSheet` + `PlaceDetailPanel` / `WorkspaceOverlay.PlaceDetail`；`xQfD0/cRdBn/p7U8B/yNKT4/mGhKO/D3XZi` → `SelectTargetDayContent` / `AddToItineraryUiState` / 工作台互斥 overlay。
+- 批次裁决：搜索四态、连续收藏、搜索详情地图模式和加入行程多日/结果状态已有生产闭环及自动化，本轮不重写 reducer、Room、地图 host 或提交状态机。视觉改动集中在地点池行的信息层级和地点详情入口语义：地点池行补通用地点图标，名称/地址允许两行并保持 `＋`/更多固定 48dp；已安排地点详情不重复提供加入行程，仅收藏地点详情保留该入口；安排摘要未知时不猜测可加入能力。单地点入口继续使用语义更准确的 `editingTarget = ForPlace(placeId)`，不退回旧记录中的 `FromPlacePool`。
+- 测试映射：`WorkspacePlacePoolLayoutTest` 覆盖长文本、窄宽、2×字体和固定操作区；`PlaceDetailPanelTest` 覆盖搜索/已安排/仅收藏/未知安排能力矩阵及保存锁；`PlacePoolFlowTest`、`WorkspaceFlowTest` 覆盖整行详情、行级单地点加入、目标日选择、结果/撤销和 Back。所有 connected 命令仅允许显式 `ANDROID_SERIAL=emulator-5554`。
+- 实现结果：`SavedPlaceRow` 增加不伪造类别数据的通用地点图标，名称和地址各最多两行，安排状态/备注/标签合并为底部辅助信息；右侧 `＋` 与更多操作保持独立 48dp。地点池详情仅在安排状态已知且次数为 0 时显示“加入行程”，已安排、状态未知和搜索详情不显示。搜索结果头标题可收缩、数量徽章保持可见；无坐标候选不再被 UI 层阻断收藏，由 repository 返回明确持久化错误，详情地图仍安全降级。
+- 自动化验证：TDD 首轮 `PlaceDetailPanelTest` 18 项中 3 项按预期 RED；最终 `ANDROID_SERIAL=emulator-5554` 执行 `PlaceDetailPanelTest`、`PlaceSearchContentTest`、`WorkspacePlacePoolLayoutTest` 合计 50/50。`compileDebugAndroidTestKotlin`、`assembleDebugAndroidTest`、`git diff --check` 通过；最终 scoped review 无 Critical/Important。
+- Huawei production：仅以 `adb install -r` 覆盖 production debug APK；现有自然旅行“登封”及 6 个收藏地点可见。地点池新行结构显示通用图标、名称、地址和安排状态，右侧 `＋`/更多固定可达；打开已安排“少林寺”详情后显示“已加入行程 / 第 1 天 · 1 次 / 编辑 / 删除”，且没有重复“加入行程”入口。未安装 test APK、未卸载、未清数据、未直接操作数据库、未确认删除或改变系统权限。仅收藏详情因当前可见列表区域未找到可确认的仅收藏自然地点，未作真机结论。
+- Graphify：实现 Agent 运行了 `graphify update .`，当前生成物已更新；报告 4 个未触及文件的解析 warning：`TripDateRangePickerSheetTest.kt`、`TripWorkspaceContentTest.kt`、`NetworkMonitor.kt`、`RoutePlanner.kt`。未读取或修改 `.kotlin/`、`diagrams/`，未修改 `.pen`，未 commit、未 push。
+
+### 2026-09-06 · Visual Batch 5 · 工作台更多菜单
+
+- 设计映射：`ijpZD` → `WorkspaceTopBar` + 新工作台更多菜单 surface；`TripWorkspaceUiState.overlay` / `WorkspaceOverlay.MoreMenu` 作为唯一互斥状态；三项操作分别连接 `TripWorkspaceAction.OpenSettings`、现有高德隐私授权入口和 `TripWorkspaceAction.Back`，不建立局部 Boolean 或平行导航状态。
+- Pencil 事实：顶部三点按钮打开右上菜单，包含“旅行设置 / 修改名称、日期和旅行日”“地图授权 / 管理高德地图权限”“返回我的旅行 / 回到旅行列表”；菜单浮于地图和行程 Sheet 上方，点击外部或 Back 关闭。
+- 实现边界：保留现有设置 route、地图授权 gate、返回列表导航与 `WorkspaceOverlay.LayerMenu`；只增加菜单 surface、overlay 排他、scrim/Back 和动作接线，不改变 Room、地图 SDK、权限系统或工作台业务状态。
+- 测试映射：`WorkspaceChromeTest` 覆盖菜单几何、三项内容、scrim 与已有 modal 排他；`WorkspaceFlowTest` 覆盖 overlay/Back/授权行为；`TripSettingsNavigationTest` 验证经菜单进入设置并正常回栈；场景 16 从“直达设置”更新为 production 更多菜单路径。所有 connected 命令仅允许显式 `ANDROID_SERIAL=emulator-5554`。
+- 实现：新增 `WorkspaceOverlay.MoreMenu` 和 `WorkspaceMoreMenu`，顶部三点只在没有其他 overlay 时打开菜单；点击外部或 Back 关闭，三个菜单动作均先关闭 overlay，再复用现有设置、隐私授权和返回列表动作。菜单 fit 不足时自动关闭，不与 LayerMenu 或保存/确认 modal 共存。菜单采用最大 260dp 的可滚动容器，确保 2×字体时第三项仍可达。为修复既有 280×280dp、2×字体下地图恢复按钮与 tabs 约 2dp 重叠，将常规 workspace sheet header 从 68dp 调整为 72dp；声明支持的 92dp 极小窗口继续使用 86dp 折叠锚点和 68dp compact header，为摘要保留 18dp 可见空间。
+- 自动化验证：`compileDebugKotlin`、`compileDebugAndroidTestKotlin` 通过；首次 `WorkspaceChromeTest + TripWorkspaceContentTest` 55 项暴露 4 项测试/小窗问题，修复旧直达设置预期、controlled overlay 驱动和恢复按钮边界后，最终 fresh 55/55 通过；菜单导航联合 `TripSettingsNavigationTest + WorkspaceChromeTest + TripWorkspaceContentTest` 61/61 通过。Visual Batch 4–6 合并目标集 `PlaceDetailPanelTest + PlaceSearchContentTest + WorkspacePlacePoolLayoutTest + WorkspaceChromeTest + TripWorkspaceContentTest + TripSettingsContentTest + TripSettingsNavigationTest` 148/148；场景 16/25、V2 主链和已安排详情旧契约修正后 49/49。完整 connected 741 项曾运行至 703 项通过、2 项跳过、36 项失败：其中 34 项是未注入隐私同意的真实 AMap smoke/生命周期环境失败，3 个与本次改动相关的旧契约已定向修复并通过（计数存在重叠）；不把该次全量运行记为绿。full JVM 739/739、assembleDebug、assembleDebugAndroidTest、lintDebug、`git diff --check` 通过。最终 scoped re-review 提出的动作关闭时序、菜单高度、大字体第三项可达性和极小窗口摘要问题已修复；修复后复审无 Critical/Important。
+- 设备验证：仅以 `adb install -r` 覆盖 Huawei production debug APK，现有自然旅行“登封”及 6 个收藏地点可见。`ijpZD` 三点菜单实机显示三项图标、标题和说明，无裁切；“旅行设置”正确关闭菜单并进入 `U06l7P`，系统 Back 返回工作台时菜单不残留；“地图授权”正确关闭菜单并打开应用内高德隐私说明，系统 Back 回到工作台且菜单不残留；“返回我的旅行”正确回到列表。`J7PZ7u` 在真实 4 日/6 收藏/3 行程项/2 路线段状态下显示结构化“将删除 3 个行程项、2 个路线段 / 将保留 6 个收藏地点”，仅取消未确认删除。未安装 test APK、未卸载、未清数据、未直接操作数据库、未确认授权或删除、未改变系统权限；未修改 `.pen`、`.kotlin/`、`diagrams/`，未 commit、未 push。
+
+### 2026-09-06 · Visual Batch 6 · 设置与危险操作复核
+
+- Pencil/代码核对：`U06l7P` 的分组设置结构、`IKTv5` 的范围日历与固定操作区、`oW9mK` 的旅行删除影响卡均无 Critical/Important 结构差异。`IKTv5` 22dp 与设计约 20dp 顶角属于非阻塞微差。
+- 实现：修复 `J7PZ7u` 单日删除确认。原实现把行程项、路线段和保留收藏数量拼入单段 message，导致共享 `ConfirmationDialog` 不展示设计中的“将删除 / 将保留”摘要卡；现将行程项和路线段计数放入 `deletedItems`，收藏地点计数放入 `retainedItems`，保留不可撤销和后续日期编号/路线变化说明。未修改状态机、Room、导航或共享 Dialog。
+- 自动化验证：TDD 先修改结构断言得到预期 RED；最终 `ANDROID_SERIAL=emulator-5554` 的 `TripSettingsContentTest` 37/37，`assembleDebugAndroidTest`、`git diff --check` 通过。
+- 设备与证据边界：Agent 在 RED 阶段误执行一次未限定 serial 的 connected 命令，instrumentation 同时启动到 emulator 与 Huawei；该 Huawei 运行违反设备约束，明确无效且不作任何证据。后续 connected 均固定 `emulator-5554`。新版 `IKTv5` Huawei fresh 验收已记录在 Visual Batch 2；场景矩阵中的旧 PENDING/INVALID 条目需最终账本统一，不代表生产 UI 未实现。
+- 约束：未修改 `.pen`，未读取或修改 `.kotlin/`、`diagrams/`，未 commit、未 push。
+
+### 2026-09-06 · Visual Batch 7 · 旅行日管理入口
+
+- 审计发现：`U06l7P` 设计要求旅行日添加、排序和更多操作，现有设置页仅提供删除；领域层已有 `TripService` / Room 的新增和移动能力。实施须以既有日期范围连续性和 day ID/content 契约为约束，不能为对齐截图引入会破坏日期语义的平行状态。
+- 实现：设置页增加“添加一天”、48dp 旅行日操作区和更多菜单；追加复用 `TripService.appendTripDay`，保持 startDate 与既有 day ID/content。未定日期旅行可重排；已定日期旅行按连续日期顺序固定，并在 UI、ViewModel、TripService 三层拒绝重排。dayManagement 与日期/删除写入互斥，进行中锁定顶部返回、完成和系统 Back。
+- 自动化：`TripSettingsViewModelTest` 与 `TripServiceTest` focused JVM 通过；`TripSettingsContentTest + TripSettingsNavigationTest` 44/44。新增区域使 220dp 测试容器中的日期行需要滚动后才能点击，两个 Sheet 几何测试修正为先 `performScrollTo()`，随后 2/2 及整组通过。`compileDebugKotlin`、`compileDebugAndroidTestKotlin`、静态全量门禁和 `git diff --check` 通过。最终 scoped review 无 Critical/Important。
+- Huawei fresh：Huawei ALN-AL00 仅以 `adb install -r` 覆盖 production debug APK，保留自然旅行“登封”（2026-09-30…10-03，4 天、6 个收藏、3 个当日站点），未安装 test APK、未卸载、未清数据、未改权限。工作台更多→旅行设置实际显示“添加一天”、4 个旅行日操作区和“已设置日期的旅行日按日期连续排列”；已定日期旅行未暴露重排操作。为避免破坏自然数据，未点击“添加一天”或删除；追加事务、未定日期重排和写入锁仍由 JVM/AVD 自动化证明，不冒充真机写入证据。
+
+### 2026-09-06 · Visual Batch 8 · 行程编辑入口
+
+- 审计发现：`K336N` 缺“再次安排这个地点”直达入口；`T7aESo` 缺路段起终点、状态/距离/预计耗时上下文及合法重算入口。实施须复用既有 Add-to-Itinerary、RouteRefreshCoordinator/失败重试和 metadata-only 规则，不能复制 Room 实体或伪造成功路段的重算能力。
+- 实现：`ItineraryItemUi/EditDraft` 保留 SavedPlace ID/name；生产 workspace 明确开启“再次安排”菜单与编辑器入口，复用 `AddToItineraryViewModel.startForPlace` 进入多目标日选择。独立 `DayItinerarySheet` 默认不暴露无法完成的动作。RouteLeg 行和编辑浮层展示起终点、当前状态、距离、预计耗时；切换方式时按钮明确“保存并重新计算路线”，仍调用现有 coordinator，metadata-only 保存保持原边界。
+- 一致性修复：valid place reconcile 改用 `PlacePoolUiState.savedPlaceIds` 的全量 SavedPlace ID 集合，不再被当前标签筛选 rows 截断；ScheduleAgain 只有在 `startForPlace` 成功后才关闭当前编辑草稿并打开目标日 overlay，失败时保留草稿。
+- 自动化：`ItineraryTimelineContentTest + WorkspaceFlowTest#itineraryItemScheduleAgainReusesSinglePlaceTargetDaySelection` 48/48；首次再次安排测试超时的根因是 controlled `PlacePoolUiState` 未包含有效 SavedPlace，补真实全量 `savedPlaceIds` 语义后通过。focused 编译、静态全量门禁和 `git diff --check` 通过。最终 scoped review 无 Critical/Important。
+- Huawei fresh：在上述 production installed “登封”自然数据中进入第 1 天 3 站行程，打开“少林寺”行程项菜单，确认“再次安排这个地点”可达，并实际进入单地点目标日选择；页面显示第 1 天已安排 1 次、第 2–4 天尚未安排，随后用系统 Back 取消，未提交重复安排。打开“少林寺 → 少林寺-碑林”路段编辑，确认展示“已规划 · 141 米 · 预计 1 分钟”、步行/打车/驾车/公交/推荐方式、预计耗时和备注，未保存修改。当前地图因应用内 AMap consent 未启用而显示 fallback，因此本次只证明 production UI + 真实安装态 Room 的入口与上下文，不声明 RealAmap；`startForPlace` 失败保留草稿仍由 AVD 自动化证明。
+
+### 2026-09-06 · Visual Batch 7–8 · 最终合并门禁
+
+- `ANDROID_SERIAL=emulator-5554` 合并执行 `TripSettingsContentTest`、`TripSettingsNavigationTest`、`ItineraryTimelineContentTest` 与 `WorkspaceFlowTest#itineraryItemScheduleAgainReusesSinglePlaceTargetDaySelection`，92/92 通过。
+- fresh `./gradlew testDebugUnitTest assembleDebug assembleDebugAndroidTest lintDebug` 成功；`git diff --check` 通过。全量 connected 的既有真实 AMap consent 环境失败不在本轮重复运行，也不被定向绿色集合覆盖或改写。
+- `graphify update .` 已在 `.git/info/exclude` 本地排除 `.kotlin/`、`diagrams/` 后执行，生成 7098 nodes / 16653 edges / 386 communities。仍报告 4 个部分解析 warning：`TripDateRangePickerSheetTest.kt`、`TripWorkspaceContentTest.kt`、`NetworkMonitor.kt`、`RoutePlanner.kt`；Kotlin 编译、AndroidTest 编译和目标 connected 均通过。该本地 exclude 不进入仓库提交。
+- 未修改 `.pen`，未读取或修改 `.kotlin/`、`diagrams/`，未 commit、未 push。
 
 每次完成一批后追加：
 

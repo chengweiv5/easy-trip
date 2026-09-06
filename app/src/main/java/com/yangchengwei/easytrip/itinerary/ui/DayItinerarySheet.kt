@@ -15,15 +15,32 @@ import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as Tex
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.ui.component.EmptyState
 
 @Composable
-fun DayItinerarySheet(viewModel: DayItineraryViewModel, modifier: Modifier = Modifier) {
+fun DayItinerarySheet(
+    viewModel: DayItineraryViewModel,
+    modifier: Modifier = Modifier,
+    onScheduleAgain: ((String) -> Unit)? = null,
+) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
-    DayItineraryContent(state, modifier, viewModel::dispatch)
+    DayItineraryContent(
+        state = state,
+        modifier = modifier,
+        onAction = { action ->
+            if (action is DayItineraryAction.ScheduleAgain) {
+                onScheduleAgain?.invoke(action.itemId)
+            } else {
+                viewModel.dispatch(action)
+            }
+        },
+        canScheduleAgain = onScheduleAgain != null,
+    )
 }
 
 sealed interface DayItineraryAction {
@@ -33,6 +50,7 @@ sealed interface DayItineraryAction {
     data class PreviewMove(val itemId: String, val target: Int) : DayItineraryAction
     data class CommitMove(val itemId: String, val target: Int) : DayItineraryAction
     data class RequestTiming(val itemId: String) : DayItineraryAction
+    data class ScheduleAgain(val itemId: String) : DayItineraryAction
     data class RequestCrossDay(val itemId: String) : DayItineraryAction
     data class RequestDelete(val itemId: String) : DayItineraryAction
     data class RequestMode(val legId: String) : DayItineraryAction
@@ -58,8 +76,20 @@ fun DayItineraryContent(
     modifier: Modifier = Modifier,
     onAction: (DayItineraryAction) -> Unit,
     showDialogs: Boolean = true,
+    canScheduleAgain: Boolean = false,
 ) {
     Column(modifier.padding(12.dp)) {
+        if (state.items.isNotEmpty() && state.selectedDayId != null) {
+            val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
+            Text(
+                text = if (dayNumber == null) "${state.items.size} 站" else "第 $dayNumber 天 · ${state.items.size} 站",
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.primary,
+                modifier = Modifier
+                    .testTag("day-itinerary-summary")
+                    .semantics { heading() },
+            )
+        }
         if (state.items.isNotEmpty() && state.selectedDayId != null) {
             TextButton(
                 { onAction(DayItineraryAction.AddPlaces) },
@@ -100,25 +130,29 @@ fun DayItineraryContent(
             itemsIndexed(displayItems, key = { _, item -> item.id }) { index, item ->
                 val id = item.id
                 ItineraryItemRow(
-                    item,
-                    index,
-                    displayItems.size,
-                    { onAction(DayItineraryAction.PreviewMove(id, it)) },
-                    { onAction(DayItineraryAction.CommitMove(id, it)) },
-                    { action ->
+                    item = item,
+                    index = index,
+                    count = displayItems.size,
+                    onPreview = { onAction(DayItineraryAction.PreviewMove(id, it)) },
+                    onCommit = { onAction(DayItineraryAction.CommitMove(id, it)) },
+                    onMenuAction = { action ->
                         onAction(
                             when (action) {
                                 ItineraryItemMenuAction.EditTiming -> DayItineraryAction.RequestTiming(id)
+                                ItineraryItemMenuAction.ScheduleAgain -> DayItineraryAction.ScheduleAgain(id)
                                 ItineraryItemMenuAction.MoveToOtherDay -> DayItineraryAction.RequestCrossDay(id)
                                 ItineraryItemMenuAction.Delete -> DayItineraryAction.RequestDelete(id)
                             },
                         )
                     },
+                    canScheduleAgain = canScheduleAgain && item.placeId != null,
                 )
                 val next = displayItems.getOrNull(index + 1)?.id
                 visibleLegs.firstOrNull { it.fromItemId == id && it.toItemId == next }?.let { leg ->
                     RouteLegRow(
                         leg = leg,
+                        fromPlaceName = displayItems[index].name,
+                        toPlaceName = displayItems[index + 1].name,
                         onMode = if (leg.state is RouteLegUiState.Ready) {
                             { onAction(DayItineraryAction.RequestMode(leg.id)) }
                         } else {
@@ -156,6 +190,11 @@ fun DayItineraryContent(
                         onArrivalTimeChange = { onAction(DayItineraryAction.UpdateArrivalTime(it)) },
                         onStayMinutesChange = { onAction(DayItineraryAction.UpdateStayMinutes(it)) },
                         onNoteChange = { onAction(DayItineraryAction.UpdateNote(it)) },
+                        onScheduleAgain = if (canScheduleAgain && draft.placeId != null) {
+                            { onAction(DayItineraryAction.ScheduleAgain(draft.itemId)) }
+                        } else {
+                            null
+                        },
                         onSave = { onAction(DayItineraryAction.SaveEdit) },
                         onCancel = { onAction(DayItineraryAction.DismissDialogs) },
                     )

@@ -87,6 +87,18 @@ class SchemaTest {
         assertEquals(0, db.tripDao().countDays(tripFixture.tripId)); assertEquals(0, db.placeDao().countByTrip(tripFixture.tripId)); assertEquals(0, db.routeDao().count())
     }
 
+    @Test fun tripsSchemaStoresOnlyStartDateForDateRanges() {
+        val cursor = db.openHelper.readableDatabase.query("PRAGMA table_info(trips)")
+        val columns = buildSet {
+            cursor.use {
+                while (it.moveToNext()) add(it.getString(it.getColumnIndexOrThrow("name")))
+            }
+        }
+
+        assertEquals(true, "startDate" in columns)
+        assertEquals(false, "endDate" in columns)
+    }
+
     @Test fun instantConverterUsesExactEpochMilliseconds() {
         val expected = Instant.ofEpochMilli(1_725_000_123_456L)
         val converters = Converters()

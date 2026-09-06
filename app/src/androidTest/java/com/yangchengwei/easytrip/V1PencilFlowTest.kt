@@ -133,9 +133,11 @@ class V1PencilFlowTest {
         compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
         compose.onNodeWithTag("create-trip").assertHasClickAction().performClick()
         compose.onNodeWithTag("create-name").performTextInput("杭州周末")
-        compose.onNodeWithTag("create-day-count").performTextInput("2")
-        compose.onNodeWithTag("create-time-DATED").performClick()
-        compose.onNodeWithTag("create-date-confirm").performClick()
+        compose.onNodeWithTag("create-date-control").performClick()
+        compose.onNodeWithText("2027年3月").assertIsDisplayed()
+        compose.onNodeWithTag("trip-date-2027-03-15").performClick()
+        compose.onNodeWithTag("trip-date-2027-03-16").performClick()
+        compose.onNodeWithTag("trip-date-range-confirm").performClick()
         compose.onNodeWithTag("create-submit").performClick()
 
         lateinit var tripId: String

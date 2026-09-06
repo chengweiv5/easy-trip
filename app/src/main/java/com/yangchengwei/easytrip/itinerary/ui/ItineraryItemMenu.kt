@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 
 internal enum class ItineraryItemMenuAction {
     EditTiming,
+    ScheduleAgain,
     MoveToOtherDay,
     Delete,
 }
@@ -31,6 +32,7 @@ internal fun ItineraryItemMenu(
     onExpandedChange: (Boolean) -> Unit,
     onAction: (ItineraryItemMenuAction) -> Unit,
     modifier: Modifier = Modifier,
+    canScheduleAgain: Boolean = true,
 ) {
     Box(modifier.size(40.dp), contentAlignment = Alignment.Center) {
         IconButton(
@@ -48,6 +50,12 @@ internal fun ItineraryItemMenu(
             MenuItem("编辑时间与停留时长", "menu-timing-$itemId") {
                 onExpandedChange(false)
                 onAction(ItineraryItemMenuAction.EditTiming)
+            }
+            if (canScheduleAgain) {
+                MenuItem("再次安排这个地点", "menu-schedule-again-$itemId") {
+                    onExpandedChange(false)
+                    onAction(ItineraryItemMenuAction.ScheduleAgain)
+                }
             }
             MenuItem("移动到其他日期", "menu-move-$itemId") {
                 onExpandedChange(false)

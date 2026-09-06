@@ -3,12 +3,10 @@ package com.yangchengwei.easytrip.trip.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
-import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.Row
@@ -32,21 +30,28 @@ import androidx.compose.material.icons.automirrored.rounded.KeyboardArrowRight
 import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.MoreVert
+import androidx.compose.material3.DropdownMenu
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -74,15 +79,17 @@ fun TripSettingsContent(
     onBack: () -> Unit,
     onRename: (String) -> Unit,
     onTravelMode: (TravelMode) -> Unit,
-    onDateEndDraft: (LocalDate?) -> Unit,
     onSubmitDateRange: () -> Unit,
     onCancelDateRange: () -> Unit,
     onConfirmDateRange: () -> Unit,
     onRetryDateRangeSync: () -> Unit,
+    onAppendDay: () -> Unit = {},
+    onMoveDay: (DayUi, Int) -> Unit = { _, _ -> },
     onRequestDeleteDay: (DayUi) -> Unit,
     onRetryDeleteDay: () -> Unit,
     onCancelDeleteDay: () -> Unit,
     onConfirmDeleteDay: () -> Unit,
+    onDateRangeDraft: (LocalDate?, LocalDate?) -> Unit,
     onRetryTripObservation: () -> Unit = {},
     onRequestTripDeletion: () -> Unit = {},
     onRetryTripDeletionImpact: () -> Unit = {},
@@ -90,12 +97,12 @@ fun TripSettingsContent(
     onConfirmTripDeletion: () -> Unit = {},
     onRetryTripDeletionSync: () -> Unit = {},
     dateEditorBottomInset: @Composable () -> WindowInsets = { WindowInsets.navigationBars },
+    initialDisplayedMonth: java.time.YearMonth? = null,
 ) {
     var editingName by remember { mutableStateOf(false) }
     var editingDates by remember { mutableStateOf(false) }
+    var activeDayMenu by remember { mutableStateOf<String?>(null) }
     var name by remember(state.name) { mutableStateOf(state.name) }
-    var endText by remember(state.dateRange.endDate) { mutableStateOf(state.dateRange.endDate?.toString().orEmpty()) }
-    var inputError by remember { mutableStateOf<String?>(null) }
     val datePhase = state.dateRange.phase
     val dateBusy = datePhase is DateRangeChangePhase.Applying || datePhase is DateRangeChangePhase.AwaitingRoom
     val dateMutationLocked = datePhase is DateRangeChangePhase.Previewing ||
@@ -105,8 +112,8 @@ fun TripSettingsContent(
     val tripDeletionLocked = tripDeletion !is TripDeletionUiState.Idle
     val tripDeleteBusy = tripDeletion is TripDeletionUiState.Ready && tripDeletion.isDeleting
     val tripDeleteSyncFailed = tripDeletion is TripDeletionUiState.Ready && tripDeletion.confirmationSyncFailed
-    val screenBusy = dateBusy || state.dayDeleteInProgress || tripDeleteBusy || tripDeleteSyncFailed
-    val settingsWriteLocked = dateMutationLocked || state.dayDeleteInProgress || tripDeletionLocked || !state.hasAuthoritativeTrip
+    val screenBusy = dateBusy || state.dayDeleteInProgress || state.dayManagementInProgress || tripDeleteBusy || tripDeleteSyncFailed
+    val settingsWriteLocked = dateMutationLocked || state.dayDeleteInProgress || state.dayManagementInProgress || tripDeletionLocked || !state.hasAuthoritativeTrip
     val tripDeletionEnabled = state.hasAuthoritativeTrip && !settingsWriteLocked
     val hasDates = state.dateRange.startDate != null
     val dateImpact = when (datePhase) {
@@ -150,13 +157,9 @@ fun TripSettingsContent(
                             SettingsRow(
                                 icon = { Icon(Icons.Rounded.DateRange, null) },
                                 label = "整体出行日期",
-                                value = "${state.dateRange.startDate} — ${state.dateRange.endDate}",
+                                value = "${state.dateRange.startDate} — ${state.dateRange.endDate} · ${state.days.size}天${state.days.size - 1}晚",
                                 enabled = !settingsWriteLocked,
-                                onClick = {
-                                    endText = state.dateRange.baselineEndDate?.toString().orEmpty()
-                                    inputError = null
-                                    editingDates = true
-                                },
+                                onClick = { editingDates = true },
                                 modifier = Modifier.testTag("settings-date-row"),
                                 grouped = true,
                             )
@@ -165,8 +168,8 @@ fun TripSettingsContent(
                                 icon = { Icon(Icons.Rounded.DateRange, null) },
                                 label = "出行日期",
                                 value = "未设置日期",
-                                enabled = false,
-                                onClick = {},
+                                enabled = !settingsWriteLocked,
+                                onClick = { editingDates = true },
                                 modifier = Modifier.testTag("settings-start-date"),
                                 grouped = true,
                             )
@@ -174,7 +177,6 @@ fun TripSettingsContent(
                     }
                 }
             }
-            inputError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             state.dateRange.error?.takeIf { datePhase !is DateRangeChangePhase.SyncFailed }?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             if (dateBusy && dateImpact == null) Text("正在保存日期范围…", Modifier.testTag("settings-date-progress"))
             if (datePhase is DateRangeChangePhase.SyncFailed) {
@@ -191,30 +193,36 @@ fun TripSettingsContent(
                 }
             }
             SettingsSection("旅行日") {
-                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
-                    state.days.forEachIndexed { index, day ->
-                        Surface(color = MaterialTheme.colorScheme.surface, shape = if (index == 0 || index == state.days.lastIndex) RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius) else RoundedCornerShape(0.dp)) {
-                            Row(Modifier.fillMaxWidth().height(EasyTripTheme.sizes.settingsDayRowHeight).padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Surface(Modifier.size(26.dp), shape = RoundedCornerShape(7.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = .12f)) {
-                                    androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { Text("${index + 1}", style = MaterialTheme.typography.labelMedium) }
-                                }
-                                Column(Modifier.weight(1f).padding(start = 10.dp)) {
-                                    Text("第 ${index + 1} 天", fontWeight = FontWeight.SemiBold)
-                                    Text(day.label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                }
-                                androidx.compose.foundation.layout.Box(
-                                    modifier = Modifier
-                                        .size(48.dp)
-                                        .testTag("delete-day-${day.id}")
-                                        .clickable(enabled = state.days.size > 1 && !settingsWriteLocked) { onRequestDeleteDay(day) },
-                                    contentAlignment = Alignment.Center,
-                                ) {
-                                    Icon(Icons.Rounded.Delete, "删除", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(30.dp))
-                                }
-                            }
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+                    androidx.compose.foundation.layout.Box(
+                        modifier = Modifier
+                            .height(48.dp)
+                            .testTag("append-day")
+                            .clickable(enabled = !settingsWriteLocked && state.days.size < com.yangchengwei.easytrip.trip.domain.MAX_TRIP_DAYS, onClick = onAppendDay),
+                        contentAlignment = Alignment.Center,
+                    ) {
+                        Row(Modifier.padding(horizontal = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.Add, null, tint = MaterialTheme.colorScheme.primary)
+                            Text("添加一天", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.SemiBold)
                         }
                     }
                 }
+                Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
+                    state.days.forEachIndexed { index, day ->
+                        TripDaySettingsRow(
+                            day = day,
+                            index = index,
+                            count = state.days.size,
+                            enabled = !settingsWriteLocked,
+                            menuExpanded = activeDayMenu == day.id,
+                            onMenuExpandedChange = { activeDayMenu = if (it) day.id else null },
+                            onMove = { onMoveDay(day, it) },
+                            canReorder = state.dateRange.startDate == null,
+                            onDelete = { activeDayMenu = null; onRequestDeleteDay(day) },
+                        )
+                    }
+                }
+                state.dayManagementError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
                 if (state.pendingDayDeletion == null && state.dayDeletionRetry != null && state.dayDeleteError != null) {
                     Text(state.dayDeleteError, color = MaterialTheme.colorScheme.error)
                     EasyTripSecondaryButton(onRetryDeleteDay, enabled = !settingsWriteLocked) { Text("重试检查") }
@@ -232,37 +240,24 @@ fun TripSettingsContent(
     }
 
     if (editingName && dateImpact == null) RenameDialog(name, { name = it }, { onRename(name); editingName = false }, { name = state.name; editingName = false }, !settingsWriteLocked)
-    if (editingDates && hasDates && dateImpact == null) DateEditorSheet(
-        startDate = state.dateRange.startDate!!,
-        endText = endText,
-        onEndTextChange = { value ->
-            endText = value
-            inputError = if (runCatching { LocalDate.parse(value) }.isFailure) {
-                "请输入 YYYY-MM-DD 格式日期"
-            } else {
-                null
-            }
-        },
-        error = inputError,
-        onApply = {
-            val parsed = runCatching { LocalDate.parse(endText) }
-            if (parsed.isFailure) {
-                inputError = "请输入 YYYY-MM-DD 格式日期"
-            } else {
-                inputError = null
-                editingDates = false
-                onDateEndDraft(parsed.getOrThrow())
-                onSubmitDateRange()
-            }
-        },
-        onDismiss = {
-            endText = state.dateRange.baselineEndDate?.toString().orEmpty()
-            inputError = null
-            editingDates = false
-        },
-        enabled = !settingsWriteLocked,
-        bottomInset = dateEditorBottomInset(),
-    )
+    if (editingDates && dateImpact == null) {
+        TripDateRangePickerModalHost(sheetVisible = true, background = {}) {
+            TripDateRangePickerSheet(
+                initialSelection = DateRangeSelection(state.dateRange.draftStartDate, state.dateRange.draftEndDate),
+                initialDisplayedMonth = initialDisplayedMonth,
+                onConfirm = { selection ->
+                    editingDates = false
+                    onDateRangeDraft(selection.startDate, selection.endDate)
+                    onSubmitDateRange()
+                },
+                onDismiss = { editingDates = false },
+                bottomInset = dateEditorBottomInset(),
+                title = "修改出行日期",
+                confirmLabel = "确认修改",
+                fixedDayCount = state.days.size.takeIf { state.dateRange.baselineStartDate == null },
+            )
+        }
+    }
     dateImpact?.let { impact ->
         editingDates = false
         ConfirmationDialog(
@@ -273,7 +268,16 @@ fun TripSettingsContent(
     }
     state.pendingDayDeletion?.takeUnless { dateMutationLocked }?.let { pending ->
         ConfirmationDialog(
-            model = ConfirmationUiModel("删除 ${pending.day.label}？", "将删除 ${pending.impact.itineraryItems} 个行程项和 ${pending.impact.routeLegs} 个路线段；${pending.impact.retainedSavedPlaces} 个收藏地点会保留。此操作不可撤销，后续旅行日日期编号和路线将变化。", emptyList(), emptyList(), "确认删除", "取消", true, false),
+            model = ConfirmationUiModel(
+                "删除 ${pending.day.label}？",
+                "此操作不可撤销，后续旅行日日期编号和路线将变化。",
+                listOf("${pending.impact.itineraryItems} 个行程项", "${pending.impact.routeLegs} 个路线段"),
+                listOf("${pending.impact.retainedSavedPlaces} 个收藏地点"),
+                "确认删除",
+                "取消",
+                true,
+                false,
+            ),
             onConfirm = onConfirmDeleteDay, onDismiss = onCancelDeleteDay, busy = state.dayDeleteInProgress, errorMessage = state.dayDeleteError,
         )
     }
@@ -284,6 +288,84 @@ fun TripSettingsContent(
         onConfirm = onConfirmTripDeletion,
         onRetrySync = onRetryTripDeletionSync,
     )
+}
+
+@Composable
+private fun TripDaySettingsRow(
+    day: DayUi,
+    index: Int,
+    count: Int,
+    enabled: Boolean,
+    menuExpanded: Boolean,
+    onMenuExpandedChange: (Boolean) -> Unit,
+    onMove: (Int) -> Unit,
+    canReorder: Boolean,
+    onDelete: () -> Unit,
+) {
+    var drag by remember(day.id) { mutableFloatStateOf(0f) }
+    val currentIndex by rememberUpdatedState(index)
+    val currentOnMove by rememberUpdatedState(onMove)
+    val stepPx = with(LocalDensity.current) { EasyTripTheme.sizes.settingsDayRowHeight.toPx() }
+    Surface(
+        color = MaterialTheme.colorScheme.surface,
+        shape = if (index == 0 || index == count - 1) RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius) else RoundedCornerShape(0.dp),
+    ) {
+        Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
+            androidx.compose.foundation.layout.Box(
+                modifier = Modifier
+                    .size(48.dp)
+                    .testTag("move-day-handle-${day.id}")
+                    .semantics {
+                        contentDescription = if (canReorder) {
+                            "拖动调整第 ${index + 1} 天顺序"
+                        } else {
+                            "已设置日期的旅行日按日期连续排列"
+                        }
+                    }
+                    .pointerInput(day.id, count, stepPx, canReorder) {
+                        if (!canReorder) return@pointerInput
+                        var startIndex = currentIndex
+                        detectDragGesturesAfterLongPress(
+                            onDragStart = { drag = 0f; startIndex = currentIndex },
+                            onDrag = { change, amount -> change.consume(); drag += amount.y },
+                            onDragEnd = { currentOnMove((startIndex + (drag / stepPx).toInt()).coerceIn(0, count - 1)); drag = 0f },
+                            onDragCancel = { drag = 0f },
+                        )
+                    },
+                contentAlignment = Alignment.Center,
+            ) { Text("≡", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleLarge) }
+            Surface(Modifier.size(26.dp), shape = RoundedCornerShape(7.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = .12f)) {
+                androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { Text("${index + 1}", style = MaterialTheme.typography.labelMedium) }
+            }
+            Column(Modifier.weight(1f).padding(start = 10.dp)) {
+                Text("第 ${index + 1} 天", fontWeight = FontWeight.SemiBold)
+                Text(day.label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
+            }
+            androidx.compose.foundation.layout.Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.size(48.dp).testTag("delete-day-${day.id}").clickable(enabled = count > 1 && enabled, onClick = onDelete),
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Icons.Rounded.Delete, "删除", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp)) }
+            }
+            androidx.compose.foundation.layout.Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+                androidx.compose.foundation.layout.Box(
+                    Modifier.size(48.dp).testTag("more-day-${day.id}").clickable(enabled = enabled) { onMenuExpandedChange(!menuExpanded) },
+                    contentAlignment = Alignment.Center,
+                ) { Icon(Icons.Rounded.MoreVert, "更多") }
+                DropdownMenu(
+                    expanded = menuExpanded,
+                    onDismissRequest = { onMenuExpandedChange(false) },
+                ) {
+                    DropdownMenuItem(
+                        text = { Text("删除旅行日", color = MaterialTheme.colorScheme.error) },
+                        onClick = onDelete,
+                        enabled = count > 1 && enabled,
+                        modifier = Modifier.testTag("menu-delete-day-${day.id}"),
+                    )
+                }
+            }
+        }
+    }
 }
 
 @Composable
@@ -344,135 +426,4 @@ private fun RenameDialog(name: String, onNameChange: (String) -> Unit, onSave: (
     onDismiss,
     dismissible = enabled,
     width = EasyTripTheme.sizes.dialogWidth,
-) { Column(Modifier.padding(EasyTripTheme.spacing.dialogContentVertical), verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.dialogSectionGap)) { Text("重命名旅行", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); OutlinedTextField(name, onNameChange, label = { Text("旅行名称") }, enabled = enabled, modifier = Modifier.fillMaxWidth()); DialogActions(onDismiss, onSave, "保存名称", enabled && name.isNotBlank(), false) } }
-
-@Composable
-private fun DateEditorSheet(
-    startDate: LocalDate,
-    endText: String,
-    onEndTextChange: (String) -> Unit,
-    error: String?,
-    onApply: () -> Unit,
-    onDismiss: () -> Unit,
-    enabled: Boolean,
-    bottomInset: WindowInsets,
-) = BoxWithConstraints(Modifier.fillMaxSize()) {
-    val sheetHeight = dateEditorSheetHeight(maxHeight)
-    BackHandler(enabled = enabled, onBack = onDismiss)
-    Surface(
-        modifier = Modifier
-            .fillMaxSize()
-            .pointerInput(enabled) {
-                if (enabled) detectTapGestures(onTap = { onDismiss() })
-            }
-            .testTag("settings-date-scrim")
-            .clearAndSetSemantics {
-                contentDescription = ""
-            },
-        color = Color.Black.copy(alpha = .35f),
-    ) {}
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(sheetHeight)
-            .align(Alignment.BottomCenter)
-            .pointerInput(Unit) {
-                awaitPointerEventScope {
-                    while (true) awaitPointerEvent(PointerEventPass.Initial)
-                }
-            }
-            .testTag("settings-date-bottom-sheet")
-            .semantics {
-                paneTitle = "修改出行日期"
-                isTraversalGroup = true
-            },
-        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
-        color = MaterialTheme.colorScheme.surface,
-        shadowElevation = 12.dp,
-    ) {
-        Column(
-            Modifier.padding(horizontal = 20.dp, vertical = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsCardGap),
-        ) {
-            Surface(
-                modifier = Modifier.align(Alignment.CenterHorizontally).width(36.dp).height(4.dp).testTag("settings-date-sheet-handle"),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.outlineVariant,
-            ) {}
-            Text("修改出行日期", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-            Column(
-                Modifier.weight(1f, fill = true).verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsCardGap),
-            ) {
-                Text("旅行日将根据日期范围自动连续生成，不能单独修改某一天。", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-                DateEditorRow("开始日期", startDate.toString(), Modifier.testTag("settings-start-date"))
-                EditableDateEditorRow("结束日期", endText, onEndTextChange, enabled, Modifier.testTag("settings-end-date"))
-                error?.let { Text(it, Modifier.testTag("settings-date-input-error"), color = MaterialTheme.colorScheme.error) }
-            }
-            DateEditorActions(
-                onDismiss = onDismiss,
-                onConfirm = onApply,
-                enabled = enabled,
-                modifier = Modifier.windowInsetsPadding(bottomInset),
-            )
-        }
-    }
-}
-
-private fun dateEditorSheetHeight(availableHeight: androidx.compose.ui.unit.Dp): androidx.compose.ui.unit.Dp {
-    val standardHeight = availableHeight * (660f / 782f)
-    return standardHeight.coerceAtLeast(240.dp).coerceAtMost(660.dp).coerceAtMost(availableHeight)
-}
-
-@Composable
-private fun DateEditorActions(
-    onDismiss: () -> Unit,
-    onConfirm: () -> Unit,
-    enabled: Boolean,
-    modifier: Modifier = Modifier,
-) = Row(
-    modifier.fillMaxWidth(),
-    horizontalArrangement = Arrangement.spacedBy(10.dp),
-) {
-    EasyTripSecondaryButton(onDismiss, Modifier.weight(1f).testTag("settings-date-cancel"), enabled) { Text("取消") }
-    EasyTripPrimaryButton(onConfirm, Modifier.weight(1f).testTag("settings-apply-date-range"), enabled) { Text("确认修改") }
-}
-
-@Composable
-private fun DateEditorRow(label: String, value: String, modifier: Modifier = Modifier) = Surface(
-    modifier.fillMaxWidth().height(EasyTripTheme.sizes.dialogFieldHeight),
-    shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius),
-    color = EasyTripBackground,
-) {
-    Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Rounded.DateRange, null, tint = MaterialTheme.colorScheme.primary)
-        Column(Modifier.padding(start = 10.dp)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(value, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
-        }
-    }
-}
-
-@Composable
-private fun EditableDateEditorRow(label: String, value: String, onValueChange: (String) -> Unit, enabled: Boolean, modifier: Modifier = Modifier) = Surface(
-    Modifier.fillMaxWidth().height(EasyTripTheme.sizes.dialogFieldHeight),
-    shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius),
-    color = EasyTripBackground,
-) {
-    Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Rounded.DateRange, null, tint = MaterialTheme.colorScheme.primary)
-        Column(Modifier.padding(start = 10.dp).weight(1f)) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            BasicTextField(
-                value = value,
-                onValueChange = onValueChange,
-                enabled = enabled,
-                singleLine = true,
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
-                modifier = modifier.fillMaxWidth().semantics { contentDescription = "结束日期" },
-            )
-        }
-    }
-}
-
-@Composable private fun DialogActions(onDismiss: () -> Unit, onConfirm: () -> Unit, confirmLabel: String, enabled: Boolean, destructive: Boolean, modifier: Modifier = Modifier) = Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) { EasyTripSecondaryButton(onDismiss, Modifier.weight(1f), enabled) { Text("取消") }; if (destructive) EasyTripDangerButton(onConfirm, Modifier.weight(1f), enabled) { Text(confirmLabel) } else EasyTripPrimaryButton(onConfirm, Modifier.weight(1f).then(modifier), enabled) { Text(confirmLabel) } }
+) { Column(Modifier.padding(EasyTripTheme.spacing.dialogContentVertical), verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.dialogSectionGap)) { Text("重命名旅行", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); OutlinedTextField(name, onNameChange, label = { Text("旅行名称") }, enabled = enabled, modifier = Modifier.fillMaxWidth()); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) { EasyTripSecondaryButton(onDismiss, Modifier.weight(1f), enabled) { Text("取消") }; EasyTripPrimaryButton(onSave, Modifier.weight(1f), enabled && name.isNotBlank()) { Text("保存名称") } } } }

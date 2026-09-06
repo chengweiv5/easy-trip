@@ -391,6 +391,8 @@ class DayItineraryViewModel(
                 arrivalTimeText = item.arrivalTime?.toString().orEmpty(),
                 stayMinutesText = item.stayMinutes?.toString().orEmpty(),
                 noteText = item.note.orEmpty(),
+                placeId = item.placeId,
+                placeName = item.name,
                 generation = ++nextEditGeneration,
             ),
         )
@@ -451,6 +453,7 @@ class DayItineraryViewModel(
             .firstOrNull { it.id == legId }
             ?.takeIf { it.state is RouteLegUiState.Ready }
             ?: return false
+        val itemsById = state.value.items.associateBy(ItineraryItemUi::id)
         mutable.value = mutable.value.copy(
             modeEditor = RouteModeEditDraft(
                 legId = legId,
@@ -462,6 +465,9 @@ class DayItineraryViewModel(
                 plannedDurationSeconds = leg.durationSeconds,
                 originalDurationOverrideSeconds = leg.durationOverrideSeconds?.takeIf { it > 0 },
                 generation = ++nextModeGeneration,
+                fromPlaceName = itemsById[leg.fromItemId]?.name.orEmpty(),
+                toPlaceName = itemsById[leg.toItemId]?.name.orEmpty(),
+                distanceMeters = leg.distanceMeters,
             ),
         )
         return true
@@ -604,6 +610,7 @@ class DayItineraryViewModel(
             is DayItineraryAction.PreviewMove -> previewMove(action.itemId, action.target)
             is DayItineraryAction.CommitMove -> commitMove(action.itemId, action.target)
             is DayItineraryAction.RequestTiming -> requestTiming(action.itemId)
+            is DayItineraryAction.ScheduleAgain -> Unit
             is DayItineraryAction.RequestCrossDay -> requestCrossDay(action.itemId)
             is DayItineraryAction.RequestDelete -> requestDelete(action.itemId)
             is DayItineraryAction.RequestMode -> requestMode(action.legId)

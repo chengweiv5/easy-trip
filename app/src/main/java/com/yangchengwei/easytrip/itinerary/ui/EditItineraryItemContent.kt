@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
@@ -23,11 +24,15 @@ fun EditItineraryItemContent(
     onArrivalTimeChange: (String) -> Unit,
     onStayMinutesChange: (String) -> Unit,
     onNoteChange: (String) -> Unit = {},
+    onScheduleAgain: (() -> Unit)? = null,
     onSave: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(
+        modifier.imePadding().testTag("itinerary-item-editor"),
+        verticalArrangement = Arrangement.spacedBy(12.dp),
+    ) {
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -58,6 +63,13 @@ fun EditItineraryItemContent(
                 enabled = !draft.isSaving,
                 modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp).testTag("itinerary-note-input"),
             )
+            onScheduleAgain?.let { scheduleAgain ->
+                CompactSecondaryButton(
+                    onClick = scheduleAgain,
+                    enabled = !draft.isSaving,
+                    modifier = Modifier.testTag("schedule-again-place"),
+                ) { Text("再次安排${draft.placeName.ifBlank { "这个地点" }}") }
+            }
         }
         CompactPrimaryButton(onClick = onSave, enabled = draft.isValid && !draft.isSaving) {
             Text(if (draft.isSaving) "保存中…" else "保存时间")
