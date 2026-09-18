@@ -22,6 +22,7 @@ import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.SideEffect
 import android.content.Context
 import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Color
@@ -158,6 +159,26 @@ internal fun performUserViewportOperation(
 ) {
     onUserViewportOperation()
     operation()
+}
+
+internal class MapZoomRequestController(
+    initialZoomInRequest: Int = 0,
+    initialZoomOutRequest: Int = 0,
+) {
+    private var consumedZoomInRequest = initialZoomInRequest
+    private var consumedZoomOutRequest = initialZoomOutRequest
+
+    fun consumeZoomIn(request: Int): Boolean {
+        if (request <= consumedZoomInRequest) return false
+        consumedZoomInRequest++
+        return true
+    }
+
+    fun consumeZoomOut(request: Int): Boolean {
+        if (request <= consumedZoomOutRequest) return false
+        consumedZoomOutRequest++
+        return true
+    }
 }
 
 internal class MapTouchInteractionDetector(
@@ -633,6 +654,8 @@ fun AmapComposeMap(
     onMapError: (Throwable) -> Unit = {},
     onMapReady: () -> Unit = {},
     onUserGesture: () -> Unit = {},
+    zoomInRequest: Int = 0,
+    zoomOutRequest: Int = 0,
     retryKey: Int = 0,
     readyTimeoutMillis: Long = DEFAULT_MAP_READY_TIMEOUT_MILLIS,
 ) {
@@ -647,6 +670,9 @@ fun AmapComposeMap(
     var mapReady by remember(context, consent, lifecycleOwner, attemptKey) { mutableStateOf(false) }
     var lifecycleResumed by remember(context, consent, lifecycleOwner, attemptKey) { mutableStateOf(false) }
     var consumedLocateRequest by remember(context, consent, lifecycleOwner, attemptKey) { mutableIntStateOf(initialLocateRequest) }
+    val zoomRequestController = remember(context, consent, lifecycleOwner, attemptKey) {
+        MapZoomRequestController(zoomInRequest, zoomOutRequest)
+    }
     var watchdogRevision by remember(context, consent, lifecycleOwner, attemptKey) { mutableIntStateOf(0) }
     val callbackGuard = remember(context, consent, lifecycleOwner, attemptKey) { MapHostCallbackGuard() }
     callbackGuard.updateHostCallback(currentOnUserGesture)
@@ -687,6 +713,17 @@ fun AmapComposeMap(
             consumedLocateRequest = locateRequest
             onLocateRequestConsumed(locateRequest)
             runCatching(host::showCurrentLocation).onFailure(onMapError)
+        }
+    }
+    val currentOnMapError by rememberUpdatedState(onMapError)
+    SideEffect {
+        if (lifecycleResumed && mapReady) {
+            while (zoomRequestController.consumeZoomIn(zoomInRequest)) {
+                runCatching(host::zoomIn).onFailure(currentOnMapError)
+            }
+            while (zoomRequestController.consumeZoomOut(zoomOutRequest)) {
+                runCatching(host::zoomOut).onFailure(currentOnMapError)
+            }
         }
     }
     DisposableEffect(lifecycleOwner, host) {
@@ -744,67 +781,35 @@ fun AmapComposeMap(
             watchdog.timeoutIfElapsed()
         }
     }
-    Box(modifier) {
-        AndroidView(
-            factory = { host.view },
-            modifier = Modifier.fillMaxSize(),
-            update = {
-                if (lifecycleResumed && (mapReady || host.canRenderBeforeReady())) {
-                    val renderGeneration = callbackGuard.beginRender()
-                    runCatching {
-                        consent.validateActive()
-                        host.render(
-                            model,
-                            layer,
-                            { markerKey -> callbackGuard.dispatch(renderGeneration) { onMarkerClick(markerKey) } },
-                            { poi -> callbackGuard.dispatch(renderGeneration) { onMapPoiClick(poi) } },
-                        ) { error, retainedLayer ->
-                            callbackGuard.dispatch(renderGeneration) { onLayerError(error, retainedLayer) }
-                        }
-                        if (!mapReady) {
-                            callbackGuard.reportReady(renderGeneration) {
-                                watchdog.ready()
-                                mapReady = true
-                                onMapReady()
-                            }
-                        } else {
-                            callbackGuard.reportReady(renderGeneration, onMapReady)
-                        }
-                    }.onFailure { error ->
-                        callbackGuard.reportError(renderGeneration, error) { mapFailureState.value = it }
+    AndroidView(
+        factory = { host.view },
+        modifier = modifier,
+        update = {
+            if (lifecycleResumed && (mapReady || host.canRenderBeforeReady())) {
+                val renderGeneration = callbackGuard.beginRender()
+                runCatching {
+                    consent.validateActive()
+                    host.render(
+                        model,
+                        layer,
+                        { markerKey -> callbackGuard.dispatch(renderGeneration) { onMarkerClick(markerKey) } },
+                        { poi -> callbackGuard.dispatch(renderGeneration) { onMapPoiClick(poi) } },
+                    ) { error, retainedLayer ->
+                        callbackGuard.dispatch(renderGeneration) { onLayerError(error, retainedLayer) }
                     }
+                    if (!mapReady) {
+                        callbackGuard.reportReady(renderGeneration) {
+                            watchdog.ready()
+                            mapReady = true
+                            onMapReady()
+                        }
+                    } else {
+                        callbackGuard.reportReady(renderGeneration, onMapReady)
+                    }
+                }.onFailure { error ->
+                    callbackGuard.reportError(renderGeneration, error) { mapFailureState.value = it }
                 }
-            },
-        )
-        Column(
-            Modifier.align(Alignment.CenterEnd).padding(end = 10.dp),
-            verticalArrangement = Arrangement.spacedBy(10.dp),
-        ) {
-            MapZoomButton("+", "zoom-in") {
-                performUserViewportOperation(currentOnUserGesture, host::zoomIn)
             }
-            MapZoomButton("−", "zoom-out") {
-                performUserViewportOperation(currentOnUserGesture, host::zoomOut)
-            }
-        }
-    }
-}
-
-@Composable
-private fun MapZoomButton(label: String, tag: String, onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.size(24.dp).testTag(tag).clickable(onClick = onClick),
-        shape = RoundedCornerShape(4.dp),
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-        contentColor = MaterialTheme.colorScheme.onSurface,
-        shadowElevation = 2.dp,
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val color = androidx.compose.ui.graphics.Color.Black
-            val stroke = 2.dp.toPx()
-            val inset = size.width * 0.28f
-            drawLine(color, androidx.compose.ui.geometry.Offset(inset, size.height / 2), androidx.compose.ui.geometry.Offset(size.width - inset, size.height / 2), stroke)
-            if (label == "+") drawLine(color, androidx.compose.ui.geometry.Offset(size.width / 2, inset), androidx.compose.ui.geometry.Offset(size.width / 2, size.height - inset), stroke)
-        }
-    }
+        },
+    )
 }

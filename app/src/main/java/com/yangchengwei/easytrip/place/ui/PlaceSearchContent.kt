@@ -34,6 +34,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -47,6 +48,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalSoftwareKeyboardController
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -76,6 +80,8 @@ fun PlaceSearchContent(
     state: PlaceSearchUiState,
     onAction: (PlaceSearchAction) -> Unit,
     modifier: Modifier = Modifier,
+    autoFocusSearch: Boolean = true,
+    onAutoFocusConsumed: () -> Unit = {},
     resultsListState: LazyListState = rememberLazyListState(),
     detailContent: (@Composable (PlaceCandidate) -> Unit)? = null,
     consent: AmapConsentToken? = null,
@@ -92,7 +98,7 @@ fun PlaceSearchContent(
                 .padding(start = EasyTripTheme.spacing.large, top = EasyTripTheme.spacing.small, end = EasyTripTheme.spacing.large, bottom = EasyTripTheme.spacing.xLarge),
             verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.large),
         ) {
-            SearchHeader(state.search.query, onAction)
+            SearchHeader(state.search.query, onAction, autoFocusSearch, onAutoFocusConsumed)
             SearchBody(
                 state = state,
                 onAction = onAction,
@@ -257,7 +263,21 @@ private fun SearchMapDetail(
 }
 
 @Composable
-private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
+private fun SearchHeader(
+    query: String,
+    onAction: (PlaceSearchAction) -> Unit,
+    autoFocusSearch: Boolean,
+    onAutoFocusConsumed: () -> Unit,
+) {
+    val focusRequester = remember { FocusRequester() }
+    val keyboardController = LocalSoftwareKeyboardController.current
+    LaunchedEffect(autoFocusSearch) {
+        if (autoFocusSearch) {
+            focusRequester.requestFocus()
+            keyboardController?.show()
+            onAutoFocusConsumed()
+        }
+    }
     Row(
         Modifier.fillMaxWidth(),
         horizontalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small),
@@ -280,6 +300,7 @@ private fun SearchHeader(query: String, onAction: (PlaceSearchAction) -> Unit) {
             modifier = Modifier
                 .weight(1f)
                 .height(EasyTripTheme.sizes.searchHeaderBackTouchTarget)
+                .focusRequester(focusRequester)
                 .testTag("place-search-field")
                 .semantics { contentDescription = "搜索地点" },
             singleLine = true,

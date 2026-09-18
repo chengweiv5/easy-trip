@@ -1,6 +1,14 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripAddress
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceBorder
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceSurface
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
@@ -25,8 +34,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.pointer.pointerInput
-import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.contentDescription
@@ -35,7 +45,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-private val ReorderStep = 120.dp
+import androidx.compose.ui.zIndex
 
 @Composable
 internal fun ItineraryItemRow(
@@ -47,24 +57,69 @@ internal fun ItineraryItemRow(
     onMenuAction: (ItineraryItemMenuAction) -> Unit,
     modifier: Modifier = Modifier,
     canScheduleAgain: Boolean = false,
+    isDragging: Boolean = false,
+    dragTranslationY: Float = 0f,
+    onDragStart: () -> Unit = {},
+    onDragDelta: (Float) -> Unit = {},
+    onDragEnd: () -> Unit = {},
+    onDragCancel: () -> Unit = {},
+    sharedDragEnabled: Boolean = false,
 ) {
-    var isDragging by remember(item.id) { mutableStateOf(false) }
     var menuExpanded by remember(item.id) { mutableStateOf(false) }
+    var localDragging by remember(item.id) { mutableStateOf(false) }
+    var localDragY by remember(item.id) { mutableFloatStateOf(0f) }
+    var localStartIndex by remember(item.id) { mutableIntStateOf(index) }
+    var localItemHeight by remember(item.id) { mutableFloatStateOf(1f) }
+    val effectiveDragging = if (sharedDragEnabled) isDragging else localDragging
+    val effectiveTranslationY = if (sharedDragEnabled) dragTranslationY else localDragY
+    val currentIndex by rememberUpdatedState(index)
+    val currentOnPreview by rememberUpdatedState(onPreview)
+    val currentOnCommit by rememberUpdatedState(onCommit)
+    val effectiveDragStart: () -> Unit = if (sharedDragEnabled) onDragStart else {
+        {
+            localDragging = true
+            localStartIndex = currentIndex
+            localDragY = 0f
+        }
+    }
+    val effectiveDragDelta: (Float) -> Unit = if (sharedDragEnabled) onDragDelta else {
+        { delta ->
+            localDragY += delta
+            currentOnPreview((localStartIndex + (localDragY / localItemHeight).toInt()).coerceIn(0, count - 1))
+        }
+    }
+    val effectiveDragEnd: () -> Unit = if (sharedDragEnabled) onDragEnd else {
+        {
+            currentOnCommit((localStartIndex + (localDragY / localItemHeight).toInt()).coerceIn(0, count - 1))
+            localDragging = false
+            localDragY = 0f
+        }
+    }
+    val effectiveDragCancel: () -> Unit = if (sharedDragEnabled) onDragCancel else {
+        {
+            currentOnPreview(localStartIndex)
+            localDragging = false
+            localDragY = 0f
+        }
+    }
     ItineraryPlaceContent(
         item = item,
         displayOrder = index + 1,
         modifier = modifier
             .fillMaxWidth()
-            .semanticsActions(item.name, index, count, onCommit),
+            .semanticsActions(item.name, index, count, onCommit)
+            .onSizeChanged { localItemHeight = it.height.toFloat().coerceAtLeast(1f) }
+            .zIndex(if (effectiveDragging) 1f else 0f)
+            .graphicsLayer { translationY = effectiveTranslationY },
         leadingAction = {
             ItineraryDragHandle(
                 itemId = item.id,
                 itemName = item.name,
-                index = index,
                 count = count,
-                onPreview = onPreview,
-                onCommit = onCommit,
-                onDraggingChange = { isDragging = it },
+                onDragStart = effectiveDragStart,
+                onDragDelta = effectiveDragDelta,
+                onDragEnd = effectiveDragEnd,
+                onDragCancel = effectiveDragCancel,
             )
         },
         trailingAction = {
@@ -77,8 +132,8 @@ internal fun ItineraryItemRow(
                 canScheduleAgain = canScheduleAgain && item.placeId != null,
             )
         },
-        containerColor = if (isDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        elevation = if (isDragging) 12.dp else 0.dp,
+        containerColor = if (effectiveDragging) MaterialTheme.colorScheme.primaryContainer else EasyTripPlaceSurface,
+        elevation = if (effectiveDragging) 12.dp else 0.dp,
     )
 }
 
@@ -86,61 +141,50 @@ internal fun ItineraryItemRow(
 private fun ItineraryDragHandle(
     itemId: String,
     itemName: String,
-    index: Int,
     count: Int,
-    onPreview: (Int) -> Unit,
-    onCommit: (Int) -> Unit,
-    onDraggingChange: (Boolean) -> Unit,
+    onDragStart: () -> Unit,
+    onDragDelta: (Float) -> Unit,
+    onDragEnd: () -> Unit,
+    onDragCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    var drag by remember(itemId) { mutableFloatStateOf(0f) }
-    val currentIndex by rememberUpdatedState(index)
-    val currentOnPreview by rememberUpdatedState(onPreview)
-    val currentOnCommit by rememberUpdatedState(onCommit)
-    val currentOnDraggingChange by rememberUpdatedState(onDraggingChange)
-    val reorderStepPx = with(LocalDensity.current) { ReorderStep.toPx() }
+    val currentOnDragStart by rememberUpdatedState(onDragStart)
+    val currentOnDragDelta by rememberUpdatedState(onDragDelta)
+    val currentOnDragEnd by rememberUpdatedState(onDragEnd)
+    val currentOnDragCancel by rememberUpdatedState(onDragCancel)
     val handleColor = MaterialTheme.colorScheme.onSurfaceVariant
     Box(
         modifier = modifier
-            .size(40.dp)
+            .size(28.dp)
             .testTag("drag-handle-$itemId")
             .semantics { contentDescription = "拖动调整 $itemName 的顺序" }
-            .pointerInput(itemId, count, reorderStepPx) {
-                var startIndex = currentIndex
+            .pointerInput(itemId, count) {
                 detectDragGesturesAfterLongPress(
-                    onDragStart = {
-                        drag = 0f
-                        startIndex = currentIndex
-                        currentOnDraggingChange(true)
-                    },
+                    onDragStart = { currentOnDragStart() },
                     onDrag = { change, amount ->
                         change.consume()
-                        drag += amount.y
-                        currentOnPreview((startIndex + (drag / reorderStepPx).toInt()).coerceIn(0, count - 1))
+                        currentOnDragDelta(amount.y)
                     },
-                    onDragEnd = {
-                        currentOnCommit((startIndex + (drag / reorderStepPx).toInt()).coerceIn(0, count - 1))
-                        drag = 0f
-                        currentOnDraggingChange(false)
-                    },
-                    onDragCancel = {
-                        drag = 0f
-                        currentOnPreview(startIndex)
-                        currentOnDraggingChange(false)
-                    },
+                    onDragEnd = currentOnDragEnd,
+                    onDragCancel = currentOnDragCancel,
                 )
             },
-        contentAlignment = Alignment.Center,
+        contentAlignment = Alignment.CenterStart,
     ) {
-        Canvas(Modifier.size(22.dp)) {
+        Canvas(
+            Modifier
+                .size(18.dp)
+                .testTag("drag-handle-icon-$itemId"),
+        ) {
             val strokeWidth = 2.dp.toPx()
             val startX = 4.dp.toPx()
             val endX = size.width - startX
-            listOf(6.dp, 11.dp, 16.dp).forEach { y ->
+            listOf(-5.dp, 0.dp, 5.dp).forEach { offset ->
+                val y = size.height / 2f + offset.toPx()
                 drawLine(
                     color = handleColor,
-                    start = Offset(startX, y.toPx()),
-                    end = Offset(endX, y.toPx()),
+                    start = Offset(startX, y),
+                    end = Offset(endX, y),
                     strokeWidth = strokeWidth,
                     cap = StrokeCap.Round,
                 )
@@ -156,56 +200,59 @@ internal fun ItineraryPlaceContent(
     modifier: Modifier = Modifier,
     leadingAction: (@Composable () -> Unit)? = null,
     trailingAction: (@Composable () -> Unit)? = null,
-    containerColor: Color = MaterialTheme.colorScheme.surface,
+    containerColor: Color = EasyTripPlaceSurface,
     elevation: Dp = 0.dp,
 ) {
     Surface(
         modifier = modifier.testTag("item-${item.id}"),
-        shape = RoundedCornerShape(12.dp),
+        shape = RoundedCornerShape(8.dp),
         color = containerColor,
+        border = BorderStroke(1.dp, EasyTripPlaceBorder),
         shadowElevation = elevation,
     ) {
-        Row(
-            Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
-            verticalAlignment = Alignment.Top,
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-        ) {
-            leadingAction?.let { action -> Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { action() } }
-            Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(2.dp),
+        Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
-                item.arrivalTime?.let {
-                    Text(
-                        text = it.toString(),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary,
-                    )
-                }
+                leadingAction?.invoke()
                 Text(
                     text = item.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = EasyTripPrimaryDark,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).testTag("itinerary-place-name-${item.id}"),
                 )
-                item.stayMinutes?.let {
-                    Text(
-                        text = "停留 $it 分钟",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-                if (item.address.isNotBlank()) {
-                    Text(
-                        text = item.address,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
+                trailingAction?.invoke()
             }
-            trailingAction?.let { action -> Box(Modifier.size(40.dp), contentAlignment = Alignment.Center) { action() } }
+            val contentInset = if (leadingAction == null) 0.dp else 34.dp
+            if (item.address.isNotBlank()) {
+                Text(
+                    text = item.address,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = EasyTripAddress,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = contentInset).testTag("itinerary-place-address-${item.id}"),
+                )
+            }
+            if (item.arrivalTime != null || item.stayMinutes != null) {
+                val arrivalColor = MaterialTheme.colorScheme.primary
+                Text(
+                    text = buildAnnotatedString {
+                        item.arrivalTime?.let {
+                            withStyle(SpanStyle(color = arrivalColor)) { append("$it 到达") }
+                        }
+                        if (item.arrivalTime != null && item.stayMinutes != null) append(" · ")
+                        item.stayMinutes?.let { append("停留 $it 分钟") }
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(start = contentInset).testTag("itinerary-place-timing-${item.id}"),
+                )
+            }
         }
     }
 }

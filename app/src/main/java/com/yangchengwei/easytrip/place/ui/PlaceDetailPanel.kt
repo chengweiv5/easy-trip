@@ -176,15 +176,23 @@ fun PlaceDetailPanel(
                 ) { Text(if (selected) "$tag · 移除" else tag) }
             }
             editState.selectedTagNames.filterNot { it in availableTagNames }.forEach { tag ->
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                    Text(tag)
+                Row(
+                    Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                ) {
+                    Text(tag, modifier = Modifier.weight(1f))
                     EasyTripSecondaryButton(
                         onClick = { onAction(PlaceDetailPanelAction.RemoveTag(tag)) },
                         enabled = !saving,
                     ) { Text("移除") }
                 }
             }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+            ) {
                 OutlinedTextField(
                     value = editState.newTagInput,
                     onValueChange = { onAction(PlaceDetailPanelAction.NewTagInputChanged(it)) },
@@ -195,17 +203,11 @@ fun PlaceDetailPanel(
                 EasyTripSecondaryButton(
                     onClick = { onAction(PlaceDetailPanelAction.AddTag) },
                     enabled = !saving,
+                    modifier = Modifier.testTag("place-detail-add-tag"),
                 ) { Text("添加") }
             }
             editState.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                if (source == PlaceDetailSource.PlacePool) {
-                    EasyTripSecondaryButton(
-                        onClick = { onAction(PlaceDetailPanelAction.Delete) },
-                        enabled = !saving,
-                        modifier = Modifier.weight(1f).testTag("place-detail-delete"),
-                    ) { Text("删除") }
-                }
                 EasyTripSecondaryButton(
                     onClick = { onAction(PlaceDetailPanelAction.CancelEdit) },
                     enabled = !saving,

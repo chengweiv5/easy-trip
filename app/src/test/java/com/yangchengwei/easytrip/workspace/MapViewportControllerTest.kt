@@ -2,13 +2,35 @@ package com.yangchengwei.easytrip.workspace
 
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MapViewportControllerTest {
     private val beijing = GeoPoint(39.9, 116.4)
     private val shanghai = GeoPoint(31.2, 121.5)
     private val changedBeijing = GeoPoint(39.91, 116.4)
+
+    @Test fun `zoom controller baselines a replacement host to already consumed requests`() {
+        val controller = MapZoomRequestController(initialZoomInRequest = 3, initialZoomOutRequest = 4)
+
+        assertFalse(controller.consumeZoomIn(3))
+        assertFalse(controller.consumeZoomOut(4))
+        assertEquals(true, controller.consumeZoomIn(4))
+        assertEquals(true, controller.consumeZoomOut(5))
+    }
+
+    @Test fun `zoom controller consumes every request in a coalesced counter jump`() {
+        val controller = MapZoomRequestController()
+
+        assertTrue(controller.consumeZoomIn(2))
+        assertTrue(controller.consumeZoomIn(2))
+        assertFalse(controller.consumeZoomIn(2))
+        assertTrue(controller.consumeZoomOut(2))
+        assertTrue(controller.consumeZoomOut(2))
+        assertFalse(controller.consumeZoomOut(2))
+    }
 
     @Test fun `first nonempty place set emits initial request`() {
         val controller = MapViewportController()

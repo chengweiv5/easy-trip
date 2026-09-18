@@ -149,8 +149,8 @@ class V2AcceptanceTest {
             )
         }
 
-        waitFor("trip list entry") { hasTag("continue-trip-$tripId") }
-        compose.onNodeWithTag("continue-trip-$tripId").performClick()
+        waitFor("trip list entry") { hasTag("primary-trip-$tripId") }
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
         waitFor("workspace UI") { hasTag("workspace-top-bar") }
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         compose.onNodeWithTag("layer-menu").assertHasClickAction()
@@ -232,7 +232,7 @@ class V2AcceptanceTest {
         val hosts = java.util.concurrent.CopyOnWriteArrayList<RecordingHost>()
         setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), hosts)
 
-        compose.onNodeWithTag("continue-trip-${fixture.tripId}").performClick()
+        compose.onNodeWithTag("primary-trip-${fixture.tripId}").performClick()
         waitForTag("workspace-top-bar")
         compose.onNodeWithTag("section-ITINERARY").performClick()
         waitForTag("item-${fixture.itemIds.first()}")
@@ -287,7 +287,7 @@ class V2AcceptanceTest {
         runBlocking { fixture = createVisualBatch3WorkspaceFixture(trips, places, itineraries, routes) }
         setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), mutableListOf())
 
-        compose.onNodeWithTag("continue-trip-${fixture.tripId}").performClick()
+        compose.onNodeWithTag("primary-trip-${fixture.tripId}").performClick()
         waitForTag("workspace-top-bar")
         compose.onNodeWithTag("section-ITINERARY").performClick()
         val editedItemId = fixture.itemIds[1]
@@ -379,7 +379,7 @@ class V2AcceptanceTest {
         val hosts = java.util.concurrent.CopyOnWriteArrayList<RecordingHost>()
         setProductionNavigation(trips, places, itineraries, routes, navigationRoutes, hosts)
 
-        compose.onNodeWithTag("continue-trip-$tripId").performClick()
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
         waitForTag("workspace-top-bar")
         compose.onNodeWithTag("section-ITINERARY").performClick()
         waitForTag("item-$middleItem")
@@ -571,7 +571,7 @@ class V2AcceptanceTest {
         val hosts = java.util.concurrent.CopyOnWriteArrayList<RecordingHost>()
         setProductionNavigation(trips, places, failingItineraries, routes, mutableListOf(), hosts)
 
-        compose.onNodeWithTag("continue-trip-$tripId").performClick()
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
         waitForTag("workspace-top-bar")
         compose.onNodeWithTag("section-ITINERARY").performClick()
         waitForTag("item-$editableItemId")
@@ -680,7 +680,7 @@ class V2AcceptanceTest {
         val hosts = java.util.concurrent.CopyOnWriteArrayList<RecordingHost>()
         setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), hosts)
 
-        compose.onNodeWithTag("continue-trip-$tripId").performClick()
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
         waitForTag("workspace-top-bar")
         waitFor("recording fake map host") { hosts.isNotEmpty() }
         compose.onNodeWithTag("open-place-detail-$savedPlaceId").performClick()

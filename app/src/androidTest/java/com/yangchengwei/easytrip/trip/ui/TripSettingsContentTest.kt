@@ -50,36 +50,63 @@ import org.junit.Test
 class TripSettingsContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun settingsExposesAppendButKeepsDatedTripDaysInDateOrder() {
+    @Test fun datedTripDaysExposeOnlyDeleteWithoutDragHandleOrMoreMenu() {
         var appends = 0
         compose.setContent { content(state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)), onAppendDay = { appends++ }) }
 
         compose.onNodeWithText("整体出行日期").assertIsDisplayed()
         compose.onNodeWithText("添加一天").assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
-        compose.onNodeWithTag("move-day-handle-day-2")
-            .assertHeightIsAtLeast(48.dp)
-            .assert(androidx.compose.ui.test.hasContentDescription("已设置日期的旅行日按日期连续排列"))
-        compose.onNodeWithTag("more-day-day-2").assertHeightIsAtLeast(48.dp).performClick()
-        compose.onNodeWithText("删除旅行日").assertIsDisplayed()
-        compose.onNodeWithText("插入").assertDoesNotExist()
-        compose.onNodeWithText("设置单日日期").assertDoesNotExist()
+        compose.onNodeWithTag("move-day-handle-day-2").assertDoesNotExist()
+        compose.onNodeWithTag("more-day-day-2").assertDoesNotExist()
+        compose.onNodeWithTag("delete-day-day-2").assertHeightIsAtLeast(48.dp).assertIsDisplayed()
         assertEquals(1, appends)
     }
 
-    @Test fun settingsDayMoreMenuExposesDeleteWithoutReordering() {
-        var moves = 0
+    @Test fun undatedTripDaysKeepExistingReorderHandleWithoutMoreMenu() {
         compose.setContent {
             content(
-                state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)),
-                onMoveDay = { _, _ -> moves++ },
+                state = datedState().copy(
+                    dateRange = DateRangeChangeUiState(),
+                ),
             )
         }
 
-        compose.onNodeWithTag("more-day-day-2").performClick()
-        compose.onNodeWithText("删除旅行日").assertIsDisplayed()
-        assertEquals(0, moves)
+        compose.onNodeWithTag("move-day-handle-day-2")
+            .assertHeightIsAtLeast(48.dp)
+            .assert(androidx.compose.ui.test.hasContentDescription("拖动调整第 2 天顺序"))
+        compose.onNodeWithTag("more-day-day-2").assertDoesNotExist()
+        compose.onNodeWithTag("delete-day-day-2").assertHeightIsAtLeast(48.dp).assertIsDisplayed()
     }
 
+    @Test fun tripDayShapesRoundOnlyOuterCorners() {
+        val radius = 10.dp
+
+        assertEquals(
+            androidx.compose.foundation.shape.RoundedCornerShape(radius),
+            tripDaySettingsRowShape(index = 0, count = 1, radius = radius),
+        )
+        assertEquals(
+            androidx.compose.foundation.shape.RoundedCornerShape(topStart = radius, topEnd = radius),
+            tripDaySettingsRowShape(index = 0, count = 3, radius = radius),
+        )
+        assertEquals(
+            androidx.compose.foundation.shape.RoundedCornerShape(0.dp),
+            tripDaySettingsRowShape(index = 1, count = 3, radius = radius),
+        )
+        assertEquals(
+            androidx.compose.foundation.shape.RoundedCornerShape(bottomStart = radius, bottomEnd = radius),
+            tripDaySettingsRowShape(index = 2, count = 3, radius = radius),
+        )
+    }
+
+    @Test fun renameDialogUsesSaveLabel() {
+        compose.setContent { content(state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle))) }
+
+        compose.onNodeWithTag("settings-rename").performClick()
+
+        compose.onNodeWithText("保存").assertIsDisplayed()
+        compose.onNodeWithText("保存名称").assertDoesNotExist()
+    }
 
     @Test fun settingsRowsExposeSingleClickActionAndDayDeleteHas48DpTarget() {
         compose.setContent { content(state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle))) }
@@ -94,7 +121,7 @@ class TripSettingsContentTest {
                 node.config.contains(SemanticsActions.OnClick)
             },
         )
-        compose.onNodeWithTag("more-day-day-2").assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithTag("delete-day-day-2").assertHeightIsAtLeast(48.dp)
     }
 
     @Test fun settingsUsesDesignHeaderAndDoneReturnsThroughBackCallback() {
@@ -108,7 +135,7 @@ class TripSettingsContentTest {
 
         compose.onNodeWithTag("settings-header").assertHeightIsEqualTo(62.dp)
         compose.onNodeWithTag("settings-done").assertIsEnabled().performClick()
-        compose.onNodeWithTag("more-day-day-2").assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithTag("delete-day-day-2").assertHeightIsAtLeast(48.dp)
         assertEquals(1, backs)
     }
 
@@ -322,7 +349,7 @@ class TripSettingsContentTest {
         }
 
         compose.onNodeWithTag("settings-date-row").performClick()
-        compose.onNodeWithTag("trip-date-range-sheet-handle").performClick()
+        compose.onNodeWithText("修改出行日期").performClick()
 
         compose.onNodeWithTag("trip-date-range-sheet").assertIsDisplayed()
         assertEquals(0, submissions)

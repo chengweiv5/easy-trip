@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.trip.ui
 
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
@@ -135,12 +136,6 @@ fun TripDateRangePickerSheet(
         shadowElevation = 12.dp,
     ) {
         Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 10.dp)) {
-            Surface(
-                modifier = Modifier.align(Alignment.CenterHorizontally).width(36.dp).height(4.dp)
-                    .testTag("trip-date-range-sheet-handle"),
-                shape = CircleShape,
-                color = MaterialTheme.colorScheme.outlineVariant,
-            ) {}
             Text(
                 text = title,
                 modifier = Modifier.padding(top = 12.dp),
@@ -328,26 +323,27 @@ private fun DateCell(
         DateSelectionState.IN_RANGE -> "范围内日期"
         DateSelectionState.UNSELECTED -> "未选择"
     }
+    val isToday = date == LocalDate.now()
+    val todayLabel = if (isToday) "，今天" else ""
+    val cellShape = if (selectedEndpoint) CircleShape else RoundedCornerShape(0.dp)
     Box(
         modifier = modifier
             .wrapContentHeight()
             .padding(vertical = 2.dp)
             .height(40.dp)
-            .background(background, if (selectedEndpoint) CircleShape else RoundedCornerShape(0.dp))
+            .background(background, cellShape)
+            .then(
+                if (isToday) {
+                    Modifier.border(2.dp, MaterialTheme.colorScheme.tertiary, cellShape)
+                } else {
+                    Modifier
+                },
+            )
             .testTag("trip-date-$date")
-            .semantics { contentDescription = "$date，$stateLabel" }
+            .semantics { contentDescription = "$date，$stateLabel$todayLabel" }
             .clickable(onClick = onClick),
         contentAlignment = Alignment.Center,
     ) {
-        if (inRange) {
-            Box(
-                Modifier
-                    .fillMaxWidth()
-                    .height(2.dp)
-                    .background(MaterialTheme.colorScheme.primary)
-                    .testTag("trip-date-range-connector-$date"),
-            )
-        }
         Text(date.dayOfMonth.toString(), color = contentColor, style = MaterialTheme.typography.bodyMedium)
     }
 }

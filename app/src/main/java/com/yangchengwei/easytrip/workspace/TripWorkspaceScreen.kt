@@ -163,6 +163,8 @@ fun TripWorkspaceScreen(
     searchReturn: WorkspaceSearchReturn? = null,
 ) {
     var mapAttempt by remember { mutableIntStateOf(0) }
+    var zoomInRequest by remember { mutableIntStateOf(0) }
+    var zoomOutRequest by remember { mutableIntStateOf(0) }
     var mapHostState: MapHostState by remember(consent) { mutableStateOf(MapHostState.Loading) }
     var failedAttempt by remember(consent) { mutableStateOf<Int?>(null) }
     val locateBaselineTracker = remember { MapLocateRequestBaselineTracker(locateRequest) }
@@ -206,8 +208,21 @@ fun TripWorkspaceScreen(
                         }
                     },
                     onAction = { action ->
-                        if (action is TripWorkspaceAction.SelectMapLayer) layerFailureMessage = null
-                        onAction(action)
+                        when (action) {
+                            TripWorkspaceAction.ZoomIn -> {
+                                onAction(TripWorkspaceAction.MapGesture)
+                                zoomInRequest++
+                            }
+                            TripWorkspaceAction.ZoomOut -> {
+                                onAction(TripWorkspaceAction.MapGesture)
+                                zoomOutRequest++
+                            }
+                            is TripWorkspaceAction.SelectMapLayer -> {
+                                layerFailureMessage = null
+                                onAction(action)
+                            }
+                            else -> onAction(action)
+                        }
                     },
                     placeState = placeState,
                     onPlaceAction = onPlaceAction,
@@ -265,6 +280,8 @@ fun TripWorkspaceScreen(
                                     }
                                 },
                                 onUserGesture = { onAction(TripWorkspaceAction.MapGesture) },
+                                zoomInRequest = zoomInRequest,
+                                zoomOutRequest = zoomOutRequest,
                                 readyTimeoutMillis = mapReadyTimeoutMillis,
                             )
                         }
@@ -335,6 +352,8 @@ fun TripWorkspaceScreen(
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
+                TripWorkspaceAction.ZoomIn,
+                TripWorkspaceAction.ZoomOut,
                 TripWorkspaceAction.Locate -> Unit
                 TripWorkspaceAction.MapGesture -> viewModel.onMapGesture()
                 TripWorkspaceAction.Retry -> viewModel.retry()

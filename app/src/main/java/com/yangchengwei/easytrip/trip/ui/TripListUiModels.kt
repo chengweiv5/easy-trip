@@ -49,7 +49,7 @@ data class TripCardUiModel(
     val travelModeLabel: String,
     val countdownLabel: String,
     val placeCount: Int,
-    val scheduledPlaceCount: Int,
+    val scheduledDayCount: Int,
     val placeCountLabel: String,
     val tripDayCountLabel: String,
     val readinessPercent: Int,
@@ -91,7 +91,7 @@ private val crossYearTripDateFormatter = DateTimeFormatter.ofPattern("yyyy年M�
 
 fun TripSummary.toTripCardUiModel(today: LocalDate): TripCardUiModel {
     val endDate = tripEndDateOrNull(startDate, dayCount)
-    val readinessPercent = readinessPercent(placeCount, scheduledDistinctPlaceCount)
+    val readinessPercent = readinessPercent(dayCount, scheduledDayCount)
     return TripCardUiModel(
         id = id,
         name = name,
@@ -99,7 +99,7 @@ fun TripSummary.toTripCardUiModel(today: LocalDate): TripCardUiModel {
         dateLabel = tripDateLabel(startDate, endDate),
         countdownLabel = tripCountdownLabel(startDate, endDate, today),
         placeCount = placeCount,
-        scheduledPlaceCount = scheduledDistinctPlaceCount,
+        scheduledDayCount = scheduledDayCount,
         placeCountLabel = "$placeCount 个地点",
         tripDayCountLabel = "$dayCount 天行程",
         readinessPercent = readinessPercent,
@@ -125,5 +125,5 @@ private fun tripCountdownLabel(startDate: LocalDate?, endDate: LocalDate?, today
     else -> "已结束"
 }
 
-private fun readinessPercent(placeCount: Int, scheduledDistinctPlaceCount: Int): Int =
-    if (placeCount <= 0) 0 else ((scheduledDistinctPlaceCount * 100f) / placeCount).roundToInt().coerceIn(0, 100)
+private fun readinessPercent(dayCount: Int, scheduledDayCount: Int): Int =
+    if (dayCount <= 0) 0 else ((scheduledDayCount.coerceIn(0, dayCount) * 100f) / dayCount).roundToInt()

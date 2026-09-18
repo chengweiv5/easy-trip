@@ -17,20 +17,20 @@ data class TripListProjection(
     val name: String,
     val startDate: LocalDate?,
     val travelMode: TravelMode,
+    val updatedAt: Instant,
     val dayCount: Int,
     val placeCount: Int,
-    val scheduledDistinctPlaceCount: Int,
+    val scheduledDayCount: Int,
 )
 
 private const val TRIP_LIST_PROJECTION = """
-    SELECT t.id, t.name, t.startDate, t.travelMode,
+    SELECT t.id, t.name, t.startDate, t.travelMode, t.updatedAt,
            (SELECT COUNT(*) FROM trip_days d WHERE d.tripId = t.id) AS dayCount,
            (SELECT COUNT(*) FROM saved_places p WHERE p.tripId = t.id) AS placeCount,
-           (SELECT COUNT(DISTINCT i.savedPlaceId)
+           (SELECT COUNT(DISTINCT i.tripDayId)
             FROM itinerary_items i
-            WHERE i.tripId = t.id) AS scheduledDistinctPlaceCount
+            WHERE i.tripId = t.id) AS scheduledDayCount
     FROM trips t
-    ORDER BY t.updatedAt DESC
 """
 
 @Dao

@@ -41,8 +41,7 @@ fun ItineraryScopeRail(
             .width(88.dp)
             .fillMaxHeight()
             .testTag("itinerary-scope-rail")
-            .selectableGroup()
-            .padding(vertical = 4.dp),
+            .selectableGroup(),
         verticalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         item(key = "WHOLE_TRIP") {
@@ -70,12 +69,12 @@ fun ItineraryScopeRail(
                 ) {
                     IconButton(
                         onClick = onAddDay,
-                        modifier = Modifier.size(48.dp).testTag("itinerary-add-day"),
+                        modifier = Modifier.size(28.dp).testTag("itinerary-add-day"),
                     ) {
                         Icon(
                             imageVector = Icons.Rounded.Add,
                             contentDescription = "添加旅行日",
-                            modifier = Modifier.size(22.dp),
+                            modifier = Modifier.size(18.dp),
                         )
                     }
                 }
@@ -94,7 +93,7 @@ private fun ScopeItem(
     SelectablePill(
         selected = selected,
         onClick = onClick,
-        label = { Text(label) },
+        label = { Text(label, style = MaterialTheme.typography.bodyLarge) },
         modifier = Modifier.fillMaxWidth().testTag(tag),
         role = Role.Tab,
     )

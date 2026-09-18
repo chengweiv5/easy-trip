@@ -1,6 +1,16 @@
 package com.yangchengwei.easytrip.place.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.withStyle
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripAddress
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceBorder
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceSurface
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripScheduled
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -40,9 +50,14 @@ fun SavedPlaceRow(
     modifier: Modifier = Modifier,
 ) {
     var menuExpanded by remember(place.id) { mutableStateOf(false) }
-    Surface(modifier.fillMaxWidth().testTag("saved-place-${place.id}"), color = MaterialTheme.colorScheme.surface) {
+    Surface(
+        modifier.fillMaxWidth().testTag("saved-place-${place.id}"),
+        color = EasyTripPlaceSurface,
+        shape = RoundedCornerShape(8.dp),
+        border = BorderStroke(1.dp, EasyTripPlaceBorder),
+    ) {
         Row(
-            Modifier.fillMaxWidth().padding(vertical = 10.dp),
+            Modifier.fillMaxWidth().padding(vertical = 6.dp),
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
@@ -67,7 +82,8 @@ fun SavedPlaceRow(
             ) {
                 Text(
                     place.name,
-                    style = MaterialTheme.typography.titleMedium,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = EasyTripPrimaryDark,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -75,7 +91,7 @@ fun SavedPlaceRow(
                     Text(
                         place.address,
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .72f),
+                        color = EasyTripAddress,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
@@ -93,16 +109,16 @@ fun SavedPlaceRow(
                 onQuickAdd?.let { quickAdd ->
                     Surface(
                         modifier = Modifier
-                            .size(48.dp)
+                            .size(28.dp)
                             .testTag("quick-add-place-${place.id}")
                             .semantics { contentDescription = "添加${place.name}到行程" }
                             .clickable(onClick = quickAdd),
-                        shape = RoundedCornerShape(24.dp),
+                        shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.primaryContainer,
                         contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                     ) {
                         Box(contentAlignment = Alignment.Center) {
-                            PlusIcon(Modifier.size(20.dp))
+                            PlusIcon(Modifier.size(16.dp))
                         }
                     }
                 }
@@ -135,17 +151,17 @@ fun SavedPlaceRow(
     }
 }
 
-private fun placeAuxiliaryInfo(place: SavedPlaceRowUi): String = buildList {
-    add(
-        when {
-            place.recentlyCollected -> "刚刚收藏 · 待安排行程"
-            place.scheduled -> "已排入 ${place.itineraryOccurrenceCount} 次"
-            else -> "仅收藏"
-        },
-    )
-    place.note?.takeIf(String::isNotBlank)?.let(::add)
-    place.tags.takeIf(List<String>::isNotEmpty)?.joinToString(" · ")?.let(::add)
-}.joinToString(" · ")
+private fun placeAuxiliaryInfo(place: SavedPlaceRowUi): AnnotatedString = buildAnnotatedString {
+    when {
+        place.recentlyCollected -> append("刚刚收藏 · 待安排行程")
+        place.scheduled -> withStyle(SpanStyle(color = EasyTripScheduled)) {
+            append("已排入 ${place.itineraryOccurrenceCount} 次")
+        }
+        else -> append("仅收藏")
+    }
+    place.note?.takeIf(String::isNotBlank)?.let { append(" · $it") }
+    place.tags.takeIf(List<String>::isNotEmpty)?.let { append(" · ${it.joinToString(" · ")}") }
+}
 
 @Composable
 private fun PlaceIcon(modifier: Modifier = Modifier) {

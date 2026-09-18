@@ -121,7 +121,7 @@ class TripSettingsNavigationTest {
         val routes = mutableListOf<String>()
         setNavigation(routes, places, itineraries)
 
-        compose.onNodeWithTag("continue-trip-$tripId").performClick()
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
         compose.onNodeWithTag("section-ITINERARY").performClick().assertIsSelected()
         compose.onNodeWithText("Room 博物馆").assertIsDisplayed()
         compose.onNodeWithTag("workspace-sheet-handle").performTouchInput { swipeUp() }
@@ -193,7 +193,7 @@ class TripSettingsNavigationTest {
         compose.onNodeWithTag("settings-back").performClick()
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         pressBack()
-        compose.onNodeWithTag("continue-trip-$tripId").assertIsDisplayed()
+        compose.onNodeWithTag("primary-trip-$tripId").assertIsDisplayed()
         assertEquals(
             listOf(CREATE_TRIP_ROUTE, "trips/$tripId", "trips/$tripId/settings"),
             routes,
@@ -248,7 +248,7 @@ class TripSettingsNavigationTest {
         val tripId = createTrip()
         val routes = mutableListOf<String>()
         setNavigation(routes)
-        compose.onNodeWithTag("continue-trip-$tripId").performClick()
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
         compose.onNodeWithTag("workspace-more").performClick()
         compose.onNodeWithTag("more-menu-settings").performClick()
         compose.onNodeWithTag("settings-date-row").assertIsDisplayed()
@@ -268,7 +268,7 @@ class TripSettingsNavigationTest {
         val trips = seedPencilDeleteScenario()
         setNavigation(expectedTripId = trips.hangzhou.id)
 
-        compose.onNodeWithTag("continue-trip-${trips.hangzhou.id}").performClick()
+        compose.onNodeWithTag("primary-trip-${trips.hangzhou.id}").performClick()
         compose.onNodeWithTag("workspace-more").performClick()
         compose.onNodeWithTag("more-menu-settings").performClick()
         compose.onNodeWithTag("settings-delete-trip").performClick()
@@ -300,7 +300,7 @@ class TripSettingsNavigationTest {
         val trips = seedPencilDeleteScenario()
         setNavigation(expectedTripId = trips.hangzhou.id)
 
-        compose.onNodeWithTag("continue-trip-${trips.hangzhou.id}").performClick()
+        compose.onNodeWithTag("primary-trip-${trips.hangzhou.id}").performClick()
         compose.onNodeWithTag("workspace-more").performClick()
         compose.onNodeWithTag("more-menu-settings").performClick()
         compose.onNodeWithTag("settings-delete-trip").performClick()
@@ -511,7 +511,7 @@ class TripSettingsNavigationTest {
         if (awaitTripListId) {
             val tripId = expectedTripId ?: runBlocking { repository.observeTrips().first().single().id }
             compose.waitUntil(5_000) {
-                compose.onAllNodesWithTag("continue-trip-$tripId").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithTag("primary-trip-$tripId").fetchSemanticsNodes().isNotEmpty()
             }
         } else {
             compose.onNodeWithTag("create-trip").assertIsDisplayed()

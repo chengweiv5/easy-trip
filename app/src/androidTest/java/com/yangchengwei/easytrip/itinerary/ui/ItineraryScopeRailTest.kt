@@ -15,10 +15,13 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotSelected
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.semantics.SemanticsActions
+import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assertWidthIsEqualTo
@@ -91,7 +94,8 @@ class ItineraryScopeRailTest {
 
         compose.onNodeWithTag("itinerary-add-day")
             .assertHasClickAction()
-            .assertHeightIsAtLeast(48.dp)
+            .assertWidthIsEqualTo(28.dp)
+            .assertHeightIsEqualTo(28.dp)
             .assert(SemanticsMatcher.keyNotDefined(SemanticsProperties.Selected))
             .performClick()
         assertEquals(1, addClicks)
@@ -142,8 +146,9 @@ class ItineraryScopeRailTest {
     }
 
     @Test
-    fun railAddDayActionInvokesCallbackOnce() {
-        var addClicks = 0
+    fun railAddDayAppendsDirectlyWithoutOpeningConfirmationFlow() {
+        var appendCalls = 0
+        var confirmationCalls = 0
         compose.setContent {
             WorkspaceItineraryContent(
                 days = emptyList(),
@@ -151,13 +156,34 @@ class ItineraryScopeRailTest {
                 wholeTripDays = emptyList(),
                 onSelect = {},
                 dayContent = {},
-                onAddDay = { addClicks++ },
+                onAddDay = { confirmationCalls++ },
+                onAppendDay = { appendCalls++ },
                 modifier = Modifier.height(300.dp),
             )
         }
 
         compose.onNodeWithTag("itinerary-add-day").performClick()
-        assertEquals(1, addClicks)
+        assertEquals(1, appendCalls)
+        assertEquals(0, confirmationCalls)
+    }
+
+    @Test
+    fun repeatedRailAddClicksAreForwardedForTheAppendStateMachineToSingleFlight() {
+        var appendCalls = 0
+        compose.setContent {
+            WorkspaceItineraryContent(
+                days = emptyList(),
+                selected = ItineraryScope.WholeTrip,
+                wholeTripDays = emptyList(),
+                onSelect = {},
+                dayContent = {},
+                onAppendDay = { appendCalls++ },
+                modifier = Modifier.height(300.dp),
+            )
+        }
+
+        repeat(3) { compose.onNodeWithTag("itinerary-add-day").performClick() }
+        assertEquals(3, appendCalls)
     }
 
     @Test
@@ -221,8 +247,41 @@ class ItineraryScopeRailTest {
         val day = compose.onNodeWithTag("day-content").getUnclippedBoundsInRoot()
         assertTrue("sheet=$sheet rail=$rail", rail.left >= sheet.left && rail.right <= sheet.right)
         assertTrue("sheet=$sheet day=$day", day.left >= sheet.left && day.right <= sheet.right)
-        assertEquals(sheet.left + 20.dp, rail.left)
+        assertEquals(sheet.left + 20.dp + 12.dp, rail.left)
+        assertEquals(5.dp, day.left - rail.right)
         assertEquals(sheet.right - 20.dp, day.right)
+    }
+
+    @Test
+    fun railWholeTripAndBothScopeHeadersShareTheSameTopEdge() {
+        var selected: ItineraryScope by mutableStateOf(ItineraryScope.WholeTrip)
+        val tripDays = listOf(TripDay("day-1", 0))
+        compose.setContent {
+            WorkspaceItineraryContent(
+                days = tripDays,
+                selected = selected,
+                wholeTripDays = listOf(WholeTripDayUi("day-1", 1, listOf(ItineraryItemUi("item", "少林寺", "", null, null)), emptyList())),
+                onSelect = { selected = it },
+                dayContent = {
+                    DayItineraryContent(
+                        state = DayItineraryUiState(days = tripDays, selectedDayId = "day-1", items = listOf(ItineraryItemUi("item", "少林寺", "", null, null))),
+                        onAction = {},
+                        showDialogs = false,
+                    )
+                },
+                modifier = Modifier.width(360.dp).height(220.dp),
+                contentPadding = PaddingValues(start = 12.dp, end = 20.dp),
+            )
+        }
+
+        val wholeText = compose.onNodeWithText("全程", useUnmergedTree = true).fetchSemanticsNode()
+        val wholeTextBounds = compose.onNodeWithText("全程", useUnmergedTree = true).getUnclippedBoundsInRoot()
+
+        compose.runOnIdle { selected = ItineraryScope.Day("day-1") }
+        val dayText = compose.onNodeWithText("第 1 天 · 1 站", useUnmergedTree = true).fetchSemanticsNode()
+        val dayTextBounds = compose.onNodeWithText("第 1 天 · 1 站", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertEquals(wholeTextBounds.top, dayTextBounds.top)
+        assertEquals(wholeText.textLayout().layoutInput.style.fontSize, dayText.textLayout().layoutInput.style.fontSize)
     }
 
     @Test
@@ -245,6 +304,12 @@ class ItineraryScopeRailTest {
         compose.runOnIdle { selected = ItineraryScope.Day("day-1") }
         compose.onNodeWithTag("whole-trip-day-day-1").assertDoesNotExist()
         compose.onNodeWithTag("day-content").assertExists()
+    }
+
+    private fun SemanticsNode.textLayout(): androidx.compose.ui.text.TextLayoutResult {
+        val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        checkNotNull(config[SemanticsActions.GetTextLayoutResult].action).invoke(results)
+        return results.single()
     }
 
     private fun days() = (1..7).map { TripDay("day-$it", it - 1) }

@@ -8,6 +8,7 @@ import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
 import com.yangchengwei.easytrip.trip.domain.TripSummary
+import com.yangchengwei.easytrip.trip.domain.sortedForTripList
 import java.time.Clock
 import java.time.LocalDate
 import kotlinx.coroutines.CancellationException
@@ -140,7 +141,7 @@ class TripListViewModel(
                     page = if (trips.isEmpty()) {
                         TripListPageState.Empty
                     } else {
-                        val cards = trips.map { it.toTripCardUiModel(clock.today()) }
+                        val cards = trips.sortedForTripList(clock.today()).map { it.toTripCardUiModel(clock.today()) }
                         TripListPageState.Content(cards.first(), cards.drop(1))
                     },
                     deletion = deletion,
@@ -152,7 +153,8 @@ class TripListViewModel(
     fun refreshDateDerivedState() {
         val current = mutableState.value
         if (current.trips.isEmpty()) return
-        val cards = current.trips.map { it.toTripCardUiModel(clock.today()) }
+        val today = clock.today()
+        val cards = current.trips.sortedForTripList(today).map { it.toTripCardUiModel(today) }
         mutableState.value = current.copy(page = TripListPageState.Content(cards.first(), cards.drop(1)))
     }
 

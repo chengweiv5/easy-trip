@@ -93,7 +93,7 @@ fun SelectTargetDayContent(
                         else RadioButton(isSelected, null, enabled = !state.isSubmitting && !state.isUndoing)
                         Column(Modifier.weight(1f)) {
                             val date = startDate?.plusDays(day.index.toLong())
-                                ?.let { "${it.monthValue}月${it.dayOfMonth}日" }
+                                ?.let { "${it.monthValue} 月 ${it.dayOfMonth} 日" }
                             Text(
                                 listOfNotNull("第 ${day.index + 1} 天", date).joinToString(" · "),
                                 style = MaterialTheme.typography.bodyLarge,

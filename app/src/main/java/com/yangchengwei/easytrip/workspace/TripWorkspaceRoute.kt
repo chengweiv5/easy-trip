@@ -53,6 +53,22 @@ fun WorkspaceOverlay.isAddToItineraryOverlay(): Boolean =
 fun canDismissAddOverlay(overlay: WorkspaceOverlay, addToItinerary: AddToItineraryUiState): Boolean =
     !overlay.isAddToItineraryOverlay() || (!addToItinerary.isSubmitting && !addToItinerary.isUndoing)
 
+internal sealed interface AddToItineraryReconciliation {
+    data object WaitForFullSnapshot : AddToItineraryReconciliation
+    data class Reconcile(val dayIds: List<String>, val placeIds: Set<String>) : AddToItineraryReconciliation
+}
+
+internal fun addToItineraryReconciliation(
+    days: List<com.yangchengwei.easytrip.trip.domain.TripDay>?,
+    placesReady: Boolean,
+    savedPlaceIds: Set<String>?,
+): AddToItineraryReconciliation =
+    if (days != null && placesReady && savedPlaceIds != null) {
+        AddToItineraryReconciliation.Reconcile(days.map { it.id }, savedPlaceIds)
+    } else {
+        AddToItineraryReconciliation.WaitForFullSnapshot
+    }
+
 internal fun locationPermissionOverlayToPresent(
     prompt: LocationPermissionPrompt,
     current: WorkspaceOverlay,
@@ -322,17 +338,19 @@ fun TripWorkspaceRoute(
         }
     }
 
-    val authoritativeDays = ready?.days
-    val authoritativePlaceIds = if (places.placesReady && ready != null) {
-        places.savedPlaceIds ?: places.rows.mapTo(mutableSetOf()) { it.place.id }
-    } else {
-        null
-    }
-    LaunchedEffect(authoritativeDays, authoritativePlaceIds) {
-        addToItineraryViewModel?.reconcile(
-            authoritativeDays?.map { it.id },
-            authoritativePlaceIds,
-        )
+    val addToItineraryReconciliation = addToItineraryReconciliation(
+        days = ready?.days,
+        placesReady = places.placesReady,
+        savedPlaceIds = places.savedPlaceIds,
+    )
+    LaunchedEffect(addToItineraryReconciliation) {
+        when (addToItineraryReconciliation) {
+            AddToItineraryReconciliation.WaitForFullSnapshot -> Unit
+            is AddToItineraryReconciliation.Reconcile -> addToItineraryViewModel?.reconcile(
+                addToItineraryReconciliation.dayIds,
+                addToItineraryReconciliation.placeIds,
+            )
+        }
     }
     LaunchedEffect(places.selectedDetailPlaceId, ready?.overlay) {
         placeDetailOverlayToPresent(places.selectedDetailPlaceId, ready?.overlay ?: WorkspaceOverlay.None)
@@ -459,6 +477,8 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
+                TripWorkspaceAction.ZoomIn,
+                TripWorkspaceAction.ZoomOut -> Unit
                 TripWorkspaceAction.Locate -> locationPermissionCoordinator.onLocateClick(locationPermissionSnapshot())
                 TripWorkspaceAction.MapGesture -> viewModel.onMapGesture()
                 TripWorkspaceAction.Retry -> viewModel.retry()

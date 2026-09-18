@@ -77,7 +77,7 @@ class TripListViewModelTest {
             travelMode = TravelMode.FLEXIBLE,
             dayCount = 3,
             placeCount = 3,
-            scheduledDistinctPlaceCount = 2,
+            scheduledDayCount = 2,
         )
         val repository = TestTripRepository(listOf(datedTrip))
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts(), clock)
@@ -100,6 +100,38 @@ class TripListViewModelTest {
         assertEquals(emptyList<String>(), repository.deletedTrips)
         assertEquals(false, noNavigation.isCompleted)
         navigationObserver.cancel()
+    }
+
+    @Test fun foregroundRefreshReselectsPrimaryTripAfterCrossingIntoANewDayWithoutRoomEmission() = runTest(dispatcher) {
+        val clock = MutableClock(Instant.parse("2026-04-10T00:00:00Z"))
+        val endingToday = TripSummary(
+            id = "ending-today",
+            name = "Ending today",
+            startDate = LocalDate.of(2026, 4, 9),
+            travelMode = TravelMode.FLEXIBLE,
+            dayCount = 2,
+            placeCount = 0,
+            scheduledDayCount = 0,
+        )
+        val startingTomorrow = TripSummary(
+            id = "starting-tomorrow",
+            name = "Starting tomorrow",
+            startDate = LocalDate.of(2026, 4, 11),
+            travelMode = TravelMode.FLEXIBLE,
+            dayCount = 2,
+            placeCount = 0,
+            scheduledDayCount = 0,
+        )
+        val repository = TestTripRepository(listOf(endingToday, startingTomorrow))
+        val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts(), clock)
+        advanceUntilIdle()
+        assertEquals("ending-today", (viewModel.state.value.page as TripListPageState.Content).primaryTrip.id)
+
+        clock.instant = Instant.parse("2026-04-11T00:00:00Z")
+        viewModel.refreshDateDerivedState()
+
+        assertEquals("starting-tomorrow", (viewModel.state.value.page as TripListPageState.Content).primaryTrip.id)
+        assertEquals(listOf("ending-today", "starting-tomorrow"), repository.trips.value.map(TripSummary::id))
     }
 
     @Test fun newDeleteTargetIgnoresOldImpactCompletion() = runTest(dispatcher) {

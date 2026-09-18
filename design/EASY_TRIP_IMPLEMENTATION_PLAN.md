@@ -243,6 +243,28 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 - 已知边界：standalone `PlacePoolSheet` 保持现有无生产 route 的 Dialog 宿主，不制造地图宿主；map POI、未收藏 marker、删除/取消收藏确认未扩张。
 - Fix Round 1：`TripWorkspaceScreen` 现在用自身单一 `workspace-screen-root` Box 按 Content→Overlay 顺序叠放，不依赖 NavHost/调用方，且未重复传递外部 modifier。极小高度改为 `<416dp` 时 sheet 充满全部可用高度，优先保证 Sheet 可操作性；正常高度保留至少 96dp 地图空间，并保持 490/782 比例与 320–560dp 上下限。`PlaceDetailPanelTest` 的 Kotlin `assert` 已全部替换为 JUnit 断言。工作台 recording hosts 复用 production `viewportRendering` 消费语义记录实际非空 `ViewportCommand` 次数，证明行打开、marker 打开、查看→编辑与关闭均不增加实际 camera apply；因无设备，该 instrumentation 证据已编译但 NOT-RUN。
 
+### 2026-09-07 · Batch F2 · 日期弹窗与设置旅行日列表
+
+- 日期弹窗：创建与设置继续共用 `TripDateRangePickerSheet`；移除顶部 drag handle 与穿过日期数字的 range connector，保留范围背景；今天增加独立描边，并在开始、结束、单日或范围内状态重叠时保留“今天”语义；月份导航与底部共享按钮继续使用居中容器。
+- 设置页：重命名按钮改为“保存”；旅行日只保留垃圾桶删除入口；dated 不渲染也不注册拖动把手，undated 保留既有长按重排；连续卡片按单个全圆、首项仅上圆、中间直角、末项仅下圆处理。删除确认、写锁以及 append/move 状态机未改。
+- TDD：focused Android RED 为 today 语义、range connector/drag handle、dated/undated 操作入口和保存标签共 5 项失败；形状专项 RED 证明旧首末项均全圆。GREEN 后 `TripDateRangePickerSheetTest`、`TripSettingsContentTest`、`TripFlowTest` 共 58/58 通过（`ANDROID_SERIAL=emulator-5554`）。focused JVM `TripDateRangePickerStateTest` + `TripSettingsViewModelTest` 通过。
+
+### 2026-09-07 · Batch F3 · 工作台顶部、地图控制与权限入口
+
+- 工作台：顶部卡保持 52dp，高度基准下使用 12dp 水平外边距与 10dp 顶边距；搜索栏固定在工作台内容坐标 `x=16/y=82/w=296/h=46`。主抽屉 HALF 基准高度由 432dp 调整为 324dp（约占 782dp body 的 41%，使地图可见区约占 59%）。
+- 地图：图层 46dp 与 zoom+/zoom-/定位三个 44dp 控件归并为右侧单组，组内 4dp 间隔（图层与导航组三按钮间保留 14dp），并在拖动时以实时 `sheetTop` 约束避免进入抽屉。zoom 事件由工作台层转发到同一 AMap host，先清除自动 viewport 请求并保留既有手势抑制；地图 fit 安全区扩大到顶部 134dp、右侧 80dp、稳定抽屉高度加 20dp，避开顶部卡、搜索、图例、四控件与抽屉，拖动帧继续使用稳定 anchor 防抖。
+- 搜索与权限：搜索结果页首次组合时自动请求输入焦点并唤起 IME，后续状态重组不重复请求；点击定位在非永久拒绝状态直接发起 Android 系统权限请求，不再展示应用内 rationale，永久拒绝仍进入 settings recovery。
+- TDD：focused JVM 先出现 HALF anchor、viewport inset、首次定位直达权限共 5 项预期失败，最小实现后 56/56 通过；focused Android 首先验证旧实现缺少统一 zoom 控件且搜索未聚焦，GREEN 后工作台几何、实时 sheetTop 控件约束、zoom→手势抑制、搜索首次聚焦单项通过。zoom 一次性委派测试保留在 `WorkspaceFlowTest` 与 `AmapComposeMapTest`；排查确认 timeout 源于 fake host `canRenderBeforeReady=true` 但未发送 ready 信号，以及测试重组时不稳定 consent identity 重建 host，生产侧改为稳定 request controller 在已可渲染 host 上 exactly-once 消费。完整 JVM 743 项中 742 通过，唯一失败为已有 F1/F2 工作树的 `ScenarioMatrixReferenceTest` 对受保护手工验收文档的断言，不在本批修改范围。
+- F3 复审修正：`PlaceSearchRoute` 使用 destination 级 `rememberSaveable` 消费首次 autofocus，详情返回不重抢焦点；`MapZoomRequestController` 在 host replacement 时以当前 request 建基线，不重放历史 zoom；四控件组仅在完整 200dp 组能保持在实时 sheetTop 之上时显示；viewport 将左侧 inset 提升为 132dp，并以 legend 的实际高度/底部间距推导 bottom safe inset，fit 可见矩形避开左下图例。补充 route detail-return 焦点、zoom replacement baseline、controls 整组隐藏及 safe rect 与图例无交集回归。
+
+### 2026-09-07 · Batch F5 · 单日入口、rail 追加、路段点击与实时排序
+
+- 单日行程：`DayItineraryContent` 删除顶部横向地点 chips 和正文重复 CTA；有站与空日统一在“第N天·M站”标题右侧提供唯一 48dp 加号，并继续派发 `AddPlaces`，复用固定当前日的 `startForDay` 流程。
+- 旅行日追加：rail 底部加号直接派发 `AppendTripDay`，不再打开确认层；全程无日 guidance 仍保留既有添加旅行日 overlay。追加继续经过 `DayItineraryViewModel` single-flight/观察确认状态机与 `TripService.appendTripDay`，保留写锁、同步错误、30 天上限及 dated 连续日期语义。
+- 路段编辑：仅 Ready 路段的信息 surface 可点击并带 ripple，使用“编辑从起点到终点的路段”无障碍标签；删除独立编辑按钮。Failed 仅保留受限宽度的重试操作，Pending/Calculating/Waiting 均不可编辑。
+- 排序：固定 120dp 阶跃替换为 timeline 共享 drag state；拖动项实时 translation/elevation，中线最近项触发 preview 换位，`animateItem` 负责其它项 placement，preview 同步重建相邻 route，边缘触发列表自动滚动；结束仅 commit 一次，取消恢复起始顺序，Room 失败沿用 ViewModel 权威顺序回滚，上移/下移无障碍动作保持。
+- TDD 与验证：新增标题唯一加号、Ready 路段 surface/endpoint label、rail 直接 append、dated append 日期顺延、共享拖动状态回归。`ItineraryTimelineContentTest` + `ItineraryScopeRailTest` 在 emulator-5554 共 59/59 通过；focused JVM、全量 `testDebugUnitTest`、`assembleDebug`、`assembleDebugAndroidTest`、`lintDebug`、`git diff --check` 通过。安装并实际启动 emulator-5554 成功，但设备安装态为空旅行列表，未制造数据，故 F5 三个有数据交互仅由 connected production Composable 测试覆盖，未完成真实安装态手工操作。
+
 ## 附录引用处理
 
 以下类型只作为视觉和状态验收，不创建额外页面：
@@ -528,6 +550,14 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 
 - [x] 适用 focused connected 已在 AVD 执行；Huawei production installed app + RealAmap 的 Xs→加入行程→p4、地图保留、同 sheet 编辑与保存回流已验收。保存 busy 窗口的 Back/关闭锁仍由 AVD controlled delayed repository 证明，不冒充真机可观察证据。
 
+### 2026-09-06 · Batch F1 · 共享按钮与旅行列表主卡语义
+
+- 实现：`EasyTripButton` 的内容行在固定宽度和 `weight` 约束下水平居中，并保持 48dp 最小高度内垂直居中。旅行主卡移除可见“继续规划”按钮及其独立点击语义，整卡继续触发 `OpenTrip`，菜单保持独立入口。
+- 准备度：Room 投影改为统计含有 `ItineraryItem` 的 distinct `tripDayId`，UI 按 `scheduledDayCount / dayCount` 四舍五入显示 0/33/67/100；地点总数继续独立展示。0% 的进度 semantics 仍为 0，视觉填充保留左侧最小段。
+- 排序：`RoomTripRepository.observeTrips()` 在每次 Room Flow emission 中使用注入 `Clock` 的 today 排序：进行中优先结束更近、同结束日开始更晚，未来已定按 startDate 升序，已结束按 endDate 降序，日期待定最后；同一业务日期按 updatedAt DESC、id 稳定排序。编辑名称不会改变进行中旅行的日期业务顺序，当前旅行改到更晚日期后，较近未来旅行会成为主卡。
+- TDD：focused JVM 首次因新 `scheduledDayCount` API 缺失编译 RED；Room 同桶排序测试首次因进行中错误按 startDate 排序 RED；foreground refresh 跨日测试首次在无 Room emission 时仍保留已结束主卡 RED。排序抽为 `TripSummary.sortedForTripList(today)` 单一真源，由 Room Flow 与 ViewModel foreground refresh 共用。最小实现后 focused JVM GREEN；`emulator-5554` 上按钮、主卡语义/准备度与完整 Room repository 核心集合 31/31 GREEN，完整 Room repository 27/27 GREEN；`compileDebugAndroidTestKotlin` 与 `git diff --check` 通过。
+- 已知边界：完整 `TripListContentTest` 在当前 API 36 AVD 仍有 6 个既有短高/固定底部坐标和初始可见性断言失败；本批核心 focused 用例通过。未修改 `.pen`、`.kotlin/`、`diagrams/`，未触碰 `docs/testing/2026-09-06-manual-ui-acceptance.md`，未 commit、未 push。
+
 ### 2026-09-06 · Visual Batch 1 · 我的旅行列表族视觉收敛
 
 - 实现：根据 `K9h3r` / `wJ51c` / `pgrb6` 的可见结构，将主卡收敛为 20dp 圆角深绿“下一站”信息卡，展示真实日期范围、天晚数、地点数、旅行日数和准备度；进度条无障碍描述使用原始计数“已安排 X/Y 个收藏地点”。倒计时统一为“日期待定 / 还有 N 天 / 旅行中 / 已结束”。其他旅行行保留整行进入与独立菜单，并增加无重复点击语义的 36dp 视觉箭头；创建入口为右下 142×52dp 胶囊。
@@ -655,6 +685,31 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 - `graphify update .` 已在 `.git/info/exclude` 本地排除 `.kotlin/`、`diagrams/` 后执行，生成 7098 nodes / 16653 edges / 386 communities。仍报告 4 个部分解析 warning：`TripDateRangePickerSheetTest.kt`、`TripWorkspaceContentTest.kt`、`NetworkMonitor.kt`、`RoutePlanner.kt`；Kotlin 编译、AndroidTest 编译和目标 connected 均通过。该本地 exclude 不进入仓库提交。
 - 未修改 `.pen`，未读取或修改 `.kotlin/`、`diagrams/`，未 commit、未 push。
 
+### 2026-09-13 · Batch F6 · 工作台紧凑布局
+
+- 实现：`WorkspaceTopBar` 保持 42dp、左右 12dp 外边距，标题和日期摘要改为同一水平行；标题通过权重截断，日期、24dp 返回和更多按钮始终保留且不重叠。`MapControls` 固化为右侧从上到下图层、放大、缩小、定位、搜索五个 28×28dp 圆形按钮，图标/点击区域同尺寸、间隔 5dp、右边缘 12dp；组高同步为 `5*28+4*5=160dp`，搜索仍派发既有 `OpenSearch`。
+- 视口与图例：图例与实时抽屉顶部间距改为 5dp，拖动继续按 `sheetTop` 定位且不重叠；`workspaceViewportInsets` 右侧安全区改为 40dp，同时稳定锚点继续避让图例和抽屉。控件组/图例/视口的缩放、手势抑制、定位 ready 门禁与图层菜单 sheet-overlap 门禁均保留，未回退。
+- TDD：先更新 `WorkspaceLayoutMetricsTest`（28dp/5dp/5dp 图例间距、160dp 所需高度、40dp 右安全区）和 `WorkspaceChromeTest`（标题日期同行、五控件尺寸与间距）；RED 的 focused JVM 得到 3 项预期断言失败。最小实现后 focused JVM `WorkspaceLayoutMetricsTest + MapViewportControllerTest` GREEN，`ANDROID_SERIAL=emulator-5554` 的 `WorkspaceChromeTest` 19/19 GREEN。
+- 手验边界：仅操作 `emulator-5554`，安装 production debug APK、启动到空旅行列表并检查可启动和无崩溃；该安装态没有旅行，未能进入工作台验证实际 chrome。未操作 Huawei，未安装或运行 Huawei test APK。
+
+### 2026-09-13 · Batch F6 · 地点池紧凑调整
+
+- 实现：`SavedPlaceRow` 行上下留白由 10dp 收紧为 6dp；仅收藏地点右侧 `＋` 的视觉与点击区域统一为 28dp，图标同步缩小；行点击、更多菜单、详情/加入行程语义及 `ReadOnlyLazyScrollbar` 未改动，不触及 `PlaceDetailPanel`。
+- TDD：`WorkspacePlacePoolLayoutTest.placeRowIsCompactAndQuickAddUsesTwentyEightDpVisualAndTouchTarget` 先 RED（旧实现 quick-add 为 48dp），最小实现后 GREEN；connected 仅使用 `ANDROID_SERIAL=emulator-5554`，该类 3/3 通过。
+- 顶部紧凑续做：抽屉 header 由 72dp 收至 60dp，拖动柄由 24dp 收至 16dp，Tab 由 44dp 收至 36dp，内容区间距同步收紧；三态锚点、Tab 切换与拖动结算不变。地点名称与 Tab 同用 `bodyLarge`，地址/状态仍用辅助层级；删除“已排入 · 仅收藏”，批量“添加到行程”替换为 28dp 列表加号（contentDescription“批量添加到行程”），仍派发既有 `StartAddToItinerary` 多地点→选旅行日流程。单地点 28dp `＋` 与 `ReadOnlyLazyScrollbar` 保留。
+- TDD/验证：新 header 用例先因旧 legend 存在 RED；抽屉 header 两项尺寸断言先由旧 72dp 得到 RED。最小实现后 `ANDROID_SERIAL=emulator-5554` 上 `WorkspacePlacePoolLayoutTest` 4/4、`WorkspaceChromeTest` 19/19 GREEN；production debug APK 仅覆盖安装并冷启动 emulator 空旅行列表，无崩溃，但无旅行数据，未能进入实际地点池手验。`PlacePoolFlowTest` 全类 27 项有 4 个既有不相关失败（新标签显示、长日提交显示、真实 ViewModel 选择状态、滚动条超时），不计为本变更绿色全量结果。
+- 手验边界：未操作 Huawei；待 M4 手验复核长列表、筛选、详情、批量与单地点加入行程入口。未修改 `.pen`、`.kotlin/`、`diagrams/`，未 commit、未 push。
+
+### 2026-09-07 · Batch F4 · 地点池与地点编辑
+
+- 实现：`PlaceDetailPanel` 的新标签输入与“添加”共享同一行垂直中心；“添加”保留 48dp 最小触控目标。工作台实际 `PlacePoolContent` 以同一 `LazyListState` 驱动 `ReadOnlyLazyScrollbar`，仅在列表可滚动时渲染；thumb 随滚动和筛选后的行数更新，不带业务语义或滚动语义。列表尾部保留轨道空间，避免遮住地点行 `＋` 与更多操作。
+- 数据边界：未改变 `PlacePoolUiState.savedPlaceIds` 的全量来源；全量 ID 仍由未筛选 `observePlaces(tripId, emptySet())` 写入，筛选仅影响 `rows`，工作台 reconcile 继续优先使用该全量集合。
+- TDD：新标签/滚动条 Android 用例先 RED：旧标签行无垂直对齐且缺 `place-detail-add-tag`，地点池没有 scrollbar；最小实现后 GREEN。补充地点详情 bottom sheet 的删除/取消/保存宿主 bounds 与共享按钮双轴居中断言；ViewModel 回归验证筛选外地点仍进入完整 `savedPlaceIds`。
+- 自动化验证：`PlacePoolViewModelTest` focused JVM 通过；`emulator-5554` 上 `PlaceDetailPanelTest + WorkspacePlacePoolLayoutTest` 22/22、地点池滚动/筛选/遮挡/总数 focused 5/5 通过。一次 27 项合并 Android run 在第 22 项后 instrumentation 进程崩溃；失败的 `workspacePlacePoolUsesOnlySheetHorizontalInset` 已单独复跑通过，未将该合并 run 记为通过。fresh `testDebugUnitTest + assembleDebug + assembleDebugAndroidTest + lintDebug` 与 `git diff --check` 通过。
+- 设备验证：本任务尚未在 Huawei production UI 手工操作；完成自动化后需在 Huawei 复核地点池长列表滚动条、筛选及地点编辑标签 IME。
+- Graphify：`graphify update .` 完成，结果 7202 nodes / 16869 edges / 383 communities；继续报告未触及的 `TripDateRangePickerSheetTest.kt`、`TripWorkspaceContentTest.kt`、`NetworkMonitor.kt`、`RoutePlanner.kt` 部分解析 warning。
+- 约束：未读取或修改 `.kotlin/`、`diagrams/`、`design/easy-trip-v2.0.pen` 或 `docs/testing/2026-09-06-manual-ui-acceptance.md`；未 commit、未 push。
+
 ### 2026-09-06 · 最终全局真机视觉验收
 
 - 环境：Huawei ALN-AL00（1260×2720、520dpi），仅 `adb install -r` 覆盖 production debug APK；保留自然旅行“登封”和既有 Room 数据，未安装 test APK、未卸载、未清数据、未改变 Android 权限。验收前后应用均可正常 cold start，无 crash/ANR。
@@ -663,6 +718,49 @@ Task 8 已补齐恢复边界：文件型 Room 关闭/重开后，由 production 
 - 工作台行程族：收起态显示“第 1 天 · 3 个地点 / 上滑展开”；半屏单日显示 scope rail、3 站摘要、地点卡、路线状态和编辑入口；全程显示“4 天 · 7 站”、连续日期分组和只读时间线。单日正文在 88dp rail 后按窄宽换行，横向收藏 chip 可滚动；UI Automator 边界确认摘要、地点 chip、路线文案和编辑按钮均位于 1260px 屏幕内，不属于严重裁切。再次安排目标日选择和交通路段编辑均完整可达，均取消未写入。
 - 地图与异常族：应用内 AMap consent 当前保持未授权，fallback 文案和“查看并授权”可达；授权说明、隐私政策入口、确认 checkbox、允许/暂不允许操作完整。图层菜单在未授权 fallback 上仍显示标准/卫星/卫星路网且不与顶部栏、搜索或抽屉重叠。未接受第三方条款、未改 Android location permission，因此本轮不重新声明 RealAmap、AndroidSystem 定位或真实 SDK failure；这些能力沿用既有已授权 Huawei 证据与自动化 failure host。
 - 门禁结论：未发现功能/状态错误、数据不一致、崩溃、不可达、严重裁切或关键交互失效。截图仅作诊断；细小间距、字体和像素差异继续作为非阻塞 physical acceptance 项。验收未执行删除、添加旅行日、重复安排、保存编辑或授权等会改变自然数据/权限的确认动作。
+
+### 2026-09-14 · Batch F6 · 紧凑单日与全程行程
+
+- 实现：按用户确认预览收紧工作台行程。行程 scope rail 距抽屉左侧 12dp，与地图顶栏左边缘一致；divider 后正文实际间距为 5dp。移除单日容器额外 12dp 内缩，scope rail 的“全程”与单日/全程摘要从同一顶部开始。共享 `ItinerarySummaryHeader` 统一单日、全程及全程内每日分组标题；全程继续按天分组、保留空日和连续日期，并仅渲染同日相邻路线。
+- 视觉/语义：共享地点 primitive 的地点名改为与地点池一致的 `bodyLarge`，辅助信息仍为 `bodySmall`。单日和全程的可见路线均移除重复“地点 A → 地点 B”，只保留交通、状态、距离和耗时；Ready 仍可编辑、Failed 仍有唯一重试，所有状态继续通过 contentDescription 保留“从 A 到 B”的端点语义。全程继续只读，不暴露拖动、菜单、编辑、删除、路线模式或重试。
+- TDD：rail 左侧/正文间距、单日隐藏端点、全程每日 `第X天·Y站`、单日/全程首行顶部对齐均先得到预期 RED；最小实现后核心 5/5、`ItineraryScopeRailTest + WholeTripItineraryContentTest` 19/19、`ItineraryTimelineContentTest` 50/50，最终 focused 合集 69/69 GREEN。复审发现非 Ready 与全程路线端点无障碍语义缺口，补回归后修复。
+- 自动化验证：fresh `testDebugUnitTest + assembleDebug + assembleDebugAndroidTest + lintDebug`、`git diff --check` 通过；`graphify update .` 完成。`ItineraryEditingTest` 全类仍有两个与本批无关的旧入口断言失败：旧 `edit-route-ready` tag 与已删除的 `add-place-hotel` 快捷入口，未通过恢复废弃 UI 弱化当前产品语义。
+- 设备验证：Huawei 在最终安装时未连接，尚未覆盖本批 APK。只允许设备恢复后执行 `adb install -r` production debug APK；不安装 test APK、不卸载、不清数据、不改变权限。
+
+### 2026-09-15 · 紧凑行程 Huawei 复验通过
+
+- 用户在 production APK 覆盖安装后确认本轮行程布局“通过”：单日/全程标题行 36dp，标题与小号日期同行且日期紧随标题，中文数字空格统一；拖动手柄与日期追加加号均 28dp，地点正文距手柄 5dp、路线同步左移，单日标题加号与地点更多按钮对齐。
+- 最近相关模拟器回归 71/71、JVM/build/lint/diff-check 通过；本次仅更新用户手验结论，未重跑自动化。
+- Huawei 仅通过 `adb install -r` 更新，确认无 test APK。本次通过只标记紧凑布局，不扩展为 M6 编辑/删除/持久化全量通过；后续仍按手册补齐未验收业务。
+
+### 2026-09-15 · 地点添加与编辑阻断修复
+
+- 用户范围：地点行 `＋` 和顶部批量添加缺少可见确认；编辑底部删除重复；新标签输入被添加按钮遮挡。不重新调整已通过的地图、行程、滚动条或权限。
+- 根因与修复：移除 `EasyTripButton` 内部强制全宽，默认宽度随内容、fixed/fill/weight 由调用方决定，保留双轴居中和48dp最小高度。编辑态只保留取消/保存，查看态和更多菜单删除不变。最长合法标签使用剩余宽度换行，为移除按钮保留宽度。批量 footer 将计数独立一行，取消/继续均分下一行。
+- TDD：共享旧实现4项中2项因继续/输入框不可见失败；地点面板实测输入为0dp且编辑删除仍存在。共享修复后最长12汉字/2倍字体的移除按钮仍不可见，补 `Text.weight`；280dp/2倍字体批量继续仅22dp，补footer分行。每个生产改动均先取得对应断言失败。
+- 流程：新增 `AppNavigation + ViewModel + in-memory Room + TestMapHost` 单地点和批量真实触摸闭环，校验提交顺序与取消不写入。保留固定日直接提交、单地点多日文案、菜单删除确认/取消与引用数据回归；标签添加/保存/重开/取消使用模拟器应用Room测试数据。
+- 测试校正：编辑保存锁的Back测试先等待弹窗显示再按返回；两个controlled Route测试明确提供完整 `savedPlaceIds`，避免把筛选rows冒充权威快照；旧日期断言更新为空格规范。均不改生产状态机。
+- 自动化验证：首轮117项中114通过，失败为批量22dp及两个缺少权威ID快照的受控测试，已分别修正。最终同组117/117通过（`/tmp/easytrip-place-final-all-ui.log`），此前最新流程32/32通过；fresh JVM 758/758、assembleDebug、assembleDebugAndroidTest、lintDebug和diff-check通过（`/tmp/easytrip-place-final-build.log`）。lint仍有45个Warning/1个Hint，无Error；未宣称全工程所有Android测试通过。只读审查无已确认必要问题。
+- 图谱：排除`.kotlin/`、`diagrams/`后执行`graphify update .`完成；工具继续报告4个Kotlin文件部分解析warning，Android/Kotlin编译与测试通过。
+- 设备边界：仅 `ANDROID_SERIAL=emulator-5554` 运行instrumentation。最终Huawei恢复连接，已用 `adb -s FMR0224725012307 install -r` 成功覆盖production APK，安装前后仅存在production包、无test APK；未卸载、未清数据、未改权限、未代操作UI。四项问题等待用户手动复验。未commit/push、未改正式.pen或禁区目录。
+
+### 2026-09-15 · 地点与行程配色、区块层次
+
+- 用户确认：以Huawei实际半开抽屉截图作基线；否定按日分色，改为地点信息角色分色与交通方式分色。旧HTML曾用缩略地图/自定义抽屉高，已明确作废为布局基线。正式.pen保持只读。
+- 地点池：地点行浅灰绿`#EEF2EB`/边`#E0E7DC`，名称深绿、地址蓝灰`#486A86`、只有已排次数深橙`#A05220`；recentlyCollected优先级、备注/标签/仅收藏保持原语义，原42dp图标、28dp加号、48dp更多、行高/间距/页签/滚动条不变。
+- 行程：共享地点内容改为名称→地址→到达时间与停留同行，缺项无孤立分隔符/空行；块内10dp，块间8dp，首块距标题6dp，时间线右10dp，全程组间14dp。单日手柄/名称/28dp更多首行居中，下方信息可占更多下方；标题加号仍28dp并与更多中心对齐。
+- 路线：步行青绿、驾车蓝、打车橙、公交紫，浅底+深文字+虚线圆点；Failed优先红色，保留状态提示/LiveRegion、重试和默认端点无障碍语义。块内横10dp/竖6dp、最小48dp而非固定高度；整块Ready可触摸。单日线轴为卡片左+19dp，正文+44dp；全程线轴与地点文字对齐为+10dp，正文同步移到+35dp，线字间隔25dp。全程继续只读，不暴露编辑/重试。
+- 不变范围：324dp HALF响应式锚点、60dp header、36dp摘要、两等分Tab、地图/权限/业务数据层均不改。配色不是新的交通业务规则，也未修改地图日色palette。
+- TDD：RED1 8项3预期失败(颜色/时间顺序/路线正文)，RED2 3项全预期失败(四色/全程轴/间距)。初次74项因LiveRegion放错层、标题加号中心及构建时未包含错误两行限制等失败；修正生产语义与测试错误参考点后同组74/74通过。最终扩大回归136/136通过（`/tmp/easytrip-colors-final-ui.log`），包含地点池/单日/全程、scope rail、WorkspaceChrome、地点编辑与双入口production导航触摸闭环；新增窄屏2倍字号信息/菜单可达、路线空白区域点击与失败覆盖色。fresh JVM758/758、assembleDebug、assembleDebugAndroidTest、lintDebug和diff-check通过（`/tmp/easytrip-colors-final-build.log`）；lint45Warning/1Hint，无Error。只读审查未留下已确认本轮必要问题；未声称全工程所有Android测试通过。
+- 图谱：`graphify update .`完成，沿用本地禁区排除；仍有工具部分Kotlin解析warning，不影响实际编译测试。
+- 证据边界：只在`emulator-5554`运行Android测试；真实导航+in-memory Room测试不等同Huawei自然数据或跨进程持久化。Huawei已用`adb -s FMR0224725012307 install -r`覆盖成功，安装前后仅production包无test APK；未卸载/清数据/改权限/写DB/代操作UI，等待用户地点池/单日/全程复验。
+
+### 2026-09-15 · 单日地点首行可见图形对齐
+
+- 用户反馈手柄/名称/更多菜单应在同一水平线。源码虽使用Row居中，但18dp手柄Canvas三横线为y6/11/16，图形中心11dp比画布中心9dp低2dp；此前只测容器/横向轴，未捕获这一偏移。
+- 最小修复：仅把手柄三线改为`size.height/2 + [-5,0,5]dp`，保留线宽、横向中心9dp、18dp画布和28dp触点，不改标题、菜单、区块间距、配色或全程。
+- RED：实际渲染像素测得handle中心26dp、menu24dp而失败（`/tmp/easytrip-header-align-red.log`）；新回归同时核对标题实际墨迹中心、28dp触点和菜单物理点击。最终行程回归71/71通过（`/tmp/easytrip-header-align-final-ui.log`）；unit/assembleDebug/assembleDebugAndroidTest/lintDebug、diff-check通过（`/tmp/easytrip-header-align-final-build.log`），只读审查无必要问题，graphify更新完成。
+- 真机当前为全程，读取截图仅诊断，不作为单日通过证据；已仅install-r成功覆盖production，安装前后无test APK，不清数据/改权限/代操作UI，等待用户切换单日复验。
 
 每次完成一批后追加：
 

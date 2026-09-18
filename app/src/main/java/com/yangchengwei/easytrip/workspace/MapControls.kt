@@ -36,19 +36,18 @@ import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 fun MapControls(
     active: Boolean,
     onOpenLayerMenu: () -> Unit,
+    onZoomIn: () -> Unit = {},
+    onZoomOut: () -> Unit = {},
     onLocate: () -> Unit = {},
+    onOpenSearch: () -> Unit = {},
     modifier: Modifier = Modifier,
 ) {
     val controlSize = EasyTripTheme.sizes.workspaceDenseTouchTarget
     val iconSize = EasyTripTheme.sizes.workspaceIconSize
-    val controlGap = EasyTripTheme.spacing.workspaceControlGap
-    Column(modifier, horizontalAlignment = Alignment.End) {
+    val controlGap = 5.dp
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(controlGap), horizontalAlignment = Alignment.End) {
         Surface(
-            Modifier.size(controlSize).testTag("workspace-locate").semantics { contentDescription = "定位" }.clickable(onClick = onLocate),
-            shape = RoundedCornerShape(controlSize / 2), color = MaterialTheme.colorScheme.surface, shadowElevation = EasyTripTheme.elevation.floating,
-        ) { Box(contentAlignment = Alignment.Center) { WorkspaceLocateIcon(Modifier.size(iconSize)) } }
-        Surface(
-            Modifier.padding(top = controlGap).size(controlSize).testTag("layer-menu").semantics {
+            Modifier.size(controlSize).testTag("layer-menu").semantics {
                 contentDescription = "地图图层"
                 selected = active
             }.clickable(onClick = onOpenLayerMenu),
@@ -60,6 +59,41 @@ fun MapControls(
                 WorkspaceLayerIcon(Modifier.size(iconSize), if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
             }
         }
+        MapControlButton("放大", "zoom-in", controlSize, onZoomIn) { MapZoomGlyph(plus = true) }
+        MapControlButton("缩小", "zoom-out", controlSize, onZoomOut) { MapZoomGlyph(plus = false) }
+        MapControlButton("定位", "workspace-locate", controlSize, onLocate) {
+            WorkspaceLocateIcon(Modifier.size(iconSize))
+        }
+        MapControlButton("搜索地点", "workspace-search-control", controlSize, onOpenSearch) {
+            WorkspaceSearchIcon(Modifier.size(iconSize))
+        }
+    }
+}
+
+@Composable
+private fun MapControlButton(
+    description: String,
+    tag: String,
+    size: androidx.compose.ui.unit.Dp,
+    onClick: () -> Unit,
+    content: @Composable () -> Unit,
+) {
+    Surface(
+        Modifier.size(size).testTag(tag).semantics { contentDescription = description }.clickable(onClick = onClick),
+        shape = RoundedCornerShape(size / 2),
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = EasyTripTheme.elevation.floating,
+    ) { Box(contentAlignment = Alignment.Center) { content() } }
+}
+
+@Composable
+private fun MapZoomGlyph(plus: Boolean) {
+    val color = MaterialTheme.colorScheme.onSurface
+    androidx.compose.foundation.Canvas(Modifier.size(22.dp)) {
+        val stroke = 2.dp.toPx()
+        val inset = size.width * .24f
+        drawLine(color, androidx.compose.ui.geometry.Offset(inset, size.height / 2), androidx.compose.ui.geometry.Offset(size.width - inset, size.height / 2), stroke)
+        if (plus) drawLine(color, androidx.compose.ui.geometry.Offset(size.width / 2, inset), androidx.compose.ui.geometry.Offset(size.width / 2, size.height - inset), stroke)
     }
 }
 

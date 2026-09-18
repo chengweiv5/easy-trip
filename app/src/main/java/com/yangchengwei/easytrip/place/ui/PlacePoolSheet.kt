@@ -1,24 +1,34 @@
 package com.yangchengwei.easytrip.place.ui
 
+import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
 
@@ -150,7 +160,7 @@ fun PlacePoolContent(
     showDialogs: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
 ) {
-    Column(modifier.padding(contentPadding), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    Column(modifier.padding(contentPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showSearch) PlaceSearchField(state.search.query, onSetQuery)
         if (state.rows.isEmpty() && !showSearch) {
             com.yangchengwei.easytrip.core.ui.component.EmptyState(
@@ -163,38 +173,41 @@ fun PlacePoolContent(
                 },
             )
         } else {
-            if (!showSearch) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically,
+            val listState = rememberLazyListState()
+            Box(Modifier.fillMaxWidth().weight(1f)) {
+                androidx.compose.foundation.lazy.LazyColumn(
+                    state = listState,
+                    modifier = Modifier.fillMaxSize().testTag("workspace-place-list"),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp, end = 8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    Text("已收藏 ${placePoolCollectionTotal(state)} 个", modifier = Modifier.testTag("place-pool-collection-total"))
-                    Text("已排入 · 仅收藏", modifier = Modifier.testTag("place-pool-marker-legend"))
-                    onStartAdd?.let { startAdd ->
-                        EasyTripSecondaryButton(
-                            onClick = startAdd,
-                            modifier = Modifier.testTag("start-add-to-itinerary"),
-                        ) { Text("添加到行程") }
+                    if (!showSearch) item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth().padding(end = 48.dp),
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            Text("已收藏 ${placePoolCollectionTotal(state)} 个", modifier = Modifier.testTag("place-pool-collection-total"))
+                            onStartAdd?.let { startAdd ->
+                                BatchAddButton(
+                                    onClick = startAdd,
+                                    modifier = Modifier.testTag("start-add-to-itinerary"),
+                                )
+                            }
+                        }
+                    } else if (onStartAdd != null) item {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.End,
+                            verticalAlignment = Alignment.CenterVertically,
+                        ) {
+                            BatchAddButton(
+                                onClick = onStartAdd,
+                                modifier = Modifier.testTag("start-add-to-itinerary"),
+                            )
+                        }
                     }
-                }
-            } else if (onStartAdd != null) {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically,
-                ) {
-                    EasyTripSecondaryButton(
-                        onClick = onStartAdd,
-                        modifier = Modifier.testTag("start-add-to-itinerary"),
-                    ) { Text("添加到行程") }
-                }
-            }
-            androidx.compose.foundation.lazy.LazyColumn(
-                Modifier.fillMaxWidth().weight(1f).testTag("workspace-place-list"),
-                contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp),
-            ) {
-                if (state.tags.isNotEmpty()) item {
+                    if (state.tags.isNotEmpty()) item {
                     androidx.compose.foundation.layout.Row(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).testTag("place-pool-tags"),
                     ) {
@@ -208,16 +221,22 @@ fun PlacePoolContent(
                         }
                     }
                 }
-                items(state.rows.size, key = { state.rows[it].place.id }) { index ->
-                    val row = state.rows[index]
-                    SavedPlaceRow(
-                        place = row,
-                        onQuickAdd = onStartAddSingle?.let { callback -> { callback(row.place.id) } },
-                        onOpenDetail = { onOpenDetail(row.place.id) },
-                        onEdit = { onEdit(row.place) },
-                        onDelete = { onDelete(row.place) },
-                    )
+                    items(state.rows.size, key = { state.rows[it].place.id }) { index ->
+                        val row = state.rows[index]
+                        SavedPlaceRow(
+                            place = row,
+                            onQuickAdd = onStartAddSingle?.let { callback -> { callback(row.place.id) } },
+                            onOpenDetail = { onOpenDetail(row.place.id) },
+                            onEdit = { onEdit(row.place) },
+                            onDelete = { onDelete(row.place) },
+                        )
+                    }
                 }
+                ReadOnlyLazyScrollbar(
+                    state = listState,
+                    modifier = Modifier.align(Alignment.CenterEnd),
+                    representativeItemHeight = 76.dp,
+                )
             }
         }
         if (showSearch) {
@@ -327,6 +346,36 @@ fun PlacePoolContent(
                 confirmButton = { TextButton(onConfirmDelete, enabled = !state.deletionBusy) { Text(if (state.deletionBusy) "删除中…" else "确认删除地点") } },
                 dismissButton = { TextButton(onDismissDelete, enabled = !state.deletionBusy) { Text("取消") } },
             )
+        }
+    }
+}
+
+@Composable
+private fun BatchAddButton(
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    val iconColor = MaterialTheme.colorScheme.onPrimaryContainer
+    Surface(
+        modifier = modifier
+            .size(28.dp)
+            .semantics { contentDescription = "批量添加到行程" }
+            .clickable(onClick = onClick),
+        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = iconColor,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Canvas(Modifier.size(16.dp)) {
+                val stroke = size.minDimension / 9f
+                val listStart = size.width * .16f
+                val listEnd = size.width * .58f
+                listOf(.28f, .5f, .72f).forEach { y ->
+                    drawLine(iconColor, Offset(listStart, size.height * y), Offset(listEnd, size.height * y), stroke)
+                }
+                drawLine(iconColor, Offset(size.width * .79f, size.height * .5f), Offset(size.width * .79f, size.height * .86f), stroke)
+                drawLine(iconColor, Offset(size.width * .61f, size.height * .68f), Offset(size.width * .97f, size.height * .68f), stroke)
+            }
         }
     }
 }

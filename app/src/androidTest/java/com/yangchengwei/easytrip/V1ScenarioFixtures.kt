@@ -157,7 +157,7 @@ object V1ScenarioFixtures {
     )
 
     val scenarios = listOf(
-        scenario(1, "我的旅行", "K9h3r", "RqVLv", "hVIMZ", "existing-trips", BlockerCategory.DATA_CONSISTENCY, "主卡仅通过继续规划进入，旅行名称、日期、天数和方式保持一致；主卡与其他卡的设置、删除均由各自 ··· 菜单承载", variants = listOf(variant(1, "我的旅行 · 删除后", "d1sTtb", "trip-list-deleted-final-state", ScenarioScreen.TRIP_LIST, "variant-d1sTtb-deleted-final-state"))),
+        scenario(1, "我的旅行", "K9h3r", "RqVLv", "hVIMZ", "existing-trips", BlockerCategory.DATA_CONSISTENCY, "主卡整卡进入工作台且无独立继续规划入口，旅行名称、日期、天数和方式保持一致；主卡与其他卡的设置、删除均由各自 ··· 菜单承载", variants = listOf(variant(1, "我的旅行 · 删除后", "d1sTtb", "trip-list-deleted-final-state", ScenarioScreen.TRIP_LIST, "variant-d1sTtb-deleted-final-state"))),
         scenario(
             2,
             "工作台·地点池",

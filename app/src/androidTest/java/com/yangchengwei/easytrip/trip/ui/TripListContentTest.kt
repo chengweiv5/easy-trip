@@ -2,12 +2,16 @@ package com.yangchengwei.easytrip.trip.ui
 
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.consumeWindowInsets
+import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.requiredWidth
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -17,6 +21,7 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assert
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
@@ -37,9 +42,11 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 
@@ -64,15 +71,14 @@ class TripListContentTest {
         compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
     }
 
-    @Test fun primaryTripHasTwoIndependentEntryActionsAndFortyEightDpMenu() {
+    @Test fun primaryTripHasOneCardEntryAndIndependentFortyEightDpMenu() {
         val actions = mutableListOf<TripListAction>()
         setContent(content(), actions::add)
 
         compose.onNodeWithTag("primary-trip-trip-1").assert(hasClickAction()).performClick()
         assertEquals(listOf(TripListAction.OpenTrip("trip-1")), actions)
-        actions.clear()
-        compose.onNodeWithTag("continue-trip-trip-1").assertHeightIsEqualTo(48.dp).performClick()
-        assertEquals(listOf(TripListAction.OpenTrip("trip-1")), actions)
+        compose.onAllNodesWithTag("continue-trip-trip-1").assertCountEquals(0)
+        compose.onAllNodesWithText("继续规划", useUnmergedTree = true).assertCountEquals(0)
         compose.onNodeWithTag("trip-menu-trip-1").assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
         compose.onAllNodesWithTag("trip-trip-1").assertCountEquals(0)
         compose.onAllNodesWithTag("trip-settings-trip-1").assertCountEquals(0)
@@ -99,7 +105,27 @@ class TripListContentTest {
         compose.onNodeWithText("67%", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag("trip-readiness-trip-primary")
             .assert(SemanticsProperties.ProgressBarRangeInfo.keyIs(androidx.compose.ui.semantics.ProgressBarRangeInfo(0.67f, 0f..1f)))
-            .assert(SemanticsProperties.ContentDescription.keyIs(listOf("已安排 2/3 个收藏地点")))
+            .assert(SemanticsProperties.ContentDescription.keyIs(listOf("已有行程内容 2/3 个旅行日")))
+    }
+
+    @Test fun quarterReadinessUsesOneContinuousTrackWithoutTrailingStopIndicator() {
+        setContent(TripListPageState.Content(listOf(nonZeroTrip("trip-primary", "杭州").copy(
+            scheduledDayCount = 1,
+            readinessPercent = 25,
+            readinessLabel = "25%",
+        ))))
+
+        val pixels = compose.onNodeWithTag("trip-readiness-trip-primary").captureToImage().toPixelMap()
+        val midY = pixels.height / 2
+        val orangeRuns = horizontalColorRuns(pixels, midY, EasyTripAccent)
+        val splitX = orangeRuns.single().last + 1
+        val cardBackground = pixels[0, 0]
+
+        assertEquals("25% 准备度只能有一段连续橙色进度", 1, orangeRuns.size)
+        assertTrue(
+            "进度与剩余轨道的内部交界必须为直边并逐行贴合",
+            (0 until pixels.height).all { y -> pixels[splitX, y] != cardBackground },
+        )
     }
 
     @Test fun otherTripRowKeepsSingleEntrySemanticsWithSeparateMenuAndDecorativeArrow() {
@@ -125,7 +151,7 @@ class TripListContentTest {
     @Test fun contentCreateActionIsA142By52RightAlignedFixedPill() {
         compose.setContent {
             EasyTripTheme {
-                Box(Modifier.requiredWidth(320.dp).height(700.dp).testTag("trip-list-container")) {
+                Box(Modifier.requiredWidth(320.dp).height(700.dp).testTag("trip-list-container").consumeWindowInsets(androidx.compose.foundation.layout.WindowInsets.safeDrawing)) {
                     TripListContent(
                         state = TripListUiState(
                             page = TripListPageState.Content(
@@ -173,9 +199,9 @@ class TripListContentTest {
 
     @Test fun tallSingleTripAtLargeFontScrollsWithoutOverlappingTheFixedCreateAction() {
         compose.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+            CompositionLocalProvider(LocalDensity provides Density(density = LocalDensity.current.density, fontScale = 2f)) {
                 EasyTripTheme {
-                    Box(Modifier.requiredWidth(320.dp).height(480.dp).testTag("single-trip-container")) {
+                    Box(Modifier.requiredWidth(320.dp).height(480.dp).testTag("single-trip-container").consumeWindowInsets(androidx.compose.foundation.layout.WindowInsets.safeDrawing)) {
                         TripListContent(
                             state = TripListUiState(
                                 page = TripListPageState.Content(
@@ -204,9 +230,9 @@ class TripListContentTest {
 
     @Test fun narrowLargeFontContentUsesCompactScrollBeforePrimaryOverlapsOtherTrips() {
         compose.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+            CompositionLocalProvider(LocalDensity provides Density(density = LocalDensity.current.density, fontScale = 2f)) {
                 EasyTripTheme {
-                    Box(Modifier.requiredWidth(320.dp).height(700.dp).testTag("narrow-large-font-container")) {
+                    Box(Modifier.requiredWidth(320.dp).height(700.dp).testTag("narrow-large-font-container").consumeWindowInsets(androidx.compose.foundation.layout.WindowInsets.safeDrawing)) {
                         TripListContent(
                             state = TripListUiState(
                                 page = TripListPageState.Content(
@@ -272,9 +298,9 @@ class TripListContentTest {
 
     @Test fun splitScreenLargeFontKeepsCreateAndAllTripsReachable() {
         compose.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+            CompositionLocalProvider(LocalDensity provides Density(density = LocalDensity.current.density, fontScale = 2f)) {
                 EasyTripTheme {
-                    Box(Modifier.requiredWidth(320.dp).height(480.dp).testTag("compact-trip-list-container")) {
+                    Box(Modifier.requiredWidth(320.dp).height(480.dp).testTag("compact-trip-list-container").consumeWindowInsets(androidx.compose.foundation.layout.WindowInsets.safeDrawing)) {
                         TripListContent(
                             state = TripListUiState(
                                 page = TripListPageState.Content(
@@ -314,9 +340,9 @@ class TripListContentTest {
 
     @Test fun narrowLargeFontLayoutKeepsFixedActionsAndOtherTripsReachable() {
         compose.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+            CompositionLocalProvider(LocalDensity provides Density(density = LocalDensity.current.density, fontScale = 2f)) {
                 EasyTripTheme {
-                    Box(Modifier.requiredWidth(280.dp).height(700.dp)) {
+                    Box(Modifier.requiredWidth(280.dp).height(700.dp).consumeWindowInsets(androidx.compose.foundation.layout.WindowInsets.safeDrawing)) {
                         TripListContent(
                             state = TripListUiState(
                                 page = TripListPageState.Content(
@@ -333,7 +359,7 @@ class TripListContentTest {
             }
         }
 
-        compose.onNodeWithTag("continue-trip-trip-primary").assertHeightIsAtLeast(48.dp).assertIsDisplayed()
+        compose.onNodeWithTag("primary-trip-trip-primary").assert(hasClickAction()).assertIsDisplayed()
         compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(142.dp).assertHeightIsEqualTo(52.dp).assertIsDisplayed()
         compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-12"))
         compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
@@ -386,7 +412,7 @@ class TripListContentTest {
         compose.setContent {
             density = LocalDensity.current
             EasyTripTheme {
-                Box(Modifier.requiredWidth(320.dp).height(300.dp)) {
+                Box(Modifier.requiredWidth(320.dp).height(300.dp).consumeWindowInsets(androidx.compose.foundation.layout.WindowInsets.safeDrawing)) {
                     TripListContent(
                         state = TripListUiState(page = TripListPageState.Empty),
                         onAction = {},
@@ -407,11 +433,14 @@ class TripListContentTest {
     @Test fun longNamesAtNarrowWidthAndLargeFontKeepActionsReachable() {
         var overflowed = false
         compose.setContent {
-            CompositionLocalProvider(LocalDensity provides Density(density = 1f, fontScale = 2f)) {
+            val deviceDensity = LocalDensity.current.density
+            CompositionLocalProvider(LocalDensity provides Density(density = deviceDensity, fontScale = 2f)) {
                 EasyTripTheme {
-                    Box(Modifier.requiredWidth(280.dp).height(900.dp)) {
+                    Box(Modifier.requiredWidth(280.dp).height(900.dp).consumeWindowInsets(androidx.compose.foundation.layout.WindowInsets.safeDrawing)) {
                         TripListContent(
-                            modifier = Modifier.onGloballyPositioned { overflowed = it.size.width > 280 },
+                            modifier = Modifier.fillMaxSize().onGloballyPositioned {
+                                overflowed = it.size.width > (280 * deviceDensity).toInt()
+                            },
                             state = TripListUiState(
                                 page = TripListPageState.Content(
                                     primaryTrip = trip("trip-long", "一段特别特别长而且需要完整换行展示的旅行名称"),
@@ -425,7 +454,7 @@ class TripListContentTest {
             }
         }
 
-        compose.onNodeWithTag("continue-trip-trip-long").assertIsDisplayed()
+        compose.onNodeWithTag("primary-trip-trip-long").assert(hasClickAction()).assertIsDisplayed()
         compose.onNodeWithTag("trip-menu-trip-long").assertIsDisplayed()
         compose.onNodeWithTag("other-trip-trip-other").assertIsDisplayed()
         compose.onNodeWithTag("trip-menu-trip-other").assertIsDisplayed()
@@ -465,7 +494,7 @@ class TripListContentTest {
         travelModeLabel = "灵活",
         countdownLabel = "待定日期",
         placeCount = 0,
-        scheduledPlaceCount = 0,
+        scheduledDayCount = 0,
         placeCountLabel = "0 个地点",
         tripDayCountLabel = "3 天行程",
         readinessPercent = 0,
@@ -474,7 +503,7 @@ class TripListContentTest {
 
     private fun nonZeroTrip(id: String, name: String) = trip(id, name).copy(
         placeCount = 3,
-        scheduledPlaceCount = 2,
+        scheduledDayCount = 2,
         placeCountLabel = "3 个地点",
         tripDayCountLabel = "3 天行程",
         readinessPercent = 67,
@@ -494,6 +523,25 @@ class TripListContentTest {
         compose.setContent {
             EasyTripTheme { TripListContent(TripListUiState(page = page), onAction) }
         }
+    }
+
+    private fun horizontalColorRuns(
+        pixels: androidx.compose.ui.graphics.PixelMap,
+        y: Int,
+        color: androidx.compose.ui.graphics.Color,
+    ): List<IntRange> {
+        val runs = mutableListOf<IntRange>()
+        var start: Int? = null
+        (0 until pixels.width).forEach { x ->
+            val matches = pixels[x, y] == color
+            if (matches && start == null) start = x
+            if (!matches && start != null) {
+                runs += start!! until x
+                start = null
+            }
+        }
+        start?.let { runs += it until pixels.width }
+        return runs
     }
 
     private fun <T> androidx.compose.ui.semantics.SemanticsPropertyKey<T>.keyNotDefined() =

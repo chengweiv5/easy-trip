@@ -106,7 +106,9 @@ class LocationPermissionCoordinator(
                 permanentlyDenied = true,
             )
         } else {
-            mutableUiState.value = LocationPermissionUiState(prompt = LocationPermissionPrompt.EXPLANATION)
+            permissionRequestInFlight = true
+            mutableUiState.value = LocationPermissionUiState(busy = true)
+            effectChannel.trySend(WorkspaceEffect.RequestLocationPermission(generation))
         }
     }
 

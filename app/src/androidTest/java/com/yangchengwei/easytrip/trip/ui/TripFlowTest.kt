@@ -54,7 +54,7 @@ class TripFlowTest {
         compose.onNodeWithTag("trip-menu-settings-id-1").performClick()
         compose.onNodeWithText("修改旅行名称").performClick()
         compose.onNodeWithText("旅行名称").performTextInput("新名称")
-        compose.onNodeWithText("保存名称").performClick()
+        compose.onNodeWithText("保存").performClick()
         compose.onNodeWithText("出行日期").assertIsDisplayed()
         compose.onNodeWithText("出行方式").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("末尾追加旅行日").fetchSemanticsNodes().size)

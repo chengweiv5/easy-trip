@@ -3,14 +3,19 @@ package com.yangchengwei.easytrip.place.ui
 import androidx.activity.ComponentActivity
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
+import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsEnabled
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
+import androidx.compose.ui.test.click
+import androidx.compose.ui.test.hasScrollAction
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithContentDescription
@@ -18,6 +23,7 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeLeft
@@ -177,6 +183,89 @@ class PlacePoolFlowTest {
         compose.onNodeWithText("已选 1 个").assertIsDisplayed()
     }
 
+    @Test fun selectPlacesFooterStaysVisibleAt280DpTwoTimesFontAndTouchSelectionEnablesContinue() {
+        val place = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "place", "trip", "poi", "西湖", "杭州市西湖区", GeoPoint(30.2, 120.1), "", emptyList(),
+        )
+        val state = mutableStateOf(AddToItineraryUiState(step = AddToItineraryStep.SELECT_PLACES))
+        var continues = 0
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
+                EasyTripTheme {
+                    Box(androidx.compose.ui.Modifier.requiredWidth(280.dp).height(432.dp)) {
+                        SelectPlacesContent(
+                            rows = listOf(SavedPlaceRowUi(place, 0, false)),
+                            state = state.value,
+                            onTogglePlace = { id -> state.value = state.value.copy(selectedPlaceIds = listOf(id)) },
+                            onContinue = { continues++ },
+                            onClose = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val continueButton = compose.onNodeWithTag("select-places-continue")
+        continueButton.assertIsDisplayed().assertIsNotEnabled()
+        val disabledBounds = continueButton.getUnclippedBoundsInRoot()
+        val cancelBounds = compose.onNodeWithText("取消").assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue("continue=$disabledBounds", disabledBounds.right - disabledBounds.left >= 48.dp)
+        assertTrue("cancel=$cancelBounds continue=$disabledBounds", cancelBounds.right <= disabledBounds.left)
+        assertTrue("continue=$disabledBounds", disabledBounds.left >= 0.dp && disabledBounds.right <= 280.dp)
+        assertTrue("continue=$disabledBounds", disabledBounds.top >= 0.dp && disabledBounds.bottom <= 432.dp)
+
+        compose.onNodeWithTag("select-place-place").performTouchInput { click() }
+        compose.onNodeWithTag("select-places-continue").assertIsDisplayed().assertIsEnabled()
+        val enabledBounds = compose.onNodeWithTag("select-places-continue").getUnclippedBoundsInRoot()
+        assertTrue("continue=$enabledBounds", enabledBounds.left >= 0.dp && enabledBounds.right <= 280.dp)
+        assertTrue("continue=$enabledBounds", enabledBounds.top >= 0.dp && enabledBounds.bottom <= 432.dp)
+        compose.onNodeWithTag("select-places-continue").performTouchInput { click() }
+        assertEquals(1, continues)
+    }
+
+    @Test fun selectTargetDayFooterStaysVisibleAt280DpTwoTimesFontAndTouchSelectionEnablesSubmit() {
+        val state = mutableStateOf(
+            AddToItineraryUiState(
+                selectedPlaceIds = listOf("place"),
+                validityInitialized = true,
+                step = AddToItineraryStep.SELECT_TARGET_DAY,
+            ),
+        )
+        var submits = 0
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
+                EasyTripTheme {
+                    Box(androidx.compose.ui.Modifier.requiredWidth(280.dp).height(432.dp)) {
+                        SelectTargetDayContent(
+                            days = listOf(TripDay("day-1", 0)),
+                            state = state.value,
+                            onSelectDay = { id -> state.value = state.value.copy(targetDayId = id) },
+                            onSubmit = { submits++ },
+                            onClose = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        val submitButton = compose.onNodeWithTag("select-target-day-submit")
+        submitButton.assertIsDisplayed().assertIsNotEnabled()
+        val disabledBounds = submitButton.getUnclippedBoundsInRoot()
+        val cancelBounds = compose.onNodeWithText("取消").assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue("submit=$disabledBounds", disabledBounds.right - disabledBounds.left >= 48.dp)
+        assertTrue("cancel=$cancelBounds submit=$disabledBounds", cancelBounds.right <= disabledBounds.left)
+        assertTrue("submit=$disabledBounds", disabledBounds.left >= 0.dp && disabledBounds.right <= 280.dp)
+        assertTrue("submit=$disabledBounds", disabledBounds.top >= 0.dp && disabledBounds.bottom <= 432.dp)
+
+        compose.onNodeWithTag("target-day-day-1").performTouchInput { click() }
+        compose.onNodeWithTag("select-target-day-submit").assertIsDisplayed().assertIsEnabled()
+        val enabledBounds = compose.onNodeWithTag("select-target-day-submit").getUnclippedBoundsInRoot()
+        assertTrue("submit=$enabledBounds", enabledBounds.left >= 0.dp && enabledBounds.right <= 280.dp)
+        assertTrue("submit=$enabledBounds", enabledBounds.top >= 0.dp && enabledBounds.bottom <= 432.dp)
+        compose.onNodeWithTag("select-target-day-submit").performTouchInput { click() }
+        assertEquals(1, submits)
+    }
+
     @Test fun longDayListScrollsAtNarrowLargeTextWhileSubmitStaysReachable() {
         compose.setContent {
             CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) {
@@ -304,8 +393,8 @@ class PlacePoolFlowTest {
         more.assertIsDisplayed().assertHasClickAction()
         val quickAddBounds = quickAdd.getUnclippedBoundsInRoot()
         val moreBounds = more.getUnclippedBoundsInRoot()
-        assertTrue(quickAddBounds.right - quickAddBounds.left >= 47.5.dp)
-        assertTrue(quickAddBounds.bottom - quickAddBounds.top >= 47.5.dp)
+        assertTrue(quickAddBounds.right - quickAddBounds.left >= 27.5.dp)
+        assertTrue(quickAddBounds.bottom - quickAddBounds.top >= 27.5.dp)
         assertTrue(moreBounds.right - moreBounds.left >= 47.5.dp)
         assertTrue(moreBounds.bottom - moreBounds.top >= 47.5.dp)
 
@@ -442,6 +531,87 @@ class PlacePoolFlowTest {
         compose.onNodeWithTag("saved-place-place-2").assertIsDisplayed()
     }
 
+    @Test fun workspaceScrollbarAppearsOnlyForOverflowTracksScrollAndDisappearsAfterFiltering() {
+        fun place(index: Int) = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "place-$index", "trip", "poi-$index", "地点$index", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        val allRows = (0 until 8).map { SavedPlaceRowUi(place(it), 0, false) }
+        val visibleRows = mutableStateOf(allRows)
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(1f, 1f)) {
+                EasyTripTheme {
+                    Box(androidx.compose.ui.Modifier.requiredWidth(280.dp).height(432.dp)) {
+                        PlacePoolContent(
+                            state = PlacePoolUiState(
+                                rows = visibleRows.value,
+                                savedPoiIds = allRows.mapTo(mutableSetOf()) { it.place.amapPoiId },
+                                savedPlaceIds = allRows.mapTo(mutableSetOf()) { it.place.id },
+                            ),
+                            showSearch = false,
+                            onAction = {},
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("place-pool-scrollbar-thumb", useUnmergedTree = true)
+                .fetchSemanticsNodes().size == 1
+        }
+        val before = compose.onNodeWithTag("place-pool-scrollbar-thumb", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        compose.onNodeWithTag("workspace-place-list").performTouchInput { swipeUp() }
+        compose.waitUntil(5_000) {
+            compose.onNodeWithTag("place-pool-scrollbar-thumb", useUnmergedTree = true)
+                .getUnclippedBoundsInRoot().top > before.top
+        }
+        val after = compose.onNodeWithTag("place-pool-scrollbar-thumb", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        assertEquals(before.bottom - before.top, after.bottom - after.top)
+        compose.onNodeWithTag("place-pool-scrollbar-thumb", useUnmergedTree = true)
+            .assert(SemanticsMatcher("has no scroll action") { node ->
+                !hasScrollAction().matches(node)
+            })
+
+        compose.runOnIdle { visibleRows.value = allRows.take(2) }
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("place-pool-scrollbar-thumb", useUnmergedTree = true)
+                .fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithText("已收藏 8 个").assertIsDisplayed()
+    }
+
+    @Test fun workspaceScrollbarDoesNotCoverQuickAddOrMoreActions() {
+        fun place(index: Int) = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "place-$index", "trip", "poi-$index", "地点$index", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                Box(androidx.compose.ui.Modifier.requiredWidth(280.dp).height(432.dp)) {
+                    PlacePoolContent(
+                        state = PlacePoolUiState(
+                            rows = (0 until 8).map { SavedPlaceRowUi(place(it), 0, false) },
+                        ),
+                        showSearch = false,
+                        onAction = {},
+                    )
+                }
+            }
+        }
+
+        compose.waitUntil(5_000) {
+            compose.onAllNodesWithTag("place-pool-scrollbar-thumb", useUnmergedTree = true)
+                .fetchSemanticsNodes().size == 1
+        }
+        val thumb = compose.onNodeWithTag("place-pool-scrollbar-thumb", useUnmergedTree = true)
+            .getUnclippedBoundsInRoot()
+        val quickAdd = compose.onNodeWithTag("quick-add-place-place-0").getUnclippedBoundsInRoot()
+        val more = compose.onNodeWithTag("more-place-place-0").getUnclippedBoundsInRoot()
+        assertTrue("thumb=$thumb quickAdd=$quickAdd", thumb.left >= quickAdd.right)
+        assertTrue("thumb=$thumb more=$more", thumb.left >= more.right)
+    }
+
     @Test fun collectionTotalIgnoresTagFilteredRows() {
         val visible = com.yangchengwei.easytrip.place.domain.SavedPlace(
             "visible", "trip", "poi-visible", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList(),
@@ -482,7 +652,8 @@ class PlacePoolFlowTest {
         }
 
         compose.onNodeWithText("已收藏 2 个").assertIsDisplayed()
-        compose.onNodeWithText("已排入 · 仅收藏").assertIsDisplayed()
+        compose.onAllNodesWithText("已排入 · 仅收藏").assertCountEquals(0)
+        compose.onNodeWithContentDescription("批量添加到行程").assertIsDisplayed()
         compose.onNodeWithContentDescription("查看西湖详情").performClick()
         compose.onNodeWithContentDescription("添加西湖到行程").performClick()
 
@@ -648,7 +819,7 @@ class PlacePoolFlowTest {
         assertEquals(0, runBlocking { app.database.itineraryEditingDao().items(dayId).size })
     }
 
-    @Test fun deletingFromEditClosesDetailAndDoesNotRestoreItAfterConfirmation() {
+    @Test fun deletingAfterCancellingEditClosesDetailAndRemovesReferencesAfterConfirmation() {
         val app = compose.activity.application as com.yangchengwei.easytrip.EasyTripApplication
         val tripId = runBlocking { app.tripRepository.createTrip(CreateTrip("编辑删除旅行", 1)) }
         val repository = RoomSavedPlaceRepository(app.database, idFactory = sequence("place-${System.nanoTime()}"))
@@ -665,25 +836,27 @@ class PlacePoolFlowTest {
         compose.onNodeWithTag("more-place-$placeId").performClick()
         compose.onNodeWithTag("menu-edit-place-$placeId", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
-        compose.onNodeWithTag("place-detail-delete").performClick()
+        compose.onNodeWithText("取消").performClick()
+        compose.waitUntil(5_000) { model.state.value.editing == null }
+        compose.onNodeWithTag("place-detail-title").assertDoesNotExist()
 
-        compose.runOnIdle {
-            assertEquals(null, model.state.value.editing)
-            assertEquals(null, model.state.value.detailDraft)
-        }
+        compose.onNodeWithTag("more-place-$placeId").performClick()
+        compose.onNodeWithTag("menu-delete-place-$placeId", useUnmergedTree = true).performClick()
         compose.waitUntil(5_000) { model.state.value.deleting != null }
         compose.onNodeWithText("删除 待删除地点？").assertIsDisplayed()
         compose.onNodeWithText("确认删除地点").performClick()
-        compose.waitUntil(5_000) { model.state.value.deleting == null }
+        compose.waitUntil(5_000) { model.state.value.deleting == null && model.state.value.rows.isEmpty() }
 
         compose.onNodeWithTag("place-detail-title").assertDoesNotExist()
         compose.runOnIdle {
             assertEquals(null, model.state.value.editing)
             assertEquals(null, model.state.value.detailDraft)
         }
+        assertEquals(0, runBlocking { app.database.itineraryEditingDao().items(dayId).size })
+        assertEquals(emptySet<String>(), runBlocking { repository.observeSavedPoiIds(tripId).first() })
     }
 
-    @Test fun cancellingDeleteFromEditDoesNotRestoreDetail() {
+    @Test fun cancellingDeleteAfterCancellingEditKeepsPlaceAndReferencesWithoutReopeningDetail() {
         val app = compose.activity.application as com.yangchengwei.easytrip.EasyTripApplication
         val tripId = runBlocking { app.tripRepository.createTrip(CreateTrip("取消编辑删除旅行", 1)) }
         val repository = RoomSavedPlaceRepository(app.database, idFactory = sequence("place-${System.nanoTime()}"))
@@ -700,13 +873,13 @@ class PlacePoolFlowTest {
         compose.onNodeWithTag("more-place-$placeId").performClick()
         compose.onNodeWithTag("menu-edit-place-$placeId", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("place-detail-title").assertIsDisplayed()
-        compose.onNodeWithTag("place-detail-delete").performClick()
+        compose.onNodeWithText("取消").performClick()
+        compose.waitUntil(5_000) { model.state.value.editing == null }
+        compose.onNodeWithTag("place-detail-title").assertDoesNotExist()
 
+        compose.onNodeWithTag("more-place-$placeId").performClick()
+        compose.onNodeWithTag("menu-delete-place-$placeId", useUnmergedTree = true).performClick()
         compose.waitUntil(5_000) { model.state.value.deleting != null }
-        compose.runOnIdle {
-            assertEquals(null, model.state.value.editing)
-            assertEquals(null, model.state.value.detailDraft)
-        }
         compose.onNodeWithText("删除 保留地点？").assertIsDisplayed()
         compose.onNodeWithText("取消").performClick()
         compose.waitUntil(5_000) { model.state.value.deleting == null }
@@ -716,6 +889,8 @@ class PlacePoolFlowTest {
             assertEquals(null, model.state.value.editing)
             assertEquals(null, model.state.value.detailDraft)
         }
+        assertEquals(1, runBlocking { app.database.itineraryEditingDao().items(dayId).size })
+        assertEquals(setOf("poi-cancel-delete"), runBlocking { repository.observeSavedPoiIds(tripId).first() })
     }
 
     @Test fun searchSaveEditAndFilterThroughPlacePool() {
@@ -741,17 +916,32 @@ class PlacePoolFlowTest {
         compose.onNodeWithTag("more-place-$editedPlaceId").performClick()
         compose.onNodeWithTag("menu-edit-place-$editedPlaceId", useUnmergedTree = true).performClick()
         compose.onNodeWithText("备注").performTextInput("必去")
-        compose.onNodeWithTag("place-detail-tags-input").performTextInput("文化")
-        compose.onNodeWithText("添加").performClick()
-        compose.onNodeWithTag("place-detail-tags-input").performTextInput("宫殿")
-        compose.onNodeWithText("添加").performClick()
-        compose.onNodeWithText("保存").performClick()
+        compose.onNodeWithTag("place-detail-tags-input").performScrollTo().assertIsDisplayed().performTextInput("文化")
+        compose.onNodeWithTag("place-detail-add-tag").performScrollTo().assertIsDisplayed().performTouchInput { click() }
+        compose.onNodeWithText("文化").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-tags-input").performScrollTo().performTextInput("宫殿")
+        compose.onNodeWithTag("place-detail-add-tag").performScrollTo().assertIsDisplayed().performTouchInput { click() }
+        compose.onNodeWithTag("place-detail-save").performScrollTo().assertIsDisplayed().performTouchInput { click() }
         compose.waitUntil(5_000) { model.state.value.tags.size == 2 }
         val cultureTagId = model.state.value.tags.single { it.name == "文化" }.id
         compose.onNodeWithTag("tag-$cultureTagId").performClick()
         compose.waitUntil(5_000) { model.state.value.search.savedPlaces.size == 1 }
         assertEquals("必去", model.state.value.search.savedPlaces.single().note)
         assertEquals(2, compose.onAllNodesWithText("已收藏").fetchSemanticsNodes().size)
+
+        compose.onNodeWithTag("more-place-$editedPlaceId").performTouchInput { click() }
+        compose.onNodeWithTag("menu-edit-place-$editedPlaceId", useUnmergedTree = true).performTouchInput { click() }
+        compose.waitUntil(5_000) { model.state.value.detailDraft != null }
+        assertEquals(setOf("文化", "宫殿"), model.state.value.detailDraft?.tags)
+        compose.onNodeWithTag("place-detail-tags-input").performScrollTo().performTextInput("未保存")
+        compose.onNodeWithTag("place-detail-add-tag").performScrollTo().performTouchInput { click() }
+        compose.onNodeWithTag("place-detail-cancel").performScrollTo().assertIsDisplayed().performTouchInput { click() }
+        compose.waitUntil(5_000) { model.state.value.editing == null }
+        assertEquals(
+            setOf("文化", "宫殿"),
+            runBlocking { repository.observePlaces(tripId, emptySet()).first() }
+                .single { it.id == editedPlaceId }.tags.map { it.name }.toSet(),
+        )
     }
 
     private fun sequence(vararg prefixes: String): () -> String {

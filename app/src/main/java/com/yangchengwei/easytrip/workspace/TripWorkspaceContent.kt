@@ -156,7 +156,9 @@ private fun WorkspaceReadyContent(
                 }
             }
         },
-            collapsedContent = {
+            sheetContentHorizontalPadding = if (state.section == WorkspaceSection.ITINERARY) 0.dp else 20.dp,
+        collapsedContentHorizontalPadding = 20.dp,
+        collapsedContent = {
                 WorkspaceCollapsedSummary(
                     state = state,
                     placeState = placeState,
@@ -221,12 +223,14 @@ private fun WorkspaceReadyContent(
                         wholeTripDays = state.wholeTripDays,
                         onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
                         onAddDay = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
+                        onAppendDay = { onItineraryAction(DayItineraryAction.AppendTripDay) },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues.Zero,
                         startDate = state.startDate,
                         dayContent = {
                             if (dayItineraryContent != null) dayItineraryContent() else DayItineraryContent(
                                 state = itineraryState,
+                                startDate = state.startDate,
                                 onAction = onItineraryAction,
                                 showDialogs = false,
                                 canScheduleAgain = true,
@@ -353,26 +357,28 @@ private fun WorkspaceReadyContent(
                         onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.MoreMenu))
                     }
                 },
-                modifier = Modifier.padding(horizontal = 20.dp),
+                modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp),
             )
-            if (mapOverlaysFit) {
+            if (mapOverlaysFit && mapState == WorkspaceMapState.Ready) {
                 MapControls(
                     active = state.overlay == WorkspaceOverlay.LayerMenu,
                     onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
+                    onZoomIn = { onAction(TripWorkspaceAction.ZoomIn) },
+                    onZoomOut = { onAction(TripWorkspaceAction.ZoomOut) },
                     onLocate = { onAction(TripWorkspaceAction.Locate) },
-                    modifier = Modifier.align(Alignment.BottomEnd).padding(end = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
+                    onOpenSearch = { onAction(TripWorkspaceAction.OpenSearch) },
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(
+                            top = minOf(66.dp, (metrics.sheetTop - WorkspaceMapControlsHeight).coerceAtLeast(54.dp)),
+                            end = 12.dp,
+                        ),
                 )
                 if (state.overlay != WorkspaceOverlay.LayerMenu) {
                     MapLegend(
-                        Modifier.align(Alignment.BottomStart).padding(start = 20.dp, bottom = metrics.overlayBottomInset + 58.dp),
+                        Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = workspaceLegendTop(metrics)),
                     )
                 }
-                WorkspaceSearchBar(
-                    { onAction(TripWorkspaceAction.OpenSearch) },
-                    Modifier
-                        .align(Alignment.BottomCenter)
-                        .padding(start = 20.dp, end = 20.dp, bottom = metrics.overlayBottomInset),
-                )
             }
         },
     )
@@ -405,7 +411,13 @@ private fun WorkspaceLayerFailureFeedback(
     Snackbar(modifier = modifier.testTag("map-layer-failure")) { Text(message) }
 }
 
-private val WorkspaceMapOverlayRequiredHeight = 214.dp
+private val WorkspaceMapOverlayRequiredHeight = 236.dp
+private val WorkspaceMapControlsHeight = 160.dp
+private val WorkspaceMapControlsTop = 54.dp
+private val WorkspaceMapLegendHeight = 36.dp
+private val WorkspaceMapLegendBottomGap = 5.dp
+private val WorkspaceMapLegendStart = 12.dp
+private val WorkspaceMapLegendWidth = 112.dp
 private val WorkspaceLayerMenuTopOffset = 140.dp
 private val WorkspaceLayerMenuHeight = 289.dp
 private val WorkspaceLayerMenuEndInset = 16.dp
@@ -419,7 +431,7 @@ internal fun workspaceMapOverlaysFit(metrics: WorkspaceLayoutMetrics): Boolean =
 
 internal fun workspaceLayerMenuFits(metrics: WorkspaceLayoutMetrics): Boolean =
     metrics.availableWidth >= WorkspaceLayerMenuEndInset + 240.dp &&
-        metrics.availableHeight >= WorkspaceLayerMenuTopOffset + WorkspaceLayerMenuHeight
+        metrics.sheetTop >= WorkspaceLayerMenuTopOffset + WorkspaceLayerMenuHeight
 
 internal fun workspaceMoreMenuFits(metrics: WorkspaceLayoutMetrics): Boolean =
     metrics.availableWidth >= WorkspaceMoreMenuEndInset + WorkspaceMoreMenuWidth &&
@@ -498,7 +510,7 @@ private fun WorkspaceSummaryIcon(section: WorkspaceSection, modifier: Modifier =
 @Composable
 internal fun WorkspaceSheetHandle(modifier: Modifier = Modifier) {
     Box(
-        modifier.fillMaxWidth().height(24.dp).testTag("workspace-sheet-handle-control"),
+        modifier.fillMaxWidth().height(16.dp).testTag("workspace-sheet-handle-control"),
         contentAlignment = Alignment.Center,
     ) {
         Surface(Modifier.fillMaxWidth(.1f).height(4.dp), shape = RoundedCornerShape(2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .4f)) {}

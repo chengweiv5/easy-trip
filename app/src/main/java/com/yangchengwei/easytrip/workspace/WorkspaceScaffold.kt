@@ -69,6 +69,9 @@ internal fun workspaceLayoutMetrics(
     )
 }
 
+internal fun workspaceLegendTop(metrics: WorkspaceLayoutMetrics): Dp =
+    (metrics.sheetTop - 5.dp - 36.dp).coerceAtLeast(0.dp)
+
 internal fun workspaceViewportInsets(
     metrics: WorkspaceLayoutMetrics,
     density: Float,
@@ -83,16 +86,20 @@ internal fun workspaceViewportInsets(
         return clampedFirst to (maxTotal - clampedFirst)
     }
     val (left, right) = clampPair(
-        20.dp.toPixels(),
-        68.dp.toPixels(),
+        132.dp.toPixels(),
+        40.dp.toPixels(),
         metrics.availableWidth.toPixels(),
     )
     val (top, bottom) = clampPair(
-        72.dp.toPixels(),
-        (metrics.stableSheetHeight + 78.dp).toPixels(),
+        64.dp.toPixels(),
+        (metrics.stableSheetHeight + 13.dp).toPixels(),
         metrics.availableHeight.toPixels(),
     )
-    return MapViewportInsets(left, top, right, bottom)
+    val stableLegendTop = (metrics.availableHeight - metrics.stableSheetHeight - 13.dp - 36.dp).coerceAtLeast(0.dp)
+    val legendBottom = (metrics.availableHeight - stableLegendTop).toPixels()
+    val requestedBottom = maxOf(bottom, legendBottom)
+    val (safeTopPx, safeBottomPx) = clampPair(top, requestedBottom, metrics.availableHeight.toPixels())
+    return MapViewportInsets(left, safeTopPx, right, safeBottomPx)
 }
 
 @Composable
@@ -106,6 +113,8 @@ internal fun WorkspaceScaffold(
     sheetHeader: @Composable (WorkspaceLayoutMetrics) -> Unit,
     sheetContent: @Composable (WorkspaceLayoutMetrics) -> Unit,
     collapsedContent: @Composable () -> Unit = {},
+    sheetContentHorizontalPadding: Dp = 20.dp,
+    collapsedContentHorizontalPadding: Dp = sheetContentHorizontalPadding,
 ) {
     BoxWithConstraints(
         modifier
@@ -137,6 +146,8 @@ internal fun WorkspaceScaffold(
             header = { sheetHeader(metrics) },
             content = { sheetContent(metrics) },
             collapsedContent = collapsedContent,
+            contentHorizontalPadding = sheetContentHorizontalPadding,
+            collapsedContentHorizontalPadding = collapsedContentHorizontalPadding,
             modifier = Modifier.align(androidx.compose.ui.Alignment.BottomCenter),
         )
         Box(Modifier.fillMaxSize()) { modalOverlay(metrics) }

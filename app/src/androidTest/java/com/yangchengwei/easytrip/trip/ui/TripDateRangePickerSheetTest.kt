@@ -175,6 +175,27 @@ class TripDateRangePickerSheetTest {
         compose.onNodeWithText("2026-10-02 至 2026-10-04 · 3天2晚").performScrollTo().assertIsDisplayed()
     }
 
+    @Test fun rangeGridKeepsRangeBackgroundWithoutConnectorAndTodaySemanticsOverlapsSelection() {
+        val today = LocalDate.now()
+        compose.setContent {
+            TripDateRangePickerSheet(
+                initialSelection = DateRangeSelection(today.minusDays(1), today.plusDays(1)),
+                initialDisplayedMonth = java.time.YearMonth.from(today),
+                onConfirm = {},
+                onDismiss = {},
+            )
+        }
+
+        compose.onNodeWithTag("trip-date-$today").assertIsDisplayed().assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf("$today，范围内日期，今天"),
+            ),
+        )
+        compose.onNodeWithTag("trip-date-range-connector-$today", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag("trip-date-range-sheet-handle", useUnmergedTree = true).assertDoesNotExist()
+    }
+
     @Test fun rangeGridUsesSemanticsForStartEndAndInteriorAcrossMonths() {
         compose.setContent {
             TripDateRangePickerSheet(
@@ -199,7 +220,6 @@ class TripDateRangePickerSheetTest {
                 listOf("2026-10-31，范围内日期"),
             ),
         )
-        compose.onNodeWithTag("trip-date-range-connector-2026-10-31", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag("trip-date-2026-11-01").assertIsDisplayed().assert(
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
@@ -212,6 +232,25 @@ class TripDateRangePickerSheetTest {
             SemanticsMatcher.expectValue(
                 SemanticsProperties.ContentDescription,
                 listOf("2026-11-02，结束日期"),
+            ),
+        )
+    }
+
+    @Test fun todaySemanticsIncludesTodayWhenItIsRangeEndpoint() {
+        val today = LocalDate.now()
+        compose.setContent {
+            TripDateRangePickerSheet(
+                initialSelection = DateRangeSelection(today, today.plusDays(1)),
+                initialDisplayedMonth = java.time.YearMonth.from(today),
+                onConfirm = {},
+                onDismiss = {},
+            )
+        }
+
+        compose.onNodeWithTag("trip-date-$today").assert(
+            SemanticsMatcher.expectValue(
+                SemanticsProperties.ContentDescription,
+                listOf("$today，开始日期，今天"),
             ),
         )
     }

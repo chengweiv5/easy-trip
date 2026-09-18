@@ -439,6 +439,7 @@ class PlacePoolViewModelTest {
 
         assertEquals("filtered-out", model.state.value.selectedDetailPlaceId)
         assertEquals("filtered-out", model.state.value.selectedDetailPlace?.id)
+        assertEquals(setOf("matching", "filtered-out"), model.state.value.savedPlaceIds)
     }
 
     @Test fun collectionTotalUsesUnfilteredSavedPoiFact() {

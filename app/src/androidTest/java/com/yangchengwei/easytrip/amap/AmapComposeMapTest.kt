@@ -463,14 +463,18 @@ class AmapComposeMapTest {
         assertEquals(1, readyCount)
     }
 
-    @Test fun zoomButtonsReportViewportOperationExactlyOnceBeforeDelegatingToHost() {
+    @Test fun zoomRequestsDelegateExactlyOnceToHost() {
         val registry = ConsentRegistry()
         val active = registry.decide(true)
         val token = AmapConsentToken.issue(registry, active.generation)
         val events = mutableListOf<String>()
         val rendered = CountDownLatch(1)
+        lateinit var zoomInRequest: androidx.compose.runtime.MutableState<Int>
+        lateinit var zoomOutRequest: androidx.compose.runtime.MutableState<Int>
 
         scenario.onActivity { activity ->
+            zoomInRequest = mutableStateOf(0)
+            zoomOutRequest = mutableStateOf(0)
             activity.setContent {
                 AmapComposeMap(
                     model = MapUiModel(),
@@ -492,17 +496,17 @@ class AmapComposeMapTest {
                             onLayerError: (Throwable, MapLayer) -> Unit,
                         ) { rendered.countDown() }
                     } },
-                    onUserGesture = { events += "viewport" },
+                    zoomInRequest = zoomInRequest.value,
+                    zoomOutRequest = zoomOutRequest.value,
                 )
             }
         }
 
-        assertTrue(rendered.await(5, TimeUnit.SECONDS))
-        rule.onNodeWithTag("zoom-in").performClick()
-        rule.onNodeWithTag("zoom-out").performClick()
         rule.waitForIdle()
-
-        assertEquals(listOf("viewport", "zoom-in", "viewport", "zoom-out"), events)
+        scenario.onActivity { zoomInRequest.value += 2 }
+        rule.waitUntil(5_000) { events == listOf("zoom-in", "zoom-in") }
+        scenario.onActivity { zoomOutRequest.value += 2 }
+        rule.waitUntil(5_000) { events == listOf("zoom-in", "zoom-in", "zoom-out", "zoom-out") }
     }
 
     @Test fun gestureListenerUsesLatestComposeCallbackAndIsClearedOnDispose() {

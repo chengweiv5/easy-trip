@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -17,7 +18,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -39,7 +39,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
 
@@ -123,23 +122,53 @@ internal fun PrimaryTripCard(
                     )
                     Text(trip.readinessLabel, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, maxLines = 1)
                 }
-                LinearProgressIndicator(
-                    progress = { trip.readinessPercent / 100f },
+                ContinuousReadinessProgress(
+                    progress = trip.readinessPercent / 100f,
+                    contentDescription = "已有行程内容 ${trip.scheduledDayCount}/${trip.tripDayCountLabel.substringBefore(' ')} 个旅行日",
                     modifier = Modifier.fillMaxWidth()
                         .height(5.dp)
-                        .testTag("trip-readiness-${trip.id}")
-                        .semantics {
-                            contentDescription = "已安排 ${trip.scheduledPlaceCount}/${trip.placeCount} 个收藏地点"
-                            progressBarRangeInfo = ProgressBarRangeInfo(trip.readinessPercent / 100f, 0f..1f)
-                        },
-                    color = EasyTripAccent,
-                    trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f),
+                        .semantics { }
+                        .testTag("trip-readiness-${trip.id}"),
                 )
             }
-            EasyTripPrimaryButton(
-                onClick = { onAction(TripListAction.OpenTrip(trip.id)) },
-                modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("continue-trip-${trip.id}"),
-            ) { Text("继续规划") }
+        }
+    }
+}
+
+@Composable
+private fun ContinuousReadinessProgress(
+    progress: Float,
+    contentDescription: String,
+    modifier: Modifier = Modifier,
+) {
+    val visualProgress = progress.coerceIn(0f, 1f).coerceAtLeast(0.02f)
+    val trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)
+    Box(
+        modifier.semantics(mergeDescendants = true) {
+            this.contentDescription = contentDescription
+            progressBarRangeInfo = ProgressBarRangeInfo(progress.coerceIn(0f, 1f), 0f..1f)
+        },
+    ) {
+        Canvas(Modifier.fillMaxSize()) {
+            val radius = size.height / 2f
+            drawRoundRect(
+                color = trackColor,
+                cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius, radius),
+            )
+            val fillWidth = (size.width * visualProgress).coerceIn(size.height, size.width)
+            if (fillWidth == size.width) {
+                drawRoundRect(
+                    color = EasyTripAccent,
+                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius, radius),
+                )
+            } else {
+                drawCircle(EasyTripAccent, radius, Offset(radius, radius))
+                drawRect(
+                    color = EasyTripAccent,
+                    topLeft = Offset(radius, 0f),
+                    size = androidx.compose.ui.geometry.Size(fillWidth - radius, size.height),
+                )
+            }
         }
     }
 }

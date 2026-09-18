@@ -7,11 +7,14 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.material3.Text
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.toPixelMap
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -24,8 +27,13 @@ import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onAllNodesWithTag
@@ -45,6 +53,7 @@ import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.domain.SavedPlace
+import java.time.LocalDate
 import java.time.LocalTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -420,6 +429,70 @@ class ItineraryTimelineContentTest {
 
         compose.onNodeWithTag("day-itinerary-summary").assertIsDisplayed()
         compose.onNodeWithText("第 1 天 · 2 站").assertIsDisplayed()
+        compose.onNodeWithTag("add-places-to-selected-day")
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .assertHeightIsEqualTo(28.dp)
+        compose.onAllNodesWithText("从地点池添加").assertCountEquals(0)
+    }
+
+    @Test
+    fun singleDayHeaderShowsCompactDateBeforeAlignedAddAction() {
+        val state = DayItineraryUiState(
+            days = listOf(com.yangchengwei.easytrip.trip.domain.TripDay("day-2", 1)),
+            selectedDayId = "day-2",
+            items = listOf(itineraryItem("i1", "少林寺", "地址", "09:30", 60)),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                DayItineraryContent(
+                    state = state,
+                    startDate = LocalDate.parse("2026-09-23"),
+                    onAction = {},
+                )
+            }
+        }
+
+        compose.onNodeWithTag("day-itinerary-summary").assertHeightIsEqualTo(36.dp)
+        compose.onNodeWithContentDescription("从地点池添加地点", useUnmergedTree = true)
+            .assertWidthIsEqualTo(18.dp)
+            .assertHeightIsEqualTo(18.dp)
+        val title = compose.onNodeWithText("第 2 天 · 1 站").getUnclippedBoundsInRoot()
+        val titleNode = compose.onNodeWithText("第 2 天 · 1 站", useUnmergedTree = true).fetchSemanticsNode()
+        val dateNode = compose.onNodeWithText("9 月 24 日", useUnmergedTree = true).fetchSemanticsNode()
+        val date = compose.onNodeWithText("9 月 24 日", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val addIcon = compose.onNodeWithContentDescription("从地点池添加地点", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val moreIcon = compose.onNodeWithTag("more-icon-i1", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertEquals((title.top + title.bottom) / 2f, (addIcon.top + addIcon.bottom) / 2f)
+        assertEquals((moreIcon.left + moreIcon.right) / 2f, (addIcon.left + addIcon.right) / 2f)
+        assertTrue(date.left > title.right)
+        assertTrue(date.right <= addIcon.left)
+        assertTrue(dateNode.textLayout().layoutInput.style.fontSize < titleNode.textLayout().layoutInput.style.fontSize)
+        compose.onNodeWithTag("add-places-to-selected-day").assertWidthIsEqualTo(28.dp)
+    }
+
+    @Test
+    fun readyRouteLegUsesOneClickableSurfaceWithEndpointLabel() {
+        val opened = mutableListOf<String>()
+        compose.setContent {
+            EasyTripTheme {
+                RouteLegContent(
+                    leg = routeLeg("ready", RouteStatus.SUCCESS),
+                    fromPlaceName = "灵隐寺",
+                    toPlaceName = "西湖",
+                    showEndpointText = false,
+                    onMode = { opened += "ready" },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("route-leg-action-ready")
+            .assertHasClickAction()
+            .assertContentDescriptionEquals("编辑从灵隐寺到西湖的路段")
+            .performClick()
+        compose.onAllNodesWithText("灵隐寺 → 西湖").assertCountEquals(0)
+        compose.onAllNodesWithTag("edit-route-ready").assertCountEquals(0)
+        compose.runOnIdle { assertEquals(listOf("ready"), opened) }
     }
 
     @Test
@@ -431,7 +504,7 @@ class ItineraryTimelineContentTest {
         compose.setContent { EasyTripTheme { DayItineraryContent(state, onAction = {}) } }
 
         compose.onNodeWithTag("empty-illustration-itinerary").assertIsDisplayed()
-        compose.onNodeWithText("第1天 · 暂无行程").assertIsDisplayed()
+        compose.onNodeWithText("第 1 天 · 暂无行程").assertIsDisplayed()
         compose.onNodeWithText("从地点池添加地点，开始安排这一天").assertIsDisplayed()
         compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
     }
@@ -497,26 +570,165 @@ class ItineraryTimelineContentTest {
     }
 
     @Test
-    fun compactPlaceRowShowsArrivalNameStayAndAddress() {
+    fun compactPlaceRowOrdersNameAddressThenTimingWithoutEmptySeparators() {
+        val placeName = "灵隐寺"
+        val address = "浙江省杭州市西湖区法云弄1号"
+        val missingTiming = androidx.compose.runtime.mutableStateOf(false)
         compose.setContent {
             EasyTripTheme {
                 ItineraryPlaceRow(
-                    item = itineraryItem(
-                        id = "i1",
-                        name = "灵隐寺",
-                        address = "浙江省杭州市西湖区法云弄1号",
-                        arrivalTime = "09:30",
-                        stayMinutes = 120,
-                    ),
+                    item = if (missingTiming.value) {
+                        ItineraryItemUi("missing", placeName, "", null, null)
+                    } else {
+                        itineraryItem("i1", placeName, address, "09:30", 120)
+                    },
                     displayOrder = 1,
                 )
             }
         }
 
-        compose.onNodeWithText("09:30").assertIsDisplayed()
-        compose.onNodeWithText("灵隐寺").assertIsDisplayed()
+        compose.onNodeWithText("09:30 到达 · 停留 120 分钟").assertIsDisplayed()
+        compose.onNodeWithText(placeName).assertIsDisplayed()
+        compose.onNodeWithText(address).assertIsDisplayed()
+        val timing = compose.onNodeWithText("09:30 到达 · 停留 120 分钟").getUnclippedBoundsInRoot()
+        val name = compose.onNodeWithText(placeName).getUnclippedBoundsInRoot()
+        val addressBounds = compose.onNodeWithText(address).getUnclippedBoundsInRoot()
+        assertTrue("timing=$timing name=$name address=$addressBounds", name.top < addressBounds.top && addressBounds.top < timing.top)
+
+        compose.runOnIdle { missingTiming.value = true }
+        compose.onAllNodesWithText("·").assertCountEquals(0)
+    }
+
+    @Test
+    fun placeTimingOmitsMissingArrivalOrStayWithoutDanglingSeparator() {
+        compose.setContent {
+            EasyTripTheme {
+                Column {
+                    ItineraryPlaceRow(
+                        item = ItineraryItemUi("arrival-only", "到达站", "地址", LocalTime.parse("09:30"), null),
+                        displayOrder = 1,
+                    )
+                    ItineraryPlaceRow(
+                        item = ItineraryItemUi("stay-only", "停留站", "地址", null, 120),
+                        displayOrder = 2,
+                    )
+                }
+            }
+        }
+
+        compose.onNodeWithText("09:30 到达").assertIsDisplayed()
         compose.onNodeWithText("停留 120 分钟").assertIsDisplayed()
-        compose.onNodeWithText("浙江省杭州市西湖区法云弄1号").assertIsDisplayed()
+        compose.onAllNodesWithText("09:30 到达 ·").assertCountEquals(0)
+        compose.onAllNodesWithText("· 停留 120 分钟").assertCountEquals(0)
+    }
+
+    @Test
+    fun routeModesUseSpecifiedForegroundAndBackgroundColors() {
+        val expected = mapOf(
+            TransportMode.WALK to (Color(0xFF08766B) to Color(0xFFEAF5F2)),
+            TransportMode.DRIVE to (Color(0xFF2463AF) to Color(0xFFECF2FB)),
+            TransportMode.TAXI to (Color(0xFF975910) to Color(0xFFFBF1E2)),
+            TransportMode.TRANSIT to (Color(0xFF7952AF) to Color(0xFFF3EEFA)),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                Column {
+                    expected.keys.forEach { mode ->
+                        RouteLegContent(
+                            leg = routeLeg(mode.name, RouteStatus.SUCCESS, mode = mode),
+                            modifier = Modifier.testTag("route-mode-${mode.name}"),
+                        )
+                    }
+                }
+            }
+        }
+
+        expected.forEach { (mode, colors) ->
+            val pixels = compose.onNodeWithTag("route-mode-${mode.name}").captureToImage().toPixelMap()
+            assertTrue("mode=$mode expected background=${colors.second}", pixelsContains(pixels, colors.second))
+            assertTrue("mode=$mode expected foreground=${colors.first}", pixelsContains(pixels, colors.first))
+        }
+    }
+
+    @Test
+    fun routeSurfaceAlignsWithPlaceContentAndKeepsMinimumHeight() {
+        compose.setContent {
+            EasyTripTheme {
+                Column(Modifier.width(320.dp)) {
+                    ItineraryPlaceRow(
+                        item = itineraryItem("place", "灵隐寺", "地址", "09:30", 120),
+                        displayOrder = 1,
+                    )
+                    RouteLegContent(
+                        leg = routeLeg("route", RouteStatus.SUCCESS),
+                        modifier = Modifier.testTag("route-surface"),
+                    )
+                }
+            }
+        }
+
+        val place = compose.onNodeWithTag("item-place").getUnclippedBoundsInRoot()
+        val route = compose.onNodeWithTag("route-surface").getUnclippedBoundsInRoot()
+        val routeLabel = compose.onNodeWithText("步行").getUnclippedBoundsInRoot()
+        assertEquals(place.left, route.left)
+        assertEquals(place.right, route.right)
+        assertTrue("route=$route", route.bottom - route.top >= 48.dp)
+        assertEquals(route.left + 44.dp, routeLabel.left)
+    }
+
+    @Test
+    fun singleDayUsesEightDpGapBetweenPlaceAndRouteBlocks() {
+        val items = listOf(
+            itineraryItem("first", "早餐店", "地址 1", "09:30", 60),
+            itineraryItem("second", "博物馆", "地址 2", "11:00", 90),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                DayItineraryContent(
+                    state = DayItineraryUiState(
+                        items = items,
+                        previewOrder = items.map(ItineraryItemUi::id),
+                        legs = listOf(
+                            routeLeg(
+                                id = "route",
+                                status = RouteStatus.SUCCESS,
+                                fromItemId = "first",
+                                toItemId = "second",
+                            ),
+                        ),
+                    ),
+                    onAction = {},
+                    showDialogs = false,
+                )
+            }
+        }
+
+        val firstPlace = compose.onNodeWithTag("item-first").getUnclippedBoundsInRoot()
+        val route = compose.onNodeWithTag("leg-route").getUnclippedBoundsInRoot()
+        val secondPlace = compose.onNodeWithTag("item-second").getUnclippedBoundsInRoot()
+        assertEquals(8.dp, route.top - firstPlace.bottom)
+        assertEquals(8.dp, secondPlace.top - route.bottom)
+    }
+
+    @Test
+    fun singleDayTimingSummaryStaysOnOneLineAtNormalWidth() {
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryPlaceRow(
+                    item = itineraryItem("normal", "灵隐寺", "法云弄1号", "09:30", 120),
+                    displayOrder = 1,
+                    modifier = Modifier.width(320.dp),
+                )
+            }
+        }
+
+        assertEquals(
+            1,
+            compose.onNodeWithText("09:30 到达 · 停留 120 分钟")
+                .fetchSemanticsNode()
+                .textLayout()
+                .lineCount,
+        )
     }
 
     @Test
@@ -569,6 +781,46 @@ class ItineraryTimelineContentTest {
     }
 
     @Test
+    fun wholeTripPlaceAndSingleDayDragGlyphAlignWithTimelineAxis() {
+        compose.setContent {
+            EasyTripTheme {
+                Column(Modifier.width(320.dp)) {
+                    ItineraryPlaceRow(
+                        item = itineraryItem("read-only", "少林寺", "地址", "09:30", 60),
+                        displayOrder = 1,
+                    )
+                    ItineraryItemRow(
+                        item = itineraryItem("editable", "少林寺", "地址", "09:30", 60),
+                        index = 0,
+                        count = 1,
+                        onPreview = {},
+                        onCommit = {},
+                        onMenuAction = {},
+                    )
+                    RouteLegContent(
+                        leg = routeLeg("aligned", RouteStatus.SUCCESS),
+                        modifier = Modifier.testTag("aligned-route"),
+                    )
+                }
+            }
+        }
+
+        val readOnlyRow = compose.onNodeWithTag("item-read-only").getUnclippedBoundsInRoot()
+        val editableRow = compose.onNodeWithTag("item-editable").getUnclippedBoundsInRoot()
+        val handle = compose.onNodeWithTag("drag-handle-editable", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val singleDayPlace = compose.onNodeWithTag("itinerary-place-name-editable", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val routeSummary = compose.onNodeWithText("步行").getUnclippedBoundsInRoot()
+        val connector = compose.onNodeWithTag("route-connector-aligned", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val glyph = compose.onNodeWithTag("drag-handle-icon-editable", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertEquals(readOnlyRow.left, editableRow.left)
+        assertEquals(editableRow.left + 10.dp, handle.left)
+        assertEquals(28.dp, handle.right - handle.left)
+        assertEquals(6.dp, singleDayPlace.left - handle.right)
+        assertEquals((glyph.left + glyph.right) / 2f, (connector.left + connector.right) / 2f)
+        assertEquals(editableRow.left + 44.dp, routeSummary.left)
+    }
+
+    @Test
     fun itemShowsOnlyHandleAndMoreAsPermanentActions() {
         compose.setContent {
             EasyTripTheme {
@@ -590,8 +842,8 @@ class ItineraryTimelineContentTest {
         val menuBounds = compose.onNodeWithTag("more-i1", useUnmergedTree = true)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
-        assertEquals(40f, (menuBounds.right - menuBounds.left).value, 0.5f)
-        assertEquals(40f, (menuBounds.bottom - menuBounds.top).value, 0.5f)
+        assertEquals(28f, (menuBounds.right - menuBounds.left).value, 0.5f)
+        assertEquals(28f, (menuBounds.bottom - menuBounds.top).value, 0.5f)
         assertTrue("handle=$handleBounds menu=$menuBounds", handleBounds.right <= menuBounds.left)
         compose.onNodeWithTag("more-icon-i1", useUnmergedTree = true)
             .assertIsDisplayed()
@@ -674,6 +926,47 @@ class ItineraryTimelineContentTest {
 
         compose.onNodeWithTag("more-i1", useUnmergedTree = true)
             .assertContentDescriptionEquals("灵隐寺，更多行程项操作")
+    }
+
+    @Test
+    fun draggedTimelineItemExposesSharedDragStateDuringPointerMotion() {
+        val items = listOf(
+            itineraryItem("i1", "灵隐寺", "法云弄1号", "09:30", 120),
+            itineraryItem("i2", "西湖", "龙井路1号", "12:00", 60),
+        )
+        var sharedDragging = false
+        var sharedDelta = 0f
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = items.first(),
+                    index = 0,
+                    count = items.size,
+                    onPreview = {},
+                    onCommit = {},
+                    onMenuAction = {},
+                    sharedDragEnabled = true,
+                    isDragging = sharedDragging,
+                    dragTranslationY = sharedDelta,
+                    onDragStart = { sharedDragging = true },
+                    onDragDelta = { sharedDelta += it },
+                    onDragEnd = { sharedDragging = false },
+                    onDragCancel = { sharedDragging = false },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("drag-handle-i1", useUnmergedTree = true).performTouchInput {
+            down(center)
+            advanceEventTime(700)
+            moveBy(Offset(0f, 48f))
+            cancel()
+        }
+
+        compose.runOnIdle {
+            assertEquals(48f, sharedDelta, 0.5f)
+            assertTrue(!sharedDragging)
+        }
     }
 
     @Test
@@ -995,11 +1288,41 @@ class ItineraryTimelineContentTest {
             }
         }
 
-        compose.onNodeWithTag("edit-route-ready").assertHasClickAction().performClick()
+        compose.onNodeWithTag("route-leg-action-ready").assertHasClickAction().performClick()
         listOf("pending", "calculating", "waiting", "failed").forEach { id ->
-            compose.onAllNodesWithTag("edit-route-$id").assertCountEquals(0)
+            compose.onNodeWithTag("route-leg-action-$id").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
         }
         compose.runOnIdle { assertEquals(listOf("ready"), opened) }
+    }
+
+    @Test
+    fun hiddenEndpointsRemainAvailableToAccessibilityForNonReadyLegs() {
+        compose.setContent {
+            EasyTripTheme {
+                androidx.compose.foundation.layout.Column {
+                    listOf(
+                        routeLeg("pending", RouteStatus.PENDING),
+                        routeLeg("calculating", RouteStatus.CALCULATING),
+                        routeLeg("waiting", RouteStatus.WAITING_NETWORK),
+                        routeLeg("failed", RouteStatus.FAILED, error = "失败"),
+                    ).forEach { leg ->
+                        RouteLegContent(
+                            leg = leg,
+                            fromPlaceName = "少林寺",
+                            toPlaceName = "嵩阳书院",
+                            showEndpointText = false,
+                        )
+                    }
+                }
+            }
+        }
+
+        listOf("pending", "calculating", "waiting", "failed").forEach { id ->
+            compose.onNodeWithTag("route-leg-action-$id")
+                .assertContentDescriptionEquals("从少林寺到嵩阳书院的路段")
+                .assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+        }
+        compose.onAllNodesWithText("少林寺 → 嵩阳书院").assertCountEquals(0)
     }
 
     @Test
@@ -1015,7 +1338,7 @@ class ItineraryTimelineContentTest {
         }
 
         compose.onNodeWithText("等待联网后计算").assertIsDisplayed()
-        compose.onAllNodesWithTag("edit-route-waiting").assertCountEquals(0)
+        compose.onNodeWithTag("route-leg-action-waiting").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
         compose.onAllNodesWithTag("retry-waiting").assertCountEquals(0)
     }
 
@@ -1040,7 +1363,7 @@ class ItineraryTimelineContentTest {
 
         compose.onNodeWithText("路线计算失败").assertIsDisplayed()
         compose.onNodeWithText("底层异常").assertIsDisplayed()
-        compose.onAllNodesWithTag("edit-route-failed").assertCountEquals(0)
+        compose.onNodeWithTag("route-leg-action-failed").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
         compose.onNodeWithTag("retry-failed").performClick()
         compose.onAllNodesWithTag("retry-ready").assertCountEquals(0)
         compose.runOnIdle { assertEquals(listOf("failed"), retried) }
@@ -1085,26 +1408,26 @@ class ItineraryTimelineContentTest {
         )
         compose.onNodeWithText("等待联网后计算").assertIsDisplayed()
         compose.onNodeWithContentDescription("离线，等待联网后计算").assertIsDisplayed()
-        compose.onAllNodesWithTag("edit-route-waiting-2x").assertCountEquals(0)
+        compose.onNodeWithTag("route-waiting-2x").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
         compose.onAllNodesWithTag("retry-waiting-2x").assertCountEquals(0)
 
         compose.onNodeWithTag("route-failed-2x")
             .assert(SemanticsMatcher.expectValue(SemanticsProperties.LiveRegion, LiveRegionMode.Polite))
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
             .assert(SemanticsMatcher("has no content description") {
                 !it.config.contains(SemanticsProperties.ContentDescription)
             })
-        compose.onNodeWithText("路线计算失败").assertIsDisplayed()
-        compose.onNodeWithText(failureDetail).assertIsDisplayed()
+        compose.onNodeWithText("路线计算失败").assertExists()
+        compose.onNodeWithText(failureDetail).assertExists()
         compose.onAllNodesWithTag("retry-failed-2x").assertCountEquals(1)
-        compose.onAllNodesWithTag("edit-route-failed-2x").assertCountEquals(0)
-        compose.onNodeWithTag("edit-route-ready-2x").assertHasClickAction()
+        compose.onNodeWithTag("route-leg-action-ready-2x").assertHasClickAction()
 
         val container = compose.onNodeWithTag("route-recovery-container").getUnclippedBoundsInRoot()
         val failed = compose.onNodeWithTag("route-failed-2x").getUnclippedBoundsInRoot()
         val retry = compose.onNodeWithTag("retry-failed-2x").getUnclippedBoundsInRoot()
         val title = compose.onNodeWithText("路线计算失败").getUnclippedBoundsInRoot()
         val detail = compose.onNodeWithText(failureDetail).getUnclippedBoundsInRoot()
-        val edit = compose.onNodeWithTag("edit-route-ready-2x").getUnclippedBoundsInRoot()
+        val edit = compose.onNodeWithTag("route-leg-action-ready-2x").getUnclippedBoundsInRoot()
         assertTrue("retry=$retry", retry.right - retry.left >= 48.dp && retry.bottom - retry.top >= 48.dp)
         assertTrue("container=$container retry=$retry", retry.left >= container.left && retry.right <= container.right)
         assertTrue("failed=$failed retry=$retry", retry.top >= failed.top && retry.bottom <= failed.bottom)
@@ -1113,7 +1436,7 @@ class ItineraryTimelineContentTest {
         assertTrue("retry=$retry edit=$edit", retry.right <= edit.left || edit.right <= retry.left || retry.bottom <= edit.top || edit.bottom <= retry.top)
 
         compose.onNodeWithTag("retry-failed-2x").performClick()
-        compose.onNodeWithTag("edit-route-ready-2x").performClick()
+        compose.onNodeWithTag("route-leg-action-ready-2x").performClick()
         compose.runOnIdle { assertEquals(listOf("failed-retry", "ready-edit"), actions) }
     }
 
@@ -1138,7 +1461,7 @@ class ItineraryTimelineContentTest {
         }
 
         compose.onNodeWithTag("retry-failed").performClick()
-        compose.onNodeWithTag("edit-route-ready").assertHasClickAction()
+        compose.onNodeWithTag("route-leg-action-ready").assertHasClickAction()
         compose.runOnIdle { assertEquals(listOf(DayItineraryAction.Retry("failed", 1)), actions) }
     }
 
@@ -1195,7 +1518,7 @@ class ItineraryTimelineContentTest {
         }
 
         listOf("calculating", "waiting").forEach { id ->
-            compose.onAllNodesWithTag("edit-route-$id").assertCountEquals(0)
+            compose.onNodeWithTag("route-leg-action-$id").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
             compose.onAllNodesWithTag("retry-$id").assertCountEquals(0)
         }
     }
@@ -1279,6 +1602,115 @@ class ItineraryTimelineContentTest {
         compose.onAllNodesWithText("删除").assertCountEquals(0)
     }
 
+    @Test
+    fun coloredRouteSurfaceAcceptsTouchOutsideTextAndFailureOverridesTransportColor() {
+        var edits = 0
+        var retries = 0
+        compose.setContent {
+            EasyTripTheme {
+                Column(Modifier.width(320.dp)) {
+                    RouteLegContent(routeLeg("touch", RouteStatus.SUCCESS), onMode = { edits++ })
+                    RouteLegContent(
+                        routeLeg("failed-color", RouteStatus.FAILED, error = "网络异常", mode = TransportMode.TRANSIT),
+                        modifier = Modifier.testTag("failed-color-surface"),
+                        onRetry = { retries++ },
+                    )
+                }
+            }
+        }
+        compose.onNodeWithTag("route-leg-action-touch").assertIsDisplayed()
+            .performTouchInput { click(Offset(2.dp.toPx(), height / 2f)) }
+        val pixels = compose.onNodeWithTag("failed-color-surface").captureToImage().toPixelMap()
+        assertTrue(pixelsContains(pixels, Color(0xFFFCEFED)))
+        assertTrue(pixelsContains(pixels, Color(0xFFBA1A1A)))
+        assertTrue(!pixelsContains(pixels, Color(0xFFF3EEFA)))
+        compose.onNodeWithTag("retry-failed-color").assertIsDisplayed().performTouchInput { click() }
+        compose.runOnIdle {
+            assertEquals(1, edits)
+            assertEquals(1, retries)
+        }
+    }
+
+    @Test
+    fun narrowLargeTextPlaceKeepsMetadataAndMenuReachable() {
+        var menus = 0
+        val address = "河南省郑州市登封市少林街道"
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                EasyTripTheme {
+                    ItineraryPlaceContent(
+                        item = itineraryItem("narrow-color", "少林寺-碑林", address, "09:00", 120),
+                        displayOrder = 1,
+                        modifier = Modifier.width(280.dp),
+                        leadingAction = { Box(Modifier.size(28.dp)) },
+                        trailingAction = {
+                            androidx.compose.material3.IconButton(
+                                onClick = { menus++ },
+                                modifier = Modifier.size(28.dp).testTag("narrow-color-menu"),
+                            ) { Text("⋮") }
+                        },
+                    )
+                }
+            }
+        }
+        val row = compose.onNodeWithTag("item-narrow-color").getUnclippedBoundsInRoot()
+        val timing = compose.onNodeWithText("09:00 到达 · 停留 120 分钟").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val addressBounds = compose.onNodeWithText(address).assertIsDisplayed().getUnclippedBoundsInRoot()
+        assertTrue(addressBounds.bottom <= timing.top)
+        assertTrue(timing.left >= row.left && timing.right <= row.right && timing.bottom <= row.bottom)
+        compose.onNodeWithTag("narrow-color-menu").assertIsDisplayed().performTouchInput { click() }
+        compose.runOnIdle { assertEquals(1, menus) }
+    }
+
+    @Test
+    fun dayPlaceHeaderAlignsVisibleHandleTitleAndMenuCenters() {
+        compose.setContent {
+            EasyTripTheme {
+                ItineraryItemRow(
+                    item = itineraryItem("header-alignment", "少林寺-碑林", "地址", "09:00", 120),
+                    index = 0,
+                    count = 1,
+                    onPreview = {},
+                    onCommit = {},
+                    onMenuAction = {},
+                    modifier = Modifier.width(320.dp),
+                )
+            }
+        }
+
+        fun visibleCenterY(tag: String): Float {
+            val node = compose.onNodeWithTag(tag, useUnmergedTree = true).assertIsDisplayed()
+            val bounds = node.getUnclippedBoundsInRoot()
+            val pixels = node.captureToImage().toPixelMap()
+            val inkRows = (0 until pixels.height).filter { y ->
+                (0 until pixels.width).any { x ->
+                    val color = pixels[x, y]
+                    color.red < .5f && color.green < .6f && color.blue < .5f
+                }
+            }
+            assertTrue("$tag must contain visible ink", inkRows.isNotEmpty())
+            return bounds.top.value + (inkRows.first() + inkRows.last() + 1) / 2f *
+                (bounds.bottom - bounds.top).value / pixels.height
+        }
+        val handle = visibleCenterY("drag-handle-icon-header-alignment")
+        val title = visibleCenterY("itinerary-place-name-header-alignment")
+        val menu = visibleCenterY("more-icon-header-alignment")
+        assertEquals("handle=$handle menu=$menu", menu, handle, .5f)
+        assertEquals("title=$title menu=$menu", menu, title, 1f)
+        compose.onNodeWithTag("drag-handle-header-alignment", useUnmergedTree = true).assertWidthIsEqualTo(28.dp).assertHeightIsEqualTo(28.dp)
+        compose.onNodeWithTag("more-header-alignment").assertWidthIsEqualTo(28.dp).assertHeightIsEqualTo(28.dp)
+        compose.onNodeWithTag("more-header-alignment").performTouchInput { click() }
+        compose.onNodeWithTag("menu-timing-header-alignment", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    private fun pixelsContains(
+        pixels: androidx.compose.ui.graphics.PixelMap,
+        color: Color,
+    ): Boolean = (0 until pixels.height).any { y ->
+        (0 until pixels.width).any { x -> pixels[x, y] == color }
+    }
+
     private fun SemanticsNode.textLayout(): androidx.compose.ui.text.TextLayoutResult {
         val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
         checkNotNull(config[SemanticsActions.GetTextLayoutResult].action).invoke(results)
@@ -1302,11 +1734,12 @@ class ItineraryTimelineContentTest {
         error: String? = null,
         fromItemId: String = "from-$id",
         toItemId: String = "to-$id",
+        mode: TransportMode = TransportMode.WALK,
     ) = RouteLegUi(
         id = id,
         fromItemId = fromItemId,
         toItemId = toItemId,
-        mode = TransportMode.WALK,
+        mode = mode,
         status = status,
         distanceMeters = distance,
         durationSeconds = duration,

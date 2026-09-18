@@ -1,18 +1,24 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -20,6 +26,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -28,6 +35,7 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
@@ -39,6 +47,8 @@ fun RouteLegRow(
     toPlaceName: String? = null,
     onMode: (() -> Unit)? = null,
     onRetry: (() -> Unit)? = null,
+    showEndpointText: Boolean = true,
+    connectorInset: Dp = 9.dp,
 ) {
     RouteLegContent(
         leg = leg,
@@ -47,6 +57,8 @@ fun RouteLegRow(
         toPlaceName = toPlaceName,
         onMode = onMode,
         onRetry = onRetry,
+        showEndpointText = showEndpointText,
+        connectorInset = connectorInset,
     )
 }
 
@@ -58,8 +70,11 @@ internal fun RouteLegContent(
     toPlaceName: String? = null,
     onMode: (() -> Unit)? = null,
     onRetry: (() -> Unit)? = null,
+    showEndpointText: Boolean = true,
+    connectorInset: Dp = 9.dp,
 ) {
     val state = leg.state
+    val colors = leg.routeLegColors()
     val editAction = onMode?.takeIf { state is RouteLegUiState.Ready }
     val retryAction = onRetry?.takeIf { state is RouteLegUiState.Failed }
     val stateModifier = when (state) {
@@ -69,86 +84,113 @@ internal fun RouteLegContent(
         -> Modifier.semantics { liveRegion = LiveRegionMode.Polite }
         else -> Modifier
     }
-    Row(
-        modifier.then(stateModifier).padding(start = 28.dp).height(IntrinsicSize.Min),
-        verticalAlignment = Alignment.Top,
-    ) {
-        RouteLegConnector(leg.id, Modifier.fillMaxHeight())
-        Row(
-            Modifier.weight(1f).padding(start = 16.dp, top = 8.dp, bottom = 8.dp),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(Modifier.weight(1f)) {
-                if (!fromPlaceName.isNullOrBlank() && !toPlaceName.isNullOrBlank()) {
-                    Text(
-                        "$fromPlaceName → $toPlaceName",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+    val hasEndpoints = !fromPlaceName.isNullOrBlank() && !toPlaceName.isNullOrBlank()
+    val endpointLabel = if (hasEndpoints) "从${fromPlaceName}到${toPlaceName}的路段" else "路段"
+    val surfaceModifier = Modifier
+        .then(if (editAction == null) Modifier else Modifier.clickable(onClick = editAction))
+        .then(
+            if (hasEndpoints) {
+                Modifier.semantics {
+                    contentDescription = if (editAction == null) endpointLabel else "编辑$endpointLabel"
                 }
-                when (state) {
-                    is RouteLegUiState.Ready -> {
+            } else if (editAction != null) {
+                Modifier.semantics { contentDescription = "编辑路段" }
+            } else {
+                Modifier
+            },
+        )
+    Box(modifier.fillMaxWidth().then(stateModifier)) {
+        Row(
+            Modifier
+                .fillMaxWidth()
+                .then(surfaceModifier)
+                .testTag("route-leg-action-${leg.id}")
+                .background(colors.background, RoundedCornerShape(8.dp))
+                .defaultMinSize(minHeight = 48.dp)
+                .padding(horizontal = 10.dp)
+                .height(IntrinsicSize.Min),
+            verticalAlignment = Alignment.Top,
+        ) {
+            Box(Modifier.width(12.dp).fillMaxHeight()) {
+                RouteLegConnector(
+                    legId = leg.id,
+                    color = colors.foreground,
+                    modifier = Modifier
+                        .offset(x = connectorInset - 6.dp)
+                        .fillMaxHeight(),
+                )
+            }
+            Spacer(Modifier.width(13.dp + connectorInset))
+            Row(
+                Modifier.weight(1f).padding(vertical = 6.dp),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Column(Modifier.weight(1f)) {
+                    if (showEndpointText && hasEndpoints) {
                         Text(
-                            leg.modeLabel(),
-                            style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = if (onMode == null) Modifier else Modifier
-                                .clickable(onClick = onMode)
-                                .testTag("mode-${leg.id}"),
-                        )
-                        Text(
-                            buildList {
-                                add("已规划")
-                                state.distanceMeters?.let(::formatDistance)?.let(::add)
-                                leg.effectiveDurationSeconds?.let(::formatDuration)?.let { add("预计 $it") }
-                            }.joinToString(" · "),
+                            "$fromPlaceName → $toPlaceName",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
-                    RouteLegUiState.Pending -> RouteLegStatus(leg, "等待计算路线")
-                    RouteLegUiState.Calculating -> RouteLegStatus(leg, "正在计算路线")
-                    RouteLegUiState.WaitingForNetwork -> RouteLegStatus(leg, "等待联网后计算")
-                    is RouteLegUiState.Failed -> {
-                        Text(
-                            "路线计算失败",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.error,
-                        )
-                        if (state.message != "路线计算失败") {
+                    when (state) {
+                        is RouteLegUiState.Ready -> {
                             Text(
-                                state.message,
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.error,
-                                maxLines = 2,
-                                overflow = TextOverflow.Ellipsis,
+                                leg.modeLabel(),
+                                style = MaterialTheme.typography.labelLarge,
+                                color = colors.foreground,
                             )
-                        }
-                        leg.effectiveDurationSeconds?.let { duration ->
                             Text(
-                                "预计 ${formatDuration(duration)}",
+                                buildList {
+                                    add("已规划")
+                                    state.distanceMeters?.let(::formatDistance)?.let(::add)
+                                    leg.effectiveDurationSeconds?.let(::formatDuration)?.let { add("预计 $it") }
+                                }.joinToString(" · "),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                             )
                         }
+                        RouteLegUiState.Pending -> RouteLegStatus(leg, "等待计算路线")
+                        RouteLegUiState.Calculating -> RouteLegStatus(leg, "正在计算路线")
+                        RouteLegUiState.WaitingForNetwork -> RouteLegStatus(leg, "等待联网后计算")
+                        is RouteLegUiState.Failed -> {
+                            Text(
+                                "路线计算失败",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = colors.foreground,
+                            )
+                            if (state.message != "路线计算失败") {
+                                Text(
+                                    state.message,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = colors.foreground,
+                                    maxLines = 2,
+                                    overflow = TextOverflow.Ellipsis,
+                                )
+                            }
+                            leg.effectiveDurationSeconds?.let { duration ->
+                                Text(
+                                    "预计 ${formatDuration(duration)}",
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                )
+                            }
+                        }
                     }
                 }
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                editAction?.let {
-                    TextButton(it, Modifier.testTag("edit-route-${leg.id}")) { Text("编辑路段") }
-                }
-                when (state) {
-                    RouteLegUiState.Pending -> PendingRouteIndicator()
-                    RouteLegUiState.Calculating -> CircularProgressIndicator(
-                        Modifier.size(24.dp).semantics { contentDescription = "路线计算中" },
-                    )
-                    RouteLegUiState.WaitingForNetwork -> WaitingForNetworkIndicator()
-                    is RouteLegUiState.Failed -> retryAction?.let {
-                        TextButton(it, Modifier.testTag("retry-${leg.id}")) { Text("重试") }
+                Column(horizontalAlignment = Alignment.End) {
+                    when (state) {
+                        RouteLegUiState.Pending -> PendingRouteIndicator()
+                        RouteLegUiState.Calculating -> CircularProgressIndicator(
+                            Modifier.size(24.dp).semantics { contentDescription = "路线计算中" },
+                        )
+                        RouteLegUiState.WaitingForNetwork -> WaitingForNetworkIndicator()
+                        is RouteLegUiState.Failed -> retryAction?.let {
+                            TextButton(it, Modifier.widthIn(max = 96.dp).testTag("retry-${leg.id}")) { Text("重试") }
+                        }
+                        is RouteLegUiState.Ready -> Unit
                     }
-                    is RouteLegUiState.Ready -> Unit
                 }
             }
         }
@@ -213,25 +255,24 @@ private fun WaitingForNetworkIndicator() {
 }
 
 @Composable
-private fun RouteLegConnector(legId: String, modifier: Modifier = Modifier) {
-    val color = MaterialTheme.colorScheme.outlineVariant
+private fun RouteLegConnector(
+    legId: String,
+    color: androidx.compose.ui.graphics.Color,
+    modifier: Modifier = Modifier,
+) {
     Canvas(modifier.width(12.dp).testTag("route-connector-$legId").clearAndSetSemantics {}) {
         val centerX = size.width / 2f
-        drawLine(color, Offset(centerX, 0f), Offset(centerX, size.height), strokeWidth = 1.dp.toPx())
+        val inset = 6.dp.toPx()
+        val lineTop = inset
+        val lineBottom = (size.height - inset).coerceAtLeast(lineTop)
         drawLine(
-            color,
-            Offset(centerX, size.height),
-            Offset(centerX - 3.dp.toPx(), size.height - 5.dp.toPx()),
-            strokeWidth = 2.dp.toPx(),
-            cap = StrokeCap.Round,
+            color = color,
+            start = Offset(centerX, lineTop),
+            end = Offset(centerX, lineBottom),
+            strokeWidth = 1.dp.toPx(),
+            pathEffect = PathEffect.dashPathEffect(floatArrayOf(3.dp.toPx(), 3.dp.toPx())),
         )
-        drawLine(
-            color,
-            Offset(centerX, size.height),
-            Offset(centerX + 3.dp.toPx(), size.height - 5.dp.toPx()),
-            strokeWidth = 2.dp.toPx(),
-            cap = StrokeCap.Round,
-        )
+        drawCircle(color = color, radius = 2.dp.toPx(), center = Offset(centerX, size.height / 2f))
     }
 }
 

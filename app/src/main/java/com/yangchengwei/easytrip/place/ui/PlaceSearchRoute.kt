@@ -8,6 +8,8 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.Lifecycle
@@ -33,6 +35,7 @@ fun PlaceSearchRoute(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val currentOnBack = rememberUpdatedState(onBack)
     val currentOnOpenConsent = rememberUpdatedState(onOpenConsent)
+    var autoFocusConsumed by rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
 
     BackHandler { viewModel.dispatch(PlaceSearchAction.Back) }
 
@@ -50,6 +53,8 @@ fun PlaceSearchRoute(
     PlaceSearchContent(
         state = state,
         onAction = viewModel::dispatch,
+        autoFocusSearch = !autoFocusConsumed,
+        onAutoFocusConsumed = { autoFocusConsumed = true },
         resultsListState = resultsListState,
         detailContent = detailContent,
         consent = consent,

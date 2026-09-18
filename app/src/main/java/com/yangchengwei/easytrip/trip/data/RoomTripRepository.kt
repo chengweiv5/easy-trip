@@ -15,6 +15,7 @@ import com.yangchengwei.easytrip.trip.domain.isTripDateRangeRepresentable
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripSummary
+import com.yangchengwei.easytrip.trip.domain.sortedForTripList
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.RouteStatus
@@ -42,6 +43,7 @@ class RoomTripRepository(
     private val isOnline: () -> Boolean = { true },
 ) : TripRepository {
     override fun observeTrips(): Flow<List<TripSummary>> = dao.observeTrips().map { trips ->
+        val today = LocalDate.now(clock)
         trips.map { projection ->
             TripSummary(
                 id = projection.id,
@@ -50,9 +52,10 @@ class RoomTripRepository(
                 travelMode = projection.travelMode,
                 dayCount = projection.dayCount,
                 placeCount = projection.placeCount,
-                scheduledDistinctPlaceCount = projection.scheduledDistinctPlaceCount,
+                scheduledDayCount = projection.scheduledDayCount,
+                updatedAt = projection.updatedAt,
             )
-        }
+        }.sortedForTripList(today)
     }
 
     override fun observeTrip(tripId: String): Flow<TripWithDays?> = dao.observeTrip(tripId).map { value ->

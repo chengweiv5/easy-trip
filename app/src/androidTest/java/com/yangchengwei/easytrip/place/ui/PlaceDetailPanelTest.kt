@@ -6,7 +6,10 @@ import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertTextEquals
@@ -15,6 +18,8 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performTouchInput
+import androidx.compose.ui.test.click
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.height
@@ -26,6 +31,8 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
 import androidx.test.espresso.Espresso.pressBack
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
@@ -139,7 +146,7 @@ class PlaceDetailPanelTest {
             }
         }
 
-        compose.onNodeWithTag("quick-add-place-${place.id}").assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithTag("quick-add-place-${place.id}").assertHeightIsEqualTo(28.dp)
         compose.onNodeWithTag("more-place-${place.id}").assertHeightIsAtLeast(48.dp)
         compose.onNodeWithTag("saved-place-${place.id}").assertIsDisplayed()
     }
@@ -257,7 +264,7 @@ class PlaceDetailPanelTest {
         compose.runOnIdle { assertEquals(listOf("dismiss", "dismiss"), actions) }
     }
 
-    @Test fun compatibilityWrapperUsesPlacePoolCapabilities() {
+    @Test fun compatibilityWrapperHidesDeleteWhileEditingFromPlacePool() {
         compose.setContent {
             EasyTripTheme {
                 PlaceDetailContent(
@@ -276,9 +283,15 @@ class PlaceDetailPanelTest {
             }
         }
 
-        compose.onNodeWithText("取消").assertIsDisplayed()
-        compose.onNodeWithText("删除").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-cancel").assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithTag("place-detail-delete").assertDoesNotExist()
         compose.onAllNodesWithText("取消收藏").assertCountEquals(0)
+    }
+
+    @Test fun placePoolReadOnlyKeepsDeleteAction() {
+        setContent(source = PlaceDetailSource.PlacePool, savedPlace = savedPlace())
+
+        compose.onNodeWithText("删除").assertIsDisplayed().assertHasClickAction()
     }
 
     @Test fun savingHostDialogIgnoresSystemBack() {
@@ -300,6 +313,7 @@ class PlaceDetailPanelTest {
             }
         }
 
+        compose.onNodeWithText("保存中").assertIsDisplayed()
         pressBack()
 
         compose.runOnIdle { assertTrue(!dismissed.value) }
@@ -314,7 +328,7 @@ class PlaceDetailPanelTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
     }
 
-    @Test fun workspaceSheetEditActionsRemainReachableAtNarrowWidthWithTwoTimesFontScale() {
+    @Test fun placePoolEditHidesDeleteButKeepsCancelAndSaveReachableAndCenteredAtNarrowWidthWithTwoTimesFontScale() {
         val state = PlacePoolUiState(
             editing = savedPlace(),
             detailDraft = PlaceDetailDraft(
@@ -339,13 +353,147 @@ class PlaceDetailPanelTest {
             }
         }
 
+        compose.onNodeWithTag("place-detail-delete").assertDoesNotExist()
+
         val container = compose.onNodeWithTag("place-detail-bottom-sheet").getUnclippedBoundsInRoot()
-        listOf("place-detail-delete", "place-detail-cancel", "place-detail-save").forEach { tag ->
-            val action = compose.onNodeWithTag(tag).performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+        listOf(
+            "place-detail-cancel" to "取消",
+            "place-detail-save" to "保存",
+        ).forEach { (tag, label) ->
+            val action = compose.onNodeWithTag(tag)
+                .performScrollTo()
+                .assertIsDisplayed()
+                .assertHasClickAction()
+                .assertHeightIsAtLeast(48.dp)
                 .getUnclippedBoundsInRoot()
+            val text = compose.onNodeWithText(label, useUnmergedTree = true).getUnclippedBoundsInRoot()
             assertTrue("action=$action container=$container", action.left >= container.left && action.right <= container.right)
             assertTrue("action=$action container=$container", action.top >= container.top && action.bottom <= container.bottom)
+            assertTrue("label=$text action=$action", kotlin.math.abs(((text.left + text.right) / 2 - (action.left + action.right) / 2).value) < 0.5f)
+            assertTrue("label=$text action=$action", kotlin.math.abs(((text.top + text.bottom) / 2 - (action.top + action.bottom) / 2).value) < 0.5f)
         }
+    }
+
+    @Test fun newTagInputKeepsUsableWidthAndVisibleTextWithoutImeAtNormalFontScale() {
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.requiredWidth(220.dp).height(400.dp)) {
+                    PlaceDetailPanel(
+                        candidate = candidate(),
+                        savedPlace = savedPlace(),
+                        editState = PlaceDetailEditState("saved-1", "", emptySet(), "自然"),
+                        source = PlaceDetailSource.PlacePool,
+                        collectionBusy = false,
+                        collectionError = null,
+                        onAction = {},
+                    )
+                }
+            }
+        }
+
+        val inputBounds = compose.onNodeWithTag("place-detail-tags-input")
+            .assertTextEquals("自然", "新标签")
+            .assertWidthIsAtLeast(100.dp)
+            .getUnclippedBoundsInRoot()
+        val inputTextBounds = compose.onNodeWithText("自然", useUnmergedTree = true)
+            .assertIsDisplayed()
+            .getUnclippedBoundsInRoot()
+        val addBounds = compose.onNodeWithTag("place-detail-add-tag")
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .getUnclippedBoundsInRoot()
+
+        assertTrue("input=$inputBounds add=$addBounds", inputBounds.right <= addBounds.left)
+        assertTrue("input=$inputBounds add=$addBounds", inputBounds.right - inputBounds.left > addBounds.right - addBounds.left)
+        assertTrue("input=$inputBounds text=$inputTextBounds", inputTextBounds.left >= inputBounds.left && inputTextBounds.right <= inputBounds.right)
+    }
+
+    @Test fun newTagInputAndAddButtonStayVerticallyCenteredAndReachableWithImeAtNarrowTwoTimesFontScale() {
+        val input = mutableStateOf("")
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                EasyTripTheme {
+                    Box(Modifier.requiredWidth(280.dp).height(400.dp)) {
+                        PlaceDetailPanel(
+                            candidate = candidate(),
+                            savedPlace = savedPlace(),
+                            editState = PlaceDetailEditState("saved-1", "", emptySet(), input.value),
+                            source = PlaceDetailSource.PlacePool,
+                            collectionBusy = false,
+                            collectionError = null,
+                            onAction = { action ->
+                                if (action is PlaceDetailPanelAction.NewTagInputChanged) input.value = action.value
+                            },
+                        )
+                    }
+                }
+            }
+        }
+
+        compose.onNodeWithTag("place-detail-tags-input").performScrollTo().performClick().performTextInput("自然")
+        compose.waitUntil(5_000) {
+            ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
+                ?.isVisible(WindowInsetsCompat.Type.ime()) == true
+        }
+        compose.onNodeWithTag("place-detail-tags-input").performScrollTo()
+        compose.waitUntil(5_000) {
+            runCatching {
+                compose.onNodeWithTag("place-detail-tags-input").getUnclippedBoundsInRoot()
+                compose.onNodeWithTag("place-detail-add-tag").getUnclippedBoundsInRoot()
+                true
+            }.getOrDefault(false)
+        }
+
+        val inputBounds = compose.onNodeWithTag("place-detail-tags-input")
+            .assertWidthIsAtLeast(100.dp)
+            .getUnclippedBoundsInRoot()
+        val addBounds = compose.onNodeWithTag("place-detail-add-tag")
+            .assertIsDisplayed()
+            .assertHasClickAction()
+            .assertHeightIsAtLeast(48.dp)
+            .getUnclippedBoundsInRoot()
+        val addLabelBounds = compose.onNodeWithText("添加", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val container = compose.onNodeWithTag("place-detail-scroll-content").getUnclippedBoundsInRoot()
+        assertTrue("input=$inputBounds add=$addBounds", inputBounds.right <= addBounds.left)
+        assertTrue("input=$inputBounds add=$addBounds", kotlin.math.abs(((inputBounds.top + inputBounds.bottom) / 2 - (addBounds.top + addBounds.bottom) / 2).value) < 0.5f)
+        assertTrue("add=$addBounds label=$addLabelBounds", addLabelBounds.left >= addBounds.left && addLabelBounds.right <= addBounds.right)
+        assertTrue("add=$addBounds container=$container", addBounds.left >= container.left && addBounds.right <= container.right)
+        assertTrue("add=$addBounds container=$container", addBounds.top >= container.top && addBounds.bottom <= container.bottom)
+    }
+
+    @Test fun longestValidNewTagKeepsRemoveVisibleAndTouchableAtNarrowLargeText() {
+        val tag = "这是十二个中文字的标签名"
+        val actions = mutableListOf<PlaceDetailPanelAction>()
+        compose.setContent {
+            val density = LocalDensity.current
+            CompositionLocalProvider(LocalDensity provides Density(density.density, 2f)) {
+                EasyTripTheme {
+                    Box(Modifier.requiredWidth(280.dp).height(400.dp)) {
+                        PlaceDetailPanel(
+                            candidate = candidate(),
+                            savedPlace = savedPlace(),
+                            editState = PlaceDetailEditState("saved-1", "", setOf(tag)),
+                            source = PlaceDetailSource.PlacePool,
+                            collectionBusy = false,
+                            collectionError = null,
+                            onAction = actions::add,
+                        )
+                    }
+                }
+            }
+        }
+
+        val remove = compose.onNodeWithText("移除").performScrollTo().assertIsDisplayed()
+            .assertWidthIsAtLeast(48.dp)
+        val removeBounds = remove.getUnclippedBoundsInRoot()
+        val labelBounds = compose.onNodeWithText(tag, useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val container = compose.onNodeWithTag("place-detail-scroll-content").getUnclippedBoundsInRoot()
+        assertTrue("tag=$labelBounds remove=$removeBounds", labelBounds.right <= removeBounds.left)
+        assertTrue("remove=$removeBounds container=$container", removeBounds.right <= container.right)
+        remove.performTouchInput { click() }
+        compose.runOnIdle { assertEquals(listOf(PlaceDetailPanelAction.RemoveTag(tag)), actions) }
     }
 
     private fun setContent(

@@ -2,7 +2,6 @@ package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -55,13 +54,16 @@ internal fun WorkspaceTopBar(
             ) {
                 WorkspaceBackIcon(Modifier.size(sizes.workspaceIconSize))
             }
-            Column(Modifier.weight(1f).padding(horizontal = EasyTripTheme.spacing.xSmall)) {
+            Row(
+                Modifier.weight(1f).padding(horizontal = EasyTripTheme.spacing.xSmall),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     title,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.testTag("workspace-trip-title"),
+                    modifier = Modifier.weight(1f).testTag("workspace-trip-title"),
                 )
                 dateLabel?.let {
                     Text(
@@ -70,6 +72,7 @@ internal fun WorkspaceTopBar(
                         overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.labelSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = EasyTripTheme.spacing.xSmall),
                     )
                 }
             }

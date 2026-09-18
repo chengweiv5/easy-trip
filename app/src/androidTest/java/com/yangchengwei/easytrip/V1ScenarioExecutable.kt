@@ -674,15 +674,15 @@ object V1ScenarioExecutableFactory {
                     actions::add,
                 )
             },
-            { onNodeWithTag("continue-trip-trip-1").performClick() },
+            { onNodeWithTag("primary-trip-trip-1").performClick() },
             {
                 onNodeWithText("杭州周末").assertIsDisplayed()
                 onNodeWithText("2026年9月1日 · 3天2晚").assertIsDisplayed()
                 onNodeWithTag("primary-trip-trip-1").assertIsDisplayed()
-                onNodeWithTag("continue-trip-trip-1").assertIsDisplayed()
+                onAllNodesWithTag("continue-trip-trip-1").assertCountEquals(0)
                 onNodeWithTag("trip-menu-trip-1").assertIsDisplayed()
                 onNodeWithTag("trip-menu-trip-2").assertIsDisplayed()
-                onAllNodesWithText("继续规划").assertCountEquals(1)
+                onAllNodesWithText("继续规划").assertCountEquals(0)
                 check(actions == listOf(TripListAction.OpenTrip("trip-1")))
             },
         )
@@ -1436,7 +1436,7 @@ object V1ScenarioExecutableFactory {
         travelModeLabel = travelModeLabel,
         countdownLabel = "还有 12 天",
         placeCount = 3,
-        scheduledPlaceCount = 2,
+        scheduledDayCount = 2,
         placeCountLabel = "3 个地点",
         tripDayCountLabel = "3 天行程",
         readinessPercent = 67,

@@ -411,7 +411,7 @@ class RoomTripRepositoryTest {
     }
 
     @Test
-    fun observeTripsProjectsSavedPlacesAndDistinctScheduledPlacesAndReemitsOnChanges() = runTest {
+    fun observeTripsProjectsSavedPlacesAndDistinctScheduledDaysAndReemitsOnChanges() = runTest {
         val tripId = repository.createTrip(CreateTrip("Stats", 3))
         val dayIds = repository.observeTrip(tripId).first()!!.days.map(TripDay::id)
         database.savedPlaceDao().insertPlace(SavedPlaceEntity("place-a", tripId, "a", "A", "", 0.0, 0.0))
@@ -427,22 +427,22 @@ class RoomTripRepositoryTest {
                 .single()
             assertEquals(3, initial.dayCount)
             assertEquals(3, initial.placeCount)
-            assertEquals(2, initial.scheduledDistinctPlaceCount)
+            assertEquals(3, initial.scheduledDayCount)
 
             database.itineraryEditingDao().deleteRow("item-a-0")
             assertEquals(
                 2,
-                listEvents.receiveUntil("two distinct places after one A occurrence is deleted") {
-                    it.singleOrNull()?.scheduledDistinctPlaceCount == 2
-                }.single().scheduledDistinctPlaceCount,
+                listEvents.receiveUntil("two scheduled days after first day becomes empty") {
+                    it.singleOrNull()?.scheduledDayCount == 2
+                }.single().scheduledDayCount,
             )
 
             database.itineraryEditingDao().deleteRow("item-a-1")
             assertEquals(
                 1,
-                listEvents.receiveUntil("one distinct place after all A occurrences are deleted") {
-                    it.singleOrNull()?.scheduledDistinctPlaceCount == 1
-                }.single().scheduledDistinctPlaceCount,
+                listEvents.receiveUntil("one scheduled day after second day becomes empty") {
+                    it.singleOrNull()?.scheduledDayCount == 1
+                }.single().scheduledDayCount,
             )
 
             database.savedPlaceDao().insertPlace(SavedPlaceEntity("place-d", tripId, "d", "D", "", 0.0, 0.0))
@@ -477,16 +477,16 @@ class RoomTripRepositoryTest {
     }
 
     @Test
-    fun deletingLastDayIsRejectedAndTravelModeAndRecentOrderingUpdate() = runTest {
-        val first = repository.createTrip(CreateTrip("First", 1))
+    fun deletingLastDayIsRejectedAndTravelModeUpdatesWithoutChangingDateOrdering() = runTest {
+        val first = repository.createTrip(CreateTrip("First", 1, startDate = LocalDate.of(2026, 8, 24)))
         clock.advance()
-        val second = repository.createTrip(CreateTrip("Second", 1))
-        assertEquals(listOf(second, first), repository.observeTrips().first().map { it.id })
+        val second = repository.createTrip(CreateTrip("Second", 1, startDate = LocalDate.of(2026, 8, 25)))
+        assertEquals(listOf(first, second), repository.observeTrips().first().map { it.id })
 
         clock.advance()
-        repository.setTravelMode(first, TravelMode.SELF_DRIVE)
-        assertEquals(first, repository.observeTrips().first().first().id)
-        assertEquals(TravelMode.SELF_DRIVE, repository.observeTrip(first).first()!!.travelMode)
+        repository.setTravelMode(second, TravelMode.SELF_DRIVE)
+        assertEquals(listOf(first, second), repository.observeTrips().first().map { it.id })
+        assertEquals(TravelMode.SELF_DRIVE, repository.observeTrip(second).first()!!.travelMode)
         val onlyDay = repository.observeTrip(first).first()!!.days.single().id
         assertThrows(IllegalArgumentException::class.java) {
             kotlinx.coroutines.runBlocking {
@@ -496,6 +496,55 @@ class RoomTripRepositoryTest {
         assertEquals(listOf(onlyDay), repository.observeTrip(first).first()!!.days.map { it.id })
         repository.deleteTrip(first)
         assertEquals(null, repository.observeTrip(first).first())
+    }
+
+    @Test
+    fun observeTripsOrdersByDatesOnEveryRoomEmission() = runTest {
+        val endedOlder = repository.createTrip(CreateTrip("Ended older", 2, startDate = LocalDate.of(2026, 8, 10)))
+        clock.advance()
+        val undated = repository.createTrip(CreateTrip("Undated", 1))
+        clock.advance()
+        val futureLater = repository.createTrip(CreateTrip("Future later", 1, startDate = LocalDate.of(2026, 9, 1)))
+        clock.advance()
+        val ongoingEarlierUpdate = repository.createTrip(CreateTrip("Ongoing earlier update", 4, startDate = LocalDate.of(2026, 8, 20)))
+        clock.advance()
+        val ongoingLaterUpdate = repository.createTrip(CreateTrip("Ongoing later update", 3, startDate = LocalDate.of(2026, 8, 21)))
+        clock.advance()
+        val endedRecent = repository.createTrip(CreateTrip("Ended recent", 2, startDate = LocalDate.of(2026, 8, 18)))
+        clock.advance()
+        val futureSooner = repository.createTrip(CreateTrip("Future sooner", 1, startDate = LocalDate.of(2026, 8, 25)))
+
+        val expected = listOf(ongoingLaterUpdate, ongoingEarlierUpdate, futureSooner, futureLater, endedRecent, endedOlder, undated)
+        assertEquals(expected, repository.observeTrips().first().map { it.id })
+
+        clock.advance()
+        repository.renameTrip(ongoingEarlierUpdate, "Edited ongoing earlier update")
+        assertEquals(expected, repository.observeTrips().first().map { it.id })
+
+        clock.advance()
+        repository.setStartDate(ongoingLaterUpdate, LocalDate.of(2026, 9, 10))
+        assertEquals(
+            listOf(ongoingEarlierUpdate, futureSooner, futureLater, ongoingLaterUpdate, endedRecent, endedOlder, undated),
+            repository.observeTrips().first().map { it.id },
+        )
+    }
+
+    @Test
+    fun observeTripsCountsDistinctScheduledDaysAndReemitsOnItineraryChanges() = runTest {
+        val tripId = repository.createTrip(CreateTrip("Readiness", 3))
+        val dayIds = repository.observeTrip(tripId).first()!!.days.map(TripDay::id)
+        database.savedPlaceDao().insertPlace(SavedPlaceEntity("place", tripId, "p", "Place", "", 0.0, 0.0))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity("item-0-a", dayIds[0], tripId, "place", 0))
+        database.itineraryEditingDao().insertItem(ItineraryItemEntity("item-0-b", dayIds[0], tripId, "place", 1_000))
+
+        coroutineScope {
+            val events = repository.observeTrips().produceIn(this)
+            assertEquals(1, events.receiveUntil("one scheduled day") { it.singleOrNull()?.scheduledDayCount == 1 }.single().scheduledDayCount)
+
+            database.itineraryEditingDao().insertItem(ItineraryItemEntity("item-2", dayIds[2], tripId, "place", 0))
+            assertEquals(2, events.receiveUntil("two scheduled days") { it.singleOrNull()?.scheduledDayCount == 2 }.single().scheduledDayCount)
+            events.cancel()
+        }
     }
 
 

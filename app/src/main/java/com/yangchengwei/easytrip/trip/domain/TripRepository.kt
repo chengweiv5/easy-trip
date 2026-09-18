@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.trip.domain
 
 import com.yangchengwei.easytrip.core.model.TravelMode
+import java.time.Instant
 import java.time.LocalDate
 import kotlinx.coroutines.flow.Flow
 
@@ -23,8 +24,36 @@ data class TripSummary(
     val travelMode: TravelMode,
     val dayCount: Int,
     val placeCount: Int,
-    val scheduledDistinctPlaceCount: Int,
+    val scheduledDayCount: Int,
+    val updatedAt: Instant = Instant.EPOCH,
 )
+
+fun List<TripSummary>.sortedForTripList(today: LocalDate): List<TripSummary> = sortedWith { left, right ->
+    val leftBucket = left.tripListDateBucket(today)
+    val rightBucket = right.tripListDateBucket(today)
+    val bucket = compareValues(leftBucket, rightBucket)
+    if (bucket != 0) return@sortedWith bucket
+    val date = when (leftBucket) {
+        0 -> compareValues(left.endDate(), right.endDate()).takeIf { it != 0 }
+            ?: compareValues(right.startDate, left.startDate)
+        1 -> compareValues(left.startDate, right.startDate)
+        2 -> compareValues(right.endDate(), left.endDate())
+        else -> 0
+    }
+    if (date != 0) date else right.updatedAt.compareTo(left.updatedAt).takeIf { it != 0 } ?: left.id.compareTo(right.id)
+}
+
+private fun TripSummary.tripListDateBucket(today: LocalDate): Int {
+    val startDate = startDate ?: return 3
+    val endDate = tripEndDateOrNull(startDate, dayCount) ?: return 3
+    return when {
+        !today.isBefore(startDate) && !today.isAfter(endDate) -> 0
+        today.isBefore(startDate) -> 1
+        else -> 2
+    }
+}
+
+private fun TripSummary.endDate(): LocalDate? = tripEndDateOrNull(startDate, dayCount)
 
 data class TripDay(val id: String, val index: Int)
 

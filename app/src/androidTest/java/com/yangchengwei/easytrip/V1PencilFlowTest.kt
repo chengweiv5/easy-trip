@@ -157,7 +157,7 @@ class V1PencilFlowTest {
         assertEquals(2, saved.days.size)
 
         compose.onNodeWithTag("workspace-back").performClick()
-        compose.onNodeWithTag("continue-trip-$tripId").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("primary-trip-$tripId").assertIsDisplayed().performClick()
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
         compose.runOnIdle { assertEquals(listOf("trips/create", "trips/$tripId", "trips/$tripId"), routes) }
 

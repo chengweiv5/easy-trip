@@ -10,13 +10,13 @@ import org.junit.Test
 
 class TripListUiModelsTest {
     @Test fun mapsUndatedTripWithZeroReadiness() {
-        val result = trip(startDate = null, dayCount = 3, placeCount = 0, scheduledPlaceCount = 0)
+        val result = trip(startDate = null, dayCount = 3, placeCount = 0, scheduledDayCount = 0)
             .toTripCardUiModel(today = LocalDate.of(2026, 4, 1))
 
         assertEquals("3天2晚", result.dayCountLabel)
         assertEquals("日期待定", result.countdownLabel)
         assertEquals(0, result.placeCount)
-        assertEquals(0, result.scheduledPlaceCount)
+        assertEquals(0, result.scheduledDayCount)
         assertEquals("3 天行程", result.tripDayCountLabel)
         assertEquals(0, result.readinessPercent)
         assertEquals("0%", result.readinessLabel)
@@ -56,13 +56,20 @@ class TripListUiModelsTest {
         assertEquals("已结束", trip(startDate = today.minusDays(3), dayCount = 3).toTripCardUiModel(today).countdownLabel)
     }
 
-    @Test fun roundsReadinessFromScheduledDistinctPlaces() {
-        val result = trip(placeCount = 3, scheduledPlaceCount = 2)
+    @Test fun readinessUsesDistinctDaysContainingItineraryItems() {
+        assertEquals(0, trip(dayCount = 3, scheduledDayCount = 0).toTripCardUiModel(LocalDate.of(2026, 4, 1)).readinessPercent)
+        assertEquals(33, trip(dayCount = 3, scheduledDayCount = 1).toTripCardUiModel(LocalDate.of(2026, 4, 1)).readinessPercent)
+        assertEquals(67, trip(dayCount = 3, scheduledDayCount = 2).toTripCardUiModel(LocalDate.of(2026, 4, 1)).readinessPercent)
+        assertEquals(100, trip(dayCount = 3, scheduledDayCount = 3).toTripCardUiModel(LocalDate.of(2026, 4, 1)).readinessPercent)
+    }
+
+    @Test fun placeCountRemainsIndependentFromReadiness() {
+        val result = trip(dayCount = 3, placeCount = 7, scheduledDayCount = 2)
             .toTripCardUiModel(today = LocalDate.of(2026, 4, 1))
 
-        assertEquals(3, result.placeCount)
-        assertEquals(2, result.scheduledPlaceCount)
-        assertEquals("3 个地点", result.placeCountLabel)
+        assertEquals(7, result.placeCount)
+        assertEquals(2, result.scheduledDayCount)
+        assertEquals("7 个地点", result.placeCountLabel)
         assertEquals("3 天行程", result.tripDayCountLabel)
         assertEquals(67, result.readinessPercent)
         assertEquals("67%", result.readinessLabel)
@@ -111,7 +118,7 @@ class TripListUiModelsTest {
         travelMode: TravelMode = TravelMode.FLEXIBLE,
         dayCount: Int = 3,
         placeCount: Int = 0,
-        scheduledPlaceCount: Int = 0,
+        scheduledDayCount: Int = 0,
     ) = TripSummary(
         id = "trip",
         name = "京都",
@@ -119,6 +126,6 @@ class TripListUiModelsTest {
         travelMode = travelMode,
         dayCount = dayCount,
         placeCount = placeCount,
-        scheduledDistinctPlaceCount = scheduledPlaceCount,
+        scheduledDayCount = scheduledDayCount,
     )
 }

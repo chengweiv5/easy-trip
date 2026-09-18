@@ -11,10 +11,28 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import kotlin.math.ceil
+import kotlin.math.roundToInt
 
+
+internal fun estimateScrollbarItemSizePx(itemSizes: List<Int>): Int =
+    itemSizes.filter { it > 0 }.maxOrNull() ?: 0
+
+internal fun calculateScrollbarViewportCapacity(
+    viewportHeightPx: Int,
+    representativeItemSizePx: Int,
+    fallbackItemCount: Int,
+): Int = if (representativeItemSizePx > 0) {
+    ceil(viewportHeightPx.toFloat() / representativeItemSizePx).toInt()
+} else {
+    fallbackItemCount
+}
 
 data class ScrollbarThumb(
     val offsetFraction: Float,
@@ -27,17 +45,22 @@ fun calculateScrollbarThumb(
     firstVisibleItemIndex: Int,
     firstVisibleItemScrollOffsetPx: Int,
     firstVisibleItemSizePx: Int,
+    viewportCapacity: Int = visibleItems,
     contentOverflows: Boolean = visibleItems < totalItems,
     minimumSizeFraction: Float = 0.08f,
 ): ScrollbarThumb? {
     if (totalItems <= 0 || !contentOverflows) return null
-    val sizeFraction = (visibleItems.toFloat() / totalItems)
+    val stableViewportCapacity = viewportCapacity.coerceIn(1, totalItems)
+    val scrollableItems = totalItems - stableViewportCapacity
+    val sizeFraction = (stableViewportCapacity.toFloat() / totalItems)
         .coerceAtLeast(minimumSizeFraction)
         .coerceIn(0f, 1f)
+    if (scrollableItems <= 0) {
+        return ScrollbarThumb(0f, minimumSizeFraction.coerceIn(0f, 1f))
+    }
     val itemProgress = if (firstVisibleItemSizePx > 0) {
         firstVisibleItemScrollOffsetPx.toFloat() / firstVisibleItemSizePx
     } else 0f
-    val scrollableItems = totalItems - visibleItems
     val offsetFraction = ((firstVisibleItemIndex + itemProgress) / scrollableItems)
         .coerceIn(0f, 1f)
     return ScrollbarThumb(offsetFraction, sizeFraction)
@@ -47,13 +70,30 @@ fun calculateScrollbarThumb(
 fun ReadOnlyLazyScrollbar(
     state: LazyListState,
     modifier: Modifier = Modifier,
+    representativeItemHeight: Dp? = null,
 ) {
     val layoutInfo = state.layoutInfo
     val visibleItems = layoutInfo.visibleItemsInfo
     val firstVisible = visibleItems.firstOrNull()
+    val density = LocalDensity.current
+    val representativeItemSizePx = representativeItemHeight?.let { height ->
+        with(density) { height.toPx().roundToInt() }
+    } ?: estimateScrollbarItemSizePx(visibleItems.map { it.size })
+    val viewportCapacity = remember(
+        layoutInfo.viewportSize,
+        layoutInfo.totalItemsCount,
+        representativeItemSizePx,
+    ) {
+        calculateScrollbarViewportCapacity(
+            viewportHeightPx = layoutInfo.viewportSize.height,
+            representativeItemSizePx = representativeItemSizePx,
+            fallbackItemCount = visibleItems.size,
+        )
+    }
     val thumb = calculateScrollbarThumb(
         totalItems = layoutInfo.totalItemsCount,
         visibleItems = visibleItems.size,
+        viewportCapacity = viewportCapacity,
         firstVisibleItemIndex = firstVisible?.index ?: 0,
         firstVisibleItemScrollOffsetPx = state.firstVisibleItemScrollOffset,
         firstVisibleItemSizePx = firstVisible?.size ?: 0,

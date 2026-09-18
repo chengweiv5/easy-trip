@@ -44,59 +44,113 @@ class WorkspaceLayoutMetricsTest {
         assertTrue(metrics.sheetTop >= 0.dp)
     }
 
-    @Test fun `map overlays require enough space above sheet and below top bar`() {
-        val tooShort = workspaceLayoutMetrics(443.dp, workspaceSheetAnchors(443.dp), WorkspaceSheetLevel.HALF)
-        val baseline = workspaceLayoutMetrics(782.dp, workspaceSheetAnchors(782.dp), WorkspaceSheetLevel.HALF)
+    @Test fun `map control group is hidden when five compact controls cannot stay above sheet`() {
+        val tooShort = WorkspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            sheetHeight = 551.dp,
+            sheetTop = 231.dp,
+            overlayBottomInset = 571.dp,
+        )
+        val fitting = tooShort.copy(sheetTop = 236.dp)
 
         assertFalse(workspaceMapOverlaysFit(tooShort))
-        assertTrue(workspaceMapOverlaysFit(baseline))
+        assertTrue(workspaceMapOverlaysFit(fitting))
     }
 
-    @Test fun `viewport safe insets mirror asymmetric workspace chrome and sheet anchor`() {
+    @Test fun `viewport safe insets avoid compact chrome legend controls and half sheet`() {
         val metrics = workspaceLayoutMetrics(
             availableWidth = 390.dp,
             availableHeight = 782.dp,
-            visibleSheetHeight = 432.dp,
+            visibleSheetHeight = 324.dp,
         )
 
         assertEquals(
-            MapViewportInsets(leftPx = 20, topPx = 72, rightPx = 68, bottomPx = 510),
+            MapViewportInsets(leftPx = 132, topPx = 64, rightPx = 40, bottomPx = 373),
             workspaceViewportInsets(metrics, density = 1f),
         )
+    }
+
+    @Test fun `viewport safe rectangle stays clear of bottom left legend`() {
+        val metrics = workspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            visibleSheetHeight = 324.dp,
+        )
+
+        val insets = workspaceViewportInsets(metrics, density = 1f)
+        val safeLeft = insets.leftPx
+        val safeBottom = 782 - insets.bottomPx
+        val legendRight = 12 + 112
+        val legendTop = 782 - 324 - 13 - 36
+
+        assertTrue("safeLeft=$safeLeft legendRight=$legendRight", safeLeft >= legendRight)
+        assertTrue("safeBottom=$safeBottom legendTop=$legendTop", safeBottom <= legendTop)
     }
 
     @Test fun `viewport safe insets use stable anchor instead of live drag height`() {
         val metrics = WorkspaceLayoutMetrics(
             availableWidth = 390.dp,
             availableHeight = 782.dp,
-            sheetHeight = 320.dp,
-            sheetTop = 462.dp,
-            overlayBottomInset = 340.dp,
-            stableSheetHeight = 432.dp,
+            sheetHeight = 240.dp,
+            sheetTop = 542.dp,
+            overlayBottomInset = 260.dp,
+            stableSheetHeight = 324.dp,
         )
 
         assertEquals(
-            MapViewportInsets(leftPx = 20, topPx = 72, rightPx = 68, bottomPx = 510),
+            MapViewportInsets(leftPx = 132, topPx = 64, rightPx = 40, bottomPx = 373),
             workspaceViewportInsets(metrics, density = 1f),
         )
+    }
+
+    @Test fun `drag frame viewport retains the stable sheet anchor`() {
+        val metrics = WorkspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            sheetHeight = 240.dp,
+            sheetTop = 542.dp,
+            overlayBottomInset = 260.dp,
+            stableSheetHeight = 324.dp,
+        )
+
+        val insets = workspaceViewportInsets(metrics, density = 1f)
+        val safeBottom = 782 - insets.bottomPx
+        val stableLegendTop = 782 - 324 - 13 - 36
+
+        assertTrue("safeBottom=$safeBottom stableLegendTop=$stableLegendTop", safeBottom <= stableLegendTop)
+    }
+
+    @Test fun `drag frame legend remains thirteen dp above the live sheet`() {
+        val metrics = WorkspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            sheetHeight = 400.dp,
+            sheetTop = 382.dp,
+            overlayBottomInset = 420.dp,
+            stableSheetHeight = 324.dp,
+        )
+
+        assertEquals(341.dp, workspaceLegendTop(metrics))
+        assertTrue(workspaceLegendTop(metrics) + 36.dp + 5.dp <= metrics.sheetTop)
     }
 
     @Test fun `viewport safe insets stay identical across drag frames until level settles`() {
         val firstFrame = workspaceLayoutMetrics(
             availableWidth = 390.dp,
             availableHeight = 782.dp,
-            visibleSheetHeight = 320.dp,
-        ).copy(stableSheetHeight = 432.dp)
+            visibleSheetHeight = 240.dp,
+        ).copy(stableSheetHeight = 324.dp)
         val secondFrame = workspaceLayoutMetrics(
             availableWidth = 390.dp,
             availableHeight = 782.dp,
-            visibleSheetHeight = 380.dp,
-        ).copy(stableSheetHeight = 432.dp)
+            visibleSheetHeight = 280.dp,
+        ).copy(stableSheetHeight = 324.dp)
         val settled = workspaceLayoutMetrics(
             availableWidth = 390.dp,
             availableHeight = 782.dp,
-            visibleSheetHeight = 432.dp,
-        ).copy(stableSheetHeight = 432.dp)
+            visibleSheetHeight = 324.dp,
+        ).copy(stableSheetHeight = 324.dp)
 
         assertEquals(
             workspaceViewportInsets(firstFrame, density = 1f),
@@ -157,6 +211,19 @@ class WorkspaceLayoutMetricsTest {
         assertFalse(workspaceLayerMenuFits(tooNarrow))
         assertTrue(workspaceLayerMenuFits(baseline))
     }
+
+    @Test fun `layer menu hides when the live sheet would cover its bottom`() {
+        val metrics = WorkspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            sheetHeight = 360.dp,
+            sheetTop = 422.dp,
+            overlayBottomInset = 380.dp,
+        )
+
+        assertFalse(workspaceLayerMenuFits(metrics))
+    }
+
 
     @Test fun `place detail sheet follows design ratio with bounded responsive height`() {
         assertEquals(490.dp, workspacePlaceDetailSheetHeight(782.dp))

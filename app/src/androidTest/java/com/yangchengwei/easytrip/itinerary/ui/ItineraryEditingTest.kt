@@ -265,7 +265,7 @@ class ItineraryEditingTest {
         compose.setContent { DayItinerarySheet(model) }
 
         compose.onNodeWithTag("empty-illustration-itinerary").assertIsDisplayed()
-        compose.onNodeWithText("第2天 · 暂无行程").assertIsDisplayed()
+        compose.onNodeWithText("第 2 天 · 暂无行程").assertIsDisplayed()
         compose.onNodeWithText("从地点池添加地点，开始安排这一天").assertIsDisplayed()
         compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
     }

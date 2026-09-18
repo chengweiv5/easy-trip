@@ -34,10 +34,11 @@ internal fun ItineraryItemMenu(
     modifier: Modifier = Modifier,
     canScheduleAgain: Boolean = true,
 ) {
-    Box(modifier.size(40.dp), contentAlignment = Alignment.Center) {
+    Box(modifier.size(28.dp), contentAlignment = Alignment.Center) {
         IconButton(
             onClick = { onExpandedChange(!expanded) },
             modifier = Modifier
+                .size(28.dp)
                 .testTag("more-$itemId")
                 .semantics { contentDescription = "$itemName，更多行程项操作" },
         ) {

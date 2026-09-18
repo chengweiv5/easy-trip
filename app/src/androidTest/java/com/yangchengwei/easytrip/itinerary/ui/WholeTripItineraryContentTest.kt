@@ -14,7 +14,9 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertCountEquals
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollToNode
@@ -80,7 +82,7 @@ class WholeTripItineraryContentTest {
 
         compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
         compose.onNodeWithTag("itinerary-scope-day-2").assertIsDisplayed()
-        compose.onNodeWithText("第2天 · 暂无行程").assertIsDisplayed()
+        compose.onNodeWithText("第 2 天 · 暂无行程").assertIsDisplayed()
         compose.onNodeWithTag("add-places-to-selected-day").performClick()
         assertEquals(1, addClicks)
         compose.onAllNodesWithTag("itinerary-all-empty").assertCountEquals(0)
@@ -100,10 +102,23 @@ class WholeTripItineraryContentTest {
         }
 
         compose.onNodeWithTag("whole-trip-summary").assertIsDisplayed()
+            .assertHeightIsEqualTo(36.dp)
         compose.onNodeWithText("全程 · 3 天 · 2 站").assertIsDisplayed()
-        compose.onNodeWithText("9月6日 · 第一天").assertIsDisplayed()
-        compose.onNodeWithText("9月7日 · 第二天").assertIsDisplayed()
-        compose.onNodeWithText("9月8日 · 第三天").assertIsDisplayed()
+        compose.onNodeWithText("第 1 天 · 1 站").assertIsDisplayed()
+        compose.onNodeWithText("第 2 天 · 0 站").assertIsDisplayed()
+        compose.onNodeWithText("第 3 天 · 1 站").assertIsDisplayed()
+        compose.onNodeWithText("9 月 6 日").assertIsDisplayed()
+        compose.onNodeWithText("9 月 7 日").assertIsDisplayed()
+        compose.onNodeWithText("9 月 8 日").assertIsDisplayed()
+        listOf("day-1", "day-2", "day-3").forEachIndexed { index, dayId ->
+            val title = compose.onNodeWithText("第 ${index + 1} 天 · ${if (index == 1) 0 else 1} 站", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            val date = compose.onNodeWithText("9 月 ${index + 6} 日", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            val titleCenter = (title.top + title.bottom) / 2f
+            val dateCenter = (date.top + date.bottom) / 2f
+            assertTrue("title=$title date=$date", kotlin.math.abs(titleCenter.value - dateCenter.value) < 0.01f)
+            val gap = date.left - title.right
+            assertTrue("title=$title date=$date", gap in 0.dp..8.5.dp)
+        }
     }
 
     @Test
@@ -131,8 +146,8 @@ class WholeTripItineraryContentTest {
 
         compose.onNodeWithTag("whole-trip-day-day-1").assertIsDisplayed()
         compose.onNodeWithTag("whole-trip-day-day-2").assertIsDisplayed()
-        compose.onNodeWithText("第一天").assertIsDisplayed()
-        compose.onNodeWithText("第二天").assertIsDisplayed()
+        compose.onNodeWithText("第 1 天 · 2 站").assertIsDisplayed()
+        compose.onNodeWithText("第 2 天 · 0 站").assertIsDisplayed()
         compose.onNodeWithText("暂无行程").assertIsDisplayed()
         assertEquals(
             listOf("item-first", "leg-route", "item-second"),
@@ -140,9 +155,108 @@ class WholeTripItineraryContentTest {
         )
         compose.onNodeWithTag("item-first").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
         compose.onNodeWithTag("item-second").assert(SemanticsMatcher.keyNotDefined(SemanticsActions.CustomActions))
+        compose.onNodeWithTag("route-leg-action-route")
+            .assertContentDescriptionEquals("从早餐店到博物馆的路段")
+            .assert(SemanticsMatcher.keyNotDefined(SemanticsActions.OnClick))
+        compose.onAllNodesWithText("早餐店 → 博物馆").assertCountEquals(0)
         val forbiddenPrefixes = listOf("timing-", "move-", "delete-", "mode-", "retry-", "more-", "drag-handle-")
         val allTags = compose.onRoot(useUnmergedTree = true).fetchSemanticsNode().allTags()
         assertTrue(allTags.none { tag -> forbiddenPrefixes.any(tag::startsWith) })
+    }
+
+    @Test
+    fun wholeTripTimingSummaryStaysOnOneLineAtNormalWidth() {
+        compose.setContent {
+            Box(Modifier.width(320.dp)) {
+                WholeTripItineraryContent(
+                    days = listOf(
+                        WholeTripDayUi(
+                            "day-1",
+                            1,
+                            listOf(ItineraryItemUi("place", "灵隐寺", "法云弄1号", java.time.LocalTime.parse("09:30"), 120)),
+                            emptyList(),
+                        ),
+                    ),
+                )
+            }
+        }
+
+        val node = compose.onNodeWithText("09:30 到达 · 停留 120 分钟").fetchSemanticsNode()
+        val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        checkNotNull(node.config[SemanticsActions.GetTextLayoutResult].action).invoke(results)
+        assertEquals(1, results.single().lineCount)
+    }
+
+    @Test
+    fun wholeTripUsesEightDpGapBetweenAdjacentPlaceAndRouteBlocks() {
+        val first = item("first", "早餐店")
+        val second = item("second", "博物馆")
+        compose.setContent {
+            WholeTripItineraryContent(
+                days = listOf(
+                    WholeTripDayUi(
+                        "day-1",
+                        1,
+                        listOf(first, second),
+                        listOf(
+                            RouteLegUi(
+                                id = "route",
+                                fromItemId = first.id,
+                                toItemId = second.id,
+                                mode = TransportMode.WALK,
+                                status = RouteStatus.SUCCESS,
+                                distanceMeters = 800,
+                                durationSeconds = 600,
+                                error = null,
+                            ),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        val firstPlace = compose.onNodeWithTag("item-first").getUnclippedBoundsInRoot()
+        val route = compose.onNodeWithTag("leg-route").getUnclippedBoundsInRoot()
+        val secondPlace = compose.onNodeWithTag("item-second").getUnclippedBoundsInRoot()
+        assertEquals(8.dp, route.top - firstPlace.bottom)
+        assertEquals(8.dp, secondPlace.top - route.bottom)
+    }
+
+    @Test
+    fun wholeTripAxisFollowsPlaceTextAndRouteTextKeepsTwentyFiveDpOffset() {
+        val first = item("first", "早餐店")
+        val second = item("second", "博物馆")
+        compose.setContent {
+            WholeTripItineraryContent(
+                days = listOf(
+                    WholeTripDayUi(
+                        "day-1",
+                        1,
+                        listOf(first, second),
+                        listOf(
+                            RouteLegUi(
+                                id = "route",
+                                fromItemId = first.id,
+                                toItemId = second.id,
+                                mode = TransportMode.WALK,
+                                status = RouteStatus.SUCCESS,
+                                distanceMeters = 800,
+                                durationSeconds = 600,
+                                error = null,
+                            ),
+                        ),
+                    ),
+                ),
+            )
+        }
+
+        val placeName = compose.onNodeWithText("早餐店").getUnclippedBoundsInRoot()
+        val connector = compose.onNodeWithTag("route-connector-route", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        val routeLabel = compose.onNodeWithText("步行").getUnclippedBoundsInRoot()
+        assertEquals(placeName.left, connector.left + 6.dp)
+        val route = compose.onNodeWithTag("leg-route").getUnclippedBoundsInRoot()
+        assertEquals(route.left + 35.dp, routeLabel.left)
+        assertEquals(25.dp, routeLabel.left - placeName.left)
     }
 
     @Test
@@ -225,8 +339,10 @@ class WholeTripItineraryContentTest {
             )
         }
 
-        compose.onAllNodesWithText("第十天").assertCountEquals(1)
-        compose.onAllNodesWithText("第 11 天").assertCountEquals(1)
+        compose.onNodeWithTag("whole-trip-timeline").performScrollToNode(hasTestTag("whole-trip-day-day-10"))
+        compose.onNodeWithText("第 10 天 · 0 站").assertIsDisplayed()
+        compose.onNodeWithTag("whole-trip-timeline").performScrollToNode(hasTestTag("whole-trip-day-day-11"))
+        compose.onNodeWithText("第 11 天 · 0 站").assertIsDisplayed()
     }
 
     private fun item(id: String, name: String) = ItineraryItemUi(id, name, "", null, null)

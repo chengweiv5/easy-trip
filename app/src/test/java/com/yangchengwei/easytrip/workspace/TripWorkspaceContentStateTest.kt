@@ -110,6 +110,28 @@ class TripWorkspaceContentStateTest {
         assertEquals("北京", (model.pageState.value as TripWorkspacePageState.Ready).content.tripName)
     }
 
+    @Test fun fullPlaceIdsMissingPreventsReconciliationDespiteReadyFilteredRows() {
+        assertEquals(
+            AddToItineraryReconciliation.WaitForFullSnapshot,
+            addToItineraryReconciliation(
+                days = listOf(TripDay("day-1", 0)),
+                placesReady = true,
+                savedPlaceIds = null,
+            ),
+        )
+    }
+
+    @Test fun fullPlaceIdsTriggerReconciliationAfterReadyFilteredRows() {
+        assertEquals(
+            AddToItineraryReconciliation.Reconcile(listOf("day-1"), setOf("saved-place")),
+            addToItineraryReconciliation(
+                days = listOf(TripDay("day-1", 0)),
+                placesReady = true,
+                savedPlaceIds = setOf("saved-place"),
+            ),
+        )
+    }
+
     @Test fun nonEmptyDaysWithEmptySnapshotsAndNoSavedPlacesExposeJointFullEmptyState() = runTest(dispatcher) {
         val trips = Trips()
         val model = model(trips)

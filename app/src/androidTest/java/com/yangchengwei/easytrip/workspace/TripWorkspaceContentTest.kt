@@ -21,6 +21,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.performScrollToIndex
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.unit.dp
@@ -150,6 +151,16 @@ class TripWorkspaceContentTest {
             ),
             actions,
         )
+    }
+
+    @Test fun nonReadyMapHidesMapOnlyControlsButKeepsLocalWorkspaceUsable() {
+        setContent(ready(), WorkspaceMapState.ConsentRequired)
+
+        listOf("map-legend", "layer-menu", "zoom-in", "zoom-out", "workspace-locate").forEach { tag ->
+            compose.onAllNodesWithTag(tag).assertCountEquals(0)
+        }
+        compose.onNodeWithText("地点池").assertIsDisplayed()
+        compose.onNodeWithText("行程").assertIsDisplayed()
     }
 
     @Test fun mapFailureRetryIsAboveSheetAndInvokesDedicatedCallbackOnce() {
@@ -326,11 +337,10 @@ class TripWorkspaceContentTest {
         }
     }
 
-    @Test fun searchTracksSheetTopDuringActiveDrag() {
+    @Test fun controlsTrackSheetTopDuringActiveDragWithoutEnteringSheet() {
         setContent(ready(), WorkspaceMapState.Ready)
         compose.waitForIdle()
         val initialSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
-        val initialSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
 
         compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
             down(center)
@@ -339,12 +349,11 @@ class TripWorkspaceContentTest {
         }
         compose.waitForIdle()
         val draggedSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
-        val draggedSearchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
         assertTrue("initial=$initialSheetTop dragged=$draggedSheetTop", draggedSheetTop < initialSheetTop)
-        assertTrue(
-            "initialSearch=$initialSearchBottom draggedSearch=$draggedSearchBottom sheet=$draggedSheetTop",
-            draggedSearchBottom < initialSearchBottom && draggedSearchBottom <= draggedSheetTop,
-        )
+        listOf("layer-menu", "zoom-in", "zoom-out", "workspace-locate").forEach { tag ->
+            val controls = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            assertTrue("tag=$tag controls=$controls sheet=$draggedSheetTop", controls.bottom <= draggedSheetTop)
+        }
     }
 
     @Test fun dragCancelReturnsSheetAndSearchToCurrentLevelTogether() {
@@ -622,11 +631,11 @@ class TripWorkspaceContentTest {
         val panel = compose.onNodeWithTag("layer-menu-panel").getUnclippedBoundsInRoot()
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
         assertTrue("topBar=$topBar panel=$panel", panel.top >= topBar.bottom)
-        assertTrue("panel=$panel sheet=$sheet", panel.top < sheet.top && panel.bottom > sheet.top)
+        assertTrue("panel=$panel sheet=$sheet", panel.bottom <= sheet.top)
         compose.onNodeWithTag("map-legend").assertDoesNotExist()
     }
 
-    @Test fun mapOverlaysHideDuringDragWhenLiveSheetTopLeavesNoSpace() {
+    @Test fun mapOverlaysHideAsOneGroupWhenLiveSheetTopCannotFitAllControls() {
         setContent(ready(), WorkspaceMapState.Ready)
         compose.waitForIdle()
         compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
@@ -637,8 +646,9 @@ class TripWorkspaceContentTest {
         compose.waitForIdle()
 
         compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
-        compose.onNodeWithTag("workspace-search-launcher").assertDoesNotExist()
-        compose.onNodeWithTag("map-legend").assertDoesNotExist()
+        listOf("workspace-search-launcher", "map-legend", "layer-menu", "zoom-in", "zoom-out", "workspace-locate").forEach { tag ->
+            compose.onNodeWithTag(tag).assertDoesNotExist()
+        }
     }
 
     @Test fun safeWorkspaceTooShortClosesLayerMenuInsteadOfKeepingInvisibleOverlayState() {
@@ -788,7 +798,10 @@ class TripWorkspaceContentTest {
             com.yangchengwei.easytrip.place.domain.SavedPlace("$index", "trip", "poi-$index", "地点 $index", "地址", com.yangchengwei.easytrip.core.model.GeoPoint(39.9, 116.4), "", emptyList())
         }
         compose.setContent {
-            androidx.compose.runtime.CompositionLocalProvider(androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f, 2f)) {
+            val deviceDensity = androidx.compose.ui.platform.LocalDensity.current.density
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(deviceDensity, 2f),
+            ) {
                 EasyTripTheme {
                     androidx.compose.foundation.layout.Box(Modifier.height(280.dp).testTag("small-window")) {
                         TripWorkspaceContent(
@@ -807,9 +820,7 @@ class TripWorkspaceContentTest {
             }
         }
 
-        compose.onNodeWithTag("workspace-place-list").performScrollToNode(
-            SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.TestTag, "saved-place-8"),
-        )
+        compose.onNodeWithTag("workspace-place-list").performScrollToIndex(8)
         compose.onNodeWithTag("saved-place-8").assertIsDisplayed()
     }
 

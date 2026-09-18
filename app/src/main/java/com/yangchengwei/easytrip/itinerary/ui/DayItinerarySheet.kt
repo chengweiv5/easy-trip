@@ -1,24 +1,42 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import java.time.LocalDate
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import kotlinx.coroutines.launch
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.ui.component.EmptyState
 
@@ -41,6 +59,30 @@ fun DayItinerarySheet(
         },
         canScheduleAgain = onScheduleAgain != null,
     )
+}
+
+internal data class TimelineMove(
+    val itemId: String,
+    val targetIndex: Int,
+)
+
+internal data class TimelineDragState(
+    val itemId: String,
+    val originalIndex: Int,
+    val targetIndex: Int,
+    val isCancelled: Boolean = false,
+) {
+    fun preview(targetIndex: Int): TimelineDragState = copy(targetIndex = targetIndex)
+
+    fun cancel(): TimelineDragState = copy(isCancelled = true)
+
+    fun commitMove(): TimelineMove? =
+        if (isCancelled) null else TimelineMove(itemId, targetIndex)
+
+    companion object {
+        fun start(itemId: String, originalIndex: Int, initialTargetIndex: Int): TimelineDragState =
+            TimelineDragState(itemId, originalIndex, initialTargetIndex)
+    }
 }
 
 sealed interface DayItineraryAction {
@@ -75,55 +117,55 @@ fun DayItineraryContent(
     state: DayItineraryUiState,
     modifier: Modifier = Modifier,
     onAction: (DayItineraryAction) -> Unit,
+    startDate: LocalDate? = null,
     showDialogs: Boolean = true,
     canScheduleAgain: Boolean = false,
 ) {
-    Column(modifier.padding(12.dp)) {
-        if (state.items.isNotEmpty() && state.selectedDayId != null) {
+    Column(modifier) {
+        if (state.selectedDayId != null) {
             val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
-            Text(
-                text = if (dayNumber == null) "${state.items.size} 站" else "第 $dayNumber 天 · ${state.items.size} 站",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary,
-                modifier = Modifier
-                    .testTag("day-itinerary-summary")
-                    .semantics { heading() },
+            ItinerarySummaryHeader(
+                text = itineraryDaySummary(dayNumber, state.items.size),
+                modifier = Modifier.testTag("day-itinerary-summary"),
+                date = dayNumber?.let { wholeTripDayDate(it, startDate) },
+                trailingInset = 20.dp,
+                trailingAction = {
+                    IconButton(
+                        onClick = { onAction(DayItineraryAction.AddPlaces) },
+                        modifier = Modifier.size(28.dp).testTag("add-places-to-selected-day"),
+                    ) {
+                        Icon(
+                            Icons.Rounded.Add,
+                            contentDescription = "从地点池添加地点",
+                            modifier = Modifier.size(18.dp),
+                        )
+                    }
+                },
             )
-        }
-        if (state.items.isNotEmpty() && state.selectedDayId != null) {
-            TextButton(
-                { onAction(DayItineraryAction.AddPlaces) },
-                Modifier.testTag("add-places-to-selected-day"),
-            ) { Text("从地点池添加") }
-        }
-        if (state.items.isNotEmpty() && state.savedPlaces.isNotEmpty()) {
-            Row(Modifier.horizontalScroll(rememberScrollState())) {
-                state.savedPlaces.forEach { place ->
-                    TextButton({ onAction(DayItineraryAction.AddPlace(place.id)) }, Modifier.testTag("add-place-${place.id}")) { Text("添加 ${place.name}") }
-                }
-            }
         }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
         val displayItems = currentDisplayItems(state.items, state.previewOrder)
         val visibleLegs = visibleRouteLegs(state.items, state.previewOrder, state.legs)
+        val timelineState = rememberLazyListState()
+        val dragScope = rememberCoroutineScope()
+        val edgeAutoScrollPx = with(LocalDensity.current) { 56.dp.toPx() }
+        var dragState by remember { mutableStateOf<TimelineDragState?>(null) }
+        var dragTranslationY by remember { mutableFloatStateOf(0f) }
         LazyColumn(
+            state = timelineState,
             modifier = Modifier.testTag("day-itinerary-timeline"),
-            contentPadding = PaddingValues(bottom = 24.dp),
+            contentPadding = PaddingValues(top = 6.dp, end = 10.dp, bottom = 24.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             if (state.items.isEmpty() && state.selectedDayId != null) {
                 val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
                 item {
                     EmptyState(
-                        title = if (dayNumber == null) "暂无行程" else "第${dayNumber}天 · 暂无行程",
+                        title = if (dayNumber == null) "暂无行程" else "第 $dayNumber 天 · 暂无行程",
                         message = "从地点池添加地点，开始安排这一天",
                         emptyIllustration = com.yangchengwei.easytrip.core.ui.component.EmptyIllustration.Itinerary,
                         verticalPadding = 16.dp,
-                        action = {
-                            TextButton(
-                                { onAction(DayItineraryAction.AddPlaces) },
-                                Modifier.testTag("add-places-to-selected-day"),
-                            ) { Text("从地点池添加") }
-                        },
+                        action = null,
                     )
                 }
             }
@@ -135,6 +177,59 @@ fun DayItineraryContent(
                     count = displayItems.size,
                     onPreview = { onAction(DayItineraryAction.PreviewMove(id, it)) },
                     onCommit = { onAction(DayItineraryAction.CommitMove(id, it)) },
+                    modifier = Modifier.animateItem(),
+                    isDragging = dragState?.itemId == id,
+                    dragTranslationY = if (dragState?.itemId == id) dragTranslationY else 0f,
+                    sharedDragEnabled = true,
+                    onDragStart = {
+                        dragState = TimelineDragState.start(
+                            itemId = id,
+                            originalIndex = state.items.indexOfFirst { it.id == id },
+                            initialTargetIndex = index,
+                        )
+                        dragTranslationY = 0f
+                    },
+                    onDragDelta = { delta ->
+                        if (dragState?.itemId == id) {
+                            dragTranslationY += delta
+                            val draggedInfo = timelineState.layoutInfo.visibleItemsInfo.firstOrNull { it.key == id }
+                            if (draggedInfo != null) {
+                                val draggedCenter = draggedInfo.offset + dragTranslationY + draggedInfo.size / 2f
+                                val targetInfo = timelineState.layoutInfo.visibleItemsInfo
+                                    .filter { it.key in displayItems.map(ItineraryItemUi::id) }
+                                    .minByOrNull { kotlin.math.abs((it.offset + it.size / 2f) - draggedCenter) }
+                                val targetId = targetInfo?.key as? String
+                                val target = displayItems.indexOfFirst { it.id == targetId }
+                                if (target >= 0 && target != dragState?.targetIndex) {
+                                    dragState = dragState?.preview(target)
+                                    dragTranslationY = 0f
+                                    onAction(DayItineraryAction.PreviewMove(id, target))
+                                }
+                                val viewportStart = timelineState.layoutInfo.viewportStartOffset
+                                val viewportEnd = timelineState.layoutInfo.viewportEndOffset
+                                val scrollDelta = when {
+                                    draggedCenter < viewportStart + edgeAutoScrollPx -> -20f
+                                    draggedCenter > viewportEnd - edgeAutoScrollPx -> 20f
+                                    else -> 0f
+                                }
+                                if (scrollDelta != 0f) dragScope.launch { timelineState.scrollBy(scrollDelta) }
+                            }
+                        }
+                    },
+                    onDragEnd = {
+                        dragState?.takeIf { it.itemId == id }?.commitMove()?.let { move ->
+                            onAction(DayItineraryAction.CommitMove(move.itemId, move.targetIndex))
+                        }
+                        dragState = null
+                        dragTranslationY = 0f
+                    },
+                    onDragCancel = {
+                        dragState?.takeIf { it.itemId == id }?.let { drag ->
+                            onAction(DayItineraryAction.PreviewMove(id, drag.originalIndex))
+                        }
+                        dragState = null
+                        dragTranslationY = 0f
+                    },
                     onMenuAction = { action ->
                         onAction(
                             when (action) {
@@ -149,10 +244,12 @@ fun DayItineraryContent(
                 )
                 val next = displayItems.getOrNull(index + 1)?.id
                 visibleLegs.firstOrNull { it.fromItemId == id && it.toItemId == next }?.let { leg ->
+                    Spacer(Modifier.height(8.dp))
                     RouteLegRow(
                         leg = leg,
                         fromPlaceName = displayItems[index].name,
                         toPlaceName = displayItems[index + 1].name,
+                        showEndpointText = false,
                         onMode = if (leg.state is RouteLegUiState.Ready) {
                             { onAction(DayItineraryAction.RequestMode(leg.id)) }
                         } else {

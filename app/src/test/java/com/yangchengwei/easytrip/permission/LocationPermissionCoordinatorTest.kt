@@ -26,11 +26,13 @@ class LocationPermissionCoordinatorTest {
         assertEquals(LocationPermissionSnapshot(true, true), snapshot)
     }
 
-    @Test fun confirmExplanationEmitsLaunchEffectWithoutPersistingRequested() = runTest {
+    @Test fun firstDeniedLocateDirectlyRequestsSystemPermissionWithoutRationale() = runTest {
         coordinator.attachWorkspace("trip-1")
-        coordinator.onLocateClick(deniedFirstRequest)
-        coordinator.confirmExplanation()
 
+        coordinator.onLocateClick(deniedFirstRequest)
+
+        assertEquals(LocationPermissionPrompt.NONE, coordinator.uiState.value.prompt)
+        assertTrue(coordinator.uiState.value.busy)
         assertFalse(store.hasRequested)
         assertTrue(coordinator.effectFlow.first() is WorkspaceEffect.RequestLocationPermission)
     }
@@ -189,14 +191,17 @@ class LocationPermissionCoordinatorTest {
         assertNoEffect()
     }
 
-    @Test fun ordinaryDenialAllowsAnotherExplanation() = runTest {
+    @Test fun ordinaryDenialAllowsAnotherDirectSystemRequest() = runTest {
         val generation = requestPermissionAndReadGeneration()
         coordinator.onPermissionLaunchStarted(generation)
         coordinator.onPermissionResult(generation, ordinaryDenial)
+
         coordinator.onLocateClick(ordinaryDenial)
 
-        assertTrue(coordinator.uiState.value.explanationVisible)
+        assertEquals(LocationPermissionPrompt.NONE, coordinator.uiState.value.prompt)
+        assertTrue(coordinator.uiState.value.busy)
         assertFalse(coordinator.uiState.value.permanentlyDenied)
+        assertTrue(coordinator.effectFlow.first() is WorkspaceEffect.RequestLocationPermission)
     }
 
     @Test fun permanentDenialPublishesInlineSettingsState() = runTest {
@@ -214,10 +219,13 @@ class LocationPermissionCoordinatorTest {
         coordinator.detachWorkspace("trip-1")
         coordinator.attachWorkspace("trip-1")
         coordinator.onLocateClick(ordinaryDenial)
+        val activeEffect = coordinator.effectFlow.first() as WorkspaceEffect.RequestLocationPermission
 
         coordinator.onPermissionResult(staleGeneration, granted)
 
-        assertTrue(coordinator.uiState.value.explanationVisible)
+        assertEquals(LocationPermissionPrompt.NONE, coordinator.uiState.value.prompt)
+        assertTrue(coordinator.uiState.value.busy)
+        assertTrue(activeEffect.generation > staleGeneration)
         assertNoEffect()
     }
 
@@ -289,9 +297,11 @@ class LocationPermissionCoordinatorTest {
     @Test fun newLocateInvalidatesSettingsRecoveryAndStaleResumeCannotLocate() = runTest {
         val settingsGeneration = requestSettingsAndReadGeneration()
         coordinator.onLocateClick(ordinaryDenial)
+        val permissionRequest = coordinator.effectFlow.first()
         coordinator.onSettingsLaunchStarted(settingsGeneration)
         coordinator.onWorkspaceResumed("trip-1", granted)
 
+        assertTrue(permissionRequest is WorkspaceEffect.RequestLocationPermission)
         assertNoEffect()
     }
 
@@ -331,23 +341,6 @@ class LocationPermissionCoordinatorTest {
 
     @Test fun locateWithoutClickLeavesPromptNoneAndEmitsNoEffect() = runTest {
         coordinator.attachWorkspace("trip-1")
-
-        assertEquals(LocationPermissionPrompt.NONE, coordinator.uiState.value.prompt)
-        assertNoEffect()
-    }
-
-    @Test fun firstDeniedLocateOpensExplanationWithoutRequestEffect() = runTest {
-        coordinator.attachWorkspace("trip-1")
-        coordinator.onLocateClick(deniedFirstRequest)
-
-        assertEquals(LocationPermissionPrompt.EXPLANATION, coordinator.uiState.value.prompt)
-        assertNoEffect()
-    }
-
-    @Test fun dismissingExplanationDoesNotRequestPermission() = runTest {
-        coordinator.attachWorkspace("trip-1")
-        coordinator.onLocateClick(deniedFirstRequest)
-        coordinator.dismissExplanation()
 
         assertEquals(LocationPermissionPrompt.NONE, coordinator.uiState.value.prompt)
         assertNoEffect()
@@ -416,7 +409,6 @@ class LocationPermissionCoordinatorTest {
     private suspend fun requestPermissionAndReadGeneration(): Long {
         coordinator.attachWorkspace("trip-1")
         coordinator.onLocateClick(deniedFirstRequest)
-        coordinator.confirmExplanation()
         return (coordinator.effectFlow.first() as WorkspaceEffect.RequestLocationPermission).generation
     }
 

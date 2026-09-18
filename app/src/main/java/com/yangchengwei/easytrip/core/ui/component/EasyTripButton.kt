@@ -89,6 +89,7 @@ private fun EasyTripButton(
     ) {
         Row(
             Modifier.padding(horizontal = if (style == EasyTripButtonStyle.SECONDARY) 18.dp else 20.dp),
+            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically,
             content = content,
         )

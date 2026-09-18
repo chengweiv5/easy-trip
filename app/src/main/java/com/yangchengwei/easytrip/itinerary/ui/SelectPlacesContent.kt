@@ -64,16 +64,18 @@ fun SelectPlacesContent(
                 }
             }
         }
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-            Text("已选 ${state.selectedPlaceIds.size} 个")
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                CompactSecondaryButton(onClose, enabled = !state.isSubmitting) { Text("取消") }
-                CompactPrimaryButton(
-                    onClick = onContinue,
-                    enabled = state.canContinue,
-                    modifier = Modifier.testTag("select-places-continue"),
-                ) { Text("继续") }
-            }
+        Text("已选 ${state.selectedPlaceIds.size} 个")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            CompactSecondaryButton(
+                onClick = onClose,
+                enabled = !state.isSubmitting,
+                modifier = Modifier.weight(1f),
+            ) { Text("取消") }
+            CompactPrimaryButton(
+                onClick = onContinue,
+                enabled = state.canContinue,
+                modifier = Modifier.weight(1f).testTag("select-places-continue"),
+            ) { Text("继续") }
         }
     }
 }

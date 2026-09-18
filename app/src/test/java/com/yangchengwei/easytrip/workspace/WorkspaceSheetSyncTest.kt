@@ -18,20 +18,20 @@ class WorkspaceSheetSyncTest {
         assertEquals(WorkspaceSheetLevel.HALF, restoreWorkspaceSheetLevel("FULL"))
     }
 
-    @Test fun `baseline height uses exact v2 anchors`() {
+    @Test fun `baseline height uses exact v2 anchors with seventy five percent half sheet`() {
         assertEquals(
-            WorkspaceSheetAnchors(108.dp, 432.dp, 720.dp),
+            WorkspaceSheetAnchors(108.dp, 324.dp, 720.dp),
             workspaceSheetAnchors(782.dp),
         )
     }
 
     @Test fun `anchors scale below baseline and saturate above it`() {
         assertEquals(
-            WorkspaceSheetAnchors(96.dp, 216.dp, 360.dp),
+            WorkspaceSheetAnchors(96.dp, 162.dp, 360.dp),
             workspaceSheetAnchors(391.dp),
         )
         assertEquals(
-            WorkspaceSheetAnchors(108.dp, 432.dp, 720.dp),
+            WorkspaceSheetAnchors(108.dp, 324.dp, 720.dp),
             workspaceSheetAnchors(1_200.dp),
         )
     }

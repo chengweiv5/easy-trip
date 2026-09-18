@@ -36,6 +36,7 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.height
+import androidx.compose.ui.unit.width
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import org.junit.Rule
 import org.junit.Test
@@ -55,10 +56,78 @@ class WorkspaceChromeTest {
             }
         }
 
+        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(42.dp)
         compose.onNodeWithTag("workspace-back").assertIsDisplayed().assertHasClickAction()
         compose.onNodeWithTag("workspace-more").assertIsDisplayed().assertHasClickAction()
-        compose.onNodeWithTag("workspace-trip-title").assertIsDisplayed()
-        compose.onNodeWithText("8月23日 — 8月25日").assertIsDisplayed()
+        val title = compose.onNodeWithTag("workspace-trip-title").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val date = compose.onNodeWithText("8月23日 — 8月25日").assertIsDisplayed().getUnclippedBoundsInRoot()
+        org.junit.Assert.assertTrue("title=$title date=$date", title.right <= date.left)
+        org.junit.Assert.assertTrue("title=$title date=$date", title.top <= date.top && title.bottom >= date.bottom)
+    }
+
+    @Test fun workspaceChromeMatchesCompactTopAndFiveControlGeometry() {
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(
+                            TripWorkspaceUiState(
+                                tripName = "北京",
+                                sheetLevel = WorkspaceSheetLevel.HALF,
+                            ).toReadyState(),
+                        ),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = {},
+                        placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { _ -> Text("地图就绪") },
+                        modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                    )
+                }
+            }
+        }
+        compose.waitForIdle()
+
+        val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
+        val topBar = compose.onNodeWithTag("workspace-top-bar").getUnclippedBoundsInRoot()
+        val layer = compose.onNodeWithTag("layer-menu").getUnclippedBoundsInRoot()
+        val zoomIn = compose.onNodeWithTag("zoom-in").getUnclippedBoundsInRoot()
+        val zoomOut = compose.onNodeWithTag("zoom-out").getUnclippedBoundsInRoot()
+        val locate = compose.onNodeWithTag("workspace-locate").getUnclippedBoundsInRoot()
+        val search = compose.onNodeWithTag("workspace-search-control").getUnclippedBoundsInRoot()
+
+        org.junit.Assert.assertEquals(12.dp, topBar.left - root.left)
+        org.junit.Assert.assertEquals(42.dp, topBar.height)
+        org.junit.Assert.assertEquals(12.dp, root.right - topBar.right)
+        org.junit.Assert.assertEquals(12.dp, root.right - search.right)
+        listOf(layer, zoomIn, zoomOut, locate, search).forEach { bounds ->
+            org.junit.Assert.assertEquals(28.dp, bounds.width)
+            org.junit.Assert.assertEquals(28.dp, bounds.height)
+        }
+        org.junit.Assert.assertEquals(5.dp, zoomIn.top - layer.bottom)
+        org.junit.Assert.assertEquals(5.dp, zoomOut.top - zoomIn.bottom)
+        org.junit.Assert.assertEquals(5.dp, locate.top - zoomOut.bottom)
+        org.junit.Assert.assertEquals(5.dp, search.top - locate.bottom)
+    }
+
+    @Test fun fifthMapControlDispatchesOpenSearch() {
+        val actions = mutableListOf<TripWorkspaceAction>()
+        compose.setContent {
+            EasyTripTheme {
+                MapControls(
+                    active = false,
+                    onOpenLayerMenu = {},
+                    onOpenSearch = { actions += TripWorkspaceAction.OpenSearch },
+                )
+            }
+        }
+
+        compose.onNodeWithTag("workspace-search-control").performClick()
+        compose.runOnIdle {
+            org.junit.Assert.assertEquals(listOf(TripWorkspaceAction.OpenSearch), actions)
+        }
     }
 
     @Test fun moreMenuShowsThreeActionsAndClosesOnOutsideTap() {
@@ -239,7 +308,7 @@ class WorkspaceChromeTest {
         }
 
         compose.onNodeWithTag("workspace-sheet-handle")
-            .assertHeightIsEqualTo(72.dp)
+            .assertHeightIsEqualTo(60.dp)
         compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
         compose.onNodeWithTag("sheet-summary").assertIsDisplayed()
         compose.onAllNodesWithTag("business-list").assertCountEquals(0)
@@ -325,7 +394,7 @@ class WorkspaceChromeTest {
         }
 
         compose.onNodeWithTag("workspace-sheet").assertHeightIsEqualTo(96.dp)
-        compose.onNodeWithTag("workspace-sheet-handle").assertHeightIsEqualTo(72.dp)
+        compose.onNodeWithTag("workspace-sheet-handle").assertHeightIsEqualTo(60.dp)
         compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
         compose.onNodeWithTag("small-window-summary").assertIsDisplayed()
     }
@@ -359,14 +428,14 @@ class WorkspaceChromeTest {
         org.junit.Assert.assertTrue("sheet=$sheet summary=$summary", summary.top >= sheet.top && summary.bottom <= sheet.bottom)
     }
 
-    @Test fun workspaceTabsUse44DpTouchHeightAndThreeDpIndicator() {
+    @Test fun workspaceTabsUse36DpTouchHeightAndThreeDpIndicator() {
         compose.setContent {
             EasyTripTheme {
                 WorkspaceTabs(WorkspaceSection.PLACE_POOL, {})
             }
         }
 
-        compose.onNodeWithTag("section-PLACE_POOL").assertHeightIsEqualTo(44.dp)
+        compose.onNodeWithTag("section-PLACE_POOL").assertHeightIsEqualTo(36.dp)
         compose.onNodeWithTag("workspace-tab-indicator-PLACE_POOL", useUnmergedTree = true).assertHeightIsEqualTo(3.dp)
     }
 
@@ -525,7 +594,7 @@ class WorkspaceChromeTest {
         }
 
         listOf(
-            "workspace-search-launcher" to TripWorkspaceAction.OpenSearch,
+            "workspace-search-control" to TripWorkspaceAction.OpenSearch,
             "workspace-locate" to TripWorkspaceAction.Locate,
             "layer-menu" to TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu),
             "section-PLACE_POOL" to TripWorkspaceAction.SelectSection(WorkspaceSection.PLACE_POOL),

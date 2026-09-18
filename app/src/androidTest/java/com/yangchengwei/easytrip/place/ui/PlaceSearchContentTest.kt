@@ -17,6 +17,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.assertIsFocused
+import androidx.compose.ui.test.assertIsNotFocused
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertCountEquals
@@ -82,6 +84,29 @@ class PlaceSearchContentTest {
         compose.onNodeWithContentDescription("查看故宫博物院详情").assertHasClickAction()
         compose.onNodeWithContentDescription("收藏故宫博物院").assertHasClickAction()
         assertMinimumTouchSize("place-search-bookmark-touch-poi-1", 48f)
+    }
+
+    @Test fun detailReturnDoesNotStealFocusAfterDestinationAutoFocusIsConsumed() {
+        val candidate = PlaceCandidate("poi-focus", "故宫", "地址", GeoPoint(39.916, 116.397), "010")
+        val state = mutableStateOf(
+            PlaceSearchUiState(search = PlaceSearchState("故宫", listOf(candidate), phase = PlaceSearchPhase.Results)),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                PlaceSearchContent(
+                    state = state.value,
+                    onAction = {},
+                    autoFocusSearch = false,
+                    detailContent = { Text("详情：${it.name}") },
+                )
+            }
+        }
+
+        compose.runOnIdle { state.value = state.value.copy(displayMode = SearchDisplayMode.MapDetail("poi-focus")) }
+        compose.onNodeWithText("详情：故宫").assertIsDisplayed()
+        compose.runOnIdle { state.value = state.value.copy(displayMode = SearchDisplayMode.Results) }
+
+        compose.onNodeWithTag("place-search-field").assertIsNotFocused()
     }
 
     @Test fun detailBackRestoresQueryResultsAndListPosition() {
@@ -538,6 +563,27 @@ class PlaceSearchContentTest {
         assertEquals(PlaceSearchAction.QueryChanged(""), action)
     }
 
+    @Test fun routeConsumesAutoFocusAcrossDetailReturn() {
+        val candidate = PlaceCandidate("poi-focus-route", "故宫", "地址", GeoPoint(39.916, 116.397), "010")
+        val model = PlaceSearchViewModel(
+            "trip",
+            TestSavedPlaces(),
+            object : com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) = listOf(candidate)
+            },
+            SavedStateHandle(mapOf("query" to "故宫")),
+        )
+        compose.setContent { PlaceSearchRoute(model, detailContent = { Text("详情：${it.name}") }, onBack = {}) }
+        compose.waitUntil(5_000) { model.state.value.search.results.isNotEmpty() }
+        compose.onNodeWithTag("place-search-field").assertIsFocused()
+
+        compose.onNodeWithContentDescription("查看故宫详情").performClick()
+        compose.onNodeWithText("详情：故宫").assertIsDisplayed()
+        compose.runOnIdle { model.dispatch(PlaceSearchAction.Back) }
+        compose.onNodeWithTag("place-search-field").assertIsNotFocused()
+
+    }
+
     @Test fun routeBackPublishesCurrentSessionCollectionsThroughNavigationCallback() {
         val candidate = PlaceCandidate("poi-nav", "故宫博物院", "地址", GeoPoint(39.916, 116.397), "010")
         val repository = TestSavedPlaces()
@@ -624,6 +670,21 @@ class PlaceSearchContentTest {
 
         compose.waitUntil(5_000) { returnedPoiIds != null }
         assertEquals(setOf("poi-system"), returnedPoiIds)
+    }
+
+    @Test fun searchFieldRequestsFocusOnceOnFirstResultsEntry() {
+        val state = mutableStateOf(
+            PlaceSearchUiState(search = PlaceSearchState("", phase = PlaceSearchPhase.Initial)),
+        )
+        compose.setContent {
+            EasyTripTheme {
+                PlaceSearchContent(state = state.value, onAction = {})
+            }
+        }
+
+        compose.onNodeWithTag("place-search-field").assertIsFocused()
+        compose.onNodeWithTag("place-search-back").performClick()
+        compose.onNodeWithTag("place-search-field").assertIsFocused()
     }
 
     @Test fun controlsUseSpecifiedVisualAndTouchBounds() {

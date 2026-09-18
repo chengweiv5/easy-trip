@@ -46,7 +46,7 @@ internal fun workspaceSheetAnchors(availableHeight: Dp): WorkspaceSheetAnchors {
     val collapsed = maxOf(minimumCollapsed, 108.dp * scale).coerceAtMost(height)
     val expanded = maxOf(720.dp * scale, collapsed + 6.dp).coerceAtMost(height)
     val gap = minOf(12.dp, (expanded - collapsed) / 3f)
-    val half = (432.dp * scale).coerceIn(collapsed + gap, expanded - gap)
+    val half = (324.dp * scale).coerceIn(collapsed + gap, expanded - gap)
     return WorkspaceSheetAnchors(collapsed, half, expanded)
 }
 
@@ -90,8 +90,9 @@ internal fun clampWorkspaceSheetDragOffsetPx(
     currentHeightPx - collapsedHeightPx,
 )
 
-private val WorkspaceSheetHeaderHeight = 72.dp
-private val CompactWorkspaceSheetHeaderHeight = 68.dp
+private val WorkspaceSheetHeaderHeight = 60.dp
+private val CompactWorkspaceSheetHeaderHeight = 56.dp
+private val MinimumWorkspaceSheetContentHeight = 48.dp
 private val MinimumCollapsedSummaryHeight = 18.dp
 
 @Composable
@@ -105,6 +106,8 @@ internal fun WorkspaceBottomSheet(
     content: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     collapsedContent: @Composable () -> Unit = {},
+    contentHorizontalPadding: Dp = 20.dp,
+    collapsedContentHorizontalPadding: Dp = contentHorizontalPadding,
 ) {
     val targetHeight = anchors[value]
     val density = LocalDensity.current
@@ -114,13 +117,14 @@ internal fun WorkspaceBottomSheet(
     val expandedHeightPx = with(density) { anchors.expanded.toPx() }
     val visibleHeight = with(density) { (currentHeightPx - dragOffsetPx).toDp() }
         .coerceIn(anchors.collapsed, anchors.expanded)
-    val sheetHeaderHeight = if (
-        value == WorkspaceSheetLevel.COLLAPSED && visibleHeight < WorkspaceSheetHeaderHeight + MinimumCollapsedSummaryHeight
-    ) {
-        CompactWorkspaceSheetHeaderHeight
-    } else {
-        WorkspaceSheetHeaderHeight
+    val sheetHeaderHeight = when {
+        value == WorkspaceSheetLevel.COLLAPSED && visibleHeight < WorkspaceSheetHeaderHeight + MinimumCollapsedSummaryHeight ->
+            CompactWorkspaceSheetHeaderHeight
+        value != WorkspaceSheetLevel.COLLAPSED ->
+            minOf(WorkspaceSheetHeaderHeight, (visibleHeight - MinimumWorkspaceSheetContentHeight).coerceAtLeast(0.dp))
+        else -> WorkspaceSheetHeaderHeight
     }
+    val expandedBottomPadding = if (visibleHeight >= WorkspaceSheetHeaderHeight + 16.dp + MinimumWorkspaceSheetContentHeight) 16.dp else 0.dp
     val collapsedBottomPadding = if (visibleHeight >= 98.dp) 8.dp else 0.dp
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val currentOnDragOffsetChange by rememberUpdatedState(onDragOffsetChange)
@@ -171,7 +175,7 @@ internal fun WorkspaceBottomSheet(
                     Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(start = 20.dp, end = 20.dp, bottom = collapsedBottomPadding)
+                        .padding(start = collapsedContentHorizontalPadding, end = collapsedContentHorizontalPadding, bottom = collapsedBottomPadding)
                         .testTag("workspace-collapsed-content"),
                     contentAlignment = Alignment.CenterStart,
                 ) { collapsedContent() }
@@ -180,8 +184,8 @@ internal fun WorkspaceBottomSheet(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(start = 20.dp, end = 20.dp, bottom = 20.dp),
-                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                        .padding(start = contentHorizontalPadding, end = contentHorizontalPadding, bottom = expandedBottomPadding),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
                     Box(Modifier.fillMaxSize()) { content() }
                 }

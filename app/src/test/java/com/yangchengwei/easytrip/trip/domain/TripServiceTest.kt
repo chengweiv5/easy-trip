@@ -63,6 +63,21 @@ class TripServiceTest {
     }
 
     @Test
+    fun appendingDatedTripKeepsStartDateAndExtendsConsecutiveEndDate() = runTest {
+        val repository = FakeTripRepository()
+        val service = TripService(repository)
+        val tripId = service.createTrip(CreateTrip("Dated", 2, startDate = LocalDate.parse("2026-10-01")))
+
+        service.appendTripDay(tripId)
+
+        assertEquals(LocalDate.parse("2026-10-01"), repository.trip!!.startDate)
+        assertEquals(
+            listOf("2026-10-01", "2026-10-02", "2026-10-03"),
+            repository.trip!!.days.map { service.displayLabel(it, repository.trip!!.startDate) },
+        )
+    }
+
+    @Test
     fun appendingToTripWithoutDaysCreatesFirstDay() = runTest {
         val repository = FakeTripRepository().apply {
             publishTrip(TripWithDays("trip", "Empty", null, TravelMode.FLEXIBLE, emptyList()))

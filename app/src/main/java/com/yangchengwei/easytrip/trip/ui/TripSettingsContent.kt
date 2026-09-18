@@ -31,9 +31,6 @@ import androidx.compose.material.icons.rounded.DateRange
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material.icons.rounded.Edit
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -101,7 +98,6 @@ fun TripSettingsContent(
 ) {
     var editingName by remember { mutableStateOf(false) }
     var editingDates by remember { mutableStateOf(false) }
-    var activeDayMenu by remember { mutableStateOf<String?>(null) }
     var name by remember(state.name) { mutableStateOf(state.name) }
     val datePhase = state.dateRange.phase
     val dateBusy = datePhase is DateRangeChangePhase.Applying || datePhase is DateRangeChangePhase.AwaitingRoom
@@ -214,11 +210,9 @@ fun TripSettingsContent(
                             index = index,
                             count = state.days.size,
                             enabled = !settingsWriteLocked,
-                            menuExpanded = activeDayMenu == day.id,
-                            onMenuExpandedChange = { activeDayMenu = if (it) day.id else null },
                             onMove = { onMoveDay(day, it) },
                             canReorder = state.dateRange.startDate == null,
-                            onDelete = { activeDayMenu = null; onRequestDeleteDay(day) },
+                            onDelete = { onRequestDeleteDay(day) },
                         )
                     }
                 }
@@ -296,8 +290,6 @@ private fun TripDaySettingsRow(
     index: Int,
     count: Int,
     enabled: Boolean,
-    menuExpanded: Boolean,
-    onMenuExpandedChange: (Boolean) -> Unit,
     onMove: (Int) -> Unit,
     canReorder: Boolean,
     onDelete: () -> Unit,
@@ -308,32 +300,27 @@ private fun TripDaySettingsRow(
     val stepPx = with(LocalDensity.current) { EasyTripTheme.sizes.settingsDayRowHeight.toPx() }
     Surface(
         color = MaterialTheme.colorScheme.surface,
-        shape = if (index == 0 || index == count - 1) RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius) else RoundedCornerShape(0.dp),
+        shape = tripDaySettingsRowShape(index, count, EasyTripTheme.sizes.settingsCardCornerRadius),
     ) {
         Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            androidx.compose.foundation.layout.Box(
-                modifier = Modifier
-                    .size(48.dp)
-                    .testTag("move-day-handle-${day.id}")
-                    .semantics {
-                        contentDescription = if (canReorder) {
-                            "拖动调整第 ${index + 1} 天顺序"
-                        } else {
-                            "已设置日期的旅行日按日期连续排列"
-                        }
-                    }
-                    .pointerInput(day.id, count, stepPx, canReorder) {
-                        if (!canReorder) return@pointerInput
-                        var startIndex = currentIndex
-                        detectDragGesturesAfterLongPress(
-                            onDragStart = { drag = 0f; startIndex = currentIndex },
-                            onDrag = { change, amount -> change.consume(); drag += amount.y },
-                            onDragEnd = { currentOnMove((startIndex + (drag / stepPx).toInt()).coerceIn(0, count - 1)); drag = 0f },
-                            onDragCancel = { drag = 0f },
-                        )
-                    },
-                contentAlignment = Alignment.Center,
-            ) { Text("≡", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleLarge) }
+            if (canReorder) {
+                androidx.compose.foundation.layout.Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .testTag("move-day-handle-${day.id}")
+                        .semantics { contentDescription = "拖动调整第 ${index + 1} 天顺序" }
+                        .pointerInput(day.id, count, stepPx) {
+                            var startIndex = currentIndex
+                            detectDragGesturesAfterLongPress(
+                                onDragStart = { drag = 0f; startIndex = currentIndex },
+                                onDrag = { change, amount -> change.consume(); drag += amount.y },
+                                onDragEnd = { currentOnMove((startIndex + (drag / stepPx).toInt()).coerceIn(0, count - 1)); drag = 0f },
+                                onDragCancel = { drag = 0f },
+                            )
+                        },
+                    contentAlignment = Alignment.Center,
+                ) { Text("≡", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleLarge) }
+            }
             Surface(Modifier.size(26.dp), shape = RoundedCornerShape(7.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = .12f)) {
                 androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { Text("${index + 1}", style = MaterialTheme.typography.labelMedium) }
             }
@@ -347,26 +334,17 @@ private fun TripDaySettingsRow(
                     contentAlignment = Alignment.Center,
                 ) { Icon(Icons.Rounded.Delete, "删除", tint = MaterialTheme.colorScheme.error, modifier = Modifier.size(24.dp)) }
             }
-            androidx.compose.foundation.layout.Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
-                androidx.compose.foundation.layout.Box(
-                    Modifier.size(48.dp).testTag("more-day-${day.id}").clickable(enabled = enabled) { onMenuExpandedChange(!menuExpanded) },
-                    contentAlignment = Alignment.Center,
-                ) { Icon(Icons.Rounded.MoreVert, "更多") }
-                DropdownMenu(
-                    expanded = menuExpanded,
-                    onDismissRequest = { onMenuExpandedChange(false) },
-                ) {
-                    DropdownMenuItem(
-                        text = { Text("删除旅行日", color = MaterialTheme.colorScheme.error) },
-                        onClick = onDelete,
-                        enabled = count > 1 && enabled,
-                        modifier = Modifier.testTag("menu-delete-day-${day.id}"),
-                    )
-                }
-            }
         }
     }
 }
+
+internal fun tripDaySettingsRowShape(index: Int, count: Int, radius: androidx.compose.ui.unit.Dp): RoundedCornerShape =
+    when {
+        count == 1 -> RoundedCornerShape(radius)
+        index == 0 -> RoundedCornerShape(topStart = radius, topEnd = radius)
+        index == count - 1 -> RoundedCornerShape(bottomStart = radius, bottomEnd = radius)
+        else -> RoundedCornerShape(0.dp)
+    }
 
 @Composable
 private fun SettingsHeader(name: String, onBack: () -> Unit, enabled: Boolean) = Row(
@@ -426,4 +404,4 @@ private fun RenameDialog(name: String, onNameChange: (String) -> Unit, onSave: (
     onDismiss,
     dismissible = enabled,
     width = EasyTripTheme.sizes.dialogWidth,
-) { Column(Modifier.padding(EasyTripTheme.spacing.dialogContentVertical), verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.dialogSectionGap)) { Text("重命名旅行", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); OutlinedTextField(name, onNameChange, label = { Text("旅行名称") }, enabled = enabled, modifier = Modifier.fillMaxWidth()); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) { EasyTripSecondaryButton(onDismiss, Modifier.weight(1f), enabled) { Text("取消") }; EasyTripPrimaryButton(onSave, Modifier.weight(1f), enabled && name.isNotBlank()) { Text("保存名称") } } } }
+) { Column(Modifier.padding(EasyTripTheme.spacing.dialogContentVertical), verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.dialogSectionGap)) { Text("重命名旅行", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold); OutlinedTextField(name, onNameChange, label = { Text("旅行名称") }, enabled = enabled, modifier = Modifier.fillMaxWidth()); Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) { EasyTripSecondaryButton(onDismiss, Modifier.weight(1f), enabled) { Text("取消") }; EasyTripPrimaryButton(onSave, Modifier.weight(1f), enabled && name.isNotBlank()) { Text("保存") } } } }
