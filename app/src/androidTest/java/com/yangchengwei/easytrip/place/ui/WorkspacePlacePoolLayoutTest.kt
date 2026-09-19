@@ -11,7 +11,9 @@ import androidx.compose.ui.semantics.SemanticsActions
 import androidx.compose.ui.semantics.SemanticsNode
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertWidthIsEqualTo
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -20,6 +22,7 @@ import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
@@ -83,18 +86,21 @@ class WorkspacePlacePoolLayoutTest {
         compose.onNodeWithTag("quick-add-place-place").assertHeightIsEqualTo(28.dp)
         compose.onNodeWithTag("quick-add-place-place").assertWidthIsEqualTo(28.dp)
         compose.onNodeWithTag("more-place-place").assertHeightIsEqualTo(48.dp)
-        assertEquals(20f, compose.onNodeWithTag("workspace-place-list").getUnclippedBoundsInRoot().left.value)
+        assertTrue(kotlin.math.abs(16f - compose.onNodeWithTag("workspace-place-list").getUnclippedBoundsInRoot().left.value) < 0.5f)
     }
 
-    @Test fun placePoolHeaderUsesIconOnlyBatchAddAndKeepsPlaceNameAtTabTextSize() {
+    @Test fun batchAddStaysAboveListAndScrollbarAfterScrollingAndDispatchesOriginalAction() {
         val place = SavedPlace("place", "trip", "poi-place", "西湖", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val rows = (0 until 30).map { index ->
+            SavedPlaceRowUi(place.copy(id = "place-$index", amapPoiId = "poi-$index"), 0, false)
+        }
         val actions = mutableListOf<PlacePoolAction>()
         compose.setContent {
             EasyTripTheme {
                 PlacePoolContent(
                     state = PlacePoolUiState(
-                        rows = listOf(SavedPlaceRowUi(place, 0, false)),
-                        savedPoiIds = setOf(place.amapPoiId),
+                        rows = rows,
+                        savedPoiIds = rows.mapTo(mutableSetOf()) { it.place.amapPoiId },
                     ),
                     showSearch = false,
                     onAction = actions::add,
@@ -103,12 +109,19 @@ class WorkspacePlacePoolLayoutTest {
         }
 
         compose.onAllNodesWithTag("place-pool-marker-legend").assertCountEquals(0)
+        compose.onNodeWithText("批量添加").assertIsDisplayed()
         val batchAdd = compose.onNodeWithContentDescription("批量添加到行程")
-            .assertWidthIsEqualTo(28.dp)
-            .assertHeightIsEqualTo(28.dp)
             .getUnclippedBoundsInRoot()
-        val quickAdd = compose.onNodeWithTag("quick-add-place-place").getUnclippedBoundsInRoot()
-        assertEquals(quickAdd.right, batchAdd.right)
+        val list = compose.onNodeWithTag("workspace-place-list").getUnclippedBoundsInRoot()
+        assertTrue("button=$batchAdd list=$list", batchAdd.bottom <= list.top)
+        assertTrue(batchAdd.right <= list.right)
+        compose.onNodeWithTag("workspace-place-list").performScrollToNode(hasTestTag("saved-place-place-29"))
+        compose.onNodeWithTag("saved-place-place-29").assertIsDisplayed()
+        compose.onNodeWithText("已收藏 30 个").assertIsDisplayed()
+        compose.onNodeWithContentDescription("批量添加到行程").assertIsDisplayed()
+        assertEquals(batchAdd, compose.onNodeWithContentDescription("批量添加到行程").getUnclippedBoundsInRoot())
+        val scrollbar = compose.onNodeWithTag("place-pool-scrollbar-thumb", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        assertTrue("button=$batchAdd scrollbar=$scrollbar", batchAdd.bottom <= scrollbar.top)
         compose.onNodeWithContentDescription("批量添加到行程").performClick()
         assertEquals(listOf(PlacePoolAction.StartAddToItinerary), actions)
     }

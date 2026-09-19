@@ -8,4 +8,4 @@ fun ItineraryPlaceRow(
     item: ItineraryItemUi,
     displayOrder: Int,
     modifier: Modifier = Modifier,
-) = ItineraryPlaceContent(item, displayOrder, modifier)
+) = ItineraryPlaceContent(item, displayOrder, modifier, compactTimeline = true)

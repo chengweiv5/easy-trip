@@ -76,7 +76,7 @@ fun PlaceDetailPanel(
             .fillMaxWidth()
             .verticalScroll(rememberScrollState())
             .imePadding()
-            .padding(EasyTripTheme.spacing.large)
+            .padding(EasyTripTheme.spacing.medium)
             .testTag("place-detail-scroll-content"),
         verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.small),
     ) {
@@ -84,7 +84,7 @@ fun PlaceDetailPanel(
             Text(
                 candidate.name,
                 modifier = Modifier.testTag("place-detail-title").semantics { heading() },
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
             )
             IconButton(
                 onClick = { onAction(PlaceDetailPanelAction.Dismiss) },
@@ -280,4 +280,4 @@ private fun PlaceDetailBookmark(filled: Boolean) {
     }
 }
 
-internal fun SavedPlace.toCandidate() = PlaceCandidate(amapPoiId, name, address, point, null)
+internal fun SavedPlace.toCandidate() = PlaceCandidate(amapPoiId, name, address, point, cityCode, cityName, cityAdCode)

@@ -64,15 +64,27 @@ data class PlacePoolUiState(
     val recentlyCollectedPoiIds: Set<String> = emptySet(),
     val selectedDetailPlaceId: String? = null,
     val selectedDetailPlace: SavedPlace? = null,
+    val allRows: List<SavedPlaceRowUi>? = null,
 )
 
 class PlacePoolViewModel(private val tripId: String, private val repository: SavedPlaceRepository, searchSource: PlaceSearchDataSource?, private val service: PlaceService = PlaceService(repository)) : ViewModel() {
     private val reducer = PlaceSearchReducer(searchSource, viewModelScope, Dispatchers.Main.immediate)
     private val mutableState = MutableStateFlow(PlacePoolUiState(placesReady = false))
     val state: StateFlow<PlacePoolUiState> = mutableState.asStateFlow()
+    private val cityEnricher = PlaceCityEnricher(viewModelScope, repository, searchSource)
+    private var allUsageCounts: Map<String, Int> = emptyMap()
 
     init {
         viewModelScope.launch { reducer.state.collect { search -> mutableState.update { it.copy(search = search) } } }
+        viewModelScope.launch {
+            repository.observeUsageCounts(tripId).collect { counts ->
+                allUsageCounts = counts
+                mutableState.update { current -> current.copy(allRows = current.allRows?.map { row ->
+                    val count = counts[row.id] ?: 0
+                    row.copy(itineraryOccurrenceCount = count, scheduled = count > 0)
+                }) }
+            }
+        }
         viewModelScope.launch {
             combine(repository.observeTags(tripId), repository.observeSavedPoiIds(tripId)) { tags, savedPoiIds -> tags to savedPoiIds }
                 .collect { (tags, savedPoiIds) ->
@@ -84,7 +96,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         }
         observePlaces()
     }
-    fun setSearchSource(value: PlaceSearchDataSource?) = reducer.setSource(value)
+    fun setSearchSource(value: PlaceSearchDataSource?) { reducer.setSource(value); cityEnricher.setSource(value) }
     fun setQuery(value: String) = reducer.setQuery(value)
     fun clearSearch() = reducer.clear()
     fun toggleTag(id: String) { val selected = mutableState.value.selectedTagIds; mutableState.value = mutableState.value.copy(selectedTagIds = if (id in selected) selected - id else selected + id); observePlaces() }
@@ -394,6 +406,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                 repository.observePlaces(tripId, emptySet()).collect { places ->
                     savedByPoiId = places.associateBy(SavedPlace::amapPoiId)
                     allSavedPlaces = places
+                    cityEnricher.submit(places)
                     pendingDetailPlaceId
                         ?.let { id -> places.firstOrNull { it.id == id } }
                         ?.let(::selectDetail)
@@ -402,12 +415,14 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                             ?.let { id -> places.firstOrNull { it.id == id } }
                         if (current.selectedDetailPlaceId != null && selected == null) {
                             current.copy(
+                                allRows = places.map { place -> val count = allUsageCounts[place.id] ?: 0; SavedPlaceRowUi(place, count, count > 0) },
                                 savedPlaceIds = places.mapTo(mutableSetOf(), SavedPlace::id),
                                 selectedDetailPlaceId = null,
                                 selectedDetailPlace = null,
                             )
                         } else {
                             current.copy(
+                                allRows = places.map { place -> val count = allUsageCounts[place.id] ?: 0; SavedPlaceRowUi(place, count, count > 0) },
                                 savedPlaceIds = places.mapTo(mutableSetOf(), SavedPlace::id),
                                 selectedDetailPlace = selected ?: current.selectedDetailPlace,
                             )

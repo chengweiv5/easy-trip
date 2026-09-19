@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.selection.selectableGroup
@@ -48,14 +49,14 @@ fun WorkspaceTabs(
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
                     Text(
                         text = if (section == WorkspaceSection.PLACE_POOL) "地点池" else "行程",
-                        style = MaterialTheme.typography.bodyLarge,
+                        style = MaterialTheme.typography.bodyMedium,
                         color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant,
                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                     )
                 }
                 Box(
                     Modifier
-                        .fillMaxWidth()
+                        .width(44.dp)
                         .height(3.dp)
                         .background(if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent)
                         .then(if (isSelected) Modifier.testTag("workspace-tab-indicator-${section.name}") else Modifier),

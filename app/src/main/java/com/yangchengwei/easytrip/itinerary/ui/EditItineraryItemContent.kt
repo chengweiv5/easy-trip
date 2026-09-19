@@ -9,6 +9,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -31,13 +33,14 @@ fun EditItineraryItemContent(
 ) {
     Column(
         modifier.imePadding().testTag("itinerary-item-editor"),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("到达与停留")
+            Text(draft.placeName.ifBlank { "到达与停留" }, style = MaterialTheme.typography.titleMedium)
+            Text("到达时间、停留时长与备注", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             OutlinedTextField(
                 value = draft.arrivalTimeText,
                 onValueChange = onArrivalTimeChange,
@@ -45,7 +48,9 @@ fun EditItineraryItemContent(
                 isError = draft.arrivalTimeText.isNotBlank() && draft.arrivalTime == null,
                 enabled = !draft.isSaving,
                 singleLine = true,
-                modifier = Modifier.testTag("arrival-time-input"),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().height(58.dp).testTag("arrival-time-input"),
             )
             OutlinedTextField(
                 value = draft.stayMinutesText,
@@ -54,26 +59,28 @@ fun EditItineraryItemContent(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 enabled = !draft.isSaving,
                 singleLine = true,
-                modifier = Modifier.testTag("stay-minutes-input"),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().height(58.dp).testTag("stay-minutes-input"),
             )
             OutlinedTextField(
                 value = draft.noteText,
                 onValueChange = onNoteChange,
                 label = { Text("备注") },
                 enabled = !draft.isSaving,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp).testTag("itinerary-note-input"),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).testTag("itinerary-note-input"),
             )
             onScheduleAgain?.let { scheduleAgain ->
                 CompactSecondaryButton(
                     onClick = scheduleAgain,
                     enabled = !draft.isSaving,
-                    modifier = Modifier.testTag("schedule-again-place"),
+                    modifier = Modifier.fillMaxWidth().testTag("schedule-again-place"),
                 ) { Text("再次安排${draft.placeName.ifBlank { "这个地点" }}") }
             }
         }
-        CompactPrimaryButton(onClick = onSave, enabled = draft.isValid && !draft.isSaving) {
+        CompactPrimaryButton(onClick = onSave, enabled = draft.isValid && !draft.isSaving, modifier = Modifier.fillMaxWidth()) {
             Text(if (draft.isSaving) "保存中…" else "保存时间")
         }
-        CompactSecondaryButton(onClick = onCancel, enabled = !draft.isSaving) { Text("取消") }
+        CompactSecondaryButton(onClick = onCancel, enabled = !draft.isSaving, modifier = Modifier.fillMaxWidth()) { Text("取消") }
     }
 }

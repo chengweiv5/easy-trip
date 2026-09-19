@@ -51,8 +51,8 @@ class CreateTripContentTest {
         compose.setContent { EasyTripTheme { CreateTripContent(CreateTripUiState(), {}) } }
 
         compose.onNodeWithTag("create-submit").assertIsDisplayed().assertHeightIsEqualTo(48.dp)
-        compose.onNodeWithTag("create-name").assertHeightIsEqualTo(52.dp)
-        compose.onNodeWithTag("create-date-control").assertHeightIsEqualTo(66.dp).assertHasClickAction()
+        compose.onNodeWithTag("create-name").assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("create-date-control").assertHeightIsEqualTo(56.dp).assertHasClickAction()
         org.junit.Assert.assertTrue(compose.onAllNodesWithText("旅行天数").fetchSemanticsNodes().isEmpty())
         org.junit.Assert.assertTrue(compose.onAllNodesWithTag("create-time-DRAFT").fetchSemanticsNodes().isEmpty())
         org.junit.Assert.assertTrue(compose.onAllNodesWithTag("create-time-DATED").fetchSemanticsNodes().isEmpty())

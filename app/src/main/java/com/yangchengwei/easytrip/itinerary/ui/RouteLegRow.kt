@@ -99,6 +99,26 @@ internal fun RouteLegContent(
                 Modifier
             },
         )
+    if (!showEndpointText && state is RouteLegUiState.Ready) {
+        Row(modifier.fillMaxWidth().height(36.dp).then(surfaceModifier).testTag("route-leg-action-${leg.id}"), verticalAlignment = Alignment.CenterVertically) {
+            Box(Modifier.width(42.dp).fillMaxHeight(), contentAlignment = Alignment.Center) {
+                Box(Modifier.width(2.dp).fillMaxHeight().background(MaterialTheme.colorScheme.outline).testTag("route-connector-${leg.id}"))
+            }
+            Text(
+                buildList {
+                    add(leg.modeLabel())
+                    leg.effectiveDurationSeconds?.let { add(formatDuration(it)) }
+                    state.distanceMeters?.let { add(formatDistance(it)) }
+                }.joinToString(" · "),
+                modifier = Modifier.padding(start = 12.dp).background(colors.background, RoundedCornerShape(8.dp)).padding(horizontal = 8.dp, vertical = 4.dp),
+                style = MaterialTheme.typography.bodySmall,
+                color = colors.foreground,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        return
+    }
     Box(modifier.fillMaxWidth().then(stateModifier)) {
         Row(
             Modifier

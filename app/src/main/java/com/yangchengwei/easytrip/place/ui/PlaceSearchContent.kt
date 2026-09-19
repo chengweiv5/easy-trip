@@ -95,8 +95,8 @@ fun PlaceSearchContent(
                 .background(MaterialTheme.colorScheme.background)
                 .windowInsetsPadding(WindowInsets.safeDrawing)
                 .navigationBarsPadding()
-                .padding(start = EasyTripTheme.spacing.large, top = EasyTripTheme.spacing.small, end = EasyTripTheme.spacing.large, bottom = EasyTripTheme.spacing.xLarge),
-            verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.large),
+                .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 20.dp),
+            verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             SearchHeader(state.search.query, onAction, autoFocusSearch, onAutoFocusConsumed)
             SearchBody(
@@ -430,7 +430,7 @@ private fun ConsentRequiredBody(
                 items(savedPlaces, key = { it.id }) { place ->
                     Text(
                         place.name,
-                        Modifier.fillMaxWidth().padding(vertical = 12.dp),
+                        Modifier.fillMaxWidth().padding(vertical = 10.dp),
                         color = MaterialTheme.colorScheme.onSurface,
                         fontWeight = FontWeight.SemiBold,
                     )
@@ -567,7 +567,7 @@ private fun SearchResultRow(
     Row(
         Modifier
             .fillMaxWidth()
-            .padding(vertical = 12.dp)
+            .padding(vertical = 10.dp)
             .testTag("place-search-result-row-${candidate.poiId}")
             .clickable(onClick = onOpenDetail)
             .semantics {
@@ -575,13 +575,13 @@ private fun SearchResultRow(
                 role = Role.Button
             },
         verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp),
+        horizontalArrangement = Arrangement.spacedBy(10.dp),
     ) {
         Box(
             Modifier
-                .size(46.dp)
+                .size(40.dp)
                 .testTag("place-search-place-icon-${candidate.poiId}")
-                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(14.dp)),
+                .background(MaterialTheme.colorScheme.primaryContainer, RoundedCornerShape(8.dp)),
             contentAlignment = Alignment.Center,
         ) {
             LocationIcon(Modifier.size(22.dp), MaterialTheme.colorScheme.primary)

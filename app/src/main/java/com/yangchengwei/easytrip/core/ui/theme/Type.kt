@@ -22,16 +22,16 @@ private val BodyFont = FontFamily(
 )
 
 val easyTripTypography = Typography(
-    displaySmall = TextStyle(fontFamily = HeadingFont, fontSize = 32.sp, fontWeight = FontWeight.Bold),
-    headlineLarge = TextStyle(fontFamily = HeadingFont, fontSize = 26.sp, fontWeight = FontWeight.Bold),
-    headlineMedium = TextStyle(fontFamily = HeadingFont, fontSize = 20.sp, fontWeight = FontWeight.Bold),
-    titleLarge = TextStyle(fontFamily = HeadingFont, fontSize = 20.sp, fontWeight = FontWeight.Bold),
-    titleMedium = TextStyle(fontFamily = HeadingFont, fontSize = 18.sp, fontWeight = FontWeight.Bold),
-    titleSmall = TextStyle(fontFamily = HeadingFont, fontSize = 16.sp, fontWeight = FontWeight.SemiBold),
-    bodyLarge = TextStyle(fontFamily = BodyFont, fontSize = 16.sp, fontWeight = FontWeight.Normal),
-    bodyMedium = TextStyle(fontFamily = BodyFont, fontSize = 14.sp, fontWeight = FontWeight.Normal),
-    bodySmall = TextStyle(fontFamily = BodyFont, fontSize = 12.sp, fontWeight = FontWeight.Normal),
-    labelLarge = TextStyle(fontFamily = BodyFont, fontSize = 15.sp, fontWeight = FontWeight.SemiBold),
-    labelMedium = TextStyle(fontFamily = BodyFont, fontSize = 14.sp, fontWeight = FontWeight.SemiBold),
-    labelSmall = TextStyle(fontFamily = BodyFont, fontSize = 11.sp, fontWeight = FontWeight.Medium),
+    displaySmall = TextStyle(fontFamily = HeadingFont, fontSize = 32.sp, lineHeight = 45.sp, fontWeight = FontWeight.Bold),
+    headlineLarge = TextStyle(fontFamily = HeadingFont, fontSize = 26.sp, lineHeight = 36.sp, fontWeight = FontWeight.Bold),
+    headlineMedium = TextStyle(fontFamily = HeadingFont, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
+    titleLarge = TextStyle(fontFamily = HeadingFont, fontSize = 20.sp, lineHeight = 28.sp, fontWeight = FontWeight.Bold),
+    titleMedium = TextStyle(fontFamily = HeadingFont, fontSize = 18.sp, lineHeight = 25.sp, fontWeight = FontWeight.Bold),
+    titleSmall = TextStyle(fontFamily = HeadingFont, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.SemiBold),
+    bodyLarge = TextStyle(fontFamily = BodyFont, fontSize = 16.sp, lineHeight = 22.sp, fontWeight = FontWeight.Normal),
+    bodyMedium = TextStyle(fontFamily = BodyFont, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.Normal),
+    bodySmall = TextStyle(fontFamily = BodyFont, fontSize = 12.sp, lineHeight = 17.sp, fontWeight = FontWeight.Normal),
+    labelLarge = TextStyle(fontFamily = BodyFont, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold),
+    labelMedium = TextStyle(fontFamily = BodyFont, fontSize = 14.sp, lineHeight = 20.sp, fontWeight = FontWeight.SemiBold),
+    labelSmall = TextStyle(fontFamily = BodyFont, fontSize = 12.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium),
 )

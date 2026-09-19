@@ -44,15 +44,15 @@ class WorkspaceLayoutMetricsTest {
         assertTrue(metrics.sheetTop >= 0.dp)
     }
 
-    @Test fun `map control group is hidden when five compact controls cannot stay above sheet`() {
+    @Test fun `map controls and bottom search hide before they overlap`() {
         val tooShort = WorkspaceLayoutMetrics(
             availableWidth = 390.dp,
             availableHeight = 782.dp,
-            sheetHeight = 551.dp,
-            sheetTop = 231.dp,
-            overlayBottomInset = 571.dp,
+            sheetHeight = 569.dp,
+            sheetTop = 213.dp,
+            overlayBottomInset = 589.dp,
         )
-        val fitting = tooShort.copy(sheetTop = 236.dp)
+        val fitting = tooShort.copy(sheetTop = 214.dp)
 
         assertFalse(workspaceMapOverlaysFit(tooShort))
         assertTrue(workspaceMapOverlaysFit(fitting))
@@ -66,9 +66,24 @@ class WorkspaceLayoutMetricsTest {
         )
 
         assertEquals(
-            MapViewportInsets(leftPx = 132, topPx = 64, rightPx = 40, bottomPx = 373),
+            MapViewportInsets(leftPx = 132, topPx = 64, rightPx = 40, bottomPx = 368),
             workspaceViewportInsets(metrics, density = 1f),
         )
+    }
+
+    @Test fun `locate uses live drawer occlusion while fitting retains stable control margins`() {
+        val metrics = workspaceLayoutMetrics(
+            availableWidth = 390.dp,
+            availableHeight = 782.dp,
+            visibleSheetHeight = 240.dp,
+        ).copy(stableSheetHeight = 324.dp)
+
+        val firstFrame = workspaceMapLayout(metrics, density = 2.75f)
+        val nextFrame = workspaceMapLayout(metrics.copy(sheetHeight = 280.dp), density = 2.75f)
+
+        assertEquals(MapViewportInsets(bottomPx = 660), firstFrame.visibleInsets)
+        assertEquals(MapViewportInsets(bottomPx = 770), nextFrame.visibleInsets)
+        assertEquals(firstFrame.fitInsets, nextFrame.fitInsets)
     }
 
     @Test fun `viewport safe rectangle stays clear of bottom left legend`() {
@@ -81,10 +96,9 @@ class WorkspaceLayoutMetricsTest {
         val insets = workspaceViewportInsets(metrics, density = 1f)
         val safeLeft = insets.leftPx
         val safeBottom = 782 - insets.bottomPx
-        val legendRight = 12 + 112
-        val legendTop = 782 - 324 - 13 - 36
+        val legendTop = 782 - 324 - 12 - 32
 
-        assertTrue("safeLeft=$safeLeft legendRight=$legendRight", safeLeft >= legendRight)
+        assertTrue("safeLeft=$safeLeft", safeLeft >= 12)
         assertTrue("safeBottom=$safeBottom legendTop=$legendTop", safeBottom <= legendTop)
     }
 
@@ -99,7 +113,7 @@ class WorkspaceLayoutMetricsTest {
         )
 
         assertEquals(
-            MapViewportInsets(leftPx = 132, topPx = 64, rightPx = 40, bottomPx = 373),
+            MapViewportInsets(leftPx = 132, topPx = 64, rightPx = 40, bottomPx = 368),
             workspaceViewportInsets(metrics, density = 1f),
         )
     }
@@ -116,12 +130,12 @@ class WorkspaceLayoutMetricsTest {
 
         val insets = workspaceViewportInsets(metrics, density = 1f)
         val safeBottom = 782 - insets.bottomPx
-        val stableLegendTop = 782 - 324 - 13 - 36
+        val stableLegendTop = 782 - 324 - 12 - 32
 
         assertTrue("safeBottom=$safeBottom stableLegendTop=$stableLegendTop", safeBottom <= stableLegendTop)
     }
 
-    @Test fun `drag frame legend remains thirteen dp above the live sheet`() {
+    @Test fun `drag frame legend and search remain twelve dp above the live sheet`() {
         val metrics = WorkspaceLayoutMetrics(
             availableWidth = 390.dp,
             availableHeight = 782.dp,
@@ -131,8 +145,8 @@ class WorkspaceLayoutMetricsTest {
             stableSheetHeight = 324.dp,
         )
 
-        assertEquals(341.dp, workspaceLegendTop(metrics))
-        assertTrue(workspaceLegendTop(metrics) + 36.dp + 5.dp <= metrics.sheetTop)
+        assertEquals(338.dp, workspaceLegendTop(metrics))
+        assertEquals(metrics.sheetTop, workspaceLegendTop(metrics) + 32.dp + 12.dp)
     }
 
     @Test fun `viewport safe insets stay identical across drag frames until level settles`() {
@@ -199,9 +213,9 @@ class WorkspaceLayoutMetricsTest {
     @Test fun `layer menu requires safe workspace width and height`() {
         val tooShort = WorkspaceLayoutMetrics(
             availableWidth = 390.dp,
-            availableHeight = 428.dp,
+            availableHeight = 423.dp,
             sheetHeight = 0.dp,
-            sheetTop = 428.dp,
+            sheetTop = 423.dp,
             overlayBottomInset = 20.dp,
         )
         val tooNarrow = tooShort.copy(availableWidth = 255.dp, availableHeight = 782.dp, sheetTop = 782.dp)

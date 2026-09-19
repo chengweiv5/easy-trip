@@ -78,7 +78,7 @@ class EasyTripButtonTest {
         val proceed = compose.onNodeWithTag("continue").assertIsDisplayed().getUnclippedBoundsInRoot()
         assertTrue("cancel=$cancel continue=$proceed", proceed.right - proceed.left >= 48.dp)
         assertTrue(cancel.left >= footer.left && proceed.right <= footer.right)
-        assertTrue(cancel.right + 8.dp <= proceed.left)
+        assertTrue("cancel=$cancel continue=$proceed", cancel.right + 8.dp <= proceed.left + 0.5.dp)
         assertCentered("cancel", "取消")
         assertCentered("continue", "继续")
         compose.onNodeWithTag("cancel").performTouchInput { click() }

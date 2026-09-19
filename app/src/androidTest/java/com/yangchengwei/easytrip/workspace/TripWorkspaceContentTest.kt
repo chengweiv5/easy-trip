@@ -350,7 +350,7 @@ class TripWorkspaceContentTest {
         compose.waitForIdle()
         val draggedSheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
         assertTrue("initial=$initialSheetTop dragged=$draggedSheetTop", draggedSheetTop < initialSheetTop)
-        listOf("layer-menu", "zoom-in", "zoom-out", "workspace-locate").forEach { tag ->
+        listOf("layer-menu", "workspace-locate", "workspace-search-launcher").forEach { tag ->
             val controls = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
             assertTrue("tag=$tag controls=$controls sheet=$draggedSheetTop", controls.bottom <= draggedSheetTop)
         }
@@ -632,7 +632,7 @@ class TripWorkspaceContentTest {
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
         assertTrue("topBar=$topBar panel=$panel", panel.top >= topBar.bottom)
         assertTrue("panel=$panel sheet=$sheet", panel.bottom <= sheet.top)
-        compose.onNodeWithTag("map-legend").assertDoesNotExist()
+        compose.onNodeWithTag("map-legend").assertIsDisplayed()
     }
 
     @Test fun mapOverlaysHideAsOneGroupWhenLiveSheetTopCannotFitAllControls() {

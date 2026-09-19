@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
@@ -376,7 +378,7 @@ class VisualBatch0EvidenceTest {
         }
         compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         compose.onNodeWithText("已加入行程").assertIsDisplayed()
-        compose.onNodeWithText("加入行程").assertIsDisplayed()
+        compose.onAllNodesWithTag("place-detail-start-add").assertCountEquals(0)
     }
 
     @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_shoPV() {
@@ -517,7 +519,7 @@ class VisualBatch0EvidenceTest {
         }
         compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         compose.onNodeWithTag("place-detail-bookmark-outline").assertIsDisplayed()
-        compose.onNodeWithText("加入行程").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-start-add").assertIsDisplayed()
         compose.onAllNodesWithTag("place-detail-schedule").assertCountEquals(0)
     }
 
@@ -541,8 +543,10 @@ class VisualBatch0EvidenceTest {
             )
         }
         assertWorkspaceHost()
-        compose.onNodeWithText("添加到行程").assertIsDisplayed()
+        compose.onNodeWithTag("start-add-to-itinerary").assertIsDisplayed()
         compose.onNodeWithTag("workspace-place-list").assertIsDisplayed()
+        compose.onNodeWithTag("map-collection-summary").assertIsDisplayed()
+        compose.onNodeWithText("4 个收藏地点").assertIsDisplayed()
     }
 
     @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_LFmzR() {
@@ -746,6 +750,81 @@ class VisualBatch0EvidenceTest {
         compose.onNodeWithTag("create-submit").assertIsDisplayed()
     }
 
+    @Test fun home_K9h3r() {
+        val featured = com.yangchengwei.easytrip.trip.ui.TripCardUiModel(
+            "trip", "杭州 · 春日慢游", "3天2晚", "4月12日 — 4月14日", "灵活出行", "12天后出发",
+            8, 2, "8 个地点", "3 天行程", 72, "72%",
+        )
+        render("K9h3r", "home") {
+            TripListContent(TripListUiState(page = TripListPageState.Content(featured, listOf(
+                featured.copy(id = "other-1", name = "川西小环线", dateLabel = null, travelModeLabel = "自驾"),
+                featured.copy(id = "other-2", name = "泉州古城散步", dateLabel = "5月2日 — 5月4日"),
+            ))), {})
+        }
+        compose.onNodeWithTag("create-trip").assertIsDisplayed()
+    }
+
+    @Test fun itemEditor_K336N() {
+        renderEditor("K336N", "item-editor", WorkspaceOverlay.EditItineraryItem("item-2"),
+            DayItineraryUiState(editDraft = com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft(
+                "item-2", "12:00", "60", placeId = "saved-1", placeName = "知味观 · 湖滨店",
+            )))
+        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
+        compose.onNodeWithText("保存时间").assertIsDisplayed()
+    }
+
+    @Test fun routeEditor_T7aESo() {
+        renderEditor("T7aESo", "route-editor", WorkspaceOverlay.EditRouteLeg("leg-2"),
+            DayItineraryUiState(modeEditor = com.yangchengwei.easytrip.itinerary.ui.RouteModeEditDraft(
+                "leg-2", TransportMode.DRIVE, fromPlaceName = "知味观 · 湖滨店", toPlaceName = "龙井村",
+                distanceMeters = 11000, plannedDurationSeconds = 1680,
+            )))
+        compose.onNodeWithTag("save-route").assertIsDisplayed()
+    }
+
+    @Test fun wholeTrip_FTIOF() {
+        render("FTIOF", "whole-trip") {
+            TripWorkspaceContent(
+                pageState = TripWorkspacePageState.Ready(workspaceState(WorkspaceSection.ITINERARY).content.copy(
+                    itineraryScope = ItineraryScope.WholeTrip,
+                    wholeTripDays = listOf(com.yangchengwei.easytrip.itinerary.ui.WholeTripDayUi("day-1", 1, itineraryItems(), itineraryLegs())),
+                )),
+                mapState = WorkspaceMapState.Ready, onAction = {}, placeState = placePoolState(), onPlaceAction = {},
+                itineraryState = DayItineraryUiState(), onItineraryAction = {}, mapContent = { _ -> DeterministicFakeMapSurface() },
+            )
+        }
+        compose.onNodeWithTag("whole-trip-content").assertIsDisplayed()
+    }
+
+    @Test fun longTargetDays_cRdBn() {
+        val days = (0 until 30).map { TripDay("long-day-$it", it) }
+        render("cRdBn", "long-target-days", evidenceHost = "production Compose workspace host", mapSurface = "deterministic fake map surface") {
+            TripWorkspaceScreen(
+                pageState = TripWorkspacePageState.Ready(workspaceState(WorkspaceSection.PLACE_POOL).content.copy(days = days, overlay = WorkspaceOverlay.SelectAddTargetDay)),
+                consent = acceptedConsentToken(), onAction = {}, onMarkerClick = {}, onMapPoiClick = {},
+                placeState = placePoolState(), onPlaceAction = {}, itineraryState = DayItineraryUiState(), onItineraryAction = {},
+                addToItineraryState = AddToItineraryUiState(selectedPlaceIds = listOf("saved-1"), editingTarget = AddToItineraryEditingTarget.ForPlace("saved-1"), selectedTargetDayIds = listOf("long-day-0")),
+                onCloseOverlay = {}, onDismissMapPlace = {}, mapHostFactory = ::DeterministicFakeMapHost,
+            )
+        }
+        compose.onNodeWithTag("select-target-day-submit").assertIsDisplayed()
+        compose.onNodeWithTag("select-target-day-list").performScrollToNode(hasTestTag("target-day-long-day-29"))
+        compose.onNodeWithTag("target-day-long-day-29").assertIsDisplayed()
+        compose.onNodeWithTag("select-target-day-submit").assertIsDisplayed()
+    }
+
+    private fun renderEditor(frame: String, name: String, overlay: WorkspaceOverlay, state: DayItineraryUiState) {
+        render(frame, name, evidenceHost = "production Compose workspace host", mapSurface = "deterministic fake map surface") {
+            TripWorkspaceScreen(
+                pageState = workspaceState(WorkspaceSection.ITINERARY, overlay = overlay),
+                consent = acceptedConsentToken(), onAction = {}, onMarkerClick = {}, onMapPoiClick = {},
+                placeState = placePoolState(), onPlaceAction = {}, itineraryState = state, onItineraryAction = {},
+                onCloseOverlay = {}, onDismissMapPlace = {}, mapHostFactory = ::DeterministicFakeMapHost,
+            )
+        }
+        compose.onNodeWithTag("workspace-editor-sheet").assertIsDisplayed()
+    }
+
     private fun render(
         frameId: String,
         name: String,
@@ -891,7 +970,8 @@ class VisualBatch0EvidenceTest {
     ) = TripWorkspacePageState.Ready(
         TripWorkspaceUiState(
             tripName = "杭州·春日慢游",
-            dateLabel = "2025年4月12日 - 4月14日",
+            dateLabel = "4月12日 — 4月14日",
+            startDate = LocalDate.of(2025, 4, 12),
             days = workspaceDays(),
             section = section,
             itineraryScope = ItineraryScope.Day("day-1"),
@@ -903,6 +983,7 @@ class VisualBatch0EvidenceTest {
     )
 
     private fun placePoolState(rows: Int = searchCandidates().size) = PlacePoolUiState(
+        savedPoiIds = searchCandidates().take(rows).map { it.poiId }.toSet(),
         rows = searchCandidates().take(rows).mapIndexed { index, candidate ->
             SavedPlaceRowUi(savedPlace(candidate, "saved-$index"), 0, scheduled = index == 0)
         },

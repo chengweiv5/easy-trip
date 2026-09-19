@@ -22,6 +22,8 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
+import androidx.compose.animation.EnterTransition
+import androidx.compose.animation.ExitTransition
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -369,7 +371,12 @@ fun AppNavigation(
         navController.navigate(route)
     }
     NavHost(navController, startDestination = TRIP_LIST_ROUTE) {
-        composable(TRIP_LIST_ROUTE) {
+        composable(
+            TRIP_LIST_ROUTE,
+            popEnterTransition = {
+                if (initialState.destination.route == TRIP_WORKSPACE_ROUTE) EnterTransition.None else null
+            },
+        ) {
             val model: TripListViewModel = viewModel(factory = TripListViewModel.Factory(service, repository, impacts))
             TripListScreen(
                 model,
@@ -392,7 +399,14 @@ fun AppNavigation(
                 initialDateMillis = initialDateMillis,
             )
         }
-        composable(TRIP_WORKSPACE_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->
+        composable(
+            TRIP_WORKSPACE_ROUTE,
+            arguments = listOf(navArgument("tripId") { type = NavType.StringType }),
+            // Crossfading this map page leaves its floating controls ghosted over the trip list.
+            popExitTransition = {
+                if (targetState.destination.route == TRIP_LIST_ROUTE) ExitTransition.None else null
+            },
+        ) { entry ->
             val id = checkNotNull(entry.arguments?.getString("tripId"))
             val workspaceDependencies = effectiveDependencies
             if (workspaceDependencies == null) Column { Text("旅行工作区 $id"); Button(onClick = { navigate("trips/$id/settings") }) { Text("设置") } }

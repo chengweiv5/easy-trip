@@ -18,12 +18,14 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
@@ -165,6 +167,8 @@ fun TripWorkspaceScreen(
     var mapAttempt by remember { mutableIntStateOf(0) }
     var zoomInRequest by remember { mutableIntStateOf(0) }
     var zoomOutRequest by remember { mutableIntStateOf(0) }
+    var resetNorthRequest by remember { mutableIntStateOf(0) }
+    var mapBearing by remember(consent, mapAttempt) { mutableFloatStateOf(0f) }
     var mapHostState: MapHostState by remember(consent) { mutableStateOf(MapHostState.Loading) }
     var failedAttempt by remember(consent) { mutableStateOf<Int?>(null) }
     val locateBaselineTracker = remember { MapLocateRequestBaselineTracker(locateRequest) }
@@ -190,6 +194,7 @@ fun TripWorkspaceScreen(
         workspaceRootLayers(hasReadyOverlay = ready != null).forEach { layer ->
             when (layer) {
                 WorkspaceRootLayer.Content -> TripWorkspaceContent(
+                    modifier = if (ready?.overlay is WorkspaceOverlay.EditItineraryItem || ready?.overlay is WorkspaceOverlay.EditRouteLeg || ready?.overlay == WorkspaceOverlay.SelectAddPlaces || ready?.overlay == WorkspaceOverlay.SelectAddTargetDay) Modifier.clearAndSetSemantics {} else Modifier,
                     pageState = pageState,
                     mapState = mapState,
                     onMapRetry = {
@@ -217,6 +222,10 @@ fun TripWorkspaceScreen(
                                 onAction(TripWorkspaceAction.MapGesture)
                                 zoomOutRequest++
                             }
+                            TripWorkspaceAction.ResetNorth -> {
+                                onAction(TripWorkspaceAction.MapGesture)
+                                resetNorthRequest++
+                            }
                             is TripWorkspaceAction.SelectMapLayer -> {
                                 layerFailureMessage = null
                                 onAction(action)
@@ -233,7 +242,8 @@ fun TripWorkspaceScreen(
                     searchReturn = searchReturn,
                     layerFailureMessage = layerFailureMessage,
                     onLayerFailureMessageDismissed = { layerFailureMessage = null },
-                    mapContent = { safeInsets ->
+                    mapBearing = mapBearing,
+                    mapContent = { mapLayout ->
                         val token = consent
                         if (token != null && ready != null) key(mapAttempt, mapReadyTimeoutMillis) {
                             val attemptId = mapAttempt
@@ -244,8 +254,9 @@ fun TripWorkspaceScreen(
                             )
                             AmapComposeMap(
                                 model = ready.map.copy(
-                                    viewportRequest = ready.map.viewportRequest?.copy(safeInsets = safeInsets),
+                                    viewportRequest = ready.map.viewportRequest?.copy(safeInsets = mapLayout.fitInsets),
                                 ),
+                                visibleInsets = mapLayout.visibleInsets,
                                 onMarkerClick = onMarkerClick,
                                 consent = token,
                                 onMapPoiClick = onMapPoiClick,
@@ -282,6 +293,8 @@ fun TripWorkspaceScreen(
                                 onUserGesture = { onAction(TripWorkspaceAction.MapGesture) },
                                 zoomInRequest = zoomInRequest,
                                 zoomOutRequest = zoomOutRequest,
+                                resetNorthRequest = resetNorthRequest,
+                                onBearingChanged = { mapBearing = it },
                                 readyTimeoutMillis = mapReadyTimeoutMillis,
                             )
                         }
@@ -354,6 +367,7 @@ fun TripWorkspaceScreen(
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
                 TripWorkspaceAction.ZoomIn,
                 TripWorkspaceAction.ZoomOut,
+                TripWorkspaceAction.ResetNorth,
                 TripWorkspaceAction.Locate -> Unit
                 TripWorkspaceAction.MapGesture -> viewModel.onMapGesture()
                 TripWorkspaceAction.Retry -> viewModel.retry()
@@ -467,7 +481,7 @@ private fun WorkspaceOverlayContent(
             }
         }
         is WorkspaceOverlay.EditItineraryItem -> itineraryState.editDraft?.let { draft ->
-            AlertDialog(
+            WorkspaceEditorSheet(
                 onDismissRequest = {
                     when {
                         draft.isSaving -> Unit
@@ -522,28 +536,31 @@ private fun WorkspaceOverlayContent(
                 confirmButton = {},
             )
         }
-        WorkspaceOverlay.SelectAddPlaces -> AlertDialog(
+        WorkspaceOverlay.SelectAddPlaces -> WorkspaceEditorSheet(
             onDismissRequest = onClose,
             confirmButton = {},
             text = {
                 SelectPlacesContent(
-                    rows = placeState.rows,
+                    rows = placeState.allRows ?: placeState.rows,
                     state = addToItineraryState,
                     onTogglePlace = onToggleAddPlace,
                     onContinue = onContinueAddPlaces,
                     onClose = onClose,
-                    modifier = Modifier.height(504.dp),
+                    targetDayLabel = (addToItineraryState.editingTarget as? com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForDay)
+                        ?.let { target -> state.days.firstOrNull { it.id == target.dayId } }
+                        ?.let { "第 ${it.index + 1} 天" },
+                    modifier = Modifier.height(548.dp),
                 )
             },
         )
-        WorkspaceOverlay.AddToItineraryResult -> AlertDialog(
+        WorkspaceOverlay.AddToItineraryResult -> if (!addToItineraryState.hasCompletedSuccessfully) AlertDialog(
             onDismissRequest = { if (!addToItineraryState.isSubmitting && !addToItineraryState.isUndoing) onClose() },
             confirmButton = {},
             text = {
                 AddToItineraryResultContent(
                     state = addToItineraryState,
                     days = state.days,
-                    placeNameForId = { placeId -> placeState.rows.firstOrNull { it.place.id == placeId }?.place?.name },
+                    placeNameForId = { placeId -> (placeState.allRows ?: placeState.rows).firstOrNull { it.place.id == placeId }?.place?.name },
                     onUndo = onUndoAddPlaces,
                     onRetryFailed = onRetryPartialAdd,
                     onReselectDates = onReselectAddTargetDays,
@@ -553,7 +570,7 @@ private fun WorkspaceOverlayContent(
                 )
             },
         )
-        WorkspaceOverlay.SelectAddTargetDay -> AlertDialog(
+        WorkspaceOverlay.SelectAddTargetDay -> WorkspaceEditorSheet(
             onDismissRequest = { if (!addToItineraryState.isSubmitting) onClose() },
             confirmButton = {},
             text = {
@@ -583,7 +600,7 @@ private fun WorkspaceOverlayContent(
             },
         )
         is WorkspaceOverlay.EditRouteLeg -> itineraryState.modeEditor?.let { editor ->
-            AlertDialog(
+            WorkspaceEditorSheet(
                 onDismissRequest = {
                     if (!editor.isSaving) {
                         onItineraryAction(DayItineraryAction.DismissDialogs)

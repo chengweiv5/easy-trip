@@ -12,6 +12,10 @@ import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.AddPlacesOutcome
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
+import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep
+import com.yangchengwei.easytrip.itinerary.ui.AddToItinerarySubmissionResult
+import com.yangchengwei.easytrip.itinerary.ui.FailedItineraryAddition
+import com.yangchengwei.easytrip.itinerary.ui.UndoCreatedItemsBatch
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
@@ -446,7 +450,7 @@ class TripWorkspaceNavigationStateTest {
         )
     }
 
-    @Test fun `restored completed add result reopens only from an empty overlay`() {
+    @Test fun `successful add is consumed only from an add overlay or empty workspace`() {
         val restored = AddToItineraryUiState(
             step = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryStep.COMPLETED,
             submissionResult = com.yangchengwei.easytrip.itinerary.ui.AddToItinerarySubmissionResult(
@@ -454,10 +458,47 @@ class TripWorkspaceNavigationStateTest {
             ),
         )
 
-        assertEquals(WorkspaceOverlay.AddToItineraryResult, addOverlayToPresent(WorkspaceOverlay.None, restored))
-        assertNull(addOverlayToPresent(WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION), restored))
-        assertNull(addOverlayToPresent(WorkspaceOverlay.EditItineraryItem("item"), restored))
-        assertNull(addOverlayToPresent(WorkspaceOverlay.PlaceDetail(1L), restored))
+        listOf(
+            WorkspaceOverlay.None, WorkspaceOverlay.SelectAddPlaces,
+            WorkspaceOverlay.SelectAddTargetDay, WorkspaceOverlay.AddToItineraryResult,
+        ).forEach { overlay ->
+            assertTrue(shouldConsumeSuccessfulAdd(overlay, restored))
+            assertNull(addOverlayToPresent(overlay, restored))
+        }
+        listOf(
+            WorkspaceOverlay.PermissionExplanation(PermissionKind.DEVICE_LOCATION),
+            WorkspaceOverlay.EditItineraryItem("item"), WorkspaceOverlay.PlaceDetail(1L),
+            WorkspaceOverlay.LayerMenu,
+        ).forEach { overlay ->
+            assertFalse(shouldConsumeSuccessfulAdd(overlay, restored))
+            assertNull(addOverlayToPresent(overlay, restored))
+        }
+    }
+
+    @Test fun `success consumption requires completed creation and no pending errors`() {
+        val result = AddToItinerarySubmissionResult(
+            createdItemsByDay = listOf(UndoCreatedItemsBatch("day-1", listOf("created"))),
+        )
+        val success = AddToItineraryUiState(step = AddToItineraryStep.COMPLETED, submissionResult = result)
+        assertTrue(success.hasCompletedSuccessfully)
+        assertTrue(success.copy(submissionResult = null, result = AddPlacesOutcome.Success("day-1", listOf("created"))).hasCompletedSuccessfully)
+        listOf(
+            success.copy(step = AddToItineraryStep.IDLE),
+            success.copy(isSubmitting = true),
+            success.copy(isUndoing = true),
+            success.copy(errorMessage = "撤销失败，请重试"),
+            success.copy(submissionResult = AddToItinerarySubmissionResult()),
+            success.copy(submissionResult = result.copy(createdItemsByDay = listOf(UndoCreatedItemsBatch("day-1", emptyList())))),
+            success.copy(submissionResult = result.copy(failedAdditions = listOf(FailedItineraryAddition("day-2", "hotel")))),
+            success.copy(submissionResult = result.copy(missingTargetDayIds = listOf("day-2"))),
+            success.copy(submissionResult = result.copy(retryTargetDayIds = listOf("day-2"))),
+            success.copy(submissionResult = null),
+            success.copy(submissionResult = null, result = AddPlacesOutcome.Success("day-1", emptyList())),
+        ).forEach { state ->
+            assertFalse("must retain state: $state", shouldConsumeSuccessfulAdd(WorkspaceOverlay.AddToItineraryResult, state))
+        }
+        val missing = success.copy(submissionResult = result.copy(missingTargetDayIds = listOf("day-2")))
+        assertEquals(WorkspaceOverlay.AddToItineraryResult, addOverlayToPresent(WorkspaceOverlay.None, missing))
     }
 
     @Test fun `old target-day draft cannot open from no overlay but active add flow can advance`() {
@@ -490,6 +531,8 @@ class TripWorkspaceNavigationStateTest {
             WorkspaceOverlay.AddToItineraryResult,
             addOverlayToPresent(WorkspaceOverlay.SelectAddTargetDay, addState),
         )
+        assertFalse(shouldConsumeSuccessfulAdd(WorkspaceOverlay.SelectAddTargetDay, addState))
+        assertFalse(addState.copy(step = AddToItineraryStep.COMPLETED).hasCompletedSuccessfully)
     }
 
     @Test fun `selected saved-place detail remains open when not editing`() {

@@ -46,7 +46,7 @@ internal fun workspaceSheetAnchors(availableHeight: Dp): WorkspaceSheetAnchors {
     val collapsed = maxOf(minimumCollapsed, 108.dp * scale).coerceAtMost(height)
     val expanded = maxOf(720.dp * scale, collapsed + 6.dp).coerceAtMost(height)
     val gap = minOf(12.dp, (expanded - collapsed) / 3f)
-    val half = (324.dp * scale).coerceIn(collapsed + gap, expanded - gap)
+    val half = (346.dp * scale).coerceIn(collapsed + gap, expanded - gap)
     return WorkspaceSheetAnchors(collapsed, half, expanded)
 }
 
@@ -90,8 +90,8 @@ internal fun clampWorkspaceSheetDragOffsetPx(
     currentHeightPx - collapsedHeightPx,
 )
 
-private val WorkspaceSheetHeaderHeight = 60.dp
-private val CompactWorkspaceSheetHeaderHeight = 56.dp
+private val WorkspaceSheetHeaderHeight = 48.dp
+private val CompactWorkspaceSheetHeaderHeight = 48.dp
 private val MinimumWorkspaceSheetContentHeight = 48.dp
 private val MinimumCollapsedSummaryHeight = 18.dp
 
@@ -106,7 +106,7 @@ internal fun WorkspaceBottomSheet(
     content: @Composable () -> Unit,
     modifier: Modifier = Modifier,
     collapsedContent: @Composable () -> Unit = {},
-    contentHorizontalPadding: Dp = 20.dp,
+    contentHorizontalPadding: Dp = 16.dp,
     collapsedContentHorizontalPadding: Dp = contentHorizontalPadding,
 ) {
     val targetHeight = anchors[value]
@@ -124,7 +124,9 @@ internal fun WorkspaceBottomSheet(
             minOf(WorkspaceSheetHeaderHeight, (visibleHeight - MinimumWorkspaceSheetContentHeight).coerceAtLeast(0.dp))
         else -> WorkspaceSheetHeaderHeight
     }
-    val expandedBottomPadding = if (visibleHeight >= WorkspaceSheetHeaderHeight + 16.dp + MinimumWorkspaceSheetContentHeight) 16.dp else 0.dp
+    val expandedBottomPadding = if (visibleHeight >= WorkspaceSheetHeaderHeight + 16.dp + MinimumWorkspaceSheetContentHeight) {
+        if (value == WorkspaceSheetLevel.EXPANDED) 16.dp else 12.dp
+    } else 0.dp
     val collapsedBottomPadding = if (visibleHeight >= 98.dp) 8.dp else 0.dp
     val currentOnValueChange by rememberUpdatedState(onValueChange)
     val currentOnDragOffsetChange by rememberUpdatedState(onDragOffsetChange)
@@ -133,8 +135,8 @@ internal fun WorkspaceBottomSheet(
             .fillMaxWidth()
             .height(visibleHeight)
             .testTag("workspace-sheet"),
-        shape = RoundedCornerShape(topStart = 24.dp, topEnd = 24.dp),
-        color = MaterialTheme.colorScheme.surface,
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
+        color = MaterialTheme.colorScheme.background,
         shadowElevation = 4.dp,
     ) {
         Column(Modifier.fillMaxSize()) {
@@ -142,7 +144,7 @@ internal fun WorkspaceBottomSheet(
                 Modifier
                     .fillMaxWidth()
                     .height(sheetHeaderHeight)
-                    .padding(horizontal = 20.dp)
+                    .padding(horizontal = 16.dp)
                     .pointerInput(value, anchors, density) {
                         var gestureDragOffsetPx = 0f
                         detectVerticalDragGestures(

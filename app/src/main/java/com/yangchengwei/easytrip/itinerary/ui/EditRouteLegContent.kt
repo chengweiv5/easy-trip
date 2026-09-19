@@ -1,8 +1,13 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material3.Surface
+import androidx.compose.ui.Alignment
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
@@ -11,6 +16,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.foundation.layout.height
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -36,17 +43,18 @@ fun EditRouteLegContent(
 ) {
     Column(
         modifier.imePadding().testTag("route-leg-editor"),
-        verticalArrangement = Arrangement.spacedBy(12.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
     ) {
         Column(
             Modifier.weight(1f, fill = false).verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("交通路段编辑")
+            Text("交通路段编辑", style = MaterialTheme.typography.titleMedium)
             if (draft.fromPlaceName.isNotBlank() && draft.toPlaceName.isNotBlank()) {
                 Text(
                     "${draft.fromPlaceName} → ${draft.toPlaceName}",
                     modifier = Modifier.testTag("route-endpoints"),
+                    style = MaterialTheme.typography.labelMedium,
                 )
             }
             Text(
@@ -57,20 +65,25 @@ fun EditRouteLegContent(
                     draft.plannedDurationSeconds?.let { add("预计 ${formatDuration(it)}") }
                 }.joinToString(" · "),
                 modifier = Modifier.testTag("route-current-context"),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             Row(
-                Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 TransportMode.entries.forEach { mode ->
-                    SelectablePill(
-                        selected = draft.selectedModeOverride == mode,
-                        onClick = { onSelectMode(mode) },
-                        enabled = !draft.isSaving,
-                        label = { Text(mode.label()) },
-                        role = Role.RadioButton,
-                        modifier = Modifier.testTag("route-mode-option-${mode.name}"),
-                    )
+                    val isSelected = (draft.selectedModeOverride ?: draft.selectedMode) == mode
+                    Surface(
+                        modifier = Modifier.weight(1f).height(56.dp).testTag("route-mode-option-${mode.name}")
+                            .selectable(isSelected, enabled = !draft.isSaving, role = Role.RadioButton, onClick = { onSelectMode(mode) }),
+                        shape = RoundedCornerShape(8.dp),
+                        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
+                        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary,
+                        border = if (isSelected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+                    ) {
+                        Box(contentAlignment = Alignment.Center) { Text(mode.label(), style = MaterialTheme.typography.labelMedium) }
+                    }
                 }
             }
             SelectablePill(
@@ -90,21 +103,23 @@ fun EditRouteLegContent(
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 enabled = !draft.isSaving,
                 singleLine = true,
-                modifier = Modifier.testTag("route-duration-minutes-input"),
+                textStyle = MaterialTheme.typography.bodyMedium,
+                shape = androidx.compose.foundation.shape.RoundedCornerShape(8.dp),
+                modifier = Modifier.fillMaxWidth().testTag("route-duration-minutes-input"),
             )
             OutlinedTextField(
                 value = draft.noteText,
                 onValueChange = onNoteChange,
                 label = { Text("补充说明") },
                 enabled = !draft.isSaving,
-                modifier = Modifier.fillMaxWidth().heightIn(min = 96.dp).testTag("route-note-input"),
+                modifier = Modifier.fillMaxWidth().heightIn(min = 72.dp).testTag("route-note-input"),
             )
             draft.saveError?.let { Text(it) }
         }
         CompactPrimaryButton(
             onClick = onSave,
             enabled = draft.isValid && !draft.isSaving,
-            modifier = Modifier.testTag("save-route"),
+            modifier = Modifier.fillMaxWidth().testTag("save-route"),
         ) {
             val recalculates = draft.selectedModeOverride != draft.originalSelectedModeOverride
             Text(
@@ -115,7 +130,7 @@ fun EditRouteLegContent(
                 },
             )
         }
-        CompactSecondaryButton(onClick = onCancel, enabled = !draft.isSaving) { Text("取消") }
+        CompactSecondaryButton(onClick = onCancel, enabled = !draft.isSaving, modifier = Modifier.fillMaxWidth()) { Text("取消") }
     }
 }
 

@@ -15,6 +15,8 @@ import androidx.compose.ui.semantics.SemanticsProperties
 import androidx.compose.ui.test.SemanticsMatcher
 import androidx.compose.ui.test.assert
 import androidx.compose.ui.test.assertHeightIsAtLeast
+import androidx.compose.ui.test.assertHeightIsEqualTo
+import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -63,11 +65,11 @@ class MapLayerFlowTest {
         compose.onNodeWithTag("legend-saved-shape").assertIsDisplayed()
     }
 
-    @Test fun searchSurfaceIsFullWidthAndOpaque() {
+    @Test fun searchSurfaceMatchesCompactMapField() {
         compose.setContent { EasyTripTheme { WorkspaceSearchBar(onClick = {}) } }
 
-        compose.onNodeWithTag("workspace-search-surface").assertHeightIsAtLeast(46.dp)
-        compose.onNodeWithText("搜索餐厅、景点或地址").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-search-surface").assertHeightIsEqualTo(32.dp).assertWidthIsEqualTo(160.dp)
+        compose.onNodeWithText("搜索地点").assertIsDisplayed()
     }
 
     @Test fun selectedLayerOptionHasExplicitPrimaryBorder() {

@@ -44,8 +44,8 @@ fun TripListContent(
     var expandedMenuTripId by rememberSaveable { mutableStateOf<String?>(null) }
     Scaffold(modifier = modifier, containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            TripListHeader(Modifier.padding(start = 20.dp, top = 18.dp, end = 20.dp))
-            Spacer(Modifier.height(24.dp))
+            TripListHeader(Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp))
+            Spacer(Modifier.height(16.dp))
             when (val page = state.page) {
                 TripListPageState.Loading -> TripListLoadingState(Modifier.weight(1f))
                 TripListPageState.Empty -> EmptyTrips(
@@ -64,14 +64,14 @@ fun TripListContent(
                         (fontScale >= 1.5f && maxWidth <= 320.dp && maxHeight <= 700.dp)
                     val singleTripScrollable = page.otherTrips.isEmpty() &&
                         (maxHeight < 620.dp || fontScale >= 1.5f)
-                    Box(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 24.dp)) {
+                    Box(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
                         val contentModifier = Modifier
                             .fillMaxSize()
                             .padding(bottom = 72.dp)
                         if (compactHeight || singleTripScrollable) {
                             LazyColumn(
                                 modifier = contentModifier.testTag("other-trips-list"),
-                                verticalArrangement = Arrangement.spacedBy(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
                                 item(key = "primary-${page.primaryTrip.id}") {
                                     PrimaryTripCard(
@@ -102,7 +102,7 @@ fun TripListContent(
                         } else {
                             Column(
                                 modifier = contentModifier.testTag("trip-content-list"),
-                                verticalArrangement = Arrangement.spacedBy(20.dp),
+                                verticalArrangement = Arrangement.spacedBy(16.dp),
                             ) {
                                 PrimaryTripCard(
                                     trip = page.primaryTrip,
@@ -116,7 +116,7 @@ fun TripListContent(
                                     Text("其他旅行", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
                                     LazyColumn(
                                         modifier = Modifier.weight(1f).testTag("other-trips-list"),
-                                        verticalArrangement = Arrangement.spacedBy(20.dp),
+                                        verticalArrangement = Arrangement.spacedBy(16.dp),
                                     ) {
                                         items(page.otherTrips, key = TripCardUiModel::id) { trip ->
                                             OtherTripRow(
@@ -136,8 +136,8 @@ fun TripListContent(
                         }
                         EasyTripPrimaryButton(
                             onClick = { onAction(TripListAction.CreateTrip) },
-                            modifier = Modifier.align(Alignment.BottomEnd).width(142.dp).height(52.dp).testTag("create-trip"),
-                        ) { Text("创建旅行") }
+                            modifier = Modifier.align(Alignment.BottomEnd).width(132.dp).height(48.dp).testTag("create-trip"),
+                        ) { Text("＋ 创建新旅行") }
                     }
                 }
             }
@@ -147,7 +147,7 @@ fun TripListContent(
 
 @Composable
 private fun TripListHeader(modifier: Modifier = Modifier) {
-    Row(modifier.fillMaxWidth().heightIn(min = 69.dp), verticalAlignment = Alignment.CenterVertically) {
+    Row(modifier.fillMaxWidth().heightIn(min = 64.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("周末，去远一点", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             Text("我的旅行", modifier = Modifier.testTag("trip-list-title"), style = MaterialTheme.typography.headlineLarge)

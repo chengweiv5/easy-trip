@@ -1,7 +1,5 @@
 package com.yangchengwei.easytrip.place.ui
 
-import androidx.compose.foundation.Canvas
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,22 +10,26 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.workspace.PlaceScheduleSummaryUi
@@ -98,7 +100,7 @@ fun PlacePoolContent(
     onAction: (PlacePoolAction) -> Unit,
     onSearch: () -> Unit = {},
     showDialogs: Boolean = true,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
     schedulesByPlaceId: Map<String, PlaceScheduleSummaryUi> = emptyMap(),
 ) {
     PlacePoolContent(
@@ -158,11 +160,17 @@ fun PlacePoolContent(
     onStartAddSingle: ((String) -> Unit)?,
     schedulesByPlaceId: Map<String, PlaceScheduleSummaryUi> = emptyMap(),
     showDialogs: Boolean = true,
-    contentPadding: PaddingValues = PaddingValues(horizontal = 20.dp),
+    contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
 ) {
+    var selectedCityKey by rememberSaveable { mutableStateOf<String?>(null) }
+    val cityRows = state.allRows ?: state.rows
+    val cities = remember(cityRows) { placeCityGroups(cityRows) }
+    val activeCity = selectedCityKey?.takeIf { key -> cities.any { it.key == key } }
+    LaunchedEffect(activeCity) { selectedCityKey = activeCity }
+    val visibleGroups = remember(state.rows, activeCity) { filterPlaceCityGroups(state.rows, activeCity) }
     Column(modifier.padding(contentPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showSearch) PlaceSearchField(state.search.query, onSetQuery)
-        if (state.rows.isEmpty() && !showSearch) {
+        if (cityRows.isEmpty() && !showSearch) {
             com.yangchengwei.easytrip.core.ui.component.EmptyState(
                 title = "还没有收藏地点",
                 message = "先搜索想去的地点，收藏后再安排到每天的行程。",
@@ -174,39 +182,41 @@ fun PlacePoolContent(
             )
         } else {
             val listState = rememberLazyListState()
+            LaunchedEffect(activeCity, state.selectedTagIds) { listState.scrollToItem(0) }
+            if (!showSearch || onStartAdd != null) {
+                Row(
+                    modifier = Modifier.fillMaxWidth().testTag("place-pool-toolbar"),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    if (!showSearch) {
+                        Text(
+                            "已收藏 ${placePoolCollectionTotal(state)} 个",
+                            modifier = Modifier.weight(1f).testTag("place-pool-collection-total"),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    } else {
+                        Box(Modifier.weight(1f))
+                    }
+                    onStartAdd?.let { startAdd ->
+                        BatchAddButton(
+                            onClick = startAdd,
+                            modifier = Modifier.testTag("start-add-to-itinerary"),
+                        )
+                    }
+                }
+            }
+            if (cityRows.isNotEmpty()) PlaceCityFilterBar(cities, activeCity, { selectedCityKey = it }, Modifier.fillMaxWidth())
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 androidx.compose.foundation.lazy.LazyColumn(
                     state = listState,
                     modifier = Modifier.fillMaxSize().testTag("workspace-place-list"),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 24.dp, end = 8.dp),
+                    contentPadding = androidx.compose.foundation.layout.PaddingValues(bottom = 12.dp, end = 0.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp),
                 ) {
-                    if (!showSearch) item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth().padding(end = 48.dp),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            Text("已收藏 ${placePoolCollectionTotal(state)} 个", modifier = Modifier.testTag("place-pool-collection-total"))
-                            onStartAdd?.let { startAdd ->
-                                BatchAddButton(
-                                    onClick = startAdd,
-                                    modifier = Modifier.testTag("start-add-to-itinerary"),
-                                )
-                            }
-                        }
-                    } else if (onStartAdd != null) item {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.End,
-                            verticalAlignment = Alignment.CenterVertically,
-                        ) {
-                            BatchAddButton(
-                                onClick = onStartAdd,
-                                modifier = Modifier.testTag("start-add-to-itinerary"),
-                            )
-                        }
-                    }
                     if (state.tags.isNotEmpty()) item {
                     androidx.compose.foundation.layout.Row(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()).testTag("place-pool-tags"),
@@ -221,15 +231,23 @@ fun PlacePoolContent(
                         }
                     }
                 }
-                    items(state.rows.size, key = { state.rows[it].place.id }) { index ->
-                        val row = state.rows[index]
-                        SavedPlaceRow(
-                            place = row,
-                            onQuickAdd = onStartAddSingle?.let { callback -> { callback(row.place.id) } },
-                            onOpenDetail = { onOpenDetail(row.place.id) },
-                            onEdit = { onEdit(row.place) },
-                            onDelete = { onDelete(row.place) },
-                        )
+                    if (visibleGroups.isEmpty()) item {
+                        Column(Modifier.fillMaxWidth().padding(vertical = 24.dp).testTag("place-pool-filter-empty"), horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text("当前筛选下没有地点", style = MaterialTheme.typography.labelMedium)
+                            Text("切换城市或调整标签试试", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    visibleGroups.forEach { group ->
+                        if (activeCity == null && cities.size > 1) item(key = "city-heading-${group.key}") { PlaceCityGroupHeading(group) }
+                        items(group.rows, key = { it.place.id }) { row ->
+                            SavedPlaceRow(
+                                place = row,
+                                onQuickAdd = onStartAddSingle?.let { callback -> { callback(row.place.id) } },
+                                onOpenDetail = { onOpenDetail(row.place.id) },
+                                onEdit = { onEdit(row.place) },
+                                onDelete = { onDelete(row.place) },
+                            )
+                        }
                     }
                 }
                 ReadOnlyLazyScrollbar(
@@ -355,27 +373,11 @@ private fun BatchAddButton(
     onClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val iconColor = MaterialTheme.colorScheme.onPrimaryContainer
-    Surface(
-        modifier = modifier
-            .size(28.dp)
-            .semantics { contentDescription = "批量添加到行程" }
-            .clickable(onClick = onClick),
-        shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        contentColor = iconColor,
+    androidx.compose.material3.TextButton(
+        onClick = onClick,
+        modifier = modifier.semantics { contentDescription = "批量添加到行程" },
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 8.dp),
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Canvas(Modifier.size(16.dp)) {
-                val stroke = size.minDimension / 9f
-                val listStart = size.width * .16f
-                val listEnd = size.width * .58f
-                listOf(.28f, .5f, .72f).forEach { y ->
-                    drawLine(iconColor, Offset(listStart, size.height * y), Offset(listEnd, size.height * y), stroke)
-                }
-                drawLine(iconColor, Offset(size.width * .79f, size.height * .5f), Offset(size.width * .79f, size.height * .86f), stroke)
-                drawLine(iconColor, Offset(size.width * .61f, size.height * .68f), Offset(size.width * .97f, size.height * .68f), stroke)
-            }
-        }
+        Text("批量添加", style = MaterialTheme.typography.labelMedium, maxLines = 1)
     }
 }

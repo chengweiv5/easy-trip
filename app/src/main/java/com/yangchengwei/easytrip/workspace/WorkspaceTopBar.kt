@@ -13,6 +13,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -36,12 +37,12 @@ internal fun WorkspaceTopBar(
             .fillMaxWidth()
             .height(sizes.workspaceTopBarHeight)
             .testTag("workspace-top-bar"),
-        shape = RoundedCornerShape(EasyTripTheme.spacing.medium),
+        shape = RoundedCornerShape(EasyTripTheme.spacing.small),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = EasyTripTheme.elevation.floating,
     ) {
         Row(
-            Modifier.fillMaxSize().padding(horizontal = EasyTripTheme.spacing.xSmall),
+            Modifier.fillMaxSize().padding(horizontal = 4.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Box(
@@ -55,15 +56,15 @@ internal fun WorkspaceTopBar(
                 WorkspaceBackIcon(Modifier.size(sizes.workspaceIconSize))
             }
             Row(
-                Modifier.weight(1f).padding(horizontal = EasyTripTheme.spacing.xSmall),
+                Modifier.weight(1f).padding(horizontal = 4.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Text(
                     title,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.weight(1f).testTag("workspace-trip-title"),
+                    style = MaterialTheme.typography.labelMedium,
+                    modifier = Modifier.weight(1f, fill = false).testTag("workspace-trip-title"),
                 )
                 dateLabel?.let {
                     Text(

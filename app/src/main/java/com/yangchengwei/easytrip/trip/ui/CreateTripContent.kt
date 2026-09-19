@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.trip.ui
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -59,18 +60,18 @@ fun CreateTripContent(
         sheetVisible = showRangePicker && enabled,
         background = {
             Column(
-                modifier = modifier.fillMaxSize().safeDrawingPadding().imePadding(),
+                modifier = modifier.fillMaxSize().background(MaterialTheme.colorScheme.background).safeDrawingPadding().imePadding(),
             ) {
                 Column(
                     Modifier
                         .weight(1f)
                         .fillMaxWidth()
                         .verticalScroll(scrollState)
-                        .padding(horizontal = 20.dp, vertical = 18.dp),
-                    verticalArrangement = Arrangement.spacedBy(22.dp),
+                        .padding(start = 16.dp, top = 12.dp, end = 16.dp, bottom = 20.dp),
+                    verticalArrangement = Arrangement.spacedBy(16.dp),
                 ) {
                     Row(
-                        Modifier.fillMaxWidth().height(58.dp).testTag("create-header"),
+                        Modifier.fillMaxWidth().testTag("create-header"),
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(12.dp),
                     ) {
@@ -88,7 +89,7 @@ fun CreateTripContent(
                             }
                         }
                         Column {
-                            Text("创建旅行", style = MaterialTheme.typography.headlineMedium)
+                            Text("创建旅行", style = MaterialTheme.typography.headlineLarge)
                             Text(
                                 "先确定基本信息，之后再慢慢规划",
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,

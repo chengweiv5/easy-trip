@@ -18,6 +18,8 @@ import androidx.compose.ui.test.swipe
 import androidx.compose.ui.test.swipeUp
 import androidx.compose.ui.test.click
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -44,6 +46,80 @@ import org.junit.Test
 class WorkspaceChromeTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
+    @Test fun mapCollectionSummaryShowsUnfilteredTotalAndTracksCollectionChanges() {
+        var placeState by mutableStateOf(
+            com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+                savedPoiIds = (1..8).map { "poi-$it" }.toSet(),
+                selectedTagIds = setOf("filtered-tag"),
+                rows = emptyList(),
+            ),
+        )
+        var section by mutableStateOf(WorkspaceSection.PLACE_POOL)
+        var level by mutableStateOf(WorkspaceSheetLevel.HALF)
+        compose.setContent {
+            EasyTripTheme {
+                Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
+                    TripWorkspaceContent(
+                        pageState = TripWorkspacePageState.Ready(
+                            TripWorkspaceUiState(tripName = "杭州", section = section, sheetLevel = level).toReadyState(),
+                        ),
+                        mapState = WorkspaceMapState.Ready,
+                        onAction = {},
+                        placeState = placeState,
+                        onPlaceAction = {},
+                        itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
+                        onItineraryAction = {},
+                        mapContent = { _ -> Text("地图就绪") },
+                    )
+                }
+            }
+        }
+        compose.onNodeWithText("8 个收藏地点").assertIsDisplayed()
+        val badge = compose.onNodeWithTag("map-collection-summary").getUnclippedBoundsInRoot()
+        val header = compose.onNodeWithTag("workspace-top-bar").getUnclippedBoundsInRoot()
+        val layer = compose.onNodeWithTag("layer-menu").getUnclippedBoundsInRoot()
+        org.junit.Assert.assertEquals(28f, badge.height.value, .5f)
+        org.junit.Assert.assertEquals(header.left.value, badge.left.value, .5f)
+        org.junit.Assert.assertEquals(12f, (badge.top - header.bottom).value, .5f)
+        org.junit.Assert.assertEquals(layer.top.value, badge.top.value, .5f)
+        org.junit.Assert.assertTrue(badge.right < layer.left)
+
+        compose.runOnIdle { placeState = placeState.copy(savedPoiIds = setOf("poi-1")) }
+        compose.onNodeWithText("1 个收藏地点").assertIsDisplayed()
+        compose.runOnIdle { placeState = placeState.copy(savedPoiIds = emptySet()) }
+        compose.onNodeWithText("0 个收藏地点").assertIsDisplayed()
+        compose.runOnIdle { section = WorkspaceSection.ITINERARY }
+        compose.onNodeWithTag("map-collection-summary").assertDoesNotExist()
+        compose.runOnIdle { section = WorkspaceSection.PLACE_POOL; level = WorkspaceSheetLevel.EXPANDED }
+        compose.onNodeWithTag("map-collection-summary").assertDoesNotExist()
+        compose.onNodeWithTag("workspace-compass").assertDoesNotExist()
+    }
+
+    @Test fun compassNorthNeedleTracksMapBearing() {
+        var bearing by mutableStateOf(0f)
+        compose.setContent {
+            EasyTripTheme { MapControls(active = false, onOpenLayerMenu = {}, bearing = bearing) }
+        }
+        fun northNeedleCenter(): Pair<Offset, Offset> {
+            val pixels = compose.onNodeWithTag("workspace-compass").captureToImage().toPixelMap()
+            val northPixels = buildList {
+                for (y in 0 until pixels.height) for (x in 0 until pixels.width) {
+                    val color = pixels[x, y]
+                    if (color.red > .65f && color.green < .6f && color.blue < .4f) add(Offset(x.toFloat(), y.toFloat()))
+                }
+            }
+            org.junit.Assert.assertTrue("North needle must be visible", northPixels.isNotEmpty())
+            val centroid = Offset(northPixels.map { it.x }.average().toFloat(), northPixels.map { it.y }.average().toFloat())
+            return centroid to Offset(pixels.width / 2f, pixels.height / 2f)
+        }
+        val (northUp, center) = northNeedleCenter()
+        org.junit.Assert.assertTrue(northUp.y < center.y - 1f)
+        compose.runOnIdle { bearing = 90f }
+        val (northLeft, rotatedCenter) = northNeedleCenter()
+        org.junit.Assert.assertTrue(northLeft.x < rotatedCenter.x - 1f)
+        org.junit.Assert.assertEquals(rotatedCenter.y, northLeft.y, 2f)
+    }
+
     @Test fun topBarKeepsActionsVisibleWithLongTripName() {
         compose.setContent {
             EasyTripTheme {
@@ -56,7 +132,7 @@ class WorkspaceChromeTest {
             }
         }
 
-        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(42.dp)
+        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(36.dp)
         compose.onNodeWithTag("workspace-back").assertIsDisplayed().assertHasClickAction()
         compose.onNodeWithTag("workspace-more").assertIsDisplayed().assertHasClickAction()
         val title = compose.onNodeWithTag("workspace-trip-title").assertIsDisplayed().getUnclippedBoundsInRoot()
@@ -65,7 +141,7 @@ class WorkspaceChromeTest {
         org.junit.Assert.assertTrue("title=$title date=$date", title.top <= date.top && title.bottom >= date.bottom)
     }
 
-    @Test fun workspaceChromeMatchesCompactTopAndFiveControlGeometry() {
+    @Test fun workspaceChromeMatchesCompactControlsAndAlignedBottomSearch() {
         compose.setContent {
             EasyTripTheme {
                 Box(Modifier.fillMaxWidth().requiredHeight(844.dp)) {
@@ -93,38 +169,47 @@ class WorkspaceChromeTest {
         val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
         val topBar = compose.onNodeWithTag("workspace-top-bar").getUnclippedBoundsInRoot()
         val layer = compose.onNodeWithTag("layer-menu").getUnclippedBoundsInRoot()
-        val zoomIn = compose.onNodeWithTag("zoom-in").getUnclippedBoundsInRoot()
-        val zoomOut = compose.onNodeWithTag("zoom-out").getUnclippedBoundsInRoot()
+        compose.onNodeWithTag("zoom-in").assertDoesNotExist()
+        compose.onNodeWithTag("zoom-out").assertDoesNotExist()
         val locate = compose.onNodeWithTag("workspace-locate").getUnclippedBoundsInRoot()
-        val search = compose.onNodeWithTag("workspace-search-control").getUnclippedBoundsInRoot()
+        val compass = compose.onNodeWithTag("workspace-compass").getUnclippedBoundsInRoot()
+        compose.onNodeWithTag("workspace-search-control").assertDoesNotExist()
+        val search = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot()
+        val legend = compose.onNodeWithTag("map-legend").getUnclippedBoundsInRoot()
+        val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
 
         org.junit.Assert.assertEquals(12.dp, topBar.left - root.left)
-        org.junit.Assert.assertEquals(42.dp, topBar.height)
+        org.junit.Assert.assertEquals(36.dp, topBar.height)
         org.junit.Assert.assertEquals(12.dp, root.right - topBar.right)
         org.junit.Assert.assertEquals(12.dp, root.right - search.right)
-        listOf(layer, zoomIn, zoomOut, locate, search).forEach { bounds ->
-            org.junit.Assert.assertEquals(28.dp, bounds.width)
-            org.junit.Assert.assertEquals(28.dp, bounds.height)
+        listOf(layer, locate, compass).forEach { bounds ->
+            org.junit.Assert.assertEquals(28f, bounds.width.value, 0.5f)
+            org.junit.Assert.assertEquals(28f, bounds.height.value, 0.5f)
         }
-        org.junit.Assert.assertEquals(5.dp, zoomIn.top - layer.bottom)
-        org.junit.Assert.assertEquals(5.dp, zoomOut.top - zoomIn.bottom)
-        org.junit.Assert.assertEquals(5.dp, locate.top - zoomOut.bottom)
-        org.junit.Assert.assertEquals(5.dp, search.top - locate.bottom)
+        org.junit.Assert.assertEquals(8f, (locate.top - layer.bottom).value, 0.5f)
+        org.junit.Assert.assertEquals(8f, (compass.top - locate.bottom).value, 0.5f)
+        org.junit.Assert.assertEquals(locate.left.value, compass.left.value, 0.5f)
+        org.junit.Assert.assertTrue(compass.bottom < search.top)
+        org.junit.Assert.assertEquals(160f, search.width.value, 0.5f)
+        org.junit.Assert.assertEquals(32f, search.height.value, 0.5f)
+        org.junit.Assert.assertEquals(32f, legend.height.value, 0.5f)
+        org.junit.Assert.assertEquals(legend.top.value, search.top.value, 0.5f)
+        org.junit.Assert.assertEquals(legend.bottom.value, search.bottom.value, 0.5f)
+        org.junit.Assert.assertEquals(12f, (sheet.top - search.bottom).value, 0.5f)
+        org.junit.Assert.assertTrue(legend.right < search.left)
     }
 
-    @Test fun fifthMapControlDispatchesOpenSearch() {
+    @Test fun bottomSearchFieldDispatchesOpenSearch() {
         val actions = mutableListOf<TripWorkspaceAction>()
         compose.setContent {
             EasyTripTheme {
-                MapControls(
-                    active = false,
-                    onOpenLayerMenu = {},
-                    onOpenSearch = { actions += TripWorkspaceAction.OpenSearch },
+                WorkspaceSearchBar(
+                    onClick = { actions += TripWorkspaceAction.OpenSearch },
                 )
             }
         }
 
-        compose.onNodeWithTag("workspace-search-control").performClick()
+        compose.onNodeWithTag("workspace-search-launcher").performClick()
         compose.runOnIdle {
             org.junit.Assert.assertEquals(listOf(TripWorkspaceAction.OpenSearch), actions)
         }
@@ -169,7 +254,7 @@ class WorkspaceChromeTest {
         listOf("旅行设置", "地图授权", "返回我的旅行").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
         listOf("修改名称、日期和旅行日", "管理高德地图权限", "回到旅行列表").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
         val panel = compose.onNodeWithTag("more-menu-panel").getUnclippedBoundsInRoot()
-        org.junit.Assert.assertTrue(panel.right - panel.left >= 180.dp && panel.right - panel.left <= 210.dp)
+        org.junit.Assert.assertTrue(panel.right - panel.left == 240.dp)
         org.junit.Assert.assertTrue(panel.bottom - panel.top >= 170.dp)
         compose.onNodeWithTag("more-menu-scrim").performClick()
         org.junit.Assert.assertEquals(
@@ -308,7 +393,7 @@ class WorkspaceChromeTest {
         }
 
         compose.onNodeWithTag("workspace-sheet-handle")
-            .assertHeightIsEqualTo(60.dp)
+            .assertHeightIsEqualTo(48.dp)
         compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
         compose.onNodeWithTag("sheet-summary").assertIsDisplayed()
         compose.onAllNodesWithTag("business-list").assertCountEquals(0)
@@ -394,7 +479,7 @@ class WorkspaceChromeTest {
         }
 
         compose.onNodeWithTag("workspace-sheet").assertHeightIsEqualTo(96.dp)
-        compose.onNodeWithTag("workspace-sheet-handle").assertHeightIsEqualTo(60.dp)
+        compose.onNodeWithTag("workspace-sheet-handle").assertHeightIsEqualTo(48.dp)
         compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
         compose.onNodeWithTag("small-window-summary").assertIsDisplayed()
     }
@@ -500,9 +585,9 @@ class WorkspaceChromeTest {
         }
         compose.waitForIdle()
 
-        compose.onNodeWithTag("layer-menu-panel").assertHeightIsEqualTo(289.dp)
+        compose.onNodeWithTag("layer-menu-panel").assertHeightIsEqualTo(284.dp)
         listOf("STANDARD", "SATELLITE", "SATELLITE_ROAD").forEach { option ->
-            compose.onNodeWithTag("layer-$option").assertIsDisplayed().assertHeightIsEqualTo(62.dp)
+            compose.onNodeWithTag("layer-$option").assertIsDisplayed().assertHeightIsEqualTo(58.dp)
         }
         compose.onNodeWithText("标准地图").assertIsDisplayed()
         compose.onNodeWithText("卫星地图").assertIsDisplayed()
@@ -594,8 +679,9 @@ class WorkspaceChromeTest {
         }
 
         listOf(
-            "workspace-search-control" to TripWorkspaceAction.OpenSearch,
+            "workspace-search-launcher" to TripWorkspaceAction.OpenSearch,
             "workspace-locate" to TripWorkspaceAction.Locate,
+            "workspace-compass" to TripWorkspaceAction.ResetNorth,
             "layer-menu" to TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu),
             "section-PLACE_POOL" to TripWorkspaceAction.SelectSection(WorkspaceSection.PLACE_POOL),
         ).forEach { (tag, forbiddenAction) ->

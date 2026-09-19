@@ -22,16 +22,38 @@ data class PlaceCandidate(
     val address: String,
     val point: GeoPoint?,
     val cityCode: String?,
+    val cityName: String? = null,
+    val cityAdCode: String? = null,
 )
 
 interface PlaceSearchDataSource {
     suspend fun search(keyword: String, city: String?): List<PlaceCandidate>
+    suspend fun cityForPoi(poiId: String): com.yangchengwei.easytrip.place.domain.PlaceCity? = null
 }
 
 class AmapPlaceDataSource(context: Context, private val consent: AmapConsentToken) : PlaceSearchDataSource {
     private val context = context.applicationContext
 
     init { consent.validateActive() }
+
+    override suspend fun cityForPoi(poiId: String): com.yangchengwei.easytrip.place.domain.PlaceCity? {
+        consent.validateActive()
+        val search = PoiSearch(context, null)
+        return awaitSdkCallback("POI_CITY", object : CallbackBoundary<Pair<com.amap.api.services.core.PoiItem?, Int>> {
+            override fun install(listener: (Result<Pair<com.amap.api.services.core.PoiItem?, Int>>) -> Unit) {
+                search.setOnPoiSearchListener(object : PoiSearch.OnPoiSearchListener {
+                    override fun onPoiSearched(result: PoiResult?, code: Int) = Unit
+                    override fun onPoiItemSearched(item: com.amap.api.services.core.PoiItem?, code: Int) = listener(Result.success(item to code))
+                })
+            }
+            override fun clear() = search.setOnPoiSearchListener(null)
+            override fun start() = search.searchPOIIdAsyn(poiId)
+        }) { (item, code) ->
+            consent.validateActive()
+            if (code != AMapException.CODE_AMAP_SUCCESS) throw AmapServiceException("POI_CITY", code, "AMap city lookup failed")
+            item?.let { com.yangchengwei.easytrip.place.domain.administrativeCity(it.cityName, it.adCode, it.adName) }
+        }
+    }
 
     override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
         consent.validateActive()
@@ -68,7 +90,7 @@ internal fun parsePoiSearchResponse(callback: Pair<PoiResult?, Int>): List<Place
     val (result, code) = callback
     if (code != AMapException.CODE_AMAP_SUCCESS) throw AmapServiceException("POI_SEARCH", code, "AMap POI search failed")
     val raw = result?.pois.orEmpty().map { item ->
-        RawPlace(item.poiId.orEmpty(), item.title.orEmpty(), item.snippet.orEmpty(), item.latLonPoint?.let { GeoPoint(it.latitude, it.longitude) }, item.cityCode)
+        RawPlace(item.poiId.orEmpty(), item.title.orEmpty(), item.snippet.orEmpty(), item.latLonPoint?.let { GeoPoint(it.latitude, it.longitude) }, item.cityCode, item.cityName, item.adCode, item.adName)
     }
     return parsePlaces(raw)
 }

@@ -36,15 +36,14 @@ import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 fun MapControls(
     active: Boolean,
     onOpenLayerMenu: () -> Unit,
-    onZoomIn: () -> Unit = {},
-    onZoomOut: () -> Unit = {},
     onLocate: () -> Unit = {},
-    onOpenSearch: () -> Unit = {},
     modifier: Modifier = Modifier,
+    bearing: Float = 0f,
+    onResetNorth: () -> Unit = {},
 ) {
     val controlSize = EasyTripTheme.sizes.workspaceDenseTouchTarget
     val iconSize = EasyTripTheme.sizes.workspaceIconSize
-    val controlGap = 5.dp
+    val controlGap = EasyTripTheme.spacing.workspaceControlGap
     Column(modifier, verticalArrangement = Arrangement.spacedBy(controlGap), horizontalAlignment = Alignment.End) {
         Surface(
             Modifier.size(controlSize).testTag("layer-menu").semantics {
@@ -56,16 +55,14 @@ fun MapControls(
             shadowElevation = EasyTripTheme.elevation.floating,
         ) {
             Box(contentAlignment = Alignment.Center) {
-                WorkspaceLayerIcon(Modifier.size(iconSize), if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface)
+                WorkspaceLayerIcon(Modifier.size(iconSize), if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.primary)
             }
         }
-        MapControlButton("放大", "zoom-in", controlSize, onZoomIn) { MapZoomGlyph(plus = true) }
-        MapControlButton("缩小", "zoom-out", controlSize, onZoomOut) { MapZoomGlyph(plus = false) }
         MapControlButton("定位", "workspace-locate", controlSize, onLocate) {
             WorkspaceLocateIcon(Modifier.size(iconSize))
         }
-        MapControlButton("搜索地点", "workspace-search-control", controlSize, onOpenSearch) {
-            WorkspaceSearchIcon(Modifier.size(iconSize))
+        MapControlButton("指北针，点击恢复正北", "workspace-compass", controlSize, onResetNorth) {
+            WorkspaceCompassIcon(bearing = bearing, modifier = Modifier.size(18.dp))
         }
     }
 }
@@ -87,35 +84,31 @@ private fun MapControlButton(
 }
 
 @Composable
-private fun MapZoomGlyph(plus: Boolean) {
-    val color = MaterialTheme.colorScheme.onSurface
-    androidx.compose.foundation.Canvas(Modifier.size(22.dp)) {
-        val stroke = 2.dp.toPx()
-        val inset = size.width * .24f
-        drawLine(color, androidx.compose.ui.geometry.Offset(inset, size.height / 2), androidx.compose.ui.geometry.Offset(size.width - inset, size.height / 2), stroke)
-        if (plus) drawLine(color, androidx.compose.ui.geometry.Offset(size.width / 2, inset), androidx.compose.ui.geometry.Offset(size.width / 2, size.height - inset), stroke)
-    }
-}
-
-@Composable
 internal fun MapLayerMenu(
     layer: MapLayer,
     onClose: () -> Unit,
     onSelectLayer: (MapLayer) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    val shape = RoundedCornerShape(14.dp)
+    val shape = RoundedCornerShape(12.dp)
     Surface(
-        modifier.width(240.dp).height(289.dp).testTag("layer-menu-panel"),
+        modifier.width(240.dp).height(284.dp).testTag("layer-menu-panel"),
         shape = shape,
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = EasyTripTheme.elevation.dialog,
     ) {
-        Column(Modifier.padding(14.dp).pointerInput(Unit) { detectTapGestures { } }, verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(Modifier.padding(12.dp).pointerInput(Unit) { detectTapGestures { } }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
+                WorkspaceLayerIcon(Modifier.size(14.dp), MaterialTheme.colorScheme.primary)
+                Text("地图图层", Modifier.weight(1f).padding(start = 8.dp), style = MaterialTheme.typography.labelMedium)
+                Box(Modifier.size(28.dp).clickable(onClick = onClose).semantics { contentDescription = "关闭地图图层" }, contentAlignment = Alignment.Center) {
+                    Text("×", style = MaterialTheme.typography.titleMedium)
+                }
+            }
             MapLayer.entries.forEach { option ->
                 val selected = layer == option
-                val rowShape = RoundedCornerShape(10.dp)
-                Box(Modifier.fillMaxWidth().height(62.dp)) {
+                val rowShape = RoundedCornerShape(8.dp)
+                Box(Modifier.fillMaxWidth().height(58.dp)) {
                     if (selected) {
                         Box(
                             Modifier
@@ -141,6 +134,7 @@ internal fun MapLayerMenu(
                                     onClose()
                                 },
                             )
+                            .border(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, rowShape)
                             .padding(horizontal = 12.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
@@ -152,11 +146,14 @@ internal fun MapLayerMenu(
                         ) {
                             if (selected) WorkspaceCheckIcon(Modifier.size(14.dp), MaterialTheme.colorScheme.onPrimary)
                         }
-                        Text(option.label(), Modifier.padding(start = 10.dp), style = MaterialTheme.typography.bodyMedium)
+                        Column(Modifier.padding(start = 10.dp)) {
+                            Text(option.label(), style = MaterialTheme.typography.labelMedium)
+                            Text(option.description(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
                     }
                 }
             }
-            Text("选择将应用到所有旅行，并在下次打开时保留。", style = MaterialTheme.typography.labelSmall)
+            Text("选择将应用到所有旅行，并在下次打开时保留。", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

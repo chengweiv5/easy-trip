@@ -28,16 +28,17 @@ fun WorkspaceItineraryContent(
     contentPadding: PaddingValues = PaddingValues.Zero,
     startDate: LocalDate? = null,
 ) {
-    Row(modifier.padding(contentPadding).padding(start = 12.dp)) {
+    Row(modifier.padding(contentPadding).padding(horizontal = 16.dp)) {
         ItineraryScopeRail(
             days = days,
             selected = selected,
             onSelect = onSelect,
             onAddDay = onAppendDay,
             modifier = Modifier.fillMaxHeight(),
+            startDate = startDate,
         )
         VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .45f))
-        Box(Modifier.weight(1f).fillMaxHeight().padding(start = 4.dp)) {
+        Box(Modifier.weight(1f).fillMaxHeight().padding(start = 12.dp)) {
             when (selected) {
                 ItineraryScope.WholeTrip -> WholeTripItineraryContent(
                     days = wholeTripDays,

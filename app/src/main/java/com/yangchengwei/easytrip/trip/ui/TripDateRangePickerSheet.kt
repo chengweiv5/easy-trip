@@ -131,15 +131,15 @@ fun TripDateRangePickerSheet(
                 paneTitle = title
                 isTraversalGroup = true
             },
-        shape = RoundedCornerShape(topStart = 22.dp, topEnd = 22.dp),
+        shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = 12.dp,
     ) {
-        Column(Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 10.dp)) {
+        Column(Modifier.fillMaxSize().padding(horizontal = 16.dp, vertical = 8.dp)) {
             Text(
                 text = title,
                 modifier = Modifier.padding(top = 12.dp),
-                style = MaterialTheme.typography.titleLarge,
+                style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
             )
             Column(
@@ -176,7 +176,7 @@ fun TripDateRangePickerSheet(
             }
             Row(
                 modifier = Modifier.fillMaxWidth().windowInsetsPadding(bottomInset).padding(top = 10.dp),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
             ) {
                 EasyTripSecondaryButton(
                     onClick = dismiss,
@@ -259,7 +259,7 @@ private fun MonthNavigation(month: YearMonth, onPrevious: () -> Unit, onNext: ()
 
 @Composable
 private fun DateRangeMonthButton(onClick: () -> Unit, tag: String, icon: @Composable () -> Unit) = Surface(
-    modifier = Modifier.size(44.dp).testTag(tag).clickable(onClick = onClick),
+    modifier = Modifier.size(40.dp).testTag(tag).clickable(onClick = onClick),
     shape = CircleShape,
     color = MaterialTheme.colorScheme.surfaceVariant,
 ) { Box(contentAlignment = Alignment.Center) { icon() } }

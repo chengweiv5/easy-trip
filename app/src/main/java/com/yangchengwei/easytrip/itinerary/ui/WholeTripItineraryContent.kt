@@ -74,8 +74,7 @@ fun WholeTripItineraryContent(
                 } else {
                     day.items.forEachIndexed { index, itineraryItem ->
                         item(key = "${day.dayId}-item-${itineraryItem.id}") {
-                            Column(Modifier.fillMaxWidth().padding(end = 10.dp)) {
-                                Spacer(Modifier.height(if (index == 0) 6.dp else 8.dp))
+                            Column(Modifier.fillMaxWidth()) {
                                 ItineraryPlaceRow(
                                     item = itineraryItem,
                                     displayOrder = index + 1,
@@ -88,8 +87,7 @@ fun WholeTripItineraryContent(
                             it.fromItemId == itineraryItem.id && it.toItemId == nextItemId
                         }?.let { leg ->
                             item(key = "${day.dayId}-leg-${leg.id}") {
-                                Column(Modifier.fillMaxWidth().padding(end = 10.dp)) {
-                                    Spacer(Modifier.height(8.dp))
+                                Column(Modifier.fillMaxWidth()) {
                                     RouteLegContent(
                                         leg = leg,
                                         modifier = Modifier.fillMaxWidth().testTag("leg-${leg.id}"),

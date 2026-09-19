@@ -10,6 +10,10 @@ import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceBorder
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceSurface
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -132,6 +136,7 @@ internal fun ItineraryItemRow(
                 canScheduleAgain = canScheduleAgain && item.placeId != null,
             )
         },
+        compactTimeline = true,
         containerColor = if (effectiveDragging) MaterialTheme.colorScheme.primaryContainer else EasyTripPlaceSurface,
         elevation = if (effectiveDragging) 12.dp else 0.dp,
     )
@@ -202,7 +207,12 @@ internal fun ItineraryPlaceContent(
     trailingAction: (@Composable () -> Unit)? = null,
     containerColor: Color = EasyTripPlaceSurface,
     elevation: Dp = 0.dp,
+    compactTimeline: Boolean = false,
 ) {
+    if (compactTimeline) {
+        CompactItineraryStop(item, modifier, leadingAction, trailingAction)
+        return
+    }
     Surface(
         modifier = modifier.testTag("item-${item.id}"),
         shape = RoundedCornerShape(8.dp),
@@ -253,6 +263,38 @@ internal fun ItineraryPlaceContent(
                     modifier = Modifier.padding(start = contentInset).testTag("itinerary-place-timing-${item.id}"),
                 )
             }
+        }
+    }
+}
+
+@Composable
+private fun CompactItineraryStop(
+    item: ItineraryItemUi,
+    modifier: Modifier,
+    dragHandle: (@Composable () -> Unit)?,
+    menu: (@Composable () -> Unit)?,
+) {
+    Row(
+        modifier.fillMaxWidth().heightIn(min = 54.dp).testTag("item-${item.id}"),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(7.dp),
+    ) {
+        Column(Modifier.width(42.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Text(item.arrivalTime?.toString() ?: "待定", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+            Box(Modifier.size(8.dp).background(com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent, RoundedCornerShape(4.dp)))
+        }
+        Column(Modifier.weight(1f).padding(vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
+            Text(item.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("itinerary-place-name-${item.id}"))
+            Text(
+                item.stayMinutes?.let { "停留 ${formatDuration(it * 60)}" } ?: "待安排停留时长",
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.testTag("itinerary-place-timing-${item.id}"),
+            )
+        }
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            dragHandle?.invoke()
+            menu?.invoke()
         }
     }
 }

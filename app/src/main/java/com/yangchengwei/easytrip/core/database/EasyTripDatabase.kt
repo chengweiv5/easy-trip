@@ -27,10 +27,16 @@ interface SchemaItineraryDao {
     @Query("SELECT COUNT(*) FROM itinerary_items WHERE tripId=:tripId") suspend fun items(tripId:String):Int
     @Query("SELECT COUNT(*) FROM route_legs WHERE tripDayId IN (SELECT id FROM trip_days WHERE tripId=:tripId)") suspend fun legs(tripId:String):Int
 }
-@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class],version=3,exportSchema=true)
+@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class],version=4,exportSchema=true)
 @TypeConverters(Converters::class) abstract class EasyTripDatabase:RoomDatabase(){
     abstract fun tripDao():TripDao; abstract fun placeDao():SchemaPlaceDao; abstract fun savedPlaceDao():com.yangchengwei.easytrip.place.data.PlaceDao; abstract fun itineraryDao():SchemaItineraryDao; abstract fun itineraryEditingDao():com.yangchengwei.easytrip.itinerary.data.ItineraryDao; abstract fun routeDao():SchemaRouteDao; abstract fun routeLegDao():com.yangchengwei.easytrip.route.data.RouteLegDao; abstract fun deleteImpactDao():DeleteImpactDao; abstract fun cascadeCountDao():CascadeCountDao
     companion object {
+        val MIGRATION_3_4 = object : Migration(3, 4) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("ALTER TABLE saved_places ADD COLUMN cityName TEXT")
+                db.execSQL("ALTER TABLE saved_places ADD COLUMN cityAdCode TEXT")
+            }
+        }
         val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE itinerary_items ADD COLUMN note TEXT")

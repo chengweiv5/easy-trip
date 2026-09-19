@@ -98,6 +98,7 @@ import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.permission.LocationPermissionCoordinator
+import com.yangchengwei.easytrip.permission.WorkspaceEffect
 import com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
@@ -138,21 +139,25 @@ class WorkspaceFlowTest {
             val tripId = runBlocking { trips.createTrip(CreateTrip("真实导航", 1)) }
             val museum = PlaceCandidate("museum", "博物馆", "北京市东城区", GeoPoint(39.91, 116.41), "010")
             val navigated = mutableListOf<String>()
+            val consentDependencies = productionLocationDependencies(InMemoryLocationPermissionRequestStore())
+            val searchSource = object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) = listOf(museum)
+            }
             compose.setContent {
                 AppNavigation(
                     service = TripService(trips),
                     repository = trips,
                     impacts = RoomDeleteImpactProvider(database.deleteImpactDao()),
-                    dependencies = AppNavigationDependencies(
+                    dependencies = consentDependencies.copy(
                         savedPlaceRepository = places,
                         itineraryRepository = itineraries,
                         routeLegRepository = routes,
                         mapPreferences = InMemoryMapPreferences(),
                         locationPermissionRequestStore = InMemoryLocationPermissionRequestStore(),
-                        placeSearchDataSource = object : PlaceSearchDataSource {
-                            override suspend fun search(keyword: String, city: String?) = listOf(museum)
+                        runtimeSessionFactory = { fact ->
+                            requireNotNull(consentDependencies.runtimeSessionFactory).invoke(fact)
+                                .copy(placeSearchDataSource = searchSource)
                         },
-                        mapConsentToken = consentToken(),
                     ),
                     navigationObserver = AppNavigationObserver(navigated::add),
                     mapHostFactory = ::TestMapHost,
@@ -161,7 +166,10 @@ class WorkspaceFlowTest {
 
             compose.onNodeWithTag("primary-trip-$tripId").performClick()
             compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
-            compose.onNodeWithTag("workspace-search-control").assertHasClickAction().performClick()
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithTag("workspace-search-launcher").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onNodeWithTag("workspace-search-launcher").assertHasClickAction().performClick()
             compose.onNodeWithTag("place-search-field").performTextInput("博物馆")
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithTag("place-search-bookmark-touch-museum").fetchSemanticsNodes().isNotEmpty()
@@ -193,13 +201,14 @@ class WorkspaceFlowTest {
                 legIdFactory = { "place-leg-${nextId++}" },
             )
             val routes = RoomRouteLegRepository(database.routeLegDao())
-            val tripId = runBlocking { trips.createTrip(CreateTrip("地点添加闭环", 1)) }
-            val dayId = requireNotNull(runBlocking { trips.observeTrip(tripId).first() }).days.single().id
+            val tripId = runBlocking { trips.createTrip(CreateTrip("地点添加闭环", 2)) }
+            val dayIds = requireNotNull(runBlocking { trips.observeTrip(tripId).first() }).days.map { it.id }
+            val dayId = dayIds.first()
             val placeIds = runBlocking {
-                listOf("西湖", "灵隐寺", "雷峰塔", "中国美术学院").mapIndexed { index, name ->
+                listOf("西湖", "灵隐寺", "雷峰塔", "外滩").mapIndexed { index, name ->
                     (places.save(
                         tripId,
-                        PlaceCandidate("room-poi-$index", name, "杭州市", GeoPoint(30.20 + index, 120.10 + index), ""),
+                        PlaceCandidate("room-poi-$index", name, if (index == 3) "上海市" else "杭州市", GeoPoint(30.20 + index, 120.10 + index), "", if (index == 3) "上海市" else "杭州市", if (index == 3) "310000" else "330100"),
                     ) as SavePlaceResult.Saved).id
                 }
             }
@@ -228,7 +237,7 @@ class WorkspaceFlowTest {
             fun assertPhysicalFooter(tag: String) {
                 val footer = compose.onNodeWithTag(tag).assertIsDisplayed()
                 val bounds = footer.getUnclippedBoundsInRoot()
-                val root = compose.onNode(isDialog()).getUnclippedBoundsInRoot()
+                val root = compose.onNodeWithTag("workspace-editor-sheet").getUnclippedBoundsInRoot()
                 assertTrue("$tag has zero bounds: $bounds", bounds.right > bounds.left && bounds.bottom > bounds.top)
                 assertTrue("$tag is outside dialog: footer=$bounds dialog=$root", bounds.left >= root.left && bounds.right <= root.right && bounds.top >= root.top && bounds.bottom <= root.bottom)
             }
@@ -236,22 +245,26 @@ class WorkspaceFlowTest {
             compose.onNodeWithTag("quick-add-place-${placeIds.first()}").assertIsDisplayed().performTouchInput { click() }
             compose.waitUntil(5_000) { compose.onAllNodesWithTag("target-day-$dayId").fetchSemanticsNodes().isNotEmpty() }
             compose.onNodeWithTag("target-day-$dayId").performTouchInput { click() }
+            compose.onNodeWithTag("target-day-${dayIds.last()}").performTouchInput { click() }
             assertPhysicalFooter("select-target-day-submit")
             compose.onNodeWithTag("select-target-day-submit").assertIsEnabled().performTouchInput { click() }
             compose.waitUntil(5_000) {
                 runBlocking { database.itineraryEditingDao().items(dayId) }.map { it.savedPlaceId } == listOf(placeIds.first())
             }
-            compose.waitUntil(5_000) { compose.onAllNodesWithText("已加入第 1 天").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText("关闭").assertIsDisplayed().performTouchInput { click() }
+            compose.waitUntil(5_000) { compose.onAllNodesWithTag("workspace-editor-sheet").fetchSemanticsNodes().isEmpty() }
+            compose.onAllNodes(isDialog()).assertCountEquals(0)
+            assertEquals(listOf(placeIds.first()), runBlocking { database.itineraryEditingDao().items(dayIds.last()) }.map { it.savedPlaceId })
+            compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
 
             compose.onNodeWithTag("start-add-to-itinerary").assertIsDisplayed().performTouchInput { click() }
             compose.waitUntil(5_000) { compose.onAllNodesWithTag("select-place-${placeIds[1]}").fetchSemanticsNodes().isNotEmpty() }
-            compose.onNodeWithText("取消").assertIsDisplayed().performTouchInput { click() }
+            compose.onNodeWithTag("select-places-close").assertIsDisplayed().performTouchInput { click() }
             compose.waitUntil(5_000) { compose.onAllNodesWithTag("start-add-to-itinerary").fetchSemanticsNodes().isNotEmpty() }
             assertEquals(listOf(placeIds.first()), runBlocking { database.itineraryEditingDao().items(dayId) }.map { it.savedPlaceId })
 
             compose.onNodeWithTag("start-add-to-itinerary").performTouchInput { click() }
-            placeIds.drop(1).forEach { placeId ->
+            placeIds.drop(1).forEachIndexed { index, placeId ->
+                compose.onNodeWithTag(if (index == 2) "place-city-310000" else "place-city-330100").performClick()
                 compose.onNodeWithTag("select-place-$placeId").performScrollTo().assertIsDisplayed().performTouchInput { click() }
             }
             assertPhysicalFooter("select-places-continue")
@@ -263,7 +276,11 @@ class WorkspaceFlowTest {
             compose.waitUntil(5_000) {
                 runBlocking { database.itineraryEditingDao().items(dayId) }.map { it.savedPlaceId } == placeIds
             }
-            compose.onNodeWithText("已加入第 1 天").assertIsDisplayed()
+            compose.waitUntil(5_000) { compose.onAllNodesWithTag("workspace-editor-sheet").fetchSemanticsNodes().isEmpty() }
+            compose.onAllNodes(isDialog()).assertCountEquals(0)
+            compose.onNodeWithTag("section-PLACE_POOL").assertIsSelected()
+            compose.onNodeWithTag("start-add-to-itinerary").assertIsDisplayed().performClick()
+            compose.onNodeWithTag("select-places-content").assertIsDisplayed()
         } finally {
             database.close()
         }
@@ -435,7 +452,7 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { requestStore.hasRequested && permissionResult != null }
         compose.onNodeWithTag("workspace-back").performClick()
         compose.waitUntil(5_000) {
-            compose.onAllNodesWithTag("workspace-search-control").fetchSemanticsNodes().isEmpty()
+            compose.onAllNodesWithTag("workspace-search-launcher").fetchSemanticsNodes().isEmpty()
         }
 
         permissionResult!!.invoke(LocationPermissionSnapshot(granted = true, shouldShowRationale = false))
@@ -542,13 +559,13 @@ class WorkspaceFlowTest {
 
         val backNode = compose.onNodeWithTag("workspace-back").assertIsDisplayed().assertHasClickAction()
         val moreNode = compose.onNodeWithTag("workspace-more").assertIsDisplayed().assertHasClickAction()
-        val searchNode = compose.onNodeWithTag("workspace-search-control").assertIsDisplayed().assertHasClickAction()
+        val searchNode = compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed().assertHasClickAction()
         val back = backNode.getUnclippedBoundsInRoot()
         val more = moreNode.getUnclippedBoundsInRoot()
         val search = searchNode.getUnclippedBoundsInRoot()
         assert(back.right - back.left == 24.dp && back.bottom - back.top == 24.dp)
         assert(more.right - more.left == 24.dp && more.bottom - more.top == 24.dp)
-        assert(search.right - search.left == 24.dp && search.bottom - search.top == 24.dp)
+        assert(search.right - search.left == 160.dp && search.bottom - search.top == 32.dp)
         assert(back.right <= more.left)
 
         backNode.performClick()
@@ -738,6 +755,96 @@ class WorkspaceFlowTest {
         assertEquals(WorkspaceSection.ITINERARY, model.state.value.section)
     }
 
+    @Test fun compassRetainsViewportAndDropsCallbacksAfterDisposal() {
+        val target = com.amap.api.maps.model.LatLng(30.25, 120.15)
+        val original = com.amap.api.maps.model.CameraPosition(target, 13.5f, 35f, 90f)
+        val north = northUpCameraPosition(original)
+        assertEquals(target, north.target)
+        assertEquals(original.zoom, north.zoom, 0f)
+        assertEquals(original.tilt, north.tilt, 0f)
+        assertEquals(0f, north.bearing, 0f)
+
+        val consent = consentToken()
+        var mounted by mutableStateOf(true)
+        var request by mutableIntStateOf(0)
+        var revision by mutableIntStateOf(0)
+        var resetCalls = 0
+        var bearingListener: ((Float) -> Unit)? = null
+        val bearings = mutableListOf<Float>()
+        compose.setContent {
+            if (mounted) AmapComposeMap(
+                model = MapUiModel(), onMarkerClick = {}, consent = consent,
+                layer = if (revision == 0) MapLayer.STANDARD else MapLayer.SATELLITE,
+                hostFactory = { context -> object : AmapMapHost {
+                    override val view = View(context)
+                    override fun canRenderBeforeReady() = true
+                    override fun onCreate() = Unit
+                    override fun onResume() = Unit
+                    override fun onPause() = Unit
+                    override fun onDestroy() = Unit
+                    override fun resetNorth() { resetCalls++; bearingListener?.invoke(0f) }
+                    override fun setOnBearingChangedListener(listener: ((Float) -> Unit)?) { bearingListener = listener }
+                } },
+                resetNorthRequest = request,
+                onBearingChanged = { bearings += it },
+            )
+        }
+        compose.waitForIdle()
+        compose.runOnIdle { bearingListener?.invoke(90f); request++ }
+        compose.waitForIdle()
+        compose.runOnIdle { revision++ }
+        compose.waitForIdle()
+        val staleListener = bearingListener
+        compose.runOnIdle {
+            assertEquals(1, resetCalls)
+            assertEquals(listOf(90f, 0f), bearings)
+            mounted = false
+        }
+        compose.waitForIdle()
+        compose.runOnIdle {
+            assertEquals(null, bearingListener)
+            staleListener?.invoke(180f)
+            assertEquals(listOf(90f, 0f), bearings)
+        }
+        compose.runOnIdle { mounted = true }
+        compose.waitForIdle()
+        compose.runOnIdle { assertEquals(1, resetCalls) }
+    }
+
+    @Test fun compassClickReachesMapHostWithoutRequestingLocation() {
+        val consent = consentToken()
+        val workspace = TripWorkspaceViewModel(
+            "trip", Trips(), Places(), Itineraries(), Legs(),
+            SavedStateHandle(mapOf("workspace.sheet" to WorkspaceSheetLevel.COLLAPSED.name)),
+        )
+        var resetCalls = 0
+        val effects = mutableListOf<WorkspaceEffect>()
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace, consent = consent, onBack = {}, onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = { effects += it },
+                mapHostFactory = { context -> object : AmapMapHost {
+                    override val view = View(context)
+                    override fun canRenderBeforeReady() = true
+                    override fun onCreate() = Unit
+                    override fun onResume() = Unit
+                    override fun onPause() = Unit
+                    override fun onDestroy() = Unit
+                    override fun resetNorth() { resetCalls++ }
+                } },
+            )
+        }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+        compose.onNodeWithTag("workspace-compass").assertIsDisplayed().performClick()
+        compose.waitUntil(5_000) { resetCalls == 1 }
+        compose.runOnIdle {
+            assertEquals(null, workspace.state.value.map.viewportRequest)
+            assertEquals(emptyList<WorkspaceEffect>(), effects)
+        }
+    }
+
     @Test fun zoomRequestsDelegateExactlyOnceToTheMountedMapHost() {
         val events = mutableListOf<String>()
         val zoomInRequest = mutableStateOf(0)
@@ -772,7 +879,7 @@ class WorkspaceFlowTest {
         compose.runOnIdle { assertEquals(listOf("zoom-in", "zoom-out"), events) }
     }
 
-    @Test fun zoomButtonClearsViewportAndSuppressesSectionFits() {
+    @Test fun manualMapGestureClearsViewportAndSuppressesSectionFitsWithoutZoomButtons() {
         val workspace = TripWorkspaceViewModel(
             "trip",
             Trips(),
@@ -799,14 +906,16 @@ class WorkspaceFlowTest {
                 runCatching { host.viewportCalls == 1 }.getOrDefault(false)
         }
 
-        compose.onNodeWithTag("zoom-in").assertIsDisplayed().assertHasClickAction().performClick()
-        compose.waitUntil(5_000) { host.zoomInCalls == 1 && workspace.state.value.map.viewportRequest == null }
+        compose.onNodeWithTag("zoom-in").assertDoesNotExist()
+        compose.onNodeWithTag("zoom-out").assertDoesNotExist()
+        compose.runOnIdle { workspace.onMapGesture() }
+        compose.waitUntil(5_000) { workspace.state.value.map.viewportRequest == null }
         compose.onNodeWithTag("section-ITINERARY").performClick()
         compose.onNodeWithTag("section-PLACE_POOL").performClick()
         compose.waitForIdle()
 
         compose.runOnIdle {
-            assertEquals(1, host.zoomInCalls)
+            assertEquals(0, host.zoomInCalls)
             assertEquals(1, host.viewportCalls)
             assertEquals(null, workspace.state.value.map.viewportRequest)
         }
@@ -1005,7 +1114,7 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) {
             compose.onAllNodesWithTag("workspace-map-fallback").fetchSemanticsNodes().isNotEmpty()
         }
-        compose.onNodeWithTag("workspace-search-control").assertIsDisplayed().assertHasClickAction()
+        compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed().assertHasClickAction()
         compose.onNodeWithTag("section-ITINERARY").assertIsDisplayed().assertHasClickAction().performClick().assertIsSelected()
         compose.onNodeWithText("行程内容").assertIsDisplayed()
         compose.onNodeWithTag("section-PLACE_POOL").assertIsDisplayed().assertHasClickAction().performClick().assertIsSelected()
@@ -1464,7 +1573,7 @@ class WorkspaceFlowTest {
         assertEquals(com.yangchengwei.easytrip.itinerary.ui.AddToItineraryEditingTarget.ForDay("day-1"), add.state.value.editingTarget)
     }
 
-    @Test fun selectedDayProductionRouteShowsResultAndRestoredUndo() {
+    @Test fun selectedDayProductionRouteClosesSuccessfulAddAndDoesNotRestorePopup() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val repository = Itineraries()
         val saved = SavedStateHandle()
@@ -1472,6 +1581,7 @@ class WorkspaceFlowTest {
             AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), saved),
         )
         val placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+            savedPlaceIds = setOf("p"),
             rows = listOf(
                 com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(
                     SavedPlace("p", "trip", "poi", "酒店", "地址", GeoPoint(1.0, 2.0), "", emptyList()),
@@ -1481,27 +1591,34 @@ class WorkspaceFlowTest {
             ),
         )
         compose.setContent {
-            TripWorkspaceRoute(
-                viewModel = workspace,
-                consent = null,
-                onBack = {},
-                onSettings = {},
-                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
-                locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
-                onWorkspaceEffect = {},
-                itineraryState = DayItineraryUiState(days = listOf(TripDay("day-1", 0)), selectedDayId = "day-1"),
-                placeState = placeState,
-                addToItineraryViewModel = add.value,
-            )
+            key(add.value) {
+                TripWorkspaceRoute(
+                    viewModel = workspace,
+                    consent = null,
+                    onBack = {},
+                    onSettings = {},
+                    locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                    locationPermissionSnapshot = { com.yangchengwei.easytrip.permission.LocationPermissionSnapshot(false, false) },
+                    onWorkspaceEffect = {},
+                    itineraryState = DayItineraryUiState(days = listOf(TripDay("day-1", 0)), selectedDayId = "day-1"),
+                    placeState = placeState,
+                    addToItineraryViewModel = add.value,
+                )
+            }
         }
-        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready && add.value.state.value.validityInitialized }
         compose.onNodeWithTag("section-ITINERARY").performClick()
         compose.onNodeWithTag("add-places-to-selected-day").performClick()
-        compose.onNodeWithText("酒店").performClick()
-        compose.onNodeWithText("继续").performClick()
-
-        compose.onNodeWithText("已加入第 1 天").assertIsDisplayed()
-        compose.onNodeWithText("撤销").assertIsDisplayed()
+        compose.waitUntil(5_000) { compose.onAllNodesWithTag("select-place-p").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("select-place-p").performClick()
+        val scopeBeforeAdd = workspace.state.value.itineraryScope
+        compose.onNodeWithTag("select-places-continue").performClick()
+        compose.waitUntil(5_000) {
+            workspace.state.value.overlay == WorkspaceOverlay.None && add.value.state.value.step == AddToItineraryStep.IDLE
+        }
+        compose.onAllNodes(isDialog()).assertCountEquals(0)
+        compose.onNodeWithTag("section-ITINERARY").assertIsSelected()
+        assertEquals(scopeBeforeAdd, workspace.state.value.itineraryScope)
 
         compose.runOnIdle {
             add.value = AddToItineraryViewModel(
@@ -1522,13 +1639,15 @@ class WorkspaceFlowTest {
             saved,
         )
         compose.runOnIdle { add.value = restored }
-        compose.waitUntil(5_000) {
-            restored.state.value.step == AddToItineraryStep.COMPLETED &&
-                compose.onAllNodesWithText("已加入第 1 天").fetchSemanticsNodes().isNotEmpty()
+        compose.runOnIdle {
+            assertEquals(AddToItineraryStep.IDLE, restored.state.value.step)
+            assertEquals(null, restored.state.value.submissionResult)
+            assertEquals(WorkspaceOverlay.None, workspace.state.value.overlay)
         }
-
-        compose.onNodeWithText("已加入第 1 天").assertIsDisplayed()
-        compose.onNodeWithText("撤销").assertIsDisplayed()
+        compose.onAllNodes(isDialog()).assertCountEquals(0)
+        compose.waitUntil(5_000) { restored.state.value.validityInitialized }
+        compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("select-places-content").assertIsDisplayed()
     }
 
     @Test fun loadingWorkspaceDoesNotDestructivelyReconcileRestoredAddDraft() {
@@ -1935,51 +2054,68 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("撤销").assertIsDisplayed()
     }
 
-    @Test fun addResultSuccessShowsDayAndNavigatesToItBeforeClosing() {
-        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
-        val resultPageState = TripWorkspacePageState.Ready(
-            workspace.state.value.toReadyState().copy(
-                days = listOf(TripDay("day-2", 1)),
-                overlay = WorkspaceOverlay.AddToItineraryResult,
-            ),
-        )
-        var closed = 0
+    @Test fun restoredSuccessOverlayNeverRendersAResultDialog() {
         compose.setContent {
             TripWorkspaceScreen(
-                pageState = resultPageState,
-                consent = null,
-                onAction = { action ->
-                    when (action) {
-                        is TripWorkspaceAction.SelectSection -> workspace.selectSection(action.section)
-                        is TripWorkspaceAction.SelectItineraryScope -> workspace.selectItineraryScope(action.scope)
-                        else -> Unit
-                    }
-                },
-                onMarkerClick = {}, onMapPoiClick = {},
+                pageState = TripWorkspacePageState.Ready(
+                    TripWorkspaceUiState(days = listOf(TripDay("day-2", 1))).toReadyState()
+                        .copy(overlay = WorkspaceOverlay.AddToItineraryResult),
+                ),
+                consent = null, onAction = {}, onMarkerClick = {}, onMapPoiClick = {},
                 placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(), onPlaceAction = {},
                 itineraryState = DayItineraryUiState(),
                 addToItineraryState = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState(
+                    step = AddToItineraryStep.COMPLETED,
                     submissionResult = AddToItinerarySubmissionResult(
                         createdItemsByDay = listOf(UndoCreatedItemsBatch("day-2", listOf("item-1"))),
                     ),
                     undoBatches = listOf(UndoCreatedItemsBatch("day-2", listOf("item-1"))),
                 ),
-                onViewAddResult = { dayIds ->
-                    workspace.selectSection(WorkspaceSection.ITINERARY)
-                    workspace.selectItineraryScope(dayIds.singleOrNull()?.let(ItineraryScope::Day) ?: ItineraryScope.WholeTrip)
-                    closed++
-                },
-                onItineraryAction = {}, onCloseOverlay = { closed++ }, onDismissMapPlace = {},
+                onItineraryAction = {}, onCloseOverlay = {}, onDismissMapPlace = {},
             )
         }
 
-        compose.onNodeWithText("已加入第 2 天").assertIsDisplayed()
-        compose.onNodeWithText("查看当天").performClick()
+        compose.onAllNodes(isDialog()).assertCountEquals(0)
+        compose.onNodeWithText("已加入第 2 天").assertDoesNotExist()
+        compose.onNodeWithText("查看当天").assertDoesNotExist()
+    }
 
+    @Test fun restoredSuccessfulAddIsConsumedWithoutSwitchingSectionOrScope() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val repository = Itineraries()
+        val saved = SavedStateHandle()
+        val submitted = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), saved)
+        submitted.reconcile(listOf("day-1", "day-2"), setOf("p"))
+        submitted.startForPlace("p")
+        submitted.toggleTargetDay("day-1")
+        submitted.toggleTargetDay("day-2")
+        submitted.submit()
+        compose.waitUntil(5_000) { submitted.state.value.hasCompletedSuccessfully }
+        val restored = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), saved)
+        assertTrue(restored.state.value.hasCompletedSuccessfully)
+        compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
         compose.runOnIdle {
-            assertEquals(WorkspaceSection.ITINERARY, workspace.state.value.section)
+            workspace.selectItineraryScope(ItineraryScope.Day("day-2"))
+            workspace.openOverlay(WorkspaceOverlay.AddToItineraryResult)
+        }
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace, consent = null, onBack = {}, onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {}, addToItineraryViewModel = restored,
+            )
+        }
+        compose.waitUntil(5_000) {
+            restored.state.value.step == AddToItineraryStep.IDLE && workspace.state.value.overlay == WorkspaceOverlay.None
+        }
+        compose.onAllNodes(isDialog()).assertCountEquals(0)
+        compose.runOnIdle {
+            assertEquals(WorkspaceSection.PLACE_POOL, workspace.state.value.section)
             assertEquals(ItineraryScope.Day("day-2"), workspace.state.value.itineraryScope)
-            assertEquals(1, closed)
+            val reopened = AddToItineraryViewModel("trip", AddPlacesToDayUseCase(repository), UndoAddedItemsUseCase(repository), saved)
+            assertEquals(AddToItineraryStep.IDLE, reopened.state.value.step)
+            assertEquals(null, reopened.state.value.submissionResult)
         }
     }
 
@@ -2051,7 +2187,8 @@ class WorkspaceFlowTest {
                 ),
                 consent = null, onAction = {}, onMarkerClick = {}, onMapPoiClick = {},
                 placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
-                    rows = listOf(com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(SavedPlace("p", "trip", "poi", "西湖天地", "", GeoPoint(1.0, 2.0), "", emptyList()), 0, false)),
+                    rows = emptyList(),
+                    allRows = listOf(com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(SavedPlace("p", "trip", "poi", "西湖天地", "", GeoPoint(1.0, 2.0), "", emptyList()), 0, false)),
                 ),
                 onPlaceAction = {}, itineraryState = DayItineraryUiState(), addToItineraryState = current,
                 onItineraryAction = {}, onCloseOverlay = {}, onDismissMapPlace = {},
@@ -2712,14 +2849,14 @@ class WorkspaceFlowTest {
         }
         compose.waitUntil(5_000) { model.state.value.map.viewportRequest != null }
         compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(42.dp)
-        compose.onNodeWithTag("workspace-search-control").assertHeightIsEqualTo(24.dp)
+        compose.onNodeWithTag("workspace-search-launcher").assertHeightIsEqualTo(32.dp)
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()
         assertEquals(0, compose.onAllNodesWithText("收起").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("半屏").fetchSemanticsNodes().size)
         assertEquals(0, compose.onAllNodesWithText("展开").fetchSemanticsNodes().size)
         compose.onNodeWithTag("workspace-map").assertIsDisplayed()
         val mapBottom = compose.onNodeWithTag("workspace-map").getUnclippedBoundsInRoot().bottom
-        val searchBottom = compose.onNodeWithTag("workspace-search-control").getUnclippedBoundsInRoot().bottom
+        val searchBottom = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot().bottom
         val sheetTop = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot().top
         val navigationTop = compose.onNodeWithTag("workspace-tabs").getUnclippedBoundsInRoot().top
         assert(searchBottom <= sheetTop)
@@ -2784,7 +2921,7 @@ class WorkspaceFlowTest {
 
     private fun enterWorkspace() {
         compose.onNodeWithTag("primary-trip-trip").performClick()
-        compose.onNodeWithTag("workspace-search-control").assertIsDisplayed()
+        compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed()
     }
 
     private fun productionLocationDependencies(

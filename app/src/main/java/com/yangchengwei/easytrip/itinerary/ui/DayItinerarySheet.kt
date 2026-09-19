@@ -128,7 +128,7 @@ fun DayItineraryContent(
                 text = itineraryDaySummary(dayNumber, state.items.size),
                 modifier = Modifier.testTag("day-itinerary-summary"),
                 date = dayNumber?.let { wholeTripDayDate(it, startDate) },
-                trailingInset = 20.dp,
+                trailingInset = 0.dp,
                 trailingAction = {
                     IconButton(
                         onClick = { onAction(DayItineraryAction.AddPlaces) },
@@ -154,8 +154,8 @@ fun DayItineraryContent(
         LazyColumn(
             state = timelineState,
             modifier = Modifier.testTag("day-itinerary-timeline"),
-            contentPadding = PaddingValues(top = 6.dp, end = 10.dp, bottom = 24.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp),
+            contentPadding = PaddingValues(top = 6.dp, end = 0.dp, bottom = 12.dp),
+            verticalArrangement = Arrangement.spacedBy(0.dp),
         ) {
             if (state.items.isEmpty() && state.selectedDayId != null) {
                 val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
@@ -244,7 +244,6 @@ fun DayItineraryContent(
                 )
                 val next = displayItems.getOrNull(index + 1)?.id
                 visibleLegs.firstOrNull { it.fromItemId == id && it.toItemId == next }?.let { leg ->
-                    Spacer(Modifier.height(8.dp))
                     RouteLegRow(
                         leg = leg,
                         fromPlaceName = displayItems[index].name,

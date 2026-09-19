@@ -70,7 +70,18 @@ internal fun workspaceLayoutMetrics(
 }
 
 internal fun workspaceLegendTop(metrics: WorkspaceLayoutMetrics): Dp =
-    (metrics.sheetTop - 5.dp - 36.dp).coerceAtLeast(0.dp)
+    (metrics.sheetTop - 12.dp - 32.dp).coerceAtLeast(0.dp)
+
+data class WorkspaceMapLayout(
+    val fitInsets: MapViewportInsets,
+    val visibleInsets: MapViewportInsets,
+)
+
+internal fun workspaceMapLayout(metrics: WorkspaceLayoutMetrics, density: Float) = WorkspaceMapLayout(
+    fitInsets = workspaceViewportInsets(metrics, density),
+    // Locating uses the map above the live drawer, without reserving space for floating controls.
+    visibleInsets = MapViewportInsets(bottomPx = (metrics.sheetHeight.value * density).toInt()),
+)
 
 internal fun workspaceViewportInsets(
     metrics: WorkspaceLayoutMetrics,
@@ -95,7 +106,7 @@ internal fun workspaceViewportInsets(
         (metrics.stableSheetHeight + 13.dp).toPixels(),
         metrics.availableHeight.toPixels(),
     )
-    val stableLegendTop = (metrics.availableHeight - metrics.stableSheetHeight - 13.dp - 36.dp).coerceAtLeast(0.dp)
+    val stableLegendTop = (metrics.availableHeight - metrics.stableSheetHeight - 12.dp - 32.dp).coerceAtLeast(0.dp)
     val legendBottom = (metrics.availableHeight - stableLegendTop).toPixels()
     val requestedBottom = maxOf(bottom, legendBottom)
     val (safeTopPx, safeBottomPx) = clampPair(top, requestedBottom, metrics.availableHeight.toPixels())
@@ -113,7 +124,7 @@ internal fun WorkspaceScaffold(
     sheetHeader: @Composable (WorkspaceLayoutMetrics) -> Unit,
     sheetContent: @Composable (WorkspaceLayoutMetrics) -> Unit,
     collapsedContent: @Composable () -> Unit = {},
-    sheetContentHorizontalPadding: Dp = 20.dp,
+    sheetContentHorizontalPadding: Dp = 16.dp,
     collapsedContentHorizontalPadding: Dp = sheetContentHorizontalPadding,
 ) {
     BoxWithConstraints(

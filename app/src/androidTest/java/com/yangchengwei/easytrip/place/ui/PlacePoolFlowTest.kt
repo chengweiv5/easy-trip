@@ -84,7 +84,7 @@ class PlacePoolFlowTest {
             }
         }
 
-        compose.onNodeWithText("已安排 1 次，可重复添加").assertIsDisplayed()
+        compose.onNodeWithContentDescription("已安排 1 次，可重复添加").assertIsDisplayed()
         compose.onNodeWithTag("select-place-scheduled").performClick()
         assertEquals("scheduled", toggled)
         compose.onNodeWithTag("select-places-continue").assertIsNotEnabled()
@@ -180,7 +180,7 @@ class PlacePoolFlowTest {
 
         compose.onNodeWithTag("select-place-scheduled").assertIsSelected()
         compose.onNodeWithTag("select-places-continue").assertIsEnabled()
-        compose.onNodeWithText("已选 1 个").assertIsDisplayed()
+        compose.onNodeWithText("已选 1 个地点").assertIsDisplayed()
     }
 
     @Test fun selectPlacesFooterStaysVisibleAt280DpTwoTimesFontAndTouchSelectionEnablesContinue() {
@@ -208,9 +208,9 @@ class PlacePoolFlowTest {
         val continueButton = compose.onNodeWithTag("select-places-continue")
         continueButton.assertIsDisplayed().assertIsNotEnabled()
         val disabledBounds = continueButton.getUnclippedBoundsInRoot()
-        val cancelBounds = compose.onNodeWithText("取消").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val cancelBounds = compose.onNodeWithTag("select-places-close").assertIsDisplayed().getUnclippedBoundsInRoot()
         assertTrue("continue=$disabledBounds", disabledBounds.right - disabledBounds.left >= 48.dp)
-        assertTrue("cancel=$cancelBounds continue=$disabledBounds", cancelBounds.right <= disabledBounds.left)
+        assertTrue("close=$cancelBounds continue=$disabledBounds", cancelBounds.bottom <= disabledBounds.top)
         assertTrue("continue=$disabledBounds", disabledBounds.left >= 0.dp && disabledBounds.right <= 280.dp)
         assertTrue("continue=$disabledBounds", disabledBounds.top >= 0.dp && disabledBounds.bottom <= 432.dp)
 

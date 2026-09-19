@@ -29,7 +29,7 @@ internal fun EmptyTrips(onCreate: () -> Unit, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxWidth().testTag("empty-trips")) {
         val compact = maxHeight < 360.dp
         Column(
-            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+            modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = if (compact) Arrangement.Top else Arrangement.Center,
         ) {
@@ -52,7 +52,7 @@ internal fun EmptyTrips(onCreate: () -> Unit, modifier: Modifier = Modifier) {
 
 @Composable
 internal fun TripListLoadingState(modifier: Modifier = Modifier) {
-    Column(modifier.fillMaxWidth().padding(horizontal = 20.dp)) { InlineStatus("正在加载旅行") }
+    Column(modifier.fillMaxWidth().padding(horizontal = 16.dp)) { InlineStatus("正在加载旅行") }
 }
 
 @Composable
@@ -63,7 +63,7 @@ internal fun TripListErrorState(
     modifier: Modifier = Modifier,
 ) {
     Column(
-        modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 20.dp),
+        modifier = modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Center,
     ) {

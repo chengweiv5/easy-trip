@@ -47,4 +47,14 @@ data class AddToItineraryUiState(
     val hasStaleFixedDay: Boolean get() = editingTarget is AddToItineraryEditingTarget.ForDay && targetDayId == null
     val canContinue: Boolean get() = selectedPlaceIds.isNotEmpty() && !isSubmitting
     val canSubmit: Boolean get() = validityInitialized && canContinue && targetDayId != null && !isUndoing
+    val hasCompletedSuccessfully: Boolean
+        get() {
+            if (step != AddToItineraryStep.COMPLETED || isSubmitting || isUndoing || errorMessage != null) return false
+            return submissionResult?.let { submission ->
+                submission.createdItemsByDay.any { it.itemIds.isNotEmpty() } &&
+                    submission.failedAdditions.isEmpty() &&
+                    submission.missingTargetDayIds.isEmpty() &&
+                    submission.retryTargetDayIds.isEmpty()
+            } ?: ((result as? AddPlacesOutcome.Success)?.createdItemIds?.isNotEmpty() == true)
+        }
 }

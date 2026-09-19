@@ -33,6 +33,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.contentDescription
@@ -52,9 +53,9 @@ fun SavedPlaceRow(
     var menuExpanded by remember(place.id) { mutableStateOf(false) }
     Surface(
         modifier.fillMaxWidth().testTag("saved-place-${place.id}"),
-        color = EasyTripPlaceSurface,
+        color = Color.Transparent,
         shape = RoundedCornerShape(8.dp),
-        border = BorderStroke(1.dp, EasyTripPlaceBorder),
+        border = null,
     ) {
         Row(
             Modifier.fillMaxWidth().padding(vertical = 6.dp),
@@ -62,8 +63,8 @@ fun SavedPlaceRow(
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Surface(
-                modifier = Modifier.size(42.dp),
-                shape = RoundedCornerShape(12.dp),
+                modifier = Modifier.size(40.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
             ) {
@@ -82,7 +83,7 @@ fun SavedPlaceRow(
             ) {
                 Text(
                     place.name,
-                    style = MaterialTheme.typography.bodyLarge,
+                    style = MaterialTheme.typography.labelMedium,
                     color = EasyTripPrimaryDark,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
@@ -91,7 +92,7 @@ fun SavedPlaceRow(
                     Text(
                         place.address,
                         style = MaterialTheme.typography.bodySmall,
-                        color = EasyTripAddress,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )

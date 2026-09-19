@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.clickable
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ProvideTextStyle
 import androidx.compose.material3.Surface
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
@@ -78,7 +79,7 @@ private fun EasyTripButton(
                 indication = ripple(),
                 onClick = onClick,
             ),
-        shape = RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(12.dp),
         color = if (enabled) container else container.copy(alpha = 0.6f),
         contentColor = if (enabled) foreground else foreground.copy(alpha = 0.5f),
         border = when (style) {
@@ -87,11 +88,13 @@ private fun EasyTripButton(
             EasyTripButtonStyle.DANGER -> BorderStroke(1.dp, MaterialTheme.colorScheme.error)
         },
     ) {
-        Row(
-            Modifier.padding(horizontal = if (style == EasyTripButtonStyle.SECONDARY) 18.dp else 20.dp),
-            horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
-            verticalAlignment = Alignment.CenterVertically,
-            content = content,
-        )
+        ProvideTextStyle(MaterialTheme.typography.labelMedium) {
+            Row(
+                Modifier.padding(horizontal = 16.dp),
+                horizontalArrangement = androidx.compose.foundation.layout.Arrangement.Center,
+                verticalAlignment = Alignment.CenterVertically,
+                content = content,
+            )
+        }
     }
 }

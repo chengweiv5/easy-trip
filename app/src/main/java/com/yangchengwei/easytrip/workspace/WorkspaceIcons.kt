@@ -9,6 +9,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.material3.MaterialTheme
 
 @Composable
@@ -44,7 +45,7 @@ internal fun WorkspaceSearchIcon(modifier: Modifier = Modifier) {
 
 @Composable
 internal fun WorkspaceLocateIcon(modifier: Modifier = Modifier) {
-    val color = MaterialTheme.colorScheme.onSurface
+    val color = MaterialTheme.colorScheme.primary
     Canvas(modifier) {
         val strokeWidth = size.minDimension / 12f
         drawCircle(color, size.minDimension * .24f, center, style = Stroke(strokeWidth))
@@ -53,6 +54,31 @@ internal fun WorkspaceLocateIcon(modifier: Modifier = Modifier) {
         drawLine(color, Offset(center.x, size.height * .8f), Offset(center.x, size.height), strokeWidth, StrokeCap.Round)
         drawLine(color, Offset(0f, center.y), Offset(size.width * .2f, center.y), strokeWidth, StrokeCap.Round)
         drawLine(color, Offset(size.width * .8f, center.y), Offset(size.width, center.y), strokeWidth, StrokeCap.Round)
+    }
+}
+
+@Composable
+internal fun WorkspaceCompassIcon(bearing: Float, modifier: Modifier = Modifier) {
+    val southColor = MaterialTheme.colorScheme.primary
+    val northColor = Color(0xFFD96F3B)
+    Canvas(modifier) {
+        val unit = size.minDimension / 18f
+        rotate(-bearing) {
+            val north = Path().apply {
+                moveTo(center.x, center.y - 8f * unit)
+                lineTo(center.x - 4.5f * unit, center.y)
+                lineTo(center.x + 4.5f * unit, center.y)
+                close()
+            }
+            val south = Path().apply {
+                moveTo(center.x - 4.5f * unit, center.y)
+                lineTo(center.x, center.y + 8f * unit)
+                lineTo(center.x + 4.5f * unit, center.y)
+                close()
+            }
+            drawPath(north, northColor)
+            drawPath(south, southColor)
+        }
     }
 }
 

@@ -29,7 +29,7 @@ class RoomSavedPlaceRepository(
                 val first = group.first()
                 val tags = group.mapNotNull { row -> row.tagId?.let { PlaceTag(it, requireNotNull(row.tagName)) } }
                 if (!tagIds.all { selected -> tags.any { it.id == selected } }) return@mapNotNull null
-                SavedPlace(first.placeId, first.tripId, first.amapPoiId, first.placeName, first.address, GeoPoint(first.latitude, first.longitude), first.note.orEmpty(), tags)
+                SavedPlace(first.placeId, first.tripId, first.amapPoiId, first.placeName, first.address, GeoPoint(first.latitude, first.longitude), first.note.orEmpty(), tags, first.cityName, first.cityAdCode, first.cityCode)
             }
         }
 
@@ -47,9 +47,13 @@ class RoomSavedPlaceRepository(
         dao.placeId(tripId, candidate.poiId)?.let { return@withTransaction SavePlaceResult.AlreadySaved(it) }
         val point = requireNotNull(candidate.point) { "无法收藏缺少坐标的地点" }
         val id = idFactory()
-        val inserted = dao.insertPlace(SavedPlaceEntity(id, tripId, candidate.poiId, candidate.name, candidate.address, point.latitude, point.longitude, cityCode = candidate.cityCode))
+        val inserted = dao.insertPlace(SavedPlaceEntity(id, tripId, candidate.poiId, candidate.name, candidate.address, point.latitude, point.longitude, cityCode = candidate.cityCode, cityName = candidate.cityName, cityAdCode = candidate.cityAdCode))
         if (inserted != -1L) SavePlaceResult.Saved(id)
         else SavePlaceResult.AlreadySaved(requireNotNull(dao.placeId(tripId, candidate.poiId)))
+    }
+
+    override suspend fun updateCityIfMissing(placeId: String, city: com.yangchengwei.easytrip.place.domain.PlaceCity) {
+        dao.updateCityIfMissing(placeId, city.name, city.adCode)
     }
 
     override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = database.withTransaction {

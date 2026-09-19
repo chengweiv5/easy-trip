@@ -125,7 +125,7 @@ fun TripSettingsContent(
             .background(EasyTripBackground)
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
-            .padding(horizontal = EasyTripTheme.spacing.settingsGrid, vertical = 18.dp),
+            .padding(horizontal = EasyTripTheme.spacing.settingsGrid, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsSectionGap),
     ) {
         SettingsHeader(state.name, onBack, !screenBusy)
@@ -358,15 +358,15 @@ private fun SettingsHeader(name: String, onBack: () -> Unit, enabled: Boolean) =
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
     ) { androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { Icon(Icons.AutoMirrored.Rounded.ArrowBack, "返回") } }
     Column(Modifier.padding(start = 12.dp).weight(1f)) {
-        Text("旅行设置", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+        Text("旅行设置", style = MaterialTheme.typography.headlineLarge, fontWeight = FontWeight.Bold)
         Text(name.ifEmpty { "未命名旅行" }, Modifier.semantics { contentDescription = "重命名旅行" }, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
     Surface(
         modifier = Modifier
-            .height(EasyTripTheme.sizes.buttonHeight)
+            .height(36.dp)
             .testTag("settings-done")
             .clickable(enabled = enabled, onClick = onBack),
-        shape = CircleShape,
+        shape = RoundedCornerShape(8.dp),
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {
@@ -397,7 +397,7 @@ private fun SettingsRow(
     modifier.fillMaxWidth().height(EasyTripTheme.sizes.settingsRowHeight).clickable(enabled = enabled, onClick = onClick),
     shape = if (grouped) RoundedCornerShape(0.dp) else RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius),
     color = MaterialTheme.colorScheme.surface,
-) { Row(Modifier.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) { Surface(Modifier.size(28.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .12f), contentColor = MaterialTheme.colorScheme.primary) { androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { icon() } }; Column(Modifier.padding(start = 12.dp).weight(1f)) { Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(value, maxLines = 1, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold) }; Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) } }
+) { Row(Modifier.padding(horizontal = 14.dp), verticalAlignment = Alignment.CenterVertically) { Surface(Modifier.size(28.dp), shape = CircleShape, color = MaterialTheme.colorScheme.primary.copy(alpha = .12f), contentColor = MaterialTheme.colorScheme.primary) { androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { icon() } }; Column(Modifier.padding(start = 12.dp).weight(1f)) { Text(label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant); Text(value, maxLines = 2, style = MaterialTheme.typography.bodyMedium, overflow = TextOverflow.Ellipsis, fontWeight = FontWeight.SemiBold) }; Icon(Icons.AutoMirrored.Rounded.KeyboardArrowRight, null, tint = MaterialTheme.colorScheme.onSurfaceVariant) } }
 
 @Composable
 private fun RenameDialog(name: String, onNameChange: (String) -> Unit, onSave: () -> Unit, onDismiss: () -> Unit, enabled: Boolean) = EasyTripDialogSurface(

@@ -105,10 +105,17 @@ internal fun shouldClosePlaceDetailOverlay(
         !hasSelectedMapPoi &&
         !hasSelectedMarker
 
+internal fun shouldConsumeSuccessfulAdd(
+    workspaceOverlay: WorkspaceOverlay,
+    addToItinerary: AddToItineraryUiState,
+): Boolean = addToItinerary.hasCompletedSuccessfully &&
+    (workspaceOverlay == WorkspaceOverlay.None || workspaceOverlay.isAddToItineraryOverlay())
+
 internal fun addOverlayToPresent(
     workspaceOverlay: WorkspaceOverlay,
     addToItinerary: AddToItineraryUiState,
 ): WorkspaceOverlay? {
+    if (addToItinerary.hasCompletedSuccessfully) return null
     val desired = when {
         (addToItinerary.result != null || addToItinerary.step == AddToItineraryStep.COMPLETED || addToItinerary.errorMessage != null) &&
             addToItinerary.submissionResult?.let { result ->
@@ -357,8 +364,14 @@ fun TripWorkspaceRoute(
             ?.takeIf { it != ready?.overlay }
             ?.let(viewModel::openOverlay)
     }
-    LaunchedEffect(addToItinerary.step, addToItinerary.result, ready?.overlay) {
-        addOverlayToPresent(ready?.overlay ?: WorkspaceOverlay.None, addToItinerary)?.let(viewModel::openOverlay)
+    LaunchedEffect(addToItineraryViewModel, addToItinerary, ready?.overlay) {
+        val overlay = ready?.overlay ?: return@LaunchedEffect
+        if (shouldConsumeSuccessfulAdd(overlay, addToItinerary)) {
+            addToItineraryViewModel?.cancel()
+            if (overlay.isAddToItineraryOverlay()) viewModel.closeOverlay()
+        } else {
+            addOverlayToPresent(overlay, addToItinerary)?.let(viewModel::openOverlay)
+        }
     }
     LaunchedEffect(itinerary.appendDayCompletionToken, ready != null) {
         when (
@@ -425,7 +438,8 @@ fun TripWorkspaceRoute(
             )
         }
     }
-    LaunchedEffect(places.pendingCollectionRemoval, places.deleting, ready?.overlay) {
+    // Successful itinerary removal clears its confirmation independently of place state.
+    LaunchedEffect(places.pendingCollectionRemoval, places.deleting, itinerary.deleteConfirmation, ready?.overlay) {
         if (
             places.pendingCollectionRemoval == null &&
             places.deleting == null &&
@@ -478,7 +492,8 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
                 TripWorkspaceAction.ZoomIn,
-                TripWorkspaceAction.ZoomOut -> Unit
+                TripWorkspaceAction.ZoomOut,
+                TripWorkspaceAction.ResetNorth -> Unit
                 TripWorkspaceAction.Locate -> locationPermissionCoordinator.onLocateClick(locationPermissionSnapshot())
                 TripWorkspaceAction.MapGesture -> viewModel.onMapGesture()
                 TripWorkspaceAction.Retry -> viewModel.retry()

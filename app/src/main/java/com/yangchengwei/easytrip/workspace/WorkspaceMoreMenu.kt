@@ -35,7 +35,7 @@ internal fun WorkspaceMoreMenu(
 ) {
     Surface(
         modifier = modifier
-            .width(190.dp)
+            .width(240.dp)
             .heightIn(max = 260.dp)
             .testTag("more-menu-panel"),
         shape = RoundedCornerShape(12.dp),
@@ -45,8 +45,8 @@ internal fun WorkspaceMoreMenu(
         Column(
             Modifier
                 .verticalScroll(rememberScrollState())
-                .padding(vertical = 8.dp),
-            verticalArrangement = Arrangement.spacedBy(2.dp),
+                .padding(8.dp),
+            verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {
             MoreMenuItem(
                 tag = "more-menu-settings",
@@ -84,10 +84,10 @@ private fun MoreMenuItem(
     Row(
         Modifier
             .fillMaxWidth()
-            .heightIn(min = 52.dp)
+            .heightIn(min = 58.dp)
             .testTag(tag)
             .clickable(onClick = onClick)
-            .padding(horizontal = 14.dp),
+            .padding(horizontal = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
     ) {
         Surface(
@@ -105,7 +105,7 @@ private fun MoreMenuItem(
             Text(title, style = MaterialTheme.typography.bodyMedium, maxLines = 1)
             Text(
                 description,
-                style = MaterialTheme.typography.labelSmall,
+                style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 maxLines = 2,
             )

@@ -24,6 +24,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.SideEffect
 import android.content.Context
+import android.location.Location
 import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -48,9 +49,11 @@ import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
 import com.amap.api.maps.CameraUpdateFactory
 import com.amap.api.maps.model.BitmapDescriptorFactory
+import com.amap.api.maps.model.CameraPosition
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.LatLngBounds
 import com.amap.api.maps.model.MarkerOptions
+import com.amap.api.maps.model.MyLocationStyle
 import com.amap.api.maps.model.Poi
 import com.amap.api.maps.model.PolylineOptions
 import com.yangchengwei.easytrip.amap.AmapConsentToken
@@ -305,7 +308,10 @@ interface AmapMapHost {
     fun onDestroy()
     fun zoomIn() = Unit
     fun zoomOut() = Unit
+    fun resetNorth() = Unit
+    fun setOnBearingChangedListener(listener: ((Float) -> Unit)?) = Unit
     fun showCurrentLocation() = Unit
+    fun setVisibleViewportInsets(insets: MapViewportInsets) = Unit
     fun setOnUserGestureListener(listener: (() -> Unit)?) = Unit
     fun render(
         model: MapUiModel,
@@ -368,7 +374,7 @@ internal fun mapMarkerRendering(marker: MapMarkerUi): MapMarkerRendering {
             foregroundColor = if (marker.scheduled) 0xFFFFFFFF.toInt() else primary,
             backgroundColor = if (marker.scheduled) primary else 0xFFFFFFFF.toInt(),
             borderColor = if (marker.isFocused) focusedBorder else primary,
-            borderWidth = if (marker.isFocused) 6 else 3,
+            borderWidth = if (marker.isFocused) 3 else if (marker.scheduled) 0 else 2,
             solid = marker.scheduled,
         )
         MapMarkerKind.SAVED_ITINERARY -> MapMarkerRendering(
@@ -376,8 +382,8 @@ internal fun mapMarkerRendering(marker: MapMarkerUi): MapMarkerRendering {
             geometry = BookmarkGeometry,
             foregroundColor = 0xFFFFFFFF.toInt(),
             backgroundColor = primary,
-            borderColor = if (marker.isFocused) focusedBorder else 0xFFFFFFFF.toInt(),
-            borderWidth = if (marker.isFocused) 6 else 3,
+            borderColor = if (marker.isFocused) focusedBorder else primary,
+            borderWidth = if (marker.isFocused) 3 else 0,
             solid = true,
             badgeBackgroundColor = primary,
             badgeForegroundColor = 0xFFFFFFFF.toInt(),
@@ -385,13 +391,15 @@ internal fun mapMarkerRendering(marker: MapMarkerUi): MapMarkerRendering {
     }
 }
 
-private class MarkerIconView(context: Context, private val marker: MapMarkerUi) : View(context) {
+internal class MarkerIconView(context: Context, private val marker: MapMarkerUi) : View(context) {
     private val rendering = mapMarkerRendering(marker)
     private val density = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
 
     init {
-        val size = if (marker.isFocused) 52 else 44
+        val size = if (marker.kind == MapMarkerKind.UNSAVED_SEARCH) {
+            if (marker.isFocused) 52 else 44
+        } else 28
         val width = if (marker.badgeText != null) size + 28 else size
         layoutParams = android.view.ViewGroup.LayoutParams((width * density).toInt(), (size * density).toInt())
     }
@@ -406,14 +414,16 @@ private class MarkerIconView(context: Context, private val marker: MapMarkerUi) 
         val iconAreaWidth = width - badgeWidth
         val cx = iconAreaWidth / 2f
         val cy = height / 2f
-        val radius = minOf(iconAreaWidth, height.toFloat()) * 0.44f
+        val radius = if (marker.kind == MapMarkerKind.UNSAVED_SEARCH) {
+            minOf(iconAreaWidth, height.toFloat()) * 0.44f
+        } else (minOf(iconAreaWidth, height.toFloat()) - rendering.borderWidth * density) / 2f
         paint.style = Paint.Style.FILL
         paint.color = rendering.backgroundColor
         canvas.drawCircle(cx, cy, radius, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = rendering.borderWidth * density
         paint.color = rendering.borderColor
-        canvas.drawCircle(cx, cy, radius, paint)
+        if (rendering.borderWidth > 0) canvas.drawCircle(cx, cy, radius, paint)
 
         paint.color = rendering.foregroundColor
         if (rendering.geometry.isEmpty()) {
@@ -422,7 +432,7 @@ private class MarkerIconView(context: Context, private val marker: MapMarkerUi) 
             paint.textAlign = Paint.Align.CENTER
             canvas.drawText(rendering.glyph, cx, cy + paint.textSize * 0.35f, paint)
         } else {
-            val iconSize = radius * 0.92f
+            val iconSize = 14f * density
             val left = cx - iconSize / 2f
             val top = cy - iconSize / 2f
             val path = Path()
@@ -458,17 +468,38 @@ private class MarkerIconView(context: Context, private val marker: MapMarkerUi) 
     }
 }
 
-internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
+internal fun northUpCameraPosition(position: CameraPosition): CameraPosition =
+    CameraPosition.builder(position).bearing(0f).build()
+
+internal class RealAmapMapHost(
+    context: android.content.Context,
+    private val releaseScheduler: MapReleaseScheduler = AndroidMapReleaseScheduler,
+) : AmapMapHost {
     companion object {
         fun create(context: android.content.Context): AmapMapHost = RealAmapMapHost(context)
     }
     private val mapView = MapView(context)
     private var onReadyListener: (() -> Unit)? = null
+    private var onBearingChanged: ((Float) -> Unit)? = null
+    private val cameraChangeListener = object : AMap.OnCameraChangeListener {
+        override fun onCameraChange(position: CameraPosition) {
+            onBearingChanged?.invoke(position.bearing)
+        }
+        override fun onCameraChangeFinish(position: CameraPosition) {
+            onBearingChanged?.invoke(position.bearing)
+        }
+    }
     private val mapLoadedListener = AMap.OnMapLoadedListener { onReadyListener?.invoke() }
     private var renderedOverlays: MapUiModel? = null
     private var consumedViewportId: Long? = null
     private var consumedViewportInsets = MapViewportInsets()
     private var touchInteractionDetector: MapTouchInteractionDetector? = null
+    private var visibleViewportInsets = MapViewportInsets()
+    private var pendingLocationCenter = false
+    private var destroyed = false
+    private val locationChangeListener = AMap.OnMyLocationChangeListener { location ->
+        centerPendingLocation(location)
+    }
     private val layerController = MapLayerApplicationController { rendering ->
         mapView.map.mapType = rendering.mapType
         mapView.map.showMapText(rendering.showMapText)
@@ -481,22 +512,59 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
     override fun onCreate() {
         mapView.onCreate(null)
         mapView.map.uiSettings.isZoomControlsEnabled = false
+        mapView.map.uiSettings.isCompassEnabled = false
+        mapView.map.setOnMyLocationChangeListener(locationChangeListener)
     }
     override fun canRenderBeforeReady() = true
     override fun onResume() = mapView.onResume()
     override fun onPause() = mapView.onPause()
     override fun onDestroy() {
+        if (destroyed) return
+        destroyed = true
+        pendingLocationCenter = false
+        mapView.map.setOnMyLocationChangeListener(null)
         setOnReadyListener(null)
         setOnUserGestureListener(null)
-        mapView.onDestroy()
+        setOnBearingChangedListener(null)
+        mapView.map.isMyLocationEnabled = false
+        // AMap waits for its GL thread during destruction. Let the destination draw first,
+        // then release on the UI thread, outside Compose's removal/layout frame.
+        releaseScheduler.afterNextFrame { mapView.onDestroy() }
     }
     override fun zoomIn() = mapView.map.animateCamera(CameraUpdateFactory.zoomIn())
     override fun zoomOut() = mapView.map.animateCamera(CameraUpdateFactory.zoomOut())
+    override fun resetNorth() {
+        mapView.map.animateCamera(CameraUpdateFactory.newCameraPosition(northUpCameraPosition(mapView.map.cameraPosition)))
+    }
+    override fun setOnBearingChangedListener(listener: ((Float) -> Unit)?) {
+        onBearingChanged = listener
+        mapView.map.setOnCameraChangeListener(if (listener == null) null else cameraChangeListener)
+        listener?.invoke(mapView.map.cameraPosition.bearing)
+    }
+    override fun setVisibleViewportInsets(insets: MapViewportInsets) {
+        visibleViewportInsets = insets
+    }
     override fun showCurrentLocation() {
+        pendingLocationCenter = true
+        // The SDK centers the full MapView; keep the location marker but position the camera ourselves.
+        mapView.map.myLocationStyle = MyLocationStyle()
+            .myLocationType(MyLocationStyle.LOCATION_TYPE_LOCATION_ROTATE_NO_CENTER)
         mapView.map.isMyLocationEnabled = true
-        mapView.map.myLocation?.let { location ->
-            mapView.map.animateCamera(
-                CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 16f),
+        centerPendingLocation(mapView.map.myLocation)
+    }
+    private fun centerPendingLocation(location: Location?) {
+        if (!pendingLocationCenter || location == null) return
+        pendingLocationCenter = false
+        mapView.map.moveCamera(
+            CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 16f),
+        )
+        val insets = visibleViewportInsets
+        if (insets != MapViewportInsets()) {
+            mapView.map.moveCamera(
+                CameraUpdateFactory.scrollBy(
+                    (insets.rightPx - insets.leftPx) / 2f,
+                    (insets.bottomPx - insets.topPx) / 2f,
+                ),
             )
         }
     }
@@ -505,7 +573,11 @@ internal class RealAmapMapHost(context: android.content.Context) : AmapMapHost {
         val detector = listener?.let { onUserGesture ->
             MapTouchInteractionDetector(
                 touchSlop = ViewConfiguration.get(mapView.context).scaledTouchSlop.toFloat(),
-                onInteraction = onUserGesture,
+                onInteraction = {
+                    // A delayed first fix must not override a user's new viewport.
+                    pendingLocationCenter = false
+                    onUserGesture()
+                },
             )
         }
         touchInteractionDetector = detector
@@ -656,8 +728,11 @@ fun AmapComposeMap(
     onUserGesture: () -> Unit = {},
     zoomInRequest: Int = 0,
     zoomOutRequest: Int = 0,
+    resetNorthRequest: Int = 0,
+    onBearingChanged: (Float) -> Unit = {},
     retryKey: Int = 0,
     readyTimeoutMillis: Long = DEFAULT_MAP_READY_TIMEOUT_MILLIS,
+    visibleInsets: MapViewportInsets = MapViewportInsets(),
 ) {
     val consentSnapshot by consent.active.collectAsState()
     val context = LocalContext.current
@@ -665,6 +740,7 @@ fun AmapComposeMap(
     consent.validateActive()
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnUserGesture by rememberUpdatedState(onUserGesture)
+    val currentOnBearingChanged by rememberUpdatedState(onBearingChanged)
     val attemptKey = remember(retryKey, readyTimeoutMillis) { retryKey to readyTimeoutMillis }
     val mapFailureState = remember(context, consent, lifecycleOwner, attemptKey) { mutableStateOf<Throwable?>(null) }
     var mapReady by remember(context, consent, lifecycleOwner, attemptKey) { mutableStateOf(false) }
@@ -673,6 +749,7 @@ fun AmapComposeMap(
     val zoomRequestController = remember(context, consent, lifecycleOwner, attemptKey) {
         MapZoomRequestController(zoomInRequest, zoomOutRequest)
     }
+    var consumedResetNorthRequest by remember(context, consent, lifecycleOwner, attemptKey) { mutableIntStateOf(resetNorthRequest) }
     var watchdogRevision by remember(context, consent, lifecycleOwner, attemptKey) { mutableIntStateOf(0) }
     val callbackGuard = remember(context, consent, lifecycleOwner, attemptKey) { MapHostCallbackGuard() }
     callbackGuard.updateHostCallback(currentOnUserGesture)
@@ -695,6 +772,9 @@ fun AmapComposeMap(
                 }
                 host.setOnUserGestureListener(callbackGuard::dispatchHost)
                 host.onCreate()
+                host.setOnBearingChangedListener { bearing ->
+                    callbackGuard.dispatchHost { currentOnBearingChanged(bearing) }
+                }
             }
         }.onFailure { error ->
             callbackGuard.reportHostError(error) { mapFailureState.value = it }
@@ -712,12 +792,20 @@ fun AmapComposeMap(
         if (locateRequest > consumedLocateRequest && lifecycleResumed && mapReady) {
             consumedLocateRequest = locateRequest
             onLocateRequestConsumed(locateRequest)
-            runCatching(host::showCurrentLocation).onFailure(onMapError)
+            runCatching {
+                host.setVisibleViewportInsets(visibleInsets)
+                host.showCurrentLocation()
+            }.onFailure(onMapError)
         }
     }
     val currentOnMapError by rememberUpdatedState(onMapError)
     SideEffect {
+        runCatching { host.setVisibleViewportInsets(visibleInsets) }.onFailure(currentOnMapError)
         if (lifecycleResumed && mapReady) {
+            if (resetNorthRequest > consumedResetNorthRequest) {
+                consumedResetNorthRequest = resetNorthRequest
+                runCatching(host::resetNorth).onFailure(currentOnMapError)
+            }
             while (zoomRequestController.consumeZoomIn(zoomInRequest)) {
                 runCatching(host::zoomIn).onFailure(currentOnMapError)
             }
@@ -771,6 +859,7 @@ fun AmapComposeMap(
             watchdog.cancel()
             host.setOnReadyListener(null)
             host.setOnUserGestureListener(null)
+            host.setOnBearingChangedListener(null)
             lifecycleOwner.lifecycle.removeObserver(observer)
             controller.dispose()
         }

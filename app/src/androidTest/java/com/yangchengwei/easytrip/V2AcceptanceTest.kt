@@ -322,6 +322,82 @@ class V2AcceptanceTest {
         assertEquals(2, runBlocking { database.routeLegDao().legs(fixture.days.first().id) }.size)
     }
 
+    @Test fun removingDayItemClosesConfirmationAndPreservesCollectionAndOtherDays() {
+        verifyDayItemRemoval(failFirstAttempt = false)
+    }
+
+    @Test fun failedDayItemRemovalKeepsConfirmationAndRetryClosesIt() {
+        verifyDayItemRemoval(failFirstAttempt = true)
+    }
+
+    private fun verifyDayItemRemoval(failFirstAttempt: Boolean) {
+        val trips = RoomTripRepository(database.tripDao(), idFactory = { "remove-trip-${nextId++}" })
+        val places = RoomSavedPlaceRepository(database, idFactory = { "remove-place-${nextId++}" })
+        val itineraries = RoomItineraryRepository(
+            database, database.itineraryEditingDao(), database.routeLegDao(),
+            itemIdFactory = { "remove-item-${nextId++}" },
+            legIdFactory = { "remove-leg-${nextId++}" },
+            isOnline = { false },
+        )
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        val tripId: String
+        val dayIds: List<String>
+        val placeId: String
+        val itemId: String
+        val otherDayItemId: String
+        runBlocking {
+            tripId = trips.createTrip(CreateTrip("移出当天行程回归", 2))
+            dayIds = requireNotNull(trips.observeTrip(tripId).first()).days.map { it.id }
+            placeId = (places.save(tripId, candidate("remove-poi", "测试博物馆", 30.25, 120.15))
+                as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+            itemId = itineraries.addItem(dayIds[0], placeId, 0)
+            otherDayItemId = itineraries.addItem(dayIds[1], placeId, 0)
+        }
+        var deleteCalls = 0
+        val repository = object : ItineraryRepository by itineraries {
+            override suspend fun deleteItem(itemId: String) {
+                deleteCalls++
+                if (failFirstAttempt && deleteCalls == 1) error("测试移出失败，请重试")
+                itineraries.deleteItem(itemId)
+            }
+        }
+        setProductionNavigation(trips, places, repository, routes, mutableListOf(), mutableListOf())
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
+        waitForTag("workspace-top-bar")
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        waitForTag("more-$itemId")
+        compose.onNodeWithTag("more-$itemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-delete-$itemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("取消").performClick()
+        compose.onAllNodesWithText("确认移出").assertCountEquals(0)
+        assertEquals(0, deleteCalls)
+        assertTrue(runBlocking { database.itineraryEditingDao().item(itemId) } != null)
+
+        compose.onNodeWithTag("more-$itemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithTag("menu-delete-$itemId", useUnmergedTree = true).performClick()
+        compose.onNodeWithText("确认移出").performClick()
+        if (failFirstAttempt) {
+            waitFor("removal failure stays visible") {
+                compose.onAllNodesWithText("测试移出失败，请重试").fetchSemanticsNodes().isNotEmpty()
+            }
+            assertTrue(runBlocking { database.itineraryEditingDao().item(itemId) } != null)
+            compose.onNodeWithText("确认移出").performClick()
+        }
+        waitFor("Room item removed") { runBlocking { database.itineraryEditingDao().item(itemId) } == null }
+        waitFor("successful removal closes confirmation") {
+            compose.onAllNodesWithText("确认移出").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onAllNodesWithTag("more-$itemId", useUnmergedTree = true).assertCountEquals(0)
+        assertEquals(if (failFirstAttempt) 2 else 1, deleteCalls)
+        assertTrue(runBlocking { database.itineraryEditingDao().savedPlace(placeId) } != null)
+        assertTrue(runBlocking { database.itineraryEditingDao().item(otherDayItemId) } != null)
+        compose.onNodeWithTag("itinerary-scope-${dayIds[1]}").performClick()
+        waitForTag("more-$otherDayItemId")
+        compose.onNodeWithTag("more-$otherDayItemId", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-scope-${dayIds[0]}").performClick()
+        compose.onAllNodesWithTag("more-$itemId", useUnmergedTree = true).assertCountEquals(0)
+    }
+
     private fun runBatch5ProductionNavigationRoomMainFlow(): Set<Batch5FrameCheckpoint> {
         val checkpoints = linkedSetOf<Batch5FrameCheckpoint>()
         val trips = RoomTripRepository(
@@ -411,11 +487,11 @@ class V2AcceptanceTest {
         checkpoint(checkpoints, Batch5FrameCheckpoint.ItemEditComplete)
 
         val editedLegId = originalLegIds.last()
-        compose.onNodeWithTag("edit-route-$editedLegId").performScrollTo().performClick()
+        compose.onNodeWithTag("route-leg-action-$editedLegId").performScrollTo().performClick()
         compose.onNodeWithTag("route-mode-option-DRIVE").performClick()
         compose.onNodeWithTag("route-duration-minutes-input").performTextInput("20")
         compose.onNodeWithTag("route-note-input").performTextInput("避开拥堵")
-        compose.onNodeWithText("保存路段").performClick()
+        compose.onNodeWithTag("save-route").performClick()
         compose.waitUntil(5_000) {
             runBlocking { database.routeLegDao().leg(editedLegId) }?.let {
                 it.selectedMode == com.yangchengwei.easytrip.core.model.TransportMode.DRIVE &&
@@ -438,8 +514,8 @@ class V2AcceptanceTest {
                 ),
             )
         }
-        waitForTag("edit-route-$editedLegId")
-        compose.onNodeWithTag("edit-route-$editedLegId").performScrollTo().performClick()
+        waitForTag("route-leg-action-$editedLegId")
+        compose.onNodeWithTag("route-leg-action-$editedLegId").performScrollTo().performClick()
         compose.onNodeWithTag("route-mode-option-DRIVE").assertIsSelected()
         compose.onNodeWithTag("route-duration-minutes-input").assertTextContains("20")
         compose.onNodeWithTag("route-note-input").assertTextContains("避开拥堵")
@@ -821,7 +897,7 @@ class V2AcceptanceTest {
             )
         }
         compose.waitUntil(5_000) {
-            compose.onAllNodesWithTag("continue-trip-${runBlocking { trips.observeTrips().first().single().id }}")
+            compose.onAllNodesWithTag("primary-trip-${runBlocking { trips.observeTrips().first().single().id }}")
                 .fetchSemanticsNodes().isNotEmpty()
         }
     }

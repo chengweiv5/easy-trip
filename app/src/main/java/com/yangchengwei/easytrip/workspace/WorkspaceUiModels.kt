@@ -95,6 +95,7 @@ sealed interface TripWorkspaceAction {
     data object OpenSearch : TripWorkspaceAction
     data object ZoomIn : TripWorkspaceAction
     data object ZoomOut : TripWorkspaceAction
+    data object ResetNorth : TripWorkspaceAction
     data object Locate : TripWorkspaceAction
     data object MapGesture : TripWorkspaceAction
     data object Retry : TripWorkspaceAction

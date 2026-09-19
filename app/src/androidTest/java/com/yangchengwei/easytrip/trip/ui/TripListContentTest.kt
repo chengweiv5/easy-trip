@@ -71,7 +71,7 @@ class TripListContentTest {
         compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
     }
 
-    @Test fun primaryTripHasOneCardEntryAndIndependentFortyEightDpMenu() {
+    @Test fun primaryTripHasOneCardEntryAndIndependentCompactMenu() {
         val actions = mutableListOf<TripListAction>()
         setContent(content(), actions::add)
 
@@ -79,7 +79,7 @@ class TripListContentTest {
         assertEquals(listOf(TripListAction.OpenTrip("trip-1")), actions)
         compose.onAllNodesWithTag("continue-trip-trip-1").assertCountEquals(0)
         compose.onAllNodesWithText("继续规划", useUnmergedTree = true).assertCountEquals(0)
-        compose.onNodeWithTag("trip-menu-trip-1").assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("trip-menu-trip-1").assertWidthIsEqualTo(28.dp).assertHeightIsEqualTo(28.dp)
         compose.onAllNodesWithTag("trip-trip-1").assertCountEquals(0)
         compose.onAllNodesWithTag("trip-settings-trip-1").assertCountEquals(0)
         compose.onAllNodesWithTag("trip-delete-trip-1").assertCountEquals(0)
@@ -141,14 +141,14 @@ class TripListContentTest {
             .assertWidthIsEqualTo(36.dp)
             .assertHeightIsEqualTo(36.dp)
             .assert(SemanticsActions.OnClick.keyNotDefined())
-        compose.onNodeWithTag("trip-menu-trip-2").assertWidthIsEqualTo(48.dp).assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("trip-menu-trip-2").assertWidthIsEqualTo(28.dp).assertHeightIsEqualTo(28.dp)
         actions.clear()
         compose.onNodeWithTag("trip-menu-trip-2").performClick()
         compose.onNodeWithTag("trip-menu-settings-trip-2").performClick()
         assertEquals(listOf(TripListAction.OpenSettings("trip-2")), actions)
     }
 
-    @Test fun contentCreateActionIsA142By52RightAlignedFixedPill() {
+    @Test fun contentCreateActionIsA132By48RightAlignedFixedButton() {
         compose.setContent {
             EasyTripTheme {
                 Box(Modifier.requiredWidth(320.dp).height(700.dp).testTag("trip-list-container").consumeWindowInsets(androidx.compose.foundation.layout.WindowInsets.safeDrawing)) {
@@ -170,12 +170,12 @@ class TripListContentTest {
         val primaryBounds = compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed().getUnclippedBoundsInRoot()
         check(headerBounds.bottom <= primaryBounds.top)
         val createBounds = compose.onNodeWithTag("create-trip")
-            .assertWidthIsEqualTo(142.dp)
-            .assertHeightIsEqualTo(52.dp)
+            .assertWidthIsEqualTo(132.dp)
+            .assertHeightIsEqualTo(48.dp)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
-        assertEquals(containerBounds.right - 20.dp, createBounds.right)
-        assertEquals(containerBounds.bottom - 24.dp, createBounds.bottom)
+        assertEquals(containerBounds.right - 16.dp, createBounds.right)
+        assertEquals(containerBounds.bottom - 20.dp, createBounds.bottom)
 
         compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-12"))
         compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
@@ -193,7 +193,7 @@ class TripListContentTest {
         )
 
         compose.onNodeWithTag("primary-trip-trip-1").assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(142.dp).assertHeightIsEqualTo(52.dp).assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(132.dp).assertHeightIsEqualTo(48.dp).assertIsDisplayed()
         compose.onAllNodesWithText("其他旅行").assertCountEquals(0)
     }
 
@@ -219,8 +219,8 @@ class TripListContentTest {
         val container = compose.onNodeWithTag("single-trip-container").getUnclippedBoundsInRoot()
         val create = compose.onNodeWithTag("create-trip").assertIsDisplayed().getUnclippedBoundsInRoot()
         val list = compose.onNodeWithTag("other-trips-list").assertIsDisplayed().getUnclippedBoundsInRoot()
-        assertEquals(container.right - 20.dp, create.right)
-        assertEquals(container.bottom - 24.dp, create.bottom)
+        assertEquals(container.right - 16.dp, create.right)
+        assertEquals(container.bottom - 20.dp, create.bottom)
         check(list.bottom > list.top)
         check(list.bottom <= create.top)
         compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("primary-trip-trip-primary"))
@@ -252,8 +252,8 @@ class TripListContentTest {
         val container = compose.onNodeWithTag("narrow-large-font-container").getUnclippedBoundsInRoot()
         val create = compose.onNodeWithTag("create-trip").assertIsDisplayed().getUnclippedBoundsInRoot()
         val list = compose.onNodeWithTag("other-trips-list").assertIsDisplayed().getUnclippedBoundsInRoot()
-        assertEquals(container.right - 20.dp, create.right)
-        assertEquals(container.bottom - 24.dp, create.bottom)
+        assertEquals(container.right - 16.dp, create.right)
+        assertEquals(container.bottom - 20.dp, create.bottom)
         check(list.bottom > list.top)
         check(list.bottom <= create.top)
         compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-12"))
@@ -283,8 +283,8 @@ class TripListContentTest {
         val primaryBounds = compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed().getUnclippedBoundsInRoot()
         check(headerBounds.bottom <= primaryBounds.top)
         val createBounds = compose.onNodeWithTag("create-trip")
-            .assertWidthIsEqualTo(142.dp)
-            .assertHeightIsEqualTo(52.dp)
+            .assertWidthIsEqualTo(132.dp)
+            .assertHeightIsEqualTo(48.dp)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
 
@@ -319,12 +319,12 @@ class TripListContentTest {
 
         val container = compose.onNodeWithTag("compact-trip-list-container").getUnclippedBoundsInRoot()
         val create = compose.onNodeWithTag("create-trip")
-            .assertWidthIsEqualTo(142.dp)
-            .assertHeightIsEqualTo(52.dp)
+            .assertWidthIsEqualTo(132.dp)
+            .assertHeightIsEqualTo(48.dp)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
-        assertEquals(container.right - 20.dp, create.right)
-        assertEquals(container.bottom - 24.dp, create.bottom)
+        assertEquals(container.right - 16.dp, create.right)
+        assertEquals(container.bottom - 20.dp, create.bottom)
         val list = compose.onNodeWithTag("other-trips-list")
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
@@ -360,7 +360,7 @@ class TripListContentTest {
         }
 
         compose.onNodeWithTag("primary-trip-trip-primary").assert(hasClickAction()).assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(142.dp).assertHeightIsEqualTo(52.dp).assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(132.dp).assertHeightIsEqualTo(48.dp).assertIsDisplayed()
         compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-12"))
         compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
     }

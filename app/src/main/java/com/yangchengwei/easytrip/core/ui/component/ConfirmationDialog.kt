@@ -91,7 +91,7 @@ fun ConfirmationDialog(
                         }
                     }
                 }
-                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (showDismissAction) EasyTripSecondaryButton(
                         onClick = onDismiss,
                         enabled = dismissEnabled,

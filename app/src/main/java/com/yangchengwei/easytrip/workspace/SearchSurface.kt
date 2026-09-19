@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.padding
@@ -23,17 +24,17 @@ import androidx.compose.ui.unit.dp
 
 @Composable
 fun WorkspaceSearchBar(onClick: () -> Unit, modifier: Modifier = Modifier) {
-    Box(modifier.fillMaxWidth().testTag("workspace-search-surface")) {
+    Box(modifier.width(160.dp).testTag("workspace-search-surface")) {
         Surface(
             modifier = Modifier.fillMaxWidth().height(EasyTripTheme.sizes.workspaceSearchHeight).testTag("workspace-search-launcher")
                 .semantics { contentDescription = "搜索地点" }.clickable(role = Role.Button, onClick = onClick),
-            shape = RoundedCornerShape(23.dp),
+            shape = RoundedCornerShape(16.dp),
             color = MaterialTheme.colorScheme.surface,
             shadowElevation = EasyTripTheme.elevation.floating,
         ) {
-            Row(Modifier.padding(horizontal = 18.dp), verticalAlignment = Alignment.CenterVertically) {
+            Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically) {
                 WorkspaceSearchIcon(Modifier.size(EasyTripTheme.sizes.workspaceIconSize))
-                Text("搜索餐厅、景点或地址", Modifier.padding(start = 10.dp), color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text("搜索地点", Modifier.padding(start = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             }
         }
     }

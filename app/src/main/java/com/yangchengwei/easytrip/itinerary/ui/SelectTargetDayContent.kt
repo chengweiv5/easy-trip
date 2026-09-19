@@ -42,8 +42,8 @@ fun SelectTargetDayContent(
     schedule: PlaceScheduleSummaryUi? = null,
     selectedPlaceName: String? = null,
 ) {
-    Column(modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text("加入行程", style = MaterialTheme.typography.titleLarge)
+    Column(modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text("加入行程", style = MaterialTheme.typography.titleMedium)
         Text(
             when {
                 state.editingTarget is ForPlace && selectedPlaceName != null -> selectedPlaceName

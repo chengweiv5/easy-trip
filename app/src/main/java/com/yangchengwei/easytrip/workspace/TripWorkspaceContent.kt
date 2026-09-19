@@ -62,13 +62,14 @@ fun TripWorkspaceContent(
     onPlaceAction: (PlacePoolAction) -> Unit,
     itineraryState: DayItineraryUiState,
     onItineraryAction: (DayItineraryAction) -> Unit,
-    mapContent: @Composable BoxScope.(MapViewportInsets) -> Unit,
+    mapContent: @Composable BoxScope.(WorkspaceMapLayout) -> Unit,
     placeContent: (@Composable () -> Unit)? = null,
     dayItineraryContent: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
     searchReturn: WorkspaceSearchReturn? = null,
     layerFailureMessage: String? = null,
     onLayerFailureMessageDismissed: () -> Unit = {},
+    mapBearing: Float = 0f,
 ) {
     when (pageState) {
         TripWorkspacePageState.Loading -> WorkspacePageMessage("旅行加载中")
@@ -91,6 +92,7 @@ fun TripWorkspaceContent(
             searchReturn,
             layerFailureMessage,
             onLayerFailureMessageDismissed,
+            mapBearing,
         )
     }
 }
@@ -114,13 +116,14 @@ private fun WorkspaceReadyContent(
     onPlaceAction: (PlacePoolAction) -> Unit,
     itineraryState: DayItineraryUiState,
     onItineraryAction: (DayItineraryAction) -> Unit,
-    mapContent: @Composable BoxScope.(MapViewportInsets) -> Unit,
+    mapContent: @Composable BoxScope.(WorkspaceMapLayout) -> Unit,
     placeContent: (@Composable () -> Unit)?,
     dayItineraryContent: (@Composable () -> Unit)?,
     modifier: Modifier,
     searchReturn: WorkspaceSearchReturn?,
     layerFailureMessage: String?,
     onLayerFailureMessageDismissed: () -> Unit,
+    mapBearing: Float,
 ) {
     val density = LocalDensity.current
     WorkspaceScaffold(
@@ -156,8 +159,8 @@ private fun WorkspaceReadyContent(
                 }
             }
         },
-            sheetContentHorizontalPadding = if (state.section == WorkspaceSection.ITINERARY) 0.dp else 20.dp,
-        collapsedContentHorizontalPadding = 20.dp,
+            sheetContentHorizontalPadding = if (state.section == WorkspaceSection.ITINERARY) 0.dp else 16.dp,
+        collapsedContentHorizontalPadding = 16.dp,
         collapsedContent = {
                 WorkspaceCollapsedSummary(
                     state = state,
@@ -243,7 +246,7 @@ private fun WorkspaceReadyContent(
         map = { metrics ->
             Box(Modifier.fillMaxSize().testTag("workspace-map")) {
                 if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) {
-                    mapContent(workspaceViewportInsets(metrics, density.density))
+                    mapContent(workspaceMapLayout(metrics, density.density))
                 }
                 if (mapState != WorkspaceMapState.Ready && workspaceMapOverlaysFit(metrics)) {
                     WorkspaceMapFallback(
@@ -360,23 +363,35 @@ private fun WorkspaceReadyContent(
                 modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp),
             )
             if (mapOverlaysFit && mapState == WorkspaceMapState.Ready) {
+                if (state.section == WorkspaceSection.PLACE_POOL && placeState.placesReady) {
+                    MapCollectionSummary(
+                        count = com.yangchengwei.easytrip.place.ui.placePoolCollectionTotal(placeState),
+                        modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 58.dp),
+                    )
+                }
                 MapControls(
                     active = state.overlay == WorkspaceOverlay.LayerMenu,
                     onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
-                    onZoomIn = { onAction(TripWorkspaceAction.ZoomIn) },
-                    onZoomOut = { onAction(TripWorkspaceAction.ZoomOut) },
                     onLocate = { onAction(TripWorkspaceAction.Locate) },
-                    onOpenSearch = { onAction(TripWorkspaceAction.OpenSearch) },
+                    bearing = mapBearing,
+                    onResetNorth = { onAction(TripWorkspaceAction.ResetNorth) },
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(
-                            top = minOf(66.dp, (metrics.sheetTop - WorkspaceMapControlsHeight).coerceAtLeast(54.dp)),
+                            top = minOf(58.dp, (metrics.sheetTop - WorkspaceMapControlsHeight).coerceAtLeast(54.dp)),
                             end = 12.dp,
                         ),
                 )
-                if (state.overlay != WorkspaceOverlay.LayerMenu) {
-                    MapLegend(
-                        Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = workspaceLegendTop(metrics)),
+                Row(
+                    Modifier.align(Alignment.TopStart)
+                        .padding(start = 12.dp, end = 12.dp, top = workspaceLegendTop(metrics))
+                        .fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically,
+                ) {
+                    MapLegend()
+                    WorkspaceSearchBar(
+                        onClick = { onAction(TripWorkspaceAction.OpenSearch) },
                     )
                 }
             }
@@ -411,20 +426,15 @@ private fun WorkspaceLayerFailureFeedback(
     Snackbar(modifier = modifier.testTag("map-layer-failure")) { Text(message) }
 }
 
-private val WorkspaceMapOverlayRequiredHeight = 236.dp
-private val WorkspaceMapControlsHeight = 160.dp
-private val WorkspaceMapControlsTop = 54.dp
-private val WorkspaceMapLegendHeight = 36.dp
-private val WorkspaceMapLegendBottomGap = 5.dp
-private val WorkspaceMapLegendStart = 12.dp
-private val WorkspaceMapLegendWidth = 112.dp
+private val WorkspaceMapOverlayRequiredHeight = 214.dp
+private val WorkspaceMapControlsHeight = 100.dp
 private val WorkspaceLayerMenuTopOffset = 140.dp
-private val WorkspaceLayerMenuHeight = 289.dp
+private val WorkspaceLayerMenuHeight = 284.dp
 private val WorkspaceLayerMenuEndInset = 16.dp
-private val WorkspaceMoreMenuTopOffset = 76.dp
-private val WorkspaceMoreMenuWidth = 190.dp
-private val WorkspaceMoreMenuHeight = 260.dp
-private val WorkspaceMoreMenuEndInset = 20.dp
+private val WorkspaceMoreMenuTopOffset = 68.dp
+private val WorkspaceMoreMenuWidth = 240.dp
+private val WorkspaceMoreMenuHeight = 192.dp
+private val WorkspaceMoreMenuEndInset = 12.dp
 
 internal fun workspaceMapOverlaysFit(metrics: WorkspaceLayoutMetrics): Boolean =
     metrics.sheetTop >= WorkspaceMapOverlayRequiredHeight
@@ -510,10 +520,10 @@ private fun WorkspaceSummaryIcon(section: WorkspaceSection, modifier: Modifier =
 @Composable
 internal fun WorkspaceSheetHandle(modifier: Modifier = Modifier) {
     Box(
-        modifier.fillMaxWidth().height(16.dp).testTag("workspace-sheet-handle-control"),
+        modifier.fillMaxWidth().height(12.dp).testTag("workspace-sheet-handle-control"),
         contentAlignment = Alignment.Center,
     ) {
-        Surface(Modifier.fillMaxWidth(.1f).height(4.dp), shape = RoundedCornerShape(2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .4f)) {}
+        Surface(Modifier.width(36.dp).height(4.dp), shape = RoundedCornerShape(2.dp), color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = .4f)) {}
     }
 }
 

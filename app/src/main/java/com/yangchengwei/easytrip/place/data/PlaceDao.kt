@@ -19,13 +19,16 @@ data class PlaceSnapshotRow(
     val note: String?,
     val tagId: String?,
     val tagName: String?,
+    val cityName: String?,
+    val cityAdCode: String?,
+    val cityCode: String?,
 )
 
 @Dao
 interface PlaceDao {
     @Query("""
         SELECT p.id AS placeId, p.tripId, p.amapPoiId, p.name AS placeName,
-               p.address, p.latitude, p.longitude, p.note,
+               p.address, p.latitude, p.longitude, p.note, p.cityName, p.cityAdCode, p.cityCode,
                t.id AS tagId, t.name AS tagName
         FROM saved_places p
         LEFT JOIN saved_place_tags r ON r.savedPlaceId = p.id AND r.tripId = p.tripId
@@ -46,6 +49,8 @@ interface PlaceDao {
     @Query("SELECT id FROM saved_places WHERE tripId=:tripId AND amapPoiId=:poiId") suspend fun placeId(tripId: String, poiId: String): String?
     @Insert(onConflict=OnConflictStrategy.IGNORE) suspend fun insertPlace(value: SavedPlaceEntity): Long
     @Query("UPDATE saved_places SET note=:note WHERE id=:placeId") suspend fun updateNote(placeId: String, note: String): Int
+    @Query("UPDATE saved_places SET cityName=:name, cityAdCode=:adCode WHERE id=:placeId AND (cityName IS NULL OR TRIM(cityName) = '')")
+    suspend fun updateCityIfMissing(placeId: String, name: String, adCode: String?): Int
     @Query("SELECT * FROM tags WHERE tripId=:tripId AND tagNameNormalized=:normalized") suspend fun tag(tripId: String, normalized: String): TagEntity?
     @Insert(onConflict=OnConflictStrategy.IGNORE) suspend fun insertTag(value: TagEntity): Long
     @Query("DELETE FROM saved_place_tags WHERE savedPlaceId=:placeId") suspend fun deleteCrossRefs(placeId: String)

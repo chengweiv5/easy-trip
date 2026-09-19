@@ -1,7 +1,9 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -16,18 +18,13 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -42,9 +39,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripBorder
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimary
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripSecondary
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurface
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
 
@@ -57,7 +51,7 @@ internal fun CreateTripFormFields(
 ) {
     val enabled = !state.isSubmitting
 
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(18.dp)) {
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(16.dp)) {
         Column(
             Modifier.testTag("create-name-container"),
             verticalArrangement = Arrangement.spacedBy(8.dp),
@@ -86,7 +80,7 @@ internal fun CreateTripFormFields(
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(66.dp)
+                    .height(56.dp)
                     .testTag("create-date-control")
                     .testTag("create-date-row")
                     .errorSemantics(state.dateError)
@@ -95,7 +89,7 @@ internal fun CreateTripFormFields(
                         role = Role.Button
                     }
                     .clickable(enabled = enabled) { onOpenDateRangePicker() },
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(8.dp),
                 color = EasyTripSurface,
                 border = BorderStroke(if (state.dateError == null) 1.dp else 2.dp, if (state.dateError == null) EasyTripBorder else MaterialTheme.colorScheme.error),
             ) {
@@ -108,7 +102,7 @@ internal fun CreateTripFormFields(
                     Column(Modifier.weight(1f).testTag("create-date-text")) {
                         Text(
                             state.startDate?.toString() ?: "选择开始和结束日期",
-                            style = MaterialTheme.typography.bodyLarge,
+                            style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
                             state.endDate?.let { endDate ->
@@ -134,8 +128,8 @@ internal fun CreateTripFormFields(
         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text("出行方式", style = MaterialTheme.typography.labelLarge)
             Row(
-                Modifier.fillMaxWidth().height(82.dp).selectableGroup().testTag("create-mode-options"),
-                horizontalArrangement = Arrangement.spacedBy(10.dp),
+                Modifier.fillMaxWidth().height(72.dp).selectableGroup().testTag("create-mode-options"),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 TravelModeCard(
@@ -157,7 +151,7 @@ internal fun CreateTripFormFields(
         Surface(
             modifier = Modifier.fillMaxWidth().testTag("create-planning-tip"),
             color = EasyTripSurfaceSoft,
-            shape = RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(8.dp),
         ) {
             Box(Modifier.padding(horizontal = 12.dp, vertical = 11.dp), contentAlignment = Alignment.CenterStart) {
                 Text(
@@ -192,31 +186,28 @@ private fun BrandedField(
     Box(
         modifier = modifier
             .fillMaxWidth()
-            .height(52.dp)
-            .border(BorderStroke(if (isError || focused) 2.dp else 1.dp, border), RoundedCornerShape(10.dp)),
+            .height(48.dp)
+            .background(EasyTripSurface, RoundedCornerShape(8.dp))
+            .border(BorderStroke(if (isError || focused) 2.dp else 1.dp, border), RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.CenterStart,
     ) {
-        OutlinedTextField(
+        BasicTextField(
             value = value,
             onValueChange = onValueChange,
-            modifier = Modifier
-                .fillMaxWidth()
-                .testTag(fieldTag)
-                .errorSemantics(errorMessage),
-            placeholder = { Text(placeholder) },
-            leadingIcon = {
-                NameFieldIcon(Modifier.size(20.dp).testTag("create-name-leading-icon"))
-            },
+            modifier = Modifier.fillMaxWidth().height(48.dp).testTag(fieldTag).errorSemantics(errorMessage),
             enabled = enabled,
-            isError = isError,
             singleLine = true,
             interactionSource = interactionSource,
-            colors = androidx.compose.material3.OutlinedTextFieldDefaults.colors(
-                focusedBorderColor = Color.Transparent,
-                unfocusedBorderColor = Color.Transparent,
-                errorBorderColor = Color.Transparent,
-                disabledBorderColor = Color.Transparent,
-            ),
+            textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface),
+            decorationBox = { inner ->
+                Row(Modifier.padding(horizontal = 12.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    NameFieldIcon(Modifier.size(20.dp).testTag("create-name-leading-icon"))
+                    Box(Modifier.weight(1f)) {
+                        if (value.isEmpty()) Text(placeholder, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        inner()
+                    }
+                }
+            },
         )
     }
 }
@@ -261,7 +252,7 @@ fun TravelModeCard(
     val interactionSource = remember { MutableInteractionSource() }
     Surface(
         modifier = modifier
-            .height(82.dp)
+            .height(72.dp)
             .selectable(
                 selected = selected,
                 onClick = onClick,
@@ -274,8 +265,10 @@ fun TravelModeCard(
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
         border = if (selected) null else BorderStroke(1.dp, EasyTripBorder),
     ) {
-        Box(contentAlignment = Alignment.Center) {
-            Text(if (mode == TravelMode.FLEXIBLE) "灵活" else "自驾", style = MaterialTheme.typography.titleMedium)
+        Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
+            TravelModeSymbol(mode, Modifier.size(18.dp))
+            Text(if (mode == TravelMode.FLEXIBLE) "灵活出行" else "自驾", style = MaterialTheme.typography.labelMedium)
+            Text(if (mode == TravelMode.FLEXIBLE) "步行与公共交通" else "以驾车为主", style = MaterialTheme.typography.bodySmall)
         }
     }
 }
@@ -285,3 +278,22 @@ private fun dateSelectionDescription(state: CreateTripUiState): String =
 
 private fun Modifier.errorSemantics(message: String?): Modifier =
     if (message == null) this else semantics { error(message) }
+
+@Composable
+internal fun TravelModeSymbol(mode: TravelMode, modifier: Modifier = Modifier) {
+    val color = androidx.compose.material3.LocalContentColor.current
+    Canvas(modifier) {
+        val stroke = Stroke(1.3.dp.toPx())
+        if (mode == TravelMode.FLEXIBLE) {
+            drawCircle(color, radius = size.minDimension * .4f, style = stroke)
+            drawLine(color, Offset(size.width * .65f, size.height * .3f), Offset(size.width * .35f, size.height * .7f), 1.5.dp.toPx())
+        } else {
+            drawRoundRect(color, Offset(size.width * .1f, size.height * .35f), androidx.compose.ui.geometry.Size(size.width * .8f, size.height * .4f), androidx.compose.ui.geometry.CornerRadius(2.dp.toPx()), style = stroke)
+            drawLine(color, Offset(size.width * .22f, size.height * .35f), Offset(size.width * .32f, size.height * .16f), 1.3.dp.toPx())
+            drawLine(color, Offset(size.width * .32f, size.height * .16f), Offset(size.width * .68f, size.height * .16f), 1.3.dp.toPx())
+            drawLine(color, Offset(size.width * .68f, size.height * .16f), Offset(size.width * .78f, size.height * .35f), 1.3.dp.toPx())
+            drawCircle(color, size.width * .06f, Offset(size.width * .25f, size.height * .6f))
+            drawCircle(color, size.width * .06f, Offset(size.width * .75f, size.height * .6f))
+        }
+    }
+}

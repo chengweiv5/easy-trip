@@ -58,11 +58,11 @@ internal fun PrimaryTripCard(
         modifier = Modifier.fillMaxWidth()
             .testTag("primary-trip-${trip.id}")
             .clickable(role = Role.Button) { onAction(TripListAction.OpenTrip(trip.id)) },
-        shape = RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(16.dp),
         color = MaterialTheme.colorScheme.primary,
         contentColor = MaterialTheme.colorScheme.onPrimary,
     ) {
-        Column(Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Column(Modifier.heightIn(min = 208.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     "下一站 · ${trip.name}",
@@ -99,7 +99,7 @@ internal fun PrimaryTripCard(
                 trip.name,
                 modifier = Modifier.testTag("primary-trip-name-${trip.id}"),
                 color = MaterialTheme.colorScheme.onPrimary,
-                style = MaterialTheme.typography.titleLarge.copy(fontSize = 26.sp),
+                style = MaterialTheme.typography.titleLarge.copy(fontSize = 24.sp),
                 maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
             )
@@ -238,10 +238,10 @@ private fun TripMenu(
     onExpandedChange: (Boolean) -> Unit,
     onAction: (TripListAction) -> Unit,
 ) {
-    Box(Modifier.size(48.dp), contentAlignment = Alignment.Center) {
+    Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
         IconButton(
             onClick = { onExpandedChange(!expanded) },
-            modifier = Modifier.size(48.dp).testTag("trip-menu-${trip.id}")
+            modifier = Modifier.size(28.dp).testTag("trip-menu-${trip.id}")
                 .semantics { contentDescription = "${trip.name}，更多旅行操作" },
         ) { MoreIcon(Modifier.size(22.dp), iconColor) }
         DropdownMenu(
