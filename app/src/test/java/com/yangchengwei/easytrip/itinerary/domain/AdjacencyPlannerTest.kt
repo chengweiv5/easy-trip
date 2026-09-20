@@ -72,7 +72,7 @@ class AdjacencyPlannerTest {
         assertEquals(TransportMode.WALK, defaultRecommendMode(origin, placeAtMeters("one", 1_000.0), TravelMode.FLEXIBLE))
         assertEquals(TransportMode.TAXI, defaultRecommendMode(origin, placeAtMeters("over-one", 1_000.01), TravelMode.FLEXIBLE))
         assertEquals(TransportMode.TAXI, defaultRecommendMode(origin, placeAtMeters("twenty", 20_000.0), TravelMode.FLEXIBLE))
-        assertEquals(TransportMode.TRANSIT, defaultRecommendMode(origin, placeAtMeters("over-twenty", 20_000.01), TravelMode.FLEXIBLE))
+        assertEquals(TransportMode.TAXI, defaultRecommendMode(origin, placeAtMeters("over-twenty", 20_000.01), TravelMode.FLEXIBLE))
         assertEquals(TransportMode.DRIVE, defaultRecommendMode(origin, placeAtMeters("far", 30_000.0), TravelMode.SELF_DRIVE))
         assertTrue(haversineMeters(0.0, 0.0, 0.0, 180.0).isFinite())
     }

@@ -30,6 +30,18 @@ val localProperties = Properties().apply {
     rootProject.file("local.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
 }
 val amapApiKey = localProperties.getProperty("AMAP_API_KEY", "")
+val releaseSigningProperties = Properties().apply {
+    rootProject.file("release-signing.properties").takeIf { it.exists() }?.inputStream()?.use(::load)
+}
+fun releaseSigningValue(name: String): String? = providers.environmentVariable(name).orNull
+    ?: releaseSigningProperties.getProperty(name)
+val releaseStoreFile = releaseSigningValue("RELEASE_STORE_FILE")
+val releaseStorePassword = releaseSigningValue("RELEASE_STORE_PASSWORD")
+val releaseKeyAlias = releaseSigningValue("RELEASE_KEY_ALIAS")
+val releaseKeyPassword = releaseSigningValue("RELEASE_KEY_PASSWORD") ?: releaseStorePassword
+val releaseSigningConfigured = listOf(
+    releaseStoreFile, releaseStorePassword, releaseKeyAlias, releaseKeyPassword,
+).all { !it.isNullOrBlank() }
 val gitShaBytes = gitBytes(rootDir, "rev-parse", "HEAD")
 val buildGitSha = gitShaBytes?.decodeToString()?.trim()?.takeIf { it.isNotEmpty() } ?: "UNAVAILABLE"
 val gitStatus = gitBytes(rootDir, "status", "--porcelain=v1", "-z")
@@ -58,12 +70,29 @@ android {
         applicationId = "com.yangchengwei.easytrip"
         minSdk = 26
         targetSdk = 36
-        versionCode = 1
-        versionName = "1.0"
+        versionCode = 2
+        versionName = "1.0.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["AMAP_API_KEY"] = amapApiKey
         buildConfigField("String", "GIT_SHA", "\"$buildGitSha\"")
         buildConfigField("String", "SOURCE_STATE", "\"$sourceState\"")
+    }
+    signingConfigs {
+        if (releaseSigningConfigured) {
+            create("release") {
+                storeFile = rootProject.file(releaseStoreFile!!)
+                storePassword = releaseStorePassword
+                keyAlias = releaseKeyAlias
+                keyPassword = releaseKeyPassword
+            }
+        }
+    }
+    buildTypes {
+        release {
+            isDebuggable = false
+            isMinifyEnabled = false
+            if (releaseSigningConfigured) signingConfig = signingConfigs.getByName("release")
+        }
     }
     compileOptions { sourceCompatibility = JavaVersion.VERSION_17; targetCompatibility = JavaVersion.VERSION_17 }
     kotlin {
@@ -104,4 +133,15 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+}
+
+// Fail before producing a release artifact if its signing or map configuration is missing.
+tasks.matching { it.name == "preReleaseBuild" }.configureEach {
+    doFirst {
+        check(releaseSigningConfigured) {
+            "Release signing is required. Configure release-signing.properties or RELEASE_* environment variables."
+        }
+        check(rootProject.file(releaseStoreFile!!).isFile) { "Release keystore file was not found." }
+        check(amapApiKey.isNotBlank()) { "AMAP_API_KEY must be configured for release builds." }
+    }
 }

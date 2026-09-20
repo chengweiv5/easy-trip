@@ -15,6 +15,7 @@ import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
 import com.yangchengwei.easytrip.place.domain.PlaceService
 import com.yangchengwei.easytrip.route.amap.AmapRouteDataSource
 import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
+import com.yangchengwei.easytrip.route.data.FlexibleRouteDefaultsUpdate
 import com.yangchengwei.easytrip.route.domain.DataSourceRoutePlanner
 import com.yangchengwei.easytrip.route.domain.DefaultRouteRefreshCoordinator
 import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
@@ -86,6 +87,7 @@ class AppContainer(
     databaseFactory: (Context) -> EasyTripDatabase = {
         Room.databaseBuilder(it, EasyTripDatabase::class.java, "easy-trip.db")
             .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6)
+            .addCallback(FlexibleRouteDefaultsUpdate)
             .build()
     },
     networkFactory: (Context, CoroutineScope) -> NetworkMonitor = ::ConnectivityNetworkMonitor,

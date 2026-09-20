@@ -12,7 +12,8 @@ class TransportModeRecommenderTest {
         assertEquals(TransportMode.WALK, subject.recommend(TravelMode.FLEXIBLE, 1_000.0))
         assertEquals(TransportMode.TAXI, subject.recommend(TravelMode.FLEXIBLE, 1_000.01))
         assertEquals(TransportMode.TAXI, subject.recommend(TravelMode.FLEXIBLE, 20_000.0))
-        assertEquals(TransportMode.TRANSIT, subject.recommend(TravelMode.FLEXIBLE, 20_000.01))
+        assertEquals(TransportMode.TAXI, subject.recommend(TravelMode.FLEXIBLE, 20_000.01))
+        assertEquals(TransportMode.TAXI, subject.recommend(TravelMode.FLEXIBLE, 500_000.0))
     }
     @Test fun `self drive always recommends drive`() {
         listOf(0.0, 1_000.0, 1_000.01, 20_000.0, 20_000.01).forEach {

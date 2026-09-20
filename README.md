@@ -35,6 +35,31 @@ adb install -r app/build/outputs/apk/debug/app-debug.apk
 
 物理真机发布验收参见 [`docs/testing/v1-device-checklist.md`](docs/testing/v1-device-checklist.md) 和 [`docs/testing/v2-device-checklist.md`](docs/testing/v2-device-checklist.md)。
 
+## 正式版本
+
+正式 APK 与 SHA256 校验文件发布在 [GitHub Releases](https://github.com/chengweiv5/easy-trip/releases)。
+
+构建前，在不受版本控制的 `release-signing.properties` 中配置：
+
+```properties
+RELEASE_STORE_FILE=/private/path/easy-trip-release.jks
+RELEASE_STORE_PASSWORD=your-private-password
+RELEASE_KEY_ALIAS=easy-trip
+# 私钥密码与密钥库不同才需要填写
+# RELEASE_KEY_PASSWORD=your-private-key-password
+```
+
+也可以通过同名环境变量注入配置；环境变量优先。限制该文件的本机读取权限并在仓库外备份签名材料，后续版本沿用同一证书。`local.properties` 中的高德 Key 必须已登记正式签名 SHA1。
+
+```bash
+./gradlew :app:assembleRelease :app:testReleaseUnitTest :app:lintRelease
+apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-release.apk
+```
+
+从已提交且工作区干净的代码构建发布包，并检查 APK 内版本、`debuggable=false`、`GIT_SHA` 和 `SOURCE_STATE=CLEAN`。签名或高德配置缺失时 Release 构建会失败。上传后重新下载 APK 并校验 SHA256。
+
+正式包与 Debug 包签名不同，不能直接覆盖安装；应用数据只保存在本机且尚无导出功能，卸载会丢失旅行数据。已安装 Debug 包的设备请保留原安装，先在其他设备体验正式包。后续正式版可以使用同一签名升级。
+
 ## v2 工作台
 
 - 内容抽屉分为“搜索 / 地点池 / 每日行程”三个独立 Tab。

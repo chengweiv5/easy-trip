@@ -76,7 +76,7 @@ class ItineraryTransactionTest {
         assertEquals(listOf(b), database.itineraryEditingDao().items("target").map { it.id })
         val bridge = database.routeLegDao().legs("source").single()
         assertEquals(a to c, bridge.fromItemId to bridge.toItemId); assertNull(bridge.selectedMode)
-        assertEquals(TransportMode.TRANSIT, bridge.recommendedMode); assertEquals(RouteStatus.PENDING, bridge.status); assertEquals(1L, bridge.version)
+        assertEquals(TransportMode.TAXI, bridge.recommendedMode); assertEquals(RouteStatus.PENDING, bridge.status); assertEquals(1L, bridge.version)
         assertNull(bridge.distanceMeters); assertNull(bridge.durationSeconds); assertNull(bridge.polyline)
         repository.deleteItem(c)
         assertEquals(0, database.routeLegDao().legs("source").size)
@@ -179,7 +179,7 @@ class ItineraryTransactionTest {
         val beforeItems = database.itineraryEditingDao().items("day")
         val beforeLegs = database.routeLegDao().legs("day")
         val conflictingLegId = beforeLegs.first { it.fromItemId == ids[2] && it.toItemId == ids[3] }.id
-        repository = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(), Clock.fixed(now, ZoneOffset.UTC), itemIds, { conflictingLegId }, { true }, ::recommend)
+        repository = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(), Clock.fixed(now, ZoneOffset.UTC), itemIds, { conflictingLegId }, { true })
 
         assertThrows(SQLiteConstraintException::class.java) { kotlinx.coroutines.runBlocking { repository.deleteItem(ids[1]) } }
 
@@ -236,7 +236,7 @@ class ItineraryTransactionTest {
         val surviving = database.routeLegDao().legs("day").first { it.fromItemId == ids[1] && it.toItemId == ids[2] }
         database.routeLegDao().selectMode(surviving.id, TransportMode.DRIVE)
         val beforeLegs = database.routeLegDao().legs("day")
-        repository = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(), Clock.fixed(now, ZoneOffset.UTC), itemIds, { surviving.id }, { true }, ::recommend)
+        repository = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(), Clock.fixed(now, ZoneOffset.UTC), itemIds, { surviving.id }, { true })
 
         assertThrows(SQLiteConstraintException::class.java) { kotlinx.coroutines.runBlocking { repository.moveItem(ids[0], "day", 2) } }
 
@@ -278,15 +278,10 @@ class ItineraryTransactionTest {
         assertEquals(7, legs.size); assertEquals(7, legs.map { it.fromItemId to it.toItemId }.distinct().size)
     }
 
-    private fun newRepository(ids: () -> String, online: () -> Boolean) = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(), Clock.fixed(now, ZoneOffset.UTC), ids, legIds, online, ::recommend)
+    private fun newRepository(ids: () -> String, online: () -> Boolean) = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(), Clock.fixed(now, ZoneOffset.UTC), ids, legIds, online)
     private suspend fun seedTrip(id: String, mode: TravelMode, vararg days: String) {
         database.tripDao().insertTrip(TripEntity(id, id, TimeMode.DRAFT, null, mode, now, now)); days.forEachIndexed { i, day -> database.tripDao().insertDay(TripDayEntity(day, id, i * 1_000L)) }
     }
     private suspend fun seedPlace(id: String, trip: String, lat: Double, lon: Double) { database.savedPlaceDao().insertPlace(SavedPlaceEntity(id, trip, id, id, id, lat, lon)) }
-    private fun recommend(from: SavedPlaceEntity, to: SavedPlaceEntity, mode: TravelMode): TransportMode {
-        if (mode == TravelMode.SELF_DRIVE) return TransportMode.DRIVE
-        val meters = haversineMeters(from.latitude, from.longitude, to.latitude, to.longitude)
-        return when { meters <= 1_000 -> TransportMode.WALK; meters <= 20_000 -> TransportMode.TAXI; else -> TransportMode.TRANSIT }
-    }
     private class SequenceIds(private val prefix: String) : () -> String { private val next = AtomicInteger(); override fun invoke() = "$prefix-${next.getAndIncrement()}" }
 }
