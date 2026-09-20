@@ -31,13 +31,13 @@ class MapViewportController {
             !observedNonemptyPlaces && normalizedPlaces.isNotEmpty() -> ViewportReason.INITIAL
             retainedChange != null -> null
             observedNonemptyPlaces && normalizedPlaces != placeIdentity -> ViewportReason.PLACE_SET_CHANGED
-            userMovedViewport -> null
             this.scope != null && this.scope != scope -> ViewportReason.SCOPE_CHANGED
             this.scope == scope && this.selectedDayId != selectedDayId -> ViewportReason.VISIBLE_SET_CHANGED
+            userMovedViewport -> null
             this.scope == scope && scope != MapScope.PLACE_POOL && normalizedVisible != visibleIdentity -> ViewportReason.VISIBLE_SET_CHANGED
             else -> null
         }
-        if (reason == ViewportReason.INITIAL || reason == ViewportReason.PLACE_SET_CHANGED) {
+        if (reason == ViewportReason.INITIAL || reason == ViewportReason.PLACE_SET_CHANGED || reason == ViewportReason.SCOPE_CHANGED || this.selectedDayId != selectedDayId) {
             userMovedViewport = false
         }
         if (normalizedPlaces.isNotEmpty()) observedNonemptyPlaces = true

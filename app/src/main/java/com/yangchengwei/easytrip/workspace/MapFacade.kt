@@ -227,9 +227,9 @@ object MapUiModelMapper {
             return markers
         }
         if (scope == MapScope.PLACE_POOL) {
-            val scheduledPlaceIds = snapshots
-                .flatMap { snapshot -> snapshot.itinerary.items }
-                .mapTo(mutableSetOf()) { item -> item.place.id }
+            val orderedSnapshots = snapshots.sortedBy { snapshot -> days.firstOrNull { it.id == snapshot.itinerary.dayId }?.index ?: Int.MAX_VALUE }
+            val ordersByPlace = orderedSnapshots.flatMap { it.itinerary.items }.mapIndexed { index, item -> item.place.id to index + 1 }
+                .groupBy({ it.first }, { it.second })
             val savedMarkers = places.map {
                 MapMarkerUi(
                     key = "place-${it.id}",
@@ -238,18 +238,19 @@ object MapUiModelMapper {
                     occurrences = emptyList(),
                     kind = MapMarkerKind.SAVED_PLACE_POOL,
                     savedPlaceId = it.id,
-                    scheduled = it.id in scheduledPlaceIds,
+                    scheduled = it.id in ordersByPlace,
+                    badgeText = ordersByPlace[it.id]?.let(::formatOccurrenceBadge),
                 )
             }
             return MapUiModel(withSearchMarkers(savedMarkers))
         }
         val dayById = days.associateBy(TripDay::id)
-        val visible = if (scope == MapScope.SINGLE_DAY) snapshots.filter { it.itinerary.dayId == selectedDayId } else snapshots
+        val visible = if (scope == MapScope.SINGLE_DAY) snapshots.filter { it.itinerary.dayId == selectedDayId } else snapshots.sortedBy { dayById[it.itinerary.dayId]?.index ?: Int.MAX_VALUE }
         val occurrences = visible.flatMap { snapshot ->
             val day = dayById[snapshot.itinerary.dayId]
             snapshot.itinerary.items.mapIndexed { index, item ->
                 val dayIndex = day?.index ?: 0
-                val dayLabel = startDate?.plusDays(dayIndex.toLong())?.toString() ?: "Day ${dayIndex + 1}"
+                val dayLabel = startDate?.plusDays(dayIndex.toLong())?.toString() ?: "第 ${dayIndex + 1} 天"
                 item.place.point to OccurrenceUi(item.id, snapshot.itinerary.dayId, dayLabel, index + 1, item.place.name, item.place.id)
             }
         }

@@ -529,7 +529,7 @@ private fun WorkspaceOverlayContent(
                             CompactSecondaryButton(
                                 { onItineraryAction(DayItineraryAction.MoveToDay(day.id)) },
                                 enabled = !move.isMoving,
-                            ) { Text("Day ${day.index + 1}") }
+                            ) { Text(com.yangchengwei.easytrip.itinerary.ui.moveTargetDayLabel(day.index, state.startDate)) }
                         }
                     }
                 },

@@ -54,6 +54,7 @@ class RoomTripRepository(
                 placeCount = projection.placeCount,
                 scheduledDayCount = projection.scheduledDayCount,
                 updatedAt = projection.updatedAt,
+                hasTraveled = projection.hasTraveled,
             )
         }.sortedForTripList(today)
     }
@@ -63,6 +64,7 @@ class RoomTripRepository(
             TripWithDays(
                 id = it.trip.id,
                 name = it.trip.name,
+                hasTraveled = it.trip.hasTraveled,
                 startDate = it.trip.startDate,
                 travelMode = it.trip.travelMode,
                 days = it.days.sortedBy(TripDayEntity::position).mapIndexed { index, day -> TripDay(day.id, index) },
@@ -87,6 +89,10 @@ class RoomTripRepository(
         )
         dao.createTripWithDaysIdempotent(trip, command.dayCount, idFactory)
         return tripId
+    }
+
+    override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) {
+        dao.setHasTraveled(tripId, hasTraveled, clock.instant())
     }
 
     override suspend fun renameTrip(tripId: String, name: String) {

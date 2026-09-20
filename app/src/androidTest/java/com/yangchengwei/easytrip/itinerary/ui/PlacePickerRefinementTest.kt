@@ -28,6 +28,25 @@ class PlacePickerRefinementTest {
     private fun row(id: String, name: String, address: String, scheduled: Boolean = false) =
         SavedPlaceRowUi(SavedPlace(id, "trip", "poi-$id", name, address, GeoPoint(30.2, 120.1), "", emptyList()), if (scheduled) 1 else 0, scheduled)
 
+    @Test fun scheduleFilterCombinesWithSearchAndPreservesSelection() {
+        val state = mutableStateOf(AddToItineraryUiState(step = AddToItineraryStep.SELECT_PLACES))
+        compose.setContent { EasyTripTheme { Surface { Box(Modifier.width(390.dp).height(620.dp)) {
+            SelectPlacesContent(listOf(row("a", "少林寺", "登封", true), row("b", "嵩山", "登封")), state.value,
+                onTogglePlace = { state.value = state.value.copy(selectedPlaceIds = state.value.selectedPlaceIds + it) }, onContinue = {}, onClose = {})
+        } } } }
+        compose.onNodeWithTag("place-schedule-UNSCHEDULED").performClick()
+        compose.onNodeWithTag("select-place-a").assertDoesNotExist()
+        compose.onNodeWithTag("select-place-b").performClick()
+        compose.onNodeWithTag("place-schedule-SCHEDULED").performClick()
+        compose.onNodeWithTag("select-place-b").assertDoesNotExist()
+        compose.onNodeWithTag("select-place-a").assertExists()
+        compose.onNodeWithTag("select-places-search").performTextInput("少林")
+        compose.onNodeWithTag("select-place-a").assertExists()
+        compose.onNodeWithTag("place-schedule-ALL").performClick()
+        compose.onNodeWithTag("select-places-clear-search").performClick()
+        compose.onNodeWithTag("select-place-order-b", true).assertTextEquals("1")
+    }
+
     @Test fun filteringPreservesSelectionOrderAndClearingRestoresRows() {
         val state = mutableStateOf(AddToItineraryUiState(step = AddToItineraryStep.SELECT_PLACES))
         var continued = 0

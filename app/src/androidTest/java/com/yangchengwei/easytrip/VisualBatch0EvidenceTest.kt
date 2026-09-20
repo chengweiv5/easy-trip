@@ -752,7 +752,7 @@ class VisualBatch0EvidenceTest {
 
     @Test fun home_K9h3r() {
         val featured = com.yangchengwei.easytrip.trip.ui.TripCardUiModel(
-            "trip", "杭州 · 春日慢游", "3天2晚", "4月12日 — 4月14日", "灵活出行", "12天后出发",
+            "trip", "杭州 · 春日慢游", "3天2晚", "4月12日 — 4月14日", "灵活出行",
             8, 2, "8 个地点", "3 天行程", 72, "72%",
         )
         render("K9h3r", "home") {
@@ -769,7 +769,7 @@ class VisualBatch0EvidenceTest {
             DayItineraryUiState(editDraft = com.yangchengwei.easytrip.itinerary.ui.ItineraryEditDraft(
                 "item-2", "12:00", "60", placeId = "saved-1", placeName = "知味观 · 湖滨店",
             )))
-        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
+        compose.onNodeWithTag("arrival-hour-picker").assertIsDisplayed()
         compose.onNodeWithText("保存时间").assertIsDisplayed()
     }
 

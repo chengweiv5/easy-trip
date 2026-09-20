@@ -37,14 +37,21 @@ class AmapRouteDataSource(
 
     override suspend fun plan(request: RouteRequest): RouteResult {
         consent.validateActive()
-        validateRouteRequest(request)
+        val resolvedRequest = if (request.mode == RouteMode.TRANSIT) {
+            val origin = request.originCity?.takeIf(String::isNotBlank)
+                ?: com.yangchengwei.easytrip.amap.lookupCity(context, consent, request.origin)?.routeCityCode
+            val destination = request.destinationCity?.takeIf(String::isNotBlank)
+                ?: com.yangchengwei.easytrip.amap.lookupCity(context, consent, request.destination)?.routeCityCode
+            request.copy(originCity = origin, destinationCity = destination)
+        } else request
+        validateRouteRequest(resolvedRequest)
         val routeSearch = try { routeSearchFactory(context) } catch (error: AMapException) {
             throw AmapServiceException("ROUTE_CREATE", error.errorCode, error.errorMessage.orEmpty())
         } catch (error: Throwable) {
             if (error is CancellationException) throw error
             throw AmapServiceException("ROUTE_CREATE", 0, error.message.orEmpty())
         }
-        val query = try { buildQuery(request) } catch (error: Throwable) {
+        val query = try { buildQuery(resolvedRequest) } catch (error: Throwable) {
             if (error is CancellationException) throw error
             throw AmapServiceException("ROUTE_QUERY", 0, error.message.orEmpty())
         }
@@ -70,7 +77,9 @@ class AmapRouteDataSource(
             consent.validateActive()
             if (callback.code != AMapException.CODE_AMAP_SUCCESS) throw AmapServiceException(callback.operation, callback.code, "AMap route search failed")
             parseRouteResult(callback.operation, callback.code) {
-                callback.paths.orEmpty().map { path -> RoutePathData(path.distance.toInt(), path.duration.toInt(), path.polyline.orEmpty().map { GeoPoint(it.latitude, it.longitude) }) }
+                callback.paths.orEmpty().map { path ->
+                    RoutePathData(path.distance.toInt(), path.duration.toInt(), routePathPoints(path))
+                }
             }
         }
     }
@@ -97,4 +106,25 @@ internal fun parseRouteResult(operation: String, code: Int, paths: () -> List<Ro
         throw AmapServiceException(operation, code, error.message.orEmpty())
     }
     return RouteResult(selected.distanceMeters, selected.durationSeconds, selected.polyline)
+}
+
+internal fun routePathPoints(path: Path): List<GeoPoint> {
+    val top = path.polyline.orEmpty()
+    val points = if (top.size >= 2) top else when (path) {
+        is com.amap.api.services.route.WalkPath -> path.steps.orEmpty().flatMap { it.polyline.orEmpty() }
+        is com.amap.api.services.route.DrivePath -> path.steps.orEmpty().flatMap { it.polyline.orEmpty() }
+        is com.amap.api.services.route.BusPath -> {
+            // Do not connect walking points across an unrepresented rail or taxi segment.
+            if (path.steps.orEmpty().any { it.railway != null || it.taxi != null }) return emptyList()
+            path.steps.orEmpty().flatMap { step ->
+            step.walk?.steps.orEmpty().flatMap { it.polyline.orEmpty() } +
+                step.busLines.orEmpty().firstOrNull()?.polyline.orEmpty()
+            }
+        }
+        else -> emptyList()
+    }
+    return points.map { GeoPoint(it.latitude, it.longitude) }.fold(mutableListOf()) { result, point ->
+        if (result.lastOrNull() != point) result.add(point)
+        result
+    }
 }

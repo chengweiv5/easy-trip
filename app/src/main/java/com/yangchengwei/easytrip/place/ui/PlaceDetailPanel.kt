@@ -280,4 +280,4 @@ private fun PlaceDetailBookmark(filled: Boolean) {
     }
 }
 
-internal fun SavedPlace.toCandidate() = PlaceCandidate(amapPoiId, name, address, point, cityCode, cityName, cityAdCode)
+internal fun SavedPlace.toCandidate() = PlaceCandidate(amapPoiId, name, address, point, cityCode, cityName, cityAdCode, cityMetadataVersion)

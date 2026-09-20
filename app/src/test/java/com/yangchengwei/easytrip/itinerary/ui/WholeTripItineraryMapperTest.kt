@@ -152,7 +152,7 @@ class WholeTripItineraryMapperTest {
         )
 
         assertEquals(
-            listOf("网络异常，请重试", "未找到可用路线", "当前地点不支持公交规划", "路线规划失败"),
+            listOf("网络异常，请重试", "未找到可用路线", "城市信息暂未获取，请重试或更改方式", "路线规划失败"),
             actual.single().legs.map(RouteLegUi::error),
         )
     }

@@ -181,7 +181,7 @@ class WholeTripItineraryContentTest {
             }
         }
 
-        val node = compose.onNodeWithText("09:30 到达 · 停留 120 分钟").fetchSemanticsNode()
+        val node = compose.onNodeWithText("09:30 到达 · 停留 2 小时").fetchSemanticsNode()
         val results = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
         checkNotNull(node.config[SemanticsActions.GetTextLayoutResult].action).invoke(results)
         assertEquals(1, results.single().lineCount)

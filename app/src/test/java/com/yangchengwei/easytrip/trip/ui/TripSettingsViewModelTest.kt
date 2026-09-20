@@ -1714,6 +1714,7 @@ class TripSettingsViewModelTest {
             deleteFailure?.let { throw it }
         }
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) { renameCalls++ }
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun setTravelMode(tripId: String, mode: TravelMode) { travelModeCalls++ }

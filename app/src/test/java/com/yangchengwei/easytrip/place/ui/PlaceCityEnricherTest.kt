@@ -48,11 +48,28 @@ class PlaceCityEnricherTest {
         val enricher = PlaceCityEnricher(this, repo, source)
         enricher.submit(listOf(place))
         testScheduler.runCurrent()
-        enricher.submit(listOf(place, place.copy(id = "b", amapPoiId = "poi2"), place.copy(id = "known", cityName = "北京市")))
+        enricher.submit(listOf(place, place.copy(id = "b", amapPoiId = "poi2"), place.copy(id = "known", cityName = "北京市", cityMetadataVersion = 1)))
         pending.complete(PlaceCity("杭州市", "330100"))
         advanceUntilIdle()
         assertEquals(listOf("a", "b"), repo.writes)
         assertEquals(2, source.calls)
+    }
+
+    @Test fun legacyNonEmptyCityIsRefinedAndMissingPoiFallsBackToCoordinates() = runTest {
+        val repo = Repository()
+        var coordinateLookups = 0
+        val source = object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?) = emptyList<PlaceCandidate>()
+            override suspend fun cityForPoi(poiId: String): PlaceCity? = null
+            override suspend fun cityAt(point: GeoPoint): PlaceCity {
+                coordinateLookups++
+                return PlaceCity("登封市", "410185", "0371")
+            }
+        }
+        PlaceCityEnricher(this, repo, source).submit(listOf(place.copy(cityName = "郑州市", cityAdCode = "410100")))
+        advanceUntilIdle()
+        assertEquals(1, coordinateLookups)
+        assertEquals(listOf("a"), repo.writes)
     }
 
     private class Source(val lookup: suspend () -> PlaceCity?) : PlaceSearchDataSource {

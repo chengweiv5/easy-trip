@@ -41,7 +41,7 @@ data class EasyTripSizes(
     val settingsDayRowHeight: Dp = 48.dp,
     val settingsModeCardHeight: Dp = 62.dp,
     val settingsCardCornerRadius: Dp = 16.dp,
-    val workspaceTopBarHeight: Dp = 36.dp,
+    val workspaceTopBarHeight: Dp = 48.dp,
     val workspaceSearchHeight: Dp = 32.dp,
     val workspacePrimaryTouchTarget: Dp = 28.dp,
     val workspaceDenseTouchTarget: Dp = 28.dp,

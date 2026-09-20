@@ -102,7 +102,7 @@ internal fun workspaceViewportInsets(
         metrics.availableWidth.toPixels(),
     )
     val (top, bottom) = clampPair(
-        64.dp.toPixels(),
+        76.dp.toPixels(),
         (metrics.stableSheetHeight + 13.dp).toPixels(),
         metrics.availableHeight.toPixels(),
     )

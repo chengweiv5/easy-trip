@@ -26,34 +26,29 @@ data class TripSummary(
     val placeCount: Int,
     val scheduledDayCount: Int,
     val updatedAt: Instant = Instant.EPOCH,
+    val hasTraveled: Boolean = false,
 )
 
 fun List<TripSummary>.sortedForTripList(today: LocalDate): List<TripSummary> = sortedWith { left, right ->
+    val status = compareValues(left.hasTraveled, right.hasTraveled)
+    if (status != 0) return@sortedWith status
     val leftBucket = left.tripListDateBucket(today)
     val rightBucket = right.tripListDateBucket(today)
     val bucket = compareValues(leftBucket, rightBucket)
     if (bucket != 0) return@sortedWith bucket
-    val date = when (leftBucket) {
-        0 -> compareValues(left.endDate(), right.endDate()).takeIf { it != 0 }
-            ?: compareValues(right.startDate, left.startDate)
-        1 -> compareValues(left.startDate, right.startDate)
-        2 -> compareValues(right.endDate(), left.endDate())
-        else -> 0
+    val date = if (!left.hasTraveled && leftBucket == 0) {
+        compareValues(left.startDate, right.startDate)
+    } else {
+        compareValues(right.startDate, left.startDate)
     }
     if (date != 0) date else right.updatedAt.compareTo(left.updatedAt).takeIf { it != 0 } ?: left.id.compareTo(right.id)
 }
 
 private fun TripSummary.tripListDateBucket(today: LocalDate): Int {
-    val startDate = startDate ?: return 3
-    val endDate = tripEndDateOrNull(startDate, dayCount) ?: return 3
-    return when {
-        !today.isBefore(startDate) && !today.isAfter(endDate) -> 0
-        today.isBefore(startDate) -> 1
-        else -> 2
-    }
+    val startDate = startDate ?: return 2
+    // Past dates stay pending until manually marked, after upcoming departures.
+    return if (!hasTraveled && startDate.isBefore(today)) 1 else 0
 }
-
-private fun TripSummary.endDate(): LocalDate? = tripEndDateOrNull(startDate, dayCount)
 
 data class TripDay(val id: String, val index: Int)
 
@@ -63,6 +58,7 @@ data class TripWithDays(
     val startDate: LocalDate?,
     val travelMode: TravelMode,
     val days: List<TripDay>,
+    val hasTraveled: Boolean = false,
 )
 
 data class CreateTrip(
@@ -85,6 +81,7 @@ interface TripRepository {
     fun observeTrips(): Flow<List<TripSummary>>
     fun observeTrip(tripId: String): Flow<TripWithDays?>
     suspend fun createTrip(command: CreateTrip): String
+    suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean)
     suspend fun renameTrip(tripId: String, name: String)
     suspend fun setStartDate(tripId: String, startDate: LocalDate?)
     suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>): DateRangeDeletionCounts

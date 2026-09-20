@@ -51,6 +51,7 @@ internal var SemanticsPropertyReceiver.tripMenuTone by TripMenuTone
 internal fun PrimaryTripCard(
     trip: TripCardUiModel,
     menuExpanded: Boolean,
+    statusUpdating: Boolean = false,
     onMenuExpandedChange: (Boolean) -> Unit,
     onAction: (TripListAction) -> Unit,
 ) {
@@ -65,7 +66,7 @@ internal fun PrimaryTripCard(
         Column(Modifier.heightIn(min = 208.dp).padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    "下一站 · ${trip.name}",
+                    "${if (trip.hasTraveled) "旅行回忆" else "下一站"} · ${trip.name}",
                     modifier = Modifier.weight(1f),
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
                     style = MaterialTheme.typography.labelMedium,
@@ -73,12 +74,12 @@ internal fun PrimaryTripCard(
                     overflow = TextOverflow.Ellipsis,
                 )
                 Surface(
-                    modifier = Modifier.widthIn(max = 132.dp).testTag("trip-countdown-${trip.id}"),
+                    modifier = Modifier.widthIn(max = 132.dp).testTag("trip-status-${trip.id}"),
                     color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.14f),
                     shape = RoundedCornerShape(14.dp),
                 ) {
                     Text(
-                        trip.countdownLabel,
+                        trip.statusLabel,
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
                         color = MaterialTheme.colorScheme.onPrimary,
                         style = MaterialTheme.typography.labelSmall,
@@ -90,6 +91,7 @@ internal fun PrimaryTripCard(
                 TripMenu(
                     trip = trip,
                     expanded = menuExpanded,
+                    statusUpdating = statusUpdating,
                     iconColor = MaterialTheme.colorScheme.onPrimary,
                     onExpandedChange = onMenuExpandedChange,
                     onAction = onAction,
@@ -177,6 +179,7 @@ private fun ContinuousReadinessProgress(
 internal fun OtherTripRow(
     trip: TripCardUiModel,
     menuExpanded: Boolean,
+    statusUpdating: Boolean = false,
     onMenuExpandedChange: (Boolean) -> Unit,
     onAction: (TripListAction) -> Unit,
 ) {
@@ -204,7 +207,7 @@ internal fun OtherTripRow(
                 overflow = TextOverflow.Ellipsis,
             )
             Text(
-                "${trip.dateLabel ?: "待定日期"} · ${trip.travelModeLabel}",
+                "${trip.statusLabel} · ${trip.dateLabel ?: "待定日期"} · ${trip.travelModeLabel}",
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                 style = MaterialTheme.typography.bodySmall,
                 maxLines = 2,
@@ -223,6 +226,7 @@ internal fun OtherTripRow(
         TripMenu(
             trip = trip,
             expanded = menuExpanded,
+            statusUpdating = statusUpdating,
             iconColor = MaterialTheme.colorScheme.onSurfaceVariant,
             onExpandedChange = onMenuExpandedChange,
             onAction = onAction,
@@ -234,6 +238,7 @@ internal fun OtherTripRow(
 private fun TripMenu(
     trip: TripCardUiModel,
     expanded: Boolean,
+    statusUpdating: Boolean,
     iconColor: Color,
     onExpandedChange: (Boolean) -> Unit,
     onAction: (TripListAction) -> Unit,
@@ -249,6 +254,15 @@ private fun TripMenu(
             onDismissRequest = { onExpandedChange(false) },
             modifier = Modifier.testTag("trip-menu-popup-${trip.id}"),
         ) {
+            DropdownMenuItem(
+                text = { Text(if (statusUpdating) "正在更新…" else if (trip.hasTraveled) "改为待出行" else "标记为已出行") },
+                enabled = !statusUpdating,
+                onClick = {
+                    onExpandedChange(false)
+                    onAction(TripListAction.SetHasTraveled(trip.id, !trip.hasTraveled))
+                },
+                modifier = Modifier.testTag("trip-menu-status-${trip.id}").semantics { tripMenuItem = true },
+            )
             DropdownMenuItem(
                 text = { Text("设置") },
                 onClick = {

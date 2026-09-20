@@ -1,5 +1,9 @@
 package com.yangchengwei.easytrip
 
+import com.yangchengwei.easytrip.itinerary.ui.selectArrivalTime
+import com.yangchengwei.easytrip.itinerary.ui.selectStayHours
+import com.yangchengwei.easytrip.itinerary.ui.assertArrivalTime
+import com.yangchengwei.easytrip.itinerary.ui.assertStayHours
 import android.content.Context
 import android.view.View
 import androidx.activity.ComponentActivity
@@ -293,26 +297,29 @@ class V2AcceptanceTest {
         val editedItemId = fixture.itemIds[1]
         compose.onNodeWithTag("more-$editedItemId", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-timing-$editedItemId", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("arrival-time-input").performTextClearance()
-        compose.onNodeWithTag("arrival-time-input").performTextInput("14:20")
-        compose.onNodeWithTag("stay-minutes-input").performTextClearance()
-        compose.onNodeWithTag("stay-minutes-input").performTextInput("75")
+        compose.selectArrivalTime(14, 20)
+        compose.selectStayHours(1)
         compose.onNodeWithTag("itinerary-note-input").performTextClearance()
         compose.onNodeWithTag("itinerary-note-input").performTextInput("Visual Batch 3 持久备注")
         compose.onNodeWithText("保存时间").performClick()
         waitFor("edited Room item") {
             runBlocking { database.itineraryEditingDao().item(editedItemId) }?.let {
                 it.arrivalTime == java.time.LocalTime.of(14, 20) &&
-                    it.stayDurationMinutes == 75 &&
+                    it.stayDurationMinutes == 60 &&
                     it.note == "Visual Batch 3 持久备注"
             } == true
         }
         compose.onNodeWithTag("more-$editedItemId", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-timing-$editedItemId", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("arrival-time-input").assertTextContains("14:20")
-        compose.onNodeWithTag("stay-minutes-input").assertTextContains("75")
+        compose.assertArrivalTime(14, 20)
+        compose.assertStayHours("1")
         compose.onNodeWithTag("itinerary-note-input").assertTextContains("Visual Batch 3 持久备注")
+        compose.selectArrivalTime(18, 45)
+        compose.selectStayHours(3)
         compose.onNodeWithText("取消").performClick()
+        val afterCancel = runBlocking { database.itineraryEditingDao().item(editedItemId) }!!
+        assertEquals(java.time.LocalTime.of(14, 20), afterCancel.arrivalTime)
+        assertEquals(60, afterCancel.stayDurationMinutes)
 
         compose.onNodeWithTag("more-$editedItemId", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-delete-$editedItemId", useUnmergedTree = true).performClick()
@@ -465,8 +472,8 @@ class V2AcceptanceTest {
 
         compose.onNodeWithTag("more-$middleItem", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-timing-$middleItem", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("arrival-time-input").performTextInput("09:30")
-        compose.onNodeWithTag("stay-minutes-input").performTextInput("60")
+        compose.selectArrivalTime(9, 30)
+        compose.selectStayHours(1)
         compose.onNodeWithTag("itinerary-note-input").performTextInput("二层入口集合")
         compose.onNodeWithText("保存时间").performClick()
         compose.waitUntil(5_000) {
@@ -477,11 +484,11 @@ class V2AcceptanceTest {
             } == true
         }
         compose.onNodeWithText("09:30").assertIsDisplayed()
-        compose.onNodeWithText("停留 60 分钟").assertIsDisplayed()
+        compose.onNodeWithText("停留 1 小时").assertIsDisplayed()
         compose.onNodeWithTag("more-$middleItem", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-timing-$middleItem", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("arrival-time-input").assertTextContains("09:30")
-        compose.onNodeWithTag("stay-minutes-input").assertTextContains("60")
+        compose.assertArrivalTime(9, 30)
+        compose.assertStayHours("1")
         compose.onNodeWithTag("itinerary-note-input").assertTextContains("二层入口集合")
         compose.onNodeWithText("取消").performClick()
         checkpoint(checkpoints, Batch5FrameCheckpoint.ItemEditComplete)
@@ -653,8 +660,8 @@ class V2AcceptanceTest {
         waitForTag("item-$editableItemId")
         compose.onNodeWithTag("more-$editableItemId", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-timing-$editableItemId", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("arrival-time-input").performTextInput("09:30")
-        compose.onNodeWithTag("stay-minutes-input").performTextInput("60")
+        compose.selectArrivalTime(9, 30)
+        compose.selectStayHours(1)
         compose.onNodeWithTag("itinerary-note-input").performTextInput("东门集合")
         compose.onNodeWithText("保存时间").performClick()
 
@@ -676,13 +683,13 @@ class V2AcceptanceTest {
         }
         assertEquals(2, failingItineraries.updateDetailsCalls)
         compose.onAllNodesWithTag("itinerary-save-failure").assertCountEquals(0)
-        compose.onAllNodesWithTag("arrival-time-input").assertCountEquals(0)
+        compose.onAllNodesWithTag("arrival-hour-picker").assertCountEquals(0)
         compose.onNodeWithText("09:30").assertIsDisplayed()
-        compose.onNodeWithText("停留 60 分钟").assertIsDisplayed()
+        compose.onNodeWithText("停留 1 小时").assertIsDisplayed()
         compose.onNodeWithTag("more-$editableItemId", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-timing-$editableItemId", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("arrival-time-input").assertTextContains("09:30")
-        compose.onNodeWithTag("stay-minutes-input").assertTextContains("60")
+        compose.assertArrivalTime(9, 30)
+        compose.assertStayHours("1")
         compose.onNodeWithTag("itinerary-note-input").assertTextContains("东门集合")
         compose.onNodeWithText("取消").performClick()
         assertEquals("东门集合", runBlocking { roomItineraries.observeDay(dayId).first() }.items.single { it.id == editableItemId }.note)

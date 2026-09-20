@@ -35,11 +35,16 @@ internal class PlaceCityEnricher(
         if (job?.isActive == true) return
         job = scope.launch {
             while (true) {
-                val place = places.firstOrNull { it.cityName.isNullOrBlank() && it.amapPoiId !in attempted } ?: break
+                val place = places.firstOrNull { it.cityMetadataVersion < 1 && it.amapPoiId !in attempted } ?: break
                 attempted += place.amapPoiId
                 try {
-                    val city = withTimeoutOrNull(8_000) { currentSource.cityForPoi(place.amapPoiId) }
-                    if (city != null && source === currentSource) repository.updateCityIfMissing(place.id, city)
+                    val poiCity = try { withTimeoutOrNull(4_000) { currentSource.cityForPoi(place.amapPoiId) } }
+                    catch (error: CancellationException) { throw error }
+                    catch (_: Exception) { null }
+                    val city = poiCity?.takeIf { it.adCode != null }
+                        ?: withTimeoutOrNull(4_000) { currentSource.cityAt(place.point) }
+                        ?: poiCity
+                    if (city?.adCode != null && source === currentSource) repository.updateCityMetadata(place.id, city)
                 } catch (error: CancellationException) {
                     throw error
                 } catch (_: Exception) {

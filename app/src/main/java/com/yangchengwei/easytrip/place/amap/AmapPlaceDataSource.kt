@@ -24,10 +24,12 @@ data class PlaceCandidate(
     val cityCode: String?,
     val cityName: String? = null,
     val cityAdCode: String? = null,
+    val cityMetadataVersion: Int = 0,
 )
 
 interface PlaceSearchDataSource {
     suspend fun search(keyword: String, city: String?): List<PlaceCandidate>
+    suspend fun cityAt(point: GeoPoint): com.yangchengwei.easytrip.place.domain.PlaceCity? = null
     suspend fun cityForPoi(poiId: String): com.yangchengwei.easytrip.place.domain.PlaceCity? = null
 }
 
@@ -35,6 +37,8 @@ class AmapPlaceDataSource(context: Context, private val consent: AmapConsentToke
     private val context = context.applicationContext
 
     init { consent.validateActive() }
+
+    override suspend fun cityAt(point: GeoPoint) = com.yangchengwei.easytrip.amap.lookupCity(context, consent, point)
 
     override suspend fun cityForPoi(poiId: String): com.yangchengwei.easytrip.place.domain.PlaceCity? {
         consent.validateActive()
@@ -51,7 +55,7 @@ class AmapPlaceDataSource(context: Context, private val consent: AmapConsentToke
         }) { (item, code) ->
             consent.validateActive()
             if (code != AMapException.CODE_AMAP_SUCCESS) throw AmapServiceException("POI_CITY", code, "AMap city lookup failed")
-            item?.let { com.yangchengwei.easytrip.place.domain.administrativeCity(it.cityName, it.adCode, it.adName) }
+            item?.let { com.yangchengwei.easytrip.place.domain.administrativeCity(it.cityName, it.adCode, it.adName)?.copy(routeCityCode = it.cityCode) }
         }
     }
 

@@ -29,7 +29,7 @@ class RoomSavedPlaceRepository(
                 val first = group.first()
                 val tags = group.mapNotNull { row -> row.tagId?.let { PlaceTag(it, requireNotNull(row.tagName)) } }
                 if (!tagIds.all { selected -> tags.any { it.id == selected } }) return@mapNotNull null
-                SavedPlace(first.placeId, first.tripId, first.amapPoiId, first.placeName, first.address, GeoPoint(first.latitude, first.longitude), first.note.orEmpty(), tags, first.cityName, first.cityAdCode, first.cityCode)
+                SavedPlace(first.placeId, first.tripId, first.amapPoiId, first.placeName, first.address, GeoPoint(first.latitude, first.longitude), first.note.orEmpty(), tags, first.cityName, first.cityAdCode, first.cityCode, first.cityMetadataVersion)
             }
         }
 
@@ -47,9 +47,13 @@ class RoomSavedPlaceRepository(
         dao.placeId(tripId, candidate.poiId)?.let { return@withTransaction SavePlaceResult.AlreadySaved(it) }
         val point = requireNotNull(candidate.point) { "无法收藏缺少坐标的地点" }
         val id = idFactory()
-        val inserted = dao.insertPlace(SavedPlaceEntity(id, tripId, candidate.poiId, candidate.name, candidate.address, point.latitude, point.longitude, cityCode = candidate.cityCode, cityName = candidate.cityName, cityAdCode = candidate.cityAdCode))
+        val inserted = dao.insertPlace(SavedPlaceEntity(id, tripId, candidate.poiId, candidate.name, candidate.address, point.latitude, point.longitude, cityCode = candidate.cityCode, cityName = candidate.cityName, cityAdCode = candidate.cityAdCode, cityMetadataVersion = candidate.cityMetadataVersion))
         if (inserted != -1L) SavePlaceResult.Saved(id)
         else SavePlaceResult.AlreadySaved(requireNotNull(dao.placeId(tripId, candidate.poiId)))
+    }
+
+    override suspend fun updateCityMetadata(placeId: String, city: com.yangchengwei.easytrip.place.domain.PlaceCity) {
+        dao.updateCityMetadata(placeId, city.name, city.adCode, city.routeCityCode)
     }
 
     override suspend fun updateCityIfMissing(placeId: String, city: com.yangchengwei.easytrip.place.domain.PlaceCity) {

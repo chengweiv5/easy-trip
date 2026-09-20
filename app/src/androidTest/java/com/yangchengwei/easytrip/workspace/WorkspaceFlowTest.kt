@@ -33,6 +33,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.isDialog
 import androidx.compose.ui.test.click
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
@@ -2549,7 +2550,7 @@ class WorkspaceFlowTest {
         compose.onNodeWithTag("more-item-1").performClick()
         compose.onNodeWithTag("menu-timing-item-1", useUnmergedTree = true).performClick()
         compose.waitUntil { itineraryState.editDraft?.itemId == "item-1" }
-        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
+        compose.onNodeWithTag("arrival-hour-picker").assertIsDisplayed()
         compose.onNodeWithText("取消").performClick()
         compose.runOnIdle { itineraryState = itineraryState.copy(editDraft = null) }
         compose.waitUntil { workspace.state.value.overlay == WorkspaceOverlay.None }
@@ -2608,12 +2609,12 @@ class WorkspaceFlowTest {
         }
 
         compose.onNodeWithTag("itinerary-save-failure").assertIsDisplayed()
-        compose.onAllNodesWithTag("arrival-time-input").assertCountEquals(0)
+        compose.onAllNodesWithTag("arrival-hour-picker").assertCountEquals(0)
         compose.onNodeWithTag("itinerary-save-failure-retry").performClick()
         compose.runOnIdle { assertEquals(1, actions.count { it == DayItineraryAction.SaveEdit }) }
         compose.onNodeWithTag("itinerary-save-failure-keep-editing").performClick()
-        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
-        compose.onNodeWithTag("stay-minutes-input").assertIsDisplayed()
+        compose.onNodeWithTag("arrival-hour-picker").assertIsDisplayed()
+        compose.onNodeWithTag("stay-hours-picker").assertIsDisplayed()
         compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
         compose.onNodeWithText("仍在编辑的备注").assertIsDisplayed()
         compose.runOnIdle {
@@ -2661,8 +2662,8 @@ class WorkspaceFlowTest {
         pressBack()
 
         compose.waitUntil(5_000) { itineraryState.editDraft?.saveError == null }
-        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
-        compose.onNodeWithTag("stay-minutes-input").assertIsDisplayed()
+        compose.onNodeWithTag("arrival-hour-picker").assertIsDisplayed()
+        compose.onNodeWithTag("stay-hours-picker").assertIsDisplayed()
         compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
         compose.onNodeWithText("仍在编辑的备注").assertIsDisplayed()
         compose.runOnIdle {
@@ -2750,7 +2751,12 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
         compose.onNodeWithTag("section-ITINERARY").performClick()
 
-        compose.onNodeWithTag("retry-failed").performClick()
+        val recovery = compose.onNodeWithTag("route-recovery-failed", useUnmergedTree = true)
+        val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        recovery.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        val layout = layouts.single()
+        recovery.performTouchInput { click(layout.getBoundingBox(layout.layoutInput.text.text.indexOf("重试")).center) }
+        compose.waitForIdle()
 
         assertEquals(listOf(DayItineraryAction.Retry("failed", 0)), actions)
         assertEquals(WorkspaceOverlay.None, workspace.state.value.overlay)
@@ -3311,6 +3317,7 @@ class WorkspaceFlowTest {
         override fun observeTrip(tripId: String) = kotlinx.coroutines.flow.emptyFlow<TripWithDays?>()
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
@@ -3326,6 +3333,7 @@ class WorkspaceFlowTest {
         override fun observeTrip(tripId: String) = flowOf(TripWithDays("trip", name, LocalDate.of(2026, 8, 25), TravelMode.FLEXIBLE, listOf(TripDay("day-1", 0))))
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
@@ -3341,6 +3349,7 @@ class WorkspaceFlowTest {
         override fun observeTrip(tripId: String) = flowOf(TripWithDays("trip", "空旅行", null, TravelMode.FLEXIBLE, emptyList()))
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
@@ -3357,6 +3366,7 @@ class WorkspaceFlowTest {
         override fun observeTrip(tripId: String) = trip
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
@@ -3383,6 +3393,7 @@ class WorkspaceFlowTest {
         )
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
@@ -3406,6 +3417,7 @@ class WorkspaceFlowTest {
         )
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)
@@ -3431,6 +3443,7 @@ class WorkspaceFlowTest {
             listOf(TripSummary("trip", "川西", null, TravelMode.FLEXIBLE, 2, 0, 0)),
         )
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)

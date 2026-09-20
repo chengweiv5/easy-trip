@@ -514,7 +514,7 @@ class RoomTripRepositoryTest {
         clock.advance()
         val futureSooner = repository.createTrip(CreateTrip("Future sooner", 1, startDate = LocalDate.of(2026, 8, 25)))
 
-        val expected = listOf(ongoingLaterUpdate, ongoingEarlierUpdate, futureSooner, futureLater, endedRecent, endedOlder, undated)
+        val expected = listOf(futureSooner, futureLater, ongoingLaterUpdate, ongoingEarlierUpdate, endedRecent, endedOlder, undated)
         assertEquals(expected, repository.observeTrips().first().map { it.id })
 
         clock.advance()
@@ -524,9 +524,33 @@ class RoomTripRepositoryTest {
         clock.advance()
         repository.setStartDate(ongoingLaterUpdate, LocalDate.of(2026, 9, 10))
         assertEquals(
-            listOf(ongoingEarlierUpdate, futureSooner, futureLater, ongoingLaterUpdate, endedRecent, endedOlder, undated),
+            listOf(futureSooner, futureLater, ongoingLaterUpdate, ongoingEarlierUpdate, endedRecent, endedOlder, undated),
             repository.observeTrips().first().map { it.id },
         )
+
+        repository.setHasTraveled(ongoingEarlierUpdate, true)
+        repository.setHasTraveled(endedRecent, true)
+        repository.setHasTraveled(endedOlder, true)
+        repository.setHasTraveled(undated, true)
+        assertEquals(
+            listOf(futureSooner, futureLater, ongoingLaterUpdate, ongoingEarlierUpdate, endedRecent, endedOlder, undated),
+            repository.observeTrips().first().map { it.id },
+        )
+
+        clock.advance()
+        repository.renameTrip(endedOlder, "Recently edited older trip")
+        repository.setStartDate(endedRecent, LocalDate.of(2026, 8, 21))
+        val afterDateChange = repository.observeTrips().first()
+        assertEquals(
+            listOf(futureSooner, futureLater, ongoingLaterUpdate, endedRecent, ongoingEarlierUpdate, endedOlder, undated),
+            afterDateChange.map { it.id },
+        )
+        assertEquals(true, afterDateChange.single { it.id == endedRecent }.hasTraveled)
+
+        repository.setHasTraveled(endedRecent, false)
+        val afterUnmarking = repository.observeTrips().first()
+        assertEquals(listOf(futureSooner, futureLater, ongoingLaterUpdate, endedRecent), afterUnmarking.filter { !it.hasTraveled }.map { it.id })
+        assertEquals(listOf(ongoingEarlierUpdate, endedOlder, undated), afterUnmarking.filter { it.hasTraveled }.map { it.id })
     }
 
     @Test

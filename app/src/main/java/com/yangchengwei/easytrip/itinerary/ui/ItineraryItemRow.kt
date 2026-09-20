@@ -12,6 +12,7 @@ import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -49,6 +50,7 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import androidx.compose.ui.zIndex
 
 @Composable
@@ -68,6 +70,7 @@ internal fun ItineraryItemRow(
     onDragEnd: () -> Unit = {},
     onDragCancel: () -> Unit = {},
     sharedDragEnabled: Boolean = false,
+    parentHandlesDrag: Boolean = false,
 ) {
     var menuExpanded by remember(item.id) { mutableStateOf(false) }
     var localDragging by remember(item.id) { mutableStateOf(false) }
@@ -120,6 +123,7 @@ internal fun ItineraryItemRow(
                 itemId = item.id,
                 itemName = item.name,
                 count = count,
+                parentHandlesDrag = parentHandlesDrag,
                 onDragStart = effectiveDragStart,
                 onDragDelta = effectiveDragDelta,
                 onDragEnd = effectiveDragEnd,
@@ -147,6 +151,7 @@ private fun ItineraryDragHandle(
     itemId: String,
     itemName: String,
     count: Int,
+    parentHandlesDrag: Boolean,
     onDragStart: () -> Unit,
     onDragDelta: (Float) -> Unit,
     onDragEnd: () -> Unit,
@@ -163,7 +168,8 @@ private fun ItineraryDragHandle(
             .size(28.dp)
             .testTag("drag-handle-$itemId")
             .semantics { contentDescription = "拖动调整 $itemName 的顺序" }
-            .pointerInput(itemId, count) {
+            .pointerInput(itemId, count, parentHandlesDrag) {
+                if (parentHandlesDrag) return@pointerInput
                 detectDragGesturesAfterLongPress(
                     onDragStart = { currentOnDragStart() },
                     onDrag = { change, amount ->
@@ -210,7 +216,7 @@ internal fun ItineraryPlaceContent(
     compactTimeline: Boolean = false,
 ) {
     if (compactTimeline) {
-        CompactItineraryStop(item, modifier, leadingAction, trailingAction)
+        CompactItineraryStop(item, displayOrder, modifier, leadingAction, trailingAction)
         return
     }
     Surface(
@@ -227,6 +233,7 @@ internal fun ItineraryPlaceContent(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 leadingAction?.invoke()
+                ItineraryOrderBadge(displayOrder, item.id)
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.bodyLarge,
@@ -256,7 +263,7 @@ internal fun ItineraryPlaceContent(
                             withStyle(SpanStyle(color = arrivalColor)) { append("$it 到达") }
                         }
                         if (item.arrivalTime != null && item.stayMinutes != null) append(" · ")
-                        item.stayMinutes?.let { append("停留 $it 分钟") }
+                        item.stayMinutes?.let { append("停留 ${formatStayHours(it)}") }
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -270,6 +277,7 @@ internal fun ItineraryPlaceContent(
 @Composable
 private fun CompactItineraryStop(
     item: ItineraryItemUi,
+    displayOrder: Int,
     modifier: Modifier,
     dragHandle: (@Composable () -> Unit)?,
     menu: (@Composable () -> Unit)?,
@@ -279,18 +287,26 @@ private fun CompactItineraryStop(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
-        Column(Modifier.width(42.dp), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(2.dp)) {
-            Text(item.arrivalTime?.toString() ?: "待定", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
-            Box(Modifier.size(8.dp).background(com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent, RoundedCornerShape(4.dp)))
-        }
         Column(Modifier.weight(1f).padding(vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-            Text(item.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.testTag("itinerary-place-name-${item.id}"))
-            Text(
-                item.stayMinutes?.let { "停留 ${formatDuration(it * 60)}" } ?: "待安排停留时长",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.testTag("itinerary-place-timing-${item.id}"),
-            )
+            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                Box(Modifier.width(42.dp), contentAlignment = Alignment.Center) {
+                    ItineraryOrderBadge(displayOrder, item.id)
+                }
+                Text(item.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f).testTag("itinerary-place-name-${item.id}"))
+            }
+            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                Text(item.arrivalTime?.toString() ?: "待定",
+                    modifier = Modifier.width(42.dp).alignByBaseline().testTag("itinerary-arrival-${item.id}"),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                Text(
+                    item.stayMinutes?.let { "停留 ${formatStayHours(it)}" } ?: "待安排停留时长",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f).alignByBaseline().testTag("itinerary-place-timing-${item.id}"),
+                )
+            }
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             dragHandle?.invoke()
@@ -305,4 +321,14 @@ private fun Modifier.semanticsActions(name: String, index: Int, count: Int, onCo
         (index > 0).takeIf { it }?.let { CustomAccessibilityAction("上移") { onCommit(index - 1); true } },
         (index < count - 1).takeIf { it }?.let { CustomAccessibilityAction("下移") { onCommit(index + 1); true } },
     )
+}
+
+@Composable
+private fun ItineraryOrderBadge(order: Int, itemId: String) {
+    Box(Modifier.widthIn(min = 18.dp).heightIn(min = 18.dp)
+        .background(com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent, RoundedCornerShape(9.dp))
+        .padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {
+        Text(order.toString(), Modifier.testTag("itinerary-order-$itemId"), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, lineHeight = 14.sp),
+            color = Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
+    }
 }

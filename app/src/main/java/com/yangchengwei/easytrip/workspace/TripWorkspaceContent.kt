@@ -366,7 +366,7 @@ private fun WorkspaceReadyContent(
                 if (state.section == WorkspaceSection.PLACE_POOL && placeState.placesReady) {
                     MapCollectionSummary(
                         count = com.yangchengwei.easytrip.place.ui.placePoolCollectionTotal(placeState),
-                        modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 58.dp),
+                        modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 70.dp),
                     )
                 }
                 MapControls(
@@ -378,7 +378,7 @@ private fun WorkspaceReadyContent(
                     modifier = Modifier
                         .align(Alignment.TopEnd)
                         .padding(
-                            top = minOf(58.dp, (metrics.sheetTop - WorkspaceMapControlsHeight).coerceAtLeast(54.dp)),
+                            top = minOf(70.dp, (metrics.sheetTop - WorkspaceMapControlsHeight).coerceAtLeast(66.dp)),
                             end = 12.dp,
                         ),
                 )
@@ -426,7 +426,7 @@ private fun WorkspaceLayerFailureFeedback(
     Snackbar(modifier = modifier.testTag("map-layer-failure")) { Text(message) }
 }
 
-private val WorkspaceMapOverlayRequiredHeight = 214.dp
+private val WorkspaceMapOverlayRequiredHeight = 226.dp
 private val WorkspaceMapControlsHeight = 100.dp
 private val WorkspaceLayerMenuTopOffset = 140.dp
 private val WorkspaceLayerMenuHeight = 284.dp

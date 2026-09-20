@@ -132,7 +132,7 @@ class WorkspaceChromeTest {
             }
         }
 
-        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(36.dp)
+        compose.onNodeWithTag("workspace-top-bar").assertHeightIsEqualTo(48.dp)
         compose.onNodeWithTag("workspace-back").assertIsDisplayed().assertHasClickAction()
         compose.onNodeWithTag("workspace-more").assertIsDisplayed().assertHasClickAction()
         val title = compose.onNodeWithTag("workspace-trip-title").assertIsDisplayed().getUnclippedBoundsInRoot()
@@ -179,7 +179,7 @@ class WorkspaceChromeTest {
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
 
         org.junit.Assert.assertEquals(12.dp, topBar.left - root.left)
-        org.junit.Assert.assertEquals(36.dp, topBar.height)
+        org.junit.Assert.assertEquals(48.dp, topBar.height)
         org.junit.Assert.assertEquals(12.dp, root.right - topBar.right)
         org.junit.Assert.assertEquals(12.dp, root.right - search.right)
         listOf(layer, locate, compass).forEach { bounds ->
@@ -520,7 +520,7 @@ class WorkspaceChromeTest {
             }
         }
 
-        compose.onNodeWithTag("section-PLACE_POOL").assertHeightIsEqualTo(36.dp)
+        compose.onNodeWithTag("section-PLACE_POOL").assertHeightIsEqualTo(48.dp)
         compose.onNodeWithTag("workspace-tab-indicator-PLACE_POOL", useUnmergedTree = true).assertHeightIsEqualTo(3.dp)
     }
 

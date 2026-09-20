@@ -139,7 +139,7 @@ internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(
 internal fun RouteErrorKind?.toRouteErrorSummary() = when (this) {
     RouteErrorKind.TRANSIENT -> "网络异常，请重试"
     RouteErrorKind.NO_ROUTE -> "未找到可用路线"
-    RouteErrorKind.UNSUPPORTED_TRANSIT -> "当前地点不支持公交规划"
+    RouteErrorKind.UNSUPPORTED_TRANSIT -> "城市信息暂未获取，请重试或更改方式"
     RouteErrorKind.PERMANENT -> "路线规划失败"
     null -> null
 }

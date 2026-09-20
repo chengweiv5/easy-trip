@@ -18,13 +18,14 @@ data class TripListProjection(
     val startDate: LocalDate?,
     val travelMode: TravelMode,
     val updatedAt: Instant,
+    val hasTraveled: Boolean,
     val dayCount: Int,
     val placeCount: Int,
     val scheduledDayCount: Int,
 )
 
 private const val TRIP_LIST_PROJECTION = """
-    SELECT t.id, t.name, t.startDate, t.travelMode, t.updatedAt,
+    SELECT t.id, t.name, t.startDate, t.travelMode, t.updatedAt, t.hasTraveled,
            (SELECT COUNT(*) FROM trip_days d WHERE d.tripId = t.id) AS dayCount,
            (SELECT COUNT(*) FROM saved_places p WHERE p.tripId = t.id) AS placeCount,
            (SELECT COUNT(DISTINCT i.tripDayId)
@@ -48,6 +49,8 @@ interface TripDao {
     @Query("UPDATE trips SET name=:name,updatedAt=:now WHERE id=:tripId") suspend fun renameRow(tripId:String,name:String,now:Instant):Int
     @Query("UPDATE trips SET startDate=:date,timeMode=:mode,updatedAt=:now WHERE id=:tripId") suspend fun dateRow(tripId:String,date:LocalDate?,mode:TimeMode,now:Instant):Int
     @Query("UPDATE trips SET travelMode=:mode,updatedAt=:now WHERE id=:tripId") suspend fun modeRow(tripId:String,mode:TravelMode,now:Instant):Int
+    @Query("UPDATE trips SET hasTraveled=:hasTraveled,updatedAt=:now WHERE id=:tripId") suspend fun traveledRow(tripId:String,hasTraveled:Boolean,now:Instant):Int
+    @Transaction suspend fun setHasTraveled(tripId:String,hasTraveled:Boolean,now:Instant){ require(traveledRow(tripId,hasTraveled,now)==1){"Unknown trip: $tripId"} }
     @Query("UPDATE trips SET updatedAt=:now WHERE id=:tripId") suspend fun touch(tripId:String,now:Instant):Int
     @Query("UPDATE trip_days SET position=:position WHERE id=:dayId") suspend fun position(dayId:String,position:Long):Int
     @Query("DELETE FROM trip_days WHERE id=:dayId") suspend fun deleteDayRow(dayId:String):Int

@@ -5,14 +5,14 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MapMarkerRenderingPolicyTest {
-    @Test fun `scheduled place pool marker uses solid primary with white bookmark`() {
+    @Test fun `scheduled place pool marker uses number without bookmark`() {
         val rendering = mapMarkerRendering(
             MapMarkerUi("place-1", point(), "地点", emptyList(), MapMarkerKind.SAVED_PLACE_POOL, scheduled = true),
         )
 
         assertEquals(0xFF2D5E3A.toInt(), rendering.backgroundColor)
         assertEquals(0xFFFFFFFF.toInt(), rendering.foregroundColor)
-        assertEquals(BookmarkGeometry, rendering.geometry)
+        assertEquals(emptyList<NormalizedPoint>(), rendering.geometry)
         assertTrue(rendering.solid)
     }
 
@@ -37,15 +37,13 @@ class MapMarkerRenderingPolicyTest {
         assertEquals(emptyList<NormalizedPoint>(), rendering.geometry)
     }
 
-    @Test fun `itinerary marker keeps bookmark geometry and separate badge text`() {
+    @Test fun `itinerary marker uses only its ordinal glyph`() {
         val rendering = mapMarkerRendering(
             MapMarkerUi("place-1", point(), "地点", emptyList(), MapMarkerKind.SAVED_ITINERARY, badgeText = "1·3", scheduled = true),
         )
 
-        assertEquals(BookmarkGeometry, rendering.geometry)
+        assertEquals(emptyList<NormalizedPoint>(), rendering.geometry)
         assertEquals("1·3", rendering.glyph)
-        assertEquals(0xFF2D5E3A.toInt(), rendering.badgeBackgroundColor)
-        assertEquals(0xFFFFFFFF.toInt(), rendering.badgeForegroundColor)
     }
 
     @Test fun `focus changes emphasis without changing scheduled fill semantics`() {

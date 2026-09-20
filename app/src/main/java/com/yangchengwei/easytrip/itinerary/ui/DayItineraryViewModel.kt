@@ -451,7 +451,6 @@ class DayItineraryViewModel(
     fun requestMode(legId: String): Boolean {
         val leg = visibleRouteLegs(state.value.items, state.value.previewOrder, state.value.legs)
             .firstOrNull { it.id == legId }
-            ?.takeIf { it.state is RouteLegUiState.Ready }
             ?: return false
         val itemsById = state.value.items.associateBy(ItineraryItemUi::id)
         mutable.value = mutable.value.copy(
@@ -503,7 +502,7 @@ class DayItineraryViewModel(
         val editor = state.value.modeEditor ?: return
         if (editor.isSaving || !editor.isValid) return
         val isReady = visibleRouteLegs(state.value.items, state.value.previewOrder, state.value.legs)
-            .any { it.id == editor.legId && it.state is RouteLegUiState.Ready }
+            .any { it.id == editor.legId }
         if (!isReady) {
             mutable.value = mutable.value.copy(modeEditor = null)
             return
@@ -512,7 +511,7 @@ class DayItineraryViewModel(
         mutable.value = mutable.value.copy(modeEditor = started)
         viewModelScope.launch {
             val isStillReady = visibleRouteLegs(state.value.items, state.value.previewOrder, state.value.legs)
-                .any { it.id == started.legId && it.state is RouteLegUiState.Ready }
+                .any { it.id == started.legId }
             if (!isStillReady) {
                 if (mutable.value.modeEditor.matches(started)) {
                     mutable.value = mutable.value.copy(modeEditor = null)
@@ -654,7 +653,7 @@ class DayItineraryViewModel(
         val rawLegs = legs.map { it.toRouteLegUi() }
         val activeRouteEditor = previous.modeEditor?.takeIf { draft ->
             visibleRouteLegs(items, previewOrder, rawLegs)
-                .any { it.id == draft.legId && it.state is RouteLegUiState.Ready }
+                .any { it.id == draft.legId }
         }
         mutable.value = previous.copy(
             items = items,

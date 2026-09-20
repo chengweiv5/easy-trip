@@ -66,14 +66,15 @@ fun SelectPlacesContent(
     modifier: Modifier = Modifier,
     targetDayLabel: String? = null,
 ) {
+    var schedule by rememberSaveable { mutableStateOf(com.yangchengwei.easytrip.place.ui.PlaceScheduleFilter.ALL) }
     var query by rememberSaveable { mutableStateOf("") }
     var selectedCityKey by rememberSaveable { mutableStateOf<String?>(null) }
     val cities = remember(rows) { placeCityGroups(rows) }
     val activeCity = selectedCityKey?.takeIf { key -> cities.any { it.key == key } }
     LaunchedEffect(activeCity) { selectedCityKey = activeCity }
-    val visibleGroups = remember(rows, activeCity, query) { filterPlaceCityGroups(rows, activeCity, query) }
+    val visibleGroups = remember(rows, activeCity, query, schedule) { filterPlaceCityGroups(rows, activeCity, query, schedule) }
     val listState = rememberLazyListState()
-    LaunchedEffect(activeCity, query) { listState.scrollToItem(0) }
+    LaunchedEffect(activeCity, query, schedule) { listState.scrollToItem(0) }
     val selectionOrder = remember(state.selectedPlaceIds) {
         state.selectedPlaceIds.mapIndexed { index, id -> id to index + 1 }.toMap()
     }
@@ -104,6 +105,19 @@ fun SelectPlacesContent(
             }
         }
         if (rows.isNotEmpty()) PlaceCityFilterBar(cities, activeCity, { selectedCityKey = it }, Modifier.fillMaxWidth(), enabled = !busy)
+        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+            com.yangchengwei.easytrip.place.ui.PlaceScheduleFilter.entries.forEach { filter ->
+                Surface(
+                    modifier = Modifier.testTag("place-schedule-${filter.name}").semantics { selected = schedule == filter }
+                        .clickable(enabled = !busy, role = Role.Tab) { schedule = filter },
+                    shape = RoundedCornerShape(8.dp),
+                    color = if (schedule == filter) EasyTripPlaceSurface else EasyTripBackground,
+                ) {
+                    Text(filter.label, Modifier.padding(horizontal = 12.dp, vertical = 7.dp), style = MaterialTheme.typography.labelSmall,
+                        color = if (schedule == filter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
+                }
+            }
+        }
         PlacePickerSearch(query, { query = it }, enabled = !busy, cityName = cities.firstOrNull { it.key == activeCity }?.name)
         if (visibleGroups.isEmpty()) {
             Column(

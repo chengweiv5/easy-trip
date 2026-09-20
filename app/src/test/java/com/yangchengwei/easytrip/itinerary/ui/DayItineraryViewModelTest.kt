@@ -918,7 +918,7 @@ class DayItineraryViewModelTest {
         assertNull(model.state.value.crossDayMove)
     }
 
-    @Test fun `route editor accepts ready leg and rejects every visible non ready leg`() = runTest(dispatcher) {
+    @Test fun `route editor accepts all visible adjacent legs`() = runTest(dispatcher) {
         val model = model(
             Itineraries(),
             legs = Legs(
@@ -934,8 +934,8 @@ class DayItineraryViewModelTest {
         advanceUntilIdle()
 
         listOf("pending", "calculating", "waiting", "failed").forEach { id ->
-            assertFalse(model.requestMode(id))
-            assertNull(model.state.value.modeEditor)
+            assertTrue(model.requestMode(id))
+            assertEquals(id, model.state.value.modeEditor?.legId)
         }
         assertTrue(model.requestMode("ready"))
         assertEquals("ready", model.state.value.modeEditor?.legId)
@@ -943,7 +943,7 @@ class DayItineraryViewModelTest {
         assertEquals("ready", model.state.value.modeEditor?.legId)
     }
 
-    @Test fun `route editor closes when its ready leg becomes non ready`() = runTest(dispatcher) {
+    @Test fun `route editor remains open when calculation status changes`() = runTest(dispatcher) {
         listOf(
             RouteStatus.PENDING,
             RouteStatus.CALCULATING,
@@ -958,11 +958,11 @@ class DayItineraryViewModelTest {
             legs.emit(listOf(legEntity("route", status)))
             advanceUntilIdle()
 
-            assertNull(model.state.value.modeEditor)
+            assertEquals("route", model.state.value.modeEditor?.legId)
         }
     }
 
-    @Test fun `saving after a route loses ready eligibility clears editor without repository call`() = runTest(dispatcher) {
+    @Test fun `saving a waiting route keeps its valid editor available`() = runTest(dispatcher) {
         val coordinator = Coordinator()
         val legs = Legs(listOf(legEntity("route", RouteStatus.SUCCESS)))
         val model = model(Itineraries(), coordinator, legs)
@@ -975,7 +975,7 @@ class DayItineraryViewModelTest {
         advanceUntilIdle()
 
         assertNull(model.state.value.modeEditor)
-        assertTrue(coordinator.details.isEmpty())
+        assertEquals(1, coordinator.details.size)
         assertTrue(legs.details.isEmpty())
     }
 
@@ -1401,6 +1401,7 @@ class DayItineraryViewModelTest {
         fun emitAppendedDay() = setAppendedDay()
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)

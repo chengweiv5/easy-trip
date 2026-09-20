@@ -250,6 +250,7 @@ class TripDateRangeServiceTest {
         }
         override suspend fun applyDateRange(command: DateRangeApply) { applied = command }
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun setTravelMode(tripId: String, mode: TravelMode) = Unit

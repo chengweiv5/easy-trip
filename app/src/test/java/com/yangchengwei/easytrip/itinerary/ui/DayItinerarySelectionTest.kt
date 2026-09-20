@@ -156,6 +156,7 @@ class DayItinerarySelectionTest {
         override fun observeTrip(tripId: String) = value
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)

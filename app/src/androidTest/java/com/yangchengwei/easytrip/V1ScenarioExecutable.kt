@@ -1434,7 +1434,7 @@ object V1ScenarioExecutableFactory {
         dayCountLabel = dayCountLabel,
         dateLabel = dateLabel,
         travelModeLabel = travelModeLabel,
-        countdownLabel = "还有 12 天",
+
         placeCount = 3,
         scheduledDayCount = 2,
         placeCountLabel = "3 个地点",

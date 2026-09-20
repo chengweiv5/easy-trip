@@ -37,6 +37,8 @@ data class TripListUiState(
     val page: TripListPageState = TripListPageState.Loading,
     val trips: List<TripSummary> = emptyList(),
     val deletion: TripDeletionUiState = TripDeletionUiState.Idle,
+    val updatingTripIds: Set<String> = emptySet(),
+    val statusError: String? = null,
 ) {
     val deleteConfirmation: ConfirmationUiModel?
         get() = (deletion as? TripDeletionUiState.Ready)?.confirmation
@@ -141,7 +143,7 @@ class TripListViewModel(
                     page = if (trips.isEmpty()) {
                         TripListPageState.Empty
                     } else {
-                        val cards = trips.sortedForTripList(clock.today()).map { it.toTripCardUiModel(clock.today()) }
+                        val cards = trips.sortedForTripList(clock.today()).map { it.toTripCardUiModel() }
                         TripListPageState.Content(cards.first(), cards.drop(1))
                     },
                     deletion = deletion,
@@ -154,7 +156,7 @@ class TripListViewModel(
         val current = mutableState.value
         if (current.trips.isEmpty()) return
         val today = clock.today()
-        val cards = current.trips.sortedForTripList(today).map { it.toTripCardUiModel(today) }
+        val cards = current.trips.sortedForTripList(today).map { it.toTripCardUiModel() }
         mutableState.value = current.copy(page = TripListPageState.Content(cards.first(), cards.drop(1)))
     }
 
@@ -166,6 +168,7 @@ class TripListViewModel(
             TripListAction.Retry -> observeTrips()
             is TripListAction.OpenTrip -> openWorkspace(action.tripId)
             is TripListAction.OpenSettings -> openSettings(action.tripId)
+            is TripListAction.SetHasTraveled -> setHasTraveled(action.tripId, action.hasTraveled)
             is TripListAction.RequestDelete -> requestDelete(action.tripId)
             TripListAction.RetryDeleteImpact -> retryDeleteImpact()
             TripListAction.ConfirmDelete -> confirmDelete()
@@ -176,6 +179,24 @@ class TripListViewModel(
 
     fun openWorkspace(id: String) { viewModelScope.launch { navigationChannel.send(TripListNavigation.OpenWorkspace(id)) } }
     fun openSettings(id: String) { viewModelScope.launch { navigationChannel.send(TripListNavigation.OpenSettings(id)) } }
+
+    private fun setHasTraveled(tripId: String, hasTraveled: Boolean) {
+        val current = mutableState.value
+        val trip = current.trips.firstOrNull { it.id == tripId } ?: return
+        if (tripId in current.updatingTripIds || trip.hasTraveled == hasTraveled) return
+        mutableState.value = current.copy(updatingTripIds = current.updatingTripIds + tripId, statusError = null)
+        viewModelScope.launch {
+            try {
+                repository.setHasTraveled(tripId, hasTraveled)
+            } catch (cancellation: CancellationException) {
+                throw cancellation
+            } catch (_: Exception) {
+                mutableState.value = mutableState.value.copy(statusError = "状态更新失败，请重试")
+            } finally {
+                mutableState.value = mutableState.value.copy(updatingTripIds = mutableState.value.updatingTripIds - tripId)
+            }
+        }
+    }
 
     private fun requestDelete(tripId: String) {
         val trip = mutableState.value.trips.firstOrNull { it.id == tripId } ?: return

@@ -29,6 +29,7 @@ import android.graphics.Canvas as AndroidCanvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.drawable.GradientDrawable
 import android.view.Gravity
 import android.view.MotionEvent
@@ -368,26 +369,16 @@ internal fun mapMarkerRendering(marker: MapMarkerUi): MapMarkerRendering {
             borderWidth = if (marker.isFocused) 6 else 3,
             solid = true,
         )
-        MapMarkerKind.SAVED_PLACE_POOL -> MapMarkerRendering(
-            glyph = "",
-            geometry = BookmarkGeometry,
+        MapMarkerKind.SAVED_PLACE_POOL, MapMarkerKind.SAVED_ITINERARY -> MapMarkerRendering(
+            glyph = if (marker.scheduled) marker.badgeText.orEmpty() else "",
+            geometry = if (marker.scheduled) emptyList() else BookmarkGeometry,
             foregroundColor = if (marker.scheduled) 0xFFFFFFFF.toInt() else primary,
             backgroundColor = if (marker.scheduled) primary else 0xFFFFFFFF.toInt(),
             borderColor = if (marker.isFocused) focusedBorder else primary,
             borderWidth = if (marker.isFocused) 3 else if (marker.scheduled) 0 else 2,
             solid = marker.scheduled,
         )
-        MapMarkerKind.SAVED_ITINERARY -> MapMarkerRendering(
-            glyph = marker.badgeText.orEmpty(),
-            geometry = BookmarkGeometry,
-            foregroundColor = 0xFFFFFFFF.toInt(),
-            backgroundColor = primary,
-            borderColor = if (marker.isFocused) focusedBorder else primary,
-            borderWidth = if (marker.isFocused) 3 else 0,
-            solid = true,
-            badgeBackgroundColor = primary,
-            badgeForegroundColor = 0xFFFFFFFF.toInt(),
-        )
+
     }
 }
 
@@ -395,50 +386,53 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi)
     private val rendering = mapMarkerRendering(marker)
     private val density = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val name = marker.label.takeIf {
+        marker.kind == MapMarkerKind.SAVED_ITINERARY || marker.kind == MapMarkerKind.SAVED_PLACE_POOL
+    }?.let { if (it.length > 18) it.take(17) + "…" else it }
+    private val diameter = if (marker.kind == MapMarkerKind.UNSAVED_SEARCH) 44f else 28f
+    private val textSizePx = 15f * density
+    private val badgeWidth: Float
+    private val badgeBounds = RectF()
+    val anchorX: Float get() = 0.5f
+    val anchorY: Float get() = diameter * density / 2f / layoutParams.height
 
     init {
-        val size = if (marker.kind == MapMarkerKind.UNSAVED_SEARCH) {
-            if (marker.isFocused) 52 else 44
-        } else 28
-        val width = if (marker.badgeText != null) size + 28 else size
-        layoutParams = android.view.ViewGroup.LayoutParams((width * density).toInt(), (size * density).toInt())
+        paint.textSize = textSizePx
+        paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
+        badgeWidth = maxOf(diameter * density, paint.measureText(rendering.glyph) + 12f * density)
+        val nameWidth = name?.let { paint.measureText(it) + 8f * density } ?: 0f
+        layoutParams = android.view.ViewGroup.LayoutParams(kotlin.math.ceil(maxOf(badgeWidth, nameWidth)).toInt(), ((diameter + if (name != null) 24f else 0f) * density).toInt())
     }
 
-    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) {
-        setMeasuredDimension(layoutParams.width, layoutParams.height)
-    }
+    override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) = setMeasuredDimension(layoutParams.width, layoutParams.height)
 
     override fun onDraw(canvas: AndroidCanvas) {
         super.onDraw(canvas)
-        val badgeWidth = if (marker.badgeText != null) 28f * density else 0f
-        val iconAreaWidth = width - badgeWidth
-        val cx = iconAreaWidth / 2f
-        val cy = height / 2f
-        val radius = if (marker.kind == MapMarkerKind.UNSAVED_SEARCH) {
-            minOf(iconAreaWidth, height.toFloat()) * 0.44f
-        } else (minOf(iconAreaWidth, height.toFloat()) - rendering.borderWidth * density) / 2f
+        val cx = width / 2f
+        val cy = diameter * density / 2f
+        val radius = (diameter - rendering.borderWidth) * density / 2f
         paint.style = Paint.Style.FILL
         paint.color = rendering.backgroundColor
-        canvas.drawCircle(cx, cy, radius, paint)
+        badgeBounds.set(cx - badgeWidth / 2f + rendering.borderWidth * density / 2f,
+            cy - radius, cx + badgeWidth / 2f - rendering.borderWidth * density / 2f, cy + radius)
+        canvas.drawRoundRect(badgeBounds, radius, radius, paint)
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = rendering.borderWidth * density
         paint.color = rendering.borderColor
-        if (rendering.borderWidth > 0) canvas.drawCircle(cx, cy, radius, paint)
-
+        if (rendering.borderWidth > 0) canvas.drawRoundRect(badgeBounds, radius, radius, paint)
         paint.color = rendering.foregroundColor
         if (rendering.geometry.isEmpty()) {
             paint.style = Paint.Style.FILL
-            paint.textSize = radius
+            paint.textSize = textSizePx
+            paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
             paint.textAlign = Paint.Align.CENTER
-            canvas.drawText(rendering.glyph, cx, cy + paint.textSize * 0.35f, paint)
+            canvas.drawText(rendering.glyph, cx, cy - (paint.ascent() + paint.descent()) / 2f, paint)
         } else {
             val iconSize = 14f * density
-            val left = cx - iconSize / 2f
-            val top = cy - iconSize / 2f
             val path = Path()
             rendering.geometry.forEachIndexed { index, point ->
-                val x = left + point.x * iconSize
-                val y = top + point.y * iconSize
+                val x = cx - iconSize / 2f + point.x * iconSize
+                val y = cy - iconSize / 2f + point.y * iconSize
                 if (index == 0) path.moveTo(x, y) else path.lineTo(x, y)
             }
             path.close()
@@ -446,24 +440,19 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi)
             paint.strokeWidth = 2f * density
             canvas.drawPath(path, paint)
         }
-
-        marker.badgeText?.let { badge ->
-            val badgeCenterX = iconAreaWidth + badgeWidth / 2f
-            paint.style = Paint.Style.FILL
-            paint.color = rendering.badgeBackgroundColor
-            canvas.drawRoundRect(
-                iconAreaWidth,
-                cy - 10f * density,
-                width.toFloat(),
-                cy + 10f * density,
-                10f * density,
-                10f * density,
-                paint,
-            )
-            paint.color = rendering.badgeForegroundColor
-            paint.textSize = 11f * density
+        name?.let {
+            val label = it
+            paint.textSize = textSizePx
+            paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
             paint.textAlign = Paint.Align.CENTER
-            canvas.drawText(badge, badgeCenterX, cy + paint.textSize * 0.35f, paint)
+            val baseline = diameter * density + 18f * density
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 3f * density
+            paint.color = android.graphics.Color.WHITE
+            canvas.drawText(label, cx, baseline, paint)
+            paint.style = Paint.Style.FILL
+            paint.color = 0xFF254F30.toInt()
+            canvas.drawText(label, cx, baseline, paint)
         }
     }
 }
@@ -677,11 +666,13 @@ internal class RealAmapMapHost(
             )
         }
         markerRenderOrder(model.markers).forEach { marker ->
+            val iconView = MarkerIconView(mapView.context, marker)
             mapView.map.addMarker(
                 MarkerOptions()
                     .position(LatLng(marker.point.latitude, marker.point.longitude))
                     .title(marker.label)
-                    .icon(markerIcon(marker))
+                    .icon(BitmapDescriptorFactory.fromView(iconView))
+                    .anchor(iconView.anchorX, iconView.anchorY)
                     .zIndex(if (marker.isFocused) FOCUSED_MARKER_Z_INDEX else DEFAULT_MARKER_Z_INDEX),
             ).`object` = marker.key
         }

@@ -16,6 +16,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class RoomCityMetadataTest {
+    @Test fun legacyParentCityIsRefinedOnceWithoutChangingUserData() = runTest {
+        val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), EasyTripDatabase::class.java).build()
+        try {
+            val tripId = RoomTripRepository(db.tripDao()).createTrip(CreateTrip("旧城市", 1))
+            val repo = RoomSavedPlaceRepository(db)
+            val id = (repo.save(tripId, PlaceCandidate("poi", "地点", "地址", GeoPoint(34.5,113.0), null, "郑州", null)) as SavePlaceResult.Saved).id
+            repo.updateCityMetadata(id, PlaceCity("登封市", "410185", "0371"))
+            repo.updateCityMetadata(id, PlaceCity("错误城市", "999999"))
+            val place = repo.observePlaces(tripId, emptySet()).first().single()
+            assertEquals("登封市", place.cityName)
+            assertEquals("410185", place.cityAdCode)
+            assertEquals("0371", place.cityCode)
+            assertEquals(1, place.cityMetadataVersion)
+            assertEquals("地点", place.name)
+            assertEquals("地址", place.address)
+        } finally { db.close() }
+    }
+
     @Test fun newCitiesRoundTripAndLegacyRepairPreservesOtherFieldsAndIsConditional() = runTest {
         val db = Room.inMemoryDatabaseBuilder(ApplicationProvider.getApplicationContext<Context>(), EasyTripDatabase::class.java).build()
         try {

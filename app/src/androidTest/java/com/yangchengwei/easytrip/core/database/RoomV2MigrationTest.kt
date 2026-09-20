@@ -46,15 +46,17 @@ class RoomV2MigrationTest {
 
         helper.runMigrationsAndValidate(
             databaseName,
-            4,
+            6,
             true,
             EasyTripDatabase.MIGRATION_1_2,
             EasyTripDatabase.MIGRATION_2_3,
             EasyTripDatabase.MIGRATION_3_4,
+            EasyTripDatabase.MIGRATION_4_5,
+            EasyTripDatabase.MIGRATION_5_6,
         ).close()
 
         val database = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), EasyTripDatabase::class.java, databaseName)
-            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4)
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6)
             .allowMainThreadQueries()
             .build()
         try {

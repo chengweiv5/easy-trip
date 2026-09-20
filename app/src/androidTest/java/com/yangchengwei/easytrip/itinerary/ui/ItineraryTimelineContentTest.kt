@@ -587,10 +587,10 @@ class ItineraryTimelineContentTest {
             }
         }
 
-        compose.onNodeWithText("09:30 到达 · 停留 120 分钟").assertIsDisplayed()
+        compose.onNodeWithText("09:30 到达 · 停留 2 小时").assertIsDisplayed()
         compose.onNodeWithText(placeName).assertIsDisplayed()
         compose.onNodeWithText(address).assertIsDisplayed()
-        val timing = compose.onNodeWithText("09:30 到达 · 停留 120 分钟").getUnclippedBoundsInRoot()
+        val timing = compose.onNodeWithText("09:30 到达 · 停留 2 小时").getUnclippedBoundsInRoot()
         val name = compose.onNodeWithText(placeName).getUnclippedBoundsInRoot()
         val addressBounds = compose.onNodeWithText(address).getUnclippedBoundsInRoot()
         assertTrue("timing=$timing name=$name address=$addressBounds", name.top < addressBounds.top && addressBounds.top < timing.top)
@@ -617,9 +617,9 @@ class ItineraryTimelineContentTest {
         }
 
         compose.onNodeWithText("09:30 到达").assertIsDisplayed()
-        compose.onNodeWithText("停留 120 分钟").assertIsDisplayed()
+        compose.onNodeWithText("停留 2 小时").assertIsDisplayed()
         compose.onAllNodesWithText("09:30 到达 ·").assertCountEquals(0)
-        compose.onAllNodesWithText("· 停留 120 分钟").assertCountEquals(0)
+        compose.onAllNodesWithText("· 停留 2 小时").assertCountEquals(0)
     }
 
     @Test
@@ -724,7 +724,7 @@ class ItineraryTimelineContentTest {
 
         assertEquals(
             1,
-            compose.onNodeWithText("09:30 到达 · 停留 120 分钟")
+            compose.onNodeWithText("09:30 到达 · 停留 2 小时")
                 .fetchSemanticsNode()
                 .textLayout()
                 .lineCount,
@@ -1655,7 +1655,7 @@ class ItineraryTimelineContentTest {
             }
         }
         val row = compose.onNodeWithTag("item-narrow-color").getUnclippedBoundsInRoot()
-        val timing = compose.onNodeWithText("09:00 到达 · 停留 120 分钟").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val timing = compose.onNodeWithText("09:00 到达 · 停留 2 小时").assertIsDisplayed().getUnclippedBoundsInRoot()
         val addressBounds = compose.onNodeWithText(address).assertIsDisplayed().getUnclippedBoundsInRoot()
         assertTrue(addressBounds.bottom <= timing.top)
         assertTrue(timing.left >= row.left && timing.right <= row.right && timing.bottom <= row.bottom)

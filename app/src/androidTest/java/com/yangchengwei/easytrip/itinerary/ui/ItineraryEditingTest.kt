@@ -1,5 +1,9 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import com.yangchengwei.easytrip.itinerary.ui.selectArrivalTime
+import com.yangchengwei.easytrip.itinerary.ui.selectStayHours
+import com.yangchengwei.easytrip.itinerary.ui.assertArrivalTime
+import com.yangchengwei.easytrip.itinerary.ui.assertStayHours
 import androidx.activity.ComponentActivity
 import androidx.compose.foundation.layout.Column
 import androidx.compose.runtime.getValue
@@ -164,12 +168,12 @@ class ItineraryEditingTest {
         compose.onNodeWithText("修改尚未保存").assertIsDisplayed()
         compose.onNodeWithText("到达时间、停留时长和备注仍保留在当前页面。请重新保存，或稍后再试。").assertIsDisplayed()
         compose.onNodeWithText("当前编辑内容不会自动回滚").assertIsDisplayed()
-        compose.onAllNodesWithTag("arrival-time-input").assertCountEquals(0)
+        compose.onAllNodesWithTag("arrival-hour-picker").assertCountEquals(0)
         compose.onNodeWithTag("itinerary-save-failure-retry").performClick()
         compose.runOnIdle { assertEquals(1, saveCalls) }
         compose.onNodeWithTag("itinerary-save-failure-keep-editing").performClick()
-        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
-        compose.onNodeWithTag("stay-minutes-input").assertIsDisplayed()
+        compose.onNodeWithTag("arrival-hour-picker").assertIsDisplayed()
+        compose.onNodeWithTag("stay-hours-picker").assertIsDisplayed()
         compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
         compose.onNodeWithText("保留的备注").assertIsDisplayed()
         compose.runOnIdle { assertEquals(1, saveCalls) }
@@ -225,10 +229,8 @@ class ItineraryEditingTest {
 
         compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-timing-i1", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("arrival-time-input").performTextClearance()
-        compose.onNodeWithTag("arrival-time-input").performTextInput("09:30")
-        compose.onNodeWithTag("stay-minutes-input").performTextClearance()
-        compose.onNodeWithTag("stay-minutes-input").performTextInput("90")
+        compose.selectArrivalTime(9, 30)
+        compose.selectStayHours(2)
         compose.onNodeWithTag("itinerary-note-input").performTextInput("保留备注")
         compose.onNodeWithText("保存时间").performClick()
         compose.waitUntil(5_000) { model.state.value.editDraft?.saveError == "保存失败" }
@@ -240,14 +242,14 @@ class ItineraryEditingTest {
         pressBack()
 
         compose.waitUntil(5_000) { model.state.value.editDraft?.saveError == null }
-        compose.onNodeWithTag("arrival-time-input").assertIsDisplayed()
-        compose.onNodeWithTag("stay-minutes-input").assertIsDisplayed()
+        compose.onNodeWithTag("arrival-hour-picker").assertIsDisplayed()
+        compose.onNodeWithTag("stay-hours-picker").assertIsDisplayed()
         compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
         compose.onNodeWithText("保留备注").assertIsDisplayed()
         compose.runOnIdle {
             assertEquals("i1", model.state.value.editDraft?.itemId)
             assertEquals("09:30", model.state.value.editDraft?.arrivalTimeText)
-            assertEquals("90", model.state.value.editDraft?.stayMinutesText)
+            assertEquals("120", model.state.value.editDraft?.stayMinutesText)
             assertEquals("保留备注", model.state.value.editDraft?.noteText)
             assertEquals(1, itineraries.timings.size)
         }
@@ -391,10 +393,8 @@ class ItineraryEditingTest {
 
         compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
         compose.onNodeWithTag("menu-timing-i1", useUnmergedTree = true).performClick()
-        compose.onNodeWithTag("arrival-time-input").performTextClearance()
-        compose.onNodeWithTag("arrival-time-input").performTextInput("09:30")
-        compose.onNodeWithTag("stay-minutes-input").performTextClearance()
-        compose.onNodeWithTag("stay-minutes-input").performTextInput("480")
+        compose.selectArrivalTime(9, 30)
+        compose.selectStayHours(8)
         compose.onNodeWithText("保存时间").performClick()
         compose.waitUntil(5_000) { itineraries.timings.isNotEmpty() }
         assertEquals(Timing("i1", LocalTime.of(9, 30), 480), itineraries.timings.single())
@@ -415,6 +415,7 @@ class ItineraryEditingTest {
         override fun observeTrip(tripId: String) = trip.map { it }
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: java.time.LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)

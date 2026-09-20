@@ -52,7 +52,7 @@ class WorkspaceLayoutMetricsTest {
             sheetTop = 213.dp,
             overlayBottomInset = 589.dp,
         )
-        val fitting = tooShort.copy(sheetTop = 214.dp)
+        val fitting = tooShort.copy(sheetTop = 226.dp)
 
         assertFalse(workspaceMapOverlaysFit(tooShort))
         assertTrue(workspaceMapOverlaysFit(fitting))
@@ -66,7 +66,7 @@ class WorkspaceLayoutMetricsTest {
         )
 
         assertEquals(
-            MapViewportInsets(leftPx = 132, topPx = 64, rightPx = 40, bottomPx = 368),
+            MapViewportInsets(leftPx = 132, topPx = 76, rightPx = 40, bottomPx = 368),
             workspaceViewportInsets(metrics, density = 1f),
         )
     }
@@ -113,7 +113,7 @@ class WorkspaceLayoutMetricsTest {
         )
 
         assertEquals(
-            MapViewportInsets(leftPx = 132, topPx = 64, rightPx = 40, bottomPx = 368),
+            MapViewportInsets(leftPx = 132, topPx = 76, rightPx = 40, bottomPx = 368),
             workspaceViewportInsets(metrics, density = 1f),
         )
     }

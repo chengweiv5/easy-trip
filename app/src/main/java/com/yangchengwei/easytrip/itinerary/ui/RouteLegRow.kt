@@ -17,7 +17,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.MaterialTheme
@@ -34,11 +33,17 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.liveRegion
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.LinkAnnotation
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.TextLinkStyles
+import androidx.compose.ui.text.buildAnnotatedString
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withLink
+import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TransportMode
-import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 
 @Composable
 fun RouteLegRow(
@@ -75,7 +80,7 @@ internal fun RouteLegContent(
 ) {
     val state = leg.state
     val colors = leg.routeLegColors()
-    val editAction = onMode?.takeIf { state is RouteLegUiState.Ready }
+    val editAction = onMode
     val retryAction = onRetry?.takeIf { state is RouteLegUiState.Failed }
     val stateModifier = when (state) {
         RouteLegUiState.Calculating,
@@ -87,13 +92,13 @@ internal fun RouteLegContent(
     val hasEndpoints = !fromPlaceName.isNullOrBlank() && !toPlaceName.isNullOrBlank()
     val endpointLabel = if (hasEndpoints) "从${fromPlaceName}到${toPlaceName}的路段" else "路段"
     val surfaceModifier = Modifier
-        .then(if (editAction == null) Modifier else Modifier.clickable(onClick = editAction))
+        .then(if (editAction == null || state is RouteLegUiState.Failed) Modifier else Modifier.clickable(onClick = editAction))
         .then(
             if (hasEndpoints) {
                 Modifier.semantics {
-                    contentDescription = if (editAction == null) endpointLabel else "编辑$endpointLabel"
+                    contentDescription = if (editAction == null || state is RouteLegUiState.Failed) endpointLabel else "编辑$endpointLabel"
                 }
-            } else if (editAction != null) {
+            } else if (editAction != null && state !is RouteLegUiState.Failed) {
                 Modifier.semantics { contentDescription = "编辑路段" }
             } else {
                 Modifier
@@ -176,19 +181,11 @@ internal fun RouteLegContent(
                         RouteLegUiState.WaitingForNetwork -> RouteLegStatus(leg, "等待联网后计算")
                         is RouteLegUiState.Failed -> {
                             Text(
-                                "路线计算失败",
+                                "${leg.modeLabel()} · 路线计算失败",
                                 style = MaterialTheme.typography.bodySmall,
                                 color = colors.foreground,
                             )
-                            if (state.message != "路线计算失败") {
-                                Text(
-                                    state.message,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = colors.foreground,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                )
-                            }
+                            RouteRecoveryText(leg.id, state.message, retryAction, editAction)
                             leg.effectiveDurationSeconds?.let { duration ->
                                 Text(
                                     "预计 ${formatDuration(duration)}",
@@ -206,15 +203,47 @@ internal fun RouteLegContent(
                             Modifier.size(24.dp).semantics { contentDescription = "路线计算中" },
                         )
                         RouteLegUiState.WaitingForNetwork -> WaitingForNetworkIndicator()
-                        is RouteLegUiState.Failed -> retryAction?.let {
-                            TextButton(it, Modifier.widthIn(max = 96.dp).testTag("retry-${leg.id}")) { Text("重试") }
-                        }
+                        is RouteLegUiState.Failed -> Unit
                         is RouteLegUiState.Ready -> Unit
                     }
                 }
             }
         }
     }
+}
+
+@Composable
+private fun RouteRecoveryText(id: String, message: String, onRetry: (() -> Unit)?, onMode: (() -> Unit)?) {
+    val hasActions = onRetry != null || onMode != null
+    val detail = if (hasActions) {
+        message.removeSuffix("，请重试或更改方式").removeSuffix("，请重试")
+    } else message
+    val reason = detail.takeUnless { it == "路线计算失败" }.orEmpty()
+    if (reason.isEmpty() && !hasActions) return
+    val linkStyle = TextLinkStyles(SpanStyle(
+        color = MaterialTheme.colorScheme.primary,
+        fontWeight = FontWeight.Bold,
+        textDecoration = TextDecoration.Underline,
+    ))
+    Text(
+        text = buildAnnotatedString {
+            append(reason)
+            if (hasActions) {
+                if (reason.isNotEmpty()) append("，")
+                append("请")
+                onRetry?.let { action ->
+                    withLink(LinkAnnotation.Clickable("retry-$id", linkStyle) { action() }) { append("重试") }
+                }
+                if (onRetry != null && onMode != null) append("或")
+                onMode?.let { action ->
+                    withLink(LinkAnnotation.Clickable("route-change-mode-$id", linkStyle) { action() }) { append("更改方式") }
+                }
+            }
+        },
+        modifier = Modifier.testTag("route-recovery-$id"),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.error,
+    )
 }
 
 @Composable

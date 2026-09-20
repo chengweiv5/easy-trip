@@ -28,6 +28,8 @@ fun WholeTripItineraryContent(
     modifier: Modifier = Modifier,
     startDate: LocalDate? = null,
 ) {
+    val orderedDays = days.sortedBy { it.dayNumber }
+    val orderOffsets = orderedDays.associate { day -> day.dayId to orderedDays.takeWhile { it.dayId != day.dayId }.sumOf { it.items.size } }
     val totalStops = days.sumOf { it.items.size }
     Column(modifier.fillMaxSize()) {
         if (days.isNotEmpty()) {
@@ -55,7 +57,7 @@ fun WholeTripItineraryContent(
                     )
                 }
             }
-            days.forEach { day ->
+            orderedDays.forEach { day ->
                 item(key = "heading-${day.dayId}") {
                     ItinerarySummaryHeader(
                         text = itineraryDaySummary(day.dayNumber, day.items.size),
@@ -77,7 +79,7 @@ fun WholeTripItineraryContent(
                             Column(Modifier.fillMaxWidth()) {
                                 ItineraryPlaceRow(
                                     item = itineraryItem,
-                                    displayOrder = index + 1,
+                                    displayOrder = orderOffsets.getValue(day.dayId) + index + 1,
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }

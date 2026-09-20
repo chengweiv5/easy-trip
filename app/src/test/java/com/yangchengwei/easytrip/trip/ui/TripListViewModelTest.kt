@@ -95,7 +95,7 @@ class TripListViewModelTest {
         viewModel.refreshDateDerivedState()
 
         val card = (viewModel.state.value.page as TripListPageState.Content).primaryTrip
-        assertEquals("旅行中", card.countdownLabel)
+        assertEquals("待出行", card.statusLabel)
         assertEquals(deletionBeforeRefresh, viewModel.state.value.deletion)
         assertEquals(emptyList<String>(), repository.deletedTrips)
         assertEquals(false, noNavigation.isCompleted)
@@ -104,10 +104,10 @@ class TripListViewModelTest {
 
     @Test fun foregroundRefreshReselectsPrimaryTripAfterCrossingIntoANewDayWithoutRoomEmission() = runTest(dispatcher) {
         val clock = MutableClock(Instant.parse("2026-04-10T00:00:00Z"))
-        val endingToday = TripSummary(
-            id = "ending-today",
-            name = "Ending today",
-            startDate = LocalDate.of(2026, 4, 9),
+        val startingToday = TripSummary(
+            id = "starting-today",
+            name = "Starting today",
+            startDate = LocalDate.of(2026, 4, 10),
             travelMode = TravelMode.FLEXIBLE,
             dayCount = 2,
             placeCount = 0,
@@ -122,16 +122,21 @@ class TripListViewModelTest {
             placeCount = 0,
             scheduledDayCount = 0,
         )
-        val repository = TestTripRepository(listOf(endingToday, startingTomorrow))
+        val originalTrips = listOf(startingToday, startingTomorrow)
+        val repository = TestTripRepository(originalTrips)
         val viewModel = TripListViewModel(TripService(repository), repository, TestImpacts(), clock)
         advanceUntilIdle()
-        assertEquals("ending-today", (viewModel.state.value.page as TripListPageState.Content).primaryTrip.id)
+        assertEquals("starting-today", (viewModel.state.value.page as TripListPageState.Content).primaryTrip.id)
 
         clock.instant = Instant.parse("2026-04-11T00:00:00Z")
         viewModel.refreshDateDerivedState()
 
         assertEquals("starting-tomorrow", (viewModel.state.value.page as TripListPageState.Content).primaryTrip.id)
-        assertEquals(listOf("ending-today", "starting-tomorrow"), repository.trips.value.map(TripSummary::id))
+        val cards = (viewModel.state.value.page as TripListPageState.Content).trips
+        assertEquals(listOf("starting-tomorrow", "starting-today"), cards.map { it.id })
+        assertEquals(true, cards.all { !it.hasTraveled })
+        assertEquals(originalTrips, repository.trips.value)
+        assertEquals(0, repository.statusCalls)
     }
 
     @Test fun newDeleteTargetIgnoresOldImpactCompletion() = runTest(dispatcher) {
@@ -583,6 +588,75 @@ class TripListViewModelTest {
         assertEquals(1, repository.maxActiveCollectors)
     }
 
+    @Test fun manualStatusPersistsThroughRefreshAndCanBeReversed() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val vm = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        vm.onAction(TripListAction.SetHasTraveled("trip-1", true))
+        advanceUntilIdle()
+        vm.refreshDateDerivedState()
+        assertEquals("已出行", (vm.state.value.page as TripListPageState.Content).primaryTrip.statusLabel)
+        vm.onAction(TripListAction.SetHasTraveled("trip-1", false))
+        advanceUntilIdle()
+        assertEquals(false, vm.state.value.trips.single().hasTraveled)
+        assertEquals(null, vm.state.value.statusError)
+        assertEquals(2, repository.statusCalls)
+    }
+
+    @Test fun manualStatusChangesReorderBothGroupsByDepartureDate() = runTest(dispatcher) {
+        val today = LocalDate.of(2026, 4, 10)
+        val repository = TestTripRepository(listOf(
+            trip("later", "稍后出发").copy(startDate = today.plusDays(3)),
+            trip("older", "之前出行").copy(startDate = today.minusDays(10), hasTraveled = true),
+            trip("soon", "即将出发").copy(startDate = today.plusDays(1)),
+            trip("recent", "最近出行").copy(startDate = today.minusDays(1), hasTraveled = true),
+        ))
+        val clock = MutableClock(Instant.parse("2026-04-10T00:00:00Z"))
+        val vm = TripListViewModel(TripService(repository), repository, TestImpacts(), clock)
+        fun ids() = (vm.state.value.page as TripListPageState.Content).trips.map { it.id }
+        advanceUntilIdle()
+        assertEquals(listOf("soon", "later", "recent", "older"), ids())
+
+        vm.onAction(TripListAction.SetHasTraveled("later", true))
+        advanceUntilIdle()
+        vm.onAction(TripListAction.SetHasTraveled("soon", true))
+        advanceUntilIdle()
+        assertEquals(listOf("later", "soon", "recent", "older"), ids())
+
+        vm.onAction(TripListAction.SetHasTraveled("recent", false))
+        advanceUntilIdle()
+        assertEquals(listOf("recent", "later", "soon", "older"), ids())
+        vm.onAction(TripListAction.SetHasTraveled("soon", false))
+        advanceUntilIdle()
+        assertEquals(listOf("soon", "recent", "later", "older"), ids())
+    }
+
+    @Test fun statusWriteRejectsDuplicatesAndFailureRetainsOriginalUntilRetry() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都")))
+        val gate = CompletableDeferred<Unit>()
+        repository.statusBehavior = { gate.await(); error("write failed") }
+        val vm = TripListViewModel(TripService(repository), repository, TestImpacts())
+        advanceUntilIdle()
+        vm.onAction(TripListAction.SetHasTraveled("trip-1", true))
+        runCurrent()
+        vm.onAction(TripListAction.SetHasTraveled("trip-1", true))
+        assertEquals(setOf("trip-1"), vm.state.value.updatingTripIds)
+        assertEquals(1, repository.statusCalls)
+        gate.complete(Unit)
+        advanceUntilIdle()
+        assertEquals(false, vm.state.value.trips.single().hasTraveled)
+        assertEquals("状态更新失败，请重试", vm.state.value.statusError)
+        assertEquals(emptySet<String>(), vm.state.value.updatingTripIds)
+        repository.statusBehavior = {}
+        vm.onAction(TripListAction.SetHasTraveled("trip-1", true))
+        advanceUntilIdle()
+        assertEquals(true, vm.state.value.trips.single().hasTraveled)
+        assertEquals(null, vm.state.value.statusError)
+        vm.onAction(TripListAction.SetHasTraveled("missing", true))
+        advanceUntilIdle()
+        assertEquals(2, repository.statusCalls)
+    }
+
     private fun trip(id: String, name: String) = TripSummary(id, name, null, TravelMode.FLEXIBLE, 3, 0, 0)
 
     private class MutableClock(initialInstant: Instant) : Clock() {
@@ -636,6 +710,13 @@ class TripListViewModelTest {
         }
         override fun observeTrip(tripId: String): Flow<TripWithDays?> = emptyFlow()
         override suspend fun createTrip(command: CreateTrip): String = "trip"
+        var statusCalls = 0
+        var statusBehavior: suspend () -> Unit = {}
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) {
+            statusCalls++
+            statusBehavior()
+            trips.value = trips.value.map { if (it.id == tripId) it.copy(hasTraveled = hasTraveled) else it }
+        }
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)

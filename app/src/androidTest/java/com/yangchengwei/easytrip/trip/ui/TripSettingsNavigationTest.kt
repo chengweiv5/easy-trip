@@ -542,6 +542,7 @@ class TripSettingsNavigationTest {
         override fun observeTrips(): Flow<List<TripSummary>> = MutableStateFlow(emptyList())
         override fun observeTrip(tripId: String): Flow<TripWithDays?> = trip
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) =

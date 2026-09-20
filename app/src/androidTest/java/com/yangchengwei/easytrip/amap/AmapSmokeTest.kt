@@ -72,6 +72,22 @@ class AmapSmokeTest {
         }
     }
 
+    @Test fun transitWithoutLegacyCityMetadataResolvesCitiesBeforePlanning() = runBlocking {
+        assumeConfiguredKey()
+        val route = AmapRouteDataSource(context, consent()).plan(RouteRequest(
+            GeoPoint(39.9087,116.3975), GeoPoint(39.9929,116.3970), RouteMode.TRANSIT))
+        assertTrue(route.distanceMeters > 0 && route.polyline.size >= 2)
+        println("AMAP_RESULT TRANSIT_RESOLVED points=${route.polyline.size}")
+    }
+
+    @Test fun dengfengIsResolvedAsIndependentCity() = runBlocking {
+        assumeConfiguredKey()
+        val city = AmapPlaceDataSource(context, consent()).cityAt(GeoPoint(34.454,113.050))
+        assertTrue(city?.name == "登封市" && city.adCode == "410185")
+        assertTrue(!city?.routeCityCode.isNullOrBlank())
+        println("AMAP_RESULT CITY name=${city?.name} code=${city?.adCode}")
+    }
+
     @Test fun mapViewCreatesAfterPrivacyConsent() {
         assumeConfiguredKey()
         consent()
@@ -90,6 +106,7 @@ class AmapSmokeTest {
     }
 
     private fun consent(): AmapConsentToken {
+        runBlocking { AmapPrivacyGate.create(context).apply { reportShown(); reportDecision(true) } }
         val gate = TestConsentGate()
         gate.show()
         return requireNotNull(gate.decide(true))

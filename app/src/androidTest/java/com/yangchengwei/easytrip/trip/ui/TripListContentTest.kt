@@ -100,7 +100,7 @@ class TripListContentTest {
 
         compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed()
         compose.onNodeWithText("下一站 · 杭州").assertIsDisplayed()
-        compose.onNodeWithTag("trip-countdown-trip-primary", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("trip-status-trip-primary", useUnmergedTree = true).assertIsDisplayed()
         compose.onAllNodesWithText("行程准备度", useUnmergedTree = true).assertCountEquals(1)
         compose.onNodeWithText("67%", useUnmergedTree = true).assertIsDisplayed()
         compose.onNodeWithTag("trip-readiness-trip-primary")
@@ -365,7 +365,7 @@ class TripListContentTest {
         compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
     }
 
-    @Test fun primaryMenuContainsOnlySettingsAndDeleteForBoundTrip() {
+    @Test fun primaryMenuContainsStatusSettingsAndDeleteForBoundTrip() {
         val actions = mutableListOf<TripListAction>()
         setContent(content(), actions::add)
 
@@ -375,7 +375,7 @@ class TripListContentTest {
         compose.onAllNodes(
             hasClickAction() and hasAnyAncestor(hasTestTag("trip-menu-popup-trip-1")),
             useUnmergedTree = true,
-        ).assertCountEquals(2)
+        ).assertCountEquals(3)
         compose.onNodeWithTag("trip-menu-delete-trip-1").assert(TripMenuTone.keyIs("danger"))
         compose.onNodeWithTag("trip-menu-settings-trip-1").performClick()
         compose.onNodeWithTag("trip-menu-trip-1").performClick()
@@ -486,13 +486,56 @@ class TripListContentTest {
         otherTrips = listOf(trip("trip-2", "东京")),
     )
 
+    @Test fun manualMarkMovesCardAndCountsWithoutChangingSelectedFilter() {
+        val cards = mutableStateOf(listOf(trip("trip-1", "杭州")))
+        val actions = mutableListOf<TripListAction>()
+        compose.setContent {
+            EasyTripTheme {
+                TripListContent(TripListUiState(page = TripListPageState.Content(cards.value)), { action ->
+                    actions += action
+                    if (action is TripListAction.SetHasTraveled) {
+                        cards.value = cards.value.map { if (it.id == action.tripId) it.copy(hasTraveled = action.hasTraveled) else it }
+                    }
+                })
+            }
+        }
+        compose.onNodeWithText("待出行 1").assertIsDisplayed()
+        compose.onNodeWithTag("trip-menu-trip-1").performClick()
+        compose.onNodeWithText("标记为已出行").performClick()
+        assertEquals(listOf(TripListAction.SetHasTraveled("trip-1", true)), actions)
+        compose.onNodeWithText("暂无待出行的旅行").assertIsDisplayed()
+        compose.onNodeWithText("已出行 1").assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertIsDisplayed()
+        compose.onNodeWithTag("trip-filter-traveled").performClick()
+        compose.onNodeWithText("旅行回忆 · 杭州").assertIsDisplayed()
+        compose.onNodeWithTag("trip-menu-trip-1").performClick()
+        compose.onNodeWithText("改为待出行").performClick()
+        compose.onNodeWithText("暂无已出行的旅行").assertIsDisplayed()
+        compose.onNodeWithText("待出行 1").assertIsDisplayed()
+        compose.onNodeWithTag("trip-filter-pending").performClick()
+        compose.onNodeWithTag("primary-trip-trip-1").assertIsDisplayed()
+    }
+
+    @Test fun savingStatusDisablesOnlyStatusMenuAndDisplaysFailureMessage() {
+        compose.setContent {
+            EasyTripTheme {
+                TripListContent(TripListUiState(page = content(), updatingTripIds = setOf("trip-1"),
+                    statusError = "状态更新失败，请重试"), {})
+            }
+        }
+        compose.onNodeWithTag("trip-status-error").assertIsDisplayed()
+        compose.onNodeWithTag("trip-menu-trip-1").performClick()
+        compose.onNodeWithTag("trip-menu-status-trip-1").assert(SemanticsProperties.Disabled.keyIs(Unit))
+        compose.onNodeWithTag("trip-menu-settings-trip-1").assert(SemanticsProperties.Disabled.keyNotDefined())
+    }
+
     private fun trip(id: String, name: String) = TripCardUiModel(
         id = id,
         name = name,
         dayCountLabel = "3天2晚",
         dateLabel = null,
         travelModeLabel = "灵活",
-        countdownLabel = "待定日期",
+
         placeCount = 0,
         scheduledDayCount = 0,
         placeCountLabel = "0 个地点",

@@ -328,13 +328,13 @@ class TripWorkspaceNavigationStateTest {
         assertEquals("leg-1", model.state.value.modeEditor?.legId)
     }
 
-    @Test fun failedLegDoesNotCreateRouteEditor() = runTest(dispatcher) {
+    @Test fun failedLegCanCreateRouteEditor() = runTest(dispatcher) {
         val model = itineraryModelWithLeg(com.yangchengwei.easytrip.core.model.RouteStatus.FAILED)
         advanceUntilIdle()
 
         model.dispatch(DayItineraryAction.RequestMode("leg-1"))
 
-        assertNull(model.state.value.modeEditor)
+        assertEquals("leg-1", model.state.value.modeEditor?.legId)
     }
 
     @Test fun itineraryOverlayReplacesStaleContextAfterNewContextIsEstablished() {
@@ -835,6 +835,7 @@ class TripWorkspaceNavigationStateTest {
         override fun observeTrip(tripId: String) = value
         override fun observeTrips() = flowOf(emptyList<TripSummary>())
         override suspend fun createTrip(command: CreateTrip) = "trip"
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) = Unit
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) = Unit
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)

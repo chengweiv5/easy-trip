@@ -14,6 +14,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
@@ -63,7 +66,8 @@ internal fun WorkspaceTopBar(
                     title,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    style = MaterialTheme.typography.labelMedium,
+                    // Resolve CJK weight through the system family; the bundled heading font has no Chinese glyphs.
+                    style = MaterialTheme.typography.titleMedium.copy(fontSize = 16.sp, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold),
                     modifier = Modifier.weight(1f, fill = false).testTag("workspace-trip-title"),
                 )
                 dateLabel?.let {

@@ -9,6 +9,11 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class PlaceCityGroupsTest {
+    @Test fun countyLevelCityIsIndependentFromItsParent() {
+        assertEquals("登封市", administrativeCity("郑州市", "410185", "登封市")?.name)
+        assertEquals("410185", administrativeCity("郑州市", "410185", "登封市")?.adCode)
+    }
+
     @Test fun districtsMergeIntoTheirAdministrativeCityAndTelephoneCodesDoNotDefineGroups() {
         assertEquals(administrativeCity("杭州市", "330106"), administrativeCity("杭州市", "330102"))
         val rows = listOf(row("西安", "西安市", "610102", "029"), row("咸阳", "咸阳市", "610402", "029"))
@@ -36,6 +41,12 @@ class PlaceCityGroupsTest {
         assertEquals(listOf("湖畔"), filterPlaceCityGroups(rows, null, "上海").flatMap { it.rows }.map { it.name })
         assertTrue(filterPlaceCityGroups(rows, "330100", "上海").isEmpty())
         assertEquals(3, placeCityGroups(rows).sumOf { it.rows.size })
+    }
+
+    @Test fun scheduleFilterCombinesWithCityAndSearch() {
+        val rows = listOf(row("少林寺", "登封市", "410185").copy(itineraryOccurrenceCount = 2), row("嵩山", "登封市", "410185"), row("公园", "洛阳市", "410300"))
+        assertEquals(listOf("嵩山"), filterPlaceCityGroups(rows, "410100", "山", PlaceScheduleFilter.UNSCHEDULED).flatMap { it.rows }.map { it.name })
+        assertEquals(listOf("少林寺"), filterPlaceCityGroups(rows, null, "", PlaceScheduleFilter.SCHEDULED).flatMap { it.rows }.map { it.name })
     }
 
     private fun row(name: String, city: String?, code: String?, telephone: String? = null) = SavedPlaceRowUi(

@@ -22,6 +22,16 @@ class MapUiModelMapperTest {
     private val museum = ItineraryPlace("museum", "博物馆", "", other)
     private val days = listOf(TripDay("day-1", 0), TripDay("day-2", 1))
 
+    @Test fun `pool and whole trip ordinals follow day order even if snapshots arrive out of order`() {
+        val places = listOf(saved("hotel", "酒店", shared), saved("museum", "博物馆", other))
+        val snapshots = listOf(snapshot("day-2", listOf(item("late", museum))), snapshot("day-1", listOf(item("early", hotel))))
+        for (scope in listOf(MapScope.PLACE_POOL, MapScope.WHOLE_TRIP)) {
+            val model = MapUiModelMapper.map(scope, places, days, snapshots)
+            assertEquals("1", model.markers.first { it.savedPlaceId == "hotel" }.badgeText)
+            assertEquals("2", model.markers.first { it.savedPlaceId == "museum" }.badgeText)
+        }
+    }
+
     @Test fun `place pool markers retain saved identity without badges`() {
         val places = listOf(saved("hotel", "酒店", shared), saved("museum", "博物馆", other))
         val model = MapUiModelMapper.map(MapScope.PLACE_POOL, places, days, emptyList())

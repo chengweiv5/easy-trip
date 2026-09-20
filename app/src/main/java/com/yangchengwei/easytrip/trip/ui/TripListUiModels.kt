@@ -47,14 +47,16 @@ data class TripCardUiModel(
     val dayCountLabel: String,
     val dateLabel: String?,
     val travelModeLabel: String,
-    val countdownLabel: String,
     val placeCount: Int,
     val scheduledDayCount: Int,
     val placeCountLabel: String,
     val tripDayCountLabel: String,
     val readinessPercent: Int,
     val readinessLabel: String,
-)
+    val hasTraveled: Boolean = false,
+) {
+    val statusLabel: String get() = if (hasTraveled) "已出行" else "待出行"
+}
 
 sealed interface TripDeletionUiState {
     data object Idle : TripDeletionUiState
@@ -79,6 +81,7 @@ sealed interface TripListAction {
     data object Retry : TripListAction
     data class OpenTrip(val tripId: String) : TripListAction
     data class OpenSettings(val tripId: String) : TripListAction
+    data class SetHasTraveled(val tripId: String, val hasTraveled: Boolean) : TripListAction
     data class RequestDelete(val tripId: String) : TripListAction
     data object RetryDeleteImpact : TripListAction
     data object ConfirmDelete : TripListAction
@@ -89,7 +92,7 @@ sealed interface TripListAction {
 private val tripDateFormatter = DateTimeFormatter.ofPattern("M月d日", Locale.CHINA)
 private val crossYearTripDateFormatter = DateTimeFormatter.ofPattern("yyyy年M月d日", Locale.CHINA)
 
-fun TripSummary.toTripCardUiModel(today: LocalDate): TripCardUiModel {
+fun TripSummary.toTripCardUiModel(): TripCardUiModel {
     val endDate = tripEndDateOrNull(startDate, dayCount)
     val readinessPercent = readinessPercent(dayCount, scheduledDayCount)
     return TripCardUiModel(
@@ -97,7 +100,7 @@ fun TripSummary.toTripCardUiModel(today: LocalDate): TripCardUiModel {
         name = name,
         dayCountLabel = "${dayCount}天${(dayCount - 1).coerceAtLeast(0)}晚",
         dateLabel = tripDateLabel(startDate, endDate),
-        countdownLabel = tripCountdownLabel(startDate, endDate, today),
+        hasTraveled = hasTraveled,
         placeCount = placeCount,
         scheduledDayCount = scheduledDayCount,
         placeCountLabel = "$placeCount 个地点",
@@ -116,13 +119,6 @@ private fun tripDateLabel(startDate: LocalDate?, endDate: LocalDate?): String? =
     startDate == endDate -> startDate.format(crossYearTripDateFormatter)
     startDate.year == endDate.year -> "${startDate.format(tripDateFormatter)} — ${endDate.format(tripDateFormatter)}"
     else -> "${startDate.format(crossYearTripDateFormatter)} — ${endDate.format(crossYearTripDateFormatter)}"
-}
-
-private fun tripCountdownLabel(startDate: LocalDate?, endDate: LocalDate?, today: LocalDate): String = when {
-    startDate == null || endDate == null -> "日期待定"
-    today < startDate -> "还有 ${java.time.temporal.ChronoUnit.DAYS.between(today, startDate)} 天"
-    today <= endDate -> "旅行中"
-    else -> "已结束"
 }
 
 private fun readinessPercent(dayCount: Int, scheduledDayCount: Int): Int =

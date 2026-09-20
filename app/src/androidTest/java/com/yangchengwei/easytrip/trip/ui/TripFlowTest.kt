@@ -207,6 +207,7 @@ class TripFlowTest {
         }
         override fun observeTrip(tripId: String): Flow<TripWithDays?> = trip
         override suspend fun createTrip(command: CreateTrip) = create(command)
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) {}
         override suspend fun setStartDate(tripId: String, startDate: LocalDate?) { trip.value=trip.value!!.copy(startDate=startDate); publish() }
         override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>) = com.yangchengwei.easytrip.trip.domain.DateRangeDeletionCounts(0, 0, 0)

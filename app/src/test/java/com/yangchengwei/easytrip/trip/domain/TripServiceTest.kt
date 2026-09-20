@@ -295,6 +295,7 @@ class TripServiceTest {
             return tripId
         }
 
+        override suspend fun setHasTraveled(tripId: String, hasTraveled: Boolean) = Unit
         override suspend fun renameTrip(tripId: String, name: String) {
             renamedTo = name
             trip = trip!!.copy(name = name)
