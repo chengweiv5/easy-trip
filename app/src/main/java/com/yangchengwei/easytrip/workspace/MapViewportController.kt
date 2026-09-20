@@ -11,6 +11,7 @@ class MapViewportController {
     private var visibleIdentity: Set<GeoPoint> = emptySet()
     private var retainedPlaceChange: GeoPoint? = null
     private var userMovedViewport = false
+    private var placeFilter = PlacePoolMapFilter()
 
     var currentRequest: MapViewportRequest? = null
         private set
@@ -20,6 +21,7 @@ class MapViewportController {
         scope: MapScope,
         visiblePoints: List<GeoPoint>,
         selectedDayId: String? = null,
+        placeFilter: PlacePoolMapFilter = PlacePoolMapFilter(),
     ): MapViewportRequest? {
         val normalizedPlaces = placePoints.toSet()
         val normalizedVisible = visiblePoints.toSet()
@@ -33,11 +35,12 @@ class MapViewportController {
             observedNonemptyPlaces && normalizedPlaces != placeIdentity -> ViewportReason.PLACE_SET_CHANGED
             this.scope != null && this.scope != scope -> ViewportReason.SCOPE_CHANGED
             this.scope == scope && this.selectedDayId != selectedDayId -> ViewportReason.VISIBLE_SET_CHANGED
+            scope == MapScope.PLACE_POOL && this.placeFilter != placeFilter -> ViewportReason.VISIBLE_SET_CHANGED
             userMovedViewport -> null
             this.scope == scope && scope != MapScope.PLACE_POOL && normalizedVisible != visibleIdentity -> ViewportReason.VISIBLE_SET_CHANGED
             else -> null
         }
-        if (reason == ViewportReason.INITIAL || reason == ViewportReason.PLACE_SET_CHANGED || reason == ViewportReason.SCOPE_CHANGED || this.selectedDayId != selectedDayId) {
+        if (reason == ViewportReason.INITIAL || reason == ViewportReason.PLACE_SET_CHANGED || reason == ViewportReason.SCOPE_CHANGED || this.selectedDayId != selectedDayId || this.placeFilter != placeFilter) {
             userMovedViewport = false
         }
         if (normalizedPlaces.isNotEmpty()) observedNonemptyPlaces = true
@@ -45,6 +48,7 @@ class MapViewportController {
         visibleIdentity = normalizedVisible
         this.scope = scope
         this.selectedDayId = selectedDayId
+        this.placeFilter = placeFilter
         if (visiblePoints.isEmpty() && currentRequest?.reason != ViewportReason.SEARCH_FOCUS) {
             currentRequest = null
         }

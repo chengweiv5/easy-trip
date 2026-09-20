@@ -24,6 +24,8 @@ data class OccurrenceUi(
 
 enum class MapMarkerKind { UNSAVED_SEARCH, SAVED_PLACE_POOL, SAVED_ITINERARY }
 
+data class MapMarkerBadgeSegment(val text: String, val colorArgb: Long)
+
 data class MapMarkerUi(
     val key: String,
     val point: GeoPoint,
@@ -34,6 +36,7 @@ data class MapMarkerUi(
     val isFocused: Boolean = false,
     val savedPlaceId: String? = null,
     val scheduled: Boolean = false,
+    val badgeSegments: List<MapMarkerBadgeSegment> = emptyList(),
 )
 
 fun formatOccurrenceBadge(orders: List<Int>): String = when {
@@ -148,8 +151,11 @@ fun routePalette() = listOf(
     0xFF2E7D32,
 )
 
+fun routeColorForDay(dayIndex: Int): Long = routePalette().let { it[dayIndex.mod(it.size)] }
+
+private data class MarkerVisit(val point: GeoPoint, val dayId: String, val order: Int)
+
 object MapUiModelMapper {
-    private val palette = routePalette()
 
     fun map(
         scope: MapScope,
@@ -162,14 +168,16 @@ object MapUiModelMapper {
         focusedPoiId: String? = null,
         restoredFocusedPoint: GeoPoint? = null,
         restoredFocusedCandidate: PlaceCandidate? = null,
+        placePoolFilter: PlacePoolMapFilter = PlacePoolMapFilter(),
     ): MapUiModel {
+        val wholeTrip = com.yangchengwei.easytrip.itinerary.ui.projectWholeTrip(days, snapshots)
         val focusedSearch = searchResults.firstOrNull { it.poiId == focusedPoiId }
             ?: restoredFocusedCandidate?.takeIf { it.poiId == focusedPoiId }
         val focusedPoint = focusedSearch?.point ?: restoredFocusedPoint
         val savedByPoiId = places.associateBy(SavedPlace::amapPoiId)
         val savedById = places.associateBy(SavedPlace::id)
         val savedByPoint = places.groupBy(SavedPlace::point).mapValues { (_, values) -> values.singleOrNull() }
-        fun withSearchMarkers(baseMarkers: List<MapMarkerUi>): List<MapMarkerUi> {
+        fun withSearchMarkers(baseMarkers: List<MapMarkerUi>, includeUnfocusedResults: Boolean = true): List<MapMarkerUi> {
             val markers = baseMarkers.toMutableList()
             val markerIndexByPoint = markers.indices.associateBy { markers[it].point }.toMutableMap()
             val markerIndexBySavedPlaceId = markers.indices.mapNotNull { index ->
@@ -209,6 +217,7 @@ object MapUiModelMapper {
             }
 
             searchResults.asSequence()
+                .filter { includeUnfocusedResults }
                 .filter { it.point != null && it.poiId != focusedPoiId }
                 .filterNot { it.poiId in savedByPoiId }
                 .distinctBy(PlaceCandidate::point)
@@ -227,7 +236,7 @@ object MapUiModelMapper {
             return markers
         }
         if (scope == MapScope.PLACE_POOL) {
-            val orderedSnapshots = snapshots.sortedBy { snapshot -> days.firstOrNull { it.id == snapshot.itinerary.dayId }?.index ?: Int.MAX_VALUE }
+            val orderedSnapshots = wholeTrip.snapshots
             val ordersByPlace = orderedSnapshots.flatMap { it.itinerary.items }.mapIndexed { index, item -> item.place.id to index + 1 }
                 .groupBy({ it.first }, { it.second })
             val savedMarkers = places.map {
@@ -242,19 +251,45 @@ object MapUiModelMapper {
                     badgeText = ordersByPlace[it.id]?.let(::formatOccurrenceBadge),
                 )
             }
-            return MapUiModel(withSearchMarkers(savedMarkers))
+            return MapUiModel(if (placePoolFilter.isActive) {
+                val visibleIds = places.filter(placePoolFilter::matches).mapTo(mutableSetOf(), SavedPlace::id)
+                withSearchMarkers(savedMarkers.filter { it.savedPlaceId in visibleIds }, includeUnfocusedResults = false)
+            } else withSearchMarkers(savedMarkers))
         }
         val dayById = days.associateBy(TripDay::id)
-        val visible = if (scope == MapScope.SINGLE_DAY) snapshots.filter { it.itinerary.dayId == selectedDayId } else snapshots.sortedBy { dayById[it.itinerary.dayId]?.index ?: Int.MAX_VALUE }
+        val visible = if (scope == MapScope.SINGLE_DAY) snapshots.filter { it.itinerary.dayId == selectedDayId } else wholeTrip.snapshots
         val occurrences = visible.flatMap { snapshot ->
             val day = dayById[snapshot.itinerary.dayId]
             snapshot.itinerary.items.mapIndexed { index, item ->
                 val dayIndex = day?.index ?: 0
                 val dayLabel = startDate?.plusDays(dayIndex.toLong())?.toString() ?: "第 ${dayIndex + 1} 天"
-                item.place.point to OccurrenceUi(item.id, snapshot.itinerary.dayId, dayLabel, index + 1, item.place.name, item.place.id)
+                val originalOrder = if (scope == MapScope.WHOLE_TRIP) wholeTrip.originalOrders[item.id] ?: index + 1 else index + 1
+                item.place.point to OccurrenceUi(item.id, snapshot.itinerary.dayId, dayLabel, originalOrder, item.place.name, item.place.id)
             }
         }
         val wholeTripOrder = occurrences.mapIndexed { index, (_, occurrence) -> occurrence.itemId to index + 1 }.toMap()
+        val pointByItemId = occurrences.associate { (point, occurrence) -> occurrence.itemId to point }
+        // Color visits before projection so a collapsed overnight stop retains both dates.
+        val badgeVisits = if (scope == MapScope.WHOLE_TRIP) {
+            snapshots.flatMap { snapshot ->
+                snapshot.itinerary.items.mapNotNull { item ->
+                    val representative = wholeTrip.representativeItemIds[item.id] ?: return@mapNotNull null
+                    val point = pointByItemId[representative] ?: return@mapNotNull null
+                    MarkerVisit(point, snapshot.itinerary.dayId, wholeTripOrder.getValue(representative))
+                }
+            }
+        } else {
+            occurrences.map { (point, occurrence) -> MarkerVisit(point, occurrence.dayId, occurrence.order) }
+        }
+        val segmentsByPoint = badgeVisits.groupBy(MarkerVisit::point).mapValues { (_, visits) ->
+            visits.groupBy(MarkerVisit::dayId).entries.sortedBy { dayById[it.key]?.index ?: 0 }
+                .map { (dayId, dayVisits) ->
+                    MapMarkerBadgeSegment(
+                        formatOccurrenceBadge(dayVisits.map(MarkerVisit::order).distinct().sorted()),
+                        routeColorForDay(dayById[dayId]?.index ?: 0),
+                    )
+                }
+        }
         val markers = occurrences.groupBy(Pair<GeoPoint, OccurrenceUi>::first).map { (point, entries) ->
             val values = entries.map(Pair<GeoPoint, OccurrenceUi>::second)
             val orders = when (scope) {
@@ -271,12 +306,15 @@ object MapUiModelMapper {
                 occurrences = values,
                 kind = MapMarkerKind.SAVED_ITINERARY,
                 badgeText = formatOccurrenceBadge(orders),
+                badgeSegments = segmentsByPoint[point].orEmpty(),
                 savedPlaceId = saved?.id,
                 scheduled = true,
             )
         }
         val corrupt = mutableListOf<CorruptRoute>()
-        val polylines = visible.flatMap { snapshot ->
+        val visibleLegIds = visible.flatMap { it.legs }.mapTo(mutableSetOf()) { it.id }
+        val routeSnapshots = if (scope == MapScope.WHOLE_TRIP) snapshots else visible
+        val polylines = routeSnapshots.flatMap { snapshot ->
             val dayIndex = dayById[snapshot.itinerary.dayId]?.index ?: 0
             val adjacentPairs = snapshot.itinerary.items
                 .zipWithNext { from, to -> from.id to to.id }
@@ -284,6 +322,7 @@ object MapUiModelMapper {
             snapshot.legs.mapNotNull { leg ->
                 if (
                     leg.tripDayId != snapshot.itinerary.dayId ||
+                    leg.id !in visibleLegIds ||
                     leg.fromItemId to leg.toItemId !in adjacentPairs ||
                     leg.status != RouteStatus.SUCCESS ||
                     leg.polyline == null
@@ -293,7 +332,7 @@ object MapUiModelMapper {
                         if (points.size < 2 || points.any { !it.latitude.isFinite() || !it.longitude.isFinite() }) {
                             corrupt += CorruptRoute(leg.id, leg.version)
                             null
-                        } else MapPolylineUi(leg.id, leg.tripDayId, points, palette[dayIndex.mod(palette.size)])
+                        } else MapPolylineUi(leg.id, leg.tripDayId, points, routeColorForDay(dayIndex))
                     },
                     onFailure = { corrupt += CorruptRoute(leg.id, leg.version); null },
                 )

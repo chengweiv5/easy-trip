@@ -82,6 +82,35 @@ class MapMarkerBitmapTest {
         }
     }
 
+    @Test fun dateSegmentsRenderActualRouteColorsWhiteNumbersAndFocusOutline() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val density = context.resources.displayMetrics.density
+        for (focused in listOf(false, true)) {
+            for (segments in listOf(
+                listOf(MapMarkerBadgeSegment("1", routeColorForDay(0))),
+                listOf(MapMarkerBadgeSegment("1", routeColorForDay(0)), MapMarkerBadgeSegment("1", routeColorForDay(1))),
+                listOf(MapMarkerBadgeSegment("1", routeColorForDay(0)), MapMarkerBadgeSegment("3", routeColorForDay(1)), MapMarkerBadgeSegment("8", routeColorForDay(2))),
+            )) {
+                val marker = MapMarkerUi("place", GeoPoint(30.25, 120.15), "酒店", emptyList(),
+                    MapMarkerKind.SAVED_ITINERARY, badgeText = "1", scheduled = true, isFocused = focused, badgeSegments = segments)
+                val view = MarkerIconView(context, marker)
+                val bitmap = render(view)
+                assertEquals((52 * density).toInt(), bitmap.height)
+                assertEquals(14f * density, view.anchorY * bitmap.height, 1f)
+                val left = bitmap.width / 2f - segments.size * 28f * density / 2f
+                segments.forEachIndexed { index, segment ->
+                    val start = left + index * 28f * density
+                    assertEquals(segment.colorArgb.toInt(), bitmap.getPixel((start + 7f * density).roundToInt(), (14f * density).roundToInt()))
+                    assertTrue("white number in each date segment", (start + 10f * density).roundToInt().until((start + 19f * density).roundToInt()).any { x ->
+                        (7f * density).roundToInt().until((21f * density).roundToInt()).any { y -> bitmap.getPixel(x, y) == Color.WHITE }
+                    })
+                }
+                if (focused) assertEquals(0xFFD96F3B.toInt(), bitmap.getPixel(bitmap.width / 2, density.roundToInt()))
+                bitmap.recycle()
+            }
+        }
+    }
+
     private fun render(view: View): Bitmap {
         view.measure(View.MeasureSpec.UNSPECIFIED, View.MeasureSpec.UNSPECIFIED)
         view.layout(0, 0, view.measuredWidth, view.measuredHeight)

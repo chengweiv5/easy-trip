@@ -388,7 +388,7 @@ class DayItineraryViewModel(
         mutable.value = mutable.value.copy(
             editDraft = ItineraryEditDraft(
                 itemId = itemId,
-                arrivalTimeText = item.arrivalTime?.toString().orEmpty(),
+                arrivalTimeText = item.arrivalTime?.let { it.withMinute(it.minute / 30 * 30).withSecond(0).withNano(0) }?.toString().orEmpty(),
                 stayMinutesText = item.stayMinutes?.toString().orEmpty(),
                 noteText = item.note.orEmpty(),
                 placeId = item.placeId,

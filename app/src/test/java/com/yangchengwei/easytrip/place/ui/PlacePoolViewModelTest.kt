@@ -32,6 +32,23 @@ class PlacePoolViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun citySelectionIsSharedAndResetsWhenCityDisappears() = runTest(dispatcher) {
+        val hangzhou = place("hz").copy(cityName = "杭州市", cityAdCode = "330100")
+        val shanghai = place("sh").copy(cityName = "上海市", cityAdCode = "310000")
+        val repository = PoolRepository(listOf(hangzhou, shanghai), emptyMap())
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.dispatch(PlacePoolAction.SelectCity("330100"))
+        assertEquals("330100", activePlacePoolCity(model.state.value))
+        repository.setUsage("hz", 2)
+        advanceUntilIdle()
+        assertEquals("330100", model.state.value.selectedCityKey)
+        repository.setPlaces(listOf(shanghai))
+        advanceUntilIdle()
+        assertNull(model.state.value.selectedCityKey)
+        assertNull(activePlacePoolCity(model.state.value))
+    }
+
     @Test fun zeroImpactDeleteRemovesImmediatelyWithoutConfirmation() = runTest(dispatcher) {
         val repository = PoolRepository(
             listOf(place("a")),

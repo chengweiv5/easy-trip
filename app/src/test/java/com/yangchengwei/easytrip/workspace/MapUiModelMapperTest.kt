@@ -16,6 +16,98 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MapUiModelMapperTest {
+    @Test fun cityFilterLimitsPoolMarkersAndViewportButNeverFiltersItinerary() {
+        val bj = saved("hotel", "酒店", shared).copy(cityName = "北京市", cityAdCode = "110000", cityMetadataVersion = 1)
+        val sh = saved("museum", "博物馆", other).copy(cityName = "上海市", cityAdCode = "310000", cityMetadataVersion = 1)
+        val filter = PlacePoolMapFilter(cityKey = "310000")
+        val snapshots = listOf(snapshot("day-1", listOf(item("a", hotel), item("b", museum))))
+        val pool = MapUiModelMapper.map(MapScope.PLACE_POOL, listOf(bj, sh), days, snapshots, placePoolFilter = filter)
+        assertEquals(listOf("museum"), pool.markers.map { it.savedPlaceId })
+        assertEquals(listOf(other), automaticMapViewportPoints(MapScope.PLACE_POOL, pool))
+        val whole = MapUiModelMapper.map(MapScope.WHOLE_TRIP, listOf(bj, sh), days, snapshots, placePoolFilter = filter)
+        assertEquals(2, whole.markers.size)
+        val all = MapUiModelMapper.map(MapScope.PLACE_POOL, listOf(bj, sh), days, snapshots)
+        assertEquals(2, all.markers.size)
+        val empty = MapUiModelMapper.map(MapScope.PLACE_POOL, listOf(bj, sh), days, snapshots,
+            placePoolFilter = filter.copy(tagIds = setOf("missing-tag")))
+        assertEquals(emptyList<MapMarkerUi>(), empty.markers)
+    }
+
+    @Test fun wholeTripCollapsesConsecutiveDuplicatesAndKeepsReturnVisitsWithMatchingNumbers() {
+        val snapshots = listOf(snapshot("day-1", listOf(item("a1", hotel))),
+            snapshot("day-2", listOf(item("a2", hotel), item("b", museum), item("a3", hotel))))
+        val whole = MapUiModelMapper.map(MapScope.WHOLE_TRIP, emptyList(), days, snapshots)
+        assertEquals("1·3", whole.markers.single { it.point == shared }.badgeText)
+        assertEquals("2", whole.markers.single { it.point == other }.badgeText)
+        assertEquals(listOf("a1", "a3"), whole.markers.single { it.point == shared }.occurrences.map { it.itemId })
+        val single = MapUiModelMapper.map(MapScope.SINGLE_DAY, emptyList(), days, snapshots, "day-2")
+        assertEquals(listOf("a2", "a3"), single.markers.single { it.point == shared }.occurrences.map { it.itemId })
+    }
+
+    @Test fun collapsingDuplicatesKeepsOriginalOutgoingGeometryAndDayColor() {
+        val points = listOf(shared, GeoPoint(39.905, 116.405), other)
+        val out = leg("out", "day-2", RouteStatus.SUCCESS, PolylineCodec.encode(points))
+            .copy(fromItemId = "a2", toItemId = "b")
+        val snapshots = listOf(snapshot("day-1", listOf(item("a1", hotel))),
+            snapshot("day-2", listOf(item("a2", hotel), item("b", museum)), listOf(out)))
+        val map = MapUiModelMapper.map(MapScope.WHOLE_TRIP, emptyList(), days, snapshots)
+        assertEquals(listOf(MapPolylineUi("out", "day-2", points, routePalette()[1])), map.polylines)
+        assertEquals("day-2", map.routeLabels.single().dayId)
+        assertEquals(2, map.markers.single { it.point == other }.occurrences.single().order)
+    }
+
+    @Test fun explicitSearchFocusRemainsVisibleAfterCityFiltering() {
+        val place = saved("hotel", "酒店", shared).copy(cityName = "北京市", cityAdCode = "110000")
+        val result = com.yangchengwei.easytrip.place.amap.PlaceCandidate("other", "搜索结果", "", other, null)
+        val map = MapUiModelMapper.map(MapScope.PLACE_POOL, listOf(place), days, emptyList(),
+            searchResults = listOf(result), focusedPoiId = result.poiId,
+            placePoolFilter = PlacePoolMapFilter(cityKey = "110000"))
+        assertEquals(2, map.markers.size)
+        assertTrue(map.markers.single { it.key == "search-other" }.isFocused)
+        val filtered = MapUiModelMapper.map(MapScope.PLACE_POOL, listOf(place), days, emptyList(),
+            searchResults = listOf(result), placePoolFilter = PlacePoolMapFilter(cityKey = "110000"))
+        assertEquals(listOf("place-hotel"), filtered.markers.map { it.key })
+    }
+
+    @Test fun dayColorUsesDayIndexIncludingPaletteCycleAndWorksWithoutRoutes() {
+        for (index in listOf(0, 1, 7, 8, 9)) {
+            val day = TripDay("selected", index)
+            val model = MapUiModelMapper.map(MapScope.SINGLE_DAY, emptyList(), listOf(day),
+                listOf(snapshot(day.id, listOf(item("a", hotel), item("b", museum)))), day.id)
+            assertEquals(2, model.markers.size)
+            assertTrue(model.markers.all { it.badgeSegments.single().colorArgb == routePalette()[index % 8] })
+            assertEquals(listOf("1", "2"), model.markers.map { it.badgeSegments.single().text })
+        }
+    }
+
+    @Test fun wholeTripCollapsedOvernightStopRetainsBothDayColorsAndGlobalNumber() {
+        val outgoing = legWithEndpoints("out", "day-2", "a2", "b", listOf(shared, other))
+        val snapshots = listOf(snapshot("day-2", listOf(item("a2", hotel), item("b", museum)), listOf(outgoing)),
+            snapshot("day-1", listOf(item("a1", hotel))))
+        val model = MapUiModelMapper.map(MapScope.WHOLE_TRIP, emptyList(), days.reversed(), snapshots)
+        val stop = model.markers.single { it.point == shared }
+        assertEquals(listOf(MapMarkerBadgeSegment("1", routePalette()[0]), MapMarkerBadgeSegment("1", routePalette()[1])), stop.badgeSegments)
+        assertEquals(listOf("a1"), stop.occurrences.map { it.itemId })
+        assertEquals("1", stop.badgeText)
+        assertEquals(MapMarkerBadgeSegment("2", model.polylines.single().colorArgb), model.markers.single { it.point == other }.badgeSegments.single())
+    }
+
+    @Test fun returnVisitsCompressPerDayAndSearchFocusPreservesSegments() {
+        val first = snapshot("day-1", (1..7).map { item("a$it", if (it % 2 == 1) hotel else museum) })
+        val second = snapshot("day-2", listOf(item("b1", museum), item("b2", hotel)))
+        val place = saved("hotel", "酒店", shared)
+        val focus = com.yangchengwei.easytrip.place.amap.PlaceCandidate("poi-hotel", "酒店", "", shared, null)
+        val model = MapUiModelMapper.map(MapScope.WHOLE_TRIP, listOf(place), days, listOf(second, first),
+            searchResults = listOf(focus), focusedPoiId = focus.poiId)
+        val stop = model.markers.single { it.point == shared }
+        assertTrue(stop.isFocused)
+        assertEquals(listOf(MapMarkerBadgeSegment("1 +3", routePalette()[0]), MapMarkerBadgeSegment("9", routePalette()[1])), stop.badgeSegments)
+        val pool = MapUiModelMapper.map(MapScope.PLACE_POOL, listOf(place), days, listOf(first, second))
+        assertTrue(pool.markers.all { it.badgeSegments.isEmpty() })
+        val search = MapUiModelMapper.map(MapScope.SINGLE_DAY, emptyList(), days, emptyList(), "day-1", searchResults = listOf(focus))
+        assertTrue(search.markers.all { it.badgeSegments.isEmpty() })
+    }
+
     private val shared = GeoPoint(39.9, 116.4)
     private val other = GeoPoint(39.91, 116.41)
     private val hotel = ItineraryPlace("hotel", "酒店", "", shared)
@@ -195,9 +287,9 @@ class MapUiModelMapperTest {
         val marker = model.markers.single { it.point == shared }
         assertEquals("place-hotel", marker.key)
         assertEquals(MapMarkerKind.SAVED_ITINERARY, marker.kind)
-        assertEquals("1·2", marker.badgeText)
+        assertEquals("1", marker.badgeText)
         assertTrue(marker.isFocused)
-        assertEquals(listOf("i1", "i2"), marker.occurrences.map { it.itemId })
+        assertEquals(listOf("i1"), marker.occurrences.map { it.itemId })
     }
 
     @Test fun `same poi and coordinate collision retains every occurrence on one saved marker`() {

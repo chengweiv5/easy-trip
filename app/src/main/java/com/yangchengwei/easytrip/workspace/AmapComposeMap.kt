@@ -46,6 +46,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import androidx.core.graphics.withClip
 import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
 import com.amap.api.maps.CameraUpdateFactory
@@ -391,15 +392,23 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi)
     }?.let { if (it.length > 18) it.take(17) + "…" else it }
     private val diameter = if (marker.kind == MapMarkerKind.UNSAVED_SEARCH) 44f else 28f
     private val textSizePx = 15f * density
+    private val segments = marker.badgeSegments.takeIf {
+        marker.kind == MapMarkerKind.SAVED_ITINERARY && marker.scheduled
+    }.orEmpty()
+    private val segmentWidths: List<Float>
     private val badgeWidth: Float
     private val badgeBounds = RectF()
+    private val badgeClip = Path()
     val anchorX: Float get() = 0.5f
     val anchorY: Float get() = diameter * density / 2f / layoutParams.height
 
     init {
         paint.textSize = textSizePx
         paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
-        badgeWidth = maxOf(diameter * density, paint.measureText(rendering.glyph) + 12f * density)
+        segmentWidths = segments.map { maxOf(diameter * density, paint.measureText(it.text) + 12f * density) }
+        badgeWidth = if (segments.isEmpty()) {
+            maxOf(diameter * density, paint.measureText(rendering.glyph) + 12f * density)
+        } else segmentWidths.sum()
         val nameWidth = name?.let { paint.measureText(it) + 8f * density } ?: 0f
         layoutParams = android.view.ViewGroup.LayoutParams(kotlin.math.ceil(maxOf(badgeWidth, nameWidth)).toInt(), ((diameter + if (name != null) 24f else 0f) * density).toInt())
     }
@@ -415,7 +424,20 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi)
         paint.color = rendering.backgroundColor
         badgeBounds.set(cx - badgeWidth / 2f + rendering.borderWidth * density / 2f,
             cy - radius, cx + badgeWidth / 2f - rendering.borderWidth * density / 2f, cy + radius)
-        canvas.drawRoundRect(badgeBounds, radius, radius, paint)
+        if (segments.isEmpty()) {
+            canvas.drawRoundRect(badgeBounds, radius, radius, paint)
+        } else {
+            badgeClip.reset()
+            badgeClip.addRoundRect(badgeBounds, radius, radius, Path.Direction.CW)
+            canvas.withClip(badgeClip) {
+                var left = cx - badgeWidth / 2f
+                segments.forEachIndexed { index, segment ->
+                    paint.color = segment.colorArgb.toInt()
+                    drawRect(left, badgeBounds.top, left + segmentWidths[index], badgeBounds.bottom, paint)
+                    left += segmentWidths[index]
+                }
+            }
+        }
         paint.style = Paint.Style.STROKE
         paint.strokeWidth = rendering.borderWidth * density
         paint.color = rendering.borderColor
@@ -426,7 +448,16 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi)
             paint.textSize = textSizePx
             paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
             paint.textAlign = Paint.Align.CENTER
-            canvas.drawText(rendering.glyph, cx, cy - (paint.ascent() + paint.descent()) / 2f, paint)
+            val baseline = cy - (paint.ascent() + paint.descent()) / 2f
+            if (segments.isEmpty()) {
+                canvas.drawText(rendering.glyph, cx, baseline, paint)
+            } else {
+                var left = cx - badgeWidth / 2f
+                segments.forEachIndexed { index, segment ->
+                    canvas.drawText(segment.text, left + segmentWidths[index] / 2f, baseline, paint)
+                    left += segmentWidths[index]
+                }
+            }
         } else {
             val iconSize = 14f * density
             val path = Path()

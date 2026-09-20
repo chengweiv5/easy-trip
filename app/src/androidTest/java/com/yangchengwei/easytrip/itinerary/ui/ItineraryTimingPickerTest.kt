@@ -49,8 +49,12 @@ class ItineraryTimingPickerTest {
         compose.onNodeWithTag("arrival-hour-picker").performTouchInput { swipeUp(durationMillis = 500) }
         compose.waitUntil(5_000) { draft.value.arrivalTime?.hour != 9 }
         val oldMinute = draft.value.arrivalTime?.minute
-        compose.onNodeWithTag("arrival-minute-picker").performTouchInput { swipeUp(durationMillis = 500) }
+        compose.onNodeWithTag("arrival-minute-picker").performTouchInput {
+            swipe(start = androidx.compose.ui.geometry.Offset(center.x, height * 0.35f),
+                end = androidx.compose.ui.geometry.Offset(center.x, height * 0.85f), durationMillis = 500)
+        }
         compose.waitUntil(5_000) { draft.value.arrivalTime?.minute != oldMinute }
+        assertEquals(0, draft.value.arrivalTime!!.minute % 30)
         compose.onNodeWithTag("stay-hours-picker").performTouchInput { swipeUp(durationMillis = 500) }
         compose.waitUntil(5_000) { draft.value.stayMinutes != 120 }
         assertEquals(0, draft.value.stayMinutes!! % 60)
@@ -69,10 +73,10 @@ class ItineraryTimingPickerTest {
                 { draft.value = draft.value.copy(stayMinutesText = it) }, onSave = { saved = draft.value }, onCancel = {})
         } }
         compose.assertStayHours("1.25")
-        compose.selectArrivalTime(14, 20)
+        compose.selectArrivalTime(14, 30)
         compose.onNodeWithText("保存时间").performClick()
         assertEquals(75, saved?.stayMinutes)
-        assertEquals(LocalTime.of(14, 20), saved?.arrivalTime)
+        assertEquals(LocalTime.of(14, 30), saved?.arrivalTime)
         compose.selectStayHours(2)
         assertEquals(120, draft.value.stayMinutes)
         // The historical 1.25 h entry remains between 1 h and 2 h.

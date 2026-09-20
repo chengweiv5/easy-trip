@@ -1,17 +1,17 @@
 package com.yangchengwei.easytrip.trip.ui
 
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationDialog
 import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
 import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
@@ -24,13 +24,24 @@ fun TripDeletionDialog(
     onConfirm: () -> Unit,
     onRetrySync: () -> Unit,
 ) {
+    val currentDeletion by rememberUpdatedState(deletion)
+    val currentOnCancel by rememberUpdatedState(onCancel)
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
+    DisposableEffect(lifecycle) {
+        fun cancelPendingImpact() {
+            if (currentDeletion is TripDeletionUiState.LoadingImpact) currentOnCancel()
+        }
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_STOP) cancelPendingImpact()
+        }
+        lifecycle.addObserver(observer)
+        onDispose {
+            lifecycle.removeObserver(observer)
+            cancelPendingImpact()
+        }
+    }
     when (deletion) {
-        TripDeletionUiState.Idle -> Unit
-        is TripDeletionUiState.LoadingImpact -> DeletionImpactDialog(
-            tripName = deletion.tripName,
-            message = "正在查询删除影响…",
-            onDismiss = onCancel,
-        )
+        TripDeletionUiState.Idle, is TripDeletionUiState.LoadingImpact -> Unit
         is TripDeletionUiState.ImpactFailure -> DeletionImpactDialog(
             tripName = deletion.tripName,
             message = "未删除旅行\n${deletion.message}",
@@ -56,37 +67,24 @@ private fun DeletionImpactDialog(
     tripName: String,
     message: String,
     onDismiss: () -> Unit,
-    onRetry: (() -> Unit)? = null,
+    onRetry: () -> Unit,
 ) {
     AlertDialog(
-        onDismissRequest = { if (onRetry != null) onDismiss() },
-        properties = DialogProperties(
-            dismissOnBackPress = onRetry != null,
-            dismissOnClickOutside = onRetry != null,
-        ),
+        onDismissRequest = onDismiss,
         title = { Text("删除$tripName？") },
         text = {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = Alignment.CenterVertically,
-            ) {
-                if (onRetry == null) CircularProgressIndicator(Modifier.testTag("trip-delete-impact-loading"))
-                Column {
-                    message.lineSequence().forEach { Text(it) }
-                }
+            Column {
+                message.lineSequence().forEach { Text(it) }
             }
         },
         confirmButton = {
-            onRetry?.let {
-                EasyTripPrimaryButton(onClick = it, modifier = Modifier.testTag("trip-delete-impact-retry")) {
-                    Text("重试")
-                }
+            EasyTripPrimaryButton(onClick = onRetry, modifier = Modifier.testTag("trip-delete-impact-retry")) {
+                Text("重试")
             }
         },
         dismissButton = {
             EasyTripSecondaryButton(
                 onDismiss,
-                enabled = onRetry != null,
                 modifier = Modifier.testTag("trip-delete-impact-cancel"),
             ) { Text("取消") }
         },

@@ -8,6 +8,16 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MapViewportControllerTest {
+    @Test fun cityFilterChangeRefitsAfterGestureButUnchangedFilterDoesNotRecenter() {
+        val controller = initializedController()
+        controller.onUserGesture()
+        val filter = PlacePoolMapFilter(cityKey = "310000")
+        assertEquals(listOf(shanghai), controller.update(listOf(beijing, shanghai), MapScope.PLACE_POOL, listOf(shanghai), placeFilter = filter)?.points)
+        controller.onUserGesture()
+        assertNull(controller.update(listOf(beijing, shanghai), MapScope.PLACE_POOL, listOf(shanghai), placeFilter = filter))
+        assertEquals(listOf(beijing, shanghai), controller.update(listOf(beijing, shanghai), MapScope.PLACE_POOL, listOf(beijing, shanghai))?.points)
+    }
+
     @Test fun switchingDayAfterGestureFocusesTheNewDayButLateResultsDoNot() {
         val c = MapViewportController()
         val a = GeoPoint(30.0, 110.0)

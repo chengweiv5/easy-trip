@@ -62,10 +62,14 @@ class PlaceCityGroupingTest {
 
     @Test fun poolSwitchesCitiesKeepsToolbarFixedAndRestoresAllWhenCityDisappears() {
         val pool = mutableStateOf(rows)
+        val city = mutableStateOf<String?>(null)
         val actions = mutableListOf<PlacePoolAction>()
         compose.setContent {
             EasyTripTheme { Surface { Box(Modifier.width(390.dp).height(430.dp)) {
-                PlacePoolContent(PlacePoolUiState(rows = pool.value, allRows = pool.value, savedPoiIds = pool.value.map { it.place.amapPoiId }.toSet()), showSearch = false, onAction = { actions += it })
+                PlacePoolContent(PlacePoolUiState(rows = pool.value, allRows = pool.value, selectedCityKey = city.value, savedPoiIds = pool.value.map { it.place.amapPoiId }.toSet()), showSearch = false, onAction = {
+                    actions += it
+                    if (it is PlacePoolAction.SelectCity) city.value = it.key
+                })
             } } }
         }
         compose.onNodeWithTag("place-city-330100").performClick()

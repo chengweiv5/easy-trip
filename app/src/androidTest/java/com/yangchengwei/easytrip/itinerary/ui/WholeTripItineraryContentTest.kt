@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.ui.graphics.asAndroidBitmap
+import androidx.compose.ui.test.captureToImage
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.SemanticsActions
@@ -41,6 +43,32 @@ import org.junit.Test
 
 class WholeTripItineraryContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun mergedDayRetainsOutgoingRouteAndContinuousStopNumbers() {
+        val a = item("a", "酒店")
+        val b = item("b", "景点")
+        val leg = RouteLegUi("out", "a", "b", TransportMode.WALK, RouteStatus.SUCCESS, 800, 600, null)
+        compose.setContent {
+            com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme {
+                WholeTripItineraryContent(listOf(
+                    WholeTripDayUi("day-1", 1, listOf(a), emptyList()),
+                    WholeTripDayUi("day-2", 2, emptyList(), emptyList(), collapsedItemCount = 1),
+                    WholeTripDayUi("day-3", 3, listOf(b), listOf(leg), collapsedItemCount = 1),
+                ))
+            }
+        }
+        compose.onNodeWithText("全程 · 3 天 · 2 站").assertIsDisplayed()
+        compose.onNodeWithText("连续重复地点已合并").assertIsDisplayed()
+        compose.onNodeWithTag("leg-out").assertIsDisplayed()
+        compose.onNodeWithTag("route-leg-action-out").assertContentDescriptionEquals("从酒店到景点的路段")
+        assertEquals(listOf("item-a", "leg-out", "item-b"), compose.onRoot(useUnmergedTree = true).fetchSemanticsNode().timelineTags())
+        compose.onNodeWithTag("itinerary-order-b", useUnmergedTree = true)
+            .assert(SemanticsMatcher.expectValue(SemanticsProperties.Text, listOf(androidx.compose.ui.text.AnnotatedString("2"))))
+        val image = compose.onRoot().captureToImage().asAndroidBitmap()
+        java.io.File(compose.activity.getExternalFilesDir(null), "whole-trip-merged.png").outputStream().use {
+            image.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+        }
+    }
 
     @Test
     fun noTripDaysShowsIllustrationAndAddDayAction() {

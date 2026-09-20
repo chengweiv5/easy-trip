@@ -118,6 +118,7 @@ import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import java.time.LocalDate
 import java.time.LocalTime
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
@@ -128,6 +129,52 @@ import org.junit.Test
 
 class WorkspaceFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun citySelectionUpdatesListAndRenderedMapThenRestoresAll() {
+        val pool = MutableStateFlow(listOf(
+            SavedPlace("hz", "trip", "poi-hz", "西湖", "杭州市", GeoPoint(30.25, 120.14), "", emptyList(), "杭州市", "330100"),
+            SavedPlace("sh", "trip", "poi-sh", "外滩", "上海市", GeoPoint(31.24, 121.49), "", emptyList(), "上海市", "310000"),
+        ))
+        val repository = object : SavedPlaceRepository by Places() {
+            override fun observePlaces(tripId: String, tagIds: Set<String>) = pool
+            override fun observeUsageCounts(tripId: String) = pool.map { rows -> rows.associate { it.id to 0 } }
+            override fun observePlacesWithUsage(tripId: String, tagIds: Set<String>) = pool.map { rows -> rows.map { it to 0 } }
+            override fun observeSavedPoiIds(tripId: String) = pool.map { rows -> rows.map { it.amapPoiId }.toSet() }
+        }
+        val workspace = TripWorkspaceViewModel("trip", Trips(), repository, Itineraries(), Legs(), SavedStateHandle())
+        val places = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", repository, null)
+        val permission = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore())
+        val token = consentToken()
+        lateinit var host: TestMapHost
+        compose.setContent {
+            TripWorkspaceRoute(workspace, token, onBack = {}, onSettings = {}, placeViewModel = places,
+                locationPermissionCoordinator = permission,
+                locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) }, onWorkspaceEffect = {},
+                mapHostFactory = { TestMapHost(it).also { created -> host = created } })
+        }
+        compose.waitUntil(5_000) { runCatching { host.lastModel?.markers?.size == 2 }.getOrDefault(false) }
+        compose.runOnIdle { workspace.onMapGesture() }
+        compose.onNodeWithTag("place-city-330100").performClick()
+        compose.waitUntil(5_000) { host.lastModel?.markers?.map { it.savedPlaceId } == listOf("hz") }
+        compose.onNodeWithTag("saved-place-hz").performScrollTo().assertIsDisplayed()
+        compose.onAllNodesWithTag("saved-place-sh").assertCountEquals(0)
+        assertEquals(listOf(pool.value.first().point), host.lastModel?.viewportRequest?.points)
+        compose.runOnIdle {
+            workspace.selectSection(WorkspaceSection.ITINERARY)
+            workspace.selectItineraryScope(ItineraryScope.WholeTrip)
+        }
+        compose.waitUntil(5_000) { host.lastModel?.markers?.size == 2 }
+        compose.runOnIdle { workspace.selectSection(WorkspaceSection.PLACE_POOL) }
+        compose.waitUntil(5_000) { host.lastModel?.markers?.map { it.savedPlaceId } == listOf("hz") }
+        compose.onNodeWithTag("place-city-all").performClick()
+        compose.waitUntil(5_000) { host.lastModel?.markers?.size == 2 }
+        compose.onNodeWithTag("place-city-330100").performClick()
+        compose.waitUntil(5_000) { host.lastModel?.markers?.size == 1 }
+        compose.runOnIdle { pool.value = pool.value.filter { it.id == "sh" } }
+        compose.waitUntil(5_000) { host.lastModel?.markers?.map { it.savedPlaceId } == listOf("sh") }
+        compose.onNodeWithTag("place-city-all").assertIsSelected()
+        assertEquals(null, places.state.value.selectedCityKey)
+    }
 
     @Test fun realNavigationEntersWorkspaceSearchesReturnsAndSwitchesSections() {
         val database = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
@@ -3166,6 +3213,7 @@ class WorkspaceFlowTest {
     private class TestMapHost(context: Context) : AmapMapHost {
         override val view = View(context)
         override fun canRenderBeforeReady() = true
+        var lastModel: MapUiModel? = null
         private var consumedViewportId: Long? = null
         private var consumedViewportInsets = MapViewportInsets()
         var viewportCalls = 0
@@ -3181,6 +3229,7 @@ class WorkspaceFlowTest {
             onMapPoiClick: (MapPoiUi) -> Unit,
             onLayerError: (Throwable, MapLayer) -> Unit,
         ) {
+            lastModel = model
             val rendering = viewportRendering(
                 consumedViewportId,
                 model.viewportRequest,

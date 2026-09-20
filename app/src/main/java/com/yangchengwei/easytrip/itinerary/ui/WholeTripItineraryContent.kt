@@ -31,6 +31,7 @@ fun WholeTripItineraryContent(
     val orderedDays = days.sortedBy { it.dayNumber }
     val orderOffsets = orderedDays.associate { day -> day.dayId to orderedDays.takeWhile { it.dayId != day.dayId }.sumOf { it.items.size } }
     val totalStops = days.sumOf { it.items.size }
+    val itemsById = orderedDays.flatMap { it.items }.associateBy { it.id }
     Column(modifier.fillMaxSize()) {
         if (days.isNotEmpty()) {
             ItinerarySummaryHeader(
@@ -71,10 +72,21 @@ fun WholeTripItineraryContent(
                 }
                 if (day.items.isEmpty()) {
                     item(key = "empty-${day.dayId}") {
-                        Text("暂无行程", color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        Text(if (day.collapsedItemCount > 0) "连续重复地点已合并" else "暂无行程", color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 } else {
                     day.items.forEachIndexed { index, itineraryItem ->
+                        if (index == 0) day.legs.firstOrNull { it.toItemId == itineraryItem.id && day.items.none { item -> item.id == it.fromItemId } }?.let { leg ->
+                            item(key = "${day.dayId}-leading-leg-${leg.id}") {
+                                RouteLegContent(
+                                    leg = leg,
+                                    modifier = Modifier.fillMaxWidth().testTag("leg-${leg.id}"),
+                                    fromPlaceName = itemsById[leg.fromItemId]?.name.orEmpty(),
+                                    toPlaceName = itineraryItem.name,
+                                    showEndpointText = true,
+                                )
+                            }
+                        }
                         item(key = "${day.dayId}-item-${itineraryItem.id}") {
                             Column(Modifier.fillMaxWidth()) {
                                 ItineraryPlaceRow(

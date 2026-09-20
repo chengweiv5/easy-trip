@@ -7,6 +7,13 @@ import java.util.Locale
 internal const val UNKNOWN_CITY_KEY = "unknown"
 internal data class PlaceCityGroup(val key: String, val name: String, val rows: List<SavedPlaceRowUi>)
 
+internal fun placeCityKey(place: com.yangchengwei.easytrip.place.domain.SavedPlace): String =
+    place.city()?.key ?: UNKNOWN_CITY_KEY
+
+internal fun activePlacePoolCity(state: PlacePoolUiState): String? = state.selectedCityKey?.takeIf { key ->
+    (state.allRows ?: state.rows).any { placeCityKey(it.place) == key }
+}
+
 internal fun placeCityGroups(rows: List<SavedPlaceRowUi>): List<PlaceCityGroup> {
     val collator = Collator.getInstance(Locale.CHINA)
     return rows.groupBy { it.place.city()?.key ?: UNKNOWN_CITY_KEY }.map { (key, places) ->

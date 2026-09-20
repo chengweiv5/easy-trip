@@ -90,6 +90,7 @@ class TripWorkspaceViewModel(
     private val selectedMarkerKey = MutableStateFlow<String?>(null)
     private val overlay = MutableStateFlow<WorkspaceOverlay>(WorkspaceOverlay.None)
     private val selectedMapPoi = MutableStateFlow<MapPoiUi?>(null)
+    private val placePoolFilter = MutableStateFlow(PlacePoolMapFilter())
     private val restoredFocusPoint = savedState.get<Double>(FOCUSED_LATITUDE)?.let { latitude ->
         savedState.get<Double>(FOCUSED_LONGITUDE)?.let { longitude -> GeoPoint(latitude, longitude) }
     }
@@ -149,6 +150,7 @@ class TripWorkspaceViewModel(
                         mapPreferences.layer,
                         selectedMapPoi,
                         overlay,
+                        placePoolFilter,
                     ) { values -> mapWorkspaceState(values) }
                         .collect { next ->
                             if (next == null) {
@@ -219,12 +221,14 @@ class TripWorkspaceViewModel(
             ?: focusedSavedPlace?.point
             ?: interaction.viewportRequest?.takeIf { it.reason == ViewportReason.SEARCH_FOCUS }?.points?.singleOrNull()
             ?: restoredFocusPoint.takeIf { activeFocusedId != null }
-        val mapped = MapUiModelMapper.map(currentMapScope, currentPlaces, currentTrip.days, currentSnapshots, selected, currentTrip.startDate, currentSearch, activeFocusedId, focusPoint, focusedCandidate)
+        val poolFilter = values[13] as PlacePoolMapFilter
+        val mapped = MapUiModelMapper.map(currentMapScope, currentPlaces, currentTrip.days, currentSnapshots, selected, currentTrip.startDate, currentSearch, activeFocusedId, focusPoint, focusedCandidate, poolFilter)
         viewportController.update(
             placePoints = currentPlaces.map(SavedPlace::point),
             scope = currentMapScope,
             selectedDayId = selected,
             visiblePoints = automaticMapViewportPoints(currentMapScope, mapped),
+            placeFilter = if (currentMapScope == MapScope.PLACE_POOL) poolFilter else PlacePoolMapFilter(),
         )
         val model = mapped.copy(viewportRequest = viewportController.currentRequest)
         model.corruptRoutes.forEach { route -> viewModelScope.launch { routes.repairCorruptPolyline(route.legId, route.version) } }
@@ -269,6 +273,16 @@ class TripWorkspaceViewModel(
             mutablePageState.value = TripWorkspacePageState.Ready(
                 page.content.copy(map = mutable.value.map),
             )
+        }
+    }
+
+    fun setPlacePoolFilter(filter: PlacePoolMapFilter) {
+        if (placePoolFilter.value == filter) return
+        placePoolFilter.value = filter
+        if (section.value == WorkspaceSection.PLACE_POOL) {
+            viewportController.onUserGesture()
+            clearSearchFocus()
+            selectedMarkerKey.value = null
         }
     }
 

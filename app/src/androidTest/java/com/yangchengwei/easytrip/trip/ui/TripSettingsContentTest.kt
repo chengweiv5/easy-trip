@@ -751,8 +751,8 @@ class TripSettingsContentTest {
             )
         }
 
-        compose.onNodeWithText("正在查询删除影响…").assertIsDisplayed()
-        compose.onNodeWithTag("trip-delete-impact-loading").assertIsDisplayed()
+        compose.onNodeWithText("正在查询删除影响…").assertDoesNotExist()
+        compose.onNodeWithTag("trip-delete-impact-loading").assertDoesNotExist()
         compose.onNodeWithText("确认删除旅行").assertDoesNotExist()
 
         compose.runOnIdle {
@@ -819,12 +819,10 @@ class TripSettingsContentTest {
             )
         }
 
-        fun assertLoadingCannotCancel() {
-            compose.onNodeWithTag("trip-delete-impact-cancel").assertIsNotEnabled().performClick()
-            pressBack()
-            compose.waitForIdle()
-            compose.onAllNodes(isRoot())[1].performTouchInput { click(Offset(1f, 1f)) }
-            compose.onNodeWithText("正在查询删除影响…").assertIsDisplayed()
+        fun assertLoadingKeepsContentVisible() {
+            compose.onNodeWithTag("trip-delete-impact-cancel").assertDoesNotExist()
+            compose.onNodeWithText("正在查询删除影响…").assertDoesNotExist()
+            compose.onNodeWithTag("delete-day-day-1").assertIsDisplayed()
             assertEquals(0, cancellations)
             assertEquals(TripDeletionUiState.LoadingImpact("trip", "Kyoto"), state.tripDeletion)
         }
@@ -836,7 +834,7 @@ class TripSettingsContentTest {
             assertEquals(TripDeletionUiState.Idle, state.tripDeletion)
         }
 
-        assertLoadingCannotCancel()
+        assertLoadingKeepsContentVisible()
         compose.runOnIdle {
             state = initial.copy(
                 tripDeletion = TripDeletionUiState.ImpactFailure("trip", "Kyoto", "无法加载删除影响，请重试"),

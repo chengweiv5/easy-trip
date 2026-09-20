@@ -19,11 +19,7 @@ import androidx.compose.material3.Text
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.testTag
@@ -54,6 +50,7 @@ fun PlacePoolSheet(
         onDismissDetail = { viewModel.dispatch(PlacePoolAction.DismissDetail) },
         onSetQuery = viewModel::setQuery,
         onToggleTag = viewModel::toggleTag,
+        onSelectCity = viewModel::selectCity,
         onEdit = viewModel::edit,
         onDelete = viewModel::requestDelete,
         onToggleCollection = viewModel::toggleCollection,
@@ -75,6 +72,7 @@ fun PlacePoolSheet(
 sealed interface PlacePoolAction {
     data class SetQuery(val value: String) : PlacePoolAction
     data class ToggleTag(val id: String) : PlacePoolAction
+    data class SelectCity(val key: String?) : PlacePoolAction
     data class OpenDetail(val placeId: String) : PlacePoolAction
     data object DismissDetail : PlacePoolAction
     data class Edit(val place: com.yangchengwei.easytrip.place.domain.SavedPlace) : PlacePoolAction
@@ -112,6 +110,7 @@ fun PlacePoolContent(
         onDismissDetail = { onAction(PlacePoolAction.DismissDetail) },
         onSetQuery = { onAction(PlacePoolAction.SetQuery(it)) },
         onToggleTag = { onAction(PlacePoolAction.ToggleTag(it)) },
+        onSelectCity = { onAction(PlacePoolAction.SelectCity(it)) },
         onEdit = { onAction(PlacePoolAction.Edit(it)) },
         onDelete = { onAction(PlacePoolAction.Delete(it)) },
         onToggleCollection = { onAction(PlacePoolAction.ToggleCollection(it)) },
@@ -143,6 +142,7 @@ fun PlacePoolContent(
     onDismissDetail: () -> Unit,
     onSetQuery: (String) -> Unit,
     onToggleTag: (String) -> Unit,
+    onSelectCity: (String?) -> Unit = {},
     onEdit: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
     onDelete: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
     onToggleCollection: (com.yangchengwei.easytrip.place.amap.PlaceCandidate) -> Unit,
@@ -162,11 +162,9 @@ fun PlacePoolContent(
     showDialogs: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
 ) {
-    var selectedCityKey by rememberSaveable { mutableStateOf<String?>(null) }
     val cityRows = state.allRows ?: state.rows
     val cities = remember(cityRows) { placeCityGroups(cityRows) }
-    val activeCity = selectedCityKey?.takeIf { key -> cities.any { it.key == key } }
-    LaunchedEffect(activeCity) { selectedCityKey = activeCity }
+    val activeCity = activePlacePoolCity(state)
     val visibleGroups = remember(state.rows, activeCity) { filterPlaceCityGroups(state.rows, activeCity) }
     Column(modifier.padding(contentPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showSearch) PlaceSearchField(state.search.query, onSetQuery)
@@ -209,7 +207,7 @@ fun PlacePoolContent(
                     }
                 }
             }
-            if (cityRows.isNotEmpty()) PlaceCityFilterBar(cities, activeCity, { selectedCityKey = it }, Modifier.fillMaxWidth())
+            if (cityRows.isNotEmpty()) PlaceCityFilterBar(cities, activeCity, onSelectCity, Modifier.fillMaxWidth())
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 androidx.compose.foundation.lazy.LazyColumn(
                     state = listState,

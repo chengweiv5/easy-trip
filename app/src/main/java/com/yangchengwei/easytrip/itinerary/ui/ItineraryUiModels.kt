@@ -89,24 +89,25 @@ data class WholeTripDayUi(
     val dayNumber: Int,
     val items: List<ItineraryItemUi>,
     val legs: List<RouteLegUi>,
+    val collapsedItemCount: Int = 0,
 )
 
 internal fun mapWholeTripDays(
     days: List<TripDay>,
     snapshots: List<DayMapSnapshot>,
 ): List<WholeTripDayUi> {
-    val snapshotsByDay = snapshots.associateBy { it.itinerary.dayId }
+    val projection = projectWholeTrip(days, snapshots)
+    val snapshotsByDay = projection.snapshots.associateBy { it.itinerary.dayId }
     return days.sortedBy(TripDay::index).map { day ->
         val snapshot = snapshotsByDay[day.id]
         val items = snapshot?.itinerary?.items.orEmpty()
-        val adjacentPairs = items.zipWithNext { from, to -> from.id to to.id }.toSet()
         WholeTripDayUi(
             dayId = day.id,
             dayNumber = day.index + 1,
             items = items.map(ItineraryItem::toItineraryItemUi),
             legs = snapshot?.legs.orEmpty()
-                .filter { it.fromItemId to it.toItemId in adjacentPairs }
                 .map(RouteLegEntity::toRouteLegUi),
+            collapsedItemCount = projection.collapsedCounts[day.id] ?: 0,
         )
     }
 }

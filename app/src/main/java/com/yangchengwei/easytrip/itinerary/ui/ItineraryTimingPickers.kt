@@ -53,7 +53,7 @@ internal fun ItineraryTimingPickers(
             .sortedWith(nullsFirst())
     }
     val hourLabels = remember { listOf("待定") + (0..23).map { it.toString().padStart(2, '0') } }
-    val minuteLabels = remember { (0..59).map { it.toString().padStart(2, '0') } }
+    val minuteLabels = remember { listOf("00", "30") }
     val enabled = !draft.isSaving
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
         Column(Modifier.weight(2f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -61,11 +61,11 @@ internal fun ItineraryTimingPickers(
             Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 TimingWheel("时", "到达小时", hourLabels, time?.hour?.plus(1) ?: 0, enabled,
                     Modifier.weight(1f).testTag("arrival-hour-picker")) { index ->
-                    onArrivalTimeChange(if (index == 0) "" else LocalTime.of(index - 1, time?.minute ?: 0).toString())
+                    onArrivalTimeChange(if (index == 0) "" else LocalTime.of(index - 1, (time?.minute ?: 0) / 30 * 30).toString())
                 }
-                TimingWheel("分", "到达分钟", minuteLabels, time?.minute ?: 0, enabled && time != null,
-                    Modifier.weight(1f).testTag("arrival-minute-picker")) { minute ->
-                    time?.let { onArrivalTimeChange(LocalTime.of(it.hour, minute).toString()) }
+                TimingWheel("分", "到达分钟", minuteLabels, (time?.minute ?: 0) / 30, enabled && time != null,
+                    Modifier.weight(1f).testTag("arrival-minute-picker")) { index ->
+                    time?.let { onArrivalTimeChange(LocalTime.of(it.hour, index * 30).toString()) }
                 }
             }
         }
@@ -139,6 +139,7 @@ private fun TimingWheel(
                         picker.minValue = 0
                         picker.maxValue = values.lastIndex
                         picker.displayedValues = values.toTypedArray()
+                        picker.wrapSelectorWheel = false
                     }
                     if (picker.value != selected) picker.value = selected
                     picker.isEnabled = enabled

@@ -1186,6 +1186,34 @@ class DayItineraryViewModelTest {
         assertFalse(model.state.value.modeEditor!!.isSaving)
     }
 
+    @Test fun `historical arrival rounds only in draft and persists only after successful save`() = runTest(dispatcher) {
+        val repository = Itineraries()
+        val observed = repository.observeDay("day-1")
+        observed.value = observed.value.copy(items = observed.value.items.map {
+            it.copy(arrivalTime = if (it.id == "item-alpha") LocalTime.of(9, 17) else LocalTime.of(23, 59))
+        })
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTiming("item-alpha")
+        assertEquals("09:00", model.state.value.editDraft?.arrivalTimeText)
+        model.dismissDialogs()
+        assertTrue(repository.detailCalls.isEmpty())
+        assertEquals(LocalTime.of(9, 17), observed.value.items.first().arrivalTime)
+        model.requestTiming("item-beta")
+        assertEquals("23:30", model.state.value.editDraft?.arrivalTimeText)
+        model.dismissDialogs()
+        model.requestTiming("item-alpha")
+        repository.timingFailure = IllegalStateException("保存失败")
+        model.saveTiming()
+        advanceUntilIdle()
+        assertEquals(LocalTime.of(9, 17), observed.value.items.first().arrivalTime)
+        assertEquals("09:00", model.state.value.editDraft?.arrivalTimeText)
+        repository.timingFailure = null
+        model.saveTiming()
+        advanceUntilIdle()
+        assertEquals(LocalTime.of(9, 0), observed.value.items.first().arrivalTime)
+    }
+
     @Test fun `opening item edit prepopulates note and preserves multiline input`() = runTest(dispatcher) {
         val repository = Itineraries()
         val model = model(repository)

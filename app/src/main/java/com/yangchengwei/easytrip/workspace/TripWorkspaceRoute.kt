@@ -273,6 +273,11 @@ fun TripWorkspaceRoute(
     var locateRequest by remember { mutableIntStateOf(0) }
     var wasEditingPlace by remember { mutableStateOf(false) }
 
+    val activePoolCity = com.yangchengwei.easytrip.place.ui.activePlacePoolCity(places)
+    LaunchedEffect(viewModel, activePoolCity, places.selectedTagIds) {
+        viewModel.setPlacePoolFilter(PlacePoolMapFilter(activePoolCity, places.selectedTagIds))
+    }
+
     LaunchedEffect(locationPermissionCoordinator) {
         locationPermissionCoordinator.effectFlow.collect { effect ->
             if (effect is WorkspaceEffect.ShowCurrentLocation) locateRequest++ else onWorkspaceEffect(effect)

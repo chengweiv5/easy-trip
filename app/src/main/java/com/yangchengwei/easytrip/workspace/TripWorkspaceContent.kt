@@ -466,7 +466,8 @@ private fun WorkspaceCollapsedSummary(
             is ItineraryScope.Day -> {
                 val dayNumber = state.days.indexOfFirst { it.id == scope.dayId }.takeIf { it >= 0 }?.plus(1)
                 val placeCount = if (itineraryState.selectedDayId == scope.dayId) itineraryState.items.size else {
-                    state.wholeTripDays.firstOrNull { it.dayId == scope.dayId }?.items?.size ?: 0
+                    state.wholeTripDays.firstOrNull { it.dayId == scope.dayId }
+                        ?.let { it.items.size + it.collapsedItemCount } ?: 0
                 }
                 if (dayNumber == null) "$placeCount 个地点" else "第 $dayNumber 天 · $placeCount 个地点"
             }

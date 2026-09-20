@@ -65,6 +65,7 @@ data class PlacePoolUiState(
     val selectedDetailPlaceId: String? = null,
     val selectedDetailPlace: SavedPlace? = null,
     val allRows: List<SavedPlaceRowUi>? = null,
+    val selectedCityKey: String? = null,
 )
 
 class PlacePoolViewModel(private val tripId: String, private val repository: SavedPlaceRepository, searchSource: PlaceSearchDataSource?, private val service: PlaceService = PlaceService(repository)) : ViewModel() {
@@ -99,6 +100,9 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     fun setSearchSource(value: PlaceSearchDataSource?) { reducer.setSource(value); cityEnricher.setSource(value) }
     fun setQuery(value: String) = reducer.setQuery(value)
     fun clearSearch() = reducer.clear()
+    fun selectCity(key: String?) {
+        mutableState.update { it.copy(selectedCityKey = key) }
+    }
     fun toggleTag(id: String) { val selected = mutableState.value.selectedTagIds; mutableState.value = mutableState.value.copy(selectedTagIds = if (id in selected) selected - id else selected + id); observePlaces() }
     fun save(candidate: PlaceCandidate) { viewModelScope.launch { repository.save(tripId, candidate) } }
     private var collectionGeneration = 0L
@@ -365,6 +369,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         when (action) {
             is PlacePoolAction.SetQuery -> setQuery(action.value)
             is PlacePoolAction.ToggleTag -> toggleTag(action.id)
+            is PlacePoolAction.SelectCity -> selectCity(action.key)
             is PlacePoolAction.OpenDetail -> openDetail(action.placeId)
             PlacePoolAction.DismissDetail -> dismissDetail()
             is PlacePoolAction.Edit -> edit(action.place)
@@ -413,8 +418,10 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                     mutableState.update { current ->
                         val selected = current.selectedDetailPlaceId
                             ?.let { id -> places.firstOrNull { it.id == id } }
+                        val cityKey = current.selectedCityKey?.takeIf { key -> places.any { placeCityKey(it) == key } }
                         if (current.selectedDetailPlaceId != null && selected == null) {
                             current.copy(
+                                selectedCityKey = cityKey,
                                 allRows = places.map { place -> val count = allUsageCounts[place.id] ?: 0; SavedPlaceRowUi(place, count, count > 0) },
                                 savedPlaceIds = places.mapTo(mutableSetOf(), SavedPlace::id),
                                 selectedDetailPlaceId = null,
@@ -422,6 +429,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                             )
                         } else {
                             current.copy(
+                                selectedCityKey = cityKey,
                                 allRows = places.map { place -> val count = allUsageCounts[place.id] ?: 0; SavedPlaceRowUi(place, count, count > 0) },
                                 savedPlaceIds = places.mapTo(mutableSetOf(), SavedPlace::id),
                                 selectedDetailPlace = selected ?: current.selectedDetailPlace,

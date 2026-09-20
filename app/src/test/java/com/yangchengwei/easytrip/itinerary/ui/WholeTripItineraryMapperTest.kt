@@ -16,6 +16,61 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class WholeTripItineraryMapperTest {
+    @Test fun duplicatesWithinDayKeepFirstDetailsAndLastOutgoingLeg() {
+        val a = item("a", "酒店", "", LocalTime.of(8, 0), 60)
+        val duplicate = a.copy(id = "a2", arrivalTime = LocalTime.of(10, 0))
+        val b = item("b", "景点", "", null, null)
+        val inside = leg("inside", a.id, duplicate.id, TransportMode.WALK, status = RouteStatus.SUCCESS)
+        val outgoing = leg("out", duplicate.id, b.id, TransportMode.TAXI, status = RouteStatus.WAITING_NETWORK)
+        val actual = mapWholeTripDays(listOf(TripDay("day-1", 0)), listOf(
+            DayMapSnapshot(DayItinerary("day-1", "trip", listOf(a, duplicate, b)), listOf(inside, outgoing)),
+        )).single()
+        assertEquals(listOf("a", "b"), actual.items.map { it.id })
+        assertEquals(LocalTime.of(8, 0), actual.items.first().arrivalTime)
+        assertEquals(1, actual.collapsedItemCount)
+        assertEquals(listOf("out"), actual.legs.map { it.id })
+        assertEquals("a", actual.legs.single().fromItemId)
+        assertEquals(TransportMode.TAXI, actual.legs.single().mode)
+        assertEquals(RouteStatus.WAITING_NETWORK, actual.legs.single().status)
+    }
+
+    @Test fun emptyDaysDoNotBreakDuplicateRunsAndSameNamesDoNotMergeDistinctPlaces() {
+        val a = item("a", "酒店", "", null, null)
+        val different = a.copy(id = "different", place = a.place.copy(id = "different-place"))
+        val unknown = a.copy(id = "unknown", place = a.place.copy(id = ""))
+        val days = listOf(TripDay("day-1", 0), TripDay("day-2", 1), TripDay("day-3", 2), TripDay("day-4", 3))
+        val actual = mapWholeTripDays(days, listOf(
+            DayMapSnapshot(DayItinerary("day-1", "trip", listOf(a)), emptyList()),
+            DayMapSnapshot(DayItinerary("day-3", "trip", listOf(a.copy(id = "a2"))), emptyList()),
+            DayMapSnapshot(DayItinerary("day-4", "trip", listOf(different, unknown, unknown.copy(id = "unknown2"))), emptyList()),
+        ))
+        assertEquals(listOf("a", "different", "unknown", "unknown2"), actual.flatMap { it.items }.map { it.id })
+        assertEquals(0, actual[1].collapsedItemCount)
+        assertEquals(1, actual[2].collapsedItemCount)
+        assertEquals(4, actual.size)
+    }
+
+    @Test fun consecutiveDuplicatesAcrossDaysKeepOnlyFirstAndPreserveOutgoingRoute() {
+        val a = item("a1", "酒店", "", null, null)
+        val duplicate = a.copy(id = "a2")
+        val b = item("b", "景点", "", null, null)
+        val returned = a.copy(id = "a3")
+        val outbound = leg("out", duplicate.id, b.id, TransportMode.WALK, status = RouteStatus.FAILED)
+            .copy(tripDayId = "day-2")
+        val back = leg("back", b.id, returned.id, TransportMode.TAXI, status = RouteStatus.PENDING)
+            .copy(tripDayId = "day-2")
+        val source = listOf(
+            DayMapSnapshot(DayItinerary("day-1", "trip", listOf(a)), emptyList()),
+            DayMapSnapshot(DayItinerary("day-2", "trip", listOf(duplicate, b, returned)), listOf(outbound, back)),
+        )
+        val days = mapWholeTripDays(listOf(TripDay("day-1", 0), TripDay("day-2", 1)), source)
+        assertEquals(listOf("a1", "b", "a3"), days.flatMap { it.items }.map { it.id })
+        assertEquals(listOf("out", "back"), days[1].legs.map { it.id })
+        assertEquals("a1", days[1].legs.first().fromItemId)
+        assertEquals(RouteStatus.FAILED, days[1].legs.first().status)
+        assertEquals(3, source[1].itinerary.items.size)
+    }
+
     @Test
     fun `maps sorted days including empty days and only adjacent route legs`() {
         val breakfast = item("item-1", "早餐店", "东街 1 号", LocalTime.of(8, 30), 45)

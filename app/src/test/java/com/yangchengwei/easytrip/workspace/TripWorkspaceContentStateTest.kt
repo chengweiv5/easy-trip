@@ -55,6 +55,23 @@ class TripWorkspaceContentStateTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun emptyPoolFilterClearsOldSearchViewportAndMarkers() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips, Places(listOf(savedPlace())))
+        trips.value.value = trip()
+        advanceUntilIdle()
+        model.focusSearchResult(PlaceCandidate("search", "搜索地点", "", com.yangchengwei.easytrip.core.model.GeoPoint(31.2, 121.5), null))
+        advanceUntilIdle()
+        assertEquals(ViewportReason.SEARCH_FOCUS, model.state.value.map.viewportRequest?.reason)
+        model.setPlacePoolFilter(PlacePoolMapFilter(cityKey = "no-match"))
+        advanceUntilIdle()
+        assertEquals(emptyList<MapMarkerUi>(), model.state.value.map.markers)
+        assertEquals(null, model.state.value.map.viewportRequest)
+        model.setPlacePoolFilter(PlacePoolMapFilter())
+        advanceUntilIdle()
+        assertEquals(listOf(savedPlace().point), model.state.value.map.viewportRequest?.points)
+    }
+
     @Test fun consentRequiredTakesPriorityOverMapFailureIndependentlyOfLocationPrompt() {
         val state = resolveWorkspaceMapState(
             consentFact = declinedFact(),
