@@ -83,6 +83,14 @@ interface ItineraryDao {
     @Query("UPDATE itinerary_items SET arrivalTime=:arrivalTime, stayDurationMinutes=:stayMinutes, note=:note WHERE id=:itemId")
     suspend fun details(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?): Int
 
+    @Query("""
+        UPDATE itinerary_items SET arrivalTime=:arrival, stayDurationMinutes=:stay
+        WHERE id=:itemId AND tripId=:tripId AND tripDayId=:dayId
+          AND arrivalTime IS :expectedArrival AND stayDurationMinutes IS :expectedStay
+    """)
+    suspend fun conditionalTiming(tripId: String, dayId: String, itemId: String,
+        expectedArrival: LocalTime?, expectedStay: Int?, arrival: LocalTime?, stay: Int?): Int
+
     @Transaction
     suspend fun dayAndItems(dayId: String): DayItems? {
         val tripId = tripIdForDay(dayId) ?: return null

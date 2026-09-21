@@ -360,6 +360,12 @@ fun TripWorkspaceScreen(
         consent = consent,
         onAction = { action ->
             when (action) {
+                TripWorkspaceAction.ToggleCalendar -> viewModel.toggleCalendar()
+                is TripWorkspaceAction.FocusCalendar -> viewModel.focusCalendar(action.dayId, action.itemId)
+                is TripWorkspaceAction.SaveCalendar -> viewModel.saveCalendar(action.change)
+                TripWorkspaceAction.UndoCalendar -> viewModel.undoCalendar()
+                TripWorkspaceAction.RetryCalendar -> viewModel.retryCalendar()
+                TripWorkspaceAction.DismissCalendarMessage -> viewModel.dismissCalendarMessage()
                 TripWorkspaceAction.Back -> if (!viewModel.handleBack()) onBack()
                 TripWorkspaceAction.LeaveWorkspace -> onBack()
                 TripWorkspaceAction.OpenSettings -> onSettings()

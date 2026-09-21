@@ -108,6 +108,7 @@ internal fun WorkspaceBottomSheet(
     collapsedContent: @Composable () -> Unit = {},
     contentHorizontalPadding: Dp = 16.dp,
     collapsedContentHorizontalPadding: Dp = contentHorizontalPadding,
+    gesturesEnabled: Boolean = true,
 ) {
     val targetHeight = anchors[value]
     val density = LocalDensity.current
@@ -145,7 +146,8 @@ internal fun WorkspaceBottomSheet(
                     .fillMaxWidth()
                     .height(sheetHeaderHeight)
                     .padding(horizontal = 16.dp)
-                    .pointerInput(value, anchors, density) {
+                    .pointerInput(value, anchors, density, gesturesEnabled) {
+                        if (!gesturesEnabled) return@pointerInput
                         var gestureDragOffsetPx = 0f
                         detectVerticalDragGestures(
                             onDragStart = { gestureDragOffsetPx = 0f },

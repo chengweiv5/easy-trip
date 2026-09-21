@@ -27,6 +27,10 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -126,9 +130,11 @@ private fun WorkspaceReadyContent(
     mapBearing: Float,
 ) {
     val density = LocalDensity.current
+    var calendarBusy by remember { mutableStateOf(false) }
     WorkspaceScaffold(
         sheetLevel = state.sheetLevel,
-        onSheetLevelChange = { onAction(TripWorkspaceAction.SetSheetLevel(it)) },
+        sheetGesturesEnabled = !calendarBusy,
+        onSheetLevelChange = { if (!calendarBusy) onAction(TripWorkspaceAction.SetSheetLevel(it)) },
         modifier = modifier,
         sheetHeader = { metrics ->
             Column(Modifier.fillMaxWidth()) {
@@ -136,7 +142,7 @@ private fun WorkspaceReadyContent(
                 Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
                     WorkspaceTabs(
                         selected = state.section,
-                        onSelect = { onAction(TripWorkspaceAction.SelectSection(it)) },
+                        onSelect = { if (!calendarBusy) onAction(TripWorkspaceAction.SelectSection(it)) },
                         modifier = Modifier.weight(1f),
                     )
                     if (!workspaceMapOverlaysFit(metrics) && state.sheetLevel != WorkspaceSheetLevel.EXPANDED) {
@@ -213,7 +219,7 @@ private fun WorkspaceReadyContent(
                         showDialogs = false,
                         contentPadding = PaddingValues(bottom = 4.dp),
                     )
-                    WorkspaceSection.ITINERARY -> if (state.isItineraryAllEmpty) {
+                    WorkspaceSection.ITINERARY -> if (state.isItineraryAllEmpty && !state.calendarMode) {
                         EmptyState(
                             title = "还没有安排行程",
                             message = "当前旅行的所有旅行日都没有行程项。先去地点池收藏地点，再添加到对应旅行日。",
@@ -224,9 +230,29 @@ private fun WorkspaceReadyContent(
                         days = state.days,
                         selected = state.itineraryScope,
                         wholeTripDays = state.wholeTripDays,
-                        onSelect = { onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
-                        onAddDay = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
-                        onAppendDay = { onItineraryAction(DayItineraryAction.AppendTripDay) },
+                        onToggleCalendar = { onAction(TripWorkspaceAction.ToggleCalendar) },
+                        calendarContent = if (!state.calendarMode) null else ({
+                            com.yangchengwei.easytrip.itinerary.calendar.CalendarContent(
+                                rawDays = state.calendarDays,
+                                selected = state.itineraryScope,
+                                saveState = state.calendarSave,
+                                focusItemId = state.calendarFocus,
+                                startDate = state.startDate,
+                                onToggle = { onAction(TripWorkspaceAction.ToggleCalendar) },
+                                onFocus = { dayId, itemId -> onAction(TripWorkspaceAction.FocusCalendar(dayId, itemId)) },
+                                onEdit = { _, itemId -> onItineraryAction(DayItineraryAction.RequestTiming(itemId)) },
+                                onAdd = { onItineraryAction(DayItineraryAction.AddPlaces) },
+                                onSave = { onAction(TripWorkspaceAction.SaveCalendar(it)) },
+                                onUndo = { onAction(TripWorkspaceAction.UndoCalendar) },
+                                onRetry = { onAction(TripWorkspaceAction.RetryCalendar) },
+                                onDismissMessage = { onAction(TripWorkspaceAction.DismissCalendarMessage) },
+                                onBusy = { calendarBusy = it },
+                                onRoute = { onItineraryAction(DayItineraryAction.RequestMode(it)) },
+                            )
+                        }),
+                        onSelect = { if (!calendarBusy) onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
+                        onAddDay = { if (!calendarBusy) onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
+                        onAppendDay = { if (!calendarBusy) onItineraryAction(DayItineraryAction.AppendTripDay) },
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues.Zero,
                         startDate = state.startDate,
@@ -237,6 +263,7 @@ private fun WorkspaceReadyContent(
                                 onAction = onItineraryAction,
                                 showDialogs = false,
                                 canScheduleAgain = true,
+                                onToggleCalendar = { onAction(TripWorkspaceAction.ToggleCalendar) },
                             )
                         },
                     )

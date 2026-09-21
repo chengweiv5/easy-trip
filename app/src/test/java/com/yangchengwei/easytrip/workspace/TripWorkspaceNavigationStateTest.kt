@@ -65,6 +65,26 @@ class TripWorkspaceNavigationStateTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun calendarExpandsAndRestoresPreviousSheetAndRetainsModeAcrossDaySelection() = runTest(dispatcher) {
+        val handle = SavedStateHandle()
+        val model = model(Trips(days("one", "two")), handle)
+        advanceUntilIdle()
+        model.setSheetLevel(WorkspaceSheetLevel.HALF)
+        model.toggleCalendar()
+        advanceUntilIdle()
+        assertTrue(model.state.value.calendarMode)
+        assertEquals(WorkspaceSheetLevel.EXPANDED, model.state.value.sheetLevel)
+        model.setSheetLevel(WorkspaceSheetLevel.COLLAPSED)
+        model.focusCalendar("two", "hotel")
+        advanceUntilIdle()
+        assertEquals(ItineraryScope.Day("two"), model.state.value.itineraryScope)
+        assertTrue(model.state.value.calendarMode)
+        model.toggleCalendar()
+        advanceUntilIdle()
+        assertFalse(model.state.value.calendarMode)
+        assertEquals(WorkspaceSheetLevel.HALF, model.state.value.sheetLevel)
+    }
+
     @Test fun mapPlaceDetailParticipatesInExclusiveOverlayAndBack() = runTest(dispatcher) {
         val model = model(Trips(days("one", "two")))
         advanceUntilIdle()

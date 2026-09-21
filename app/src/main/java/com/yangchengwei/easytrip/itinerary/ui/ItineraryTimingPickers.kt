@@ -72,7 +72,9 @@ internal fun ItineraryTimingPickers(
     val hourLabels = remember(afternoon) {
         listOf("待定") + (hourOffset until hourOffset + 12).map { it.toString().padStart(2, '0') }
     }
-    val minuteLabels = remember { listOf("00", "30") }
+    val originalMinute = remember(draft.itemId, draft.generation) { time?.minute }
+    val minutes = remember(originalMinute, time?.minute) { (listOf(0, 30) + listOfNotNull(originalMinute, time?.minute)).distinct().sorted() }
+    val minuteLabels = minutes.map { it.toString().padStart(2, '0') }
     val enabled = !draft.isSaving
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(4.dp)) {
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -101,12 +103,12 @@ internal fun ItineraryTimingPickers(
                     TimingWheel("时", "到达小时", hourLabels, time?.hour?.rem(12)?.plus(1) ?: 0, enabled,
                         Modifier.weight(1f).testTag("arrival-hour-picker")) { index ->
                         unsetAfternoon = afternoon
-                        onArrivalTimeChange(if (index == 0) "" else LocalTime.of(hourOffset + index - 1, (time?.minute ?: 0) / 30 * 30).toString())
+                        onArrivalTimeChange(if (index == 0) "" else LocalTime.of(hourOffset + index - 1, time?.minute ?: 0).toString())
                     }
                 }
-                TimingWheel("分", "到达分钟", minuteLabels, (time?.minute ?: 0) / 30, enabled && time != null,
+                TimingWheel("分", "到达分钟", minuteLabels, minutes.indexOf(time?.minute ?: 0), enabled && time != null,
                     Modifier.weight(1f).testTag("arrival-minute-picker")) { index ->
-                    time?.let { onArrivalTimeChange(LocalTime.of(it.hour, index * 30).toString()) }
+                    time?.let { onArrivalTimeChange(LocalTime.of(it.hour, minutes[index]).toString()) }
                 }
             }
             TimingWheel("小时", "停留小时", stays.map { it?.let(::formatStayHours)?.removeSuffix(" 小时") ?: "未设置" },

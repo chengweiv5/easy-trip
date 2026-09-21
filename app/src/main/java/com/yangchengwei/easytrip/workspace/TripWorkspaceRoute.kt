@@ -344,8 +344,10 @@ fun TripWorkspaceRoute(
             WorkspaceBackDecision.Ignore -> Unit
             WorkspaceBackDecision.CloseOverlay -> closeOverlay()
             WorkspaceBackDecision.LeaveWorkspace -> {
-                dismissPendingDialogs()
-                onBack()
+                if (!viewModel.handleBack()) {
+                    dismissPendingDialogs()
+                    onBack()
+                }
             }
         }
     }
@@ -491,6 +493,12 @@ fun TripWorkspaceRoute(
         onOpenLocationSettings = locationPermissionCoordinator::requestApplicationSettings,
         onAction = { action ->
             when (action) {
+                TripWorkspaceAction.ToggleCalendar -> viewModel.toggleCalendar()
+                is TripWorkspaceAction.FocusCalendar -> viewModel.focusCalendar(action.dayId, action.itemId)
+                is TripWorkspaceAction.SaveCalendar -> viewModel.saveCalendar(action.change)
+                TripWorkspaceAction.UndoCalendar -> viewModel.undoCalendar()
+                TripWorkspaceAction.RetryCalendar -> viewModel.retryCalendar()
+                TripWorkspaceAction.DismissCalendarMessage -> viewModel.dismissCalendarMessage()
                 TripWorkspaceAction.Back -> leaveOrCloseOverlay()
                 TripWorkspaceAction.LeaveWorkspace -> onBack()
                 TripWorkspaceAction.OpenSettings -> onSettings()

@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
@@ -27,7 +28,10 @@ fun WorkspaceItineraryContent(
     onAppendDay: () -> Unit = onAddDay,
     contentPadding: PaddingValues = PaddingValues.Zero,
     startDate: LocalDate? = null,
+    calendarContent: (@Composable () -> Unit)? = null,
+    onToggleCalendar: (() -> Unit)? = null,
 ) {
+    val savedViews = rememberSaveableStateHolder()
     Row(modifier.padding(contentPadding).padding(horizontal = 16.dp)) {
         ItineraryScopeRail(
             days = days,
@@ -39,14 +43,17 @@ fun WorkspaceItineraryContent(
         )
         VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .45f))
         Box(Modifier.weight(1f).fillMaxHeight().padding(start = 12.dp)) {
-            when (selected) {
+            savedViews.SaveableStateProvider(if (calendarContent != null) "calendar" else "list-$selected") {
+            if (calendarContent != null) calendarContent() else when (selected) {
                 ItineraryScope.WholeTrip -> WholeTripItineraryContent(
                     days = wholeTripDays,
+                    onToggleCalendar = onToggleCalendar,
                     startDate = startDate,
                     onAddDay = onAddDay,
                     modifier = Modifier.testTag("whole-trip-content"),
                 )
                 is ItineraryScope.Day -> dayContent()
+            }
             }
         }
     }

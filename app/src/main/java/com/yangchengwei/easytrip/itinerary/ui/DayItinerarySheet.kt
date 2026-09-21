@@ -127,6 +127,7 @@ fun DayItineraryContent(
     startDate: LocalDate? = null,
     showDialogs: Boolean = true,
     canScheduleAgain: Boolean = false,
+    onToggleCalendar: (() -> Unit)? = null,
 ) {
     val orderColor = androidx.compose.ui.graphics.Color(
         com.yangchengwei.easytrip.workspace.routeColorForDay(
@@ -142,9 +143,11 @@ fun DayItineraryContent(
                 date = dayNumber?.let { wholeTripDayDate(it, startDate) },
                 trailingInset = 0.dp,
                 trailingAction = {
+                  Row {
+                    onToggleCalendar?.let { com.yangchengwei.easytrip.itinerary.calendar.CalendarToggle(false, it) }
                     IconButton(
                         onClick = { onAction(DayItineraryAction.AddPlaces) },
-                        modifier = Modifier.size(28.dp).testTag("add-places-to-selected-day"),
+                        modifier = Modifier.size(48.dp).testTag("add-places-to-selected-day"),
                     ) {
                         Icon(
                             Icons.Rounded.Add,
@@ -152,6 +155,7 @@ fun DayItineraryContent(
                             modifier = Modifier.size(18.dp),
                         )
                     }
+                  }
                 },
             )
         }

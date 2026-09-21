@@ -53,6 +53,40 @@ class ItineraryTransactionTest {
 
     @After fun tearDown() = database.close()
 
+    @Test fun conditionalCalendarTimingRejectsStaleMovedAndDeletedVisitsAndPreservesNotes() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day-1", "day-2")
+        seedPlace("hotel", "trip", 0.0, 0.0)
+        val id = repository.addItem("day-1", "hotel", 0)
+        repository.updateDetails(id, null, null, "保留备注")
+        val before = com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming(null, null)
+        val after = com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming(LocalTime.of(9, 40), 90)
+        val change = com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange("trip", "day-1", id, before, after)
+        assertTrue(repository.compareAndSetTiming(change))
+        org.junit.Assert.assertFalse(repository.compareAndSetTiming(change))
+        assertEquals("保留备注", database.itineraryEditingDao().item(id)?.note)
+        assertTrue(repository.compareAndSetTiming(change.reversed()))
+        assertNull(database.itineraryEditingDao().item(id)?.arrivalTime)
+        assertNull(database.itineraryEditingDao().item(id)?.stayDurationMinutes)
+        repository.moveItem(id, "day-2", 0)
+        org.junit.Assert.assertFalse(repository.compareAndSetTiming(change))
+        repository.deleteItem(id)
+        org.junit.Assert.assertFalse(repository.compareAndSetTiming(change.copy(dayId = "day-2")))
+    }
+
+    @Test fun concurrentCalendarWritersOnlyOneCanChangeTheOriginalTiming() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        seedPlace("hotel", "trip", 0.0, 0.0)
+        val id = repository.addItem("day", "hotel", 0)
+        val before = com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming(null, null)
+        val results = coroutineScope {
+            (1..2).map { hour -> async {
+                repository.compareAndSetTiming(com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange("trip", "day", id, before,
+                    com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming(LocalTime.of(hour, 0), 60)))
+            } }.awaitAll()
+        }
+        assertEquals(1, results.count { it })
+    }
+
     @Test fun duplicateHotelOccurrencesUseDistinctItemIdsAndEdges() = runTest {
         seedTrip("trip", TravelMode.FLEXIBLE, "day-1", "day-2", "day-3")
         seedPlace("hotel", "trip", 0.0, 0.0)

@@ -11,6 +11,7 @@ import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
 import com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException
 import com.yangchengwei.easytrip.itinerary.ui.WholeTripDayUi
 import com.yangchengwei.easytrip.itinerary.ui.mapWholeTripDays
+import com.yangchengwei.easytrip.itinerary.ui.toRouteLegUi
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.SavedPlace
 import com.yangchengwei.easytrip.place.domain.SavedPlaceRepository
@@ -52,6 +53,10 @@ data class TripWorkspaceUiState(
     val mapScope: MapScope = MapScope.PLACE_POOL,
     val selectedDayId: String? = null,
     val wholeTripDays: List<WholeTripDayUi> = emptyList(),
+    val calendarDays: List<WholeTripDayUi> = emptyList(),
+    val calendarMode: Boolean = false,
+    val calendarFocus: String? = null,
+    val calendarSave: com.yangchengwei.easytrip.itinerary.calendar.CalendarSaveState = com.yangchengwei.easytrip.itinerary.calendar.CalendarSaveState(),
     val sheetLevel: WorkspaceSheetLevel = WorkspaceSheetLevel.HALF,
     val map: MapUiModel = MapUiModel(),
     val selectedMarker: MapMarkerUi? = null,
@@ -85,6 +90,9 @@ class TripWorkspaceViewModel(
     )
     private val section = MutableStateFlow(restoredNavigation.section)
     private val itineraryScope = MutableStateFlow(restoredNavigation.itineraryScope)
+    private val calendarMode = savedState.getStateFlow("calendar-mode", false)
+    private val calendarFocus = MutableStateFlow<String?>(null)
+    private val calendarTiming = com.yangchengwei.easytrip.itinerary.calendar.CalendarTimingController(itineraries::compareAndSetTiming)
     private val sheet = savedState.getStateFlow(SHEET, WorkspaceSheetLevel.HALF.name)
     private val focusedPoiId = savedState.getStateFlow<String?>(FOCUSED_POI, null)
     private val selectedMarkerKey = MutableStateFlow<String?>(null)
@@ -153,6 +161,9 @@ class TripWorkspaceViewModel(
                         selectedMapPoi,
                         overlay,
                         placePoolFilter,
+                        calendarMode,
+                        calendarFocus,
+                        calendarTiming.state,
                     ) { values -> mapWorkspaceState(values) }
                         .collect { next ->
                             if (next == null) {
@@ -246,6 +257,15 @@ class TripWorkspaceViewModel(
             mapScope = currentMapScope,
             selectedDayId = selected,
             wholeTripDays = mapWholeTripDays(currentTrip.days, currentSnapshots),
+            calendarDays = currentTrip.days.sortedBy { it.index }.map { day ->
+                val snapshot = currentSnapshots.firstOrNull { it.itinerary.dayId == day.id }
+                WholeTripDayUi(day.id, day.index + 1,
+                    snapshot?.itinerary?.items.orEmpty().map { com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi(it.id, it.place.name, it.place.address, it.arrivalTime, it.stayMinutes, it.note, it.place.id) },
+                    snapshot?.legs.orEmpty().map { it.toRouteLegUi() })
+            },
+            calendarMode = values[14] as Boolean,
+            calendarFocus = values[15] as String?,
+            calendarSave = values[16] as com.yangchengwei.easytrip.itinerary.calendar.CalendarSaveState,
             sheetLevel = restoreWorkspaceSheetLevel(values[5] as String?),
             map = model,
             selectedMarker = selectedMarker,
@@ -325,6 +345,29 @@ class TripWorkspaceViewModel(
         mapInteraction.value = mapInteraction.value.copy(focusedPoiId = null, highlightedMarkerKey = null)
     }
     fun selectMapLayer(value: MapLayer) { mapPreferences.setLayer(value) }
+    fun toggleCalendar() {
+        val enabled = !calendarMode.value
+        if (enabled) {
+            savedState["calendar-previous-sheet"] = sheet.value
+            setSheetLevel(WorkspaceSheetLevel.EXPANDED)
+        } else {
+            setSheetLevel(restoreWorkspaceSheetLevel(savedState["calendar-previous-sheet"]))
+            calendarFocus.value = null
+        }
+        savedState["calendar-mode"] = enabled
+    }
+    fun focusCalendar(dayId: String, itemId: String?) {
+        selectItineraryScope(ItineraryScope.Day(dayId))
+        calendarFocus.value = itemId
+    }
+    fun saveCalendar(change: com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange) {
+        if (!calendarMode.value || itineraryScope.value != ItineraryScope.Day(change.dayId)) return
+        viewModelScope.launch { calendarTiming.commit(change.copy(tripId = tripId)) }
+    }
+    fun undoCalendar() { viewModelScope.launch { calendarTiming.undo() } }
+    fun retryCalendar() { viewModelScope.launch { calendarTiming.retry() } }
+    fun dismissCalendarMessage() = calendarTiming.dismiss()
+
     fun setSheetLevel(value: WorkspaceSheetLevel) {
         savedState[SHEET] = value.name
         if (value == WorkspaceSheetLevel.EXPANDED && overlay.value == WorkspaceOverlay.LayerMenu) {
@@ -341,6 +384,10 @@ class TripWorkspaceViewModel(
         overlay.value = WorkspaceOverlay.None
     }
     fun handleBack(): Boolean {
+        if (overlay.value == WorkspaceOverlay.None && calendarMode.value && section.value == WorkspaceSection.ITINERARY) {
+            if (!calendarTiming.state.value.saving) toggleCalendar()
+            return true
+        }
         if (overlay.value == WorkspaceOverlay.None) return false
         closeOverlay()
         return true

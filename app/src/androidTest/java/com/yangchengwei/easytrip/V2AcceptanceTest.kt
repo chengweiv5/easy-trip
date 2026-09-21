@@ -4,6 +4,7 @@ import com.yangchengwei.easytrip.itinerary.ui.selectArrivalTime
 import com.yangchengwei.easytrip.itinerary.ui.selectStayHours
 import com.yangchengwei.easytrip.itinerary.ui.assertArrivalTime
 import com.yangchengwei.easytrip.itinerary.ui.assertStayHours
+import androidx.compose.ui.unit.dp
 import android.content.Context
 import android.view.View
 import androidx.activity.ComponentActivity
@@ -22,6 +23,9 @@ import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.onRoot
+import androidx.compose.ui.test.captureToImage
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.performTextClearance
@@ -196,6 +200,64 @@ class V2AcceptanceTest {
 
     internal fun executeBatch5ProductionNavigationRoomMainFlow(): Set<Batch5FrameCheckpoint> =
         runBatch5ProductionNavigationRoomMainFlow()
+
+    @Test fun calendarProductionNavigationPersistsTimingAndUndoThroughRoom() {
+        val trips = RoomTripRepository(database.tripDao(), idFactory = { "calendar-trip-${nextId++}" })
+        val places = RoomSavedPlaceRepository(database, idFactory = { "calendar-place-${nextId++}" })
+        val itineraries = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(),
+            itemIdFactory = { "calendar-item-${nextId++}" }, legIdFactory = { "calendar-leg-${nextId++}" }, isOnline = { false })
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        val fixture = runBlocking { createVisualBatch3WorkspaceFixture(trips, places, itineraries, routes) }
+        val id = fixture.itemIds.first()
+        val day = fixture.days.first().id
+        runBlocking {
+            itineraries.updateTiming(id, java.time.LocalTime.of(9,40), 90)
+            itineraries.updateTiming(fixture.itemIds[1], null, null)
+        }
+        val hosts = java.util.concurrent.CopyOnWriteArrayList<RecordingHost>()
+        setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), hosts)
+        compose.onNodeWithTag("primary-trip-${fixture.tripId}").performClick()
+        waitForTag("workspace-top-bar")
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        waitForTag("calendar-toggle")
+        val initialHeight = compose.onNodeWithTag("workspace-sheet").fetchSemanticsNode().boundsInRoot.height
+        compose.onNodeWithTag("calendar-toggle").performClick()
+        waitForTag("calendar-content")
+        assertTrue(compose.onNodeWithTag("workspace-sheet").fetchSemanticsNode().boundsInRoot.height > initialHeight)
+        val event = compose.onNodeWithTag("calendar-event-$day:$id:$day")
+        event.performTouchInput {
+            val from = androidx.compose.ui.geometry.Offset(width*.85f, height-4f)
+            down(from); moveTo(from + androidx.compose.ui.geometry.Offset(0f,26.dp.toPx()),300); up()
+        }
+        compose.waitUntil(5_000) { runBlocking { database.itineraryEditingDao().item(id)?.stayDurationMinutes == 120 } }
+        assertEquals(java.time.LocalTime.of(9,40),runBlocking { database.itineraryEditingDao().item(id)?.arrivalTime })
+        compose.onNodeWithText("撤销").performClick()
+        compose.waitUntil(5_000) { runBlocking { database.itineraryEditingDao().item(id)?.stayDurationMinutes == 90 } }
+        event.performClick()
+        waitForTag("calendar-detail")
+        compose.onNodeWithTag("calendar-detail-edit").performClick()
+        waitForTag("arrival-minute-picker")
+        compose.assertArrivalTime(9, 40)
+        compose.onNodeWithText("保存").performClick()
+        waitForTag("calendar-content")
+        assertEquals(java.time.LocalTime.of(9,40),runBlocking { database.itineraryEditingDao().item(id)?.arrivalTime })
+        compose.onNodeWithTag("calendar-toggle").performClick()
+        waitForTag("item-$id")
+        assertEquals(initialHeight, compose.onNodeWithTag("workspace-sheet").fetchSemanticsNode().boundsInRoot.height, 2f)
+        compose.onNodeWithTag("calendar-toggle").performClick()
+        waitForTag("calendar-content")
+        compose.onNodeWithTag("workspace-top-bar").assertIsDisplayed()
+        compose.onRoot().captureToImage().asAndroidBitmap().let { bitmap ->
+            java.io.File(compose.activity.getExternalFilesDir(null), "calendar-workspace.png").outputStream().use {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+            }
+        }
+        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
+        waitForTag("calendar-date-pager")
+        compose.onNodeWithTag("calendar-date-${fixture.days.last().id}").assertDoesNotExist()
+        compose.onNodeWithText("›").performClick()
+        compose.onNodeWithTag("calendar-date-${fixture.days.last().id}").assertIsDisplayed()
+    }
 
     @Test fun batch5ProductionNavigationRoomMainFlow() {
         Batch5ExecutableEvidence.ProductionNavigationMainFlow.verifyCheckpoints(this)
@@ -858,6 +920,7 @@ class V2AcceptanceTest {
         hosts: MutableList<RecordingHost>,
     ) {
         compose.setContent {
+            com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme {
             AppNavigation(
                 service = com.yangchengwei.easytrip.trip.domain.TripService(trips),
                 repository = trips,
@@ -902,6 +965,7 @@ class V2AcceptanceTest {
                 navigationObserver = AppNavigationObserver(navigationRoutes::add),
                 mapHostFactory = { RecordingHost(it).also(hosts::add) },
             )
+            }
         }
         compose.waitUntil(5_000) {
             compose.onAllNodesWithTag("primary-trip-${runBlocking { trips.observeTrips().first().single().id }}")

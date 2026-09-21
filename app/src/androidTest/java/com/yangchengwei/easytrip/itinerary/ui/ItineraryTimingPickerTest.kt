@@ -168,6 +168,28 @@ class ItineraryTimingPickerTest {
         assertEquals(75, draft.value.stayMinutes)
     }
 
+    @Test fun historicalArrivalMinuteRemainsSelectableAfterHourAndMinuteChanges() {
+        val draft = mutableStateOf(ItineraryEditDraft("item", "09:40", "75"))
+        var saved: ItineraryEditDraft? = null
+        compose.setContent { EasyTripTheme {
+            EditItineraryItemContent(draft.value, { draft.value = draft.value.copy(arrivalTimeText = it) },
+                { draft.value = draft.value.copy(stayMinutesText = it) }, onSave = { saved = draft.value }, onCancel = {})
+        } }
+        compose.onNodeWithTag("arrival-period-pm").performClick().assertIsSelected()
+        compose.assertArrivalTime(21, 40)
+        compose.onNodeWithTag("arrival-hour-picker").performSemanticsAction(SemanticsActions.SetProgress) { it(11f) }
+        compose.assertArrivalTime(22, 40)
+        compose.onNodeWithTag("arrival-period-am").performClick().assertIsSelected()
+        compose.assertArrivalTime(10, 40)
+        compose.onNodeWithTag("arrival-minute-picker").performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
+        compose.assertArrivalTime(10, 0)
+        compose.onNodeWithTag("arrival-minute-picker").performSemanticsAction(SemanticsActions.SetProgress) { it(2f) }
+        compose.assertArrivalTime(10, 40)
+        compose.onNodeWithText("保存").performClick()
+        assertEquals(LocalTime.of(10, 40), saved?.arrivalTime)
+        assertEquals(75, saved?.stayMinutes)
+    }
+
     @Test fun unsetAndMidnightAndSavingAreDistinct() {
         val draft = mutableStateOf(ItineraryEditDraft("item", "", ""))
         compose.setContent { EasyTripTheme {

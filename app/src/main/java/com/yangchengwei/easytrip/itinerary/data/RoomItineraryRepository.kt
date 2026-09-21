@@ -146,6 +146,13 @@ class RoomItineraryRepository(
         syncLegs(item.tripDayId, old.map { it.id }, new.map { it.id })
     }
 
+    override suspend fun compareAndSetTiming(change: com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange): Boolean {
+        require(change.after.stayMinutes == null || change.after.stayMinutes >= 0)
+        return itineraryDao.conditionalTiming(change.tripId, change.dayId, change.itemId,
+            change.before.arrivalTime, change.before.stayMinutes,
+            change.after.arrivalTime, change.after.stayMinutes) == 1
+    }
+
     override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) {
         require(stayMinutes == null || stayMinutes >= 0)
         require(itineraryDao.timing(itemId, arrivalTime, stayMinutes) == 1) { "Unknown item: $itemId" }

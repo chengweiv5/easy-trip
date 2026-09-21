@@ -126,6 +126,7 @@ internal fun WorkspaceScaffold(
     collapsedContent: @Composable () -> Unit = {},
     sheetContentHorizontalPadding: Dp = 16.dp,
     collapsedContentHorizontalPadding: Dp = sheetContentHorizontalPadding,
+    sheetGesturesEnabled: Boolean = true,
 ) {
     BoxWithConstraints(
         modifier
@@ -152,6 +153,7 @@ internal fun WorkspaceScaffold(
             value = sheetLevel,
             anchors = anchors,
             onValueChange = onSheetLevelChange,
+            gesturesEnabled = sheetGesturesEnabled,
             dragOffsetPx = dragOffsetPx,
             onDragOffsetChange = { dragOffsetPx = it },
             header = { sheetHeader(metrics) },

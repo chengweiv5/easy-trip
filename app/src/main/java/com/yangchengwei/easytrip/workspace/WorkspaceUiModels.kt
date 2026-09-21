@@ -51,6 +51,10 @@ data class TripWorkspaceReadyState(
     val schedulesByPlaceId: Map<String, PlaceScheduleSummaryUi> = emptyMap(),
     val dateLabel: String? = null,
     val startDate: java.time.LocalDate? = null,
+    val calendarDays: List<com.yangchengwei.easytrip.itinerary.ui.WholeTripDayUi> = emptyList(),
+    val calendarMode: Boolean = false,
+    val calendarFocus: String? = null,
+    val calendarSave: com.yangchengwei.easytrip.itinerary.calendar.CalendarSaveState = com.yangchengwei.easytrip.itinerary.calendar.CalendarSaveState(),
 )
 
 internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
@@ -71,6 +75,10 @@ internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
     isWorkspaceAllEmpty = isWorkspaceAllEmpty,
     schedulesByPlaceId = schedulesByPlaceId,
     startDate = startDate,
+    calendarDays = calendarDays,
+    calendarMode = calendarMode,
+    calendarFocus = calendarFocus,
+    calendarSave = calendarSave,
 )
 
 sealed interface TripWorkspacePageState {
@@ -88,6 +96,12 @@ sealed interface WorkspaceMapState {
 }
 
 sealed interface TripWorkspaceAction {
+    data object ToggleCalendar : TripWorkspaceAction
+    data class FocusCalendar(val dayId: String, val itemId: String? = null) : TripWorkspaceAction
+    data class SaveCalendar(val change: com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange) : TripWorkspaceAction
+    data object UndoCalendar : TripWorkspaceAction
+    data object RetryCalendar : TripWorkspaceAction
+    data object DismissCalendarMessage : TripWorkspaceAction
     data object Back : TripWorkspaceAction
     data object LeaveWorkspace : TripWorkspaceAction
     data object OpenSettings : TripWorkspaceAction

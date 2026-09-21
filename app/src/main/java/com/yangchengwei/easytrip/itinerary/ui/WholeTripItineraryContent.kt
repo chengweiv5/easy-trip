@@ -29,6 +29,7 @@ fun WholeTripItineraryContent(
     onAddDay: () -> Unit = {},
     modifier: Modifier = Modifier,
     startDate: LocalDate? = null,
+    onToggleCalendar: (() -> Unit)? = null,
 ) {
     val orderedDays = days.sortedBy { it.dayNumber }
     val orderOffsets = orderedDays.associate { day -> day.dayId to orderedDays.takeWhile { it.dayId != day.dayId }.sumOf { it.items.size } }
@@ -38,6 +39,7 @@ fun WholeTripItineraryContent(
         if (days.isNotEmpty()) {
             ItinerarySummaryHeader(
                 text = "全程 · ${days.size} 天 · $totalStops 站",
+                trailingAction = onToggleCalendar?.let { toggle -> { com.yangchengwei.easytrip.itinerary.calendar.CalendarToggle(false, toggle) } },
                 modifier = Modifier.testTag("whole-trip-summary"),
             )
         }
