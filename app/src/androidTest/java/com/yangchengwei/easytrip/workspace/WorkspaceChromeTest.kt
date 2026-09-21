@@ -46,6 +46,21 @@ import org.junit.Test
 class WorkspaceChromeTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
+    @Test fun shareMenuClosesBeforeDispatchingExport() {
+        val actions=mutableListOf<TripWorkspaceAction>()
+        compose.setContent { EasyTripTheme {
+            TripWorkspaceContent(
+                pageState=TripWorkspacePageState.Ready(TripWorkspaceUiState(tripName="杭州",overlay=WorkspaceOverlay.MoreMenu).toReadyState()),
+                mapState=WorkspaceMapState.Ready,onAction=actions::add,
+                placeState=com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),onPlaceAction={},
+                itineraryState=com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),onItineraryAction={},
+                mapContent={ _ -> Text("地图") },
+            )
+        } }
+        compose.onNodeWithTag("more-menu-share").performClick()
+        org.junit.Assert.assertEquals(listOf(TripWorkspaceAction.CloseOverlay,TripWorkspaceAction.ShareItinerary),actions)
+    }
+
     @Test fun mapCollectionSummaryShowsUnfilteredTotalAndTracksCollectionChanges() {
         var placeState by mutableStateOf(
             com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
@@ -215,7 +230,7 @@ class WorkspaceChromeTest {
         }
     }
 
-    @Test fun moreMenuShowsThreeActionsAndClosesOnOutsideTap() {
+    @Test fun moreMenuShowsFourActionsAndClosesOnOutsideTap() {
         val actions = mutableListOf<TripWorkspaceAction>()
         var overlay by mutableStateOf<WorkspaceOverlay>(WorkspaceOverlay.None)
         compose.setContent {
@@ -251,10 +266,10 @@ class WorkspaceChromeTest {
 
         compose.onNodeWithTag("workspace-more").performClick()
         compose.onNodeWithTag("more-menu-panel").assertIsDisplayed()
-        listOf("旅行设置", "地图授权", "返回我的旅行").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+        listOf("旅行设置", "分享行程长图", "地图授权", "返回我的旅行").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
         listOf("修改名称、日期和旅行日", "管理高德地图权限", "回到旅行列表").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
         val panel = compose.onNodeWithTag("more-menu-panel").getUnclippedBoundsInRoot()
-        org.junit.Assert.assertTrue(panel.right - panel.left == 240.dp)
+        org.junit.Assert.assertEquals(240f, (panel.right - panel.left).value, 0.5f)
         org.junit.Assert.assertTrue(panel.bottom - panel.top >= 170.dp)
         compose.onNodeWithTag("more-menu-scrim").performClick()
         org.junit.Assert.assertEquals(

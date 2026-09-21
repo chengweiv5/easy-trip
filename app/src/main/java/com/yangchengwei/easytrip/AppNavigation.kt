@@ -85,6 +85,7 @@ import kotlinx.coroutines.launch
 const val TRIP_LIST_ROUTE = "trips"
 const val CREATE_TRIP_ROUTE = "trips/create"
 const val TRIP_WORKSPACE_ROUTE = "trips/{tripId}"
+const val TRIP_SHARE_ROUTE = "trips/{tripId}/share"
 const val TRIP_SETTINGS_ROUTE = "trips/{tripId}/settings"
 const val TRIP_SEARCH_ROUTE = "trips/{tripId}/search"
 internal const val WORKSPACE_SEARCH_RETURN_KEY = "searchReturnPoiIds"
@@ -535,6 +536,10 @@ fun AppNavigation(
                         workspaceSearchReturnState.clear()
                         navigate("trips/$id/settings")
                     },
+                    onShareItinerary = {
+                        workspaceSearchReturnState.clear()
+                        navigate("trips/$id/share")
+                    },
                     onPrivacySettings = { if (consentStore != null) { showConsent = true; policyRead = false } },
                     onOpenSearch = {
                         workspaceSearchReturnState.clear()
@@ -680,6 +685,17 @@ fun AppNavigation(
                         navController.popBackStack()
                     },
                 )
+            }
+        }
+        composable(TRIP_SHARE_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) { entry ->
+            val id = checkNotNull(entry.arguments?.getString("tripId"))
+            val deps = effectiveDependencies
+            if (deps != null) {
+                val consentState = deps.consentStore?.state?.collectAsStateWithLifecycle()?.value
+                val token = (consentState?.fact as? AmapConsentFact.Accepted)?.token
+                    ?: deps.mapConsentToken.takeIf { deps.consentStore == null }
+                val loader = remember(id, deps) { com.yangchengwei.easytrip.share.ShareSnapshotLoader(repository, deps.itineraryRepository, deps.routeLegRepository) }
+                com.yangchengwei.easytrip.share.ItineraryShareScreen(id, loader, token) { navController.popBackStack() }
             }
         }
         composable(TRIP_SETTINGS_ROUTE, arguments = listOf(navArgument("tripId") { type = NavType.StringType })) {

@@ -16,6 +16,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Settings
+import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,6 +33,7 @@ internal fun WorkspaceMoreMenu(
     onOpenConsent: () -> Unit,
     onBackToTrips: () -> Unit,
     modifier: Modifier = Modifier,
+    onShareItinerary: () -> Unit = {},
 ) {
     Surface(
         modifier = modifier
@@ -54,6 +56,13 @@ internal fun WorkspaceMoreMenu(
                 description = "修改名称、日期和旅行日",
                 icon = { Icon(Icons.Rounded.Settings, contentDescription = null) },
                 onClick = onOpenSettings,
+            )
+            MoreMenuItem(
+                tag = "more-menu-share",
+                title = "分享行程长图",
+                description = "每日地图、交通与备注",
+                icon = { Icon(Icons.Rounded.Share, contentDescription = null) },
+                onClick = onShareItinerary,
             )
             MoreMenuItem(
                 tag = "more-menu-consent",

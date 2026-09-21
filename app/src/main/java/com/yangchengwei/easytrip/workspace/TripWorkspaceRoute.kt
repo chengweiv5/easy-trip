@@ -242,6 +242,7 @@ fun TripWorkspaceRoute(
     consentFact: com.yangchengwei.easytrip.amap.AmapConsentFact? = consent?.let { com.yangchengwei.easytrip.amap.AmapConsentFact.Accepted(0, it) },
     onBack: () -> Unit,
     onSettings: () -> Unit,
+    onShareItinerary: () -> Unit = {},
     onPrivacySettings: () -> Unit = {},
     onOpenSearch: () -> Unit = {},
     placeViewModel: PlacePoolViewModel? = null,
@@ -501,6 +502,7 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.DismissCalendarMessage -> viewModel.dismissCalendarMessage()
                 TripWorkspaceAction.Back -> leaveOrCloseOverlay()
                 TripWorkspaceAction.LeaveWorkspace -> onBack()
+                TripWorkspaceAction.ShareItinerary -> onShareItinerary()
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()

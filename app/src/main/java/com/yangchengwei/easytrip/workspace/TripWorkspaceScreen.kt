@@ -343,6 +343,7 @@ fun TripWorkspaceScreen(
     consent: AmapConsentToken?,
     onBack: () -> Unit,
     onSettings: () -> Unit,
+    onShareItinerary: () -> Unit = {},
     onPrivacySettings: () -> Unit = {},
     onOpenSearch: () -> Unit = {},
     placeContent: @Composable () -> Unit,
@@ -368,6 +369,7 @@ fun TripWorkspaceScreen(
                 TripWorkspaceAction.DismissCalendarMessage -> viewModel.dismissCalendarMessage()
                 TripWorkspaceAction.Back -> if (!viewModel.handleBack()) onBack()
                 TripWorkspaceAction.LeaveWorkspace -> onBack()
+                TripWorkspaceAction.ShareItinerary -> onShareItinerary()
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()

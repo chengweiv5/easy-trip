@@ -104,6 +104,7 @@ sealed interface TripWorkspaceAction {
     data object DismissCalendarMessage : TripWorkspaceAction
     data object Back : TripWorkspaceAction
     data object LeaveWorkspace : TripWorkspaceAction
+    data object ShareItinerary : TripWorkspaceAction
     data object OpenSettings : TripWorkspaceAction
     data object OpenPrivacySettings : TripWorkspaceAction
     data object OpenSearch : TripWorkspaceAction

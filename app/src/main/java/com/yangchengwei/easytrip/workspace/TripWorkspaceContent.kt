@@ -342,6 +342,10 @@ private fun WorkspaceReadyContent(
                             .pointerInput(Unit) { detectTapGestures { } },
                     ) {
                         WorkspaceMoreMenu(
+                            onShareItinerary = {
+                                onAction(TripWorkspaceAction.CloseOverlay)
+                                onAction(TripWorkspaceAction.ShareItinerary)
+                            },
                             onOpenSettings = {
                                 onAction(TripWorkspaceAction.CloseOverlay)
                                 onAction(TripWorkspaceAction.OpenSettings)
@@ -463,7 +467,7 @@ private val WorkspaceLayerMenuHeight = 284.dp
 private val WorkspaceLayerMenuEndInset = 16.dp
 private val WorkspaceMoreMenuTopOffset = 68.dp
 private val WorkspaceMoreMenuWidth = 240.dp
-private val WorkspaceMoreMenuHeight = 192.dp
+private val WorkspaceMoreMenuHeight = 260.dp
 private val WorkspaceMoreMenuEndInset = 12.dp
 
 internal fun workspaceMapOverlaysFit(metrics: WorkspaceLayoutMetrics): Boolean =
