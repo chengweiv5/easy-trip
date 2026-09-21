@@ -176,6 +176,69 @@ class WorkspaceFlowTest {
         assertEquals(null, places.state.value.selectedCityKey)
     }
 
+    @Test fun v12RoomDaySwitchesKeepNotesAndNeverRestoreDeletedVisits() {
+        val database = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
+        try {
+            val trips = RoomTripRepository(database.tripDao())
+            val places = RoomSavedPlaceRepository(database)
+            val itineraries = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao())
+            val routes = RoomRouteLegRepository(database.routeLegDao())
+            val tripId = runBlocking { trips.createTrip(CreateTrip("杭州 · 备注速览", 2)) }
+            val dayIds = runBlocking { requireNotNull(trips.observeTrip(tripId).first()).days.map { it.id } }
+            val itemIds = runBlocking {
+                listOf("西湖天地", "灵隐寺").mapIndexed { index, name ->
+                    val placeId = (places.save(tripId, PlaceCandidate("v12-$index", name, "杭州市", GeoPoint(30.24 + index * .01, 120.15), "0571")) as SavePlaceResult.Saved).id
+                    itineraries.addItem(dayIds[index], placeId, 0).also {
+                        itineraries.updateDetails(it, LocalTime.of(9, 30), 120, if (index == 0) "晚上到站，直接去酒店" else "提前预约门票，携带身份证")
+                    }
+                }
+            }
+            val consentDependencies = productionLocationDependencies(InMemoryLocationPermissionRequestStore())
+            compose.setContent {
+                com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme {
+                    AppNavigation(
+                        service = TripService(trips), repository = trips,
+                        impacts = RoomDeleteImpactProvider(database.deleteImpactDao()),
+                        dependencies = consentDependencies.copy(
+                            savedPlaceRepository = places, itineraryRepository = itineraries,
+                            routeLegRepository = routes, mapPreferences = InMemoryMapPreferences(),
+                        ), mapHostFactory = ::TestMapHost,
+                    )
+                }
+            }
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("primary-trip-$tripId").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("primary-trip-$tripId").performClick()
+            compose.onNodeWithTag("section-ITINERARY").performClick()
+            repeat(3) {
+                dayIds.forEachIndexed { index, dayId ->
+                    compose.onNodeWithTag("itinerary-scope-$dayId").performClick()
+                    compose.onNodeWithTag("note-itinerary-${itemIds[index]}", true).assertIsDisplayed()
+                    compose.onNodeWithTag("day-itinerary-loading").assertDoesNotExist()
+                    compose.onNodeWithText("第 ${index + 1} 天 · 暂无行程").assertDoesNotExist()
+                }
+            }
+            compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
+            compose.onNodeWithText("晚上到站，直接去酒店", true).assertIsDisplayed()
+            compose.onNodeWithTag("section-PLACE_POOL").performClick()
+            compose.onNodeWithTag("section-ITINERARY").performClick()
+            compose.onNodeWithTag("itinerary-scope-${dayIds[0]}").performClick()
+            compose.onNodeWithText("晚上到站，直接去酒店", true).assertIsDisplayed()
+            runBlocking { itineraries.updateDetails(itemIds[0], LocalTime.of(10, 0), 60, "已更新备注") }
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("已更新备注", useUnmergedTree = true).fetchSemanticsNodes().isNotEmpty() }
+            compose.waitForIdle()
+            val shot = checkNotNull(androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot())
+            val dir = java.io.File(compose.activity.getExternalFilesDir(null), "v1.2.0-evidence").apply { mkdirs() }
+            java.io.File(dir, "workspace-updated-note.png").outputStream().use { shot.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it) }
+            runBlocking { itineraries.deleteItem(itemIds[0]) }
+            compose.onNodeWithTag("itinerary-scope-${dayIds[1]}").performClick()
+            compose.onNodeWithTag("itinerary-scope-${dayIds[0]}").performClick()
+            compose.onNodeWithText("第 1 天 · 暂无行程").assertIsDisplayed()
+            compose.onNodeWithText("已更新备注", true).assertDoesNotExist()
+        } finally {
+            database.close()
+        }
+    }
+
     @Test fun realNavigationEntersWorkspaceSearchesReturnsAndSwitchesSections() {
         val database = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
         try {

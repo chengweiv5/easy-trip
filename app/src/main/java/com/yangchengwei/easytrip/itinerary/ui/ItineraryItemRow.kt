@@ -312,6 +312,11 @@ private fun CompactItineraryStop(
                     modifier = Modifier.weight(1f).alignByBaseline().testTag("itinerary-place-timing-${item.id}"),
                 )
             }
+            com.yangchengwei.easytrip.core.ui.component.ExpandableNote(
+                note = item.note,
+                identity = "itinerary-${item.id}",
+                modifier = Modifier.padding(start = 49.dp, top = 2.dp),
+            )
         }
         Row(verticalAlignment = Alignment.CenterVertically) {
             dragHandle?.invoke()

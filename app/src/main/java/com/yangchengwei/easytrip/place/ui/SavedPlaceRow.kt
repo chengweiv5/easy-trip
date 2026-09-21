@@ -105,6 +105,10 @@ fun SavedPlaceRow(
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.testTag("place-status-${place.id}"),
                 )
+                com.yangchengwei.easytrip.core.ui.component.ExpandableNote(
+                    note = place.note,
+                    identity = "place-${place.id}",
+                )
             }
             Row(verticalAlignment = Alignment.CenterVertically) {
                 onQuickAdd?.let { quickAdd ->
@@ -160,7 +164,6 @@ private fun placeAuxiliaryInfo(place: SavedPlaceRowUi): AnnotatedString = buildA
         }
         else -> append("仅收藏")
     }
-    place.note?.takeIf(String::isNotBlank)?.let { append(" · $it") }
     place.tags.takeIf(List<String>::isNotEmpty)?.let { append(" · ${it.joinToString(" · ")}") }
 }
 

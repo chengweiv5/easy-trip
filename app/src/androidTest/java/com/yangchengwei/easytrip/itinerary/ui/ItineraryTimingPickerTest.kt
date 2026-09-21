@@ -74,7 +74,7 @@ class ItineraryTimingPickerTest {
         } }
         compose.assertStayHours("1.25")
         compose.selectArrivalTime(14, 30)
-        compose.onNodeWithText("保存时间").performClick()
+        compose.onNodeWithText("保存").performClick()
         assertEquals(75, saved?.stayMinutes)
         assertEquals(LocalTime.of(14, 30), saved?.arrivalTime)
         compose.selectStayHours(2)
@@ -116,7 +116,7 @@ class ItineraryTimingPickerTest {
             EditItineraryItemContent(ItineraryEditDraft("item", "09:30", "120", placeName = "西湖天地"), {}, {},
                 onSave = {}, onCancel = { cancelled = true }, modifier = Modifier.width(280.dp).height(320.dp))
         } } }
-        compose.onNodeWithText("保存时间").assertIsDisplayed()
+        compose.onNodeWithText("保存").assertIsDisplayed()
         compose.onNodeWithText("取消").assertIsDisplayed().performClick()
         assertTrue(cancelled)
     }

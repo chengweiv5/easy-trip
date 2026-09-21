@@ -46,7 +46,7 @@ fun EditTimingDialog(initialTime: LocalTime?, initialMinutes: Int?, onDismiss: (
                 )
             }
         },
-        confirmButton = { TextButton({ onSave(time, minutes) }, enabled = valid) { Text("保存时间") } },
+        confirmButton = { TextButton({ onSave(time, minutes) }, enabled = valid) { Text("保存") } },
         dismissButton = { TextButton(onDismiss) { Text("取消") } },
     )
 }

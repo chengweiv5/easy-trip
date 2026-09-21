@@ -113,6 +113,8 @@ class TripWorkspaceViewModel(
     val state: StateFlow<TripWorkspaceUiState> = mutable
     private val mutablePageState = MutableStateFlow<TripWorkspacePageState>(TripWorkspacePageState.Loading)
     val pageState: StateFlow<TripWorkspacePageState> = mutablePageState
+    private val mutableDaySnapshots = MutableStateFlow<List<DayMapSnapshot>>(emptyList())
+    val daySnapshots: StateFlow<List<DayMapSnapshot>> = mutableDaySnapshots
     private val mutableSelectedDayId = MutableStateFlow<String?>(null)
     val selectedDayId: StateFlow<String?> = mutableSelectedDayId
     private var observationJob: Job? = null
@@ -154,6 +156,7 @@ class TripWorkspaceViewModel(
                     ) { values -> mapWorkspaceState(values) }
                         .collect { next ->
                             if (next == null) {
+                                mutableDaySnapshots.value = emptyList()
                                 mutableSelectedDayId.value = null
                                 mutablePageState.value = TripWorkspacePageState.NotFound
                             } else {
@@ -205,6 +208,7 @@ class TripWorkspaceViewModel(
         if (currentItineraryScope != requestedItineraryScope) itineraryScope.value = currentItineraryScope
         savedState[ITINERARY_SCOPE] = encodeItineraryScope(currentItineraryScope)
         val currentMapScope = currentSection.toMapScope(currentItineraryScope)
+        mutableDaySnapshots.value = currentSnapshots.filter { it.itinerary.tripId == tripId }
         val selected = currentItineraryScope.selectedDayId().takeIf { currentSection == WorkspaceSection.ITINERARY }
         mutableSelectedDayId.value = selected
         @Suppress("UNCHECKED_CAST") val currentSearch = values[7] as List<PlaceCandidate>

@@ -98,13 +98,25 @@ internal fun mapWholeTripDays(
 ): List<WholeTripDayUi> {
     val projection = projectWholeTrip(days, snapshots)
     val snapshotsByDay = projection.snapshots.associateBy { it.itinerary.dayId }
+    val dayNumbers = days.associate { it.id to it.index + 1 }
+    val sourceByDay = snapshots.associateBy { it.itinerary.dayId }
+    val mergedNotes = days.sortedBy(TripDay::index).flatMap { day ->
+        sourceByDay[day.id]?.itinerary?.items.orEmpty().map { item ->
+            Triple(item, dayNumbers.getValue(day.id), projection.representativeItemIds.getValue(item.id))
+        }
+    }.groupBy { it.third }.mapValues { (_, visits) ->
+        if (visits.size <= 1) visits.firstOrNull()?.first?.note
+        else visits.mapNotNull { (item, dayNumber, _) ->
+            item.note?.trim()?.takeIf(String::isNotEmpty)?.let { "第 $dayNumber 天 · $it" }
+        }.joinToString("\n").ifBlank { null }
+    }
     return days.sortedBy(TripDay::index).map { day ->
         val snapshot = snapshotsByDay[day.id]
         val items = snapshot?.itinerary?.items.orEmpty()
         WholeTripDayUi(
             dayId = day.id,
             dayNumber = day.index + 1,
-            items = items.map(ItineraryItem::toItineraryItemUi),
+            items = items.map { it.toItineraryItemUi().copy(note = mergedNotes[it.id]) },
             legs = snapshot?.legs.orEmpty()
                 .map(RouteLegEntity::toRouteLegUi),
             collapsedItemCount = projection.collapsedCounts[day.id] ?: 0,

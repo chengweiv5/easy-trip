@@ -55,7 +55,7 @@ fun EditItineraryItemContent(
             }
         }
         CompactPrimaryButton(onClick = onSave, enabled = draft.isValid && !draft.isSaving, modifier = Modifier.fillMaxWidth()) {
-            Text(if (draft.isSaving) "保存中…" else "保存时间")
+            Text(if (draft.isSaving) "保存中…" else "保存")
         }
         CompactSecondaryButton(onClick = onCancel, enabled = !draft.isSaving, modifier = Modifier.fillMaxWidth()) { Text("取消") }
     }

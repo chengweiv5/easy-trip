@@ -516,6 +516,7 @@ fun AppNavigation(
                         routeCoordinator,
                         workspaceDependencies.savedPlaceRepository.observePlaces(id, emptySet()),
                         workspaceModel.selectedDayId,
+                        workspaceModel.daySnapshots,
                     ),
                 )
                 LaunchedEffect(source, routeCoordinator) {

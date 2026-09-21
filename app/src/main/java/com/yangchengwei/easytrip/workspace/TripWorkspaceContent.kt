@@ -72,7 +72,7 @@ fun TripWorkspaceContent(
     mapBearing: Float = 0f,
 ) {
     when (pageState) {
-        TripWorkspacePageState.Loading -> WorkspacePageMessage("旅行加载中")
+        TripWorkspacePageState.Loading -> com.yangchengwei.easytrip.core.ui.component.DeferredLoading { WorkspacePageMessage("旅行加载中") }
         TripWorkspacePageState.NotFound -> WorkspacePageMessage("旅行不存在", "返回旅行列表") { onAction(TripWorkspaceAction.Back) }
         is TripWorkspacePageState.Error -> WorkspacePageMessage(pageState.message, "重试", onPageRetry)
         is TripWorkspacePageState.Ready -> WorkspaceReadyContent(

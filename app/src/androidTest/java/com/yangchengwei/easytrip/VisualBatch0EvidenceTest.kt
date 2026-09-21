@@ -770,7 +770,7 @@ class VisualBatch0EvidenceTest {
                 "item-2", "12:00", "60", placeId = "saved-1", placeName = "知味观 · 湖滨店",
             )))
         compose.onNodeWithTag("arrival-hour-picker").assertIsDisplayed()
-        compose.onNodeWithText("保存时间").assertIsDisplayed()
+        compose.onNodeWithText("保存").assertIsDisplayed()
     }
 
     @Test fun routeEditor_T7aESo() {

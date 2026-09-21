@@ -13,6 +13,7 @@ import com.yangchengwei.easytrip.route.domain.RouteRefreshCoordinator
 import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.trip.domain.TripRepository
 import com.yangchengwei.easytrip.trip.domain.TripService
+import com.yangchengwei.easytrip.workspace.DayMapSnapshot
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
@@ -40,6 +41,7 @@ private data class PendingAppendDay(
 data class DayItineraryUiState(
     val days: List<TripDay> = emptyList(),
     val selectedDayId: String? = null,
+    val isDayLoaded: Boolean = true,
     val savedPlaces: List<SavedPlace> = emptyList(),
     val items: List<ItineraryItemUi> = emptyList(),
     val legs: List<RouteLegUi> = emptyList(),
@@ -67,6 +69,7 @@ class DayItineraryViewModel(
     savedPlaces: Flow<List<SavedPlace>> = emptyFlow(),
     selectedDays: Flow<String?> = emptyFlow(),
     private val tripService: TripService = TripService(trips),
+    private val sharedSnapshots: StateFlow<List<DayMapSnapshot>>? = null,
 ) : ViewModel() {
     private val selectedDay = MutableStateFlow<String?>(null)
     private var hasExternalSelection = false
@@ -89,12 +92,25 @@ class DayItineraryViewModel(
     init {
         startTripObservation()
         viewModelScope.launch {
-            selectedDay.flatMapLatest { dayId ->
-                if (dayId == null) flowOf(null)
-                else combine(itineraries.observeDay(dayId), routeLegs.observeDay(dayId)) { day, legs -> day to legs }
-            }.collect { dayAndLegs ->
-                if (dayAndLegs == null) clearDay()
-                else applyDay(dayAndLegs.first, dayAndLegs.second)
+            if (sharedSnapshots != null) {
+                combine(selectedDay, sharedSnapshots) { dayId, snapshots ->
+                    dayId to snapshots.firstOrNull { it.itinerary.tripId == tripId && it.itinerary.dayId == dayId }
+                }.collect { (dayId, snapshot) ->
+                    if (dayId != selectedDay.value) return@collect
+                    if (snapshot != null) applyDay(snapshot.itinerary, snapshot.legs)
+                    else clearDay(dayId, loaded = dayId == null)
+                }
+            } else {
+                selectedDay.flatMapLatest { dayId ->
+                    if (dayId == null) flowOf(null)
+                    else combine(itineraries.observeDay(dayId), routeLegs.observeDay(dayId)) { day, legs ->
+                        DayMapSnapshot(day, legs)
+                    }
+                }.collect { snapshot ->
+                    if (snapshot == null && selectedDay.value == null) clearDay()
+                    else if (snapshot == null) return@collect
+                    else applyDay(snapshot.itinerary, snapshot.legs)
+                }
             }
         }
         viewModelScope.launch {
@@ -197,8 +213,8 @@ class DayItineraryViewModel(
         } else {
             selectedDay.value?.takeIf { id -> trip.days.any { it.id == id } } ?: trip.days.firstOrNull()?.id
         }
-        selectedDay.value = chosen
-        mutable.value = mutable.value.copy(days = trip.days, selectedDayId = chosen)
+        mutable.value = mutable.value.copy(days = trip.days)
+        selectDay(chosen)
         reconcileAppendDayCompletion(trip.days)
         if (chosen == null) clearDay()
     }
@@ -214,7 +230,14 @@ class DayItineraryViewModel(
         if (id == selectedDay.value) return
         nextMoveGeneration++
         selectedDay.value = id
-        clearDay(id)
+        val snapshot = sharedSnapshots?.value?.firstOrNull {
+            it.itinerary.tripId == tripId && it.itinerary.dayId == id
+        }
+        mutable.value = mutable.value.copy(
+            editDraft = null, crossDayMove = null, deleteConfirmation = null, modeEditor = null,
+        )
+        if (snapshot != null) applyDay(snapshot.itinerary, snapshot.legs)
+        else clearDay(id, loaded = id == null)
     }
 
     fun addPlace(placeId: String) {
@@ -630,9 +653,10 @@ class DayItineraryViewModel(
         }
     }
 
-    private fun clearDay(selectedDayId: String? = null) {
+    private fun clearDay(selectedDayId: String? = null, loaded: Boolean = true) {
         mutable.value = mutable.value.copy(
             selectedDayId = selectedDayId,
+            isDayLoaded = loaded,
             items = emptyList(),
             legs = emptyList(),
             previewOrder = emptyList(),
@@ -644,6 +668,7 @@ class DayItineraryViewModel(
     }
 
     private fun applyDay(day: DayItinerary, legs: List<RouteLegEntity>) {
+        if (day.tripId != tripId || day.dayId != selectedDay.value) return
         val items = day.items.map { it.toItineraryItemUi() }
         val previous = mutable.value
         val activeEdit = previous.editDraft?.takeIf { draft -> items.any { it.id == draft.itemId } }
@@ -656,6 +681,8 @@ class DayItineraryViewModel(
                 .any { it.id == draft.legId }
         }
         mutable.value = previous.copy(
+            selectedDayId = day.dayId,
+            isDayLoaded = true,
             items = items,
             previewOrder = previewOrder,
             legs = rawLegs,
@@ -686,8 +713,9 @@ class DayItineraryViewModel(
         private val coordinator: RouteRefreshCoordinator?,
         private val savedPlaces: Flow<List<SavedPlace>>,
         private val selectedDays: Flow<String?> = emptyFlow(),
+        private val sharedSnapshots: StateFlow<List<DayMapSnapshot>>? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
-        override fun <T : ViewModel> create(modelClass: Class<T>): T = DayItineraryViewModel(tripId, trips, itineraries, routeLegs, coordinator, savedPlaces, selectedDays) as T
+        override fun <T : ViewModel> create(modelClass: Class<T>): T = DayItineraryViewModel(tripId, trips, itineraries, routeLegs, coordinator, savedPlaces, selectedDays, sharedSnapshots = sharedSnapshots) as T
     }
 }

@@ -1376,7 +1376,7 @@ object V1ScenarioExecutableFactory {
                     onAction = actions::add,
                 )
             },
-            { onNodeWithText("保存时间").performClick() },
+            { onNodeWithText("保存").performClick() },
             { onNodeWithText("到达与停留").assertIsDisplayed(); check(actions == listOf(DayItineraryAction.SaveEdit)) },
         )
     }

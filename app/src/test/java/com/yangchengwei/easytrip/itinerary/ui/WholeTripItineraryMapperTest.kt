@@ -212,6 +212,30 @@ class WholeTripItineraryMapperTest {
         )
     }
 
+    @Test fun mergedVisitsKeepEveryNoteInDateOrderWithoutChangingSource() {
+        val first = item("a", "酒店", "", null, null).copy(note = "先寄存行李")
+        val repeated = first.copy(id = "a2", note = "晚上入住")
+        val nextDay = first.copy(id = "a3", note = "早餐后退房")
+        val source = listOf(
+            DayMapSnapshot(DayItinerary("day-2", "trip", listOf(nextDay)), emptyList()),
+            DayMapSnapshot(DayItinerary("day-1", "trip", listOf(first, repeated)), emptyList()),
+        )
+        val actual = mapWholeTripDays(listOf(TripDay("day-2", 1), TripDay("day-1", 0)), source)
+        assertEquals("第 1 天 · 先寄存行李\n第 1 天 · 晚上入住\n第 2 天 · 早餐后退房", actual.first().items.single().note)
+        assertEquals("先寄存行李", source[1].itinerary.items.first().note)
+        assertEquals("早餐后退房", source[0].itinerary.items.single().note)
+    }
+
+    @Test fun blankMergedNotesStayAbsentAndSeparateVisitsKeepTheirOwnNotes() {
+        val first = item("a", "酒店", "", null, null).copy(note = "  ")
+        val museum = item("b", "博物馆", "", null, null).copy(note = "预约门票")
+        val returned = first.copy(id = "a3", note = "晚间入住")
+        val actual = mapWholeTripDays(listOf(TripDay("day-1", 0)), listOf(
+            DayMapSnapshot(DayItinerary("day-1", "trip", listOf(first, first.copy(id = "a2", note = null), museum, returned)), emptyList()),
+        )).single()
+        assertEquals(listOf(null, "预约门票", "晚间入住"), actual.items.map { it.note })
+    }
+
     private fun item(
         id: String,
         name: String,

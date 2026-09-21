@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import com.yangchengwei.easytrip.workspace.DayMapSnapshot
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.model.TravelMode
@@ -136,7 +137,74 @@ class DayItinerarySelectionTest {
         assertNull(model.state.value.modeLegId)
     }
 
-    private fun model(trips: Trips, selected: Flow<String?>) = DayItineraryViewModel(
+    @Test fun `returning to a loaded day never publishes a false empty itinerary`() = runTest(dispatcher) {
+        val selected = MutableStateFlow<String?>("day-1")
+        val snapshots = MutableStateFlow(listOf(snapshot("day-1", "item-1"), snapshot("day-2", "item-2")))
+        val model = model(Trips(listOf(TripDay("day-1", 0), TripDay("day-2", 1))), selected, snapshots)
+        advanceUntilIdle()
+        selected.value = "day-2"
+        advanceUntilIdle()
+        model.selectDay("day-1")
+        assertEquals(listOf("item-1"), model.state.value.items.map(ItineraryItemUi::id))
+        assertEquals("day-1", model.state.value.selectedDayId)
+    }
+
+    @Test fun `shared snapshot changes remain authoritative across rapid day switches`() = runTest(dispatcher) {
+        val snapshots = MutableStateFlow(listOf(snapshot("day-1", "item-1"), snapshot("day-2", "item-2")))
+        val model = model(Trips(listOf(TripDay("day-1", 0), TripDay("day-2", 1))), MutableStateFlow("day-1"), snapshots)
+        advanceUntilIdle()
+        snapshots.value = listOf(snapshot("day-1"), snapshot("day-2", "new-item"))
+        model.selectDay("day-2")
+        assertEquals(listOf("new-item"), model.state.value.items.map { it.id })
+        model.selectDay("day-1")
+        assertEquals(true, model.state.value.isDayLoaded)
+        assertEquals(emptyList<String>(), model.state.value.items.map { it.id })
+        model.selectDay("day-2")
+        advanceUntilIdle()
+        assertEquals(listOf("new-item"), model.state.value.items.map { it.id })
+    }
+
+    @Test fun `switching before first snapshot never shows a false empty day or wrong trip`() = runTest(dispatcher) {
+        val snapshots = MutableStateFlow(emptyList<DayMapSnapshot>())
+        val model = model(Trips(listOf(TripDay("day-1", 0), TripDay("day-2", 1))), MutableStateFlow("day-1"), snapshots)
+        advanceUntilIdle()
+        assertEquals(false, model.state.value.isDayLoaded)
+        model.selectDay("day-2")
+        snapshots.value = listOf(snapshot("day-1", "item-1"), snapshot("day-2", "wrong").let {
+            it.copy(itinerary = it.itinerary.copy(tripId = "other-trip"))
+        })
+        advanceUntilIdle()
+        assertEquals("day-2", model.state.value.selectedDayId)
+        assertEquals(false, model.state.value.isDayLoaded)
+        snapshots.value = listOf(snapshot("day-1", "item-1"), snapshot("day-2"))
+        advanceUntilIdle()
+        assertEquals(true, model.state.value.isDayLoaded)
+        assertEquals(emptyList<String>(), model.state.value.items.map { it.id })
+    }
+
+    @Test fun `returning from whole trip preserves duplicate visits and refreshed notes`() = runTest(dispatcher) {
+        val snapshots = MutableStateFlow(listOf(snapshot("day-1", "first", "repeat")))
+        val selected = MutableStateFlow<String?>("day-1")
+        val model = model(Trips(listOf(TripDay("day-1", 0))), selected, snapshots)
+        advanceUntilIdle()
+        selected.value = null
+        advanceUntilIdle()
+        snapshots.value = listOf(snapshots.value.single().let { source ->
+            source.copy(itinerary = source.itinerary.copy(items = source.itinerary.items.map { it.copy(note = "已修改") }))
+        })
+        selected.value = "day-1"
+        advanceUntilIdle()
+        assertEquals(listOf("first", "repeat"), model.state.value.items.map { it.id })
+        assertEquals(listOf("已修改", "已修改"), model.state.value.items.map { it.note })
+    }
+
+    private fun snapshot(day: String, vararg ids: String) = DayMapSnapshot(
+        DayItinerary(day, "trip", ids.map {
+            ItineraryItem(it, ItineraryPlace("place", "Place", "", GeoPoint(1.0, 2.0)), null, null)
+        }), emptyList(),
+    )
+
+    private fun model(trips: Trips, selected: Flow<String?>, snapshots: MutableStateFlow<List<DayMapSnapshot>>? = null) = DayItineraryViewModel(
         "trip",
         trips,
         Itineraries(),
@@ -144,6 +212,7 @@ class DayItinerarySelectionTest {
         null,
         selectedDays = selected,
         tripService = TripService(trips),
+        sharedSnapshots = snapshots,
     )
 
     private fun trip(days: List<TripDay>) = TripWithDays("trip", "Trip", LocalDate.of(2026, 8, 23), TravelMode.FLEXIBLE, days)

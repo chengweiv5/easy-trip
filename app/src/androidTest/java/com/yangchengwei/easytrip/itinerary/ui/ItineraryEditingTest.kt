@@ -198,7 +198,7 @@ class ItineraryEditingTest {
             ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
                 ?.isVisible(WindowInsetsCompat.Type.ime()) == true
         }
-        compose.onNodeWithText("保存时间").performClick()
+        compose.onNodeWithText("保存").performClick()
         compose.waitUntil(5_000) { model.state.value.editDraft?.saveError == "保存失败" }
         compose.waitUntil(5_000) {
             ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
@@ -210,7 +210,7 @@ class ItineraryEditingTest {
 
         compose.onNodeWithTag("itinerary-note-input").assertIsDisplayed()
         compose.onNodeWithText("系统键盘草稿").assertIsDisplayed()
-        compose.onNodeWithText("保存时间").assertIsDisplayed()
+        compose.onNodeWithText("保存").assertIsDisplayed()
         compose.onNodeWithText("取消").assertIsDisplayed()
         compose.runOnIdle { assertEquals("系统键盘草稿", model.state.value.editDraft?.noteText) }
     }
@@ -232,7 +232,7 @@ class ItineraryEditingTest {
         compose.selectArrivalTime(9, 30)
         compose.selectStayHours(2)
         compose.onNodeWithTag("itinerary-note-input").performTextInput("保留备注")
-        compose.onNodeWithText("保存时间").performClick()
+        compose.onNodeWithText("保存").performClick()
         compose.waitUntil(5_000) { model.state.value.editDraft?.saveError == "保存失败" }
         compose.waitUntil(5_000) {
             ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
@@ -395,7 +395,7 @@ class ItineraryEditingTest {
         compose.onNodeWithTag("menu-timing-i1", useUnmergedTree = true).performClick()
         compose.selectArrivalTime(9, 30)
         compose.selectStayHours(8)
-        compose.onNodeWithText("保存时间").performClick()
+        compose.onNodeWithText("保存").performClick()
         compose.waitUntil(5_000) { itineraries.timings.isNotEmpty() }
         assertEquals(Timing("i1", LocalTime.of(9, 30), 480), itineraries.timings.single())
 

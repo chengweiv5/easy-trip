@@ -301,7 +301,7 @@ class V2AcceptanceTest {
         compose.selectStayHours(1)
         compose.onNodeWithTag("itinerary-note-input").performTextClearance()
         compose.onNodeWithTag("itinerary-note-input").performTextInput("Visual Batch 3 持久备注")
-        compose.onNodeWithText("保存时间").performClick()
+        compose.onNodeWithText("保存").performClick()
         waitFor("edited Room item") {
             runBlocking { database.itineraryEditingDao().item(editedItemId) }?.let {
                 it.arrivalTime == java.time.LocalTime.of(14, 20) &&
@@ -475,7 +475,7 @@ class V2AcceptanceTest {
         compose.selectArrivalTime(9, 30)
         compose.selectStayHours(1)
         compose.onNodeWithTag("itinerary-note-input").performTextInput("二层入口集合")
-        compose.onNodeWithText("保存时间").performClick()
+        compose.onNodeWithText("保存").performClick()
         compose.waitUntil(5_000) {
             runBlocking { database.itineraryEditingDao().item(middleItem) }?.let {
                 it.arrivalTime == java.time.LocalTime.of(9, 30) &&
@@ -663,7 +663,7 @@ class V2AcceptanceTest {
         compose.selectArrivalTime(9, 30)
         compose.selectStayHours(1)
         compose.onNodeWithTag("itinerary-note-input").performTextInput("东门集合")
-        compose.onNodeWithText("保存时间").performClick()
+        compose.onNodeWithText("保存").performClick()
 
         waitForTag("itinerary-save-failure")
         compose.onNodeWithText("修改尚未保存").assertIsDisplayed()

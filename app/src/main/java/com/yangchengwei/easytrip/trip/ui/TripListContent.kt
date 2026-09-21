@@ -57,7 +57,7 @@ fun TripListContent(
                     style = MaterialTheme.typography.bodySmall)
             }
             when (val page = state.page) {
-                TripListPageState.Loading -> TripListLoadingState(Modifier.weight(1f))
+                TripListPageState.Loading -> com.yangchengwei.easytrip.core.ui.component.DeferredLoading { TripListLoadingState(Modifier.weight(1f)) }
                 TripListPageState.Empty -> EmptyTrips(
                     onCreate = { onAction(TripListAction.CreateTrip) },
                     modifier = Modifier.weight(1f).then(emptyStateModifier),

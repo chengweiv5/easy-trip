@@ -81,7 +81,7 @@ class ItineraryTimelineContentTest {
             }
         }
 
-        compose.onNodeWithText("保存时间").assertIsDisplayed().performClick()
+        compose.onNodeWithText("保存").assertIsDisplayed().performClick()
         compose.onNodeWithText("取消").assertIsDisplayed().performClick()
         compose.runOnIdle { assertTrue(saved); assertTrue(cancelled) }
     }

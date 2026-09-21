@@ -156,6 +156,13 @@ fun DayItineraryContent(
             )
         }
         state.error?.let { Text(it, color = MaterialTheme.colorScheme.error) }
+        if (!state.isDayLoaded) {
+            com.yangchengwei.easytrip.core.ui.component.DeferredLoading {
+                Text("行程加载中", style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(vertical = 12.dp).testTag("day-itinerary-loading"))
+            }
+        }
         val displayItems = currentDisplayItems(state.items, state.previewOrder)
         val visibleLegs = visibleRouteLegs(state.items, state.previewOrder, state.legs)
         val timelineState = rememberLazyListState()
@@ -229,7 +236,7 @@ fun DayItineraryContent(
                 contentPadding = PaddingValues(top = 6.dp, end = 0.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(0.dp),
             ) {
-                if (state.items.isEmpty() && state.selectedDayId != null) {
+                if (state.isDayLoaded && state.items.isEmpty() && state.selectedDayId != null) {
                     val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
                     item {
                         EmptyState(
