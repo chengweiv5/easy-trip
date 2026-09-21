@@ -18,6 +18,7 @@ val EasyTripErrorSurface = Color(0xFFFCEFED)
 val EasyTripPlaceSurface = EasyTripBackground
 val EasyTripPlaceBorder = EasyTripBorder
 val EasyTripAddress = EasyTripMuted
+val EasyTripNote = Color(0xFF8A5B3D)
 val EasyTripScheduled = EasyTripPrimary
 
 val easyTripLightColorScheme = lightColorScheme(

@@ -289,7 +289,7 @@ private fun CompactItineraryStop(
 ) {
     Row(
         modifier.fillMaxWidth().heightIn(min = 54.dp).testTag("item-${item.id}"),
-        verticalAlignment = Alignment.CenterVertically,
+        verticalAlignment = Alignment.Top,
         horizontalArrangement = Arrangement.spacedBy(7.dp),
     ) {
         Column(Modifier.weight(1f).padding(vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -300,7 +300,11 @@ private fun CompactItineraryStop(
                 Text(item.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).testTag("itinerary-place-name-${item.id}"))
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+            com.yangchengwei.easytrip.core.ui.component.ExpandableNote(
+                note = item.note,
+                identity = "itinerary-${item.id}",
+                textStartPadding = 49.dp,
+            ) {
                 Text(item.arrivalTime?.toString() ?: "待定",
                     modifier = Modifier.width(42.dp).alignByBaseline().testTag("itinerary-arrival-${item.id}"),
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
@@ -312,13 +316,8 @@ private fun CompactItineraryStop(
                     modifier = Modifier.weight(1f).alignByBaseline().testTag("itinerary-place-timing-${item.id}"),
                 )
             }
-            com.yangchengwei.easytrip.core.ui.component.ExpandableNote(
-                note = item.note,
-                identity = "itinerary-${item.id}",
-                modifier = Modifier.padding(start = 49.dp, top = 2.dp),
-            )
         }
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(Modifier.padding(top = 13.dp), verticalAlignment = Alignment.CenterVertically) {
             dragHandle?.invoke()
             menu?.invoke()
         }

@@ -26,6 +26,88 @@ import org.junit.Test
 class ItineraryTimingPickerTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
+    @Test fun compactPeriodControlAcceptsTouchesAboveAndBelowItsVisual() {
+        val draft = mutableStateOf(ItineraryEditDraft("item", "09:30", "120"))
+        compose.setContent { EasyTripTheme {
+            ItineraryTimingPickers(draft.value, { draft.value = draft.value.copy(arrivalTimeText = it) }, {})
+        } }
+        compose.onNodeWithTag("arrival-period-pm").performTouchInput {
+            click(androidx.compose.ui.geometry.Offset(center.x, 1f))
+        }
+        compose.assertArrivalTime(21, 30)
+        compose.onNodeWithTag("arrival-period-am").performTouchInput {
+            click(androidx.compose.ui.geometry.Offset(center.x, height - 1f))
+        }
+        compose.assertArrivalTime(9, 30)
+    }
+
+    @Test fun periodFilterPreservesMinutesAndSeparatesNoonFromMidnight() {
+        val draft = mutableStateOf(ItineraryEditDraft("item", "00:30", "75"))
+        compose.setContent { EasyTripTheme {
+            ItineraryTimingPickers(draft.value, { draft.value = draft.value.copy(arrivalTimeText = it) }, {})
+        } }
+        compose.onNodeWithTag("arrival-period-am").assertIsSelected()
+        compose.onNodeWithTag("arrival-period-pm").performClick().assertIsSelected()
+        compose.assertArrivalTime(12, 30)
+        assertEquals(LocalTime.of(12, 30), draft.value.arrivalTime)
+        assertEquals(75, draft.value.stayMinutes)
+        compose.onNodeWithTag("arrival-hour-picker").performSemanticsAction(SemanticsActions.SetProgress) { it(12f) }
+        compose.assertArrivalTime(23, 30)
+        compose.onNodeWithTag("arrival-period-am").performClick()
+        compose.assertArrivalTime(11, 30)
+        compose.onNodeWithTag("arrival-period-am").performClick()
+        assertEquals(LocalTime.of(11, 30), draft.value.arrivalTime)
+        compose.selectArrivalTime(9, 30)
+        compose.onNodeWithTag("arrival-period-pm").performClick()
+        compose.assertArrivalTime(21, 30)
+    }
+
+    @Test fun unsetTimeCanFilterWithoutWritingAndEditSessionResetsPeriod() {
+        val draft = mutableStateOf(ItineraryEditDraft("item", "", "120"))
+        var changes = 0
+        compose.setContent { EasyTripTheme {
+            ItineraryTimingPickers(draft.value, { changes++; draft.value = draft.value.copy(arrivalTimeText = it) }, {})
+        } }
+        compose.onNodeWithTag("arrival-period-pm").performClick().assertIsSelected()
+        assertEquals(0, changes)
+        assertNull(draft.value.arrivalTime)
+        compose.onNodeWithTag("arrival-minute-picker").assertIsNotEnabled()
+        compose.onNodeWithTag("arrival-hour-picker").performSemanticsAction(SemanticsActions.SetProgress) { it(1f) }
+        compose.assertArrivalTime(12, 0)
+        compose.onNodeWithTag("arrival-hour-picker").performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
+        assertNull(draft.value.arrivalTime)
+        compose.onNodeWithTag("arrival-period-pm").assertIsSelected()
+        compose.runOnIdle { draft.value = draft.value.copy(generation = 1) }
+        compose.onNodeWithTag("arrival-period-am").assertIsSelected()
+        compose.runOnIdle { draft.value = draft.value.copy(itemId = "other", arrivalTimeText = "18:30") }
+        compose.onNodeWithTag("arrival-period-pm").assertIsSelected()
+        compose.assertArrivalTime(18, 30)
+        compose.runOnIdle { draft.value = draft.value.copy(isSaving = true) }
+        listOf("arrival-period-am", "arrival-period-pm").forEach { tag ->
+            compose.onNodeWithTag(tag).assertIsNotEnabled().performClick()
+        }
+        assertEquals(LocalTime.of(18, 30), draft.value.arrivalTime)
+    }
+
+    @Test fun narrowLargeFontPeriodControlsRemainReachableAndWheelsAlign() {
+        val draft = mutableStateOf(ItineraryEditDraft("item", "09:30", "120"))
+        compose.setContent { CompositionLocalProvider(LocalDensity provides Density(1f, 2f)) { EasyTripTheme {
+            Column(Modifier.width(280.dp)) {
+                ItineraryTimingPickers(draft.value, { draft.value = draft.value.copy(arrivalTimeText = it) }, {})
+            }
+        } } }
+        compose.onNodeWithTag("arrival-period-pm").assertIsDisplayed().performClick()
+        compose.assertArrivalTime(21, 30)
+        val am = compose.onNodeWithTag("arrival-period-am").fetchSemanticsNode().boundsInRoot
+        val pm = compose.onNodeWithTag("arrival-period-pm").fetchSemanticsNode().boundsInRoot
+        assertTrue(am.right <= pm.left)
+        val hour = compose.onNodeWithTag("arrival-hour-picker").fetchSemanticsNode().boundsInRoot
+        val stay = compose.onNodeWithTag("stay-hours-picker").fetchSemanticsNode().boundsInRoot
+        assertEquals(hour.top, stay.top, 1f)
+        assertTrue(pm.right <= stay.left)
+        saveEvidence("itinerary-time-wheel-large-font.png")
+    }
+
     @Test fun singleAndWholeTripRowsPlaceOrderAboveTime() {
         val item = ItineraryItemUi("day", "西湖天地", "湖滨路", LocalTime.of(9, 30), 90)
         compose.setContent { EasyTripTheme { Column {
@@ -122,13 +204,23 @@ class ItineraryTimingPickerTest {
     }
 
     @Test fun timingEditorVisualEvidence() {
+        val draft = mutableStateOf(ItineraryEditDraft("item", "09:30", "120", placeName = "西湖天地"))
         compose.setContent { EasyTripTheme { Column(Modifier.width(360.dp)) {
             ItineraryPlaceRow(ItineraryItemUi("visual", "西湖天地", "湖滨路", LocalTime.of(9, 30), 120), displayOrder = 1)
-            EditItineraryItemContent(ItineraryEditDraft("item", "09:30", "120", placeName = "西湖天地"), {}, {},
+            EditItineraryItemContent(draft.value, { draft.value = draft.value.copy(arrivalTimeText = it) }, {},
                 onScheduleAgain = {}, onSave = {}, onCancel = {})
         } } }
+        listOf("am", "pm").forEach { period ->
+            compose.onNodeWithTag("arrival-period-$period").performClick()
+            saveEvidence("itinerary-time-wheel-$period.png")
+        }
+        compose.onNodeWithTag("arrival-hour-picker").performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
+        saveEvidence("itinerary-time-wheel-unset.png")
+    }
+
+    private fun saveEvidence(name: String) {
         val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
-        java.io.File(compose.activity.getExternalFilesDir(null), "itinerary-time-wheel.png").outputStream().use {
+        java.io.File(compose.activity.getExternalFilesDir(null), name).outputStream().use {
             bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
         }
     }

@@ -7,7 +7,9 @@ import androidx.compose.ui.test.junit4.ComposeTestRule
 
 fun ComposeTestRule.selectArrivalTime(hour: Int, minute: Int) {
     require(minute == 0 || minute == 30)
-    onNodeWithTag("arrival-hour-picker").performSemanticsAction(SemanticsActions.SetProgress) { it((hour + 1).toFloat()) }
+    require(hour in 0..23)
+    onNodeWithTag(if (hour < 12) "arrival-period-am" else "arrival-period-pm").performClick()
+    onNodeWithTag("arrival-hour-picker").performSemanticsAction(SemanticsActions.SetProgress) { it((hour % 12 + 1).toFloat()) }
     onNodeWithTag("arrival-minute-picker").performSemanticsAction(SemanticsActions.SetProgress) { it((minute / 30).toFloat()) }
 }
 
