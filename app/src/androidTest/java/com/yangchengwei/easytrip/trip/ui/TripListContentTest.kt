@@ -488,8 +488,8 @@ class TripListContentTest {
     }
 
     private fun content() = TripListPageState.Content(
-        primaryTrip = trip("trip-1", "京都"),
-        otherTrips = listOf(trip("trip-2", "东京")),
+        primaryTrip = trip("trip-1", "杭州"),
+        otherTrips = listOf(trip("trip-2", "苏州")),
     )
 
     @Test fun manualMarkMovesCardAndCountsWithoutChangingSelectedFilter() {

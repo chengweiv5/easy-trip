@@ -21,15 +21,15 @@
 先把景点、餐厅和酒店收藏起来，再按天安排。地点顺序、到达时间、停留时长和交通信息放在一起，边看地图，边调整下一站。
 
 <div align="center">
-  <a href="docs/images/my-trips.jpg"><img src="docs/images/my-trips.jpg" width="280" alt="我的旅行：查看待出行旅行、行程准备度并创建新旅行"></a>
+  <a href="docs/images/my-trips.jpg"><img src="docs/images/my-trips.jpg" width="280" alt="我的旅行：以杭州、苏州为例，查看待出行旅行、行程准备度并创建新旅行"></a>
   <a href="docs/images/map-itinerary.jpg"><img src="docs/images/map-itinerary.jpg" width="280" alt="地图与每日行程同屏：地点序号对应，路线段显示交通方式、距离与预计耗时"></a>
 </div>
 
-**我的旅行**（v1.1.0） · 管理下一次出发，也保留已经走过的旅程。
+**我的旅行**（v1.2.0 源码运行截图） · 管理下一次出发，也保留已经走过的旅程。
 
 **地图行程工作台**（v1.2.0 源码运行截图） · 上方看地图，下方排日程，序号对应每个地点。
 
-*以上为模拟器中的示例旅行，点击图片可放大查看。*
+*以上为模拟器中的中国地点示例：首页展示杭州、苏州，地图展示杭州西湖周边行程。点击图片可放大查看。*
 
 <a id="features"></a>
 
