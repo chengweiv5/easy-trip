@@ -60,7 +60,7 @@ internal fun WorkspaceLocateIcon(modifier: Modifier = Modifier) {
 @Composable
 internal fun WorkspaceCompassIcon(bearing: Float, modifier: Modifier = Modifier) {
     val southColor = MaterialTheme.colorScheme.primary
-    val northColor = Color(0xFFD96F3B)
+    val northColor = MaterialTheme.colorScheme.tertiary
     Canvas(modifier) {
         val unit = size.minDimension / 18f
         rotate(-bearing) {

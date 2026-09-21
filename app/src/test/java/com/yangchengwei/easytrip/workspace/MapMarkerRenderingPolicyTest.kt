@@ -10,7 +10,7 @@ class MapMarkerRenderingPolicyTest {
             MapMarkerUi("place-1", point(), "地点", emptyList(), MapMarkerKind.SAVED_PLACE_POOL, scheduled = true),
         )
 
-        assertEquals(0xFF2D5E3A.toInt(), rendering.backgroundColor)
+        assertEquals(0xFF086F76.toInt(), rendering.backgroundColor)
         assertEquals(0xFFFFFFFF.toInt(), rendering.foregroundColor)
         assertEquals(emptyList<NormalizedPoint>(), rendering.geometry)
         assertTrue(rendering.solid)
@@ -22,8 +22,8 @@ class MapMarkerRenderingPolicyTest {
         )
 
         assertEquals(0xFFFFFFFF.toInt(), rendering.backgroundColor)
-        assertEquals(0xFF2D5E3A.toInt(), rendering.foregroundColor)
-        assertEquals(0xFF2D5E3A.toInt(), rendering.borderColor)
+        assertEquals(0xFF086F76.toInt(), rendering.foregroundColor)
+        assertEquals(0xFF086F76.toInt(), rendering.borderColor)
         assertEquals(BookmarkGeometry, rendering.geometry)
         assertTrue(!rendering.solid)
     }

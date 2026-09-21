@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import androidx.compose.foundation.background
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -39,7 +41,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripHighlight
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
 
 internal val TripMenuItem = SemanticsPropertyKey<Boolean>("TripMenuItem")
@@ -160,13 +162,13 @@ private fun ContinuousReadinessProgress(
             val fillWidth = (size.width * visualProgress).coerceIn(size.height, size.width)
             if (fillWidth == size.width) {
                 drawRoundRect(
-                    color = EasyTripAccent,
+                    color = EasyTripHighlight,
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius, radius),
                 )
             } else {
-                drawCircle(EasyTripAccent, radius, Offset(radius, radius))
+                drawCircle(EasyTripHighlight, radius, Offset(radius, radius))
                 drawRect(
-                    color = EasyTripAccent,
+                    color = EasyTripHighlight,
                     topLeft = Offset(radius, 0f),
                     size = androidx.compose.ui.geometry.Size(fillWidth - radius, size.height),
                 )
@@ -186,10 +188,12 @@ internal fun OtherTripRow(
     Row(
         modifier = Modifier.fillMaxWidth()
             .heightIn(min = 72.dp)
+            .clip(RoundedCornerShape(12.dp))
+            .background(MaterialTheme.colorScheme.surface)
             .testTag("other-trip-${trip.id}")
             .semantics { contentDescription = "打开旅行 ${trip.name}" }
             .clickable(role = Role.Button) { onAction(TripListAction.OpenTrip(trip.id)) }
-            .padding(vertical = 12.dp),
+            .padding(12.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {

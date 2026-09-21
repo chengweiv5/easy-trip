@@ -1,6 +1,6 @@
 <resources>
     <style name="Theme.EasyTrip" parent="Base.Theme.EasyTrip">
-        <item name="android:navigationBarColor">#F5F3EE</item>
+        <item name="android:navigationBarColor">@color/easy_trip_background</item>
         <item name="android:windowLightNavigationBar">true</item>
     </style>
 </resources>

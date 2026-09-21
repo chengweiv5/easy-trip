@@ -1,3 +1,6 @@
 <resources>
-    <color name="easy_trip_teal">#087F8C</color>
+    <color name="easy_trip_teal">#086F76</color>
+    <color name="easy_trip_background">#ECF3F4</color>
+    <color name="easy_trip_text">#20343B</color>
+    <color name="easy_trip_soft">#D9EBED</color>
 </resources>

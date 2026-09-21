@@ -139,8 +139,8 @@ class WholeTripItineraryMapperTest {
     fun `day color index is stable and cycles independently of list position`() {
         assertEquals(0, wholeTripDayColorIndex(1))
         assertEquals(1, wholeTripDayColorIndex(2))
-        assertEquals(0, wholeTripDayColorIndex(6))
-        assertEquals(1, wholeTripDayColorIndex(7))
+        assertEquals(0, wholeTripDayColorIndex(9))
+        assertEquals(1, wholeTripDayColorIndex(10))
     }
 
     @Test

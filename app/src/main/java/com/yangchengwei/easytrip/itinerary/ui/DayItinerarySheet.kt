@@ -128,6 +128,11 @@ fun DayItineraryContent(
     showDialogs: Boolean = true,
     canScheduleAgain: Boolean = false,
 ) {
+    val orderColor = androidx.compose.ui.graphics.Color(
+        com.yangchengwei.easytrip.workspace.routeColorForDay(
+            state.days.firstOrNull { it.id == state.selectedDayId }?.index ?: 0,
+        ),
+    )
     Column(modifier) {
         if (state.selectedDayId != null) {
             val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
@@ -243,6 +248,7 @@ fun DayItineraryContent(
                         item = item,
                         index = index,
                         count = displayItems.size,
+                        orderColor = orderColor,
                         onPreview = { onAction(DayItineraryAction.PreviewMove(id, it)) },
                         onCommit = { onAction(DayItineraryAction.CommitMove(id, it)) },
                         modifier = Modifier.graphicsLayer { alpha = if (dragState?.itemId == id) 0f else 1f },
@@ -287,7 +293,7 @@ fun DayItineraryContent(
                         shadowElevation = 8.dp,
                     ) {
                         ItineraryItemRow(item, drag.targetIndex, displayItems.size, {}, {}, {},
-                            sharedDragEnabled = true, parentHandlesDrag = true)
+                            sharedDragEnabled = true, parentHandlesDrag = true, orderColor = orderColor)
                     }
                 }
             }

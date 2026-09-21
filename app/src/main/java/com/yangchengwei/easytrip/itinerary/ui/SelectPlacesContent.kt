@@ -193,7 +193,7 @@ private fun SelectablePlaceRow(row: SavedPlaceRowUi, selection: Int?, enabled: B
             .clickable(enabled = enabled, role = Role.Checkbox, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
         color = if (selection != null) EasyTripPlaceSurface else MaterialTheme.colorScheme.surface,
-        border = if (selection != null) BorderStroke(1.dp, Color(0xFFAFBEA8)) else null,
+        border = if (selection != null) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
     ) {
         Row(Modifier.heightIn(min = 58.dp).padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
             Surface(
@@ -213,7 +213,7 @@ private fun SelectablePlaceRow(row: SavedPlaceRowUi, selection: Int?, enabled: B
             }
             if (row.scheduled && LocalDensity.current.fontScale <= 1.3f) Surface(
                 modifier = Modifier.semantics { contentDescription = "已安排 ${row.itineraryOccurrenceCount} 次，可重复添加" },
-                shape = RoundedCornerShape(4.dp), color = Color(0xFFF6EDE2),
+                shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.primaryContainer,
             ) {
                 Text("已排 ${row.itineraryOccurrenceCount} 次", Modifier.padding(horizontal = 6.dp, vertical = 3.dp), style = MaterialTheme.typography.labelSmall, color = EasyTripScheduled)
             }
@@ -230,7 +230,7 @@ private fun PlacePickerFooter(count: Int, label: String, enabled: Boolean, onCon
     val button: @Composable (Modifier) -> Unit = { modifier ->
         Surface(
             modifier.heightIn(min = 44.dp).testTag("select-places-continue").clickable(enabled = enabled, role = Role.Button, onClick = onContinue),
-            shape = RoundedCornerShape(10.dp), color = if (enabled) MaterialTheme.colorScheme.primary else Color(0xFFE2E6DF),
+            shape = RoundedCornerShape(10.dp), color = if (enabled) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
         ) {
             Box(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), contentAlignment = Alignment.Center) {
                 Text(label, style = MaterialTheme.typography.labelLarge, color = if (enabled) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant)

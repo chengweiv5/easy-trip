@@ -274,7 +274,7 @@ private fun WorkspaceReadyContent(
                             .fillMaxWidth()
                             .height((metrics.sheetTop - 128.dp).coerceAtLeast(0.dp))
                             .testTag("layer-menu-scrim")
-                            .background(Color(0x1A1B3A28))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
                             .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
                     )
                     Box(
@@ -303,7 +303,7 @@ private fun WorkspaceReadyContent(
                         Modifier
                             .fillMaxSize()
                             .testTag("more-menu-scrim")
-                            .background(Color(0x1A1B3A28))
+                            .background(MaterialTheme.colorScheme.onSurface.copy(alpha = 0.10f))
                             .clickable { onAction(TripWorkspaceAction.CloseOverlay) },
                     )
                     Box(
@@ -389,7 +389,10 @@ private fun WorkspaceReadyContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    MapLegend()
+                    MapLegend(scheduledColor = if (state.section == WorkspaceSection.ITINERARY) {
+                        val selected = (state.itineraryScope as? ItineraryScope.Day)?.dayId
+                        Color(routeColorForDay(state.days.firstOrNull { it.id == selected }?.index ?: 0))
+                    } else MaterialTheme.colorScheme.primary)
                     WorkspaceSearchBar(
                         onClick = { onAction(TripWorkspaceAction.OpenSearch) },
                     )

@@ -12,6 +12,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.toPixelMap
+import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
@@ -37,12 +38,13 @@ import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripHighlight
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -117,11 +119,11 @@ class TripListContentTest {
 
         val pixels = compose.onNodeWithTag("trip-readiness-trip-primary").captureToImage().toPixelMap()
         val midY = pixels.height / 2
-        val orangeRuns = horizontalColorRuns(pixels, midY, EasyTripAccent)
-        val splitX = orangeRuns.single().last + 1
+        val highlightRuns = horizontalColorRuns(pixels, midY, EasyTripHighlight)
+        val splitX = highlightRuns.single().last + 1
         val cardBackground = pixels[0, 0]
 
-        assertEquals("25% 准备度只能有一段连续橙色进度", 1, orangeRuns.size)
+        assertEquals("25% 准备度只能有一段连续金色进度", 1, highlightRuns.size)
         assertTrue(
             "进度与剩余轨道的内部交界必须为直边并逐行贴合",
             (0 until pixels.height).all { y -> pixels[splitX, y] != cardBackground },
@@ -132,6 +134,10 @@ class TripListContentTest {
         val actions = mutableListOf<TripListAction>()
         setContent(content(), actions::add)
 
+        val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+        java.io.File(compose.activity.getExternalFilesDir(null), "v11-my-trips.png").outputStream().use {
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+        }
         compose.onNodeWithTag("other-trip-trip-2")
             .assertHeightIsAtLeast(72.dp)
             .assert(hasClickAction())

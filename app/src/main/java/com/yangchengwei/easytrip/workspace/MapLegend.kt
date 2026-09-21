@@ -15,12 +15,13 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 
 @Composable
-fun MapLegend(modifier: Modifier = Modifier) {
+fun MapLegend(modifier: Modifier = Modifier, scheduledColor: Color = MaterialTheme.colorScheme.primary) {
     Surface(
         modifier = modifier.wrapContentWidth().height(32.dp).testTag("map-legend"),
         shape = RoundedCornerShape(16.dp),
@@ -33,7 +34,7 @@ fun MapLegend(modifier: Modifier = Modifier) {
             verticalAlignment = Alignment.CenterVertically,
         ) {
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
-                CircleLegendShape(scheduled = true, Modifier.testTag("legend-scheduled-shape"))
+                CircleLegendShape(scheduled = true, Modifier.testTag("legend-scheduled-shape"), scheduledColor)
                 Text("已排入", style = MaterialTheme.typography.bodySmall)
             }
             Row(horizontalArrangement = Arrangement.spacedBy(5.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -45,8 +46,7 @@ fun MapLegend(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun CircleLegendShape(scheduled: Boolean, modifier: Modifier = Modifier) {
-    val primary = MaterialTheme.colorScheme.primary
+private fun CircleLegendShape(scheduled: Boolean, modifier: Modifier = Modifier, primary: Color = MaterialTheme.colorScheme.primary) {
     Canvas(modifier.size(12.dp)) {
         if (scheduled) drawCircle(primary) else {
             val strokeWidth = 1.5.dp.toPx()

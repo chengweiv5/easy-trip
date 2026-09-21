@@ -1,5 +1,10 @@
 package com.yangchengwei.easytrip.workspace
 
+import androidx.compose.ui.graphics.toArgb
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimary
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -359,13 +364,13 @@ internal fun markerRenderOrder(markers: List<MapMarkerUi>): List<MapMarkerUi> =
     markers.filterNot(MapMarkerUi::isFocused) + markers.filter(MapMarkerUi::isFocused)
 
 internal fun mapMarkerRendering(marker: MapMarkerUi): MapMarkerRendering {
-    val primary = 0xFF2D5E3A.toInt()
-    val focusedBorder = 0xFFD96F3B.toInt()
+    val primary = EasyTripPrimary.toArgb()
+    val focusedBorder = EasyTripAccent.toArgb()
     return when (marker.kind) {
         MapMarkerKind.UNSAVED_SEARCH -> MapMarkerRendering(
             glyph = "●",
             foregroundColor = 0xFFFFFFFF.toInt(),
-            backgroundColor = 0xFFD84315.toInt(),
+            backgroundColor = EasyTripAccent.toArgb(),
             borderColor = if (marker.isFocused) focusedBorder else 0xFFFFFFFF.toInt(),
             borderWidth = if (marker.isFocused) 6 else 3,
             solid = true,
@@ -482,7 +487,7 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi)
             paint.color = android.graphics.Color.WHITE
             canvas.drawText(label, cx, baseline, paint)
             paint.style = Paint.Style.FILL
-            paint.color = 0xFF254F30.toInt()
+            paint.color = EasyTripPrimaryDark.toArgb()
             canvas.drawText(label, cx, baseline, paint)
         }
     }

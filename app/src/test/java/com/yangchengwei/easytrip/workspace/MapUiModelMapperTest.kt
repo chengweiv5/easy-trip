@@ -551,7 +551,7 @@ class MapUiModelMapperTest {
         val forbidden = setOf(0xFFFB8C00, 0xFFF4511E, 0xFFFFFFFF, 0xFF9E9E9E)
 
         assertTrue(colors.none { it in forbidden })
-        assertEquals(0xFF7B1FA2, colors[3])
+        assertEquals(0xFF82549B, colors[3])
     }
 
     @Test fun `whole trip uses distinct day colors and excludes failed routes`() {

@@ -9,6 +9,7 @@ import com.yangchengwei.easytrip.core.ui.theme.EasyTripAddress
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceBorder
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceSurface
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
+import com.yangchengwei.easytrip.workspace.routeColorForDay
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.width
@@ -71,6 +72,7 @@ internal fun ItineraryItemRow(
     onDragCancel: () -> Unit = {},
     sharedDragEnabled: Boolean = false,
     parentHandlesDrag: Boolean = false,
+    orderColor: Color = Color(routeColorForDay(0)),
 ) {
     var menuExpanded by remember(item.id) { mutableStateOf(false) }
     var localDragging by remember(item.id) { mutableStateOf(false) }
@@ -112,6 +114,7 @@ internal fun ItineraryItemRow(
     ItineraryPlaceContent(
         item = item,
         displayOrder = index + 1,
+        orderColor = orderColor,
         modifier = modifier
             .fillMaxWidth()
             .semanticsActions(item.name, index, count, onCommit)
@@ -214,9 +217,10 @@ internal fun ItineraryPlaceContent(
     containerColor: Color = EasyTripPlaceSurface,
     elevation: Dp = 0.dp,
     compactTimeline: Boolean = false,
+    orderColor: Color = Color(routeColorForDay(0)),
 ) {
     if (compactTimeline) {
-        CompactItineraryStop(item, displayOrder, modifier, leadingAction, trailingAction)
+        CompactItineraryStop(item, displayOrder, modifier, leadingAction, trailingAction, orderColor)
         return
     }
     Surface(
@@ -233,7 +237,7 @@ internal fun ItineraryPlaceContent(
                 horizontalArrangement = Arrangement.spacedBy(6.dp),
             ) {
                 leadingAction?.invoke()
-                ItineraryOrderBadge(displayOrder, item.id)
+                ItineraryOrderBadge(displayOrder, item.id, orderColor)
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.bodyLarge,
@@ -281,6 +285,7 @@ private fun CompactItineraryStop(
     modifier: Modifier,
     dragHandle: (@Composable () -> Unit)?,
     menu: (@Composable () -> Unit)?,
+    orderColor: Color,
 ) {
     Row(
         modifier.fillMaxWidth().heightIn(min = 54.dp).testTag("item-${item.id}"),
@@ -290,7 +295,7 @@ private fun CompactItineraryStop(
         Column(Modifier.weight(1f).padding(vertical = 7.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
                 Box(Modifier.width(42.dp), contentAlignment = Alignment.Center) {
-                    ItineraryOrderBadge(displayOrder, item.id)
+                    ItineraryOrderBadge(displayOrder, item.id, orderColor)
                 }
                 Text(item.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).testTag("itinerary-place-name-${item.id}"))
@@ -324,9 +329,10 @@ private fun Modifier.semanticsActions(name: String, index: Int, count: Int, onCo
 }
 
 @Composable
-private fun ItineraryOrderBadge(order: Int, itemId: String) {
+private fun ItineraryOrderBadge(order: Int, itemId: String, color: Color) {
     Box(Modifier.widthIn(min = 18.dp).heightIn(min = 18.dp)
-        .background(com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent, RoundedCornerShape(9.dp))
+        .testTag("itinerary-order-badge-$itemId")
+        .background(color, RoundedCornerShape(9.dp))
         .padding(horizontal = 3.dp), contentAlignment = Alignment.Center) {
         Text(order.toString(), Modifier.testTag("itinerary-order-$itemId"), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, lineHeight = 14.sp),
             color = Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)

@@ -141,14 +141,14 @@ fun automaticMapViewportPoints(scope: MapScope, model: MapUiModel): List<GeoPoin
     }
 
 fun routePalette() = listOf(
-    0xFF1565C0,
-    0xFFC2185B,
-    0xFF00897B,
-    0xFF7B1FA2,
-    0xFFC62828,
-    0xFF0097A7,
-    0xFF303F9F,
-    0xFF2E7D32,
+    0xFF2766AA,
+    0xFFAD5C2D,
+    0xFF287A72,
+    0xFF82549B,
+    0xFFB74562,
+    0xFF667526,
+    0xFF197C92,
+    0xFF6958AE,
 )
 
 fun routeColorForDay(dayIndex: Int): Long = routePalette().let { it[dayIndex.mod(it.size)] }

@@ -20,6 +20,8 @@ import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as Tex
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import com.yangchengwei.easytrip.core.ui.component.EmptyState
+import com.yangchengwei.easytrip.workspace.routeColorForDay
+import com.yangchengwei.easytrip.workspace.routePalette
 
 @Composable
 fun WholeTripItineraryContent(
@@ -92,6 +94,7 @@ fun WholeTripItineraryContent(
                                 ItineraryPlaceRow(
                                     item = itineraryItem,
                                     displayOrder = orderOffsets.getValue(day.dayId) + index + 1,
+                                    orderColor = Color(routeColorForDay((day.dayNumber - 1).coerceAtLeast(0))),
                                     modifier = Modifier.fillMaxWidth(),
                                 )
                             }
@@ -125,15 +128,7 @@ fun WholeTripItineraryContent(
     }
 }
 
-private val dayColors = listOf(
-    Color(0xFF2D5E3A),
-    Color(0xFF9A5B13),
-    Color(0xFF35678B),
-    Color(0xFF8A4260),
-    Color(0xFF5E528B),
-)
-
-internal fun wholeTripDayColorIndex(dayNumber: Int): Int = (dayNumber - 1).coerceAtLeast(0) % dayColors.size
+internal fun wholeTripDayColorIndex(dayNumber: Int): Int = (dayNumber - 1).coerceAtLeast(0) % routePalette().size
 
 private val WholeTripDateFormatter = DateTimeFormatter.ofPattern("M 月 d 日")
 

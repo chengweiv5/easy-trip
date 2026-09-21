@@ -29,7 +29,7 @@ class MapMarkerBitmapTest {
                 assertEquals(0, Color.alpha(bitmap.getPixel(0, 0)))
                 assertTrue(Color.alpha(bitmap.getPixel(bitmap.width / 2, 0)) > 0)
                 val interiorX = bitmap.width / 2 - (8 * density).roundToInt()
-                val expected = if (scheduled) 0xFF2D5E3A.toInt() else Color.WHITE
+                val expected = if (scheduled) 0xFF086F76.toInt() else Color.WHITE
                 assertEquals("scheduled=$scheduled focused=$focused", expected, bitmap.getPixel(interiorX, diameter / 2))
                 bitmap.recycle()
             }
@@ -105,7 +105,7 @@ class MapMarkerBitmapTest {
                         (7f * density).roundToInt().until((21f * density).roundToInt()).any { y -> bitmap.getPixel(x, y) == Color.WHITE }
                     })
                 }
-                if (focused) assertEquals(0xFFD96F3B.toInt(), bitmap.getPixel(bitmap.width / 2, density.roundToInt()))
+                if (focused) assertEquals(0xFFA3532B.toInt(), bitmap.getPixel(bitmap.width / 2, density.roundToInt()))
                 bitmap.recycle()
             }
         }

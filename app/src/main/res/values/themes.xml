@@ -1,10 +1,10 @@
 <resources>
     <style name="Base.Theme.EasyTrip" parent="android:style/Theme.Material.Light.NoActionBar">
         <item name="android:statusBarColor">#FFFFFF</item>
-        <item name="android:navigationBarColor">#1B3A28</item>
+        <item name="android:navigationBarColor">@color/easy_trip_text</item>
         <item name="android:windowLightStatusBar">true</item>
-        <item name="android:windowBackground">#F5F3EE</item>
-        <item name="android:colorAccent">#2D5E3A</item>
+        <item name="android:windowBackground">@color/easy_trip_background</item>
+        <item name="android:colorAccent">@color/easy_trip_teal</item>
     </style>
     <style name="Theme.EasyTrip" parent="Base.Theme.EasyTrip" />
 </resources>
