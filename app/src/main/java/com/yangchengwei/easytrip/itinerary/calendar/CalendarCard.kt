@@ -134,30 +134,26 @@ internal fun CalendarCard(
                 var complete = false
                 var last = down.position
                 try {
-                    if (mode == CalendarDragMode.START || mode == CalendarDragMode.END) {
-                        active = true
-                        down.consume()
-                        latestStart(mode, origin + down.position, down.position.y)
-                    } else {
-                        var abandoned = false
-                        val ended = withTimeoutOrNull(450L) {
-                            while (true) {
-                                val event = awaitPointerEvent()
-                                val change = event.changes.firstOrNull { it.id == down.id } ?: break
-                                last = change.position
-                                if (event.changes.count { it.pressed } > 1 || change.isConsumed || (last-down.position).getDistance() > slop) {
-                                    abandoned = true; break
-                                }
-                                if (!change.pressed) { latestClick(); complete = true; break }
+                    // Edges follow the same long-press gate as body/pending cards. Until then,
+                    // leave pointer events unconsumed so a swipe belongs to the calendar scroll.
+                    var abandoned = false
+                    val ended = withTimeoutOrNull(500L) {
+                        while (true) {
+                            val event = awaitPointerEvent()
+                            val change = event.changes.firstOrNull { it.id == down.id } ?: break
+                            last = change.position
+                            if (event.changes.count { it.pressed } > 1 || change.isConsumed || (last-down.position).getDistance() > slop) {
+                                abandoned = true; break
                             }
-                            true
+                            if (!change.pressed) { latestClick(); complete = true; break }
                         }
-                        if (ended == null && mode != null && !abandoned) {
-                            active = true
-                            haptic.performHapticFeedback(HapticFeedbackType.LongPress)
-                            latestStart(mode, origin + down.position, down.position.y)
-                        } else return@awaitEachGesture
+                        true
                     }
+                    if (ended == null && mode != null && !abandoned) {
+                        active = true
+                        haptic.performHapticFeedback(HapticFeedbackType.LongPress)
+                        latestStart(mode, origin + down.position, down.position.y)
+                    } else return@awaitEachGesture
                     while (active) {
                         val event = awaitPointerEvent()
                         val change = event.changes.firstOrNull { it.id == down.id } ?: break

@@ -249,7 +249,7 @@ class V2AcceptanceTest {
             pending.performTouchInput {
                 val target = androidx.compose.ui.geometry.Offset(reference.center.x,
                     reference.top - 26.dp.toPx() + source.height / 2)
-                down(center); advanceEventTime(500)
+                down(center); advanceEventTime(600)
                 moveBy(target - source.center, 200); up()
             }
             waitFor("08:30 persisted with first position; source=$source reference=$reference") {
@@ -308,7 +308,7 @@ class V2AcceptanceTest {
         val event = compose.onNodeWithTag("calendar-event-$day:$id:$day")
         event.performTouchInput {
             val from = androidx.compose.ui.geometry.Offset(width*.85f, height-4f)
-            down(from); moveTo(from + androidx.compose.ui.geometry.Offset(0f,26.dp.toPx()),300); up()
+            down(from); advanceEventTime(600); moveTo(from + androidx.compose.ui.geometry.Offset(0f,26.dp.toPx()),300); up()
         }
         compose.waitUntil(5_000) { runBlocking { database.itineraryEditingDao().item(id)?.stayDurationMinutes == 120 } }
         assertEquals(java.time.LocalTime.of(9,40),runBlocking { database.itineraryEditingDao().item(id)?.arrivalTime })

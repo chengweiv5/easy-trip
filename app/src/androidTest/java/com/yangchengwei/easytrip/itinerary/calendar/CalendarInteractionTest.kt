@@ -49,14 +49,14 @@ class CalendarInteractionTest {
     private fun edge(xFraction: Float, top: Boolean, delta: Float) {
         event().performTouchInput {
             val from = Offset(width*xFraction, if(top) 2f else height-2f)
-            down(from); moveTo(from+Offset(0f,delta), 300); up()
+            down(from); advanceEventTime(600); moveTo(from+Offset(0f,delta), 300); up()
         }
     }
     @Test fun resizeCuesFollowActiveEdgeAndDisappearAfterReleaseOrCancel() {
         setup()
         compose.onNodeWithTag("calendar-resize-start").assertDoesNotExist()
         compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
-        event().performTouchInput { down(Offset(width * .05f, 2f)) }
+        event().performTouchInput { down(Offset(width * .05f, 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
         val startCue = compose.onNodeWithTag("calendar-resize-start", useUnmergedTree = true)
         startCue.assertIsDisplayed()
         compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
@@ -72,7 +72,7 @@ class CalendarInteractionTest {
         startCue.assertDoesNotExist()
         assertEquals(1, changes.size)
 
-        event().performTouchInput { down(Offset(width * .95f, height - 2f)) }
+        event().performTouchInput { down(Offset(width * .95f, height - 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
         val endCue = compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true)
         endCue.assertIsDisplayed()
         compose.onNodeWithTag("calendar-resize-start").assertDoesNotExist()
@@ -89,13 +89,13 @@ class CalendarInteractionTest {
         assertEquals(1, changes.size)
     }
 
-    @Test fun unsetStayShowsEdgeCueImmediatelyAndBodyMoveDoesNot() {
+    @Test fun unsetStayShowsEdgeCueAfterLongPressAndBodyMoveDoesNot() {
         setup(listOf(item(stay = null)))
-        event().performTouchInput { down(Offset(width * .5f, height - 2f)) }
+        event().performTouchInput { down(Offset(width * .5f, height - 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
         compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true).assertIsDisplayed()
         event().performTouchInput { cancel() }
         compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
-        event().performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(0f, 26f), 300) }
+        event().performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f, 26f), 300) }
         compose.onNodeWithTag("calendar-draft").assertIsDisplayed()
         compose.onNodeWithTag("calendar-resize-start").assertDoesNotExist()
         compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
@@ -105,7 +105,7 @@ class CalendarInteractionTest {
 
     @Test fun midnightResizeCueRemainsVisibleInsideViewport() {
         setup(listOf(item(arrival = "00:00")))
-        event().performTouchInput { down(Offset(width * .5f, 2f)) }
+        event().performTouchInput { down(Offset(width * .5f, 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
         val cue = compose.onNodeWithTag("calendar-resize-start", useUnmergedTree = true)
         cue.assertIsDisplayed()
         val viewport = compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
@@ -118,7 +118,7 @@ class CalendarInteractionTest {
 
     @Test fun lateUnsetStayKeepsWholeLowerCueInsideScrollableContent() {
         setup(listOf(item(arrival = "23:59", stay = null)))
-        event().performScrollTo().performTouchInput { down(Offset(width * .5f, height - 2f)) }
+        event().performScrollTo().performTouchInput { down(Offset(width * .5f, height - 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
         val cue = compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true)
         cue.assertIsDisplayed()
         val viewport = compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
@@ -209,7 +209,7 @@ class CalendarInteractionTest {
         setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:30", 60)))
         compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
         traffic().assertContentDescriptionContains("预留 30 分钟", substring = true)
-        event().performTouchInput { down(Offset(width * .95f, height - 2f)); moveBy(Offset(0f, 26f), 300) }
+        event().performTouchInput { down(Offset(width * .95f, height - 2f)); advanceEventTime(600); moveBy(Offset(0f, 26f), 300) }
         traffic().assertDoesNotExist()
         event("b").assertContentDescriptionContains("预留 0 分钟", substring = true)
         compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true).assertIsDisplayed()
@@ -311,7 +311,7 @@ class CalendarInteractionTest {
         compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 0))) } }
         traffic().assertDoesNotExist()
         compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertTextEquals("步行 · 约0分钟")
-        event("b").performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(0f, 26f), 300) }
+        event("b").performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f, 26f), 300) }
         compose.onNodeWithTag("calendar-draft-incoming", useUnmergedTree = true).assertIsDisplayed()
         event("b").performTouchInput { cancel() }
         compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertIsDisplayed()
@@ -355,7 +355,7 @@ class CalendarInteractionTest {
     }
     @Test fun longPressBodyMovesWithoutChangingDuration() {
         setup()
-        event().performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(0f,26f),300); up() }
+        event().performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f,26f),300); up() }
         assertEquals(1, changes.size)
         assertEquals(LocalTime.of(10,10), changes.single().after.arrivalTime)
         assertEquals(90, changes.single().after.stayMinutes)
@@ -367,6 +367,73 @@ class CalendarInteractionTest {
         compose.onNodeWithTag("calendar-viewport").performTouchInput { swipeUp(durationMillis=300) }
         compose.onNodeWithTag("calendar-viewport").performTouchInput { swipeUp(durationMillis=300) }
         compose.onNodeWithText("24:00", useUnmergedTree=true).assertExists()
+    }
+    @Test fun quickSwipeFromUpperEdgeScrollsCalendarWithoutChangingArrival() {
+        setup()
+        val before = event().fetchSemanticsNode().boundsInRoot.top
+        event().performTouchInput {
+            down(Offset(width * .5f, 2f)); moveBy(Offset(0f, -60f), 100); up()
+        }
+        assertTrue("quick upper-edge swipe must not save timing", changes.isEmpty())
+        assertTrue("calendar should scroll", event().fetchSemanticsNode().boundsInRoot.top < before - 20f)
+        compose.onNodeWithTag("calendar-resize-start").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-detail").assertDoesNotExist()
+    }
+    @Test fun quickSwipeFromLowerEdgeScrollsCalendarWithoutChangingStay() {
+        setup(listOf(item(stay = null)))
+        val before = event().fetchSemanticsNode().boundsInRoot.top
+        event().performTouchInput {
+            down(Offset(width * .5f, height - 2f)); moveBy(Offset(0f, -60f), 100); up()
+        }
+        assertTrue("quick lower-edge swipe must not save timing", changes.isEmpty())
+        assertNull(raw.value.first().items.first().stayMinutes)
+        assertTrue("calendar should scroll", event().fetchSemanticsNode().boundsInRoot.top < before - 20f)
+        compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-detail").assertDoesNotExist()
+    }
+    @Test fun swipeThenPauseDoesNotTurnIntoResize() {
+        setup()
+        val before = event().fetchSemanticsNode().boundsInRoot.top
+        event().performTouchInput {
+            down(Offset(width * .5f, 2f))
+            moveBy(Offset(0f, -24f), 80)
+            advanceEventTime(700)
+            moveBy(Offset(0f, -30f), 100); up()
+        }
+        assertTrue(changes.isEmpty())
+        assertTrue(event().fetchSemanticsNode().boundsInRoot.top < before - 20f)
+        compose.onNodeWithTag("calendar-draft").assertDoesNotExist()
+    }
+    @Test fun briefHoldThenSwipeStillScrollsWithoutSaving() {
+        setup()
+        val before = event().fetchSemanticsNode().boundsInRoot.top
+        event().performTouchInput {
+            down(Offset(width * .8f, height - 2f)); advanceEventTime(300)
+            moveBy(Offset(0f, -60f), 100); up()
+        }
+        assertTrue(changes.isEmpty())
+        assertTrue(event().fetchSemanticsNode().boundsInRoot.top < before - 20f)
+    }
+    @Test fun edgeTapOpensDetailAndLongHoldWithoutMovementPreservesUnsetStay() {
+        setup(listOf(item(stay = null)))
+        event().performTouchInput { down(Offset(width * .5f, 2f)); advanceEventTime(100); up() }
+        compose.onNodeWithTag("calendar-detail").assertIsDisplayed()
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        event().performTouchInput { down(Offset(width * .5f, height - 2f)); advanceEventTime(600); up() }
+        assertTrue(changes.isEmpty())
+        assertNull(raw.value.first().items.first().stayMinutes)
+        compose.onNodeWithTag("calendar-detail").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
+    }
+    @Test fun longPressResizeWorksAtLeftCenterAndRightOfBothEdges() {
+        setup()
+        listOf(.04f, .5f, .96f).forEach { x ->
+            edge(x, false, 26f)
+            edge(x, true, 26f)
+        }
+        assertEquals(6, changes.size)
+        assertEquals(LocalTime.of(11, 10), changes.last().after.arrivalTime)
+        assertEquals(90, changes.last().after.stayMinutes)
     }
     @Test fun unsetStayUsesFullCardAndNoOpKeepsNull() {
         setup(listOf(item(stay=null)))
@@ -388,21 +455,21 @@ class CalendarInteractionTest {
         val source=pending.fetchSemanticsNode().boundsInRoot
         val grid=compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
         val delta=Offset(grid.left+110-source.center.x,grid.top+190-source.center.y)
-        pending.performTouchInput { down(center); advanceEventTime(500); moveBy(delta,400); up() }
+        pending.performTouchInput { down(center); advanceEventTime(600); moveBy(delta,400); up() }
         assertEquals(90, changes.single().after.stayMinutes)
         assertNull(changes.single().before.arrivalTime)
         compose.onNodeWithTag("calendar-pending-pending").assertDoesNotExist()
     }
     @Test fun pendingOutsideDropAndCancelledGestureDoNotWrite() {
         setup(listOf(item(),item("pending",null,null)))
-        compose.onNodeWithTag("calendar-pending-pending").performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(-200f,100f),300); up() }
+        compose.onNodeWithTag("calendar-pending-pending").performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(-200f,100f),300); up() }
         assertTrue(changes.isEmpty())
-        compose.onNodeWithTag("calendar-pending-pending").performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(0f,120f),300); cancel() }
+        compose.onNodeWithTag("calendar-pending-pending").performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f,120f),300); cancel() }
         assertTrue(changes.isEmpty())
     }
     @Test fun wholeTripIsReadOnlyAndTapFocusesSourceDay() {
         setup(whole=true,count=3)
-        event().performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(0f,26f),300); up() }
+        event().performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f,26f),300); up() }
         assertTrue(changes.isEmpty())
         event().assertIsDisplayed().performClick()
         assertEquals("day" to "a", focused)
@@ -439,7 +506,7 @@ class CalendarInteractionTest {
         setup(whole=true,count=3)
         event().assertIsDisplayed().performClick()
         compose.waitForIdle()
-        event().performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(0f,26f),300); up() }
+        event().performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f,26f),300); up() }
         assertEquals(1, changes.size)
         event().performSemanticsAction(SemanticsActions.RequestFocus) { it() }
         event().performKeyInput { pressKey(androidx.compose.ui.input.key.Key.Spacebar); pressKey(androidx.compose.ui.input.key.Key.DirectionDown); pressKey(androidx.compose.ui.input.key.Key.Escape) }
@@ -452,7 +519,7 @@ class CalendarInteractionTest {
         setup()
         val bounds=event().fetchSemanticsNode().boundsInRoot
         val viewport=compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
-        event().performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(0f,viewport.bottom-12-bounds.center.y),300) }
+        event().performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f,viewport.bottom-12-bounds.center.y),300) }
         val grid=compose.onNodeWithTag("calendar-grid")
         val before=grid.fetchSemanticsNode().config[androidx.compose.ui.semantics.SemanticsProperties.VerticalScrollAxisRange].value()
         compose.mainClock.advanceTimeBy(500)
@@ -464,7 +531,7 @@ class CalendarInteractionTest {
     }
     @Test fun externalTimingChangeDuringDragCancelsTheDraft() {
         setup()
-        event().performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(0f,26f),300) }
+        event().performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f,26f),300) }
         compose.runOnIdle { raw.value=raw.value.map { it.copy(items=listOf(item(arrival="11:00"))) } }
         event().performTouchInput { up() }
         assertTrue(changes.isEmpty())
