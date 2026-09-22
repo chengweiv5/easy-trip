@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -22,7 +23,7 @@ import com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi
 
 @Composable
 internal fun CalendarGrid(
-    days: List<CalendarDay>, single: String?, expandedGroup: Int?, focusId: String?,
+    days: List<CalendarDay>, trafficDays: List<CalendarDay>, single: String?, expandedGroup: Int?, focusId: String?,
     draftItem: ItineraryItemUi?, draftDayId: String?, draftTiming: ItineraryTiming?, draftMode: CalendarDragMode?,
     modifier: Modifier, editable: Boolean,
     onOpen: (String, String) -> Unit, onExpand: (Int) -> Unit, onOpenGroup: (String, String) -> Unit,
@@ -52,11 +53,17 @@ internal fun CalendarGrid(
                     }
                     drawLine(line, Offset.Zero, Offset(0f, size.height), 1.dp.toPx())
                 }
-                val hasTraffic = day.transfers.any { it.blockStart != null }
-                val trafficWidth = if (!hasTraffic) 0.dp else if (single == null && days.size > 1) 64.dp else 80.dp
-                val eventWidth = (maxWidth - trafficWidth).coerceAtLeast(1.dp)
-                if (hasTraffic) CalendarTraffic(day,
-                    Modifier.offset(x = eventWidth + 3.dp).width((trafficWidth - 9.dp).coerceAtLeast(1.dp)).fillMaxHeight(),
+                val eventWidth = maxWidth
+                val density = LocalDensity.current
+                val narrowTraffic = single == null
+                val currentEvents = trafficDays.firstOrNull { it.dayId == day.dayId }?.events.orEmpty()
+                val traffic = day.transfers.filter { it.fitsInline(eventWidth - 6.dp, narrowTraffic, density, currentEvents) }
+                val incomingRoutes = trafficDays.flatMap { target -> target.transfers.filter { transfer ->
+                        !transfer.fitsInline(eventWidth - 6.dp, narrowTraffic, density, target.events)
+                    } }.groupBy { it.sourceDayId to it.toId }
+                fun incoming(itemId: String, sourceDayId: String) = incomingRoutes[sourceDayId to itemId]?.firstOrNull()
+                CalendarTraffic(day.dayId, traffic, narrowTraffic,
+                    Modifier.offset(x = 3.dp).width((eventWidth - 6.dp).coerceAtLeast(1.dp)).fillMaxHeight(),
                     enabled = editable && draftItem == null, onOpen = onTraffic)
                 day.events.groupBy { it.group }.forEach { (group, events) ->
                     val hasPlaceholder = events.any { it.placeholder }
@@ -81,11 +88,15 @@ internal fun CalendarGrid(
                         val compact = !event.placeholder && event.end-event.start < 45
                         CalendarCard("${event.order}. ${event.item.name}", eventSubtitle(event),
                             Modifier.offset(x = groupLeft + groupWidth / event.laneCount * event.lane + 3.dp, y = (event.start * CALENDAR_MINUTE_DP).dp)
+                                .drawWithContent { if (draftItem?.id != event.item.id) drawContent() }
                                 .width(width).height(if (event.placeholder) CALENDAR_HOUR_DP.dp else if (event.point) 2.dp else ((event.end-event.start)*CALENDAR_MINUTE_DP).dp.coerceAtLeast(1.dp)).testTag("calendar-event-${event.key}"),
                             dashed = event.placeholder, conflict = event.conflicts.isNotEmpty() || event.trafficConflict,
                             accent = Color(com.yangchengwei.easytrip.workspace.routeColorForDay(event.sourceDayNumber - 1)),
                             editable = dragEnabled, edges = event.canDrag && !event.point, compact = compact,
                             selected = focusId == event.item.id,
+                            incoming = if (draftItem?.id == event.item.id) null else incoming(event.item.id, event.sourceDayId),
+                            narrowTraffic = narrowTraffic,
+                            incomingTag = "calendar-incoming-${day.dayId}-${incoming(event.item.id, event.sourceDayId)?.legId}",
                             onClick = { onOpen(event.sourceDayId, event.item.id) },
                             onStart = { mode, point, grab -> onStart(event.sourceDayId, event.item, mode, point, grab) },
                             onMove = onMove, onEnd = onEnd,
@@ -107,15 +118,14 @@ internal fun CalendarGrid(
                     val trafficConflict = day.transfers.any { it.conflict && (it.fromId == draftItem.id || it.toId == draftItem.id) }
                     val conflict = visitConflict || trafficConflict
                     val conflictLabel = if (visitConflict) " · 日程重叠" else if (trafficConflict) " · 交通预留不足" else ""
+                    val draftIncoming = incoming(draftItem.id, requireNotNull(draftDayId))
                     Surface(Modifier.offset(x = 3.dp, y = startY).width((eventWidth-6.dp).coerceAtLeast(1.dp)).height(draftHeight).testTag("calendar-draft"),
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .90f),
                         border = BorderStroke(2.dp, if (conflict) Color(0xFFBA5B37) else MaterialTheme.colorScheme.primary),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)) {
-                        Column(Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp,
-                            top = if (resizingStart && startY < markerHeight) markerHeight + 2.dp else 6.dp)) {
-                            Text(draftItem.name, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("${calendarTime(start)}–${calendarTime(start+duration)}$conflictLabel", fontSize = 10.sp, maxLines = 1)
-                        }
+                        CalendarCardText(draftItem.name, "${calendarTime(start)}–${calendarTime(start+duration)}$conflictLabel",
+                            conflict, duration < 45, draftIncoming, narrowTraffic, "calendar-draft-incoming",
+                            contentTopPadding = if (resizingStart && startY < markerHeight) markerHeight + 2.dp else null)
                     }
                     if (resizingStart || resizingEnd) {
                         val edgeY = if (resizingStart) startY else startY + draftHeight
