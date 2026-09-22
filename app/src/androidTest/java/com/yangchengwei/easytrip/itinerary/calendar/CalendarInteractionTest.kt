@@ -116,6 +116,19 @@ class CalendarInteractionTest {
         assertTrue(changes.isEmpty())
     }
 
+    @Test fun lateUnsetStayKeepsWholeLowerCueInsideScrollableContent() {
+        setup(listOf(item(arrival = "23:59", stay = null)))
+        event().performScrollTo().performTouchInput { down(Offset(width * .5f, height - 2f)) }
+        val cue = compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true)
+        cue.assertIsDisplayed()
+        val viewport = compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
+        val bounds = cue.fetchSemanticsNode().boundsInRoot
+        assertEquals(20f, bounds.height, 1f)
+        assertTrue("$bounds must fit within $viewport", bounds.bottom <= viewport.bottom + 1f)
+        event().performTouchInput { cancel() }
+        assertTrue(changes.isEmpty())
+    }
+
     @Test fun trafficWarningStaysOnCardAndDetailWithoutBottomStrip() {
         setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)))
         compose.runOnIdle {
