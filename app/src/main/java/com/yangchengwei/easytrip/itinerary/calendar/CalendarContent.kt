@@ -232,7 +232,6 @@ fun CalendarContent(
         }
         if (saveState.saving) LinearProgressIndicator(Modifier.fillMaxWidth().testTag("calendar-saving"))
         BoxWithConstraints(Modifier.weight(1f)) {
-            val calendarWidth = maxWidth
             val columns = if (maxWidth < 250.dp || density.fontScale > 1.2f) 1 else 2
             val lastPage = (days.size - columns).coerceAtLeast(0)
             val currentPage = page.coerceIn(0, lastPage)
@@ -264,10 +263,6 @@ fun CalendarContent(
                     projectCalendarDays(updated)
                 }
                 val previewDays = shown.map { day -> day.copy(transfers = trafficDays.firstOrNull { it.dayId == day.dayId }?.transfers.orEmpty()) }
-                val pendingTrafficWidth = if (single == null) (calendarWidth - 36.dp) / columns - 6.dp else calendarWidth - 42.dp
-                val pendingIncoming = trafficDays.flatMap { day -> day.transfers.filter {
-                    !it.fitsInline(pendingTrafficWidth, single == null, density, day.events)
-                } }.groupBy { it.sourceDayId to it.toId }
                 if (shown.any { it.pending.isNotEmpty() }) {
                     Text("待安排 · ${shown.sumOf { it.pending.size }}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(vertical = 4.dp))
                     if (single != null) {
@@ -276,8 +271,6 @@ fun CalendarContent(
                                 val editable = !saveState.saving && (item.stayMinutes == null || item.stayMinutes in 1..1440)
                                 CalendarCard(item.name, "到达待设 · ${item.stayMinutes?.let { "停留 $it 分钟" } ?: "停留待设"}",
                                     Modifier.width(190.dp).height(52.dp).testTag("calendar-pending-${item.id}"), dashed = true, pending = true, editable = editable,
-                                    incoming = pendingIncoming[single to item.id]?.firstOrNull(),
-                                    incomingTag = "calendar-pending-incoming-${item.id}",
                                     onClick = { open(single, item.id) },
                                     onStart = { mode, point, grab -> start(single, item, mode, point, grab) }, onMove = { move(it) }, onEnd = { finish(it) },
                                     onKeyboardStart = { keyStart(single, item) }, onKeyboardStep = { keyStep(it) }, onKeyboardEnd = { finish(it) })
@@ -287,8 +280,7 @@ fun CalendarContent(
                         shown.forEach { day ->
                             Column(Modifier.weight(1f).heightIn(max = 112.dp).verticalScroll(rememberScrollState())) {
                                 day.pending.forEach { item -> CalendarCard(item.name, "到达待设", Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 2.dp).testTag("calendar-pending-${item.id}"), dashed = true,
-                                    incoming = pendingIncoming[day.dayId to item.id]?.firstOrNull(), narrowTraffic = true,
-                                    incomingTag = "calendar-pending-incoming-${item.id}", onClick = { open(day.dayId, item.id) }) }
+                                    onClick = { open(day.dayId, item.id) }) }
                             }
                         }
                     }

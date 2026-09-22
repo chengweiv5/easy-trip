@@ -12,7 +12,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
@@ -66,20 +65,17 @@ private fun trafficPaint(density: Density) = Paint(Paint.ANTI_ALIAS_FLAG).apply 
     textSize = with(density) { 10.sp.toPx() }
 }
 
-/** Use glyph bounds: Android's CJK fallback adds blank ascent beyond the visible one-line text. */
-internal fun CalendarTransfer.fitsInline(
+/** Measure visible glyphs, then place the label in the free space between visits. */
+private fun CalendarTransfer.trafficLayout(
     width: Dp, compact: Boolean, density: Density, events: List<CalendarEvent>,
-): Boolean {
-    val start = blockStart ?: return false
-    val end = blockEnd ?: return false
-    if (end - start < 15) return false
-    if (events.any { it.placeholder && it.start < end && start < it.end }) return false
+    transfers: List<CalendarTransfer>,
+): CalendarTrafficLayout? {
     val label = summary(compact)
     val paint = trafficPaint(density)
     val ink = Rect().also { paint.getTextBounds(label, 0, label.length, it) }
     return with(density) {
-        paint.measureText(label) <= (width - 14.dp).toPx() &&
-            ink.height() + 1.dp.toPx() <= ((end - start) * CALENDAR_MINUTE_DP).dp.toPx()
+        if (paint.measureText(label) > (width - 14.dp).toPx()) return null
+        layoutInGap(events, transfers, (ink.height() + 1.dp.toPx()) / CALENDAR_MINUTE_DP.dp.toPx())
     }
 }
 
@@ -100,23 +96,26 @@ internal fun TrafficLine(label: String, modifier: Modifier = Modifier.fillMaxSiz
 
 @Composable
 internal fun CalendarTraffic(
-    dayId: String, transfers: List<CalendarTransfer>, compact: Boolean,
+    dayId: String, transfers: List<CalendarTransfer>, events: List<CalendarEvent>, compact: Boolean,
     modifier: Modifier, enabled: Boolean, onOpen: (CalendarTransfer) -> Unit,
 ) {
-    Box(modifier) {
+    BoxWithConstraints(modifier) {
+        val density = LocalDensity.current
         transfers.forEach { transfer ->
-            val start = requireNotNull(transfer.blockStart)
-            val end = requireNotNull(transfer.blockEnd)
+            val layout = transfer.trafficLayout(maxWidth, compact, density, events, transfers) ?: return@forEach
             val shape = RoundedCornerShape(6.dp)
-            Box(Modifier.offset(y = (start * CALENDAR_MINUTE_DP).dp).fillMaxWidth()
-                .height(((end - start) * CALENDAR_MINUTE_DP).dp)
+            Box(Modifier.offset(y = (layout.start * CALENDAR_MINUTE_DP).dp).fillMaxWidth()
+                .height(((layout.end - layout.start) * CALENDAR_MINUTE_DP).dp)
                 .testTag("calendar-traffic-$dayId-${transfer.legId}")
-                .clip(shape).background(Color(0xFFEAF5F2))
-                .border(BorderStroke(.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = .4f)), shape)
                 .semantics(mergeDescendants = true) { contentDescription = transfer.description() }
-                .clickable(enabled = enabled) { onOpen(transfer) }, contentAlignment = Alignment.CenterStart) {
-                Box(Modifier.matchParentSize().testTag("calendar-traffic-interval-$dayId-${transfer.legId}"))
-                TrafficLine(transfer.summary(compact))
+                .clickable(enabled = enabled) { onOpen(transfer) }) {
+                Box(Modifier.fillMaxWidth().height(((layout.intervalEnd - layout.start) * CALENDAR_MINUTE_DP).dp)
+                    .testTag("calendar-traffic-interval-$dayId-${transfer.legId}")
+                    .clip(shape).background(Color(0xFFEAF5F2))
+                    .border(BorderStroke(.5.dp, MaterialTheme.colorScheme.primary.copy(alpha = .4f)), shape))
+                TrafficLine(transfer.summary(compact), Modifier
+                    .offset(y = ((layout.labelStart - layout.start) * CALENDAR_MINUTE_DP).dp)
+                    .fillMaxWidth().height(with(density) { (trafficInkSize(transfer.summary(compact), density).height + 1.dp.toPx()).toDp() }))
             }
         }
     }

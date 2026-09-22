@@ -217,6 +217,56 @@ class CalendarInteractionTest {
 
     private fun traffic() = compose.onNodeWithTag("calendar-traffic-day-traffic")
 
+    @Test fun twoMinuteWalkUsesThirtyMinuteGapOutsideDestination() {
+        setup(listOf(item(arrival = "15:00", stay = 60), item("b", "16:30", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 120))) } }
+        traffic().assertIsDisplayed().assertTextContains("步行 · 约2分钟")
+        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
+        val bounds = traffic().fetchSemanticsNode().boundsInRoot
+        assertTrue(bounds.top >= event().fetchSemanticsNode().boundsInRoot.bottom - 1f)
+        assertTrue(bounds.bottom <= event("b").fetchSemanticsNode().boundsInRoot.top + 1f)
+        val interval = compose.onNodeWithTag("calendar-traffic-interval-day-traffic", useUnmergedTree = true)
+            .fetchSemanticsNode().boundsInRoot
+        assertEquals(2 * CALENDAR_MINUTE_DP, interval.height, .5f)
+        saveResizeEvidence("calendar-traffic-two-minute-gap.jpg")
+    }
+
+    @Test fun draggingDestinationAcrossGapThresholdUpdatesImmediatelyAndCancelRestores() {
+        setup(listOf(item(arrival = "15:00", stay = 60), item("b", "16:00", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 120))) } }
+        traffic().assertDoesNotExist()
+        event("b").performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f, 26f), 300) }
+        traffic().assertIsDisplayed().assertTextContains("步行 · 约2分钟")
+        compose.onNodeWithTag("calendar-draft-incoming", useUnmergedTree = true).assertDoesNotExist()
+        event("b").performTouchInput { cancel() }
+        traffic().assertDoesNotExist()
+        assertTrue(changes.isEmpty())
+        event("b").performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f, 26f), 300); up() }
+        traffic().assertIsDisplayed()
+        assertEquals(LocalTime.of(16, 30), changes.single().after.arrivalTime)
+        assertEquals(120, raw.value.single().legs.single().effectiveDurationSeconds)
+    }
+
+    @Test fun wholeTripShortWalkFitsGapAndOpensSourceDay() {
+        setup(listOf(item(arrival = "15:00", stay = 60), item("b", "16:30", 60)), whole = true, count = 2)
+        compose.runOnIdle { raw.value = raw.value.mapIndexed { i, day ->
+            if (i == 0) day.copy(legs = listOf(route("traffic", 120))) else day
+        } }
+        traffic().assertIsDisplayed().assertTextContains("步行 · 约2分")
+        assertTrue(traffic().fetchSemanticsNode().boundsInRoot.bottom <= event("b").fetchSemanticsNode().boundsInRoot.top)
+        traffic().performClick()
+        assertEquals("day" to "a", focused)
+        assertNull(openedRoute)
+    }
+
+    @Test fun largeFontShortWalkFitsThirtyMinuteGapWithoutCoveringDestination() {
+        setup(listOf(item(arrival = "15:00", stay = 60), item("b", "16:30", 60)), scale = 1.5f)
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 120))) } }
+        traffic().assertIsDisplayed()
+        assertTrue(traffic().fetchSemanticsNode().boundsInRoot.bottom <= event("b").fetchSemanticsNode().boundsInRoot.top)
+        saveResizeEvidence("calendar-traffic-two-minute-large-font.jpg")
+    }
+
     @Test fun trafficBlockShowsEstimateAndTrueIntervalWithoutCoveringVisitEdges() {
         setup(listOf(item(arrival = "09:00", stay = 60), item("b", "12:00", 60)))
         compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
@@ -231,17 +281,29 @@ class CalendarInteractionTest {
         assertEquals("traffic", openedRoute)
     }
 
-    @Test fun squeezedAndFullyOccupiedTrafficRemainVisible() {
+    @Test fun gapsUnderThirtyMinutesHideTrafficWithoutDestinationFallback() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:29", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 120))) } }
+        traffic().assertDoesNotExist()
+        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
+        event("b").assertContentDescriptionContains("10:29", substring = true)
+        compose.runOnIdle { raw.value = raw.value.map { day -> day.copy(items = day.items.map {
+            if (it.id == "b") it.copy(arrivalTime = LocalTime.of(10, 30)) else it
+        }) } }
+        traffic().assertIsDisplayed()
+        traffic().performClick()
+        assertEquals("traffic", openedRoute)
+    }
+
+    @Test fun hiddenTrafficRemainsAccessibleInDestinationDetail() {
         setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)))
         compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
-        traffic().assertIsDisplayed().assertContentDescriptionContains("预留 15 分钟", substring = true)
-        assertEquals(13f, compose.onNodeWithTag("calendar-traffic-interval-day-traffic", useUnmergedTree = true).fetchSemanticsNode().boundsInRoot.height, 1f)
-        saveResizeEvidence("calendar-traffic-squeezed.jpg")
-        compose.runOnIdle { raw.value = raw.value.map { day -> day.copy(items = day.items.map { if (it.id == "b") it.copy(arrivalTime = LocalTime.of(10, 0)) else it }) } }
         traffic().assertDoesNotExist()
-        event("b").assertContentDescriptionContains("预留 0 分钟", substring = true)
-        event("b").assertContentDescriptionContains("交通可能来不及", substring = true)
-        saveResizeEvidence("calendar-traffic-zero.jpg")
+        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
+        event("b").assertContentDescriptionContains("交通可能来不及", substring = true).performClick()
+        compose.onNodeWithTag("calendar-detail-incoming-traffic").performScrollTo()
+            .assertTextContains("预计约 60 分钟", substring = true).performClick()
+        assertEquals("traffic", openedRoute)
     }
 
     @Test fun visitResizeLiveSqueezesTrafficThenCancelRestoresAndSavePersistsOnlyVisit() {
@@ -250,20 +312,20 @@ class CalendarInteractionTest {
         traffic().assertContentDescriptionContains("预留 30 分钟", substring = true)
         event().performTouchInput { down(Offset(width * .95f, height - 2f)); advanceEventTime(600); moveBy(Offset(0f, 26f), 300) }
         traffic().assertDoesNotExist()
-        event("b").assertContentDescriptionContains("预留 0 分钟", substring = true)
+        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true).assertIsDisplayed()
         saveResizeEvidence("calendar-traffic-drag.jpg")
         event().performTouchInput { cancel() }
         traffic().assertContentDescriptionContains("预留 30 分钟", substring = true)
         assertTrue(changes.isEmpty())
         edge(.05f, false, 26f)
-        event("b").assertContentDescriptionContains("预留 0 分钟", substring = true)
+        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
         assertEquals(90, changes.single().after.stayMinutes)
         assertEquals(3600, raw.value.single().legs.single().effectiveDurationSeconds)
     }
 
     @Test fun wholeTripShowsTrafficAndOpensSourceDayBeforeEditingRoute() {
-        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)), whole = true, count = 2, width = 390)
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:30", 60)), whole = true, count = 2, width = 390)
         compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day -> if (index == 0) day.copy(legs = listOf(route("traffic", 3600))) else day } }
         traffic().assertIsDisplayed()
         saveResizeEvidence("calendar-traffic-whole.jpg")
@@ -274,7 +336,7 @@ class CalendarInteractionTest {
     }
 
     @Test fun narrowWholeTripKeepsReadableVisitAndTrafficAndCanPage() {
-        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)), whole = true, count = 2, width = 220)
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:30", 60)), whole = true, count = 2, width = 220)
         compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day -> if (index == 0) day.copy(legs = listOf(route("traffic", 3600))) else day } }
         compose.onNodeWithTag("calendar-date-day2").assertDoesNotExist()
         assertTrue(event().fetchSemanticsNode().boundsInRoot.width >= 150f)
@@ -284,24 +346,24 @@ class CalendarInteractionTest {
         compose.onNodeWithTag("calendar-date-day2").assertIsDisplayed()
     }
 
-    @Test fun midnightTrafficDisplaysContinuationAndUnknownDepartureStaysInDetail() {
+    @Test fun midnightTrafficWithoutDestinationGapRemainsInDetail() {
         setup(listOf(item(arrival = "23:00", stay = 30), item("b", null)), whole = true, count = 2, width = 390)
-        compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day -> if (index == 0) day.copy(legs = listOf(route("traffic", 3600))) else day.copy(items = emptyList()) } }
-        compose.onNodeWithTag("calendar-traffic-day2-traffic").performScrollTo().assertIsDisplayed()
-            .assertContentDescriptionContains("本段预留 30 分钟", substring = true)
-        compose.onNodeWithTag("calendar-traffic-day2-traffic").performClick()
-        assertEquals("day" to "a", focused)
-        compose.runOnIdle { raw.value = raw.value.map { day -> day.copy(items = day.items.map { it.copy(stayMinutes = null) }) } }
+        compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day ->
+            if (index == 0) day.copy(legs = listOf(route("traffic", 3600))) else day.copy(items = emptyList())
+        } }
         traffic().assertDoesNotExist()
+        compose.onNodeWithTag("calendar-traffic-day2-traffic").assertDoesNotExist()
         event().performScrollTo().performClick()
+        assertEquals("day" to "a", focused)
+        event().performClick()
         compose.onNodeWithTag("calendar-detail-route-traffic").performScrollTo().assertIsDisplayed()
     }
 
-    @Test fun largeFontTrafficFallsBackWithoutInventingExtraHeight() {
+    @Test fun largeFontShortGapHidesTrafficWithoutInventingExtraHeight() {
         setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 120)), whole = true, count = 2, scale = 1.5f)
         compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day -> if (index == 0) day.copy(legs = listOf(route("traffic", 3600))) else day } }
         traffic().assertDoesNotExist()
-        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
         assertEquals(104f, event("b").fetchSemanticsNode().boundsInRoot.height, 1f)
         saveResizeEvidence("calendar-traffic-large-font.jpg")
         event("b").performClick()
@@ -311,14 +373,13 @@ class CalendarInteractionTest {
             .assertTextContains("预留 15 分钟", substring = true)
     }
 
-    @Test fun denseShortTrafficUsesDestinationCardsAndDetailsWithoutDisplacedLabels() {
+    @Test fun denseShortGapsHideTrafficButKeepRouteDetails() {
         setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:05", 5), item("c", "10:15", 90)))
         compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 1800), route("second", 2400).copy(fromItemId = "b", toItemId = "c"))) } }
         traffic().assertDoesNotExist()
         compose.onNodeWithTag("calendar-traffic-day-second").assertDoesNotExist()
         compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
-        compose.onNodeWithTag("calendar-incoming-day-second", useUnmergedTree = true).assertIsDisplayed()
-            .assertTextEquals("步行 · 约40分钟")
+        compose.onNodeWithTag("calendar-incoming-day-second", useUnmergedTree = true).assertDoesNotExist()
         event("b").performTouchInput { click(center) }
         compose.onNodeWithTag("calendar-detail-incoming-traffic").performScrollTo()
             .assertTextContains("预计约 30 分钟", substring = true).performClick()
@@ -326,7 +387,7 @@ class CalendarInteractionTest {
     }
 
     @Test fun trafficDoesNotReduceTwoDayColumnWidth() {
-        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)), whole = true, count = 2)
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:30", 60)), whole = true, count = 2)
         compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day -> if (index == 0) day.copy(legs = listOf(route("traffic", 1800))) else day } }
         compose.onNodeWithTag("calendar-date-day2").assertIsDisplayed()
         assertEquals(115f, event().fetchSemanticsNode().boundsInRoot.width, 1f)
@@ -334,37 +395,35 @@ class CalendarInteractionTest {
         assertEquals(event().fetchSemanticsNode().boundsInRoot.width, traffic().fetchSemanticsNode().boundsInRoot.width, 1f)
     }
 
-    @Test fun placeholderCannotHideTrafficAndUnknownEstimateStaysReachableAtDestination() {
+    @Test fun placeholderBlocksTrafficAndUnknownEstimateStaysReachableInDetail() {
         setup(listOf(item(arrival = "09:00", stay = 60), item("b", "11:00", 90), item("unset", "10:00", null)))
         compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 1800))) } }
         traffic().assertDoesNotExist()
-        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
         compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", null))) } }
         event("b").performClick()
         compose.onNodeWithTag("calendar-detail-incoming-traffic").performScrollTo().assertIsDisplayed()
             .assertTextContains("待", substring = true)
     }
 
-    @Test fun zeroEstimateUsesDestinationAndIncomingRouteSurvivesDraftCancel() {
+    @Test fun zeroEstimateStaysHiddenDuringDragAndCancel() {
         setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:00", 60)))
         compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 0))) } }
         traffic().assertDoesNotExist()
-        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertTextEquals("步行 · 约0分钟")
+        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
         event("b").performTouchInput { down(center); advanceEventTime(600); moveBy(Offset(0f, 26f), 300) }
-        compose.onNodeWithTag("calendar-draft-incoming", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("calendar-draft-incoming", useUnmergedTree = true).assertDoesNotExist()
         event("b").performTouchInput { cancel() }
-        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
         assertTrue(changes.isEmpty())
     }
 
-    @Test fun shortTrafficAppearsOnPendingDestinationInSingleAndWholeTrip() {
+    @Test fun unknownDestinationGapHidesTrafficInSingleAndWholeTrip() {
         setup(listOf(item(arrival = "09:00", stay = 60), item("b", null, 60)), whole = true, count = 2)
         compose.runOnIdle { raw.value = raw.value.mapIndexed { i, day -> if (i == 0) day.copy(legs = listOf(route("traffic", 600))) else day } }
-        compose.onNodeWithTag("calendar-pending-incoming-b", useUnmergedTree = true).assertIsDisplayed()
-            .assertTextEquals("步行 · 约10分")
+        compose.onNodeWithTag("calendar-pending-incoming-b", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag("calendar-pending-b").performClick()
-        compose.onNodeWithTag("calendar-pending-incoming-b", useUnmergedTree = true).assertIsDisplayed()
-            .assertTextEquals("步行 · 约10分钟")
+        compose.onNodeWithTag("calendar-pending-incoming-b", useUnmergedTree = true).assertDoesNotExist()
     }
 
     private fun route(id: String, seconds: Int?) = com.yangchengwei.easytrip.itinerary.ui.RouteLegUi(

@@ -27,7 +27,6 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.PlatformTextStyle
 import androidx.compose.ui.unit.dp
@@ -65,9 +64,6 @@ internal fun CalendarCard(
     selected: Boolean = false,
     compact: Boolean = false,
     accent: Color? = null,
-    incoming: CalendarTransfer? = null,
-    narrowTraffic: Boolean = false,
-    incomingTag: String = "calendar-incoming",
     contentTopPadding: androidx.compose.ui.unit.Dp? = null,
     onClick: () -> Unit,
     onStart: (CalendarDragMode, Offset, Float) -> Unit = { _, _, _ -> },
@@ -91,7 +87,7 @@ internal fun CalendarCard(
     Box(modifier.onGloballyPositioned { origin = it.positionInRoot() }
         .clip(RoundedCornerShape(6.dp)).background(surface)
         .semantics(mergeDescendants = true) {
-            contentDescription = "$title，$subtitle${if (conflict) "，时间重叠" else ""}${incoming?.let { "，${it.description()}" }.orEmpty()}"
+            contentDescription = "$title，$subtitle${if (conflict) "，时间重叠" else ""}"
             onClick("查看日程详情") { latestClick(); true }
             if (editable) customActions = buildList {
                 add(CustomAccessibilityAction("精确编辑时间") { latestClick(); true })
@@ -174,7 +170,7 @@ internal fun CalendarCard(
                 pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 3.dp.toPx())) else null,
             ))
         }
-        CalendarCardText(title, subtitle, conflict, compact, incoming, narrowTraffic, incomingTag, contentTopPadding)
+        CalendarCardText(title, subtitle, conflict, compact, contentTopPadding)
 
     }
 }
@@ -183,33 +179,14 @@ internal fun CalendarCard(
 @Composable
 internal fun CalendarCardText(
     title: String, subtitle: String, conflict: Boolean, compact: Boolean,
-    incoming: CalendarTransfer?, narrowTraffic: Boolean, incomingTag: String,
     contentTopPadding: androidx.compose.ui.unit.Dp? = null,
 ) {
-    val density = LocalDensity.current
-    val textMeasurer = rememberTextMeasurer()
-    BoxWithConstraints(Modifier.fillMaxSize()) {
-        val titleStyle = TextStyle(fontSize = 12.sp, lineHeight = 15.sp, platformStyle = PlatformTextStyle(includeFontPadding = false))
-        val subtitleStyle = trafficTextStyle
-        val incomingText = incoming?.summary(narrowTraffic)
-        val trafficSize = incomingText?.let { trafficInkSize(it, density) }
-        val titleHeight = textMeasurer.measure(title, titleStyle, maxLines = 1, softWrap = false).size.height
-        val subtitleHeight = textMeasurer.measure(subtitle, subtitleStyle, maxLines = 1, softWrap = false).size.height
-        val showIncoming = !compact && trafficSize != null && with(density) {
-            trafficSize.width <= (maxWidth - 14.dp).toPx() &&
-                titleHeight + subtitleHeight + trafficSize.height + (5.dp + (contentTopPadding ?: 2.dp) - 2.dp).toPx() <= maxHeight.toPx()
-        }
-        Column(Modifier.fillMaxWidth().padding(start = 7.dp, end = 7.dp,
-            top = contentTopPadding ?: if (compact || showIncoming) 2.dp else 6.dp,
-            bottom = if (compact || showIncoming) 2.dp else 6.dp)) {
-            Text(title, color = MaterialTheme.colorScheme.onSurface, style = titleStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
-            if (!compact) Text(subtitle, color = if (conflict) Color(0xFF9F4527) else MaterialTheme.colorScheme.onSurfaceVariant,
-                style = subtitleStyle, maxLines = if (showIncoming) 1 else 2, overflow = TextOverflow.Ellipsis)
-            if (showIncoming) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.primary.copy(alpha = .2f))
-                TrafficLine(requireNotNull(incomingText), Modifier.offset(x = (-7).dp).fillMaxWidth()
-                    .height(with(density) { requireNotNull(trafficSize).height.toDp() }).testTag(incomingTag))
-            }
-        }
+    val titleStyle = TextStyle(fontSize = 12.sp, lineHeight = 15.sp, platformStyle = PlatformTextStyle(includeFontPadding = false))
+    Column(Modifier.fillMaxWidth().padding(start = 7.dp, end = 7.dp,
+        top = contentTopPadding ?: if (compact) 2.dp else 6.dp,
+        bottom = if (compact) 2.dp else 6.dp)) {
+        Text(title, color = MaterialTheme.colorScheme.onSurface, style = titleStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        if (!compact) Text(subtitle, color = if (conflict) Color(0xFF9F4527) else MaterialTheme.colorScheme.onSurfaceVariant,
+            style = trafficTextStyle, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }
 }

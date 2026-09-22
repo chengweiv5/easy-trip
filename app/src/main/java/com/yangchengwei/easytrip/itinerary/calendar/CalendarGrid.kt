@@ -54,15 +54,9 @@ internal fun CalendarGrid(
                     drawLine(line, Offset.Zero, Offset(0f, size.height), 1.dp.toPx())
                 }
                 val eventWidth = maxWidth
-                val density = LocalDensity.current
                 val narrowTraffic = single == null
                 val currentEvents = trafficDays.firstOrNull { it.dayId == day.dayId }?.events.orEmpty()
-                val traffic = day.transfers.filter { it.fitsInline(eventWidth - 6.dp, narrowTraffic, density, currentEvents) }
-                val incomingRoutes = trafficDays.flatMap { target -> target.transfers.filter { transfer ->
-                        !transfer.fitsInline(eventWidth - 6.dp, narrowTraffic, density, target.events)
-                    } }.groupBy { it.sourceDayId to it.toId }
-                fun incoming(itemId: String, sourceDayId: String) = incomingRoutes[sourceDayId to itemId]?.firstOrNull()
-                CalendarTraffic(day.dayId, traffic, narrowTraffic,
+                CalendarTraffic(day.dayId, day.transfers, currentEvents, narrowTraffic,
                     Modifier.offset(x = 3.dp).width((eventWidth - 6.dp).coerceAtLeast(1.dp)).fillMaxHeight(),
                     enabled = editable && draftItem == null, onOpen = onTraffic)
                 day.events.groupBy { it.group }.forEach { (group, events) ->
@@ -94,9 +88,6 @@ internal fun CalendarGrid(
                             accent = Color(com.yangchengwei.easytrip.workspace.routeColorForDay(event.sourceDayNumber - 1)),
                             editable = dragEnabled, edges = event.canDrag && !event.point, compact = compact,
                             selected = focusId == event.item.id,
-                            incoming = if (draftItem?.id == event.item.id) null else incoming(event.item.id, event.sourceDayId),
-                            narrowTraffic = narrowTraffic,
-                            incomingTag = "calendar-incoming-${day.dayId}-${incoming(event.item.id, event.sourceDayId)?.legId}",
                             onClick = { onOpen(event.sourceDayId, event.item.id) },
                             onStart = { mode, point, grab -> onStart(event.sourceDayId, event.item, mode, point, grab) },
                             onMove = onMove, onEnd = onEnd,
@@ -117,13 +108,12 @@ internal fun CalendarGrid(
                     val trafficConflict = day.transfers.any { it.conflict && (it.fromId == draftItem.id || it.toId == draftItem.id) }
                     val conflict = visitConflict || trafficConflict
                     val conflictLabel = if (visitConflict) " · 日程重叠" else if (trafficConflict) " · 交通预留不足" else ""
-                    val draftIncoming = incoming(draftItem.id, requireNotNull(draftDayId))
                     Surface(Modifier.offset(x = 3.dp, y = startY).width((eventWidth-6.dp).coerceAtLeast(1.dp)).height(draftHeight).testTag("calendar-draft"),
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .90f),
                         border = BorderStroke(2.dp, if (conflict) Color(0xFFBA5B37) else MaterialTheme.colorScheme.primary),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)) {
                         CalendarCardText(draftItem.name, "${calendarTime(start)}–${calendarTime(start+duration)}$conflictLabel",
-                            conflict, duration < 45, draftIncoming, narrowTraffic, "calendar-draft-incoming")
+                            conflict, duration < 45)
                     }
                     if (resizingStart || resizingEnd) {
                         val edgeY = if (resizingStart) startY else startY + draftHeight
