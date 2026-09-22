@@ -295,19 +295,6 @@ fun CalendarContent(
                         })
                     }
                 }
-                // Short events retain their truthful grid height; a separate 48dp target opens precise editing.
-                val compactEvents = shown.flatMap { it.events }.filter { it.point || !it.placeholder && (it.end - it.start) * CALENDAR_MINUTE_DP < 48 }
-                if (compactEvents.isNotEmpty()) LazyRow(Modifier.height(48.dp).fillMaxWidth()) {
-                    items(compactEvents, key = { it.key }) { event ->
-                        CalendarCard(event.item.name, "${calendarTime(event.start)} · ${if(event.point) "停留0分钟" else "停留${event.item.stayMinutes}分钟"}",
-                            Modifier.width(170.dp).height(48.dp).testTag("calendar-short-${event.item.id}"),
-                            editable = event.point && single == event.sourceDayId && !saveState.saving,
-                            onClick = { open(event.sourceDayId, event.item.id) },
-                            onStart = { mode, point, grab -> start(event.sourceDayId, event.item, mode, point, grab) }, onMove = { move(it) }, onEnd = { finish(it) },
-                            onStep = { mode, delta -> step(event.sourceDayId, event.item, mode, delta) },
-                            onKeyboardStart = { keyStart(event.sourceDayId, event.item) }, onKeyboardStep = { keyStep(it) }, onKeyboardEnd = { finish(it) })
-                    }
-                }
             }
         }
     }

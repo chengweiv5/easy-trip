@@ -364,10 +364,21 @@ class CalendarInteractionTest {
         compose.onNodeWithTag("calendar-date-day4").assertDoesNotExist()
         compose.onNodeWithText("›").assertIsNotEnabled()
     }
-    @Test fun shortAndCrossMidnightEventsOpenPreciseDetails() {
-        setup(listOf(item(stay=10),item("late","23:30",120)))
-        compose.onNodeWithTag("calendar-short-a").assertIsDisplayed().performClick()
+    @Test fun shortAndZeroMinuteEventsOpenFromTimelineWithoutDuplicateFooter() {
+        setup(listOf(item(stay=10),item("zero","10:30",0),item("late","23:30",120)))
+        compose.onNodeWithTag("calendar-short-a").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-short-zero").assertDoesNotExist()
+        val content = compose.onNodeWithTag("calendar-content").fetchSemanticsNode().boundsInRoot
+        val viewport = compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
+        assertEquals(content.bottom, viewport.bottom, 1f)
+        assertEquals(10 * CALENDAR_MINUTE_DP, event().fetchSemanticsNode().boundsInRoot.height, 1f)
+        saveResizeEvidence("calendar-without-short-footer.jpg")
+        event().performTouchInput { click(center) }
         compose.onNodeWithTag("calendar-detail-edit").assertIsDisplayed()
+        compose.onNodeWithText("停留：10 分钟").assertIsDisplayed()
+        compose.runOnIdle { compose.activity.onBackPressedDispatcher.onBackPressed() }
+        event("zero").performScrollTo().performTouchInput { click(center) }
+        compose.onNodeWithText("停留：0 分钟").assertIsDisplayed()
     }
     @Test fun movingAfterWholeToSingleUsesCurrentDayAndKeyboardCancelsOrCommits() {
         setup(whole=true,count=3)
@@ -418,11 +429,14 @@ class CalendarInteractionTest {
         compose.onNodeWithText("1. 西湖天地 · 09:40–11:10").performClick()
         compose.onNodeWithTag("calendar-detail").assertIsDisplayed()
     }
-    @Test fun unsetCardsNeverBecomeRealOverlapAggregateAndFortyMinuteCardHasPreciseTarget() {
+    @Test fun unsetCardsNeverBecomeRealOverlapAggregateAndFortyMinuteCardOpensOnTimeline() {
         setup(listOf(item(stay=null),item("b",stay=null),item("c",stay=null),item("short","12:00",40)))
         compose.onNodeWithTag("calendar-overlap-day-1").assertDoesNotExist()
         event().assertIsDisplayed()
-        compose.onNodeWithTag("calendar-short-short").assertHeightIsAtLeast(48.dp)
+        compose.onNodeWithTag("calendar-short-short").assertDoesNotExist()
+        assertEquals(40 * CALENDAR_MINUTE_DP, event("short").fetchSemanticsNode().boundsInRoot.height, 1f)
+        event("short").performScrollTo().performTouchInput { click(center) }
+        compose.onNodeWithText("停留：40 分钟").assertIsDisplayed()
     }
     @Test fun wholeTripOverlapsOpenDayAndReadableGroupInOneTap() {
         setup(listOf(item(),item("b")),whole=true,count=2)
