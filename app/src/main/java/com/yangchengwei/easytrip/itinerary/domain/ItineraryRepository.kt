@@ -35,8 +35,10 @@ interface ItineraryRepository {
     suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int)
     suspend fun deleteItem(itemId: String)
     suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?)
-    /** Implementations must perform an atomic comparison; unsupported writers reject safely. */
-    suspend fun compareAndSetTiming(change: ItineraryTimingChange): Boolean = false
+    /** Atomically saves calendar timing, occurrence order and adjacent routes; null rejects stale edits.
+     * Returns the applied order snapshots so undo can restore the exact previous position.
+     */
+    suspend fun compareAndSetTiming(change: ItineraryTimingChange): ItineraryTimingChange? = null
     suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?)
     suspend fun removePlaceOccurrences(placeId: String)
 }

@@ -10,6 +10,8 @@ import com.yangchengwei.easytrip.core.model.RouteStatus
 import com.yangchengwei.easytrip.core.model.TimeMode
 import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.model.TravelMode
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange
 import com.yangchengwei.easytrip.place.data.SavedPlaceEntity
 import com.yangchengwei.easytrip.trip.data.TripDayEntity
 import com.yangchengwei.easytrip.trip.data.TripEntity
@@ -53,38 +55,153 @@ class ItineraryTransactionTest {
 
     @After fun tearDown() = database.close()
 
+    @Test fun calendarPlacedMorningHotelBecomesFirstVisitAndRoutesFollowOrder() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        seedPlace("hotel", "trip", 0.0, 0.0)
+        seedPlace("scenic", "trip", 0.0, 0.01)
+        val scenic = repository.addItem("day", "scenic", 0)
+        repository.updateDetails(scenic, LocalTime.of(10, 0), 60, "景点备注")
+        val eveningHotel = repository.addItem("day", "hotel", 1)
+        repository.updateDetails(eveningHotel, LocalTime.of(18, 0), 60, "晚间入住")
+        val morningHotel = repository.addItem("day", "hotel", 2)
+        val controller = com.yangchengwei.easytrip.itinerary.calendar.CalendarTimingController(repository::compareAndSetTiming)
+        controller.commit(ItineraryTimingChange("trip", "day", morningHotel,
+            ItineraryTiming(null, null),
+            ItineraryTiming(LocalTime.of(8, 30), 60)))
+        assertEquals(listOf(morningHotel, scenic, eveningHotel), repository.observeDay("day").first().items.map { it.id })
+        assertEquals(listOf(morningHotel to scenic, scenic to eveningHotel), database.routeLegDao().legs("day").map { it.fromItemId to it.toItemId })
+        controller.undo()
+        assertEquals(listOf(scenic, eveningHotel, morningHotel), repository.observeDay("day").first().items.map { it.id })
+        assertNull(database.itineraryEditingDao().item(morningHotel)?.arrivalTime)
+        assertEquals("晚间入住", database.itineraryEditingDao().item(eveningHotel)?.note)
+    }
+
     @Test fun conditionalCalendarTimingRejectsStaleMovedAndDeletedVisitsAndPreservesNotes() = runTest {
         seedTrip("trip", TravelMode.FLEXIBLE, "day-1", "day-2")
         seedPlace("hotel", "trip", 0.0, 0.0)
         val id = repository.addItem("day-1", "hotel", 0)
         repository.updateDetails(id, null, null, "保留备注")
-        val before = com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming(null, null)
-        val after = com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming(LocalTime.of(9, 40), 90)
-        val change = com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange("trip", "day-1", id, before, after)
-        assertTrue(repository.compareAndSetTiming(change))
-        org.junit.Assert.assertFalse(repository.compareAndSetTiming(change))
+        val before = ItineraryTiming(null, null)
+        val after = ItineraryTiming(LocalTime.of(9, 40), 90)
+        val change = ItineraryTimingChange("trip", "day-1", id, before, after)
+        val applied = requireNotNull(repository.compareAndSetTiming(change))
+        assertNull(repository.compareAndSetTiming(change))
         assertEquals("保留备注", database.itineraryEditingDao().item(id)?.note)
-        assertTrue(repository.compareAndSetTiming(change.reversed()))
+        org.junit.Assert.assertNotNull(repository.compareAndSetTiming(applied.reversed()))
         assertNull(database.itineraryEditingDao().item(id)?.arrivalTime)
         assertNull(database.itineraryEditingDao().item(id)?.stayDurationMinutes)
         repository.moveItem(id, "day-2", 0)
-        org.junit.Assert.assertFalse(repository.compareAndSetTiming(change))
+        assertNull(repository.compareAndSetTiming(change))
         repository.deleteItem(id)
-        org.junit.Assert.assertFalse(repository.compareAndSetTiming(change.copy(dayId = "day-2")))
+        assertNull(repository.compareAndSetTiming(change.copy(dayId = "day-2")))
     }
 
     @Test fun concurrentCalendarWritersOnlyOneCanChangeTheOriginalTiming() = runTest {
         seedTrip("trip", TravelMode.FLEXIBLE, "day")
         seedPlace("hotel", "trip", 0.0, 0.0)
         val id = repository.addItem("day", "hotel", 0)
-        val before = com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming(null, null)
+        val before = ItineraryTiming(null, null)
         val results = coroutineScope {
             (1..2).map { hour -> async {
-                repository.compareAndSetTiming(com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange("trip", "day", id, before,
-                    com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming(LocalTime.of(hour, 0), 60)))
+                repository.compareAndSetTiming(ItineraryTimingChange("trip", "day", id, before,
+                    ItineraryTiming(LocalTime.of(hour, 0), 60)))
             } }.awaitAll()
         }
-        assertEquals(1, results.count { it })
+        assertEquals(1, results.count { it != null })
+    }
+
+    @Test fun calendarMovesBetweenTimedVisitsWithoutSortingOtherVisitsAndUndoRestoresExactOrder() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        seedPlace("hotel", "trip", 0.0, 0.0)
+        val ids = List(5) { repository.addItem("day", "hotel", it) }
+        // Keep a manual inversion and an untimed visit while moving only the last occurrence.
+        listOf("11:00", null, "10:00", "18:00", null).forEachIndexed { index, time ->
+            repository.updateTiming(ids[index], time?.let(LocalTime::parse), 60)
+        }
+        val old = database.itineraryEditingDao().items("day")
+        val untouched = database.routeLegDao().legs("day").first()
+        database.routeLegDao().selectMode(untouched.id, TransportMode.DRIVE)
+        val cached = database.routeLegDao().legs("day").first()
+        val change = ItineraryTimingChange("trip", "day", ids.last(),
+            ItineraryTiming(null, 60), ItineraryTiming(LocalTime.of(12, 0), 60), beforeOrder = ids)
+        val applied = requireNotNull(repository.compareAndSetTiming(change))
+        assertEquals(listOf(ids[0], ids[1], ids[2], ids[4], ids[3]), applied.afterOrder)
+        assertEquals(cached, database.routeLegDao().legs("day").first())
+        requireNotNull(repository.compareAndSetTiming(applied.reversed()))
+        assertEquals(old, database.itineraryEditingDao().items("day"))
+    }
+
+    @Test fun calendarLaterArrivalGoesAfterTimedVisitsAndEqualArrivalsAreStable() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        seedPlace("hotel", "trip", 0.0, 0.0)
+        val ids = List(4) { repository.addItem("day", "hotel", it) }
+        listOf("09:00", "10:00", "10:00", null).forEachIndexed { index, time ->
+            repository.updateTiming(ids[index], time?.let(LocalTime::parse), 60)
+        }
+        val equal = requireNotNull(repository.compareAndSetTiming(ItineraryTimingChange("trip", "day", ids[0],
+            ItineraryTiming(LocalTime.of(9, 0), 60), ItineraryTiming(LocalTime.of(10, 0), 60))))
+        assertEquals(ids, equal.afterOrder)
+        val last = requireNotNull(repository.compareAndSetTiming(ItineraryTimingChange("trip", "day", ids[0],
+            equal.after, ItineraryTiming(LocalTime.of(20, 0), 60))))
+        assertEquals(listOf(ids[1], ids[2], ids[0], ids[3]), last.afterOrder)
+        val pending = requireNotNull(repository.compareAndSetTiming(ItineraryTimingChange("trip", "day", ids[3],
+            ItineraryTiming(null, 60), ItineraryTiming(LocalTime.of(10, 0), 60))))
+        assertEquals(listOf(ids[1], ids[2], ids[3], ids[0]), pending.afterOrder)
+    }
+
+    @Test fun calendarDurationOnlyPreservesManualOrderAndAllRouteDetails() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        seedPlace("hotel", "trip", 0.0, 0.0)
+        val ids = List(3) { repository.addItem("day", "hotel", it) }
+        listOf(18, 10, 8).forEachIndexed { index, hour -> repository.updateTiming(ids[index], LocalTime.of(hour, 0), 60) }
+        val legs = database.routeLegDao().legs("day")
+        val applied = requireNotNull(repository.compareAndSetTiming(ItineraryTimingChange("trip", "day", ids[2],
+            ItineraryTiming(LocalTime.of(8, 0), 60), ItineraryTiming(LocalTime.of(8, 0), 120))))
+        assertEquals(ids, applied.afterOrder)
+        assertEquals(legs, database.routeLegDao().legs("day"))
+    }
+
+    @Test fun calendarRejectsStaleOrderForSaveAndUndoWithoutChangingTimeOrRoutes() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        seedPlace("hotel", "trip", 0.0, 0.0)
+        val ids = List(3) { repository.addItem("day", "hotel", it) }
+        repository.updateTiming(ids[0], LocalTime.of(10, 0), 60)
+        repository.updateTiming(ids[1], LocalTime.of(18, 0), 60)
+        val change = ItineraryTimingChange("trip", "day", ids[2],
+            ItineraryTiming(null, null), ItineraryTiming(LocalTime.of(8, 30), 60), beforeOrder = ids)
+        repository.moveItem(ids[0], "day", 1)
+        assertNull(repository.compareAndSetTiming(change))
+        assertNull(database.itineraryEditingDao().item(ids[2])?.arrivalTime)
+        repository.moveItem(ids[0], "day", 0)
+        val applied = requireNotNull(repository.compareAndSetTiming(change))
+        repository.moveItem(ids[1], "day", 1)
+        val items = database.itineraryEditingDao().items("day")
+        val legs = database.routeLegDao().legs("day")
+        assertNull(repository.compareAndSetTiming(applied.reversed()))
+        assertEquals(items, database.itineraryEditingDao().items("day"))
+        assertEquals(legs, database.routeLegDao().legs("day"))
+    }
+
+    @Test fun calendarRouteFailureRollsBackTimeOrderAndRoutesAndCanRetry() = runTest {
+        seedTrip("trip", TravelMode.FLEXIBLE, "day")
+        seedPlace("hotel", "trip", 0.0, 0.0)
+        val ids = List(3) { repository.addItem("day", "hotel", it) }
+        repository.updateTiming(ids[0], LocalTime.of(10, 0), 60)
+        repository.updateTiming(ids[1], LocalTime.of(18, 0), 60)
+        val items = database.itineraryEditingDao().items("day")
+        val legs = database.routeLegDao().legs("day")
+        var fail = true
+        val writer = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(),
+            legIdFactory = { if (fail) legs.first().id else legIds() })
+        val controller = com.yangchengwei.easytrip.itinerary.calendar.CalendarTimingController(writer::compareAndSetTiming)
+        controller.commit(ItineraryTimingChange("trip", "day", ids[2],
+            ItineraryTiming(null, null), ItineraryTiming(LocalTime.of(8, 30), 60)))
+        org.junit.Assert.assertNotNull(controller.state.value.retry)
+        assertEquals(items, database.itineraryEditingDao().items("day"))
+        assertEquals(legs, database.routeLegDao().legs("day"))
+        fail = false
+        controller.retry()
+        assertEquals(listOf(ids[2], ids[0], ids[1]), repository.observeDay("day").first().items.map { it.id })
     }
 
     @Test fun duplicateHotelOccurrencesUseDistinctItemIdsAndEdges() = runTest {

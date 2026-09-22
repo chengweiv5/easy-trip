@@ -42,6 +42,7 @@ private data class CalendarDraft(
     val pointerStart: Offset, val pointer: Offset, val grabOffset: Float,
     val scrollStart: Int, val timing: ItineraryTiming?, val keyboard: Boolean = false,
     val keyboardDelta: Float = 0f,
+    val order: List<String> = emptyList(),
 )
 private fun ItineraryItemUi.timing() = ItineraryTiming(arrivalTime, stayMinutes)
 
@@ -111,7 +112,8 @@ fun CalendarContent(
     LaunchedEffect(rawDays) {
         draft?.let { active ->
             val now = rawDays.firstOrNull { it.dayId == active.dayId }?.items?.firstOrNull { it.id == active.item.id }
-            if (now == null || now.timing() != active.item.timing()) draft = null
+            val order = rawDays.firstOrNull { it.dayId == active.dayId }?.items?.map { it.id }
+            if (now == null || now.timing() != active.item.timing() || order != active.order) draft = null
         }
     }
     LaunchedEffect(scopeKey, days.isEmpty()) {
@@ -139,7 +141,7 @@ fun CalendarContent(
         val timing = active.timing
         val validDrop = active.keyboard || viewport.contains(active.pointer) && active.pointer.x >= viewport.left + with(density) { 36.dp.toPx() }
         if (!cancel && validDrop && timing != null && timing != active.item.timing()) {
-            onSave(ItineraryTimingChange("", active.dayId, active.item.id, active.item.timing(), timing))
+            onSave(ItineraryTimingChange("", active.dayId, active.item.id, active.item.timing(), timing, beforeOrder = active.order))
         }
         draft = null
     }
@@ -168,20 +170,25 @@ fun CalendarContent(
     }
     fun start(dayId: String, item: ItineraryItemUi, mode: CalendarDragMode, point: Offset, grab: Float) {
         if (saveState.saving || single != dayId) return
-        val active = CalendarDraft(dayId, item, mode, point, point, grab, scroll.value, item.timing())
+        val order = rawDays.firstOrNull { it.dayId == dayId }?.items?.map { it.id } ?: return
+        val active = CalendarDraft(dayId, item, mode, point, point, grab, scroll.value, item.timing(), order = order)
         draft = active.copy(timing = candidate(active))
     }
     fun step(dayId: String, item: ItineraryItemUi, mode: CalendarDragMode, delta: Int) {
         if (busy || single != dayId) return
         val next = candidateTiming(item.timing(), mode, delta.toFloat()) ?: return
-        if (next != item.timing()) onSave(ItineraryTimingChange("", dayId, item.id, item.timing(), next))
+        val order = rawDays.firstOrNull { it.dayId == dayId }?.items?.map { it.id } ?: return
+        if (next != item.timing()) onSave(ItineraryTimingChange("", dayId, item.id, item.timing(), next,
+            beforeOrder = order))
     }
     fun keyStart(dayId: String, item: ItineraryItemUi) {
         if (saveState.saving || single != dayId) return
         val pending = item.arrivalTime == null
+        val order = rawDays.firstOrNull { it.dayId == dayId }?.items?.map { it.id } ?: return
         val active = CalendarDraft(dayId, item, if (pending) CalendarDragMode.PLACE else CalendarDragMode.MOVE,
             Offset.Zero, Offset.Zero, 0f, scroll.value, item.timing(), true,
-            if (pending) (scroll.value / pxPerMinute / 30).roundToInt() * 30f else 0f)
+            if (pending) (scroll.value / pxPerMinute / 30).roundToInt() * 30f else 0f,
+            order = order)
         draft = active.copy(timing = candidate(active))
     }
     fun keyStep(delta: Int) { draft?.let { val next = it.copy(keyboardDelta = it.keyboardDelta + delta); draft = next.copy(timing = candidate(next)) } }

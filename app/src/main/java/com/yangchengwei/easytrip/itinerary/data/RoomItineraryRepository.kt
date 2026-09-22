@@ -13,6 +13,7 @@ import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItemNotFoundException
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryPlace
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryRepository
+import com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange
 import com.yangchengwei.easytrip.itinerary.domain.RecoverablePlaceAddException
 import com.yangchengwei.easytrip.itinerary.domain.TargetDayNotFoundException
 import com.yangchengwei.easytrip.itinerary.domain.adjacencyDiff
@@ -146,11 +147,42 @@ class RoomItineraryRepository(
         syncLegs(item.tripDayId, old.map { it.id }, new.map { it.id })
     }
 
-    override suspend fun compareAndSetTiming(change: com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange): Boolean {
+    override suspend fun compareAndSetTiming(change: ItineraryTimingChange): ItineraryTimingChange? = database.withTransaction {
         require(change.after.stayMinutes == null || change.after.stayMinutes >= 0)
-        return itineraryDao.conditionalTiming(change.tripId, change.dayId, change.itemId,
+        val old = itineraryDao.items(change.dayId)
+        val oldIds = old.map { it.id }
+        if (change.beforeOrder != null && change.beforeOrder != oldIds) return@withTransaction null
+        val item = old.firstOrNull { it.id == change.itemId } ?: return@withTransaction null
+        val newIds = change.afterOrder?.also { requested ->
+            require(change.beforeOrder != null)
+            require(requested.size == oldIds.size && requested.toSet() == oldIds.toSet())
+            require(requested.filterNot { it == item.id } == oldIds.filterNot { it == item.id })
+        } ?: run {
+            val arrival = change.after.arrivalTime
+            if (arrival == null || arrival == change.before.arrivalTime) oldIds else {
+                // Move only this occurrence. Untimed visits and other manual ordering stay intact;
+                // equal arrivals retain their original relative order.
+                val remaining = old.filterNot { it.id == item.id }
+                val next = remaining.indexOfFirst { other ->
+                    other.arrivalTime?.let { it > arrival || it == arrival && other.position > item.position } == true
+                }
+                val index = if (next >= 0) next else {
+                    val lastTimed = remaining.indexOfLast { it.arrivalTime != null }
+                    if (lastTimed >= 0) lastTimed + 1 else oldIds.indexOf(item.id)
+                }
+                remaining.map { it.id }.toMutableList().apply { add(index, item.id) }
+            }
+        }
+        if (itineraryDao.conditionalTiming(change.tripId, change.dayId, change.itemId,
             change.before.arrivalTime, change.before.stayMinutes,
-            change.after.arrivalTime, change.after.stayMinutes) == 1
+            change.after.arrivalTime, change.after.stayMinutes) != 1) return@withTransaction null
+        if (newIds != oldIds) {
+            park(old)
+            val byId = old.associateBy { it.id }
+            reorder(newIds.map { byId.getValue(it) })
+            syncLegs(change.dayId, oldIds, newIds)
+        }
+        change.copy(beforeOrder = oldIds, afterOrder = newIds)
     }
 
     override suspend fun updateTiming(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?) {

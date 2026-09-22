@@ -202,6 +202,86 @@ class V2AcceptanceTest {
     internal fun executeBatch5ProductionNavigationRoomMainFlow(): Set<Batch5FrameCheckpoint> =
         runBatch5ProductionNavigationRoomMainFlow()
 
+    @Test fun calendarAddAndDragPendingHotelToMorningSynchronizesListMapRoutesAndUndo() {
+        val trips = RoomTripRepository(database.tripDao(), idFactory = { "order-trip-${nextId++}" })
+        val places = RoomSavedPlaceRepository(database, idFactory = { "order-place-${nextId++}" })
+        val itineraries = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao(),
+            itemIdFactory = { "order-item-${nextId++}" }, legIdFactory = { "order-leg-${nextId++}" }, isOnline = { false })
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        val tripId: String
+        val day: String
+        val hotel: String
+        val scenic: String
+        val evening: String
+        runBlocking {
+            tripId = trips.createTrip(CreateTrip("日历顺序回归", 1))
+            day = requireNotNull(trips.observeTrip(tripId).first()).days.single().id
+            hotel = (places.save(tripId, candidate("hotel", "登封酒店", 30.24, 120.15))
+                as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+            val scenicPlace = (places.save(tripId, candidate("scenic", "嵩山景点", 30.25, 120.16))
+                as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+            scenic = itineraries.addItem(day, scenicPlace, 0)
+            itineraries.updateTiming(scenic, java.time.LocalTime.of(9, 0), 60)
+            evening = itineraries.addItem(day, hotel, 1)
+            itineraries.updateDetails(evening, java.time.LocalTime.of(18, 0), 60, "晚间入住")
+        }
+        val hosts = java.util.concurrent.CopyOnWriteArrayList<RecordingHost>()
+        setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), hosts)
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
+        waitForTag("workspace-top-bar")
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        waitForTag("calendar-toggle")
+        compose.onNodeWithTag("calendar-toggle").performClick()
+        waitForTag("calendar-content")
+        compose.onNodeWithTag("add-places-to-selected-day").performClick()
+        waitForTag("select-place-$hotel")
+        compose.onNodeWithTag("select-place-$hotel").performClick()
+        compose.onNodeWithTag("select-places-continue").performClick()
+        waitFor("new hotel occurrence appended") { runBlocking { database.itineraryEditingDao().items(day).size == 3 } }
+        val morning = runBlocking { database.itineraryEditingDao().items(day).last().id }
+        waitForTag("calendar-pending-$morning")
+        fun placeAtMorning() {
+            // The pending row changes the viewport height; reveal the target time before dragging.
+            compose.onNodeWithText("08:00").performScrollTo()
+            val pending = compose.onNodeWithTag("calendar-pending-$morning")
+            val source = pending.fetchSemanticsNode().boundsInRoot
+            val reference = compose.onNodeWithTag("calendar-event-$day:$scenic:$day").fetchSemanticsNode().boundsInRoot
+            pending.performTouchInput {
+                val target = androidx.compose.ui.geometry.Offset(reference.center.x,
+                    reference.top - 26.dp.toPx() + source.height / 2)
+                down(center); advanceEventTime(500)
+                moveBy(target - source.center, 200); up()
+            }
+            waitFor("08:30 persisted with first position; source=$source reference=$reference") {
+                runBlocking { database.itineraryEditingDao().items(day) }.let { items ->
+                    items.map { it.id } == listOf(morning, scenic, evening) && items.first().arrivalTime == java.time.LocalTime.of(8, 30)
+                }
+            }
+        }
+        placeAtMorning()
+        waitFor("hotel map visits renumbered") {
+            hosts.lastOrNull()?.lastModel?.markers?.flatMap { it.occurrences }
+                ?.filter { it.savedPlaceId == hotel }?.map { it.order }?.sorted() == listOf(1, 3)
+        }
+        assertEquals(listOf(morning to scenic, scenic to evening), runBlocking { database.routeLegDao().legs(day) }.map { it.fromItemId to it.toItemId })
+        compose.onNodeWithText("撤销").performClick()
+        waitForTag("calendar-pending-$morning")
+        assertEquals(listOf(scenic, evening, morning), runBlocking { database.itineraryEditingDao().items(day) }.map { it.id })
+        placeAtMorning()
+        compose.onNodeWithTag("calendar-toggle").performClick()
+        waitForTag("item-$morning")
+        compose.onNodeWithTag("item-$morning").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-order-$morning", useUnmergedTree = true).assertTextEquals("1")
+        assertTrue(compose.onNodeWithTag("item-$morning").fetchSemanticsNode().boundsInRoot.top <
+            compose.onNodeWithTag("item-$scenic").fetchSemanticsNode().boundsInRoot.top)
+        assertEquals("晚间入住", runBlocking { database.itineraryEditingDao().item(evening)?.note })
+        compose.onRoot().captureToImage().asAndroidBitmap().let { bitmap ->
+            java.io.File(compose.activity.getExternalFilesDir(null), "calendar-order-fixed.png").outputStream().use {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+            }
+        }
+    }
+
     @Test fun calendarProductionNavigationPersistsTimingAndUndoThroughRoom() {
         val trips = RoomTripRepository(database.tripDao(), idFactory = { "calendar-trip-${nextId++}" })
         val places = RoomSavedPlaceRepository(database, idFactory = { "calendar-place-${nextId++}" })

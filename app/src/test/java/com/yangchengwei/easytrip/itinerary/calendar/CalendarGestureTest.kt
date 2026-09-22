@@ -46,7 +46,7 @@ class CalendarGestureTest {
         var fail = true
         val controller = CalendarTimingController { request ->
             if (fail) error("disk")
-            if (stored != request.before) false else { stored = request.after; true }
+            if (stored != request.before) null else { stored = request.after; request }
         }
         controller.commit(change)
         assertEquals(change.before, stored); assertNotNull(controller.state.value.retry)
@@ -59,7 +59,7 @@ class CalendarGestureTest {
     }
     @Test fun duplicateSavesAreIgnoredWhileFirstIsInFlight() = runTest {
         val gate = CompletableDeferred<Unit>(); var calls = 0
-        val controller = CalendarTimingController { calls++; gate.await(); true }
+        val controller = CalendarTimingController { calls++; gate.await(); it }
         val change = ItineraryTimingChange("t", "d", "i", timing("09:00", 60), timing("10:00", 60))
         val job = launch { controller.commit(change) }
         testScheduler.runCurrent()

@@ -15,7 +15,7 @@ data class CalendarSaveState(
 )
 
 /** No optimistic repository writes: failed drafts disappear; the observed snapshot stays authoritative. */
-class CalendarTimingController(private val write: suspend (ItineraryTimingChange) -> Boolean) {
+class CalendarTimingController(private val write: suspend (ItineraryTimingChange) -> ItineraryTimingChange?) {
     private val mutable = MutableStateFlow(CalendarSaveState())
     val state: StateFlow<CalendarSaveState> = mutable
 
@@ -23,9 +23,10 @@ class CalendarTimingController(private val write: suspend (ItineraryTimingChange
         if (mutable.value.saving || change.before == change.after) return
         mutable.value = CalendarSaveState(saving = true, active = change)
         try {
-            mutable.value = if (write(change)) CalendarSaveState(
+            val applied = write(change)
+            mutable.value = if (applied != null) CalendarSaveState(
                 message = if (isUndo) "已撤销时间调整" else "已更新到达时间和停留时长",
-                undo = if (isUndo) null else change.reversed(),
+                undo = if (isUndo) null else applied.reversed(),
             ) else CalendarSaveState(message = "地点已被移动、删除或改时，请查看最新行程")
         } catch (failure: CancellationException) {
             mutable.value = CalendarSaveState()

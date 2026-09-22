@@ -9,6 +9,8 @@ data class ItineraryTimingChange(
     val itemId: String,
     val before: ItineraryTiming,
     val after: ItineraryTiming,
+    val beforeOrder: List<String>? = null,
+    val afterOrder: List<String>? = null,
 ) {
-    fun reversed() = copy(before = after, after = before)
+    fun reversed() = copy(before = after, after = before, beforeOrder = afterOrder, afterOrder = beforeOrder)
 }
