@@ -235,7 +235,7 @@ fun CalendarContent(
                                 val editable = !saveState.saving && (item.stayMinutes == null || item.stayMinutes in 1..1440)
                                 CalendarCard(item.name, "到达待设 · ${item.stayMinutes?.let { "停留 $it 分钟" } ?: "停留待设"}",
                                     Modifier.width(190.dp).height(52.dp).testTag("calendar-pending-${item.id}"), dashed = true, pending = true, editable = editable,
-                                    onClick = { if (!busy) onEdit(single, item.id) },
+                                    onClick = { open(single, item.id) },
                                     onStart = { mode, point, grab -> start(single, item, mode, point, grab) }, onMove = { move(it) }, onEnd = { finish(it) },
                                     onKeyboardStart = { keyStart(single, item) }, onKeyboardStep = { keyStep(it) }, onKeyboardEnd = { finish(it) })
                             }
@@ -260,7 +260,12 @@ fun CalendarContent(
                     val projected = projectCalendarDays(updated).associateBy { it.dayId }
                     shown.map { it.copy(transfers = projected[it.dayId]?.transfers.orEmpty()) }
                 }
-                Text(visibleTiming?.let { "${it.arrivalTime} → ${it.stayMinutes?.let { stay -> calendarEndLabel(requireNotNull(visibleItem).copy(arrivalTime = it.arrivalTime, stayMinutes = stay)) }} · ${it.stayMinutes} 分钟" } ?: if (active == null) "" else "拖入当天时间轴设置时间",
+                val dragLabel = when (active?.mode) {
+                    CalendarDragMode.START -> "调整开始 · "
+                    CalendarDragMode.END -> "调整结束 · "
+                    else -> ""
+                }
+                Text(visibleTiming?.let { "$dragLabel${it.arrivalTime} → ${it.stayMinutes?.let { stay -> calendarEndLabel(requireNotNull(visibleItem).copy(arrivalTime = it.arrivalTime, stayMinutes = stay)) }} · ${it.stayMinutes} 分钟" } ?: if (active == null) "" else "拖入当天时间轴设置时间",
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.height(24.dp).testTag("calendar-draft-label"))
                 Box(Modifier.weight(1f).fillMaxWidth().onGloballyPositioned { viewport = it.boundsInRoot() }.testTag("calendar-viewport")) {
                     val swipe = if (single == null) Modifier.pointerInput(currentPage, columns, lastPage) {
@@ -273,20 +278,13 @@ fun CalendarContent(
                     key(selected) {
                     CalendarGrid(previewDays, single, expandedGroup, focusItemId,
                         draftItem = visibleItem, draftDayId = active?.dayId ?: saving?.dayId, draftTiming = visibleTiming,
+                        draftMode = active?.mode,
                         modifier = Modifier.fillMaxSize().then(swipe).verticalScroll(scroll, enabled = draft == null),
                         editable = !saveState.saving,
                         onOpen = open, onExpand = { expandedGroup = if (expandedGroup == it) null else it },
                         onOpenGroup = { dayId, itemId -> pendingGroup = dayId to itemId; onFocus(dayId, itemId) },
                         onStart = { d, i, m, p, g -> start(d, i, m, p, g) }, onMove = { move(it) }, onEnd = { finish(it) }, onStep = { d, i, m, n -> step(d, i, m, n) },
                         onKeyboardStart = { d, i -> keyStart(d, i) }, onKeyboardStep = { keyStep(it) }, onKeyboardEnd = { finish(it) })
-                    }
-                }
-                val routeReferences = previewDays.flatMap { it.transfers }.filter { it.start == null || it.minutes == null || it.conflict }.distinctBy { it.sourceDayId to it.legId }
-                if (routeReferences.isNotEmpty()) LazyRow(Modifier.height(48.dp).fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                    items(routeReferences, key = { "${it.sourceDayId}:${it.legId}" }) { route ->
-                        TextButton({ if (single == null) onFocus(route.sourceDayId, route.fromId) else onRoute(route.legId) }, enabled = !busy, modifier = Modifier.height(48.dp).testTag("calendar-route-${route.legId}")) {
-                            Text(when { route.conflict -> "交通可能来不及"; route.minutes == null -> route.message ?: "交通用时待计算"; else -> "赶路约 ${route.minutes} 分钟 · 用时参考" }, style = MaterialTheme.typography.labelSmall)
-                        }
                     }
                 }
                 // Short events retain their truthful grid height; a separate 48dp target opens precise editing.
@@ -326,6 +324,11 @@ fun CalendarContent(
             detail = null
             if (target != null) onFocus(target.dayId, itemId) else localMessage = "该日程已删除"
         }
-        else CalendarDetail(day, item, startDate, onDismiss = { detail = null }, onEdit = { detail = null; onEdit(dayId, itemId) })
+        else CalendarDetail(day, item, startDate,
+            outgoing = days.flatMap { it.transfers }.filter { it.sourceDayId == dayId && it.fromId == itemId }
+                .groupBy { it.sourceDayId to it.legId }.values
+                .map { fragments -> fragments.first().copy(conflict = fragments.any { it.conflict }) },
+            onDismiss = { detail = null }, onEdit = { detail = null; onEdit(dayId, itemId) },
+            onRoute = { legId -> detail = null; onRoute(legId) })
     }
 }

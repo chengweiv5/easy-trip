@@ -30,6 +30,7 @@ class CalendarInteractionTest {
     private val raw = mutableStateOf(listOf<WholeTripDayUi>())
     private var focused: Pair<String, String?>? = null
     private var editing: String? = null
+    private var openedRoute: String? = null
     private fun item(id: String = "a", arrival: String? = "09:40", stay: Int? = 90) = ItineraryItemUi(id, if(id=="a") "西湖天地" else "湖滨步行街", "杭州", arrival?.let(LocalTime::parse), stay)
     private fun setup(items: List<ItineraryItemUi> = listOf(item()), whole: Boolean = false, width: Int = 278, scale: Float = 1f, count: Int = 1) {
         raw.value = (1..count).map { WholeTripDayUi(if(it==1) "day" else "day$it", it, items.map { item -> item.copy(id = if(it==1) item.id else "${item.id}$it") }, emptyList()) }
@@ -39,7 +40,8 @@ class CalendarInteractionTest {
                 onToggle = {}, onFocus = { day, id -> focused = day to id; selected.value = ItineraryScope.Day(day) },
                 onEdit = { _, id -> editing = id }, onAdd = {},
                 onSave = { change -> changes += change; raw.value = raw.value.map { day -> if(day.dayId!=change.dayId) day else day.copy(items = day.items.map { if(it.id==change.itemId) it.copy(arrivalTime=change.after.arrivalTime, stayMinutes=change.after.stayMinutes) else it }) } },
-                onUndo = {}, onRetry = {}, onDismissMessage = {}, onBusy = {}, modifier = Modifier.width(width.dp).height(660.dp))
+                onUndo = {}, onRetry = {}, onDismissMessage = {}, onBusy = {}, modifier = Modifier.width(width.dp).height(660.dp),
+                onRoute = { openedRoute = it })
         } } }
         compose.waitForIdle()
     }
@@ -50,6 +52,130 @@ class CalendarInteractionTest {
             down(from); moveTo(from+Offset(0f,delta), 300); up()
         }
     }
+    @Test fun resizeCuesFollowActiveEdgeAndDisappearAfterReleaseOrCancel() {
+        setup()
+        compose.onNodeWithTag("calendar-resize-start").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
+        event().performTouchInput { down(Offset(width * .05f, 2f)) }
+        val startCue = compose.onNodeWithTag("calendar-resize-start", useUnmergedTree = true)
+        startCue.assertIsDisplayed()
+        compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-draft-label").assertTextContains("调整开始", substring = true)
+        val first = startCue.fetchSemanticsNode().boundsInRoot
+        val originalDraft = compose.onNodeWithTag("calendar-draft").fetchSemanticsNode().boundsInRoot
+        assertEquals(originalDraft.center.x, first.center.x, 1f)
+        assertEquals(originalDraft.top, first.bottom, 1f)
+        saveResizeEvidence("calendar-resize-start.jpg")
+        event().performTouchInput { moveBy(Offset(0f, -26f), 300) }
+        assertEquals(first.top - 26f, startCue.fetchSemanticsNode().boundsInRoot.top, 1f)
+        event().performTouchInput { up() }
+        startCue.assertDoesNotExist()
+        assertEquals(1, changes.size)
+
+        event().performTouchInput { down(Offset(width * .95f, height - 2f)) }
+        val endCue = compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true)
+        endCue.assertIsDisplayed()
+        compose.onNodeWithTag("calendar-resize-start").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-draft-label").assertTextContains("调整结束", substring = true)
+        val lower = endCue.fetchSemanticsNode().boundsInRoot
+        val draftBounds = compose.onNodeWithTag("calendar-draft").fetchSemanticsNode().boundsInRoot
+        assertEquals(first.center.x, lower.center.x, 1f)
+        assertEquals(first.width, lower.width, 1f)
+        assertEquals(first.height, lower.height, 1f)
+        assertEquals(draftBounds.bottom, lower.top, 1f)
+        saveResizeEvidence("calendar-resize-end.jpg")
+        event().performTouchInput { moveBy(Offset(0f, 26f), 300); cancel() }
+        endCue.assertDoesNotExist()
+        assertEquals(1, changes.size)
+    }
+
+    @Test fun unsetStayShowsEdgeCueImmediatelyAndBodyMoveDoesNot() {
+        setup(listOf(item(stay = null)))
+        event().performTouchInput { down(Offset(width * .5f, height - 2f)) }
+        compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true).assertIsDisplayed()
+        event().performTouchInput { cancel() }
+        compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
+        event().performTouchInput { down(center); advanceEventTime(500); moveBy(Offset(0f, 26f), 300) }
+        compose.onNodeWithTag("calendar-draft").assertIsDisplayed()
+        compose.onNodeWithTag("calendar-resize-start").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
+        event().performTouchInput { cancel() }
+        assertTrue(changes.isEmpty())
+    }
+
+    @Test fun midnightResizeCueRemainsVisibleInsideViewport() {
+        setup(listOf(item(arrival = "00:00")))
+        event().performTouchInput { down(Offset(width * .5f, 2f)) }
+        val cue = compose.onNodeWithTag("calendar-resize-start", useUnmergedTree = true)
+        cue.assertIsDisplayed()
+        val viewport = compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
+        val bounds = cue.fetchSemanticsNode().boundsInRoot
+        assertTrue(bounds.top >= viewport.top)
+        assertEquals(20f, bounds.height, 1f)
+        event().performTouchInput { cancel() }
+        assertTrue(changes.isEmpty())
+    }
+
+    @Test fun trafficWarningStaysOnCardAndDetailWithoutBottomStrip() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)))
+        compose.runOnIdle {
+            raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) }
+        }
+        compose.onNodeWithTag("calendar-route-traffic").assertDoesNotExist()
+        event("b").assertContentDescriptionContains("交通可能来不及", substring = true)
+        event("b").performClick()
+        compose.onNodeWithTag("calendar-detail").assertIsDisplayed()
+        compose.onNodeWithText("交通可能来不及", useUnmergedTree = true).assertIsDisplayed()
+    }
+
+    @Test fun pendingRouteRemainsReachableThroughDetail() {
+        setup(listOf(item(arrival = null, stay = null), item("b", null, null)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("unknown", null))) } }
+        compose.onNodeWithTag("calendar-route-unknown").assertDoesNotExist()
+        compose.onNodeWithTag("calendar-pending-a").performClick()
+        compose.onNodeWithTag("calendar-detail-route-unknown").assertIsDisplayed().performClick()
+        assertEquals("unknown", openedRoute)
+        compose.onNodeWithTag("calendar-detail").assertDoesNotExist()
+        assertTrue(changes.isEmpty())
+    }
+
+    @Test fun sourceDetailIncludesRouteWhoseTrafficStartsOnNextDay() {
+        setup(listOf(item(arrival = "23:00", stay = 120), item("b", "23:45", 30)), count = 2)
+        compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day ->
+            if (index == 0) day.copy(legs = listOf(route("next-day", 3600))) else day
+        } }
+        event().performClick()
+        compose.onNodeWithTag("calendar-detail-route-next-day").assertIsDisplayed().performClick()
+        assertEquals("next-day", openedRoute)
+    }
+
+    @Test fun sourceDetailPreservesTrafficConflictFromNextDayFragment() {
+        setup(listOf(item(arrival = "23:00", stay = 30), item("b", null, null)), count = 2)
+        compose.runOnIdle {
+            raw.value = listOf(
+                raw.value.first().copy(legs = listOf(route("overnight", 7200))),
+                raw.value.last().copy(items = listOf(item("c", "00:30", 60))),
+            )
+        }
+        event().performClick()
+        compose.onNodeWithTag("calendar-detail-route-overnight")
+            .assertIsDisplayed().assertTextContains("时间不足", substring = true)
+    }
+
+    private fun route(id: String, seconds: Int?) = com.yangchengwei.easytrip.itinerary.ui.RouteLegUi(
+        id, "a", "b", com.yangchengwei.easytrip.core.model.TransportMode.WALK,
+        if (seconds == null) com.yangchengwei.easytrip.core.model.RouteStatus.PENDING else com.yangchengwei.easytrip.core.model.RouteStatus.SUCCESS,
+        100, seconds, null,
+    )
+
+    private fun saveResizeEvidence(name: String) {
+        compose.onRoot().captureToImage().asAndroidBitmap().let { bitmap ->
+            java.io.File(compose.activity.getExternalFilesDir(null), name).outputStream().use {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.JPEG, 88, it)
+            }
+        }
+    }
+
     @Test fun upperAndLowerEdgesWorkAcrossEntireWidthWithoutSelection() {
         setup()
         edge(.10f, false, 26f)
@@ -89,6 +215,8 @@ class CalendarInteractionTest {
         setup(listOf(item(), item("pending",null,90)))
         val pending = compose.onNodeWithTag("calendar-pending-pending")
         pending.performClick()
+        compose.onNodeWithTag("calendar-detail").assertIsDisplayed()
+        compose.onNodeWithTag("calendar-detail-edit").performClick()
         assertEquals("pending",editing)
         assertNull(raw.value.first().items.first { it.id == "pending" }.arrivalTime)
         val source=pending.fetchSemanticsNode().boundsInRoot
@@ -197,7 +325,14 @@ class CalendarInteractionTest {
                 com.yangchengwei.easytrip.core.model.RouteStatus.SUCCESS,100,7200,null)
             raw.value=raw.value.mapIndexed { index, day -> if(index==0) day.copy(legs=listOf(leg)) else day }
         }
-        compose.onNodeWithTag("calendar-route-night-leg").assertIsDisplayed()
+        compose.onNodeWithTag("calendar-route-night-leg").assertDoesNotExist()
+        event().performScrollTo().assertIsDisplayed().performClick()
+        compose.waitForIdle()
+        event().performScrollTo().assertIsDisplayed().performClick()
+        compose.onNodeWithTag("calendar-detail").assertIsDisplayed()
+        compose.onNodeWithTag("calendar-detail-route-night-leg").performScrollTo().assertIsDisplayed().performClick()
+        assertEquals("night-leg", openedRoute)
+        compose.onNodeWithTag("calendar-detail").assertDoesNotExist()
     }
     @Test fun calendarVisualEvidence() {
         setup(listOf(item(stay=90), item("unset","12:00",null),item("pending",null,90),item("overlap","10:10",60)))

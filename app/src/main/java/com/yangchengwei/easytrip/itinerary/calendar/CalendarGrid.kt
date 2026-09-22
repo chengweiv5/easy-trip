@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -21,7 +22,7 @@ import com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi
 @Composable
 internal fun CalendarGrid(
     days: List<CalendarDay>, single: String?, expandedGroup: Int?, focusId: String?,
-    draftItem: ItineraryItemUi?, draftDayId: String?, draftTiming: ItineraryTiming?,
+    draftItem: ItineraryItemUi?, draftDayId: String?, draftTiming: ItineraryTiming?, draftMode: CalendarDragMode?,
     modifier: Modifier, editable: Boolean,
     onOpen: (String, String) -> Unit, onExpand: (Int) -> Unit, onOpenGroup: (String, String) -> Unit,
     onStart: (String, ItineraryItemUi, CalendarDragMode, Offset, Float) -> Unit,
@@ -98,19 +99,55 @@ internal fun CalendarGrid(
                     val time = draftTiming.arrivalTime
                     val start = time.hour * 60 + time.minute
                     val duration = draftTiming.stayMinutes ?: 60
+                    val resizingStart = draftMode == CalendarDragMode.START
+                    val resizingEnd = draftMode == CalendarDragMode.END
+                    val markerHeight = 20.dp
+                    val startY = (start * CALENDAR_MINUTE_DP).dp
+                    val draftHeight = (duration * CALENDAR_MINUTE_DP).dp.coerceAtLeast(2.dp)
                     val conflict = day.events.any { it.item.id != draftItem.id && !it.placeholder && !it.point && it.start < start+duration && start < it.end } || day.transfers.any { it.conflict && (it.fromId == draftItem.id || it.toId == draftItem.id) }
-                    Surface(Modifier.offset(x = 3.dp, y = (start*CALENDAR_MINUTE_DP).dp).width((maxWidth-6.dp).coerceAtLeast(1.dp)).height((duration*CALENDAR_MINUTE_DP).dp.coerceAtLeast(2.dp)).testTag("calendar-draft"),
+                    Surface(Modifier.offset(x = 3.dp, y = startY).width((maxWidth-6.dp).coerceAtLeast(1.dp)).height(draftHeight).testTag("calendar-draft"),
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .90f),
                         border = BorderStroke(2.dp, if (conflict) Color(0xFFBA5B37) else MaterialTheme.colorScheme.primary),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)) {
-                        Column(Modifier.padding(6.dp)) {
+                        Column(Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp,
+                            top = if (resizingStart && startY < markerHeight) markerHeight + 2.dp else 6.dp)) {
                             Text(draftItem.name, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
                             Text("${calendarTime(start)}–${calendarTime(start+duration)}${if(conflict) " · 重叠" else ""}", fontSize = 10.sp, maxLines = 1)
                         }
                     }
+                    if (resizingStart || resizingEnd) {
+                        val edgeY = if (resizingStart) startY else startY + draftHeight
+                        val color = MaterialTheme.colorScheme.primary
+                        Canvas(Modifier.offset(x = 9.dp, y = edgeY - 1.5.dp)
+                            .width((maxWidth - 18.dp).coerceAtLeast(1.dp)).height(3.dp)) {
+                            drawLine(color, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), size.height, StrokeCap.Round)
+                        }
+                        CalendarResizeIndicator(resizingStart,
+                            Modifier.offset(x = (maxWidth - 28.dp) / 2,
+                                y = if (resizingStart) (edgeY - markerHeight).coerceAtLeast(0.dp) else edgeY)
+                                .size(28.dp, markerHeight))
+                    }
                 }
             }
         }
+    }
+}
+
+/** A visual cue only: the whole card edge continues to own the pointer gesture. */
+@Composable
+private fun CalendarResizeIndicator(start: Boolean, modifier: Modifier) {
+    val color = MaterialTheme.colorScheme.primary
+    val arrow = MaterialTheme.colorScheme.onPrimary
+    Canvas(modifier.testTag(if (start) "calendar-resize-start" else "calendar-resize-end")) {
+        drawRoundRect(color, cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()))
+        val centerX = size.width / 2
+        val tip = if (start) 5.dp.toPx() else size.height - 5.dp.toPx()
+        val tail = if (start) size.height - 5.dp.toPx() else 5.dp.toPx()
+        val wing = tip + (if (start) 4.dp.toPx() else -4.dp.toPx())
+        val line = 1.75.dp.toPx()
+        drawLine(arrow, Offset(centerX, tail), Offset(centerX, tip), line, StrokeCap.Round)
+        drawLine(arrow, Offset(centerX - 4.dp.toPx(), wing), Offset(centerX, tip), line, StrokeCap.Round)
+        drawLine(arrow, Offset(centerX + 4.dp.toPx(), wing), Offset(centerX, tip), line, StrokeCap.Round)
     }
 }
 
