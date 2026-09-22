@@ -13,6 +13,8 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.mapSaver
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -65,6 +67,8 @@ fun CalendarContent(
     modifier: Modifier = Modifier,
     startDate: LocalDate? = null,
     onRoute: (String) -> Unit = {},
+    wideHintArea: Rect? = null,
+    onWideHint: (Boolean) -> Unit = {},
 ) {
     val days = remember(rawDays) { projectCalendarDays(rawDays) }
     val single = (selected as? ItineraryScope.Day)?.dayId
@@ -193,8 +197,21 @@ fun CalendarContent(
     }
     fun keyStep(delta: Int) { draft?.let { val next = it.copy(keyboardDelta = it.keyboardDelta + delta); draft = next.copy(timing = candidate(next)) } }
     val selectedDay = days.firstOrNull { it.dayId == single }
-    Column(modifier.fillMaxSize().testTag("calendar-content")) {
+    var contentOrigin by remember { mutableStateOf(Offset.Zero) }
+    var summaryBounds by remember { mutableStateOf(Rect.Zero) }
+    var hintPosition by remember { mutableStateOf(CalendarHintPosition.Floating) }
+    val resize = draft?.takeIf { !it.keyboard && (it.mode == CalendarDragMode.START || it.mode == CalendarDragMode.END) }
+    val hideSummary = resize != null && hintPosition != CalendarHintPosition.Floating
+    val latestWideHint by rememberUpdatedState(onWideHint)
+    SideEffect { latestWideHint(resize != null && hintPosition == CalendarHintPosition.Wide) }
+    DisposableEffect(Unit) { onDispose { latestWideHint(false) } }
+    Box(modifier.fillMaxSize().onGloballyPositioned { contentOrigin = it.boundsInRoot().topLeft }) {
+    Column(Modifier.fillMaxSize().testTag("calendar-content")) {
         ItinerarySummaryHeader(
+            modifier = Modifier.onGloballyPositioned { summaryBounds = it.boundsInRoot() }
+                .testTag("calendar-summary")
+                .drawWithContent { if (!hideSummary) drawContent() }
+                .then(if (hideSummary) Modifier.clearAndSetSemantics {} else Modifier),
             text = if (single == null) "全程 · ${days.size} 天" else "第 ${selectedDay?.number ?: 1} 天 · ${selectedDay?.sourceItems?.size ?: 0} 站",
             date = selectedDay?.let { wholeTripDayDate(it.number, startDate) },
             trailingAction = {
@@ -281,7 +298,7 @@ fun CalendarContent(
                     CalendarDragMode.END -> "调整结束 · "
                     else -> ""
                 }
-                Text(visibleTiming?.let { "$dragLabel${it.arrivalTime} → ${it.stayMinutes?.let { stay -> calendarEndLabel(requireNotNull(visibleItem).copy(arrivalTime = it.arrivalTime, stayMinutes = stay)) }} · ${it.stayMinutes} 分钟" } ?: if (active == null) "" else "拖入当天时间轴设置时间",
+                Text(if (resize != null) "" else visibleTiming?.let { "$dragLabel${it.arrivalTime} → ${it.stayMinutes?.let { stay -> calendarEndLabel(requireNotNull(visibleItem).copy(arrivalTime = it.arrivalTime, stayMinutes = stay)) }} · ${it.stayMinutes} 分钟" } ?: if (active == null) "" else "拖入当天时间轴设置时间",
                     style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary, modifier = Modifier.height(24.dp).testTag("calendar-draft-label"))
                 Box(Modifier.weight(1f).fillMaxWidth().onGloballyPositioned { viewport = it.boundsInRoot() }.testTag("calendar-viewport")) {
                     val swipe = if (single == null) Modifier.pointerInput(currentPage, columns, lastPage) {
@@ -311,6 +328,13 @@ fun CalendarContent(
                 }
             }
         }
+    }
+    if (resize != null && resize.timing != null && viewport != Rect.Zero && summaryBounds != Rect.Zero) {
+        key(resize.item.id, resize.mode) {
+            CalendarResizeHint(resize.mode, resize.timing, resize.pointer, viewport, summaryBounds,
+                wideHintArea ?: summaryBounds, contentOrigin, onPosition = { hintPosition = it })
+        }
+    }
     }
     expandedGroup?.let { group ->
         val members = selectedDay?.events?.filter { it.group == group }.orEmpty()

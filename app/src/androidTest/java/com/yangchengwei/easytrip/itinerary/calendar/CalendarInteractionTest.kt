@@ -52,41 +52,44 @@ class CalendarInteractionTest {
             down(from); advanceEventTime(600); moveTo(from+Offset(0f,delta), 300); up()
         }
     }
-    @Test fun resizeCuesFollowActiveEdgeAndDisappearAfterReleaseOrCancel() {
-        setup()
-        compose.onNodeWithTag("calendar-resize-start").assertDoesNotExist()
-        compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
-        event().performTouchInput { down(Offset(width * .05f, 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
-        val startCue = compose.onNodeWithTag("calendar-resize-start", useUnmergedTree = true)
-        startCue.assertIsDisplayed()
-        compose.onNodeWithTag("calendar-resize-end").assertDoesNotExist()
-        compose.onNodeWithTag("calendar-draft-label").assertTextContains("调整开始", substring = true)
-        val first = startCue.fetchSemanticsNode().boundsInRoot
-        val originalDraft = compose.onNodeWithTag("calendar-draft").fetchSemanticsNode().boundsInRoot
-        assertEquals(originalDraft.center.x, first.center.x, 1f)
-        assertEquals(originalDraft.top, first.bottom, 1f)
-        saveResizeEvidence("calendar-resize-start.jpg")
-        event().performTouchInput { moveBy(Offset(0f, -26f), 300) }
-        assertEquals(first.top - 26f, startCue.fetchSemanticsNode().boundsInRoot.top, 1f)
-        event().performTouchInput { up() }
-        startCue.assertDoesNotExist()
-        assertEquals(1, changes.size)
-
+    @Test fun resizeCuesFollowFingerAboveBothEdgesAndDisappearAfterReleaseOrCancel() {
+        setup(listOf(item("early", "07:30", 30), item()))
+        val viewportBefore = compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
+        listOf(.05f, .5f, .95f).forEach { x ->
+            val original = event().fetchSemanticsNode().boundsInRoot
+            event().performTouchInput { down(Offset(width * x, 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
+            val cue = compose.onNodeWithTag("calendar-resize-start", useUnmergedTree = true)
+            cue.assertIsDisplayed().assertContentDescriptionContains("调整开始 09:40", substring = true)
+            cue.assertContentDescriptionContains("停留 90 分钟", substring = true)
+            cue.assert(SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.StateDescription, "Floating"))
+            val bounds = cue.fetchSemanticsNode().boundsInRoot
+            assertEquals(original.top + 2f - 64f, bounds.bottom, 1f)
+            assertTrue(bounds.left >= viewportBefore.left + 7f)
+            assertTrue(bounds.right <= viewportBefore.right - 7f)
+            compose.onNodeWithTag("calendar-draft-label").assertTextEquals("")
+            event().performTouchInput { moveBy(Offset(0f, -26f), 300) }
+            cue.assertContentDescriptionContains("调整开始 09:10", substring = true)
+            cue.assertContentDescriptionContains("结束 11:10 不变", substring = true)
+            cue.assertContentDescriptionContains("停留 120 分钟", substring = true)
+            assertEquals(bounds.bottom - 26f, cue.fetchSemanticsNode().boundsInRoot.bottom, 1f)
+            saveResizeEvidence("calendar-resize-start.jpg")
+            event().performTouchInput { cancel() }
+            cue.assertDoesNotExist()
+            assertTrue(changes.isEmpty())
+        }
+        val original = event().fetchSemanticsNode().boundsInRoot
         event().performTouchInput { down(Offset(width * .95f, height - 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
-        val endCue = compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true)
-        endCue.assertIsDisplayed()
-        compose.onNodeWithTag("calendar-resize-start").assertDoesNotExist()
-        compose.onNodeWithTag("calendar-draft-label").assertTextContains("调整结束", substring = true)
-        val lower = endCue.fetchSemanticsNode().boundsInRoot
-        val draftBounds = compose.onNodeWithTag("calendar-draft").fetchSemanticsNode().boundsInRoot
-        assertEquals(first.center.x, lower.center.x, 1f)
-        assertEquals(first.width, lower.width, 1f)
-        assertEquals(first.height, lower.height, 1f)
-        assertEquals(draftBounds.bottom, lower.top, 1f)
+        val lower = compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true)
+        assertEquals(original.bottom - 2f - 64f, lower.fetchSemanticsNode().boundsInRoot.bottom, 1f)
+        event().performTouchInput { moveBy(Offset(0f, 26f), 300) }
+        lower.assertContentDescriptionContains("调整结束 11:40", substring = true)
+        lower.assertContentDescriptionContains("开始 09:40 不变", substring = true)
         saveResizeEvidence("calendar-resize-end.jpg")
-        event().performTouchInput { moveBy(Offset(0f, 26f), 300); cancel() }
-        endCue.assertDoesNotExist()
+        event().performTouchInput { up() }
+        lower.assertDoesNotExist()
         assertEquals(1, changes.size)
+        assertEquals(120, changes.single().after.stayMinutes)
+        assertEquals(viewportBefore, compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot)
     }
 
     @Test fun unsetStayShowsEdgeCueAfterLongPressAndBodyMoveDoesNot() {
@@ -103,28 +106,64 @@ class CalendarInteractionTest {
         assertTrue(changes.isEmpty())
     }
 
-    @Test fun midnightResizeCueRemainsVisibleInsideViewport() {
+    @Test fun midnightResizeUsesSummaryWithoutMovingTimeline() {
         setup(listOf(item(arrival = "00:00")))
+        val viewport = compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
+        val summary = compose.onNodeWithTag("calendar-summary").fetchSemanticsNode().boundsInRoot
         event().performTouchInput { down(Offset(width * .5f, 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
         val cue = compose.onNodeWithTag("calendar-resize-start", useUnmergedTree = true)
-        cue.assertIsDisplayed()
+        cue.assertIsDisplayed().assertContentDescriptionContains("调整开始 00:00", substring = true)
+        cue.assert(SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.StateDescription, "Summary"))
+        assertEquals(summary, cue.fetchSemanticsNode().boundsInRoot)
+        assertEquals(viewport, compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot)
+        compose.onNodeWithTag("calendar-toggle").assertDoesNotExist()
+        saveResizeEvidence("calendar-resize-top.jpg")
+        event().performTouchInput { cancel() }
+        compose.onNodeWithTag("calendar-toggle").assertIsDisplayed()
+        assertEquals(viewport, compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot)
+        assertTrue(changes.isEmpty())
+    }
+
+    @Test fun lateUnsetStayKeepsLowerHintVisibleAndDoesNotPretendStayWasSaved() {
+        setup(listOf(item(arrival = "23:59", stay = null)))
+        event().performScrollTo().performTouchInput { down(Offset(width * .5f, height - 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
+        val cue = compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true)
+        cue.assertIsDisplayed().assertContentDescriptionContains("次日 00:59", substring = true)
+        cue.assertContentDescriptionContains("停留待设", substring = true)
+        event().performTouchInput { cancel() }
+        assertTrue(changes.isEmpty())
+        assertNull(raw.value.single().items.single().stayMinutes)
+    }
+
+    @Test fun largeFontHintMeasuresHeightWithoutMovingTimelineOrDroppingMainText() {
+        setup(listOf(item(arrival = "00:00")), width = 208, scale = 2f)
         val viewport = compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
-        val bounds = cue.fetchSemanticsNode().boundsInRoot
-        assertTrue(bounds.top >= viewport.top)
-        assertEquals(20f, bounds.height, 1f)
+        event().performTouchInput { down(Offset(width * .5f, 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
+        val cue = compose.onNodeWithTag("calendar-resize-start", useUnmergedTree = true)
+        cue.assertIsDisplayed().assertContentDescriptionContains("调整开始 00:00", substring = true)
+        cue.assert(SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.StateDescription, "Wide"))
+        compose.onNodeWithText("↑ 调整开始", useUnmergedTree = true).assertIsDisplayed()
+        compose.onNode(hasText("00:00") and hasAnyAncestor(hasTestTag("calendar-resize-start")), useUnmergedTree = true).assertIsDisplayed()
+        assertEquals(viewport, compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot)
+        saveResizeEvidence("calendar-resize-large-font.jpg")
         event().performTouchInput { cancel() }
         assertTrue(changes.isEmpty())
     }
 
-    @Test fun lateUnsetStayKeepsWholeLowerCueInsideScrollableContent() {
-        setup(listOf(item(arrival = "23:59", stay = null)))
-        event().performScrollTo().performTouchInput { down(Offset(width * .5f, height - 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
+    @Test fun floatingAndFixedTransitionHasHysteresisAndKeepsGridPosition() {
+        setup()
+        val before = compose.onNodeWithTag("calendar-grid").fetchSemanticsNode().boundsInRoot.top
+        event().performTouchInput { down(Offset(width * .5f, height - 2f)); advanceEventTime(600); moveBy(Offset.Zero) }
         val cue = compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true)
-        cue.assertIsDisplayed()
-        val viewport = compose.onNodeWithTag("calendar-viewport").fetchSemanticsNode().boundsInRoot
-        val bounds = cue.fetchSemanticsNode().boundsInRoot
-        assertEquals(20f, bounds.height, 1f)
-        assertTrue("$bounds must fit within $viewport", bounds.bottom <= viewport.bottom + 1f)
+        fun position(value: String) = cue.assert(SemanticsMatcher.expectValue(androidx.compose.ui.semantics.SemanticsProperties.StateDescription, value))
+        position("Floating")
+        event().performTouchInput { moveBy(Offset(0f, -40f), 300) }
+        position("Summary")
+        event().performTouchInput { moveBy(Offset(0f, 8f), 100) }
+        position("Summary")
+        event().performTouchInput { moveBy(Offset(0f, 20f), 100) }
+        position("Floating")
+        assertEquals(before, compose.onNodeWithTag("calendar-grid").fetchSemanticsNode().boundsInRoot.top, 1f)
         event().performTouchInput { cancel() }
         assertTrue(changes.isEmpty())
     }

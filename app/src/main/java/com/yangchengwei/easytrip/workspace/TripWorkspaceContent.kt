@@ -35,6 +35,11 @@ import kotlinx.coroutines.delay
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.boundsInRoot
+import androidx.compose.ui.draw.drawWithContent
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
@@ -131,6 +136,8 @@ private fun WorkspaceReadyContent(
 ) {
     val density = LocalDensity.current
     var calendarBusy by remember { mutableStateOf(false) }
+    var calendarWideHint by remember { mutableStateOf(false) }
+    var calendarWideArea by remember { mutableStateOf(Rect.Zero) }
     WorkspaceScaffold(
         sheetLevel = state.sheetLevel,
         sheetGesturesEnabled = !calendarBusy,
@@ -139,7 +146,11 @@ private fun WorkspaceReadyContent(
         sheetHeader = { metrics ->
             Column(Modifier.fillMaxWidth()) {
                 WorkspaceSheetHandle()
-                Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                Row(Modifier.fillMaxWidth()
+                    .onGloballyPositioned { calendarWideArea = it.boundsInRoot() }
+                    .drawWithContent { if (!calendarWideHint) drawContent() }
+                    .then(if (calendarWideHint) Modifier.clearAndSetSemantics {} else Modifier),
+                    verticalAlignment = Alignment.CenterVertically) {
                     WorkspaceTabs(
                         selected = state.section,
                         onSelect = { if (!calendarBusy) onAction(TripWorkspaceAction.SelectSection(it)) },
@@ -247,6 +258,11 @@ private fun WorkspaceReadyContent(
                                 onRetry = { onAction(TripWorkspaceAction.RetryCalendar) },
                                 onDismissMessage = { onAction(TripWorkspaceAction.DismissCalendarMessage) },
                                 onBusy = { calendarBusy = it },
+                                wideHintArea = calendarWideArea.takeUnless { it == Rect.Zero }?.let { rect ->
+                                    val extra = with(density) { 4.dp.toPx() }
+                                    Rect(rect.left - extra, rect.top, rect.right + extra, rect.bottom)
+                                },
+                                onWideHint = { calendarWideHint = it },
                                 onRoute = { onItineraryAction(DayItineraryAction.RequestMode(it)) },
                             )
                         }),

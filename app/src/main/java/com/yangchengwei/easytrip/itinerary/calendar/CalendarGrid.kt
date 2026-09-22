@@ -111,7 +111,6 @@ internal fun CalendarGrid(
                     val duration = draftTiming.stayMinutes ?: 60
                     val resizingStart = draftMode == CalendarDragMode.START
                     val resizingEnd = draftMode == CalendarDragMode.END
-                    val markerHeight = 20.dp
                     val startY = (start * CALENDAR_MINUTE_DP).dp
                     val draftHeight = (duration * CALENDAR_MINUTE_DP).dp.coerceAtLeast(2.dp)
                     val visitConflict = day.events.any { it.item.id != draftItem.id && !it.placeholder && !it.point && it.start < start+duration && start < it.end }
@@ -124,42 +123,19 @@ internal fun CalendarGrid(
                         border = BorderStroke(2.dp, if (conflict) Color(0xFFBA5B37) else MaterialTheme.colorScheme.primary),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)) {
                         CalendarCardText(draftItem.name, "${calendarTime(start)}–${calendarTime(start+duration)}$conflictLabel",
-                            conflict, duration < 45, draftIncoming, narrowTraffic, "calendar-draft-incoming",
-                            contentTopPadding = if (resizingStart && startY < markerHeight) markerHeight + 2.dp else null)
+                            conflict, duration < 45, draftIncoming, narrowTraffic, "calendar-draft-incoming")
                     }
                     if (resizingStart || resizingEnd) {
                         val edgeY = if (resizingStart) startY else startY + draftHeight
                         val color = MaterialTheme.colorScheme.primary
-                        Canvas(Modifier.offset(x = 9.dp, y = edgeY - 1.5.dp)
-                            .width((eventWidth - 18.dp).coerceAtLeast(1.dp)).height(3.dp)) {
+                        Canvas(Modifier.offset(x = 3.dp, y = edgeY - 1.5.dp)
+                            .width((eventWidth - 6.dp).coerceAtLeast(1.dp)).height(3.dp)) {
                             drawLine(color, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), size.height, StrokeCap.Round)
                         }
-                        CalendarResizeIndicator(resizingStart,
-                            Modifier.offset(x = (eventWidth - 28.dp) / 2,
-                                y = if (resizingStart) (edgeY - markerHeight).coerceAtLeast(0.dp) else edgeY)
-                                .size(28.dp, markerHeight))
                     }
                 }
             }
         }
-    }
-}
-
-/** A visual cue only: the whole card edge continues to own the pointer gesture. */
-@Composable
-private fun CalendarResizeIndicator(start: Boolean, modifier: Modifier) {
-    val color = MaterialTheme.colorScheme.primary
-    val arrow = MaterialTheme.colorScheme.onPrimary
-    Canvas(modifier.testTag(if (start) "calendar-resize-start" else "calendar-resize-end")) {
-        drawRoundRect(color, cornerRadius = androidx.compose.ui.geometry.CornerRadius(6.dp.toPx()))
-        val centerX = size.width / 2
-        val tip = if (start) 5.dp.toPx() else size.height - 5.dp.toPx()
-        val tail = if (start) size.height - 5.dp.toPx() else 5.dp.toPx()
-        val wing = tip + (if (start) 4.dp.toPx() else -4.dp.toPx())
-        val line = 1.75.dp.toPx()
-        drawLine(arrow, Offset(centerX, tail), Offset(centerX, tip), line, StrokeCap.Round)
-        drawLine(arrow, Offset(centerX - 4.dp.toPx(), wing), Offset(centerX, tip), line, StrokeCap.Round)
-        drawLine(arrow, Offset(centerX + 4.dp.toPx(), wing), Offset(centerX, tip), line, StrokeCap.Round)
     }
 }
 
