@@ -83,7 +83,7 @@ fun ItineraryShareScreen(
                 catch(_:Exception){loadFailed=true;return@LaunchedEffect}
             trip=currentTrip
             val days=currentTrip.selected(options)
-            if(!projectShareCalendar(currentTrip, options).hasContent)return@LaunchedEffect
+            if(days.none { it.stops.isNotEmpty() })return@LaunchedEffect
             ShareImageStorage.pruneCache(context)
             val renderer=ShareImageRenderer()
             // Budget the full map height before loading any SDK views.
@@ -101,11 +101,11 @@ fun ItineraryShareScreen(
             generation=ShareGeneration.Ready(options,image,maps.values.any { it.file==null })
         } catch(cancelled:CancellationException){output.delete();throw cancelled}
         catch(_:ShareImageTooLongException){output.delete();generation=ShareGeneration.Failed(options,true)}
-        catch(_:OutOfMemoryError){output.delete();generation=ShareGeneration.Failed(options,true)}
+        catch(_:OutOfMemoryError){output.delete();generation=ShareGeneration.Failed(options,false)}
         catch(_:Exception){output.delete();generation=ShareGeneration.Failed(options,false)}
     }
     val selected=trip?.selected(options).orEmpty()
-    val isEmpty=trip!=null && !projectShareCalendar(requireNotNull(trip), options).hasContent
+    val isEmpty=trip!=null && selected.none { it.stops.isNotEmpty() }
     val ready=(generation as? ShareGeneration.Ready)?.takeIf { !isEmpty && !loadFailed }
     fun save(image:ShareImage) {
         saving=true
@@ -179,9 +179,9 @@ fun ItineraryShareScreen(
                     ready!=null -> ShareImagePreview(ready.image,Modifier.weight(1f).testTag("share-image-preview"))
                     generation is ShareGeneration.Failed && (generation as ShareGeneration.Failed).options==options -> {
                         val tooLong=(generation as ShareGeneration.Failed).tooLong
-                        ShareMessage(if(tooLong && selectedDay!=null)"当天内容较长，请关闭备注或精简后重试" else if(tooLong)"行程较长，请选择一天生成" else "长图生成失败",
-                            if(tooLong && selectedDay==null)"选择一天" else if(tooLong && includeNotes)"关闭备注" else if(tooLong)"返回调整行程" else "重试",
-                            {if(tooLong && selectedDay==null){picker=true}else if(tooLong && includeNotes)includeNotes=false else if(tooLong)onBack() else retry++})
+                        ShareMessage(if(tooLong) "备注内容过多，请精简后重试" else "长图生成失败",
+                            if(tooLong && includeNotes) "关闭备注" else if(tooLong) "返回调整行程" else "重试",
+                            {if(tooLong && includeNotes)includeNotes=false else if(tooLong)onBack() else retry++})
                     }
                     else -> Box(Modifier.fillMaxSize(),contentAlignment=Alignment.Center){Column(horizontalAlignment=Alignment.CenterHorizontally,verticalArrangement=Arrangement.spacedBy(16.dp)){
                         CircularProgressIndicator();Text((generation as? ShareGeneration.Working)?.message ?: "正在生成长图…",modifier=Modifier.testTag("share-generating"))

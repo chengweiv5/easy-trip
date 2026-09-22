@@ -63,7 +63,7 @@ class ShareMapCaptureTest {
         })
         assertNotNull("nearby numbers must remain exportable",capture.capture(nearby).file)
         val trip=shareFixture()
-        ShareImageRenderer(24_000_000).render(trip,ShareOptions(),trip.days.associate { it.id to capture.capture(it) },File(context.getExternalFilesDir(null),"share-real-full.png"))
+        ShareImageRenderer().render(trip,ShareOptions(),trip.days.associate { it.id to capture.capture(it) },File(context.getExternalFilesDir(null),"share-real-full.png"))
         gate.decide(false)
         assertNull(capture.capture(day).file)
         assertNull(ShareMapCapture(host,null).capture(day).file)

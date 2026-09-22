@@ -38,6 +38,17 @@ class ItineraryShareScreenTest {
         compose.onNodeWithText("返回").performClick();ready()
         compose.onNodeWithTag("share-save").assertIsEnabled()
     }
+    @Test fun fourteenDayTripCanPreviewAndShareFullTrip() {
+        start(ShareSnapshotSource { multiDayShareFixture(14) });ready()
+        compose.onNodeWithTag("share-all").assertIsSelected()
+        compose.onNodeWithTag("share-notes").assertIsOn()
+        compose.onNodeWithTag("share-send").assertIsEnabled()
+        compose.onNodeWithTag("share-save").assertIsEnabled()
+        compose.onNodeWithText("行程较长，请选择一天生成").assertDoesNotExist()
+        repeat(4) { compose.onNodeWithTag("share-image-preview").performTouchInput { swipeUp() } }
+        compose.onNodeWithTag("share-expand").performClick()
+        compose.onNodeWithText("长图预览").assertExists()
+    }
     @Test fun changingOptionsDisablesExportDuringRegenerationAndKeepsLatestChoice() {
         start(ShareSnapshotSource { delay(600);shareFixture() });ready()
         compose.onNodeWithTag("share-notes").performClick()

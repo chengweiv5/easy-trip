@@ -4,7 +4,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.RectF
 import android.graphics.Typeface
@@ -19,36 +18,35 @@ import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
 
-class ShareImageTooLongException : Exception("行程较长，请选择一天生成")
+class ShareImageTooLongException : Exception("内容超出图片生成上限，请精简过长备注后重试")
 data class ShareImage(val file: File, val width: Int, val height: Int)
 data class ShareDayMap(val file: File? = null, val message: String? = null)
 
 /** The preview and both export actions consume this same PNG; no UI screenshot is involved. */
-class ShareImageRenderer(private val maxPixels: Long = minOf(24_000_000L, Runtime.getRuntime().maxMemory() / 16)) {
+class ShareImageRenderer(private val maxOutputHeight: Int = 200_000) {
     private val scale = 1080f / 390f
     private val ink = Color.rgb(32,52,59)
     private val muted = Color.rgb(83,103,109)
     private val primary = Color.rgb(8,111,118)
     private val line = Color.rgb(204,221,224)
     private val noteBg = Color.rgb(240,246,246)
-    private data class DrawOp(val draw: (Canvas) -> Unit)
+    private data class DrawOp(val top: Float, val bottom: Float, val draw: (Canvas) -> Unit)
 
     suspend fun render(trip: ShareTrip, options: ShareOptions, maps: Map<String, ShareDayMap>, output: File, measureOnly: Boolean = false): ShareImage = withContext(Dispatchers.Default) {
         val days = trip.selected(options)
-        val calendar = projectShareCalendar(trip, options)
-        require(calendar.hasContent) { "还没有可以分享的行程" }
+        require(days.any { it.stops.isNotEmpty() }) { "还没有可以分享的行程" }
         val ops = mutableListOf<DrawOp>()
         var y = 0f
         fun checkHeight(bottom: Float = y) {
-            if (bottom * scale > 30_000 || 1080L * kotlin.math.ceil(bottom * scale).toLong() > maxPixels) throw ShareImageTooLongException()
+            if (bottom * scale > maxOutputHeight) throw ShareImageTooLongException()
         }
         fun drawRect(x: Float, top: Float, width: Float, height: Float, color: Int, radius: Float = 0f) {
-            ops += DrawOp { canvas ->
+            ops += DrawOp(top - 1, top + height + 1) { canvas ->
                 val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color = color }
                 canvas.drawRoundRect(RectF(x,top,x+width,top+height),radius,radius,paint)
             }
         }
-        fun drawText(value: String, x: Float, top: Float, width: Float, size: Float, color: Int = ink, bold: Boolean = false, draw: Boolean = true): Float {
+        fun drawText(value: String, x: Float, top: Float, width: Float, size: Float, color: Int = ink, bold: Boolean = false): Float {
             // Refuse impossible inputs before allocating enormous StaticLayout objects.
             if (value.length > 100_000) throw ShareImageTooLongException()
             val paint = TextPaint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -57,13 +55,13 @@ class ShareImageRenderer(private val maxPixels: Long = minOf(24_000_000L, Runtim
             }
             val layout = StaticLayout.Builder.obtain(value,0,value.length,paint,width.toInt().coerceAtLeast(1))
                 .setAlignment(Layout.Alignment.ALIGN_NORMAL).setIncludePad(false).setLineSpacing(size*.35f,1f).build()
-            if (draw) ops += DrawOp { c -> c.save();c.translate(x,top);layout.draw(c);c.restore() }
+            ops += DrawOp(top - 1, top + layout.height + 1) { c -> c.save();c.translate(x,top);layout.draw(c);c.restore() }
             return layout.height.toFloat()
         }
         fun badge(number: String, x: Float, top: Float, color: Int, size: Float = 19f) {
             drawRect(x,top,size,size,color,size/2)
             val paint=Paint(Paint.ANTI_ALIAS_FLAG).apply { this.color=Color.WHITE;textSize=if(number.length>2)8f else 10f;textAlign=Paint.Align.CENTER;typeface=Typeface.DEFAULT_BOLD }
-            ops += DrawOp { it.drawText(number,x+size/2,top+size/2-(paint.ascent()+paint.descent())/2,paint) }
+            ops += DrawOp(top - 1, top + size + 1) { it.drawText(number,x+size/2,top+size/2-(paint.ascent()+paint.descent())/2,paint) }
         }
         val coverOpsStart = ops.size
         y = 26f
@@ -74,20 +72,7 @@ class ShareImageRenderer(private val maxPixels: Long = minOf(24_000_000L, Runtim
         drawRect(24f,y,342f,1f,0x55FFFFFF);y+=14
         y += drawText("${days.size} 天    ${days.sumOf { it.stops.size }} 站安排    ${if(options.includeNotes) "含交通与备注" else "含交通 · 不含备注"}",24f,y,342f,12f,Color.WHITE)+22
         val coverHeight=y
-        ops.add(coverOpsStart,DrawOp { it.drawRect(0f,0f,390f,coverHeight,Paint().apply { color=primary }) })
-        val currentCoroutineContextForDrawing = currentCoroutineContext()
-        y = ShareCalendarPainter(object : ShareCalendarDrawing {
-            override fun text(value: String, x: Float, y: Float, width: Float, size: Float, color: Int, bold: Boolean, draw: Boolean) =
-                drawText(value, x, y, width, size, color, bold, draw)
-            override fun rect(x: Float, y: Float, width: Float, height: Float, color: Int) = drawRect(x, y, width, height, color)
-            override fun outline(x: Float, y: Float, width: Float, height: Float, color: Int, dashed: Boolean) {
-                ops += DrawOp { c -> c.drawRect(x, y, x + width, y + height, Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                    this.color = color; style = Paint.Style.STROKE; strokeWidth = .7f
-                    if (dashed) pathEffect = DashPathEffect(floatArrayOf(3f, 2f), 0f)
-                }) }
-            }
-            override fun checkpoint(bottom: Float) { currentCoroutineContextForDrawing.ensureActive(); checkHeight(bottom) }
-        }).draw(calendar, y)
+        ops.add(coverOpsStart,DrawOp(0f, coverHeight) { it.drawRect(0f,0f,390f,coverHeight,Paint().apply { color=primary }) })
         for(day in days) {
             currentCoroutineContext().ensureActive()
             y += 24
@@ -98,10 +83,7 @@ class ShareImageRenderer(private val maxPixels: Long = minOf(24_000_000L, Runtim
             drawText("${day.stops.size} 站",330f,y+10,40f,11f,muted)
             y+=52
             if(day.stops.isEmpty()) {
-                val hasContinuation = calendar.days.first { it.day.id == day.id }.let {
-                    it.visits.isNotEmpty() || it.transfers.isNotEmpty()
-                }
-                y += drawText(if (hasContinuation) "当天无新增安排，前日延续见上方日历" else "当天尚未安排行程",70f,y,290f,12f,muted)+24
+                y += drawText("当天尚未安排行程",70f,y,290f,12f,muted)+24
             } else {
                 val map=maps[day.id]
                 val mapTop=y
@@ -111,7 +93,7 @@ class ShareImageRenderer(private val maxPixels: Long = minOf(24_000_000L, Runtim
                 y+=29
                 if(map?.file!=null) {
                     val mapY=y; val mapFile=map.file
-                    ops += DrawOp { c ->
+                    ops += DrawOp(mapY - 1, mapY + 172) { c ->
                         val bmp=BitmapFactory.decodeFile(mapFile.absolutePath) ?: error("地图图片读取失败，请重试")
                         try { c.drawBitmap(bmp,null,RectF(24f,mapY,366f,mapY+171f),Paint(Paint.FILTER_BITMAP_FLAG)) } finally { bmp.recycle() }
                     }
@@ -129,7 +111,7 @@ class ShareImageRenderer(private val maxPixels: Long = minOf(24_000_000L, Runtim
                 }.joinToString(" · ")
                 if(caption.isNotEmpty()) y+=drawText(caption,35f,y+7,320f,10f,muted)+14
                 val bottom=y
-                ops+=DrawOp { c -> c.drawRoundRect(RectF(24f,mapTop,366f,bottom),7f,7f,Paint(Paint.ANTI_ALIAS_FLAG).apply { color=line;style=Paint.Style.STROKE;strokeWidth=1f }) }
+                ops+=DrawOp(mapTop - 1, bottom + 1) { c -> c.drawRoundRect(RectF(24f,mapTop,366f,bottom),7f,7f,Paint(Paint.ANTI_ALIAS_FLAG).apply { color=line;style=Paint.Style.STROKE;strokeWidth=1f }) }
                 y+=22
                 for(stop in day.stops) {
                     currentCoroutineContext().ensureActive()
@@ -141,7 +123,7 @@ class ShareImageRenderer(private val maxPixels: Long = minOf(24_000_000L, Runtim
                     fun note(value:String) {
                         val before=ops.size; val noteTop=y+4
                         val height=drawText(value,117f,noteTop+8,238f,12f)+16
-                        ops.add(before,DrawOp { c -> c.drawRect(106f,noteTop,366f,noteTop+height,Paint().apply { color=noteBg });c.drawRect(106f,noteTop,108f,noteTop+height,Paint().apply { color=line }) })
+                        ops.add(before,DrawOp(noteTop - 1, noteTop + height + 1) { c -> c.drawRect(106f,noteTop,366f,noteTop+height,Paint().apply { color=noteBg });c.drawRect(106f,noteTop,108f,noteTop+height,Paint().apply { color=line }) })
                         y=noteTop+height+6
                     }
                     if(options.includeNotes) stop.note?.let(::note)
@@ -163,17 +145,43 @@ class ShareImageRenderer(private val maxPixels: Long = minOf(24_000_000L, Runtim
         checkHeight()
         val height=kotlin.math.ceil(y*scale).toInt()
         if (measureOnly) return@withContext ShareImage(output, 1080, height)
-        val bitmap=Bitmap.createBitmap(1080,height,Bitmap.Config.ARGB_8888)
+        // Render strips at the original scale, then append their rows to a single PNG.
+        // Peak pixel memory is independent of the number of travel days.
+        val stripHeight = minOf(512, height)
+        val bitmap = Bitmap.createBitmap(1080, stripHeight, Bitmap.Config.ARGB_8888)
         try {
-            val canvas=Canvas(bitmap);canvas.drawColor(Color.WHITE);canvas.scale(scale,scale)
-            for(op in ops){currentCoroutineContext().ensureActive();op.draw(canvas)}
             output.parentFile?.mkdirs()
-            try { output.outputStream().use { check(bitmap.compress(Bitmap.CompressFormat.PNG,100,it)) { "图片写入失败" } } }
-            catch(error:Exception){output.delete();throw error}
-            currentCoroutineContext().ensureActive()
-            ShareImage(output,1080,height)
+            var complete = false
+            try {
+                output.outputStream().buffered().use { stream ->
+                    StreamingPngWriter(stream, 1080, height).use { png ->
+                        val pixels = IntArray(1080)
+                        val canvas = Canvas(bitmap)
+                        for (top in 0 until height step stripHeight) {
+                            currentCoroutineContext().ensureActive()
+                            bitmap.eraseColor(Color.WHITE)
+                            canvas.save()
+                            canvas.translate(0f, -top.toFloat())
+                            canvas.scale(scale, scale)
+                            for (op in ops) {
+                                if (op.bottom * scale >= top && op.top * scale < top + stripHeight) op.draw(canvas)
+                            }
+                            canvas.restore()
+                            for (row in 0 until minOf(stripHeight, height - top)) {
+                                currentCoroutineContext().ensureActive()
+                                bitmap.getPixels(pixels, 0, 1080, 0, row, 1080, 1)
+                                png.writeRow(pixels)
+                            }
+                        }
+                    }
+                }
+                currentCoroutineContext().ensureActive()
+                complete = true
+                ShareImage(output, 1080, height)
+            } finally { if (!complete) output.delete() }
         } finally { bitmap.recycle() }
     }
+
     private fun formatStay(minutes:Int) = when {
         minutes<60 -> "$minutes 分钟"
         minutes%60==0 -> "${minutes/60} 小时"

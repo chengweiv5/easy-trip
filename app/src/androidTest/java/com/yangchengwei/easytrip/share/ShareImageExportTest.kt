@@ -24,7 +24,7 @@ class ShareImageExportTest {
         Canvas(bitmap).drawColor(Color.rgb(200,225,215))
         map.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
         val maps=fixture.days.associate { it.id to ShareDayMap(map) }
-        val renderer=ShareImageRenderer(24_000_000)
+        val renderer=ShareImageRenderer()
         val full=renderer.render(fixture,ShareOptions(),maps,file("share-full.png"))
         val hidden=renderer.render(fixture,ShareOptions(includeNotes=false),maps,file("share-hidden.png"))
         val day=renderer.render(fixture,ShareOptions("d1"),maps,file("share-day.png"))
@@ -49,14 +49,14 @@ class ShareImageExportTest {
     @Test fun rejectsOversizeBeforeWritingPartialImage() = runBlocking {
         val output=file("share-too-long.png")
         try {
-            ShareImageRenderer(10).render(shareFixture(),ShareOptions(),emptyMap(),output)
+            ShareImageRenderer(maxOutputHeight = 10).render(shareFixture(),ShareOptions(),emptyMap(),output)
             fail("expected size limit")
         } catch(_:ShareImageTooLongException) { assertFalse(output.exists()) }
     }
 
     @Test fun providerAndGalleryContainExactlyThePreviewPng() = runBlocking {
         val output=ShareImageStorage.newOutput(context)
-        val image=ShareImageRenderer().render(shareFixture().copy(days=shareFixture().days.take(1)),ShareOptions(),emptyMap(),output)
+        val image=ShareImageRenderer().render(multiDayShareFixture(14),ShareOptions(),emptyMap(),output)
         val send=ShareImageStorage.shareIntent(context,image)
         assertEquals(Intent.ACTION_SEND,send.action)
         assertEquals("image/png",send.type)
