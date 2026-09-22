@@ -170,12 +170,6 @@ internal fun CalendarCard(
                 width = if (selected || conflict) 1.5.dp.toPx() else 1.dp.toPx(),
                 pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 3.dp.toPx())) else null,
             ))
-            if (edges && editable) {
-                val inset = 7.dp.toPx()
-                listOf(3.dp.toPx(), size.height - 3.dp.toPx()).forEach { y ->
-                    drawLine(border.copy(alpha = .6f), Offset(inset, y), Offset(size.width-inset,y), 2.dp.toPx())
-                }
-            }
         }
         Column(Modifier.fillMaxWidth().padding(horizontal = 7.dp, vertical = if (compact) 2.dp else 6.dp)) {
             Text(title, color = MaterialTheme.colorScheme.onSurface, fontSize = 12.sp, lineHeight = 15.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
