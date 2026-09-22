@@ -11,6 +11,7 @@ import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
+import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
@@ -254,9 +255,12 @@ class V2AcceptanceTest {
         }
         compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
         waitForTag("calendar-date-pager")
-        compose.onNodeWithTag("calendar-date-${fixture.days.last().id}").assertDoesNotExist()
-        compose.onNodeWithText("›").performClick()
-        compose.onNodeWithTag("calendar-date-${fixture.days.last().id}").assertIsDisplayed()
+        val lastDate = compose.onNodeWithTag("calendar-date-${fixture.days.last().id}")
+        lastDate.assertDoesNotExist()
+        repeat(fixture.days.size - 1) {
+            if (!lastDate.isDisplayed()) compose.onNodeWithText("›").performClick()
+        }
+        lastDate.assertIsDisplayed()
     }
 
     @Test fun batch5ProductionNavigationRoomMainFlow() {

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.calendar
 
+import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi
 import com.yangchengwei.easytrip.itinerary.ui.WholeTripDayUi
 
@@ -34,6 +35,11 @@ data class CalendarTransfer(
     val legId: String = "", val sourceDayId: String = "", val displayDayId: String = "",
     val continuation: Boolean = false, val continues: Boolean = false,
     val message: String? = null,
+    val mode: TransportMode? = null,
+    val fromName: String = "", val toName: String = "",
+    // Estimated start/end remain intact for soft conflict warnings. These fields only allocate display time.
+    val allocatedMinutes: Int? = null,
+    val blockStart: Int? = null, val blockEnd: Int? = null,
 )
 data class CalendarDay(
     val dayId: String,
@@ -79,6 +85,18 @@ fun projectCalendarDays(rawDays: List<WholeTripDayUi>): List<CalendarDay> {
             val sourceEnd = from.arrivalTime?.let { time -> from.stayMinutes?.let { time.hour * 60L + time.minute + it } }
             val routeEnd = sourceEnd?.let { minutes?.let { duration -> it + duration } }
             val arrival = to.arrivalTime?.let { it.hour * 60 + it.minute }
+            val allocatedEnd = if (sourceEnd == null || routeEnd == null) null else {
+                val occupiedAt = days.drop(index).flatMapIndexed { offset, target ->
+                    fragments.getValue(target.dayId).filter {
+                        it.item.id != from.id && !it.placeholder && !it.point
+                    }.mapNotNull { event ->
+                        val start = offset * 1440L + event.start
+                        val end = offset * 1440L + event.end
+                        if (end > sourceEnd && start < routeEnd) maxOf(sourceEnd, start) else null
+                    }
+                }.minOrNull()
+                minOf(routeEnd, arrival?.toLong()?.coerceAtLeast(sourceEnd) ?: routeEnd, occupiedAt ?: routeEnd)
+            }
             val reference = CalendarTransfer(from.id, to.id, minutes, null, null,
                 routeEnd != null && arrival != null && routeEnd > arrival,
                 leg.id, day.dayId, day.dayId,
@@ -86,20 +104,26 @@ fun projectCalendarDays(rawDays: List<WholeTripDayUi>): List<CalendarDay> {
                     is com.yangchengwei.easytrip.itinerary.ui.RouteLegUiState.Failed -> state.message
                     com.yangchengwei.easytrip.itinerary.ui.RouteLegUiState.WaitingForNetwork -> "交通用时待联网计算"
                     else -> null
-                })
+                }, mode = leg.mode, fromName = from.name, toName = to.name,
+                allocatedMinutes = allocatedEnd?.let { (it - requireNotNull(sourceEnd)).toInt() })
             if (sourceEnd == null || routeEnd == null || sourceEnd >= (days.size-index)*1440L) {
                 transfers.getValue(day.dayId).add(reference)
             } else {
                 for (offset in 0 until days.size-index) {
                     val lower = offset * 1440L
                     val upper = lower + 1440L
-                    if (sourceEnd >= upper || routeEnd <= lower) continue
+                    val zeroAtStart = routeEnd == sourceEnd && sourceEnd >= lower && sourceEnd < upper
+                    if (!zeroAtStart && (sourceEnd >= upper || routeEnd <= lower)) continue
                     val target = days[index+offset]
                     val start = (sourceEnd-lower).coerceAtLeast(0).toInt()
                     val end = (routeEnd-lower).coerceAtMost(1440).toInt()
-                    val overlapsEvent = fragments.getValue(target.dayId).any { !it.placeholder && !it.point && it.item.id != from.id && it.start < end && start < it.end }
+                    val overlapsEvent = end > start && fragments.getValue(target.dayId).any { !it.placeholder && !it.point && it.item.id != from.id && it.start < end && start < it.end }
+                    val blockEnds = requireNotNull(allocatedEnd)
+                    val hasBlock = sourceEnd < upper && (blockEnds > lower || blockEnds == sourceEnd && sourceEnd >= lower)
                     transfers.getValue(target.dayId).add(reference.copy(start=start, end=end, displayDayId=target.dayId,
-                        continuation=sourceEnd<lower, continues=routeEnd>upper, conflict=reference.conflict || overlapsEvent))
+                        continuation=sourceEnd<lower, continues=routeEnd>upper, conflict=reference.conflict || overlapsEvent,
+                        blockStart = if (hasBlock) start else null,
+                        blockEnd = if (hasBlock) (blockEnds - lower).coerceIn(0, 1440).toInt() else null))
                 }
             }
         }
@@ -109,7 +133,7 @@ fun projectCalendarDays(rawDays: List<WholeTripDayUi>): List<CalendarDay> {
         val events = layoutCalendarEvents(fragments.getValue(day.dayId)).map { event ->
             event.copy(trafficConflict = !event.placeholder && !event.point && dayTransfers.any { transfer ->
                 transfer.fromId != event.item.id && transfer.start != null && transfer.end != null &&
-                    transfer.start < event.end && event.start < transfer.end
+                    transfer.end > transfer.start && transfer.start < event.end && event.start < transfer.end
             })
         }
         CalendarDay(day.dayId, day.dayNumber, day.items, events,

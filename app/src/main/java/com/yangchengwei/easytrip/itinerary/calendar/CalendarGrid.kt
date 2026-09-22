@@ -12,6 +12,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,10 +31,12 @@ internal fun CalendarGrid(
     onStep: (String, ItineraryItemUi, CalendarDragMode, Int) -> Unit,
     onKeyboardStart: (String, ItineraryItemUi) -> Unit,
     onKeyboardStep: (Int) -> Unit, onKeyboardEnd: (Boolean) -> Unit,
+    onTraffic: (CalendarTransfer) -> Unit,
 ) {
     val line = MaterialTheme.colorScheme.outlineVariant
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
-    Row(modifier.height(24.dp * CALENDAR_HOUR_DP + CALENDAR_HOUR_DP.dp + 20.dp).testTag("calendar-grid")) {
+    val footer = (48f * LocalDensity.current.fontScale + 20f).dp.coerceAtLeast(72.dp)
+    Row(modifier.height(24.dp * CALENDAR_HOUR_DP + footer).testTag("calendar-grid")) {
         Box(Modifier.width(36.dp).fillMaxHeight()) {
             (0..24).forEach { hour ->
                 Text(calendarTime(hour * 60), Modifier.offset(y = (hour * CALENDAR_HOUR_DP).dp), fontSize = 9.sp, lineHeight = 12.sp, color = muted)
@@ -49,24 +52,20 @@ internal fun CalendarGrid(
                     }
                     drawLine(line, Offset.Zero, Offset(0f, size.height), 1.dp.toPx())
                 }
-                // Traffic references never infer an end for an unset stay.
-                day.transfers.filter { it.start != null }.forEach { transfer ->
-                    val start = transfer.start ?: return@forEach
-                    val end = transfer.end?.coerceAtMost(1440) ?: return@forEach
-                    if (end > start && day.events.none { !it.placeholder && !it.point && it.start < end && start < it.end }) Box(Modifier.offset(y = (start * CALENDAR_MINUTE_DP).dp).fillMaxWidth().height(((end-start) * CALENDAR_MINUTE_DP).dp).padding(horizontal = 3.dp)) {
-                        Text("约 ${transfer.minutes} 分钟赶路${if (transfer.conflict) " · 时间不足" else ""}",
-                            color = if (transfer.conflict) Color(0xFFBA5B37) else muted, fontSize = 9.sp, lineHeight = 12.sp,
-                            maxLines = 2, overflow = TextOverflow.Ellipsis, modifier = Modifier.align(Alignment.BottomEnd))
-                    }
-                }
+                val hasTraffic = day.transfers.any { it.blockStart != null }
+                val trafficWidth = if (!hasTraffic) 0.dp else if (single == null && days.size > 1) 64.dp else 80.dp
+                val eventWidth = (maxWidth - trafficWidth).coerceAtLeast(1.dp)
+                if (hasTraffic) CalendarTraffic(day,
+                    Modifier.offset(x = eventWidth + 3.dp).width((trafficWidth - 9.dp).coerceAtLeast(1.dp)).fillMaxHeight(),
+                    enabled = editable && draftItem == null, onOpen = onTraffic)
                 day.events.groupBy { it.group }.forEach { (group, events) ->
                     val hasPlaceholder = events.any { it.placeholder }
                     val intersectsOtherKind = events.any { event -> day.events.any { other ->
                         other.placeholder != event.placeholder && other.start < event.end && event.start < other.end
                     } }
                     // Reserve separate visual columns when an uncertain placeholder shares time with real events.
-                    val groupWidth = if (intersectsOtherKind) maxWidth * (if (hasPlaceholder) .4f else .6f) else maxWidth
-                    val groupLeft = if (intersectsOtherKind && hasPlaceholder) maxWidth * .6f else 0.dp
+                    val groupWidth = if (intersectsOtherKind) eventWidth * (if (hasPlaceholder) .4f else .6f) else eventWidth
+                    val groupLeft = if (intersectsOtherKind && hasPlaceholder) eventWidth * .6f else 0.dp
                     val aggregate = events.none { it.placeholder } && events.maxOf { it.laneCount } > (if (single == null) 1 else 2)
                     if (aggregate) {
                         val top = events.minOf { it.start }
@@ -104,26 +103,29 @@ internal fun CalendarGrid(
                     val markerHeight = 20.dp
                     val startY = (start * CALENDAR_MINUTE_DP).dp
                     val draftHeight = (duration * CALENDAR_MINUTE_DP).dp.coerceAtLeast(2.dp)
-                    val conflict = day.events.any { it.item.id != draftItem.id && !it.placeholder && !it.point && it.start < start+duration && start < it.end } || day.transfers.any { it.conflict && (it.fromId == draftItem.id || it.toId == draftItem.id) }
-                    Surface(Modifier.offset(x = 3.dp, y = startY).width((maxWidth-6.dp).coerceAtLeast(1.dp)).height(draftHeight).testTag("calendar-draft"),
+                    val visitConflict = day.events.any { it.item.id != draftItem.id && !it.placeholder && !it.point && it.start < start+duration && start < it.end }
+                    val trafficConflict = day.transfers.any { it.conflict && (it.fromId == draftItem.id || it.toId == draftItem.id) }
+                    val conflict = visitConflict || trafficConflict
+                    val conflictLabel = if (visitConflict) " · 日程重叠" else if (trafficConflict) " · 交通预留不足" else ""
+                    Surface(Modifier.offset(x = 3.dp, y = startY).width((eventWidth-6.dp).coerceAtLeast(1.dp)).height(draftHeight).testTag("calendar-draft"),
                         color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = .90f),
                         border = BorderStroke(2.dp, if (conflict) Color(0xFFBA5B37) else MaterialTheme.colorScheme.primary),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)) {
                         Column(Modifier.padding(start = 6.dp, end = 6.dp, bottom = 6.dp,
                             top = if (resizingStart && startY < markerHeight) markerHeight + 2.dp else 6.dp)) {
                             Text(draftItem.name, fontSize = 12.sp, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                            Text("${calendarTime(start)}–${calendarTime(start+duration)}${if(conflict) " · 重叠" else ""}", fontSize = 10.sp, maxLines = 1)
+                            Text("${calendarTime(start)}–${calendarTime(start+duration)}$conflictLabel", fontSize = 10.sp, maxLines = 1)
                         }
                     }
                     if (resizingStart || resizingEnd) {
                         val edgeY = if (resizingStart) startY else startY + draftHeight
                         val color = MaterialTheme.colorScheme.primary
                         Canvas(Modifier.offset(x = 9.dp, y = edgeY - 1.5.dp)
-                            .width((maxWidth - 18.dp).coerceAtLeast(1.dp)).height(3.dp)) {
+                            .width((eventWidth - 18.dp).coerceAtLeast(1.dp)).height(3.dp)) {
                             drawLine(color, Offset(0f, size.height / 2), Offset(size.width, size.height / 2), size.height, StrokeCap.Round)
                         }
                         CalendarResizeIndicator(resizingStart,
-                            Modifier.offset(x = (maxWidth - 28.dp) / 2,
+                            Modifier.offset(x = (eventWidth - 28.dp) / 2,
                                 y = if (resizingStart) (edgeY - markerHeight).coerceAtLeast(0.dp) else edgeY)
                                 .size(28.dp, markerHeight))
                     }

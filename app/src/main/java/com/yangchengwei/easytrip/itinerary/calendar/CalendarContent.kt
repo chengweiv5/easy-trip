@@ -208,7 +208,9 @@ fun CalendarContent(
         }
         if (saveState.saving) LinearProgressIndicator(Modifier.fillMaxWidth().testTag("calendar-saving"))
         BoxWithConstraints(Modifier.weight(1f)) {
-            val columns = if (maxWidth < 250.dp || density.fontScale > 1.2f) 1 else 2
+            val hasTraffic = days.any { day -> day.transfers.any { it.blockStart != null } }
+            val minTwoColumnWidth = if (hasTraffic) 360.dp else 250.dp
+            val columns = if (maxWidth < minTwoColumnWidth || density.fontScale > 1.2f) 1 else 2
             val lastPage = (days.size - columns).coerceAtLeast(0)
             val currentPage = page.coerceIn(0, lastPage)
             val shown = if (single != null) listOfNotNull(selectedDay) else days.drop(currentPage).take(columns)
@@ -284,7 +286,13 @@ fun CalendarContent(
                         onOpen = open, onExpand = { expandedGroup = if (expandedGroup == it) null else it },
                         onOpenGroup = { dayId, itemId -> pendingGroup = dayId to itemId; onFocus(dayId, itemId) },
                         onStart = { d, i, m, p, g -> start(d, i, m, p, g) }, onMove = { move(it) }, onEnd = { finish(it) }, onStep = { d, i, m, n -> step(d, i, m, n) },
-                        onKeyboardStart = { d, i -> keyStart(d, i) }, onKeyboardStep = { keyStep(it) }, onKeyboardEnd = { finish(it) })
+                        onKeyboardStart = { d, i -> keyStart(d, i) }, onKeyboardStep = { keyStep(it) }, onKeyboardEnd = { finish(it) },
+                        onTraffic = { transfer ->
+                            if (!busy) {
+                                if (single == transfer.sourceDayId) onRoute(transfer.legId)
+                                else onFocus(transfer.sourceDayId, transfer.fromId)
+                            }
+                        })
                     }
                 }
                 // Short events retain their truthful grid height; a separate 48dp target opens precise editing.

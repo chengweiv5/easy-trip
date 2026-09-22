@@ -175,6 +175,104 @@ class CalendarInteractionTest {
             .assertIsDisplayed().assertTextContains("时间不足", substring = true)
     }
 
+
+    private fun traffic() = compose.onNodeWithTag("calendar-traffic-day-traffic")
+
+    @Test fun trafficBlockShowsEstimateAndTrueIntervalWithoutCoveringVisitEdges() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "12:00", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
+        traffic().assertIsDisplayed().assertContentDescriptionContains("预计约 60 分钟", substring = true)
+        val interval = compose.onNodeWithTag("calendar-traffic-interval-day-traffic").fetchSemanticsNode().boundsInRoot
+        assertEquals(52f, interval.height, 1f)
+        assertTrue(interval.left >= event().fetchSemanticsNode().boundsInRoot.right)
+        saveResizeEvidence("calendar-traffic-normal.jpg")
+        traffic().performClick()
+        assertEquals("traffic", openedRoute)
+    }
+
+    @Test fun squeezedAndFullyOccupiedTrafficRemainVisible() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
+        traffic().assertIsDisplayed().assertContentDescriptionContains("预留 15 分钟", substring = true)
+        assertEquals(13f, compose.onNodeWithTag("calendar-traffic-interval-day-traffic").fetchSemanticsNode().boundsInRoot.height, 1f)
+        saveResizeEvidence("calendar-traffic-squeezed.jpg")
+        compose.runOnIdle { raw.value = raw.value.map { day -> day.copy(items = day.items.map { if (it.id == "b") it.copy(arrivalTime = LocalTime.of(10, 0)) else it }) } }
+        traffic().assertIsDisplayed().assertContentDescriptionContains("预留 0 分钟", substring = true)
+        event("b").assertContentDescriptionContains("交通可能来不及", substring = true)
+        saveResizeEvidence("calendar-traffic-zero.jpg")
+    }
+
+    @Test fun visitResizeLiveSqueezesTrafficThenCancelRestoresAndSavePersistsOnlyVisit() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:30", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
+        traffic().assertContentDescriptionContains("预留 30 分钟", substring = true)
+        event().performTouchInput { down(Offset(width * .95f, height - 2f)); moveBy(Offset(0f, 26f), 300) }
+        traffic().assertIsDisplayed().assertContentDescriptionContains("预留 0 分钟", substring = true)
+        compose.onNodeWithTag("calendar-resize-end", useUnmergedTree = true).assertIsDisplayed()
+        saveResizeEvidence("calendar-traffic-drag.jpg")
+        event().performTouchInput { cancel() }
+        traffic().assertContentDescriptionContains("预留 30 分钟", substring = true)
+        assertTrue(changes.isEmpty())
+        edge(.05f, false, 26f)
+        traffic().assertContentDescriptionContains("预留 0 分钟", substring = true)
+        assertEquals(90, changes.single().after.stayMinutes)
+        assertEquals(3600, raw.value.single().legs.single().effectiveDurationSeconds)
+    }
+
+    @Test fun wholeTripShowsTrafficAndOpensSourceDayBeforeEditingRoute() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)), whole = true, count = 2, width = 390)
+        compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day -> if (index == 0) day.copy(legs = listOf(route("traffic", 3600))) else day } }
+        traffic().assertIsDisplayed()
+        saveResizeEvidence("calendar-traffic-whole.jpg")
+        traffic().performClick()
+        assertEquals("day" to "a", focused)
+        assertNull(openedRoute)
+        assertTrue(changes.isEmpty())
+    }
+
+    @Test fun narrowWholeTripKeepsReadableVisitAndTrafficAndCanPage() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)), whole = true, count = 2)
+        compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day -> if (index == 0) day.copy(legs = listOf(route("traffic", 3600))) else day } }
+        compose.onNodeWithTag("calendar-date-day2").assertDoesNotExist()
+        assertTrue(event().fetchSemanticsNode().boundsInRoot.width >= 150f)
+        traffic().assertIsDisplayed()
+        saveResizeEvidence("calendar-traffic-narrow.jpg")
+        compose.onNodeWithText("›").performClick()
+        compose.onNodeWithTag("calendar-date-day2").assertIsDisplayed()
+    }
+
+    @Test fun midnightTrafficDisplaysContinuationAndUnknownDepartureStaysInDetail() {
+        setup(listOf(item(arrival = "23:00", stay = 30), item("b", null)), whole = true, count = 2, width = 390)
+        compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day -> if (index == 0) day.copy(legs = listOf(route("traffic", 3600))) else day.copy(items = emptyList()) } }
+        compose.onNodeWithTag("calendar-traffic-day2-traffic").performScrollTo().assertIsDisplayed()
+            .assertContentDescriptionContains("本段预留 30 分钟", substring = true)
+        compose.onNodeWithTag("calendar-traffic-day2-traffic").performClick()
+        assertEquals("day" to "a", focused)
+        compose.runOnIdle { raw.value = raw.value.map { day -> day.copy(items = day.items.map { it.copy(stayMinutes = null) }) } }
+        traffic().assertDoesNotExist()
+        event().performScrollTo().performClick()
+        compose.onNodeWithTag("calendar-detail-route-traffic").performScrollTo().assertIsDisplayed()
+    }
+
+    @Test fun largeFontTrafficKeepsFullTapTargetAndDoesNotCoverVisit() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)), whole = true, count = 2, scale = 1.5f)
+        compose.runOnIdle { raw.value = raw.value.mapIndexed { index, day -> if (index == 0) day.copy(legs = listOf(route("traffic", 3600))) else day } }
+        traffic().assertIsDisplayed()
+        val bounds = traffic().fetchSemanticsNode().boundsInRoot
+        assertTrue(bounds.height >= 72f)
+        assertTrue(bounds.left >= event().fetchSemanticsNode().boundsInRoot.right)
+        saveResizeEvidence("calendar-traffic-large-font.jpg")
+    }
+
+    @Test fun denseTrafficLabelsGroupWithoutLosingIndividualDurations() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:05", 5), item("c", "10:15", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 1800), route("second", 2400).copy(fromItemId = "b", toItemId = "c"))) } }
+        compose.onNodeWithTag("calendar-traffic-group-day-traffic").assertIsDisplayed().performClick()
+        compose.onNodeWithTag("calendar-traffic-choice-traffic").assertIsDisplayed().assertTextContains("预计约 30 分钟", substring = true)
+        compose.onNodeWithTag("calendar-traffic-choice-second").assertIsDisplayed().assertTextContains("预计约 40 分钟", substring = true).performClick()
+        assertEquals("second", openedRoute)
+    }
+
     private fun route(id: String, seconds: Int?) = com.yangchengwei.easytrip.itinerary.ui.RouteLegUi(
         id, "a", "b", com.yangchengwei.easytrip.core.model.TransportMode.WALK,
         if (seconds == null) com.yangchengwei.easytrip.core.model.RouteStatus.PENDING else com.yangchengwei.easytrip.core.model.RouteStatus.SUCCESS,
