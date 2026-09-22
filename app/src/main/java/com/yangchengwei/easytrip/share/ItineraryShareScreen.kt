@@ -83,7 +83,7 @@ fun ItineraryShareScreen(
                 catch(_:Exception){loadFailed=true;return@LaunchedEffect}
             trip=currentTrip
             val days=currentTrip.selected(options)
-            if(days.none { it.stops.isNotEmpty() })return@LaunchedEffect
+            if(!projectShareCalendar(currentTrip, options).hasContent)return@LaunchedEffect
             ShareImageStorage.pruneCache(context)
             val renderer=ShareImageRenderer()
             // Budget the full map height before loading any SDK views.
@@ -105,7 +105,7 @@ fun ItineraryShareScreen(
         catch(_:Exception){output.delete();generation=ShareGeneration.Failed(options,false)}
     }
     val selected=trip?.selected(options).orEmpty()
-    val isEmpty=trip!=null && selected.none { it.stops.isNotEmpty() }
+    val isEmpty=trip!=null && !projectShareCalendar(requireNotNull(trip), options).hasContent
     val ready=(generation as? ShareGeneration.Ready)?.takeIf { !isEmpty && !loadFailed }
     fun save(image:ShareImage) {
         saving=true

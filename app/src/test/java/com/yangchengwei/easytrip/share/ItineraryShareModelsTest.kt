@@ -36,6 +36,8 @@ class ItineraryShareModelsTest {
         val result=buildShareTrip(trip(),listOf(DayMapSnapshot(DayItinerary("d1","t",listOf(item("a"),item("b"))),listOf(entity)))).days[0].stops[0].leg!!
         assertEquals("步行 · 15 分钟 · 1 公里",result.label)
         assertEquals("带行李",result.note)
+        assertEquals(900, result.durationSeconds)
+        assertEquals(TransportMode.WALK, result.mode)
         assertTrue(result.schematic)
     }
     @Test fun successfulRouteRetainsPolylineAndDoesNotBecomeSchematic() {

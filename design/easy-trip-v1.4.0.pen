@@ -289792,6 +289792,7 @@
               "id": "OOsDQ",
               "name": "全程日历 · 日期列与时间轴",
               "width": "fill_container",
+              "height": 945,
               "stroke": "#CCDDE0",
               "strokeWidth": {
                 "bottom": 1
@@ -289845,7 +289846,7 @@
                   "fill": "#53676D",
                   "textGrowth": "fixed-width",
                   "width": "fill_container",
-                  "content": "先看时间安排，再按天查看路线与详细行程",
+                  "content": "彩色表示停留，浅灰表示交通；按同一时间轴查看",
                   "lineHeight": 1.5,
                   "fontFamily": "Inter",
                   "fontSize": 10,
@@ -290742,6 +290743,156 @@
                           "fontWeight": "normal"
                         }
                       ]
+                    },
+                    {
+                      "type": "frame",
+                      "id": "yJrHJ",
+                      "x": 37,
+                      "y": 103,
+                      "name": "交通时段 0 步行 25分",
+                      "width": 100,
+                      "height": 20,
+                      "fill": "#E4EBED",
+                      "cornerRadius": 2,
+                      "stroke": "#70878E",
+                      "strokeWidth": {
+                        "left": 2
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "z8V0f6",
+                      "x": 41,
+                      "y": 107.5,
+                      "name": "交通方式与用时 0",
+                      "fill": "#40575F",
+                      "textGrowth": "fixed-width",
+                      "width": 95,
+                      "content": "步行 25分",
+                      "lineHeight": 1.2,
+                      "fontFamily": "Inter",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mc0jy",
+                      "x": 37,
+                      "y": 199,
+                      "name": "交通时段 1 驾车 30分",
+                      "width": 100,
+                      "height": 24,
+                      "fill": "#E4EBED",
+                      "cornerRadius": 2,
+                      "stroke": "#70878E",
+                      "strokeWidth": {
+                        "left": 2
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "zMMuA",
+                      "x": 41,
+                      "y": 205.5,
+                      "name": "交通方式与用时 1",
+                      "fill": "#40575F",
+                      "textGrowth": "fixed-width",
+                      "width": 95,
+                      "content": "驾车 30分",
+                      "lineHeight": 1.2,
+                      "fontFamily": "Inter",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "mGygs",
+                      "x": 143,
+                      "y": 151,
+                      "name": "交通时段 2 驾车 40分",
+                      "width": 100,
+                      "height": 32,
+                      "fill": "#E4EBED",
+                      "cornerRadius": 2,
+                      "stroke": "#70878E",
+                      "strokeWidth": {
+                        "left": 2
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "AYIT6",
+                      "x": 147,
+                      "y": 161.5,
+                      "name": "交通方式与用时 2",
+                      "fill": "#40575F",
+                      "textGrowth": "fixed-width",
+                      "width": 95,
+                      "content": "驾车 40分",
+                      "lineHeight": 1.2,
+                      "fontFamily": "Inter",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "e1jTl",
+                      "x": 143,
+                      "y": 343,
+                      "name": "交通时段 3 驾车 15分",
+                      "width": 100,
+                      "height": 12,
+                      "fill": "#E4EBED",
+                      "cornerRadius": 2,
+                      "stroke": "#70878E",
+                      "strokeWidth": {
+                        "left": 2
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "g8zwH",
+                      "x": 147,
+                      "y": 356,
+                      "name": "交通方式与用时 3",
+                      "fill": "#40575F",
+                      "textGrowth": "fixed-width",
+                      "width": 95,
+                      "content": "驾车 15分",
+                      "lineHeight": 1.2,
+                      "fontFamily": "Inter",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "frame",
+                      "id": "x9GWiV",
+                      "x": 249,
+                      "y": 79,
+                      "name": "交通时段 4 步行 12分",
+                      "width": 100,
+                      "height": 9.6,
+                      "fill": "#E4EBED",
+                      "cornerRadius": 2,
+                      "stroke": "#70878E",
+                      "strokeWidth": {
+                        "left": 2
+                      }
+                    },
+                    {
+                      "type": "text",
+                      "id": "qpX48",
+                      "x": 253,
+                      "y": 89.6,
+                      "name": "交通方式与用时 4",
+                      "fill": "#40575F",
+                      "textGrowth": "fixed-width",
+                      "width": 95,
+                      "content": "步行 12分",
+                      "lineHeight": 1.2,
+                      "fontFamily": "Inter",
+                      "fontSize": 8.5,
+                      "fontWeight": "normal"
                     }
                   ]
                 },
@@ -290760,13 +290911,93 @@
                   "fontWeight": "normal"
                 },
                 {
+                  "type": "frame",
+                  "id": "y59VT",
+                  "layoutPosition": "absolute",
+                  "x": 20,
+                  "y": 728,
+                  "name": "交通补充 · 未知用时",
+                  "width": 350,
+                  "height": 112,
+                  "fill": "#F5F8F9",
+                  "cornerRadius": 5,
+                  "stroke": "#CCD9DD",
+                  "strokeWidth": 1,
+                  "layout": "none",
+                  "children": [
+                    {
+                      "type": "text",
+                      "id": "IbIdw",
+                      "x": 10,
+                      "y": 10,
+                      "name": "交通补充 标题",
+                      "fill": "#40575F",
+                      "textGrowth": "fixed-width",
+                      "width": 328,
+                      "content": "交通补充",
+                      "lineHeight": 1.7,
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "600"
+                    },
+                    {
+                      "type": "text",
+                      "id": "HxmUq",
+                      "x": 10,
+                      "y": 32,
+                      "name": "交通补充 方式",
+                      "fill": "#40575F",
+                      "textGrowth": "fixed-width",
+                      "width": 328,
+                      "content": "第 3 天 · 2→3 驾车 · 用时待定",
+                      "lineHeight": 1.7,
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "xfNpr",
+                      "x": 10,
+                      "y": 54,
+                      "name": "交通补充 路段",
+                      "fill": "#40575F",
+                      "textGrowth": "fixed-width",
+                      "width": 328,
+                      "content": "大兜路历史街区 → 杭州东站",
+                      "lineHeight": 1.7,
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    },
+                    {
+                      "type": "text",
+                      "id": "hp794",
+                      "x": 10,
+                      "y": 76,
+                      "name": "交通补充 时间",
+                      "fill": "#40575F",
+                      "textGrowth": "fixed-width",
+                      "width": 328,
+                      "content": "12:30 出发 · 用时待定",
+                      "lineHeight": 1.7,
+                      "fontFamily": "Inter",
+                      "fontSize": 10,
+                      "fontWeight": "normal"
+                    }
+                  ]
+                },
+                {
                   "type": "text",
                   "id": "sysva",
+                  "layoutPosition": "absolute",
+                  "x": 20,
+                  "y": 864,
                   "name": "图例与编号说明",
                   "fill": "#53676D",
                   "textGrowth": "fixed-width",
-                  "width": "fill_container",
-                  "content": "▍停留时段　 数字对应当天清单 · 交通见下文",
+                  "width": 350,
+                  "content": "▍停留时段　▍交通用时参考　数字对应当天清单",
                   "lineHeight": 1.5,
                   "fontFamily": "Inter",
                   "fontSize": 9,
@@ -294147,6 +294378,7 @@
                   "id": "n3qaKq",
                   "name": "全程日历 · 缩放预览",
                   "width": 358,
+                  "height": 870,
                   "stroke": "#CCDDE0",
                   "strokeWidth": {
                     "bottom": 1
@@ -294200,7 +294432,7 @@
                       "fill": "#53676D",
                       "textGrowth": "fixed-width",
                       "width": "fill_container",
-                      "content": "先看时间安排，再按天查看路线与详细行程",
+                      "content": "彩色表示停留，浅灰表示交通；按同一时间轴查看",
                       "lineHeight": 1.5,
                       "fontFamily": "Inter",
                       "fontSize": 9.179487179487179,
@@ -295097,6 +295329,156 @@
                               "fontWeight": "normal"
                             }
                           ]
+                        },
+                        {
+                          "type": "frame",
+                          "id": "vJFXD",
+                          "x": 33.96410256410256,
+                          "y": 94.54871794871795,
+                          "name": "交通时段 0 步行 25分",
+                          "width": 91.7948717948718,
+                          "height": 18.358974358974358,
+                          "fill": "#E4EBED",
+                          "cornerRadius": 2,
+                          "stroke": "#70878E",
+                          "strokeWidth": {
+                            "left": 2
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "OGVSu",
+                          "x": 37.635897435897434,
+                          "y": 98.67948717948717,
+                          "name": "交通方式与用时 0",
+                          "fill": "#40575F",
+                          "textGrowth": "fixed-width",
+                          "width": 87.2051282051282,
+                          "content": "步行 25分",
+                          "lineHeight": 1.2,
+                          "fontFamily": "Inter",
+                          "fontSize": 7.802564102564102,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "LzKc2",
+                          "x": 33.96410256410256,
+                          "y": 182.67179487179487,
+                          "name": "交通时段 1 驾车 30分",
+                          "width": 91.7948717948718,
+                          "height": 22.03076923076923,
+                          "fill": "#E4EBED",
+                          "cornerRadius": 2,
+                          "stroke": "#70878E",
+                          "strokeWidth": {
+                            "left": 2
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "ClyPU",
+                          "x": 37.635897435897434,
+                          "y": 188.63846153846154,
+                          "name": "交通方式与用时 1",
+                          "fill": "#40575F",
+                          "textGrowth": "fixed-width",
+                          "width": 87.2051282051282,
+                          "content": "驾车 30分",
+                          "lineHeight": 1.2,
+                          "fontFamily": "Inter",
+                          "fontSize": 7.802564102564102,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "fUNIW",
+                          "x": 131.26666666666665,
+                          "y": 138.6102564102564,
+                          "name": "交通时段 2 驾车 40分",
+                          "width": 91.7948717948718,
+                          "height": 29.374358974358973,
+                          "fill": "#E4EBED",
+                          "cornerRadius": 2,
+                          "stroke": "#70878E",
+                          "strokeWidth": {
+                            "left": 2
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "sNDnW",
+                          "x": 134.93846153846152,
+                          "y": 148.24871794871794,
+                          "name": "交通方式与用时 2",
+                          "fill": "#40575F",
+                          "textGrowth": "fixed-width",
+                          "width": 87.2051282051282,
+                          "content": "驾车 40分",
+                          "lineHeight": 1.2,
+                          "fontFamily": "Inter",
+                          "fontSize": 7.802564102564102,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "H3l4g",
+                          "x": 131.26666666666665,
+                          "y": 314.85641025641024,
+                          "name": "交通时段 3 驾车 15分",
+                          "width": 91.7948717948718,
+                          "height": 11.015384615384615,
+                          "fill": "#E4EBED",
+                          "cornerRadius": 2,
+                          "stroke": "#70878E",
+                          "strokeWidth": {
+                            "left": 2
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "x4tgY9",
+                          "x": 134.93846153846152,
+                          "y": 326.7897435897436,
+                          "name": "交通方式与用时 3",
+                          "fill": "#40575F",
+                          "textGrowth": "fixed-width",
+                          "width": 87.2051282051282,
+                          "content": "驾车 15分",
+                          "lineHeight": 1.2,
+                          "fontFamily": "Inter",
+                          "fontSize": 7.802564102564102,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "frame",
+                          "id": "mJ1vR",
+                          "x": 228.56923076923076,
+                          "y": 72.51794871794871,
+                          "name": "交通时段 4 步行 12分",
+                          "width": 91.7948717948718,
+                          "height": 8.81230769230769,
+                          "fill": "#E4EBED",
+                          "cornerRadius": 2,
+                          "stroke": "#70878E",
+                          "strokeWidth": {
+                            "left": 2
+                          }
+                        },
+                        {
+                          "type": "text",
+                          "id": "iBklg",
+                          "x": 232.24102564102563,
+                          "y": 82.24820512820511,
+                          "name": "交通方式与用时 4",
+                          "fill": "#40575F",
+                          "textGrowth": "fixed-width",
+                          "width": 87.2051282051282,
+                          "content": "步行 12分",
+                          "lineHeight": 1.2,
+                          "fontFamily": "Inter",
+                          "fontSize": 7.802564102564102,
+                          "fontWeight": "normal"
                         }
                       ]
                     },
@@ -295115,13 +295497,93 @@
                       "fontWeight": "normal"
                     },
                     {
+                      "type": "frame",
+                      "id": "KmHPE",
+                      "layoutPosition": "absolute",
+                      "x": 18,
+                      "y": 673,
+                      "name": "交通补充 · 未知用时",
+                      "width": 322,
+                      "height": 103,
+                      "fill": "#F5F8F9",
+                      "cornerRadius": 5,
+                      "stroke": "#CCD9DD",
+                      "strokeWidth": 1,
+                      "layout": "none",
+                      "children": [
+                        {
+                          "type": "text",
+                          "id": "AOSH5",
+                          "x": 9,
+                          "y": 9,
+                          "name": "交通补充 标题",
+                          "fill": "#40575F",
+                          "textGrowth": "fixed-width",
+                          "width": 300,
+                          "content": "交通补充",
+                          "lineHeight": 1.7,
+                          "fontFamily": "Inter",
+                          "fontSize": 9.179487179487179,
+                          "fontWeight": "600"
+                        },
+                        {
+                          "type": "text",
+                          "id": "mWDsG",
+                          "x": 9,
+                          "y": 29,
+                          "name": "交通补充 方式",
+                          "fill": "#40575F",
+                          "textGrowth": "fixed-width",
+                          "width": 300,
+                          "content": "第 3 天 · 2→3 驾车 · 用时待定",
+                          "lineHeight": 1.7,
+                          "fontFamily": "Inter",
+                          "fontSize": 9.179487179487179,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "ctlJq",
+                          "x": 9,
+                          "y": 49,
+                          "name": "交通补充 路段",
+                          "fill": "#40575F",
+                          "textGrowth": "fixed-width",
+                          "width": 300,
+                          "content": "大兜路历史街区 → 杭州东站",
+                          "lineHeight": 1.7,
+                          "fontFamily": "Inter",
+                          "fontSize": 9.179487179487179,
+                          "fontWeight": "normal"
+                        },
+                        {
+                          "type": "text",
+                          "id": "F00wD",
+                          "x": 9,
+                          "y": 69,
+                          "name": "交通补充 时间",
+                          "fill": "#40575F",
+                          "textGrowth": "fixed-width",
+                          "width": 300,
+                          "content": "12:30 出发 · 用时待定",
+                          "lineHeight": 1.7,
+                          "fontFamily": "Inter",
+                          "fontSize": 9.179487179487179,
+                          "fontWeight": "normal"
+                        }
+                      ]
+                    },
+                    {
                       "type": "text",
                       "id": "f74l7",
+                      "layoutPosition": "absolute",
+                      "x": 18,
+                      "y": 797,
                       "name": "图例与编号说明",
                       "fill": "#53676D",
                       "textGrowth": "fixed-width",
-                      "width": "fill_container",
-                      "content": "▍停留时段　 数字对应当天清单 · 交通见下文",
+                      "width": 322,
+                      "content": "▍停留时段　▍交通用时参考　数字对应当天清单",
                       "lineHeight": 1.5,
                       "fontFamily": "Inter",
                       "fontSize": 8.261538461538462,
@@ -298300,7 +298762,7 @@
               "fill": "#53676D",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "旅行摘要 → 全程日历 → 每日地图与清单 → 页脚",
+              "content": "旅行摘要 → 全程日历（含交通）→ 每日地图与清单 → 页脚",
               "lineHeight": 1.65,
               "fontFamily": "Inter",
               "fontSize": 12,
@@ -298336,7 +298798,7 @@
               "fill": "#53676D",
               "textGrowth": "fixed-width",
               "width": "fill_container",
-              "content": "日期并排，共用小时轴；4–6 天向下续排为第二组。全部日期完整保留。2 天并排对比见 R3 HTML。",
+              "content": "日期并排，共用小时轴；浅灰色块表示交通用时。超过 3 天向下续排，全部日期完整保留。",
               "lineHeight": 1.65,
               "fontFamily": "Inter",
               "fontSize": 12,

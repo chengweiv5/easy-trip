@@ -25,7 +25,10 @@ data class ShareStop(
     val id: String, val number: Int, val name: String, val point: GeoPoint?,
     val arrival: LocalTime?, val stayMinutes: Int?, val note: String?, val leg: ShareLeg?,
 )
-data class ShareLeg(val label: String, val note: String?, val points: List<GeoPoint>, val schematic: Boolean)
+data class ShareLeg(
+    val label: String, val note: String?, val points: List<GeoPoint>, val schematic: Boolean,
+    val mode: TransportMode? = null, val durationSeconds: Int? = null,
+)
 
 internal fun GeoPoint.isShareable(): Boolean = latitude.isFinite() && longitude.isFinite() &&
     latitude in -90.0..90.0 && longitude in -180.0..180.0
@@ -53,7 +56,7 @@ fun buildShareTrip(trip: TripWithDays, snapshots: List<DayMapSnapshot>): ShareTr
                     listOfNotNull(mode?.shareLabel(), duration?.let(::formatDuration) ?: "时长待定", distance?.let(::formatDistance)).joinToString(" · "),
                     entity?.note?.takeIf(String::isNotBlank),
                     if (point != null && nextPoint != null) route ?: listOf(point, nextPoint) else emptyList(),
-                    route == null,
+                    route == null, mode, duration,
                 )
             }
             ShareStop(item.id, index + 1, item.place.name, point, item.arrivalTime,
@@ -61,7 +64,7 @@ fun buildShareTrip(trip: TripWithDays, snapshots: List<DayMapSnapshot>): ShareTr
         })
     },
 )
-private fun TransportMode.shareLabel() = when (this) {
+internal fun TransportMode.shareLabel() = when (this) {
     TransportMode.WALK -> "步行"
     TransportMode.TAXI -> "打车"
     TransportMode.DRIVE -> "驾车"
