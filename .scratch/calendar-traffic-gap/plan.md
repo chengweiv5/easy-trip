@@ -34,12 +34,12 @@ assertTrue(bounds.bottom <= event("b").fetchSemanticsNode().boundsInRoot.top + 1
 
 用户已明确确认行为，继续在当前功能分支实施。
 
-- [ ] `CalendarTraffic.trafficLayout` 改为 internal，供地点和详情复用字体、宽度及间隔可见性。
-- [ ] `CalendarProjection.kt` 提取 `CalendarEvent.hasTrafficConflict(transfers: List<CalendarTransfer>): Boolean`，原始投影仍传全部 transfers；地点展示传通过 `trafficLayout` 的可见 transfers。
-- [ ] `CalendarGrid.kt` 以实时 events 和可见 transfers 计算卡片、颜色和拖动预览警告；副标题显式接收展示警告值。
-- [ ] `CalendarContent.kt` 以相同列宽和字体计算详情警告，`CalendarDetail.kt` 接收 `showTrafficConflict: Boolean`。保留原始路线数据和详情入口。
-- [ ] `CalendarInteractionTest.kt` 更新旧的 15 分钟显示警告断言；验证零间隙、29/30 分钟、字体/列宽隐藏、拖动取消保存以及真正日程重叠。
-- [ ] 执行日历 Compose 仪器测试和 release 单元测试、lint、构建。模拟器独立使用 5588 端口，不操作其他任务模拟器，不对真机运行会重置数据的测试。
-- [ ] 保存手机当前 APK，校验签名后 `adb install -r`；回读安装包哈希并检查地点 4。记录验证结果并通过 punk-12 发送完成通知。
+- [x] `CalendarTraffic.trafficLayout` 改为 internal，供地点和详情复用字体、宽度及间隔可见性。
+- [x] `CalendarProjection.kt` 提取 `CalendarEvent.hasTrafficConflict(transfers: List<CalendarTransfer>): Boolean`，原始投影仍传全部 transfers；地点展示传通过 `trafficLayout` 的可见 transfers。
+- [x] `CalendarGrid.kt` 以实时 events 和可见 transfers 计算卡片、颜色和拖动预览警告；副标题显式接收展示警告值。
+- [x] `CalendarContent.kt` 以相同列宽和字体计算详情警告，`CalendarDetail.kt` 接收 `showTrafficConflict: Boolean`。保留原始路线数据和详情入口。
+- [x] `CalendarInteractionTest.kt` 更新旧的 15 分钟显示警告断言；验证零间隙、29/30 分钟、字体/列宽隐藏、拖动取消保存以及真正日程重叠。
+- [x] 执行日历 Compose 仪器测试和 release 单元测试、lint、构建。模拟器独立使用 5588 端口，不操作其他任务模拟器，不对真机运行会重置数据的测试。
+- [x] 保存手机当前 APK，校验签名后 `adb install -r`；回读安装包哈希并检查地点 4。记录验证结果并通过 punk-12 发送完成通知。
 
 回滚：本轮源码修改已有备份 `backup/hide-warning/`；保留安装前 APK，通过 `adb install -r` 可恢复，不卸载或清除行程。

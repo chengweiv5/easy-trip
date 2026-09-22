@@ -2,8 +2,11 @@
 
 状态：DONE
 
-用户确认方向：2 分钟步行文字使用地点间空隙；追加约束为不足 30 分钟不显示交通信息。已实现并验证，代码分支 codex/calendar-traffic-gap，修复提交 6206d2c，安装包来自干净提交 30a0531，验证记录提交 c7512fc。尚未推送远端或发布 Release。
+当前补充需求：隐藏交通时，地点里不提示“交通可能来不及”。已完成卡片、详情独立警告、拖动预览及警告颜色跟随交通实际可见性。真实日程重叠和路线描述/入口保留。
 
-843 项单元测试、43 项日历交互测试通过，debug/release lint 无错误。真实手机同签名覆盖安装后，地点 3 15:00–16:00、地点 4 16:30–17:30 保持，步行约 2 分钟显示在间隔，地点卡内无交通行。安装 APK 哈希与本地构建一致，原有 31 个地点、9 天行程保留。
+分支 codex/calendar-traffic-gap；已 rebase 到 origin/main e953835。最新行为修复 2d76da2，release 从该干净提交构建，已同签名覆盖安装到真机。尚未推送远端或发布。
 
-证据：.scratch/calendar-traffic-gap/validation.md；截图 evidence/phone-after.jpg；旧 APK backup/phone-before.apk。恢复旧版使用 adb install -r，不卸载、不清除用户数据。
+843 项 release 单元测试，56 项日历交互测试、3 项浮动提示测试通过；release lint 无错误。真机地点 3 14:30–16:00、地点 4 16:00–17:00，零间隙隐藏交通及独立交通警告。原有两项旅行、31 个地点、9 天行程保留，APK 回读哈希一致。
+
+证据：.scratch/calendar-traffic-gap/evidence/hide-warning/verification.md。
+回滚：.scratch/calendar-traffic-gap/backup/hide-warning/phone-before.apk，用 adb install -r 覆盖安装，不卸载或清除数据。
