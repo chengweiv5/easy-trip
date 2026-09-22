@@ -1,5 +1,9 @@
 # 修复日历短途交通显示并应用 30 分钟空隙门槛
 
-Status: ready-for-agent
+Status: resolved
 
 按 ../spec.md 实施：先增加失败的真实 Compose 场景，再引入纯布局策略与独立文字显示，移除地点卡回退，验证手机原场景。
+
+## 验证结果
+
+843 项单元测试、43 项日历交互测试通过；debug/release lint 无错误。修复已同签名覆盖安装，真实地点 4 的交通文字已显示在空隙中。详细证据见 ../validation.md。
