@@ -14,7 +14,7 @@ import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-internal fun CalendarDetail(day: CalendarDay, item: ItineraryItemUi, startDate: LocalDate?, outgoing: List<CalendarTransfer>, incoming: List<CalendarTransfer>, onDismiss: () -> Unit, onEdit: () -> Unit, onRoute: (String) -> Unit) {
+internal fun CalendarDetail(day: CalendarDay, item: ItineraryItemUi, startDate: LocalDate?, showTrafficConflict: Boolean, outgoing: List<CalendarTransfer>, incoming: List<CalendarTransfer>, onDismiss: () -> Unit, onEdit: () -> Unit, onRoute: (String) -> Unit) {
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp).testTag("calendar-detail"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("日程详情", style = MaterialTheme.typography.titleLarge)
@@ -26,7 +26,7 @@ internal fun CalendarDetail(day: CalendarDay, item: ItineraryItemUi, startDate: 
             Text("停留：${item.stayMinutes?.let { "$it 分钟" } ?: "待设置"}")
             item.note?.takeIf { it.isNotBlank() }?.let { Text(it) }
             if (day.events.any { it.item.id == item.id && it.conflicts.isNotEmpty() }) Text("与其他日程时间重叠", color = MaterialTheme.colorScheme.error)
-            if (day.events.any { it.item.id == item.id && it.trafficConflict }) Text("交通可能来不及", color = MaterialTheme.colorScheme.error)
+            if (showTrafficConflict) Text("交通可能来不及", color = MaterialTheme.colorScheme.error)
             incoming.forEach { transfer ->
                 TextButton({ onRoute(transfer.legId) }, Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("calendar-detail-incoming-${transfer.legId}")) {
                     Text("到达本站：${transfer.description()} · 查看交通", style = MaterialTheme.typography.bodySmall)

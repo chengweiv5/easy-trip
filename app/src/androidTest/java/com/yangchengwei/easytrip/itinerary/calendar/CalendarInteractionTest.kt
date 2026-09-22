@@ -168,12 +168,13 @@ class CalendarInteractionTest {
         assertTrue(changes.isEmpty())
     }
 
-    @Test fun trafficWarningStaysOnCardAndDetailWithoutBottomStrip() {
-        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:15", 60)))
+    @Test fun visibleTrafficWarningStaysOnCardAndDetailWithoutBottomStrip() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:30", 60)))
         compose.runOnIdle {
             raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) }
         }
         compose.onNodeWithTag("calendar-route-traffic").assertDoesNotExist()
+        traffic().assertIsDisplayed()
         event("b").assertContentDescriptionContains("交通可能来不及", substring = true)
         event("b").performClick()
         compose.onNodeWithTag("calendar-detail").assertIsDisplayed()
@@ -300,10 +301,69 @@ class CalendarInteractionTest {
         compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
         traffic().assertDoesNotExist()
         compose.onNodeWithTag("calendar-incoming-day-traffic", useUnmergedTree = true).assertDoesNotExist()
-        event("b").assertContentDescriptionContains("交通可能来不及", substring = true).performClick()
+        event("b").assert(hasContentDescription("交通可能来不及", substring = true).not()).performClick()
+        compose.onNodeWithText("交通可能来不及", useUnmergedTree = true).assertDoesNotExist()
         compose.onNodeWithTag("calendar-detail-incoming-traffic").performScrollTo()
             .assertTextContains("预计约 60 分钟", substring = true).performClick()
         assertEquals("traffic", openedRoute)
+    }
+
+    @Test fun zeroGapHidesTwoMinuteWalkAndItsWarningFromCardAndDetail() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:00", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 120))) } }
+        traffic().assertDoesNotExist()
+        event("b").assert(hasContentDescription("交通可能来不及", substring = true).not())
+            .assert(hasContentDescription("时间重叠", substring = true).not()).performClick()
+        compose.onNodeWithText("交通可能来不及", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithTag("calendar-detail-incoming-traffic").performScrollTo().performClick()
+        assertEquals("traffic", openedRoute)
+    }
+
+    @Test fun trafficWarningAppearsOnlyWhenGapReachesThirtyMinutes() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:29", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
+        traffic().assertDoesNotExist()
+        event("b").assert(hasContentDescription("交通可能来不及", substring = true).not())
+        compose.runOnIdle { raw.value = raw.value.map { day -> day.copy(items = day.items.map {
+            if (it.id == "b") it.copy(arrivalTime = LocalTime.of(10, 30)) else it
+        }) } }
+        traffic().assertIsDisplayed()
+        event("b").assertContentDescriptionContains("交通可能来不及", substring = true)
+    }
+
+    @Test fun trafficWarningFollowsResizeCancelAndSave() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:30", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
+        event("b").assertContentDescriptionContains("交通可能来不及", substring = true)
+        event().performTouchInput { down(Offset(width * .95f, height - 2f)); advanceEventTime(600); moveBy(Offset(0f, 26f), 300) }
+        traffic().assertDoesNotExist()
+        event("b").assert(hasContentDescription("交通可能来不及", substring = true).not())
+        compose.onNodeWithTag("calendar-draft").assert(hasText("交通预留不足", substring = true).not())
+        event().performTouchInput { cancel() }
+        traffic().assertIsDisplayed()
+        event("b").assertContentDescriptionContains("交通可能来不及", substring = true)
+        edge(.95f, false, 26f)
+        traffic().assertDoesNotExist()
+        event("b").assert(hasContentDescription("交通可能来不及", substring = true).not())
+        assertEquals(90, changes.single().after.stayMinutes)
+    }
+
+    @Test fun trafficHiddenByTextWidthAlsoHidesPlaceWarning() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "10:30", 60)), width = 180, scale = 2f)
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 3600))) } }
+        traffic().assertDoesNotExist()
+        event("b").assert(hasContentDescription("交通可能来不及", substring = true).not()).performClick()
+        compose.onNodeWithText("交通可能来不及", useUnmergedTree = true).assertDoesNotExist()
+    }
+
+    @Test fun hidingTrafficWarningPreservesActualVisitOverlap() {
+        setup(listOf(item(arrival = "09:00", stay = 60), item("b", "09:45", 60)))
+        compose.runOnIdle { raw.value = raw.value.map { it.copy(legs = listOf(route("traffic", 120))) } }
+        traffic().assertDoesNotExist()
+        event("b").assert(hasContentDescription("交通可能来不及", substring = true).not())
+            .assertContentDescriptionContains("时间重叠", substring = true).performClick()
+        compose.onNodeWithText("交通可能来不及", useUnmergedTree = true).assertDoesNotExist()
+        compose.onNodeWithText("与其他日程时间重叠", useUnmergedTree = true).assertIsDisplayed()
     }
 
     @Test fun visitResizeLiveSqueezesTrafficThenCancelRestoresAndSavePersistsOnlyVisit() {

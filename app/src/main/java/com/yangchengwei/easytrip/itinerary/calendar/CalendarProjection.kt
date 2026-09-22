@@ -50,6 +50,12 @@ data class CalendarDay(
     val transfers: List<CalendarTransfer>,
 )
 
+internal fun CalendarEvent.hasTrafficConflict(transfers: List<CalendarTransfer>): Boolean =
+    !placeholder && !point && transfers.any { transfer ->
+        transfer.fromId != item.id && transfer.start != null && transfer.end != null &&
+            transfer.end > transfer.start && transfer.start < end && start < transfer.end
+    }
+
 fun projectCalendarDays(rawDays: List<WholeTripDayUi>): List<CalendarDay> {
     val days = rawDays.sortedBy { it.dayNumber }
     val fragments = days.associate { it.dayId to mutableListOf<CalendarEvent>() }
@@ -131,10 +137,7 @@ fun projectCalendarDays(rawDays: List<WholeTripDayUi>): List<CalendarDay> {
     return days.map { day ->
         val dayTransfers = transfers.getValue(day.dayId)
         val events = layoutCalendarEvents(fragments.getValue(day.dayId)).map { event ->
-            event.copy(trafficConflict = !event.placeholder && !event.point && dayTransfers.any { transfer ->
-                transfer.fromId != event.item.id && transfer.start != null && transfer.end != null &&
-                    transfer.end > transfer.start && transfer.start < event.end && event.start < transfer.end
-            })
+            event.copy(trafficConflict = event.hasTrafficConflict(dayTransfers))
         }
         CalendarDay(day.dayId, day.dayNumber, day.items, events,
             day.items.filter { it.arrivalTime == null }, dayTransfers)

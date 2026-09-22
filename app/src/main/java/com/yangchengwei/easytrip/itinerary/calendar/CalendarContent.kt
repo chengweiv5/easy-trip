@@ -205,7 +205,10 @@ fun CalendarContent(
     val latestWideHint by rememberUpdatedState(onWideHint)
     SideEffect { latestWideHint(resize != null && hintPosition == CalendarHintPosition.Wide) }
     DisposableEffect(Unit) { onDispose { latestWideHint(false) } }
-    Box(modifier.fillMaxSize().onGloballyPositioned { contentOrigin = it.boundsInRoot().topLeft }) {
+    BoxWithConstraints(modifier.fillMaxSize().onGloballyPositioned { contentOrigin = it.boundsInRoot().topLeft }) {
+    val columns = if (maxWidth < 250.dp || density.fontScale > 1.2f) 1 else 2
+    val visibleColumns = if (single != null) 1 else minOf(columns, days.size).coerceAtLeast(1)
+    val trafficWidth = ((maxWidth - 36.dp) / visibleColumns - 6.dp).coerceAtLeast(1.dp)
     Column(Modifier.fillMaxSize().testTag("calendar-content")) {
         ItinerarySummaryHeader(
             modifier = Modifier.onGloballyPositioned { summaryBounds = it.boundsInRoot() }
@@ -231,8 +234,7 @@ fun CalendarContent(
             }
         }
         if (saveState.saving) LinearProgressIndicator(Modifier.fillMaxWidth().testTag("calendar-saving"))
-        BoxWithConstraints(Modifier.weight(1f)) {
-            val columns = if (maxWidth < 250.dp || density.fontScale > 1.2f) 1 else 2
+        Box(Modifier.weight(1f)) {
             val lastPage = (days.size - columns).coerceAtLeast(0)
             val currentPage = page.coerceIn(0, lastPage)
             val shown = if (single != null) listOfNotNull(selectedDay) else days.drop(currentPage).take(columns)
@@ -327,7 +329,6 @@ fun CalendarContent(
                 wideHintArea ?: summaryBounds, contentOrigin, onPosition = { hintPosition = it })
         }
     }
-    }
     expandedGroup?.let { group ->
         val members = selectedDay?.events?.filter { it.group == group }.orEmpty()
         if (members.isNotEmpty()) ModalBottomSheet(onDismissRequest = { expandedGroup = null }) {
@@ -349,7 +350,12 @@ fun CalendarContent(
             detail = null
             if (target != null) onFocus(target.dayId, itemId) else localMessage = "该日程已删除"
         }
-        else CalendarDetail(day, item, startDate,
+        else {
+        val visibleTransfers = day.transfers.filter {
+            it.trafficLayout(trafficWidth, single == null, density, day.events, day.transfers) != null
+        }
+        CalendarDetail(day, item, startDate,
+            showTrafficConflict = day.events.any { it.item.id == itemId && it.hasTrafficConflict(visibleTransfers) },
             outgoing = days.flatMap { it.transfers }.filter { it.sourceDayId == dayId && it.fromId == itemId }
                 .groupBy { it.sourceDayId to it.legId }.values
                 .map { fragments -> fragments.first().copy(conflict = fragments.any { it.conflict }) },
@@ -358,5 +364,7 @@ fun CalendarContent(
                 .map { fragments -> fragments.first().copy(conflict = fragments.any { it.conflict }) },
             onDismiss = { detail = null }, onEdit = { detail = null; onEdit(dayId, itemId) },
             onRoute = { legId -> detail = null; onRoute(legId) })
+        }
+    }
     }
 }

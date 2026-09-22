@@ -56,8 +56,13 @@ internal fun CalendarGrid(
                 val eventWidth = maxWidth
                 val narrowTraffic = single == null
                 val currentEvents = trafficDays.firstOrNull { it.dayId == day.dayId }?.events.orEmpty()
+                val trafficWidth = (eventWidth - 6.dp).coerceAtLeast(1.dp)
+                val density = LocalDensity.current
+                val visibleTransfers = day.transfers.filter {
+                    it.trafficLayout(trafficWidth, narrowTraffic, density, currentEvents, day.transfers) != null
+                }
                 CalendarTraffic(day.dayId, day.transfers, currentEvents, narrowTraffic,
-                    Modifier.offset(x = 3.dp).width((eventWidth - 6.dp).coerceAtLeast(1.dp)).fillMaxHeight(),
+                    Modifier.offset(x = 3.dp).width(trafficWidth).fillMaxHeight(),
                     enabled = editable && draftItem == null, onOpen = onTraffic)
                 day.events.groupBy { it.group }.forEach { (group, events) ->
                     val hasPlaceholder = events.any { it.placeholder }
@@ -80,11 +85,13 @@ internal fun CalendarGrid(
                         val width = (groupWidth / event.laneCount - 6.dp).coerceAtLeast(1.dp)
                         val dragEnabled = single == event.sourceDayId && !event.crossDay && editable && (event.point || event.canDrag)
                         val compact = !event.placeholder && event.end-event.start < 45
-                        CalendarCard("${event.order}. ${event.item.name}", eventSubtitle(event),
+                        val trafficConflict = (currentEvents.firstOrNull { it.key == event.key } ?: event)
+                            .hasTrafficConflict(visibleTransfers)
+                        CalendarCard("${event.order}. ${event.item.name}", eventSubtitle(event, trafficConflict),
                             Modifier.offset(x = groupLeft + groupWidth / event.laneCount * event.lane + 3.dp, y = (event.start * CALENDAR_MINUTE_DP).dp)
                                 .drawWithContent { if (draftItem?.id != event.item.id) drawContent() }
                                 .width(width).height(if (event.placeholder) CALENDAR_HOUR_DP.dp else if (event.point) 2.dp else ((event.end-event.start)*CALENDAR_MINUTE_DP).dp.coerceAtLeast(1.dp)).testTag("calendar-event-${event.key}"),
-                            dashed = event.placeholder, conflict = event.conflicts.isNotEmpty() || event.trafficConflict,
+                            dashed = event.placeholder, conflict = event.conflicts.isNotEmpty() || trafficConflict,
                             accent = Color(com.yangchengwei.easytrip.workspace.routeColorForDay(event.sourceDayNumber - 1)),
                             editable = dragEnabled, edges = event.canDrag && !event.point, compact = compact,
                             selected = focusId == event.item.id,
@@ -105,7 +112,7 @@ internal fun CalendarGrid(
                     val startY = (start * CALENDAR_MINUTE_DP).dp
                     val draftHeight = (duration * CALENDAR_MINUTE_DP).dp.coerceAtLeast(2.dp)
                     val visitConflict = day.events.any { it.item.id != draftItem.id && !it.placeholder && !it.point && it.start < start+duration && start < it.end }
-                    val trafficConflict = day.transfers.any { it.conflict && (it.fromId == draftItem.id || it.toId == draftItem.id) }
+                    val trafficConflict = visibleTransfers.any { it.conflict && (it.fromId == draftItem.id || it.toId == draftItem.id) }
                     val conflict = visitConflict || trafficConflict
                     val conflictLabel = if (visitConflict) " · 日程重叠" else if (trafficConflict) " · 交通预留不足" else ""
                     Surface(Modifier.offset(x = 3.dp, y = startY).width((eventWidth-6.dp).coerceAtLeast(1.dp)).height(draftHeight).testTag("calendar-draft"),
@@ -129,11 +136,11 @@ internal fun CalendarGrid(
     }
 }
 
-private fun eventSubtitle(event: CalendarEvent): String = buildList {
+private fun eventSubtitle(event: CalendarEvent, showTrafficConflict: Boolean): String = buildList {
     if (event.placeholder) add("${event.item.arrivalTime} 到达 · 停留待设")
     else add("${calendarTime(event.start)}–${calendarTime(event.end)}")
     if (event.continuation) add("第 ${event.sourceDayNumber} 天续住")
     if (event.continues) add(if (event.outsideTrip) "延续至旅行外" else "延续至次日")
     if (event.conflicts.isNotEmpty()) add("时间重叠")
-    if (event.trafficConflict) add("交通可能来不及")
+    if (showTrafficConflict) add("交通可能来不及")
 }.joinToString(" · ")

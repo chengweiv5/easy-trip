@@ -66,7 +66,7 @@ private fun trafficPaint(density: Density) = Paint(Paint.ANTI_ALIAS_FLAG).apply 
 }
 
 /** Measure visible glyphs, then place the label in the free space between visits. */
-private fun CalendarTransfer.trafficLayout(
+internal fun CalendarTransfer.trafficLayout(
     width: Dp, compact: Boolean, density: Density, events: List<CalendarEvent>,
     transfers: List<CalendarTransfer>,
 ): CalendarTrafficLayout? {
