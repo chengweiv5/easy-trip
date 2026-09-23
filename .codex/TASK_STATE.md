@@ -1,3 +1,17 @@
+# 全程日历分页文字居中
+
+状态：DONE（2026-09-23，App 修复与 README 截图更新验证完成）
+
+全程日历「1–2 / 3 天」默认左对齐，现改为在左右翻页按钮间居中。修复提交 855fbe2359c13a9421f698c8c6f5c92c2de6a6ba。保留现有按钮尺寸、日期列与翻页行为。
+
+Debug / AndroidTest 构建通过，4 项模拟器验证通过；普通及 1.3 倍字体、首末页和两位数页码共 6 次实际文字中心测量与分页区域中心一致，误差 0；30 天翻页/横滑正常。修复版本已重新采集全套 README 图片，完整长图、OCR、14 个链接及桌面/手机排版验证通过。未操作物理手机。
+
+分支 codex/calendar-pager-center；验证与回滚：.scratch/calendar-pager-center/verification.md；原始证据、远端交付及通知记录：.scratch/calendar-pager-center/evidence/。临时验证入口已归档移除。
+
+---
+
+## 之前的任务记录
+
 # README 全部截图刷新
 
 状态：DONE（2026-09-23，全部截图重新采集与文档验证完成）

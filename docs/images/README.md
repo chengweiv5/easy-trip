@@ -1,6 +1,6 @@
 # README 图片来源
 
-本目录全部 10 张图片于 **2026-09-23** 重新采集或生成，未沿用旧版截图。运行来源为最新 `origin/main` 提交 [`d267f45`](https://github.com/chengweiv5/easy-trip/commit/d267f453a94ca836ce854c162bcb6113334d686f) 的 Debug 构建，应用版本号为 1.4.0，包含 v1.4.0 正式发布之后的工作台修复（日期操作按钮等距、红色删除图标、抽屉切换保持地图视角等）。
+本目录全部 10 张图片于 **2026-09-23** 重新采集或生成，未沿用旧版截图。运行来源为最新 `origin/main` 提交 [`855fbe2`](https://github.com/chengweiv5/easy-trip/commit/855fbe2359c13a9421f698c8c6f5c92c2de6a6ba) 的 Debug 构建，应用版本号为 1.4.0，包含 v1.4.0 正式发布之后的工作台修复（全程日历分页文字居中、日期操作按钮等距、红色删除图标、抽屉切换保持地图视角等）。
 
 所有界面来自专用只读模拟器 `emulator-5586` 的同一次应用运行，分辨率 1170 × 2532、密度 480 dpi、字体比例 1.0。临时采集入口 `LatestReadmeCaptureTest.allReadmeScreensFromProductionNavigation` 使用生产 `AppNavigation`、Room 仓库、真实高德地图 SDK 和分享渲染器，通过点击、滑动依次进入各功能界面。
 
@@ -23,10 +23,10 @@
 
 本机追溯记录：
 
-- `.scratch/readme-latest-screenshots/LatestReadmeCaptureTest.kt`：临时采集入口归档，已从应用源码目录移除。
-- `.scratch/readme-latest-screenshots/evidence/latest/raw/`：本次全部原始 PNG 与采集清单，每张记录运行版本、提交 SHA、尺寸和时间。
-- `.scratch/readme-latest-screenshots/evidence/latest/build-provenance.json`：构建基线、模拟器与 APK SHA256。
-- `.scratch/readme-latest-screenshots/evidence/latest/image-verification.json`：全部图片的新旧 SHA256、原始尺寸与入库尺寸。
-- `.scratch/readme-latest-screenshots/evidence/latest/`：构建、截图用例、OCR、README 排版及推送回读记录。
+- `.scratch/calendar-pager-center/LatestReadmeCaptureTest.kt`：临时采集入口归档，已从应用源码目录移除。
+- `.scratch/calendar-pager-center/evidence/raw/`：本次全部原始 PNG 与采集清单，每张记录运行版本、提交 SHA、尺寸和时间。
+- `.scratch/calendar-pager-center/evidence/build-provenance.json`：构建基线、模拟器与 APK SHA256。
+- `.scratch/calendar-pager-center/evidence/image-verification.json`：本次全部图片的来源、SHA256 与入库尺寸。
+- `.scratch/calendar-pager-center/evidence/`：构建、截图用例、OCR、README 排版及推送回读记录。
 
-本次只更新文档和图片，未修改应用功能代码；采集过程使用专用模拟器与内存示例，未操作物理设备。
+本次先修复全程日历分页文字居中，再运行修复版本重新采集全部图片；采集过程使用专用模拟器与内存示例，未操作物理设备。
