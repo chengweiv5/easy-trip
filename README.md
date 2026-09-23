@@ -10,7 +10,7 @@
 
 [查看 / 下载最新正式版](https://github.com/chengweiv5/easy-trip/releases/latest) · [看看能做什么](#features) · [从源码构建](#development)
 
-**Android 8.0+ · 无需账号 · 旅行数据保存在本机**
+**Android 8.0+ · 五套浅色主题 · 无需账号 · 旅行数据保存在本机**
 
 </div>
 
@@ -24,7 +24,35 @@ Easy Trip 支持**同一地点重复加入行程**。酒店、餐厅、景点，
 
 从出门到回酒店，把当天每一站和往返交通都规划进去。收藏地点、调整顺序、查看路线，专心把自己的旅行安排好。
 
-> 当前正式版为 **[v1.6.0](https://github.com/chengweiv5/easy-trip/releases/tag/v1.6.0)**，新增五套浅色主题，可从首页调色盘或工作台「更多 → 主题配色」进入，预览后应用并记住选择。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v1.6.0/easy-trip-v1.6.0-release.apk) · [发布验证](docs/testing/v1.6.0-release.md)。下方截图于 2026-09-23 从 `46af47e` 构建运行后采集，展示 v1.5.0 阶段的工作台界面，尚未更新为 v1.6.0 主题界面；图片均可点击放大。
+> 当前正式版为 **[v1.6.0](https://github.com/chengweiv5/easy-trip/releases/tag/v1.6.0)**。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v1.6.0/easy-trip-v1.6.0-release.apk) · [发布验证](docs/testing/v1.6.0-release.md)。下方界面均采集自 v1.6.0 正式安装包，图片可点击放大。
+
+## 五套主题，选一个喜欢的颜色出发
+
+清爽的**湖畔晴空**、自然的**松林晨光**、温暖的**落日陶土**、柔和的**山岚暮紫**、轻盈的**玫瑰沙丘**，五套浅色主题随时切换，默认使用湖畔晴空。
+
+从首页右上角调色盘，或旅行工作台的「更多 → 主题配色」进入。点选后直接预览整页颜色，点击「应用」即可用于所有旅行，重启后仍会记住；返回则放弃这次预览。
+
+<div align="center">
+  <a href="docs/images/theme-picker.jpg"><img src="docs/images/theme-picker.jpg" width="280" alt="v1.6.0 主题配色页：五套浅色主题、当前使用状态与返回放弃预览说明"></a>
+  <a href="docs/images/theme-workspace-violet.jpg"><img src="docs/images/theme-workspace-violet.jpg" width="280" alt="应用山岚暮紫后的真实行程工作台：浅紫背景、紫色日期选项，地图与路线仍清晰可辨"></a>
+</div>
+
+**选择配色** · 直接比较五套选项。 **应用到旅行** · 首页、工作台、按钮和浮层一起换色，地图底图、日期路线色及分享长图保持原有配色。
+
+<details>
+<summary>查看五套主题在同一行程中的实际效果</summary>
+
+<div align="center">
+  <a href="docs/images/theme-workspace-lake.jpg"><img src="docs/images/theme-workspace-lake.jpg" width="220" alt="湖畔晴空：默认主题的杭州行程工作台"></a>
+  <a href="docs/images/theme-workspace-forest.jpg"><img src="docs/images/theme-workspace-forest.jpg" width="220" alt="松林晨光：绿色主题的杭州行程工作台"></a>
+  <a href="docs/images/theme-workspace-terracotta.jpg"><img src="docs/images/theme-workspace-terracotta.jpg" width="220" alt="落日陶土：暖橙棕色主题的杭州行程工作台"></a>
+  <a href="docs/images/theme-workspace-violet.jpg"><img src="docs/images/theme-workspace-violet.jpg" width="220" alt="山岚暮紫：紫色主题的杭州行程工作台"></a>
+  <a href="docs/images/theme-workspace-rose.jpg"><img src="docs/images/theme-workspace-rose.jpg" width="220" alt="玫瑰沙丘：玫瑰粉色主题的杭州行程工作台"></a>
+</div>
+
+顺序为湖畔晴空、松林晨光、落日陶土、山岚暮紫、玫瑰沙丘；均来自同一份示例行程的实际主题切换。
+
+</details>
 
 ## 旅行计划，不用在清单和地图之间来回切换
 
@@ -42,7 +70,7 @@ Easy Trip 支持**同一地点重复加入行程**。酒店、餐厅、景点，
 
 **地图行程工作台** · 上方看地图，下方排日程，序号对应每个地点。
 
-*全部截图来自同一次模拟器运行：首页为杭州、苏州，其余为同一份杭州三天示例行程。使用真实高德底图，地点坐标、路线连线和交通时长为测试示例。版本与采集方式见[图片来源](docs/images/README.md)。*
+*全部截图来自 v1.6.0 正式包在专用模拟器中的同一次采集：首页为杭州、苏州，其余为同一份杭州三天示例行程。除主题对比外均使用默认湖畔晴空。地图为真实高德底图，地点坐标、路线连线和交通时长为示例数据。版本与采集方式见[图片来源](docs/images/README.md)。*
 
 ### 用行程日历，看清每天的节奏
 
@@ -55,7 +83,7 @@ Easy Trip 支持**同一地点重复加入行程**。酒店、餐厅、景点，
 
 **单日时间轴** · 调整当天安排。 **全程日历** · 并排比较每天的节奏。
 
-*源码 `46af47e` 的运行截图，使用示例行程；全程日历为只读视图。*
+*v1.6.0 实际运行截图，使用示例行程；全程日历为只读视图。*
 
 ### 把完整行程，变成一张可以分享的长图
 
@@ -68,7 +96,7 @@ Easy Trip 支持**同一地点重复加入行程**。酒店、餐厅、景点，
 
 **分享预览** · 先确认内容，再保存或分享。 **长图效果** · 右图展示摘要与第 1 天，[点击查看完整三天长图](docs/images/share-long-image.png)。
 
-*最新源码运行与导出示例，使用真实高德底图及测试行程；路线连线和交通时长为示例数据。完整 PNG 保留全部三天内容。*
+*v1.6.0 正式包实际生成的长图，使用真实高德底图及示例行程；路线连线和交通时长为示例数据。完整 PNG 保留全部三天内容。*
 
 <a id="features"></a>
 
@@ -76,6 +104,7 @@ Easy Trip 支持**同一地点重复加入行程**。酒店、餐厅、景点，
 
 | 规划时的小麻烦 | Easy Trip 的做法 |
 | --- | --- |
+| 想让旅行界面换一种喜欢的颜色 | 五套浅色主题可预览后应用，所有旅行统一生效，重启保留选择；返回可放弃预览。 |
 | 想去的地方很多，还没决定哪天去 | 搜索并收藏到地点池，按城市整理；加入行程时筛选已排入、未排入的地点，支持批量选择。 |
 | 看了清单，还是不知道地点在哪 | 地图与行程同屏，地点名称和序号对应；按日期区分颜色，可切换单日或全程。 |
 | 临时想换顺序，或给某一站多留点时间 | 拖动调整地点顺序，移到其他日期；紧凑滚轮支持上午／下午快捷切换，以半小时选择到达时间、以小时设置停留时长。 |
@@ -175,6 +204,7 @@ apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-relea
 
 ## 工作台交互
 
+- 首页调色盘与工作台「更多 → 主题配色」共用主题页；五套浅色主题支持预览、应用保存和返回放弃，切换时保留当前工作台状态。
 - 抽屉分为“地点池 / 行程”两区，搜索入口位于地图底部，搜索结果可直接聚焦地图。
 - 地点池按城市组织，筛选结果与地图联动；加入行程时可搜索并筛选已排入、未排入的地点。
 - 行程支持单日与全程视图，地图同步显示对应日期的地点与路线；全程会合并连续重复地点。

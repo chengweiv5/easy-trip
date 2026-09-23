@@ -1,34 +1,40 @@
 # README 图片来源
 
-本目录全部 10 张图片于 **2026-09-23** 重新采集或生成，未沿用旧版截图。运行来源为最新 `origin/main` 提交 [`46af47e`](https://github.com/chengweiv5/easy-trip/commit/46af47efd95674bdd5bc48ef95c735567af8f0cb) 的 Debug 构建，应用版本号为 1.4.0，包含 v1.4.0 正式发布之后的工作台修复（全程日历分页栏与日历列等宽对齐、日期标题两行居中、日期操作按钮等距、红色删除图标、抽屉切换保持地图视角等）。
+本目录 16 张图片于 **2026-09-23** 从已发布的 [v1.6.0 正式 APK](https://github.com/chengweiv5/easy-trip/releases/tag/v1.6.0) 重新采集或导出：替换原有 10 张，新增主题选择页及五套主题工作台共 6 张。没有沿用旧版截图，也没有修改应用界面后再采集。
 
-所有界面来自专用只读模拟器 `emulator-5586` 的同一次应用运行，分辨率 1170 × 2532、密度 480 dpi、字体比例 1.0。临时采集入口 `LatestReadmeCaptureTest.allReadmeScreensFromProductionNavigation` 使用生产 `AppNavigation`、Room 仓库、真实高德地图 SDK 和分享渲染器，通过点击、滑动依次进入各功能界面。
+运行版本为 **1.6.0 / versionCode 8 / Release**，源码标签 `v1.6.0` 指向 [`a7eddbfbed9afde107f00152403f086b70817e18`](https://github.com/chengweiv5/easy-trip/commit/a7eddbfbed9afde107f00152403f086b70817e18)。模拟器安装包 SHA256 与公开发布包一致：`f65d055d91a982f4bb2c365db3880e63dab84e3fe74f202fbbd03aa22e6a264e`。
 
-示例保存在内存数据库：首页为杭州、苏州两趟旅行，其余均为同一份「杭州 · 湖畔慢游」三天、九站行程。图片不是设计稿或真实用户旅行；地图使用真实高德底图，地点坐标、路线连线、距离与交通时长为测试数据，不代表实际路线规划结果。
+所有界面均通过正式应用导航采集，使用本任务专用 Android 36 模拟器 `emulator-5584`，分辨率 1170 × 2532、密度 480 dpi、字体比例 1.0。默认使用湖畔晴空；主题对比通过工作台「更多 → 主题配色」逐一选择、应用，在相同行程和视角下采集。
 
-| 图片 | 内容与采集方式 | 原始尺寸 | 入库处理 |
+截图使用独立测试数据库：首页为「杭州 · 湖畔慢游」与「苏州 · 周末散步」，核心流程为杭州 2026-10-01 至 10-03 的三天、九站示例，同一组地点在不同日期重复安排。地图为真实高德底图；地点坐标、路线连线、距离与交通时长为示例数据，不代表实际路线规划结果。没有读取、修改或展示用户手机旅行数据。
+
+| 图片 | 内容 | 入库尺寸 | 处理 |
 | --- | --- | --- | --- |
-| `my-trips.jpg` | 应用首页，展示两趟旅行与杭州行程准备度 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
-| `place-pool.jpg` | 从首页打开杭州旅行后的地点池与真实地图 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
-| `map-itinerary.jpg` | 切换行程与第 1 天，展示地图、行程及最新日期操作按钮 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
-| `itinerary-note.jpg` | 展开工作台备注，采集完整的西湖天地行程条目 | 843 × 384 | 原尺寸 JPEG，无裁切 |
-| `itinerary-time-edit.jpg` | 从地点菜单打开时间编辑面板，保留工作台背景及全部操作 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
-| `itinerary-calendar-day.jpg` | 工作台切换单日时间日历，地图保持挂载 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
-| `itinerary-calendar-whole.jpg` | 切换全程日历，首屏并列展示第 1、2 天 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
-| `share-preview.jpg` | 从工作台菜单进入分享预览，包含备注并完成地图生成 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
-| `share-long-image.png` | 上述分享预览实际生成的完整 PNG，直接复制应用缓存文件 | 1080 × 6444 | 原文件，保留全部三天、地图、交通、备注及页脚，无缩放或裁切 |
-| `share-long-image-detail.jpg` | 本次完整长图的旅行摘要与第 1 天，用于 README 内联展示 | 1080 × 6444 | 保留顶部 1080 × 2510 区域，止于第 1 天分隔线之后、第 2 天标题之前，等比缩至 775 × 1800；链接指向完整 PNG |
+| `my-trips.jpg` | 首页的杭州与苏州两趟示例旅行，右上角为主题入口 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `place-pool.jpg` | 杭州旅行的地点池、重复排入次数与真实高德底图 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `map-itinerary.jpg` | 第 1 天的地图、路线、地点与交通列表 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `itinerary-time-edit.jpg` | 到达时间、停留时长、备注与再次安排入口 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `itinerary-calendar-day.jpg` | 单日时间日历，三站及两段交通按时间排列 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `itinerary-calendar-whole.jpg` | 全程日历并列展示第 1、2 天，分页栏与日历列对齐 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `share-preview.jpg` | 正式分享预览页，包含备注并完成三天地图生成 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `theme-picker.jpg` | 五套主题选择页，默认湖畔晴空，无虚构旅行预览卡片 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `theme-workspace-lake.jpg` | 湖畔晴空实际应用后的同一行程 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `theme-workspace-forest.jpg` | 松林晨光实际应用后的同一行程 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `theme-workspace-terracotta.jpg` | 落日陶土实际应用后的同一行程 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `theme-workspace-violet.jpg` | 山岚暮紫实际应用后的同一行程 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `theme-workspace-rose.jpg` | 玫瑰沙丘实际应用后的同一行程 | 591 × 1279 | 从 1170 × 2532 等比缩小，无裁切 |
+| `itinerary-note.jpg` | 西湖天地行程条目的完整展开备注 | 843 × 333 | 按 UI 节点边界截取完整条目，未重绘 |
+| `share-long-image-detail.jpg` | 完整长图的旅行摘要与第 1 天，链接指向完整 PNG | 728 × 1800 | 保留顶部 1080 × 2670，止于第 1 天分隔线后，再等比缩放 |
+| `share-long-image.png` | 应用实际生成的完整三天 PNG，与应用缓存文件逐字节一致 | 1080 × 7159 | 原始导出文件，无缩放或裁切 |
 
-处理方式：Pillow 等比缩放，JPEG quality 90、optimize。未重绘或覆盖界面文字，未拉伸截图。长图细节只截取完整内容段；完整导出 PNG 同时入库，并校验与应用原始输出字节一致。
+JPEG 使用 Pillow 等比缩放、quality 90、optimize。未覆盖文字、重绘控件或拉伸截图。长图细节只展示完整内容段，完整 PNG 同时保留，并确认三天、各日地图、交通、备注与页脚均完整。
 
-页头对齐验证：分页栏排除左侧时间刻度，与实际日历列左右边界完全重合；分页文字及每一天标题、日期的逐行中心偏差均为 0px。已验证双列首末页、窄屏、1.3 倍字体、两位数天数与未设置日期的场景。
+本机追溯记录位于 `.scratch/readme-v1.6.0/`：
 
-本机追溯记录：
-
-- `.scratch/calendar-grid-header-alignment/LatestReadmeCaptureTest.kt`：临时采集入口归档，已从应用源码目录移除。
-- `.scratch/calendar-grid-header-alignment/evidence/raw/`：本次全部原始 PNG 与采集清单，每张记录运行版本、提交 SHA、尺寸和时间。
-- `.scratch/calendar-grid-header-alignment/evidence/build-provenance.json`：构建基线、模拟器与 APK SHA256。
-- `.scratch/calendar-grid-header-alignment/evidence/image-verification.json`：本次全部图片的来源、SHA256 与入库尺寸。
-- `.scratch/calendar-grid-header-alignment/evidence/`：构建、截图用例、OCR、README 排版及推送回读记录。
-
-本次先修复全程日历页头与网格对齐，再运行修复版本重新采集全部图片；采集过程使用专用模拟器与内存示例，未操作物理设备。
+- `raw/`：原始截图、对应 UI 层级及应用原始导出 PNG。
+- `make-fixture.py`、`fixture.db`、`ui.py`：示例数据与正式应用导航采集脚本；不会编译进入 App。
+- `process-images.py`：图片处理方式及从实际节点测得的备注裁切边界。
+- `evidence/provenance.json`、`export-verification.json`：版本、安装包、设备与导出校验。
+- `evidence/image-verification.json`：每张图片的来源、尺寸、处理方式与 SHA256；原有 10 张均已变化。
+- `evidence/`：OCR、视觉检查及桌面/手机 README 排版验证。
+- `before/`：修改前 README、图片及任务状态备份。
