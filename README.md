@@ -24,22 +24,51 @@ Easy Trip 支持**同一地点重复加入行程**。酒店、餐厅、景点，
 
 从出门到回酒店，把当天每一站和往返交通都规划进去。收藏地点、调整顺序、查看路线，专心把自己的旅行安排好。
 
-> 当前正式版为 **[v1.4.0](https://github.com/chengweiv5/easy-trip/releases/tag/v1.4.0)**，新增行程长图分享，并优化日历拖动调时和交通显示，可在发布页下载 APK。下方既有截图展示 v1.2.0 的运行效果。
+> 当前正式版为 **[v1.4.0](https://github.com/chengweiv5/easy-trip/releases/tag/v1.4.0)**，新增行程长图分享，并优化日历拖动调时和交通显示，可在发布页下载 APK。下方展示主要功能界面及实际导出的长图，图片均可点击放大。
 
 ## 旅行计划，不用在清单和地图之间来回切换
 
 先把景点、餐厅和酒店收藏起来，再按天安排。地点顺序、到达时间、停留时长和交通信息放在一起，边看地图，边调整下一站。
 
 <div align="center">
-  <a href="docs/images/my-trips.jpg"><img src="docs/images/my-trips.jpg" width="280" alt="我的旅行：以杭州、苏州为例，查看待出行旅行、行程准备度并创建新旅行"></a>
-  <a href="docs/images/map-itinerary.jpg"><img src="docs/images/map-itinerary.jpg" width="280" alt="地图与每日行程同屏：地点序号对应，路线段显示交通方式、距离与预计耗时"></a>
+  <a href="docs/images/my-trips.jpg"><img src="docs/images/my-trips.jpg" width="240" alt="我的旅行：以杭州、苏州为例，查看待出行旅行、行程准备度并创建新旅行"></a>
+  <a href="docs/images/place-pool.jpg"><img src="docs/images/place-pool.jpg" width="240" alt="地点池：在杭州地图上查看收藏地点，按城市筛选，再批量加入行程"></a>
+  <a href="docs/images/map-itinerary.jpg"><img src="docs/images/map-itinerary.jpg" width="240" alt="地图与每日行程同屏：地点序号对应，路线段显示交通方式、距离与预计耗时"></a>
 </div>
 
 **我的旅行**（v1.2.0 源码运行截图） · 管理下一次出发，也保留已经走过的旅程。
 
+**地点池**（v1.4.0 运行截图） · 先收藏想去的地方，按城市整理，再加入每天的行程。
+
 **地图行程工作台**（v1.2.0 源码运行截图） · 上方看地图，下方排日程，序号对应每个地点。
 
-*以上为模拟器中的中国地点示例：首页展示杭州、苏州，地图展示杭州西湖周边行程。点击图片可放大查看。*
+*截图使用模拟器中的中国地点示例：首页为杭州、苏州，其余为杭州行程。版本与采集方式见[图片来源](docs/images/README.md)。*
+
+### 用行程日历，看清每天的节奏
+
+几点出发、在哪停留、两站之间留了多少时间，在时间轴上一眼就能看清。**单日视图**可长按移动地点、拖动上下沿调整开始或结束时间；**全程视图**把不同日期并排展示，方便比较每天的安排，并可翻页查看后续日期。
+
+<div align="center">
+  <a href="docs/images/itinerary-calendar-day.jpg"><img src="docs/images/itinerary-calendar-day.jpg" width="280" alt="单日行程日历：按时间轴展示西湖天地、柳浪闻莺、雷峰塔及站间步行安排"></a>
+  <a href="docs/images/itinerary-calendar-whole.jpg"><img src="docs/images/itinerary-calendar-whole.jpg" width="280" alt="全程行程日历：两天并列，对比杭州三天示例中的地点、停留时段和交通安排"></a>
+</div>
+
+**单日时间轴** · 调整当天安排。 **全程日历** · 并排比较每天的节奏。
+
+*v1.4.0 运行截图，使用示例行程；全程日历为只读视图。*
+
+### 把完整行程，变成一张可以分享的长图
+
+从「⋯ → 分享行程长图」进入预览，选择**全程或单日**，按需保留备注，再保存图片或调用系统分享。长图按天展示路线地图、地点、到达时间、停留时长、交通和备注，同行的人打开一张图就能查看安排。
+
+<div align="center">
+  <a href="docs/images/share-preview.jpg"><img src="docs/images/share-preview.jpg" width="280" alt="行程长图分享界面：选择全程或一天、切换备注，并预览、保存或分享图片"></a>
+  <a href="docs/images/share-long-image.png"><img src="docs/images/share-long-image-detail.jpg" width="240" alt="实际分享长图的开头与第 1 天：旅行摘要、杭州路线地图、三站行程、交通与完整备注"></a>
+</div>
+
+**分享预览** · 先确认内容，再保存或分享。 **长图效果** · 右图展示摘要与第 1 天，[点击查看完整三天长图](docs/images/share-long-image.png)。
+
+*v1.4.0 运行与导出示例，使用真实高德底图及测试行程；路线连线和交通时长为示例数据。完整 PNG 保留全部三天内容。*
 
 <a id="features"></a>
 
@@ -60,9 +89,17 @@ Easy Trip 支持**同一地点重复加入行程**。酒店、餐厅、景点，
 
 门票预约、入园提醒、酒店入住安排，都可以留在对应地点旁。行程与地点池用暖棕色区分备注，默认显示一行，长内容可原位展开、收起。行程中的切换入口放在停留时长右侧，备注展开前后保持同宽；地点池的入口与备注同行，都不额外增加按钮行。全程合并连续重复地点时，也会保留各次到访的备注。
 
-<img src="docs/images/itinerary-note.jpg" width="520" alt="v1.2.0 备注展开示例：在西湖行程下直接查看预约、入园、日落和返程提醒">
+<a href="docs/images/itinerary-note.jpg"><img src="docs/images/itinerary-note.jpg" width="520" alt="v1.2.0 备注展开示例：在西湖行程下直接查看预约、入园、日落和返程提醒"></a>
 
 *运行截图的局部细节，仅裁去了下方空白。*
+
+### 到达几点、停留多久，顺手调好
+
+编辑地点时，用上午／下午切换和滚轮设置到达时间、停留时长，也可以一起填写备注。同一地点想再去一次，直接再次安排即可。
+
+<a href="docs/images/itinerary-time-edit.jpg"><img src="docs/images/itinerary-time-edit.jpg" width="360" alt="行程时间编辑：上午下午切换、到达时间和停留时长滚轮、备注，以及再次安排同一地点的入口"></a>
+
+*v1.4.0 时间编辑组件运行截图。*
 
 ## 三步，安排一次出发
 

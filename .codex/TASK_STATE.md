@@ -1,3 +1,17 @@
+# README 主要功能界面截图
+
+状态：DONE（2026-09-23，内容与截图验证完成）
+
+README 已补充地点池、单日/全程日历、分享预览、长图效果与时间编辑截图，保留原首页、地图行程及备注图。新增 6 张 JPEG、1 张完整三天 PNG；来源说明已同步到 docs/images/README.md。
+
+验证：debug/AndroidTest 构建成功，3 项既有截图用例和 2 项临时截图采集通过；13 个本地链接存在；GitHub Markdown 渲染以及 1024px/390px 图片加载、比例、无横向溢出检查通过。完整 PNG 与原始导出字节一致，末日与页脚完整。无应用源码改动、未操作真机。
+
+分支：codex/readme-feature-screenshots；基线 57ea6cf。原始素材、临时采集入口、验证与回滚记录：.scratch/readme-feature-screenshots/verification.md。修改前文档备份：.scratch/readme-feature-screenshots/before/。提交与远端回读记录：.scratch/readme-feature-screenshots/evidence/push-verification.json。
+
+---
+
+## 之前的任务记录
+
 # 日历交通空隙显示
 
 状态：DONE
