@@ -6,7 +6,9 @@
 
 验证：850 单元测试通过，lint 0 errors；最终8项主题模拟器验收通过，另5项日历对齐通过。扩展回归65项中62通过，3个旧失败在未修改HEAD c1663fb完全复现。正式MainActivity选玫瑰后重启恢复验证通过。用户授权本地地图配置后，真实高德底图及五主题地点池/行程页切换已验证，中心点/缩放保持、地图未重建；10张截图和路线色像素检查通过。未操作物理手机。
 
-交付：design/easy-trip-v1.6.0.pen；源码 core/ui/theme/；验证 .scratch/v1.6.0-theme-implementation/verification.md。源码修改前归档 before/source.tar。分支 codex/v1.6.0-theme-design；版本1.6.0/code8；未推送、未发布。
+交付：design/easy-trip-v1.6.0.pen；源码 core/ui/theme/；验证 .scratch/v1.6.0-theme-implementation/verification.md。源码修改前归档 before/source.tar。分支 codex/v1.6.0-theme-design；版本1.6.0/code8。用户已授权推送，远端交付结果见 .scratch/v1.6.0-push/push-verification.json；未发布 APK。
+
+推送前已 rebase 到 origin/main 9b0d622，保留 v1.5.0 发布记录；应用目录与 rebase 前逐字一致。整合后 Debug 构建成功、850 项单元测试全通过、lint 0 errors；证据 .scratch/v1.6.0-push/checks.json。备份分支 codex/v1.6.0-before-rebase-20260923。
 
 ---
 
