@@ -22,6 +22,7 @@ import androidx.compose.ui.layout.boundsInRoot
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -245,7 +246,7 @@ fun CalendarContent(
                 if (single == null) {
                     Row(Modifier.fillMaxWidth().testTag("calendar-date-pager"), verticalAlignment = Alignment.CenterVertically) {
                         TextButton({ page = (currentPage - columns).coerceAtLeast(0) }, enabled = currentPage > 0 && !busy, contentPadding = PaddingValues.Zero, modifier = Modifier.width(48.dp)) { Text("‹") }
-                        Text("${shown.firstOrNull()?.number ?: 0}–${shown.lastOrNull()?.number ?: 0} / ${days.size} 天", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium)
+                        Text("${shown.firstOrNull()?.number ?: 0}–${shown.lastOrNull()?.number ?: 0} / ${days.size} 天", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
                         TextButton({ page = (currentPage + columns).coerceAtMost(lastPage) }, enabled = currentPage < lastPage && !busy, contentPadding = PaddingValues.Zero, modifier = Modifier.width(48.dp)) { Text("›") }
                     }
                     Row(Modifier.fillMaxWidth().padding(start = 36.dp)) {
