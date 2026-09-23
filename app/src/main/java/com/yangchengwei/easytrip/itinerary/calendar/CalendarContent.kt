@@ -143,7 +143,7 @@ fun CalendarContent(
     fun finish(cancel: Boolean) {
         val active = draft ?: return
         val timing = active.timing
-        val validDrop = active.keyboard || viewport.contains(active.pointer) && active.pointer.x >= viewport.left + with(density) { 36.dp.toPx() }
+        val validDrop = active.keyboard || viewport.contains(active.pointer) && active.pointer.x >= viewport.left + with(density) { CALENDAR_TIME_GUTTER_DP.dp.toPx() }
         if (!cancel && validDrop && timing != null && timing != active.item.timing()) {
             onSave(ItineraryTimingChange("", active.dayId, active.item.id, active.item.timing(), timing, beforeOrder = active.order))
         }
@@ -208,7 +208,8 @@ fun CalendarContent(
     BoxWithConstraints(modifier.fillMaxSize().onGloballyPositioned { contentOrigin = it.boundsInRoot().topLeft }) {
     val columns = if (maxWidth < 250.dp || density.fontScale > 1.2f) 1 else 2
     val visibleColumns = if (single != null) 1 else minOf(columns, days.size).coerceAtLeast(1)
-    val trafficWidth = ((maxWidth - 36.dp) / visibleColumns - 6.dp).coerceAtLeast(1.dp)
+    val trafficWidth = ((maxWidth - CALENDAR_TIME_GUTTER_DP.dp) / visibleColumns - 6.dp)
+        .coerceAtLeast(1.dp)
     Column(Modifier.fillMaxSize().testTag("calendar-content")) {
         ItinerarySummaryHeader(
             modifier = Modifier.onGloballyPositioned { summaryBounds = it.boundsInRoot() }
@@ -244,15 +245,15 @@ fun CalendarContent(
             val shown = if (single != null) listOfNotNull(selectedDay) else days.drop(currentPage).take(columns)
             Column(Modifier.fillMaxSize()) {
                 if (single == null) {
-                    Row(Modifier.fillMaxWidth().testTag("calendar-date-pager"), verticalAlignment = Alignment.CenterVertically) {
+                    Row(Modifier.fillMaxWidth().padding(start = CALENDAR_TIME_GUTTER_DP.dp).testTag("calendar-date-pager"), verticalAlignment = Alignment.CenterVertically) {
                         TextButton({ page = (currentPage - columns).coerceAtLeast(0) }, enabled = currentPage > 0 && !busy, contentPadding = PaddingValues.Zero, modifier = Modifier.width(48.dp)) { Text("‹") }
                         Text("${shown.firstOrNull()?.number ?: 0}–${shown.lastOrNull()?.number ?: 0} / ${days.size} 天", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
                         TextButton({ page = (currentPage + columns).coerceAtMost(lastPage) }, enabled = currentPage < lastPage && !busy, contentPadding = PaddingValues.Zero, modifier = Modifier.width(48.dp)) { Text("›") }
                     }
-                    Row(Modifier.fillMaxWidth().padding(start = 36.dp)) {
+                    Row(Modifier.fillMaxWidth().padding(start = CALENDAR_TIME_GUTTER_DP.dp)) {
                         shown.forEach { day ->
                             TextButton({ onFocus(day.dayId, null) }, enabled = !busy, modifier = Modifier.weight(1f).testTag("calendar-date-${day.dayId}"), contentPadding = PaddingValues(2.dp)) {
-                                Text("第 ${day.number} 天\n${wholeTripDayDate(day.number, startDate) ?: "日期待定"}", style = MaterialTheme.typography.labelSmall)
+                                Text("第 ${day.number} 天\n${wholeTripDayDate(day.number, startDate) ?: "日期待定"}", Modifier.fillMaxWidth(), style = MaterialTheme.typography.labelSmall, textAlign = TextAlign.Center)
                             }
                         }
                     }
@@ -282,7 +283,7 @@ fun CalendarContent(
                                     onKeyboardStart = { keyStart(single, item) }, onKeyboardStep = { keyStep(it) }, onKeyboardEnd = { finish(it) })
                             }
                         }
-                    } else Row(Modifier.fillMaxWidth().padding(start = 36.dp)) {
+                    } else Row(Modifier.fillMaxWidth().padding(start = CALENDAR_TIME_GUTTER_DP.dp)) {
                         shown.forEach { day ->
                             Column(Modifier.weight(1f).heightIn(max = 112.dp).verticalScroll(rememberScrollState())) {
                                 day.pending.forEach { item -> CalendarCard(item.name, "到达待设", Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 2.dp).testTag("calendar-pending-${item.id}"), dashed = true,

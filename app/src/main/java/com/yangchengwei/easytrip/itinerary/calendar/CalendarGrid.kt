@@ -38,7 +38,7 @@ internal fun CalendarGrid(
     val muted = MaterialTheme.colorScheme.onSurfaceVariant
     val footer = (48f * LocalDensity.current.fontScale + 20f).dp.coerceAtLeast(72.dp)
     Row(modifier.height(24.dp * CALENDAR_HOUR_DP + footer).testTag("calendar-grid")) {
-        Box(Modifier.width(36.dp).fillMaxHeight()) {
+        Box(Modifier.width(CALENDAR_TIME_GUTTER_DP.dp).fillMaxHeight()) {
             (0..24).forEach { hour ->
                 Text(calendarTime(hour * 60), Modifier.offset(y = (hour * CALENDAR_HOUR_DP).dp), fontSize = 9.sp, lineHeight = 12.sp, color = muted)
             }
