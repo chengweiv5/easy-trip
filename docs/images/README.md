@@ -1,6 +1,6 @@
 # README 图片来源
 
-本目录全部 10 张图片于 **2026-09-23** 重新采集或生成，未沿用旧版截图。运行来源为最新 `origin/main` 提交 [`855fbe2`](https://github.com/chengweiv5/easy-trip/commit/855fbe2359c13a9421f698c8c6f5c92c2de6a6ba) 的 Debug 构建，应用版本号为 1.4.0，包含 v1.4.0 正式发布之后的工作台修复（全程日历分页文字居中、日期操作按钮等距、红色删除图标、抽屉切换保持地图视角等）。
+本目录全部 10 张图片于 **2026-09-23** 重新采集或生成，未沿用旧版截图。运行来源为最新 `origin/main` 提交 [`46af47e`](https://github.com/chengweiv5/easy-trip/commit/46af47efd95674bdd5bc48ef95c735567af8f0cb) 的 Debug 构建，应用版本号为 1.4.0，包含 v1.4.0 正式发布之后的工作台修复（全程日历分页栏与日历列等宽对齐、日期标题两行居中、日期操作按钮等距、红色删除图标、抽屉切换保持地图视角等）。
 
 所有界面来自专用只读模拟器 `emulator-5586` 的同一次应用运行，分辨率 1170 × 2532、密度 480 dpi、字体比例 1.0。临时采集入口 `LatestReadmeCaptureTest.allReadmeScreensFromProductionNavigation` 使用生产 `AppNavigation`、Room 仓库、真实高德地图 SDK 和分享渲染器，通过点击、滑动依次进入各功能界面。
 
@@ -21,12 +21,14 @@
 
 处理方式：Pillow 等比缩放，JPEG quality 90、optimize。未重绘或覆盖界面文字，未拉伸截图。长图细节只截取完整内容段；完整导出 PNG 同时入库，并校验与应用原始输出字节一致。
 
+页头对齐验证：分页栏排除左侧时间刻度，与实际日历列左右边界完全重合；分页文字及每一天标题、日期的逐行中心偏差均为 0px。已验证双列首末页、窄屏、1.3 倍字体、两位数天数与未设置日期的场景。
+
 本机追溯记录：
 
-- `.scratch/calendar-pager-center/LatestReadmeCaptureTest.kt`：临时采集入口归档，已从应用源码目录移除。
-- `.scratch/calendar-pager-center/evidence/raw/`：本次全部原始 PNG 与采集清单，每张记录运行版本、提交 SHA、尺寸和时间。
-- `.scratch/calendar-pager-center/evidence/build-provenance.json`：构建基线、模拟器与 APK SHA256。
-- `.scratch/calendar-pager-center/evidence/image-verification.json`：本次全部图片的来源、SHA256 与入库尺寸。
-- `.scratch/calendar-pager-center/evidence/`：构建、截图用例、OCR、README 排版及推送回读记录。
+- `.scratch/calendar-grid-header-alignment/LatestReadmeCaptureTest.kt`：临时采集入口归档，已从应用源码目录移除。
+- `.scratch/calendar-grid-header-alignment/evidence/raw/`：本次全部原始 PNG 与采集清单，每张记录运行版本、提交 SHA、尺寸和时间。
+- `.scratch/calendar-grid-header-alignment/evidence/build-provenance.json`：构建基线、模拟器与 APK SHA256。
+- `.scratch/calendar-grid-header-alignment/evidence/image-verification.json`：本次全部图片的来源、SHA256 与入库尺寸。
+- `.scratch/calendar-grid-header-alignment/evidence/`：构建、截图用例、OCR、README 排版及推送回读记录。
 
-本次先修复全程日历分页文字居中，再运行修复版本重新采集全部图片；采集过程使用专用模拟器与内存示例，未操作物理设备。
+本次先修复全程日历页头与网格对齐，再运行修复版本重新采集全部图片；采集过程使用专用模拟器与内存示例，未操作物理设备。
