@@ -1,3 +1,17 @@
+# README 全部截图刷新
+
+状态：DONE（2026-09-23，全部截图重新采集与文档验证完成）
+
+已从最新 origin/main d267f453a94ca836ce854c162bcb6113334d686f 构建并在专用只读模拟器 emulator-5586 运行 App，替换 README 全部 10 张图片。包含正式版 v1.4.0 之后的日期按钮等距、红色删除图标及地图视角修复。所有界面来自同一次生产 AppNavigation 流程与同一份杭州三天内存示例。
+
+验证：Debug 与 AndroidTest 构建成功；整套导航截图用例通过；9 份原始图片的采集 SHA 均为 d267f45，全部 10 张入库图片与旧版哈希不同；完整分享 PNG 与应用本次导出字节一致；OCR 关键文字、14 个本地链接、1024px / 390px 排版和图片比例检查通过。已逐张检查最新日期操作按钮、日历、备注、时间编辑、分享与完整三天页脚。临时采集入口已归档移除，无应用代码改动。
+
+分支：codex/readme-latest-all-screenshots。原始图片、构建来源、采集入口、OCR、排版与回滚说明：.scratch/readme-latest-screenshots/verification.md。最终提交与远端交付结果以 .scratch/readme-latest-screenshots/evidence/latest/push-verification.json 为准。备份：.scratch/readme-latest-screenshots/before/。
+
+---
+
+## 之前的任务记录
+
 # README 主要功能界面截图
 
 状态：DONE（2026-09-23，内容与截图验证完成）

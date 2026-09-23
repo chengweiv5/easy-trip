@@ -1,32 +1,32 @@
 # README 图片来源
 
-图片来自 Easy Trip 的模拟器运行截图或应用实际导出的 PNG，统一使用中国地点的测试示例数据：首页为杭州、苏州，其余为杭州行程。不是设计稿或真实用户旅行。地图使用真实高德底图；地点安排、路线连线和交通时长为示例数据，不代表实际路线规划结果。
+本目录全部 10 张图片于 **2026-09-23** 重新采集或生成，未沿用旧版截图。运行来源为最新 `origin/main` 提交 [`d267f45`](https://github.com/chengweiv5/easy-trip/commit/d267f453a94ca836ce854c162bcb6113334d686f) 的 Debug 构建，应用版本号为 1.4.0，包含 v1.4.0 正式发布之后的工作台修复（日期操作按钮等距、红色删除图标、抽屉切换保持地图视角等）。
 
-原始截图、采集入口与验证记录保存在本机 `.scratch/`；本目录图片均可独立查看。日历截图使用生产工作台组件，展开日历后的上方地图区域未挂载地图；分享截图则实际加载高德 SDK。
+所有界面来自专用只读模拟器 `emulator-5586` 的同一次应用运行，分辨率 1170 × 2532、密度 480 dpi、字体比例 1.0。临时采集入口 `LatestReadmeCaptureTest.allReadmeScreensFromProductionNavigation` 使用生产 `AppNavigation`、Room 仓库、真实高德地图 SDK 和分享渲染器，通过点击、滑动依次进入各功能界面。
 
-| 图片 | 运行来源与版本 | 原始尺寸 | 处理 |
+示例保存在内存数据库：首页为杭州、苏州两趟旅行，其余均为同一份「杭州 · 湖畔慢游」三天、九站行程。图片不是设计稿或真实用户旅行；地图使用真实高德底图，地点坐标、路线连线、距离与交通时长为测试数据，不代表实际路线规划结果。
+
+| 图片 | 内容与采集方式 | 原始尺寸 | 入库处理 |
 | --- | --- | --- | --- |
-| `my-trips.jpg` | v1.2.0；`TripListContentTest.otherTripRowKeepsSingleEntrySemanticsWithSeparateMenuAndDecorativeArrow`；基于 `650de5f`，仅将首页测试示例改为杭州、苏州后重新运行截图 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
-| `map-itinerary.jpg` | v1.2.0；`LakesideWorkspaceVisualTest.realMapKeepsLakesideChromeAcrossPoolAndItinerary`；`7026cf8`，真实高德地图 | 1280 × 2856 | 等比缩至 574 × 1280，无裁切 |
-| `itinerary-note.jpg` | v1.2.0；`V12ItineraryPolishTest.itineraryNoteExpandsInPlaceAndUpdatedNoteResetsExpansion`；基于 `d79255d` 加备注一行预览、停留时长行展开收起和暖棕配色修改 | 1170 × 2532 | 保留左上角 1170 × 510 区域，仅去掉下方空白，再等比缩至 640 × 279 |
-| `place-pool.jpg` | v1.4.0；2026-09-23 在 emulator-5588 运行 `LakesideWorkspaceVisualTest.realMapKeepsLakesideChromeAcrossPoolAndItinerary`，真实高德地图 | 1073 × 2321 | 等比缩至 592 × 1280，无裁切 |
-| `itinerary-calendar-day.jpg` | v1.4.0；基于 `57ea6cf`，临时 `ReadmeScreenshotCaptureTest.calendarScreens`，生产 `TripWorkspaceContent` 与三天内存示例 | 975 × 2110 | 等比缩至 591 × 1280，无裁切 |
-| `itinerary-calendar-whole.jpg` | 同上，切换到全程后采集；首屏并列展示第 1、2 天 | 975 × 2110 | 等比缩至 591 × 1280，无裁切 |
-| `share-preview.jpg` | v1.4.0；基于 `57ea6cf`，临时 `ReadmeScreenshotCaptureTest.sharePreviewWithRealMap`；生产 `ItineraryShareScreen`、高德 SDK 与 `shareFixture()` | 1073 × 2123 | 等比缩至 647 × 1280，无裁切 |
-| `share-long-image.png` | v1.4.0；2026-09-23 运行 `ShareMapCaptureTest.realSdkCaptureUnderOpaquePreviewRetainsMapAndCleansUpView`；生产 `ShareImageRenderer`、高德 SDK 与三天 `shareFixture()` | 1080 × 7159 | 原始完整 PNG，保留三天、地图、交通、备注及页脚，无缩放或裁切 |
-| `share-long-image-detail.jpg` | 上述完整长图的摘要与第 1 天，用于 README 内联展示 | 1080 × 7159 | 保留顶部 1080 × 2650 区域，止于第 1 天分隔线之后，等比缩至 734 × 1800；点击链接查看完整 PNG |
-| `itinerary-time-edit.jpg` | v1.4.0 时间编辑组件；复用 emulator-5588 留存的 `itinerary-time-wheel-am.png`，杭州西湖天地示例 | 990 × 1431 | 等比缩至 886 × 1280，无裁切 |
+| `my-trips.jpg` | 应用首页，展示两趟旅行与杭州行程准备度 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
+| `place-pool.jpg` | 从首页打开杭州旅行后的地点池与真实地图 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
+| `map-itinerary.jpg` | 切换行程与第 1 天，展示地图、行程及最新日期操作按钮 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
+| `itinerary-note.jpg` | 展开工作台备注，采集完整的西湖天地行程条目 | 843 × 384 | 原尺寸 JPEG，无裁切 |
+| `itinerary-time-edit.jpg` | 从地点菜单打开时间编辑面板，保留工作台背景及全部操作 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
+| `itinerary-calendar-day.jpg` | 工作台切换单日时间日历，地图保持挂载 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
+| `itinerary-calendar-whole.jpg` | 切换全程日历，首屏并列展示第 1、2 天 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
+| `share-preview.jpg` | 从工作台菜单进入分享预览，包含备注并完成地图生成 | 1170 × 2532 | 等比缩至 591 × 1280，无裁切 |
+| `share-long-image.png` | 上述分享预览实际生成的完整 PNG，直接复制应用缓存文件 | 1080 × 6444 | 原文件，保留全部三天、地图、交通、备注及页脚，无缩放或裁切 |
+| `share-long-image-detail.jpg` | 本次完整长图的旅行摘要与第 1 天，用于 README 内联展示 | 1080 × 6444 | 保留顶部 1080 × 2510 区域，止于第 1 天分隔线之后、第 2 天标题之前，等比缩至 775 × 1800；链接指向完整 PNG |
 
-原始证据路径：
+处理方式：Pillow 等比缩放，JPEG quality 90、optimize。未重绘或覆盖界面文字，未拉伸截图。长图细节只截取完整内容段；完整导出 PNG 同时入库，并校验与应用原始输出字节一致。
 
-- `.scratch/readme-china-examples-20260921/my-trips.png`
-- `.scratch/v1.2.0-itinerary-polish/v11-workspace-itinerary.png`
-- `.scratch/note-warm-brown-20260921/evidence/itinerary-note-expanded.png`
-- `.scratch/readme-feature-screenshots/evidence/place-pool.png`
-- `.scratch/readme-feature-screenshots/evidence/itinerary-calendar-day.png`
-- `.scratch/readme-feature-screenshots/evidence/itinerary-calendar-whole.png`
-- `.scratch/readme-feature-screenshots/evidence/share-preview-with-map.png`
-- `.scratch/readme-feature-screenshots/evidence/share-long-image.png`
-- `.scratch/readme-feature-screenshots/evidence/itinerary-time-edit.png`
+本机追溯记录：
 
-处理方式：Pillow 等比缩放，JPEG quality 88–90、optimize；没有在截图上重绘、覆盖文字或拉伸界面。长图细节只截取完整内容段，完整导出 PNG 同时入库。临时截图入口仅采集内存示例，已从应用源码目录移除，保留在 `.scratch/readme-feature-screenshots/ReadmeScreenshotCaptureTest.kt` 供追溯；没有改动应用功能。
+- `.scratch/readme-latest-screenshots/LatestReadmeCaptureTest.kt`：临时采集入口归档，已从应用源码目录移除。
+- `.scratch/readme-latest-screenshots/evidence/latest/raw/`：本次全部原始 PNG 与采集清单，每张记录运行版本、提交 SHA、尺寸和时间。
+- `.scratch/readme-latest-screenshots/evidence/latest/build-provenance.json`：构建基线、模拟器与 APK SHA256。
+- `.scratch/readme-latest-screenshots/evidence/latest/image-verification.json`：全部图片的新旧 SHA256、原始尺寸与入库尺寸。
+- `.scratch/readme-latest-screenshots/evidence/latest/`：构建、截图用例、OCR、README 排版及推送回读记录。
+
+本次只更新文档和图片，未修改应用功能代码；采集过程使用专用模拟器与内存示例，未操作物理设备。
