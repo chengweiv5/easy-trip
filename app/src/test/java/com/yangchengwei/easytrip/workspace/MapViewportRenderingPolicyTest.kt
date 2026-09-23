@@ -64,7 +64,7 @@ class MapViewportRenderingPolicyTest {
         assertNull(result.command)
     }
 
-    @Test fun `same request id rerenders bounds once when stable sheet anchor changes`() {
+    @Test fun `same request id keeps camera when sheet anchor changes`() {
         val request = request(5, listOf(beijing, shanghai), MapViewportInsets(leftPx = 20, topPx = 72, rightPx = 68, bottomPx = 510))
 
         val result = viewportRendering(
@@ -73,8 +73,26 @@ class MapViewportRenderingPolicyTest {
             consumedSafeInsets = MapViewportInsets(leftPx = 20, topPx = 72, rightPx = 68, bottomPx = 390),
         )
 
-        assertEquals(ViewportCommand.Bounds(request.points, request.safeInsets), result.command)
-        assertEquals(request.safeInsets, result.consumedSafeInsets)
+        assertNull(result.command)
+    }
+
+    @Test fun `collapsed half and expanded drawer keep both single point and bounds cameras`() {
+        listOf(listOf(beijing), listOf(beijing, shanghai)).forEach { points ->
+            val initial = request(7, points, MapViewportInsets(bottomPx = 346))
+            val consumed = viewportRendering(null, initial)
+            listOf(720, 96, 346, 720, 96).forEach { bottom ->
+                assertNull(viewportRendering(consumed.consumedRequestId,
+                    initial.copy(safeInsets = MapViewportInsets(bottomPx = bottom)), consumed.consumedSafeInsets).command)
+            }
+        }
+    }
+
+    @Test fun `new viewport request still applies current drawer insets`() {
+        val previous = request(8, listOf(beijing, shanghai), MapViewportInsets(bottomPx = 96))
+        val current = request(9, listOf(beijing), MapViewportInsets(bottomPx = 346))
+        val rendering = viewportRendering(previous.id, current, previous.safeInsets)
+        assertEquals(9L, rendering.consumedRequestId)
+        assertEquals(ViewportCommand.SinglePoint(beijing, 15f, ViewportCenterOffset(0, 173)), rendering.command)
     }
 
     private fun request(

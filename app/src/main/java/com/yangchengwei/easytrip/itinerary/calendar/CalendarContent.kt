@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.saveable.mapSaver
@@ -69,6 +67,7 @@ fun CalendarContent(
     onRoute: (String) -> Unit = {},
     wideHintArea: Rect? = null,
     onWideHint: (Boolean) -> Unit = {},
+    onDeleteDay: (() -> Unit)? = null,
 ) {
     val days = remember(rawDays) { projectCalendarDays(rawDays) }
     val single = (selected as? ItineraryScope.Day)?.dayId
@@ -218,10 +217,14 @@ fun CalendarContent(
             text = if (single == null) "全程 · ${days.size} 天" else "第 ${selectedDay?.number ?: 1} 天 · ${selectedDay?.sourceItems?.size ?: 0} 站",
             date = selectedDay?.let { wholeTripDayDate(it.number, startDate) },
             trailingAction = {
-                Row {
-                    CalendarToggle(true, onToggle, !busy)
-                    if (single != null) IconButton(onAdd, enabled = !busy, modifier = Modifier.size(48.dp).testTag("add-places-to-selected-day")) { Icon(Icons.Rounded.Add, "从地点池添加地点", Modifier.size(18.dp)) }
-                }
+                com.yangchengwei.easytrip.itinerary.ui.ItineraryDayActions(
+                    calendarSelected = true,
+                    onToggleCalendar = onToggle,
+                    onAdd = onAdd.takeIf { single != null },
+                    onDelete = onDeleteDay.takeIf { single != null },
+                    enabled = !busy,
+                    canDelete = days.size > 1,
+                )
             },
         )
         localMessage?.let { Text(it, style = MaterialTheme.typography.labelSmall) }

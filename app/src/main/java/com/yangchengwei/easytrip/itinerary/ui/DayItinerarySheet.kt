@@ -22,11 +22,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.gestures.scrollBy
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import java.time.LocalDate
@@ -128,6 +124,7 @@ fun DayItineraryContent(
     showDialogs: Boolean = true,
     canScheduleAgain: Boolean = false,
     onToggleCalendar: (() -> Unit)? = null,
+    onDeleteDay: (() -> Unit)? = null,
 ) {
     val orderColor = androidx.compose.ui.graphics.Color(
         com.yangchengwei.easytrip.workspace.routeColorForDay(
@@ -143,19 +140,13 @@ fun DayItineraryContent(
                 date = dayNumber?.let { wholeTripDayDate(it, startDate) },
                 trailingInset = 0.dp,
                 trailingAction = {
-                  Row {
-                    onToggleCalendar?.let { com.yangchengwei.easytrip.itinerary.calendar.CalendarToggle(false, it) }
-                    IconButton(
-                        onClick = { onAction(DayItineraryAction.AddPlaces) },
-                        modifier = Modifier.size(48.dp).testTag("add-places-to-selected-day"),
-                    ) {
-                        Icon(
-                            Icons.Rounded.Add,
-                            contentDescription = "从地点池添加地点",
-                            modifier = Modifier.size(18.dp),
-                        )
-                    }
-                  }
+                    ItineraryDayActions(
+                        calendarSelected = false,
+                        onToggleCalendar = onToggleCalendar,
+                        onAdd = { onAction(DayItineraryAction.AddPlaces) },
+                        onDelete = onDeleteDay,
+                        canDelete = state.days.size > 1,
+                    )
                 },
             )
         }

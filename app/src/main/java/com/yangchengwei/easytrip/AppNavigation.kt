@@ -524,6 +524,10 @@ fun AppNavigation(
                     placeModel.setSearchSource(source)
                     itineraryModel.setRouteCoordinator(routeCoordinator)
                 }
+                val daySettingsModel: TripSettingsViewModel = viewModel(
+                    viewModelStoreOwner = entry,
+                    factory = TripSettingsViewModel.Factory(service, repository, impacts),
+                )
                 TripWorkspaceRoute(
                     viewModel = workspaceModel,
                     consent = token,
@@ -547,6 +551,7 @@ fun AppNavigation(
                     },
                     placeViewModel = placeModel,
                     itineraryViewModel = itineraryModel,
+                    daySettingsViewModel = daySettingsModel,
                     addToItineraryViewModel = addToItineraryModel,
                     mapHostFactory = mapHostFactory ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },
                     searchReturn = workspaceSearchReturnState.value,

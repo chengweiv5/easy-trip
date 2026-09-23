@@ -163,6 +163,7 @@ fun TripWorkspaceScreen(
     mapReadyTimeoutMillis: Long = DEFAULT_MAP_READY_TIMEOUT_MILLIS,
     locateRequest: Int = 0,
     searchReturn: WorkspaceSearchReturn? = null,
+    onDeleteDay: (() -> Unit)? = null,
 ) {
     var mapAttempt by remember { mutableIntStateOf(0) }
     var zoomInRequest by remember { mutableIntStateOf(0) }
@@ -194,6 +195,7 @@ fun TripWorkspaceScreen(
         workspaceRootLayers(hasReadyOverlay = ready != null).forEach { layer ->
             when (layer) {
                 WorkspaceRootLayer.Content -> TripWorkspaceContent(
+                    onDeleteDay = onDeleteDay,
                     modifier = if (ready?.overlay is WorkspaceOverlay.EditItineraryItem || ready?.overlay is WorkspaceOverlay.EditRouteLeg || ready?.overlay == WorkspaceOverlay.SelectAddPlaces || ready?.overlay == WorkspaceOverlay.SelectAddTargetDay) Modifier.clearAndSetSemantics {} else Modifier,
                     pageState = pageState,
                     mapState = mapState,

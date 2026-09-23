@@ -93,7 +93,8 @@ fun viewportRendering(
     request: MapViewportRequest?,
     consumedSafeInsets: MapViewportInsets = MapViewportInsets(),
 ): ViewportRendering {
-    if (request == null || (request.id == consumedRequestId && request.safeInsets == consumedSafeInsets)) {
+    // Drawer geometry changes the safe area, not the user's requested camera position.
+    if (request == null || request.id == consumedRequestId) {
         return ViewportRendering(consumedRequestId, consumedSafeInsets, null)
     }
     val command = when (request.points.size) {

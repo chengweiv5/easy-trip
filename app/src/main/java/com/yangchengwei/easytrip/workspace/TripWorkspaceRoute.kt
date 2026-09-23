@@ -247,6 +247,7 @@ fun TripWorkspaceRoute(
     onOpenSearch: () -> Unit = {},
     placeViewModel: PlacePoolViewModel? = null,
     itineraryViewModel: DayItineraryViewModel? = null,
+    daySettingsViewModel: com.yangchengwei.easytrip.trip.ui.TripSettingsViewModel? = null,
     addToItineraryViewModel: AddToItineraryViewModel? = null,
     placeState: PlacePoolUiState = PlacePoolUiState(),
     onPlaceAction: (PlacePoolAction) -> Unit = {},
@@ -267,6 +268,7 @@ fun TripWorkspaceRoute(
     val places = placeViewModel?.state?.collectAsStateWithLifecycle()?.value ?: placeState
     val itinerary = itineraryViewModel?.state?.collectAsStateWithLifecycle()?.value ?: itineraryState
     val addToItinerary = addToItineraryViewModel?.state?.collectAsStateWithLifecycle()?.value ?: AddToItineraryUiState()
+    val daySettings = daySettingsViewModel?.state?.collectAsStateWithLifecycle()?.value
     val ready = (page as? TripWorkspacePageState.Ready)?.content
     val dispatchPlace: (PlacePoolAction) -> Unit = placeViewModel?.let { it::dispatch } ?: onPlaceAction
     val dispatchItinerary: (DayItineraryAction) -> Unit = itineraryViewModel?.let { it::dispatch } ?: onItineraryAction
@@ -487,6 +489,10 @@ fun TripWorkspaceRoute(
 
     BackHandler(onBack = ::leaveOrCloseOverlay)
     TripWorkspaceScreen(
+        onDeleteDay = daySettingsViewModel?.let { model -> {
+            val selected = (viewModel.state.value.itineraryScope as? ItineraryScope.Day)?.dayId
+            model.state.value.days.firstOrNull { it.id == selected }?.let(model::requestDelete)
+        } },
         pageState = page,
         consent = consent,
         consentFact = consentFact,
@@ -657,6 +663,15 @@ fun TripWorkspaceRoute(
         locateRequest = locateRequest,
         searchReturn = searchReturn,
     )
+    if (daySettingsViewModel != null && daySettings != null) {
+        com.yangchengwei.easytrip.trip.ui.WorkspaceDayDeletionDialog(
+            state = daySettings,
+            onConfirm = daySettingsViewModel::confirmDelete,
+            onCancel = daySettingsViewModel::cancelDelete,
+            onRetry = daySettingsViewModel::retryDelete,
+        )
+    }
+
 }
 
 internal fun shouldConsumeSearchReturn(current: WorkspaceSection?, selected: WorkspaceSection) = current != selected

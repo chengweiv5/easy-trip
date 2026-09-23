@@ -1,6 +1,10 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.activity.ComponentActivity
+import android.view.View
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.test.performScrollTo
 import androidx.compose.material3.Text
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -22,6 +26,7 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
+import androidx.compose.ui.test.performSemanticsAction
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import androidx.lifecycle.SavedStateHandle
@@ -54,6 +59,44 @@ import org.junit.Test
 
 class MapLayerFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun wrappedLayerDescriptionFitsInsidePanel() {
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f, 1.3f),
+            ) {
+                EasyTripTheme {
+                    MapLayerMenu(MapLayer.STANDARD, {}, {})
+                }
+            }
+        }
+        val panel = compose.onNodeWithTag("layer-menu-panel").fetchSemanticsNode().boundsInRoot
+        val note = compose.onNodeWithText("选择将应用到所有旅行，并在下次打开时保留。")
+        note.assertIsDisplayed()
+        val textLayouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        note.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(textLayouts) }
+        org.junit.Assert.assertFalse("Layer note must not be clipped", textLayouts.single().hasVisualOverflow)
+        org.junit.Assert.assertTrue("Layer note needs bottom padding", note.fetchSemanticsNode().boundsInRoot.bottom <= panel.bottom - 12f)
+    }
+
+    @Test fun constrainedLayerMenuScrollsToTheCompleteNote() {
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f, 2f),
+            ) {
+                EasyTripTheme { MapLayerMenu(MapLayer.STANDARD, {}, {}, Modifier.heightIn(max = 284.dp)) }
+            }
+        }
+        val note = compose.onNodeWithText("选择将应用到所有旅行，并在下次打开时保留。")
+        note.performScrollTo().assertIsDisplayed()
+        val layouts = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+        note.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layouts) }
+        org.junit.Assert.assertFalse(layouts.single().hasVisualOverflow)
+        val panel = compose.onNodeWithTag("layer-menu-panel").fetchSemanticsNode().boundsInRoot
+        val bounds = note.fetchSemanticsNode().boundsInRoot
+        org.junit.Assert.assertTrue(bounds.top >= panel.top && bounds.bottom <= panel.bottom)
+        compose.onNodeWithTag("layer-STANDARD").performScrollTo().assertIsDisplayed()
+    }
 
     @Test fun mapLegendWrapsContentAndHasTextLabels() {
         compose.setContent { EasyTripTheme { MapLegend() } }
@@ -130,12 +173,22 @@ class MapLayerFlowTest {
 
     @Test fun layerControlsAreExclusiveAndSelectionSurvivesTripSwitch() {
         val preferences = FakeMapPreferences()
+        val gate = com.yangchengwei.easytrip.amap.TestConsentGate().apply { show() }
+        val token = requireNotNull(gate.decide(true))
         val first = model("trip-1", preferences)
         var current by mutableStateOf(first)
         compose.setContent {
             TripWorkspaceScreen(
                 viewModel = current,
-                consent = null,
+                consent = token,
+                mapHostFactory = { context -> object : AmapMapHost {
+                    override val view = View(context)
+                    override fun canRenderBeforeReady() = true
+                    override fun onCreate() = Unit
+                    override fun onResume() = Unit
+                    override fun onPause() = Unit
+                    override fun onDestroy() = Unit
+                } },
                 onBack = {},
                 onSettings = {},
                 placeContent = { Text("地点") },

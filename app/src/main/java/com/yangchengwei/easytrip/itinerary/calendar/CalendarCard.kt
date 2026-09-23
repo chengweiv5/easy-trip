@@ -34,8 +34,8 @@ import androidx.compose.ui.unit.sp
 import kotlin.math.min
 
 @Composable
-fun CalendarToggle(selected: Boolean, onClick: () -> Unit, enabled: Boolean = true) {
-    IconButton(onClick, enabled = enabled, modifier = Modifier.size(48.dp).testTag("calendar-toggle").semantics {
+fun CalendarToggle(selected: Boolean, onClick: () -> Unit, enabled: Boolean = true, compact: Boolean = false) {
+    IconButton(onClick, enabled = enabled, modifier = Modifier.size(if (compact) 28.dp else 48.dp).testTag("calendar-toggle").semantics {
         contentDescription = "日历视图"
         this.selected = selected
     }) {

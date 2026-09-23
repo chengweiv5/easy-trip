@@ -10,10 +10,13 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -92,13 +95,13 @@ internal fun MapLayerMenu(
 ) {
     val shape = RoundedCornerShape(12.dp)
     Surface(
-        modifier.width(240.dp).height(284.dp).testTag("layer-menu-panel"),
+        modifier.width(240.dp).heightIn(min = 284.dp).testTag("layer-menu-panel"),
         shape = shape,
         color = MaterialTheme.colorScheme.surface,
         shadowElevation = EasyTripTheme.elevation.dialog,
     ) {
-        Column(Modifier.padding(12.dp).pointerInput(Unit) { detectTapGestures { } }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(Modifier.fillMaxWidth().height(28.dp), verticalAlignment = Alignment.CenterVertically) {
+        Column(Modifier.verticalScroll(rememberScrollState()).padding(12.dp).pointerInput(Unit) { detectTapGestures { } }, verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(Modifier.fillMaxWidth().heightIn(min = 28.dp), verticalAlignment = Alignment.CenterVertically) {
                 WorkspaceLayerIcon(Modifier.size(14.dp), MaterialTheme.colorScheme.primary)
                 Text("地图图层", Modifier.weight(1f).padding(start = 8.dp), style = MaterialTheme.typography.labelMedium)
                 Box(Modifier.size(28.dp).clickable(onClick = onClose).semantics { contentDescription = "关闭地图图层" }, contentAlignment = Alignment.Center) {
@@ -108,18 +111,18 @@ internal fun MapLayerMenu(
             MapLayer.entries.forEach { option ->
                 val selected = layer == option
                 val rowShape = RoundedCornerShape(8.dp)
-                Box(Modifier.fillMaxWidth().height(58.dp)) {
+                Box(Modifier.fillMaxWidth()) {
                     if (selected) {
                         Box(
                             Modifier
-                                .fillMaxSize()
+                                .matchParentSize()
                                 .border(2.dp, MaterialTheme.colorScheme.primary, rowShape)
                                 .testTag("layer-selected-border-${option.name}"),
                         )
                     }
                     Row(
                         Modifier
-                            .fillMaxSize()
+                            .fillMaxWidth().heightIn(min = 58.dp)
                             .clip(rowShape)
                             .background(if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface)
                             .then(
@@ -135,7 +138,7 @@ internal fun MapLayerMenu(
                                 },
                             )
                             .border(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline, rowShape)
-                            .padding(horizontal = 12.dp),
+                            .padding(horizontal = 12.dp, vertical = 8.dp),
                         verticalAlignment = Alignment.CenterVertically,
                     ) {
                         Box(

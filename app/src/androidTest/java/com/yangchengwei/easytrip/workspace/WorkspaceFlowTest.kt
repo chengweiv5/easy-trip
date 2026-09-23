@@ -298,6 +298,62 @@ class WorkspaceFlowTest {
         }
     }
 
+    @Test fun workspaceDayDeletionPreviewsCancelsAndPreservesSavedPlaces() {
+        val database = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
+        try {
+            val trips = RoomTripRepository(database.tripDao())
+            val places = RoomSavedPlaceRepository(database)
+            val itineraries = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao())
+            val routes = RoomRouteLegRepository(database.routeLegDao())
+            val tripId = runBlocking { trips.createTrip(CreateTrip("删除日期入口", 2)) }
+            val dayIds = runBlocking { requireNotNull(trips.observeTrip(tripId).first()).days.map { it.id } }
+            val placeIds = runBlocking {
+                listOf("西湖", "灵隐寺").mapIndexed { index, name ->
+                    (places.save(tripId, PlaceCandidate("delete-day-$index", name, "杭州市", GeoPoint(30.24 + index * .01, 120.15), "0571")) as SavePlaceResult.Saved).id
+                }.also { ids ->
+                    ids.forEachIndexed { index, id -> itineraries.addItem(dayIds[0], id, index) }
+                    itineraries.addItem(dayIds[1], ids[0], 0)
+                }
+            }
+            val dependencies = productionLocationDependencies(InMemoryLocationPermissionRequestStore())
+            compose.setContent {
+                com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme {
+                    AppNavigation(
+                        service = TripService(trips), repository = trips,
+                        impacts = RoomDeleteImpactProvider(database.deleteImpactDao()),
+                        dependencies = dependencies.copy(savedPlaceRepository = places, itineraryRepository = itineraries,
+                            routeLegRepository = routes, mapPreferences = InMemoryMapPreferences()),
+                        mapHostFactory = ::TestMapHost,
+                    )
+                }
+            }
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("primary-trip-$tripId").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("primary-trip-$tripId").performClick()
+            compose.onNodeWithTag("section-ITINERARY").performClick()
+            compose.onNodeWithTag("itinerary-scope-${dayIds[0]}").performClick()
+            compose.onNodeWithTag("delete-selected-day").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("2 个行程项").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("1 个路线段").assertIsDisplayed()
+            compose.onNodeWithText("2 个收藏地点").assertIsDisplayed()
+            assertEquals(2, runBlocking { database.itineraryEditingDao().items(dayIds[0]).size })
+            compose.onNodeWithText("取消").performClick()
+            compose.onNodeWithText("确认删除").assertDoesNotExist()
+            assertEquals(dayIds, runBlocking { trips.observeTrip(tripId).first()!!.days.map { it.id } })
+            compose.onNodeWithTag("calendar-toggle").performClick()
+            compose.onNodeWithTag("delete-selected-day").performClick()
+            compose.waitUntil(5_000) { compose.onAllNodesWithText("确认删除").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithText("确认删除").performClick()
+            compose.waitUntil(5_000) { runBlocking { trips.observeTrip(tripId).first()!!.days.size == 1 } }
+            compose.waitUntil(5_000) { compose.onAllNodes(isDialog()).fetchSemanticsNodes().isEmpty() }
+            assertEquals(listOf(TripDay(dayIds[1], 0)), runBlocking { trips.observeTrip(tripId).first()!!.days })
+            assertEquals(0, runBlocking { database.itineraryEditingDao().items(dayIds[0]).size })
+            assertEquals(0, runBlocking { database.routeLegDao().legs(dayIds[0]).size })
+            assertEquals(placeIds.toSet(), runBlocking { places.observePlaces(tripId, emptySet()).first().map { it.id }.toSet() })
+            compose.onNodeWithTag("itinerary-scope-${dayIds[1]}").performClick()
+            compose.onNodeWithTag("delete-selected-day").assertIsDisplayed().assertIsNotEnabled()
+        } finally { database.close() }
+    }
+
     @Test fun productionNavigationRoomPlaceQuickAddAndBatchAddPersistOnlyAfterSubmission() {
         val database = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
         try {
@@ -988,6 +1044,38 @@ class WorkspaceFlowTest {
         compose.runOnIdle { zoomOutRequest.value++ }
         compose.waitForIdle()
         compose.runOnIdle { assertEquals(listOf("zoom-in", "zoom-out"), events) }
+    }
+
+    @Test fun drawerTransitionsPreserveViewportInBothSections() {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val token = consentToken()
+        val coordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore())
+        lateinit var host: ZoomRecordingHost
+        var mounts = 0
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace, consent = token, onBack = {}, onSettings = {},
+                locationPermissionCoordinator = coordinator,
+                locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) }, onWorkspaceEffect = {},
+                mapHostFactory = { context -> ZoomRecordingHost(context).also { host = it; mounts++ } },
+            )
+        }
+        compose.waitUntil(5_000) { runCatching { host.viewportCalls > 0 }.getOrDefault(false) }
+        WorkspaceSection.entries.forEach { section ->
+            compose.runOnIdle { workspace.selectSection(section) }
+            compose.waitForIdle()
+            val before = host.viewportCalls
+            val mapSize = host.view.width to host.view.height
+            listOf(WorkspaceSheetLevel.EXPANDED, WorkspaceSheetLevel.HALF, WorkspaceSheetLevel.COLLAPSED, WorkspaceSheetLevel.HALF).forEach { level ->
+                compose.runOnIdle { workspace.setSheetLevel(level) }
+                compose.waitForIdle()
+                compose.runOnIdle {
+                    assertEquals("$section / $level must retain the camera", before, host.viewportCalls)
+                    assertEquals(mapSize, host.view.width to host.view.height)
+                    assertEquals(1, mounts)
+                }
+            }
+        }
     }
 
     @Test fun manualMapGestureClearsViewportAndSuppressesSectionFitsWithoutZoomButtons() {

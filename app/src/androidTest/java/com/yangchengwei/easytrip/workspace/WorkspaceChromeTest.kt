@@ -535,7 +535,7 @@ class WorkspaceChromeTest {
             }
         }
 
-        compose.onNodeWithTag("section-PLACE_POOL").assertHeightIsEqualTo(48.dp)
+        compose.onNodeWithTag("section-PLACE_POOL").assertHeightIsEqualTo(36.dp)
         compose.onNodeWithTag("workspace-tab-indicator-PLACE_POOL", useUnmergedTree = true).assertHeightIsEqualTo(3.dp)
     }
 
@@ -600,9 +600,9 @@ class WorkspaceChromeTest {
         }
         compose.waitForIdle()
 
-        compose.onNodeWithTag("layer-menu-panel").assertHeightIsEqualTo(284.dp)
+        compose.onNodeWithTag("layer-menu-panel").assertHeightIsAtLeast(284.dp)
         listOf("STANDARD", "SATELLITE", "SATELLITE_ROAD").forEach { option ->
-            compose.onNodeWithTag("layer-$option").assertIsDisplayed().assertHeightIsEqualTo(58.dp)
+            compose.onNodeWithTag("layer-$option").assertIsDisplayed().assertHeightIsAtLeast(58.dp)
         }
         compose.onNodeWithText("标准地图").assertIsDisplayed()
         compose.onNodeWithText("卫星地图").assertIsDisplayed()

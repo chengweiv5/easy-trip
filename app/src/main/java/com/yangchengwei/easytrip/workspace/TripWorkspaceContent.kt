@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.requiredHeight
@@ -79,6 +80,7 @@ fun TripWorkspaceContent(
     layerFailureMessage: String? = null,
     onLayerFailureMessageDismissed: () -> Unit = {},
     mapBearing: Float = 0f,
+    onDeleteDay: (() -> Unit)? = null,
 ) {
     when (pageState) {
         TripWorkspacePageState.Loading -> com.yangchengwei.easytrip.core.ui.component.DeferredLoading { WorkspacePageMessage("旅行加载中") }
@@ -102,6 +104,7 @@ fun TripWorkspaceContent(
             layerFailureMessage,
             onLayerFailureMessageDismissed,
             mapBearing,
+            onDeleteDay,
         )
     }
 }
@@ -133,6 +136,7 @@ private fun WorkspaceReadyContent(
     layerFailureMessage: String?,
     onLayerFailureMessageDismissed: () -> Unit,
     mapBearing: Float,
+    onDeleteDay: (() -> Unit)?,
 ) {
     val density = LocalDensity.current
     var calendarBusy by remember { mutableStateOf(false) }
@@ -253,6 +257,7 @@ private fun WorkspaceReadyContent(
                                 onFocus = { dayId, itemId -> onAction(TripWorkspaceAction.FocusCalendar(dayId, itemId)) },
                                 onEdit = { _, itemId -> onItineraryAction(DayItineraryAction.RequestTiming(itemId)) },
                                 onAdd = { onItineraryAction(DayItineraryAction.AddPlaces) },
+                                onDeleteDay = onDeleteDay,
                                 onSave = { onAction(TripWorkspaceAction.SaveCalendar(it)) },
                                 onUndo = { onAction(TripWorkspaceAction.UndoCalendar) },
                                 onRetry = { onAction(TripWorkspaceAction.RetryCalendar) },
@@ -279,6 +284,7 @@ private fun WorkspaceReadyContent(
                                 onAction = onItineraryAction,
                                 showDialogs = false,
                                 canScheduleAgain = true,
+                                onDeleteDay = onDeleteDay,
                                 onToggleCalendar = { onAction(TripWorkspaceAction.ToggleCalendar) },
                             )
                         },
@@ -325,6 +331,7 @@ private fun WorkspaceReadyContent(
                             .align(Alignment.TopEnd)
                             .offset(x = (-WorkspaceLayerMenuEndInset), y = WorkspaceLayerMenuTopOffset)
                             .width(240.dp)
+                            .heightIn(max = (metrics.sheetTop - WorkspaceLayerMenuTopOffset).coerceAtLeast(0.dp))
                             .testTag("layer-menu-picker")
                             .pointerInput(Unit) { detectTapGestures { } },
                     ) {
