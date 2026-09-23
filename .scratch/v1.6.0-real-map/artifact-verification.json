@@ -1,0 +1,18 @@
+{
+  "git_head": "78c5e7e1e6d580811a6255909520bd8a878980c6",
+  "apk_sha256": "22e83930966bb1ded4609740b30b8a4b96690a9d0b042c87ccaaefcfc1ea57ba",
+  "apk_with_amap_key": true,
+  "secrets_in_git": false,
+  "screenshots": {
+    "itinerary-forest.png": "7f14d97907286e0c6ab0d967e7f59984fc675eddfb486ed82b4549170949d5a6",
+    "itinerary-lake.png": "ca9b5cd2ca8670da28a75c7c79405f8038706d07e09d904642a55ca0c37e52f0",
+    "itinerary-rose.png": "d16db679ea48330fd06815d4919e46d1a598041240d3e29a0159d8bfd813e14a",
+    "itinerary-sunset.png": "bead05b714879f3d523daf12f95638e71f3172c5d1d70e4a92e3cfbe344fb21c",
+    "itinerary-violet.png": "325d837e06ca9bdd2f5b2a0ff859aee59ddf6f756f17c48b64b2219dfe83bffc",
+    "pool-forest.png": "edbf4a5f6327510c5418a7a56b868407c75d1aa45afffc2fdade3a0ed97e0ece",
+    "pool-lake.png": "dda0b7a3439270fab688154e12ddc9c79db9a0c0792eb90c5919a98e267db830",
+    "pool-rose.png": "d1a64f3f3562c3a70c8e210df673d1d7e6b768d49008294ea92234f3e8b8ed66",
+    "pool-sunset.png": "4b1d9455ffed53711e45b51ff01a682c9508ad96b3a7c65761422fc00ffddb7e",
+    "pool-violet.png": "3569b7c0aeadc1043014cbd1c0fcd37e9b831f854c3b3dd23f4be150b0185f60"
+  }
+}

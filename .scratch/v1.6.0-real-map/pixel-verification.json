@@ -1,0 +1,27 @@
+{
+  "itinerary-forest.png": {
+    "width": 1073,
+    "height": 2321,
+    "fixed_day_blue_pixels_in_map": 15431
+  },
+  "itinerary-lake.png": {
+    "width": 1073,
+    "height": 2321,
+    "fixed_day_blue_pixels_in_map": 15431
+  },
+  "itinerary-rose.png": {
+    "width": 1073,
+    "height": 2321,
+    "fixed_day_blue_pixels_in_map": 15431
+  },
+  "itinerary-sunset.png": {
+    "width": 1073,
+    "height": 2321,
+    "fixed_day_blue_pixels_in_map": 15431
+  },
+  "itinerary-violet.png": {
+    "width": 1073,
+    "height": 2321,
+    "fixed_day_blue_pixels_in_map": 15431
+  }
+}
