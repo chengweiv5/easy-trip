@@ -50,11 +50,6 @@ fun ThemePickerScreen(
                     Modifier.weight(1f).verticalScroll(rememberScrollState()).padding(16.dp).testTag("theme-options-scroll"),
                     verticalArrangement = Arrangement.spacedBy(12.dp),
                 ) {
-                    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                        Text("效果预览", Modifier.weight(1f), style = MaterialTheme.typography.titleSmall)
-                        Text("预览 · ${state.preview.displayName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    }
-                    ThemePreviewCard()
                     Text("选择主题", style = MaterialTheme.typography.titleSmall)
                     Column(Modifier.selectableGroup(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         ThemePalette.entries.forEach { palette ->
@@ -83,28 +78,6 @@ fun ThemePickerScreen(
                 }
             }
             // Also covers predictive/system back while persistence is in flight.
-        }
-    }
-}
-
-@Composable
-private fun ThemePreviewCard() {
-    Surface(shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
-        Column(Modifier.fillMaxWidth().padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("杭州 · 春日慢游", Modifier.weight(1f), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Surface(shape = RoundedCornerShape(6.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                    Text("待出行", Modifier.padding(horizontal = 8.dp, vertical = 4.dp), style = MaterialTheme.typography.labelSmall)
-                }
-            }
-            Text("4月12日 — 4月14日 · 3天9站", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
-            Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                Text("♧  西湖天地", Modifier.weight(1f), style = MaterialTheme.typography.bodyMedium)
-                // A preview, deliberately without click semantics.
-                Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primary, contentColor = MaterialTheme.colorScheme.onPrimary) {
-                    Text("继续规划", Modifier.padding(horizontal = 24.dp, vertical = 12.dp), style = MaterialTheme.typography.labelLarge)
-                }
-            }
         }
     }
 }
