@@ -38,9 +38,6 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.model.TravelMode
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripBorder
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurface
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
 
 @Composable
 internal fun CreateTripFormFields(
@@ -90,8 +87,8 @@ internal fun CreateTripFormFields(
                     }
                     .clickable(enabled = enabled) { onOpenDateRangePicker() },
                 shape = RoundedCornerShape(8.dp),
-                color = EasyTripSurface,
-                border = BorderStroke(if (state.dateError == null) 1.dp else 2.dp, if (state.dateError == null) EasyTripBorder else MaterialTheme.colorScheme.error),
+                color = MaterialTheme.colorScheme.surface,
+                border = BorderStroke(if (state.dateError == null) 1.dp else 2.dp, if (state.dateError == null) MaterialTheme.colorScheme.outline else MaterialTheme.colorScheme.error),
             ) {
                 Row(
                     Modifier.padding(horizontal = 14.dp),
@@ -150,7 +147,7 @@ internal fun CreateTripFormFields(
         }
         Surface(
             modifier = Modifier.fillMaxWidth().testTag("create-planning-tip"),
-            color = EasyTripSurfaceSoft,
+            color = MaterialTheme.colorScheme.primaryContainer,
             shape = RoundedCornerShape(8.dp),
         ) {
             Box(Modifier.padding(horizontal = 12.dp, vertical = 11.dp), contentAlignment = Alignment.CenterStart) {
@@ -181,13 +178,13 @@ private fun BrandedField(
     val border = when {
         isError -> MaterialTheme.colorScheme.error
         focused -> MaterialTheme.colorScheme.primary
-        else -> EasyTripBorder
+        else -> MaterialTheme.colorScheme.outline
     }
     Box(
         modifier = modifier
             .fillMaxWidth()
             .height(48.dp)
-            .background(EasyTripSurface, RoundedCornerShape(8.dp))
+            .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(8.dp))
             .border(BorderStroke(if (isError || focused) 2.dp else 1.dp, border), RoundedCornerShape(8.dp)),
         contentAlignment = Alignment.CenterStart,
     ) {
@@ -263,7 +260,7 @@ fun TravelModeCard(
         shape = RoundedCornerShape(12.dp),
         color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
         contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-        border = if (selected) null else BorderStroke(1.dp, EasyTripBorder),
+        border = if (selected) null else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
     ) {
         Column(verticalArrangement = Arrangement.Center, horizontalAlignment = Alignment.CenterHorizontally) {
             TravelModeSymbol(mode, Modifier.size(18.dp))

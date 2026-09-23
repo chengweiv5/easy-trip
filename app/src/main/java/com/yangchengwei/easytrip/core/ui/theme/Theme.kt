@@ -9,17 +9,20 @@ private val easyTripSizes = EasyTripSizes()
 private val easyTripElevation = EasyTripElevation()
 
 @Composable
-fun EasyTripTheme(content: @Composable () -> Unit) {
+fun EasyTripTheme(palette: ThemePalette = ThemePalette.LAKE, content: @Composable () -> Unit) {
     CompositionLocalProvider(
         LocalEasyTripSpacing provides easyTripSpacing,
+        LocalThemePalette provides palette,
         LocalEasyTripSizes provides easyTripSizes,
         LocalEasyTripElevation provides easyTripElevation,
     ) {
         MaterialTheme(
-            colorScheme = easyTripLightColorScheme,
+            colorScheme = palette.colors,
             typography = easyTripTypography,
             shapes = easyTripShapes,
             content = content,
         )
     }
 }
+
+val LocalThemePalette = androidx.compose.runtime.staticCompositionLocalOf { ThemePalette.LAKE }

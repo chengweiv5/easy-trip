@@ -44,9 +44,6 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripBackground
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceSurface
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripScheduled
 import com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi
 import com.yangchengwei.easytrip.place.ui.PlaceCityFilterBar
 import com.yangchengwei.easytrip.place.ui.PlaceCityGroupHeading
@@ -111,7 +108,7 @@ fun SelectPlacesContent(
                     modifier = Modifier.testTag("place-schedule-${filter.name}").semantics { selected = schedule == filter }
                         .clickable(enabled = !busy, role = Role.Tab) { schedule = filter },
                     shape = RoundedCornerShape(8.dp),
-                    color = if (schedule == filter) EasyTripPlaceSurface else EasyTripBackground,
+                    color = if (schedule == filter) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background,
                 ) {
                     Text(filter.label, Modifier.padding(horizontal = 12.dp, vertical = 7.dp), style = MaterialTheme.typography.labelSmall,
                         color = if (schedule == filter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
@@ -159,7 +156,7 @@ fun SelectPlacesContent(
 @Composable
 private fun PlacePickerSearch(query: String, onQueryChange: (String) -> Unit, enabled: Boolean, cityName: String?) {
     val focusManager = LocalFocusManager.current
-    Surface(shape = RoundedCornerShape(8.dp), color = EasyTripBackground) {
+    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.background) {
         Row(Modifier.fillMaxWidth().heightIn(min = 36.dp).padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             WorkspaceSearchIcon(Modifier.size(16.dp))
             BasicTextField(
@@ -192,7 +189,7 @@ private fun SelectablePlaceRow(row: SavedPlaceRowUi, selection: Int?, enabled: B
             .semantics { selected = selection != null; stateDescription = selection?.let { "第 $it 个选择" } ?: "未选择" }
             .clickable(enabled = enabled, role = Role.Checkbox, onClick = onClick),
         shape = RoundedCornerShape(8.dp),
-        color = if (selection != null) EasyTripPlaceSurface else MaterialTheme.colorScheme.surface,
+        color = if (selection != null) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.surface,
         border = if (selection != null) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
     ) {
         Row(Modifier.heightIn(min = 58.dp).padding(horizontal = 10.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -209,13 +206,13 @@ private fun SelectablePlaceRow(row: SavedPlaceRowUi, selection: Int?, enabled: B
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(row.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (row.address.isNotBlank()) Text(row.address, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (row.scheduled && LocalDensity.current.fontScale > 1.3f) Text("已排 ${row.itineraryOccurrenceCount} 次 · 可重复添加", style = MaterialTheme.typography.bodySmall, color = EasyTripScheduled)
+                if (row.scheduled && LocalDensity.current.fontScale > 1.3f) Text("已排 ${row.itineraryOccurrenceCount} 次 · 可重复添加", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             if (row.scheduled && LocalDensity.current.fontScale <= 1.3f) Surface(
                 modifier = Modifier.semantics { contentDescription = "已安排 ${row.itineraryOccurrenceCount} 次，可重复添加" },
                 shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.primaryContainer,
             ) {
-                Text("已排 ${row.itineraryOccurrenceCount} 次", Modifier.padding(horizontal = 6.dp, vertical = 3.dp), style = MaterialTheme.typography.labelSmall, color = EasyTripScheduled)
+                Text("已排 ${row.itineraryOccurrenceCount} 次", Modifier.padding(horizontal = 6.dp, vertical = 3.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
         }
     }

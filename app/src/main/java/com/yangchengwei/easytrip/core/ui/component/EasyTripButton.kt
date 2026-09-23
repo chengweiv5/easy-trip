@@ -19,7 +19,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripBorder
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 
 private enum class EasyTripButtonStyle { PRIMARY, SECONDARY, DANGER }
@@ -84,7 +83,7 @@ private fun EasyTripButton(
         contentColor = if (enabled) foreground else foreground.copy(alpha = 0.5f),
         border = when (style) {
             EasyTripButtonStyle.PRIMARY -> null
-            EasyTripButtonStyle.SECONDARY -> BorderStroke(1.dp, EasyTripBorder)
+            EasyTripButtonStyle.SECONDARY -> BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
             EasyTripButtonStyle.DANGER -> BorderStroke(1.dp, MaterialTheme.colorScheme.error)
         },
     ) {

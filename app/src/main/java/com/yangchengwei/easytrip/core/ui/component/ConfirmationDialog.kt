@@ -23,7 +23,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripBackground
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 
 @Composable
@@ -73,7 +72,7 @@ fun ConfirmationDialog(
                     Text(model.title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, textAlign = TextAlign.Center)
                     Text(model.message, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
                     if (model.deletedItems.isNotEmpty() || model.retainedItems.isNotEmpty()) {
-                        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius), color = EasyTripBackground) {
+                        Surface(Modifier.fillMaxWidth(), shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius), color = MaterialTheme.colorScheme.background) {
                             Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                                 if (model.deletedItems.isNotEmpty()) ConfirmationSection("将删除", model.deletedItems, MaterialTheme.colorScheme.error, deletedItemTags)
                                 if (model.retainedItems.isNotEmpty()) ConfirmationSection("将保留", model.retainedItems, MaterialTheme.colorScheme.primary, retainedItemTags)

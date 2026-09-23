@@ -21,7 +21,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripBackground
 
 @Composable
 internal fun PlaceCityFilterBar(
@@ -44,7 +43,7 @@ private fun CityPill(key: String?, name: String, count: Int, selected: Boolean, 
             .semantics { this.selected = selected; contentDescription = "$name，$count 个地点" }
             .clickable(enabled = enabled, role = Role.Tab) { onSelect(key) },
         shape = RoundedCornerShape(8.dp),
-        color = if (selected) MaterialTheme.colorScheme.primary else EasyTripBackground,
+        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
     ) {
         Text("$name $count", Modifier.padding(horizontal = 10.dp, vertical = 7.dp), style = MaterialTheme.typography.labelSmall, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
     }

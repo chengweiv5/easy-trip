@@ -11,13 +11,16 @@ internal data class RouteLegColors(
     val background: Color,
 )
 
-internal fun RouteLegUi.routeLegColors(): RouteLegColors = when (state) {
+internal fun RouteLegUi.routeLegColors(
+    muted: Color = EasyTripMuted,
+    soft: Color = EasyTripSurfaceSoft,
+): RouteLegColors = when (state) {
     is RouteLegUiState.Failed -> RouteLegColors(
         foreground = EasyTripDanger,
         background = EasyTripErrorSurface,
     )
     else -> RouteLegColors(
-        foreground = EasyTripMuted,
-        background = EasyTripSurfaceSoft,
+        foreground = muted,
+        background = soft,
     )
 }

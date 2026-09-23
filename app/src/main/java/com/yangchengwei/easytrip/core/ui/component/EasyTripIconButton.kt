@@ -15,7 +15,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripBorder
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 
 @Composable
@@ -39,7 +38,7 @@ fun EasyTripIconButton(
         shape = CircleShape,
         color = MaterialTheme.colorScheme.surface.copy(alpha = if (enabled) 1f else 0.6f),
         contentColor = MaterialTheme.colorScheme.onSurface.copy(alpha = if (enabled) 1f else 0.38f),
-        border = BorderStroke(1.dp, EasyTripBorder.copy(alpha = if (enabled) 1f else 0.5f)),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(alpha = if (enabled) 1f else 0.5f)),
     ) {
         Box(contentAlignment = Alignment.Center) { content() }
     }

@@ -361,10 +361,16 @@ private fun WorkspaceReadyContent(
                             .align(Alignment.TopEnd)
                             .offset(x = (-WorkspaceMoreMenuEndInset), y = WorkspaceMoreMenuTopOffset)
                             .width(WorkspaceMoreMenuWidth)
+                            .heightIn(max = (metrics.availableHeight - WorkspaceMoreMenuTopOffset).coerceAtLeast(0.dp))
                             .testTag("more-menu-picker")
                             .pointerInput(Unit) { detectTapGestures { } },
                     ) {
+                        val openTheme = com.yangchengwei.easytrip.core.ui.theme.LocalThemePicker.current
                         WorkspaceMoreMenu(
+                            onOpenTheme = {
+                                onAction(TripWorkspaceAction.CloseOverlay)
+                                openTheme()
+                            },
                             onShareItinerary = {
                                 onAction(TripWorkspaceAction.CloseOverlay)
                                 onAction(TripWorkspaceAction.ShareItinerary)

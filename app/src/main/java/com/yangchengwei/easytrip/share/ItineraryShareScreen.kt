@@ -204,7 +204,7 @@ private fun ShareMessage(message:String,action:String,onAction:()->Unit) {
 
 @Composable
 internal fun ShareImagePreview(image:ShareImage,modifier:Modifier=Modifier,enlarged:Boolean=false) {
-    BoxWithConstraints(modifier.fillMaxWidth().background(Color(0xFFECF3F4))) {
+    BoxWithConstraints(modifier.fillMaxWidth().background(MaterialTheme.colorScheme.background)) {
         val width=if(enlarged)(maxWidth-32.dp)*1.7f else (maxWidth-32.dp).coerceAtLeast(1.dp)
         Box(Modifier.horizontalScroll(rememberScrollState())) {
             LazyColumn(Modifier.width(width+32.dp),contentPadding=PaddingValues(16.dp)) {

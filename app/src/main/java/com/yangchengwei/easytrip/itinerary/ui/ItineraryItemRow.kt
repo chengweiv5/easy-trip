@@ -5,10 +5,6 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripAddress
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceBorder
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceSurface
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
 import com.yangchengwei.easytrip.workspace.routeColorForDay
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.layout.heightIn
@@ -144,7 +140,7 @@ internal fun ItineraryItemRow(
             )
         },
         compactTimeline = true,
-        containerColor = if (effectiveDragging) MaterialTheme.colorScheme.primaryContainer else EasyTripPlaceSurface,
+        containerColor = if (effectiveDragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.background,
         elevation = if (effectiveDragging) 12.dp else 0.dp,
     )
 }
@@ -214,7 +210,7 @@ internal fun ItineraryPlaceContent(
     modifier: Modifier = Modifier,
     leadingAction: (@Composable () -> Unit)? = null,
     trailingAction: (@Composable () -> Unit)? = null,
-    containerColor: Color = EasyTripPlaceSurface,
+    containerColor: Color = MaterialTheme.colorScheme.background,
     elevation: Dp = 0.dp,
     compactTimeline: Boolean = false,
     orderColor: Color = Color(routeColorForDay(0)),
@@ -227,7 +223,7 @@ internal fun ItineraryPlaceContent(
         modifier = modifier.testTag("item-${item.id}"),
         shape = RoundedCornerShape(8.dp),
         color = containerColor,
-        border = BorderStroke(1.dp, EasyTripPlaceBorder),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         shadowElevation = elevation,
     ) {
         Column(Modifier.padding(10.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -241,7 +237,7 @@ internal fun ItineraryPlaceContent(
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.bodyLarge,
-                    color = EasyTripPrimaryDark,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).testTag("itinerary-place-name-${item.id}"),
@@ -253,7 +249,7 @@ internal fun ItineraryPlaceContent(
                 Text(
                     text = item.address,
                     style = MaterialTheme.typography.bodySmall,
-                    color = EasyTripAddress,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.padding(start = contentInset).testTag("itinerary-place-address-${item.id}"),

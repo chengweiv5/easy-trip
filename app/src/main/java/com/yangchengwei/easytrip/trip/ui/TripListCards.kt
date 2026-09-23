@@ -41,8 +41,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripHighlight
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
 
 internal val TripMenuItem = SemanticsPropertyKey<Boolean>("TripMenuItem")
 internal var SemanticsPropertyReceiver.tripMenuItem by TripMenuItem
@@ -146,6 +144,7 @@ private fun ContinuousReadinessProgress(
     modifier: Modifier = Modifier,
 ) {
     val visualProgress = progress.coerceIn(0f, 1f).coerceAtLeast(0.02f)
+    val highlight = com.yangchengwei.easytrip.core.ui.theme.LocalThemePalette.current.highlight
     val trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)
     Box(
         modifier.semantics(mergeDescendants = true) {
@@ -162,13 +161,13 @@ private fun ContinuousReadinessProgress(
             val fillWidth = (size.width * visualProgress).coerceIn(size.height, size.width)
             if (fillWidth == size.width) {
                 drawRoundRect(
-                    color = EasyTripHighlight,
+                    color = highlight,
                     cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius, radius),
                 )
             } else {
-                drawCircle(EasyTripHighlight, radius, Offset(radius, radius))
+                drawCircle(highlight, radius, Offset(radius, radius))
                 drawRect(
-                    color = EasyTripHighlight,
+                    color = highlight,
                     topLeft = Offset(radius, 0f),
                     size = androidx.compose.ui.geometry.Size(fillWidth - radius, size.height),
                 )
@@ -197,7 +196,7 @@ internal fun OtherTripRow(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(12.dp),
     ) {
-        Surface(Modifier.size(48.dp), RoundedCornerShape(12.dp), EasyTripSurfaceSoft) {
+        Surface(Modifier.size(48.dp), RoundedCornerShape(12.dp), MaterialTheme.colorScheme.primaryContainer) {
             Box(contentAlignment = Alignment.Center) {
                 Text("旅", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             }

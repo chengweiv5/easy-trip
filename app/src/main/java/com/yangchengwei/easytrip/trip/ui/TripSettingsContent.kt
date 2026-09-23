@@ -66,7 +66,6 @@ import com.yangchengwei.easytrip.core.ui.component.EasyTripDangerButton
 import com.yangchengwei.easytrip.core.ui.component.EasyTripDialogSurface
 import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
 import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripBackground
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import java.time.LocalDate
 
@@ -122,7 +121,7 @@ fun TripSettingsContent(
     Column(
         Modifier.fillMaxSize()
             .then(if (editingDates) Modifier.clearAndSetSemantics {} else Modifier)
-            .background(EasyTripBackground)
+            .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
             .verticalScroll(rememberScrollState())
             .padding(horizontal = EasyTripTheme.spacing.settingsGrid, vertical = 12.dp),

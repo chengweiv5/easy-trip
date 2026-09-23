@@ -10,10 +10,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.vector.VectorPath
+import androidx.compose.ui.graphics.vector.rememberVectorPainter
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.R
@@ -32,8 +37,30 @@ fun EmptyIllustrationImage(
     illustration: EmptyIllustration,
     modifier: Modifier = Modifier,
 ) {
+    val source = ImageVector.vectorResource(illustration.resource)
+    val primary = MaterialTheme.colorScheme.primary
+    val soft = MaterialTheme.colorScheme.primaryContainer
+    val vector = remember(source, primary, soft) {
+        ImageVector.Builder(source.name, source.defaultWidth, source.defaultHeight, source.viewportWidth, source.viewportHeight).apply {
+            // These five resource vectors contain two root paths: line art and soft accents.
+            source.root.forEach { node ->
+                if (node is VectorPath) addPath(
+                    pathData = node.pathData,
+                    pathFillType = node.pathFillType,
+                    fill = if (node.fill is SolidColor && (node.fill as SolidColor).value == com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft) SolidColor(soft) else node.fill,
+                    fillAlpha = node.fillAlpha,
+                    stroke = if (node.stroke != null) SolidColor(primary) else null,
+                    strokeAlpha = node.strokeAlpha,
+                    strokeLineWidth = node.strokeLineWidth,
+                    strokeLineCap = node.strokeLineCap,
+                    strokeLineJoin = node.strokeLineJoin,
+                    strokeLineMiter = node.strokeLineMiter,
+                )
+            }
+        }.build()
+    }
     Image(
-        painter = painterResource(illustration.resource),
+        painter = rememberVectorPainter(vector),
         contentDescription = null,
         modifier = modifier.size(96.dp).testTag("empty-illustration-${illustration.name.lowercase()}"),
     )

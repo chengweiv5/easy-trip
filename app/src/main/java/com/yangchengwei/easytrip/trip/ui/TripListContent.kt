@@ -3,6 +3,8 @@ package com.yangchengwei.easytrip.trip.ui
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -36,7 +38,6 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
 
 @Composable
 fun TripListContent(
@@ -186,19 +187,21 @@ fun TripListContent(
 
 @Composable
 private fun TripListHeader(modifier: Modifier = Modifier) {
+    val openTheme = com.yangchengwei.easytrip.core.ui.theme.LocalThemePicker.current
     Row(modifier.fillMaxWidth().heightIn(min = 64.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("周末，去远一点", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             Text("我的旅行", modifier = Modifier.testTag("trip-list-title"), style = MaterialTheme.typography.headlineLarge)
         }
         Surface(
-            modifier = Modifier.size(48.dp).testTag("profile-avatar"),
+            onClick = openTheme,
+            modifier = Modifier.size(48.dp).testTag("theme-entry").semantics { contentDescription = "主题配色" },
             shape = CircleShape,
-            color = EasyTripSurfaceSoft,
+            color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.primary,
         ) {
             androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
-                Text("我", fontWeight = FontWeight.Bold)
+                com.yangchengwei.easytrip.core.ui.theme.ThemePaletteIcon(Modifier.size(23.dp))
             }
         }
     }
@@ -218,7 +221,7 @@ private fun TripStatusFilters(
                     .testTag(if (traveled) "trip-filter-traveled" else "trip-filter-pending")
                     .selectable(selected = selected, role = Role.Tab, onClick = { onSelected(traveled) }),
                 shape = RoundedCornerShape(10.dp),
-                color = if (selected) MaterialTheme.colorScheme.primary else EasyTripSurfaceSoft,
+                color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
                 contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
             ) {
                 Box(Modifier.padding(horizontal = 8.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {

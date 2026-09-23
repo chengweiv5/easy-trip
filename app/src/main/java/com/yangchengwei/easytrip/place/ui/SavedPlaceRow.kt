@@ -6,11 +6,6 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.withStyle
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripAddress
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceBorder
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPlaceSurface
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripScheduled
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -84,7 +79,7 @@ fun SavedPlaceRow(
                 Text(
                     place.name,
                     style = MaterialTheme.typography.labelMedium,
-                    color = EasyTripPrimaryDark,
+                    color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 2,
                     overflow = TextOverflow.Ellipsis,
                 )
@@ -98,7 +93,7 @@ fun SavedPlaceRow(
                     )
                 }
                 Text(
-                    placeAuxiliaryInfo(place),
+                    placeAuxiliaryInfo(place, MaterialTheme.colorScheme.primary),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
@@ -156,10 +151,10 @@ fun SavedPlaceRow(
     }
 }
 
-private fun placeAuxiliaryInfo(place: SavedPlaceRowUi): AnnotatedString = buildAnnotatedString {
+private fun placeAuxiliaryInfo(place: SavedPlaceRowUi, scheduledColor: androidx.compose.ui.graphics.Color): AnnotatedString = buildAnnotatedString {
     when {
         place.recentlyCollected -> append("刚刚收藏 · 待安排行程")
-        place.scheduled -> withStyle(SpanStyle(color = EasyTripScheduled)) {
+        place.scheduled -> withStyle(SpanStyle(color = scheduledColor)) {
             append("已排入 ${place.itineraryOccurrenceCount} 次")
         }
         else -> append("仅收藏")

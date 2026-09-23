@@ -79,7 +79,7 @@ internal fun RouteLegContent(
     connectorInset: Dp = 9.dp,
 ) {
     val state = leg.state
-    val colors = leg.routeLegColors()
+    val colors = leg.routeLegColors(MaterialTheme.colorScheme.onSurfaceVariant, MaterialTheme.colorScheme.primaryContainer)
     val editAction = onMode
     val retryAction = onRetry?.takeIf { state is RouteLegUiState.Failed }
     val stateModifier = when (state) {

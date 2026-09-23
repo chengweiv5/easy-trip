@@ -34,8 +34,6 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripBorder
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripSurfaceSoft
 import java.time.Instant
 import java.time.YearMonth
 import java.time.ZoneOffset
@@ -82,7 +80,7 @@ fun CreateTripContent(
                                 .clickable(enabled = enabled, role = Role.Button) { onAction(CreateTripAction.Back) },
                             shape = CircleShape,
                             color = MaterialTheme.colorScheme.surface,
-                            border = BorderStroke(1.dp, EasyTripBorder),
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                         ) {
                             Box(contentAlignment = Alignment.Center) {
                                 Text("←", style = MaterialTheme.typography.titleMedium)
@@ -149,7 +147,7 @@ private fun StepNumber(value: String, active: Boolean, modifier: Modifier = Modi
     Surface(
         modifier.size(22.dp),
         shape = CircleShape,
-        color = if (active) MaterialTheme.colorScheme.primary else EasyTripSurfaceSoft,
+        color = if (active) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.primaryContainer,
     ) {
         Box(contentAlignment = Alignment.Center) {
             Text(

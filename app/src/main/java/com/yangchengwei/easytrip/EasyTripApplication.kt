@@ -16,6 +16,11 @@ internal suspend fun decideAmapPrivacy(
 
 class EasyTripApplication : Application() {
     private val applicationScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    val themePreferences by lazy {
+        com.yangchengwei.easytrip.core.ui.theme.ThemePreferenceStore(
+            com.yangchengwei.easytrip.core.ui.theme.AtomicThemePersistence(java.io.File(filesDir, "theme-preference")),
+        )
+    }
     val container by lazy { AppContainer(this, applicationScope) }
     val database get() = container.database
     val tripRepository get() = container.tripRepository

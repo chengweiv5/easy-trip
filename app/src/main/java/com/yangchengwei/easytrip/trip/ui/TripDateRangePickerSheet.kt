@@ -54,7 +54,6 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.component.EasyTripPrimaryButton
 import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripBackground
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import java.time.LocalDate
 import java.time.YearMonth
@@ -214,7 +213,7 @@ internal fun tripDateRangePickerSheetHeight(availableHeight: Dp): Dp {
 @Composable
 private fun DateRangeSummary(selection: DateRangeSelection, modifier: Modifier = Modifier) = Surface(
     modifier = modifier.fillMaxWidth().testTag("trip-date-range-summary"),
-    color = EasyTripBackground,
+    color = MaterialTheme.colorScheme.background,
     shape = RoundedCornerShape(EasyTripTheme.sizes.settingsCardCornerRadius),
 ) {
     Column(Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {

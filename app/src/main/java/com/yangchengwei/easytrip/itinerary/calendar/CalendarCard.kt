@@ -81,8 +81,8 @@ internal fun CalendarCard(
     val latestMove by rememberUpdatedState(onMove)
     val latestEnd by rememberUpdatedState(onEnd)
     val latestClick by rememberUpdatedState(onClick)
-    val border = when { conflict -> Color(0xFFBA5B37); dashed -> Color(0xFF758B90); else -> (accent ?: MaterialTheme.colorScheme.primary).copy(alpha = .7f) }
-    val surface = if (dashed) Color(0xFFF3F6F6) else (accent ?: MaterialTheme.colorScheme.primary).copy(alpha = if (selected) .16f else .09f)
+    val border = when { conflict -> Color(0xFFBA5B37); dashed -> MaterialTheme.colorScheme.onSurfaceVariant; else -> (accent ?: MaterialTheme.colorScheme.primary).copy(alpha = .7f) }
+    val surface = if (dashed) MaterialTheme.colorScheme.surfaceContainerHigh else (accent ?: MaterialTheme.colorScheme.primary).copy(alpha = if (selected) .16f else .09f)
     var keyboardActive by remember { mutableStateOf(false) }
     Box(modifier.onGloballyPositioned { origin = it.positionInRoot() }
         .clip(RoundedCornerShape(6.dp)).background(surface)

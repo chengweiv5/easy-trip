@@ -1,9 +1,8 @@
 package com.yangchengwei.easytrip.workspace
 
 import androidx.compose.ui.graphics.toArgb
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimary
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripPrimaryDark
-import com.yangchengwei.easytrip.core.ui.theme.EasyTripAccent
+import com.yangchengwei.easytrip.core.ui.theme.ThemePalette
+import com.yangchengwei.easytrip.core.ui.theme.LocalThemePalette
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
@@ -307,6 +306,7 @@ internal class MapHostCallbackGuard {
 }
 
 interface AmapMapHost {
+    fun setPalette(palette: ThemePalette) = Unit
     val view: View
     fun setOnReadyListener(listener: (() -> Unit)?) = Unit
     fun canRenderBeforeReady(): Boolean = false
@@ -364,14 +364,14 @@ private const val FOCUSED_MARKER_Z_INDEX = 1f
 internal fun markerRenderOrder(markers: List<MapMarkerUi>): List<MapMarkerUi> =
     markers.filterNot(MapMarkerUi::isFocused) + markers.filter(MapMarkerUi::isFocused)
 
-internal fun mapMarkerRendering(marker: MapMarkerUi): MapMarkerRendering {
-    val primary = EasyTripPrimary.toArgb()
-    val focusedBorder = EasyTripAccent.toArgb()
+internal fun mapMarkerRendering(marker: MapMarkerUi, palette: ThemePalette = ThemePalette.LAKE): MapMarkerRendering {
+    val primary = palette.colors.primary.toArgb()
+    val focusedBorder = palette.colors.tertiary.toArgb()
     return when (marker.kind) {
         MapMarkerKind.UNSAVED_SEARCH -> MapMarkerRendering(
             glyph = "●",
             foregroundColor = 0xFFFFFFFF.toInt(),
-            backgroundColor = EasyTripAccent.toArgb(),
+            backgroundColor = palette.colors.tertiary.toArgb(),
             borderColor = if (marker.isFocused) focusedBorder else 0xFFFFFFFF.toInt(),
             borderWidth = if (marker.isFocused) 6 else 3,
             solid = true,
@@ -389,8 +389,8 @@ internal fun mapMarkerRendering(marker: MapMarkerUi): MapMarkerRendering {
     }
 }
 
-internal class MarkerIconView(context: Context, private val marker: MapMarkerUi) : View(context) {
-    private val rendering = mapMarkerRendering(marker)
+internal class MarkerIconView(context: Context, private val marker: MapMarkerUi, private val palette: ThemePalette = ThemePalette.LAKE) : View(context) {
+    private val rendering = mapMarkerRendering(marker, palette)
     private val density = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val name = marker.label.takeIf {
@@ -488,7 +488,7 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi)
             paint.color = android.graphics.Color.WHITE
             canvas.drawText(label, cx, baseline, paint)
             paint.style = Paint.Style.FILL
-            paint.color = EasyTripPrimaryDark.toArgb()
+            paint.color = palette.colors.onSurface.toArgb()
             canvas.drawText(label, cx, baseline, paint)
         }
     }
@@ -516,6 +516,13 @@ internal class RealAmapMapHost(
         }
     }
     private val mapLoadedListener = AMap.OnMapLoadedListener { onReadyListener?.invoke() }
+    private var palette = ThemePalette.LAKE
+    override fun setPalette(palette: ThemePalette) {
+        if (this.palette != palette) {
+            this.palette = palette
+            renderedOverlays = null
+        }
+    }
     private var renderedOverlays: MapUiModel? = null
     private var consumedViewportId: Long? = null
     private var consumedViewportInsets = MapViewportInsets()
@@ -703,7 +710,7 @@ internal class RealAmapMapHost(
             )
         }
         markerRenderOrder(model.markers).forEach { marker ->
-            val iconView = MarkerIconView(mapView.context, marker)
+            val iconView = MarkerIconView(mapView.context, marker, palette)
             mapView.map.addMarker(
                 MarkerOptions()
                     .position(LatLng(marker.point.latitude, marker.point.longitude))
@@ -716,7 +723,7 @@ internal class RealAmapMapHost(
     }
 
     private fun markerIcon(marker: MapMarkerUi) = BitmapDescriptorFactory.fromView(
-        MarkerIconView(mapView.context, marker),
+        MarkerIconView(mapView.context, marker, palette),
     )
 
     private fun routeLabelMarker(label: String, color: Int) = BitmapDescriptorFactory.fromView(
@@ -898,6 +905,7 @@ fun AmapComposeMap(
             watchdog.timeoutIfElapsed()
         }
     }
+    val palette = LocalThemePalette.current
     AndroidView(
         factory = { host.view },
         modifier = modifier,
@@ -906,6 +914,7 @@ fun AmapComposeMap(
                 val renderGeneration = callbackGuard.beginRender()
                 runCatching {
                     consent.validateActive()
+                    host.setPalette(palette)
                     host.render(
                         model,
                         layer,

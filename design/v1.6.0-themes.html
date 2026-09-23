@@ -1,0 +1,40 @@
+<!doctype html>
+<html lang="zh-CN">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Easy Trip v1.6.0 · 五套主题设计</title>
+<style>
+*{box-sizing:border-box}body{margin:0;background:#f2f5f4;color:#20343b;font-family:system-ui,-apple-system,"PingFang SC",sans-serif}main{max-width:1250px;margin:auto;padding:40px 28px 64px}.eyebrow{font-size:12px;letter-spacing:2px;color:#53676d;font-weight:650}h1{font-size:clamp(26px,4vw,40px);letter-spacing:-1px;margin:14px 0}p{color:#53676d;line-height:1.7;font-size:14px}nav{display:flex;gap:9px;flex-wrap:wrap;margin:24px 0}button{background:#fff;border:1px solid #ccd9d7;border-radius:12px;padding:12px 16px;cursor:pointer;font:inherit;color:#20343b;display:flex;align-items:center;gap:8px}button[aria-pressed=true]{outline:2px solid var(--accent,#086f76);border-color:transparent;font-weight:650}button:focus-visible,a:focus-visible{outline:3px solid #20343b;outline-offset:4px}.dot{height:15px;width:15px;border-radius:50%;background:var(--color)}.screens{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:24px}figure{margin:0}figcaption{font-size:13px;display:flex;justify-content:space-between;margin-bottom:10px;color:#53676d}img.phone{display:block;width:100%;height:auto;border-radius:12px;border:1px solid #d5dfdf;box-shadow:0 8px 24px #20343b08}.flow{display:grid;grid-template-columns:repeat(3,1fr);gap:24px;border-top:1px solid #d4dddb;margin-top:36px;padding-top:24px}.flow strong{font-size:15px}.flow p{margin:8px 0 0}details{background:white;border-radius:12px;padding:20px;margin-top:24px}summary{cursor:pointer;font-weight:600}.rules{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin-top:20px}.rules img{max-width:100%;height:auto}.links{display:flex;gap:20px;flex-wrap:wrap;margin-top:30px;font-size:13px}a{color:#086f76}#choice{color:var(--accent,#086f76)}@media(max-width:700px){main{padding:24px 16px}.screens{grid-template-columns:1fr;gap:28px}.screens figure{max-width:390px;width:100%;margin:auto}.flow,.rules{grid-template-columns:1fr}nav{gap:8px}button{font-size:13px;padding:10px 12px}}@media print{body{background:white}nav{display:none}.screens{grid-template-columns:repeat(3,1fr)}details{display:none}.links{display:none}}
+</style>
+<main>
+<div class="eyebrow">EASY TRIP / V1.6.0 / DESIGN REVIEW</div>
+<h1>给每一次出发，换一种心情。</h1>
+<p>5 套浅色主题，保持熟悉的紧凑布局。点选下方配色，对照首页、主题选择页与地图工作台。</p>
+<nav aria-label="选择要比较的主题" id="themes"></nav>
+<p id="choice" aria-live="polite"></p>
+<section class="screens" aria-label="同一主题下的三个页面">
+<figure><figcaption><span>01 / 我的旅行</span><span>首页右上角进入主题</span></figcaption><img id="home" class="phone" width="390" height="844" alt=""></figure>
+<figure><figcaption><span>02 / 主题配色</span><span>预览后，一键应用</span></figcaption><img id="picker" class="phone" width="390" height="844" alt=""></figure>
+<figure><figcaption><span>03 / 地图与行程</span><span>熟悉的操作与路线颜色</span></figcaption><img id="work" class="phone" width="390" height="844" alt=""></figure>
+</section>
+<section class="flow">
+<div><strong>① 从熟悉的位置进入</strong><p>首页调色盘或工作台「⋯ → 主题配色」。所有旅行共用同一偏好。</p></div>
+<div><strong>② 先看效果，再决定</strong><p>点击整行切换本页预览。返回直接放弃；无需二次确认。</p></div>
+<div><strong>③ 应用后自动记住</strong><p>保存成功后返回原页面。下次启动沿用；失败时保留选择并提供重试。</p></div>
+</section>
+<details><summary>查看入口、应用反馈与颜色规范</summary><div class="rules"><figure><figcaption>工作台入口</figcaption><img width="390" height="844" src="previews/v1.6.0/xH3ap.jpeg" alt="工作台更多菜单中的主题配色入口"></figure><figure><figcaption>应用成功反馈</figcaption><img width="390" height="844" src="previews/v1.6.0/gSQDR.jpeg" alt="应用山岚暮紫后返回首页并显示成功提示"></figure><figure><figcaption>颜色规范与保存失败</figcaption><img src="previews/v1.6.0/l7CDA5.jpeg" alt="五套主题的色彩角色与保存失败提示"></figure><figure><figcaption>切换规则</figcaption><img src="previews/v1.6.0/nlAlW.jpeg" alt="入口、预览、应用、返回、颜色边界和可访问性说明"></figure></div></details>
+<p>默认保留湖畔晴空。主题改变界面配色，地图底图、每日路线色与错误红色保持稳定。此页为设计比较工具，应用内交互以设计说明为准。</p>
+<div class="links"><a href="easy-trip-v1.6.0.pen">可编辑 Pencil 源文件</a><a href="v1.6.0-themes.md">设计说明</a></div>
+</main>
+<script>
+const themes=[
+{name:'湖畔晴空',color:'#086F76',hint:'清爽 · 经典 · 默认',home:'Df7I5',picker:'WlVUl',work:'m0oa6q'},
+{name:'松林晨光',color:'#2F6249',hint:'自然 · 安静',home:'JGBgl',picker:'QprVu',work:'b6gEg'},
+{name:'落日陶土',color:'#9E4830',hint:'温暖 · 松弛',home:'F9oi3h',picker:'GAS2e',work:'nWBFj'},
+{name:'山岚暮紫',color:'#70548E',hint:'柔和 · 沉静',home:'W4elV6',picker:'uyy9R',work:'JJgcR'},
+{name:'玫瑰沙丘',color:'#934D63',hint:'轻盈 · 浪漫',home:'y3Pjph',picker:'kCPbS',work:'TXWu4'}];
+const nav=document.querySelector('#themes');
+function select(index){const t=themes[index];document.documentElement.style.setProperty('--accent',t.color);nav.querySelectorAll('button').forEach((b,i)=>b.setAttribute('aria-pressed',String(i===index)));for(const key of ['home','picker','work']){const img=document.getElementById(key);img.src='previews/v1.6.0/'+t[key]+'.jpeg';img.alt=t.name+' · '+({home:'我的旅行',picker:'主题配色',work:'地图与行程'})[key]}document.querySelector('#choice').textContent=t.name+' / '+t.hint;}
+themes.forEach((t,i)=>{const b=document.createElement('button');b.type='button';b.setAttribute('aria-label',t.name);b.innerHTML='<span class="dot" aria-hidden="true" style="--color:'+t.color+'"></span>'+t.name;b.addEventListener('click',()=>select(i));nav.append(b)});select(0);
+</script>
+</html>

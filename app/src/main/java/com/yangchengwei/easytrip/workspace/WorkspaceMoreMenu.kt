@@ -34,11 +34,12 @@ internal fun WorkspaceMoreMenu(
     onBackToTrips: () -> Unit,
     modifier: Modifier = Modifier,
     onShareItinerary: () -> Unit = {},
+    onOpenTheme: () -> Unit = {},
 ) {
     Surface(
         modifier = modifier
             .width(240.dp)
-            .heightIn(max = 260.dp)
+            .heightIn(max = 320.dp)
             .testTag("more-menu-panel"),
         shape = RoundedCornerShape(12.dp),
         color = MaterialTheme.colorScheme.surface,
@@ -63,6 +64,13 @@ internal fun WorkspaceMoreMenu(
                 description = "每日地图、交通与备注",
                 icon = { Icon(Icons.Rounded.Share, contentDescription = null) },
                 onClick = onShareItinerary,
+            )
+            MoreMenuItem(
+                tag = "more-menu-theme",
+                title = "主题配色",
+                description = "${com.yangchengwei.easytrip.core.ui.theme.LocalThemePalette.current.displayName} · 所有旅行",
+                icon = { com.yangchengwei.easytrip.core.ui.theme.ThemePaletteIcon(Modifier.size(18.dp)) },
+                onClick = onOpenTheme,
             )
             MoreMenuItem(
                 tag = "more-menu-consent",

@@ -1,0 +1,120 @@
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.share.ItineraryShareScreenTest:
+INSTRUMENTATION_STATUS: test=shareOpensSystemChooserAndCancelReturnsToPreview
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stack=org.junit.ComparisonFailure: expected:<[com.android.intentresolver]> but was:<[android]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.share.ItineraryShareScreenTest.shareOpensSystemChooserAndCancelReturnsToPreview(ItineraryShareScreenTest.kt:83)
+
+INSTRUMENTATION_STATUS: stream=
+Error in shareOpensSystemChooserAndCancelReturnsToPreview(com.yangchengwei.easytrip.share.ItineraryShareScreenTest):
+org.junit.ComparisonFailure: expected:<[com.android.intentresolver]> but was:<[android]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.share.ItineraryShareScreenTest.shareOpensSystemChooserAndCancelReturnsToPreview(ItineraryShareScreenTest.kt:83)
+
+INSTRUMENTATION_STATUS: test=shareOpensSystemChooserAndCancelReturnsToPreview
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest:
+INSTRUMENTATION_STATUS: test=recentlyCollectedTakesPriorityOverScheduledStatus
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '刚刚收藏 · 待安排行程 · 旅行备注 · 亲子' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode$default(SemanticsNodeInteraction.kt:83)
+	at com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest.recentlyCollectedTakesPriorityOverScheduledStatus(WorkspacePlacePoolLayoutTest.kt:212)
+
+INSTRUMENTATION_STATUS: stream=
+Error in recentlyCollectedTakesPriorityOverScheduledStatus(com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest):
+java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '刚刚收藏 · 待安排行程 · 旅行备注 · 亲子' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode$default(SemanticsNodeInteraction.kt:83)
+	at com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest.recentlyCollectedTakesPriorityOverScheduledStatus(WorkspacePlacePoolLayoutTest.kt:212)
+
+INSTRUMENTATION_STATUS: test=recentlyCollectedTakesPriorityOverScheduledStatus
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=scheduledPlaceRowUsesApprovedSurfaceAndSegmentColors
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=3
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: expected:<Color(0.8784314, 0.90588236, 0.8627451, 1.0, sRGB IEC61966-2.1)> but was:<Color(0.8509804, 0.92156863, 0.92941177, 1.0, sRGB IEC61966-2.1)>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest.scheduledPlaceRowUsesApprovedSurfaceAndSegmentColors(WorkspacePlacePoolLayoutTest.kt:154)
+
+INSTRUMENTATION_STATUS: stream=
+Error in scheduledPlaceRowUsesApprovedSurfaceAndSegmentColors(com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest):
+java.lang.AssertionError: expected:<Color(0.8784314, 0.90588236, 0.8627451, 1.0, sRGB IEC61966-2.1)> but was:<Color(0.8509804, 0.92156863, 0.92941177, 1.0, sRGB IEC61966-2.1)>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest.scheduledPlaceRowUsesApprovedSurfaceAndSegmentColors(WorkspacePlacePoolLayoutTest.kt:154)
+
+INSTRUMENTATION_STATUS: test=scheduledPlaceRowUsesApprovedSurfaceAndSegmentColors
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_RESULT: stream=
+
+Time: 12.459
+There were 3 failures:
+1) shareOpensSystemChooserAndCancelReturnsToPreview(com.yangchengwei.easytrip.share.ItineraryShareScreenTest)
+org.junit.ComparisonFailure: expected:<[com.android.intentresolver]> but was:<[android]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.share.ItineraryShareScreenTest.shareOpensSystemChooserAndCancelReturnsToPreview(ItineraryShareScreenTest.kt:83)
+2) recentlyCollectedTakesPriorityOverScheduledStatus(com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest)
+java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '刚刚收藏 · 待安排行程 · 旅行备注 · 亲子' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode$default(SemanticsNodeInteraction.kt:83)
+	at com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest.recentlyCollectedTakesPriorityOverScheduledStatus(WorkspacePlacePoolLayoutTest.kt:212)
+3) scheduledPlaceRowUsesApprovedSurfaceAndSegmentColors(com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest)
+java.lang.AssertionError: expected:<Color(0.8784314, 0.90588236, 0.8627451, 1.0, sRGB IEC61966-2.1)> but was:<Color(0.8509804, 0.92156863, 0.92941177, 1.0, sRGB IEC61966-2.1)>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.place.ui.WorkspacePlacePoolLayoutTest.scheduledPlaceRowUsesApprovedSurfaceAndSegmentColors(WorkspacePlacePoolLayoutTest.kt:154)
+
+FAILURES!!!
+Tests run: 3,  Failures: 3
+
+
+INSTRUMENTATION_CODE: -1

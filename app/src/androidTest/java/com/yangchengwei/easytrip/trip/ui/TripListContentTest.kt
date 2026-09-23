@@ -27,6 +27,7 @@ import androidx.compose.ui.test.assertHeightIsAtLeast
 import androidx.compose.ui.test.assertHeightIsEqualTo
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.assertIsNotDisplayed
+import androidx.compose.ui.test.assertWidthIsAtLeast
 import androidx.compose.ui.test.assertWidthIsEqualTo
 import androidx.compose.ui.test.getUnclippedBoundsInRoot
 import androidx.compose.ui.test.hasAnyAncestor
@@ -42,6 +43,7 @@ import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performScrollToNode
+import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripHighlight
@@ -55,15 +57,12 @@ import org.junit.Test
 class TripListContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun profileAvatarIsDecorativeAndHasNoClickOrButtonSemantics() {
+    @Test fun themeEntryIsAvailableInEmptyStateWithAccessibleTouchTarget() {
         setContent(TripListPageState.Empty)
-
-        compose.onNodeWithTag("profile-avatar", useUnmergedTree = true).assertIsDisplayed()
-        compose.onNodeWithTag("profile-avatar", useUnmergedTree = true)
-            .assert(SemanticsProperties.Role.keyNotDefined())
-            .assert(SemanticsActions.OnClick.keyNotDefined())
-        compose.onAllNodesWithContentDescription("个人中心").assertCountEquals(0)
-        compose.onAllNodes(hasClickAction() and androidx.compose.ui.test.hasTestTag("profile-avatar")).assertCountEquals(0)
+        compose.onNodeWithTag("theme-entry")
+            .assertIsDisplayed().assert(hasClickAction())
+            .assertContentDescriptionEquals("主题配色")
+            .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
     }
 
     @Test fun emptyTripsUsesSharedIllustratedState() {
