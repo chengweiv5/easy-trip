@@ -1,8 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
@@ -10,6 +8,8 @@ import androidx.compose.material.icons.rounded.Add
 import androidx.compose.material.icons.rounded.Delete
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -31,13 +31,19 @@ internal fun ItineraryDayActions(
         onToggleCalendar?.let { CalendarToggle(calendarSelected, it, enabled, compact = true) }
         onAdd?.let {
             IconButton(it, enabled = enabled, modifier = Modifier.size(28.dp).testTag("add-places-to-selected-day")) {
-                Box(Modifier.fillMaxWidth(), contentAlignment = Alignment.CenterStart) {
-                    Icon(Icons.Rounded.Add, "从地点池添加地点", Modifier.size(18.dp).testTag("day-add-icon"))
-                }
+                Icon(Icons.Rounded.Add, "从地点池添加地点", Modifier.size(18.dp).testTag("day-add-icon"))
             }
         }
         onDelete?.let {
-            IconButton(it, enabled = enabled && canDelete, modifier = Modifier.size(28.dp).testTag("delete-selected-day")) {
+            IconButton(
+                it,
+                enabled = enabled && canDelete,
+                modifier = Modifier.size(28.dp).testTag("delete-selected-day"),
+                colors = IconButtonDefaults.iconButtonColors(
+                    contentColor = MaterialTheme.colorScheme.error,
+                    disabledContentColor = MaterialTheme.colorScheme.error.copy(alpha = .38f),
+                ),
+            ) {
                 Icon(Icons.Rounded.Delete, "删除当天", Modifier.size(18.dp).testTag("day-delete-icon"))
             }
         }

@@ -37,7 +37,11 @@ class ItineraryDayActionsTest {
         fun center(tag: String) = compose.onNodeWithTag(tag, true).fetchSemanticsNode().boundsInRoot.center.x
         assertEquals(center("drag-handle-icon-a"), center("day-add-icon"), 1f)
         assertEquals(center("more-icon-a"), center("day-delete-icon"), 1f)
-        assertTrue(center("calendar-toggle") < center("day-add-icon"))
+        assertEquals(
+            center("day-add-icon") - center("calendar-toggle"),
+            center("day-delete-icon") - center("day-add-icon"),
+            1f,
+        )
         compose.onNodeWithTag("calendar-toggle").performTouchInput { click() }
         compose.onNodeWithTag("add-places-to-selected-day").performTouchInput { click() }
         compose.onNodeWithTag("delete-selected-day").performTouchInput { click() }

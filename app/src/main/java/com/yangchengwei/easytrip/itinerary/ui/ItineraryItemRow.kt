@@ -183,7 +183,7 @@ private fun ItineraryDragHandle(
                     onDragCancel = currentOnDragCancel,
                 )
             },
-        contentAlignment = Alignment.CenterStart,
+        contentAlignment = Alignment.Center,
     ) {
         Canvas(
             Modifier
