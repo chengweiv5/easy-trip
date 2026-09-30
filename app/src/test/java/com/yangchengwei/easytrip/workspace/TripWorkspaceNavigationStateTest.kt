@@ -734,7 +734,37 @@ class TripWorkspaceNavigationStateTest {
         assertEquals(2, observedRequests.distinct().size)
     }
 
-    @Test fun `map gesture clears published request and suppresses navigation until place set changes`() = runTest(dispatcher) {
+    @Test fun expandedDaySwitchFitsOnlyCurrentDayWhenRevealedAtEitherSheetLevel() = runTest(dispatcher) {
+        val model = model(
+            Trips(days("one", "two")),
+            itineraries = Itineraries(mapOf(
+                "one" to listOf(item("one-item", 39.9)),
+                "two" to listOf(item("two-item", 31.2)),
+            )),
+        )
+        advanceUntilIdle()
+        model.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+        for (level in listOf(WorkspaceSheetLevel.HALF, WorkspaceSheetLevel.COLLAPSED)) {
+            model.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
+            model.selectItineraryScope(ItineraryScope.Day("one"))
+            advanceUntilIdle()
+            model.selectItineraryScope(ItineraryScope.Day("two"))
+            advanceUntilIdle()
+            assertNull(model.state.value.map.viewportRequest)
+            model.setSheetLevel(level)
+            advanceUntilIdle()
+            val request = requireNotNull(model.state.value.map.viewportRequest)
+            assertEquals("two", request.selectedDayId)
+            assertEquals(listOf(31.2), request.points.map { it.latitude })
+            assertEquals(MapScope.SINGLE_DAY, request.scope)
+            model.setSheetLevel(level)
+            advanceUntilIdle()
+            assertEquals(request.id, model.state.value.map.viewportRequest?.id)
+        }
+    }
+
+    @Test fun `map gesture clears published request and reveal explicitly restores itinerary framing`() = runTest(dispatcher) {
         val beijingPlace = savedPlace("beijing", 39.9)
         val shanghaiPlace = savedPlace("shanghai", 31.2)
         val places = MutablePlaces(listOf(beijingPlace))
@@ -774,7 +804,10 @@ class TripWorkspaceNavigationStateTest {
         assertNull(model.state.value.map.viewportRequest)
         model.setSheetLevel(WorkspaceSheetLevel.HALF)
         advanceUntilIdle()
-        assertNull(model.state.value.map.viewportRequest)
+        val revealed = model.state.value.map.viewportRequest
+        assertEquals(ViewportReason.SCOPE_CHANGED, revealed?.reason)
+        assertEquals(MapScope.WHOLE_TRIP, revealed?.scope)
+        assertEquals(setOf(39.9, 31.2), revealed?.points?.map { it.latitude }?.toSet())
     }
 
     @Test fun `stale day selection is ignored and real navigation changes request viewport once`() = runTest(dispatcher) {

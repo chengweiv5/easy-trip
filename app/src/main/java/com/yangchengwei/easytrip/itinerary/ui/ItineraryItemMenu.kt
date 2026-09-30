@@ -48,7 +48,7 @@ internal fun ItineraryItemMenu(
             expanded = expanded,
             onDismissRequest = { onExpandedChange(false) },
         ) {
-            MenuItem("编辑时间与停留时长", "menu-timing-$itemId") {
+            MenuItem("编辑", "menu-timing-$itemId") {
                 onExpandedChange(false)
                 onAction(ItineraryItemMenuAction.EditTiming)
             }

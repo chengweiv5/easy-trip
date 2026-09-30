@@ -29,18 +29,32 @@ class MapViewportControllerTest {
         assertNull(c.update(listOf(a,b), MapScope.SINGLE_DAY, listOf(a,b), "b"))
     }
 
-    @Test fun expandedDateSwitchDiscardsFitAndDoesNotReplayOnCollapse() {
+    @Test fun expandedDateSwitchFitsCurrentDayOnceAfterCollapse() {
         val c = MapViewportController()
         val points = listOf(beijing, shanghai)
         c.update(points, MapScope.SINGLE_DAY, listOf(beijing), "a")
         assertNull(c.update(points, MapScope.SINGLE_DAY, listOf(shanghai), "b", retainCamera = true))
         assertNull(c.currentRequest)
         assertNull(c.update(points, MapScope.SINGLE_DAY, points, "b", retainCamera = true))
+        assertEquals(points, c.update(points, MapScope.SINGLE_DAY, points, "b")?.points)
         assertNull(c.update(points, MapScope.SINGLE_DAY, points, "b"))
-        assertNull(c.update(points, MapScope.WHOLE_TRIP, points, retainCamera = true))
-        assertNull(c.update(points, MapScope.WHOLE_TRIP, points))
-        assertEquals(ViewportReason.SEARCH_FOCUS, c.focusSearchResult(beijing).reason)
+        c.update(points, MapScope.WHOLE_TRIP, points, retainCamera = true)
+        assertEquals(points, c.update(points, MapScope.WHOLE_TRIP, points)?.points)
+    }
+
+    @Test fun collapsingUnchangedDayRefitsButEmptyDayAndPoolDoNot() {
+        val c = MapViewportController()
+        val points = listOf(beijing, shanghai)
+        c.update(points, MapScope.SINGLE_DAY, listOf(beijing), "a")
+        c.update(points, MapScope.SINGLE_DAY, listOf(beijing), "a", retainCamera = true)
+        c.onUserGesture()
         assertEquals(listOf(beijing), c.update(points, MapScope.SINGLE_DAY, listOf(beijing), "a")?.points)
+        c.update(points, MapScope.SINGLE_DAY, emptyList(), "empty", retainCamera = true)
+        assertNull(c.update(points, MapScope.SINGLE_DAY, emptyList(), "empty"))
+        assertNull(c.currentRequest)
+        c.update(points, MapScope.PLACE_POOL, points)
+        c.update(points, MapScope.PLACE_POOL, points, retainCamera = true)
+        assertNull(c.update(points, MapScope.PLACE_POOL, points))
     }
 
     @Test fun explicitFocusWhileExpandedSurvivesUnchangedMapProjection() {

@@ -281,6 +281,10 @@ private fun CompactItineraryStop(
                 Text(item.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).testTag("itinerary-place-name-${item.id}"))
             }
+            item.timingWarning?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.padding(start = 49.dp).testTag("itinerary-timing-warning-${item.id}"))
+            }
             com.yangchengwei.easytrip.core.ui.component.ExpandableNote(
                 note = item.note,
                 identity = "itinerary-${item.id}",

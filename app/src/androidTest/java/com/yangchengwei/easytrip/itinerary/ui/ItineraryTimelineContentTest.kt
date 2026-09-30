@@ -903,9 +903,9 @@ class ItineraryTimelineContentTest {
         }
 
         compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
-        compose.onNodeWithText("编辑时间与停留时长").assertIsDisplayed()
+        compose.onNodeWithText("编辑").assertIsDisplayed()
         compose.onNodeWithTag("more-i1", useUnmergedTree = true).performClick()
-        compose.onAllNodesWithText("编辑时间与停留时长").assertCountEquals(0)
+        compose.onAllNodesWithText("编辑").assertCountEquals(0)
         compose.runOnIdle { assertTrue(actions.isEmpty()) }
     }
 

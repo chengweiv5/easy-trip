@@ -11,6 +11,7 @@ import androidx.test.platform.app.InstrumentationRegistry
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import kotlinx.coroutines.runBlocking
 import org.junit.Test
@@ -46,7 +47,7 @@ class RoomV2MigrationTest {
 
         helper.runMigrationsAndValidate(
             databaseName,
-            7,
+            8,
             true,
             EasyTripDatabase.MIGRATION_1_2,
             EasyTripDatabase.MIGRATION_2_3,
@@ -54,10 +55,11 @@ class RoomV2MigrationTest {
             EasyTripDatabase.MIGRATION_4_5,
             EasyTripDatabase.MIGRATION_5_6,
             EasyTripDatabase.MIGRATION_6_7,
+            EasyTripDatabase.MIGRATION_7_8,
         ).close()
 
         val database = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), EasyTripDatabase::class.java, databaseName)
-            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7)
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8)
             .allowMainThreadQueries()
             .build()
         try {
@@ -69,6 +71,9 @@ class RoomV2MigrationTest {
             assertNull(leg.expenseCents)
             assertNull(item.note)
             assertNull(item.idempotencyKey)
+            assertFalse(item.autoTimingPending)
+            assertNull(item.autoTimingAnchorId)
+            assertNull(item.timingWarning)
             val legacyPlace = runBlocking { database.savedPlaceDao().place("a")!! }
             assertEquals("A", legacyPlace.name)
             assertNull(legacyPlace.cityName)
@@ -82,6 +87,50 @@ class RoomV2MigrationTest {
                 database.openHelper.writableDatabase.execSQL(
                     "INSERT INTO itinerary_items (id, tripDayId, tripId, savedPlaceId, position, arrivalTime, stayDurationMinutes, note) VALUES ('invalid', 'day', 'trip', 'missing', 2000, NULL, NULL, NULL)",
                 )
+            }
+        } finally {
+            database.close()
+        }
+    }
+
+    @Test
+    fun migrationFromV7PreservesExplicitTimingExpensesNotesAndRoutesWithoutOptingInOldItems() {
+        helper.createDatabase(databaseName, 7).apply {
+            execSQL("INSERT INTO trips (id, name, timeMode, startDate, travelMode, createdAt, updatedAt) VALUES ('trip', 'Trip', 'DRAFT', NULL, 'FLEXIBLE', 0, 0)")
+            execSQL("INSERT INTO trip_days (id, tripId, position) VALUES ('day', 'trip', 0)")
+            for (id in listOf("a", "b")) {
+                execSQL("INSERT INTO saved_places (id, tripId, amapPoiId, name, address, latitude, longitude) VALUES ('$id', 'trip', '$id', '$id', '地址', 30, 120)")
+            }
+            execSQL("INSERT INTO itinerary_items (id, tripDayId, tripId, savedPlaceId, position, arrivalTime, stayDurationMinutes, note, expenseCents) VALUES ('i1', 'day', 'trip', 'a', 0, '11:20', 45, '原备注', 3500)")
+            execSQL("INSERT INTO itinerary_items (id, tripDayId, tripId, savedPlaceId, position) VALUES ('i2', 'day', 'trip', 'b', 1000)")
+            execSQL("INSERT INTO route_legs (id, tripDayId, fromItemId, toItemId, recommendedMode, status, distanceMeters, durationSeconds, polyline, version, updatedAt, durationOverrideSeconds, note, expenseCents) VALUES ('leg', 'day', 'i1', 'i2', 'WALK', 'SUCCESS', 42, 60, 'polyline', 7, 0, 120, '交通备注', 250)")
+            close()
+        }
+        helper.runMigrationsAndValidate(databaseName, 8, true, EasyTripDatabase.MIGRATION_7_8).close()
+        val database = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), EasyTripDatabase::class.java, databaseName)
+            .addMigrations(EasyTripDatabase.MIGRATION_7_8).build()
+        try {
+            runBlocking {
+                database.itineraryEditingDao().refreshAutomaticTimings("day")
+                val first = database.itineraryEditingDao().item("i1")!!
+                val second = database.itineraryEditingDao().item("i2")!!
+                val leg = database.routeLegDao().legs("day").single()
+                assertEquals(java.time.LocalTime.of(11, 20), first.arrivalTime)
+                assertEquals(45, first.stayDurationMinutes)
+                assertEquals("原备注", first.note)
+                assertEquals(3500L, first.expenseCents)
+                assertFalse(first.autoTimingPending)
+                assertFalse(second.autoTimingPending)
+                assertNull(second.arrivalTime)
+                assertNull(second.stayDurationMinutes)
+                assertNull(first.autoTimingAnchorId)
+                assertNull(first.timingWarning)
+                assertEquals(120, leg.durationOverrideSeconds)
+                assertEquals(60, leg.durationSeconds)
+                assertEquals("polyline", leg.polyline)
+                assertEquals("交通备注", leg.note)
+                assertEquals(250L, leg.expenseCents)
+                assertEquals(7L, leg.version)
             }
         } finally {
             database.close()

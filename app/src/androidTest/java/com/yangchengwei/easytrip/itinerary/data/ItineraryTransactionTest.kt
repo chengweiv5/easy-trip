@@ -64,15 +64,17 @@ class ItineraryTransactionTest {
         val eveningHotel = repository.addItem("day", "hotel", 1)
         repository.updateDetails(eveningHotel, LocalTime.of(18, 0), 60, "晚间入住")
         val morningHotel = repository.addItem("day", "hotel", 2)
+        val estimatedTiming = ItineraryTiming(LocalTime.of(19, 0), 60)
         val controller = com.yangchengwei.easytrip.itinerary.calendar.CalendarTimingController(repository::compareAndSetTiming)
         controller.commit(ItineraryTimingChange("trip", "day", morningHotel,
-            ItineraryTiming(null, null),
+            estimatedTiming,
             ItineraryTiming(LocalTime.of(8, 30), 60)))
         assertEquals(listOf(morningHotel, scenic, eveningHotel), repository.observeDay("day").first().items.map { it.id })
         assertEquals(listOf(morningHotel to scenic, scenic to eveningHotel), database.routeLegDao().legs("day").map { it.fromItemId to it.toItemId })
         controller.undo()
         assertEquals(listOf(scenic, eveningHotel, morningHotel), repository.observeDay("day").first().items.map { it.id })
-        assertNull(database.itineraryEditingDao().item(morningHotel)?.arrivalTime)
+        assertEquals(estimatedTiming.arrivalTime, database.itineraryEditingDao().item(morningHotel)?.arrivalTime)
+        assertEquals(estimatedTiming.stayMinutes, database.itineraryEditingDao().item(morningHotel)?.stayDurationMinutes)
         assertEquals("晚间入住", database.itineraryEditingDao().item(eveningHotel)?.note)
     }
 
@@ -100,7 +102,7 @@ class ItineraryTransactionTest {
         seedTrip("trip", TravelMode.FLEXIBLE, "day")
         seedPlace("hotel", "trip", 0.0, 0.0)
         val id = repository.addItem("day", "hotel", 0)
-        val before = ItineraryTiming(null, null)
+        val before = ItineraryTiming(LocalTime.of(8, 0), 60)
         val results = coroutineScope {
             (1..2).map { hour -> async {
                 repository.compareAndSetTiming(ItineraryTimingChange("trip", "day", id, before,
@@ -167,6 +169,7 @@ class ItineraryTransactionTest {
         val ids = List(3) { repository.addItem("day", "hotel", it) }
         repository.updateTiming(ids[0], LocalTime.of(10, 0), 60)
         repository.updateTiming(ids[1], LocalTime.of(18, 0), 60)
+        repository.updateTiming(ids[2], null, null)
         val change = ItineraryTimingChange("trip", "day", ids[2],
             ItineraryTiming(null, null), ItineraryTiming(LocalTime.of(8, 30), 60), beforeOrder = ids)
         repository.moveItem(ids[0], "day", 1)
@@ -188,6 +191,7 @@ class ItineraryTransactionTest {
         val ids = List(3) { repository.addItem("day", "hotel", it) }
         repository.updateTiming(ids[0], LocalTime.of(10, 0), 60)
         repository.updateTiming(ids[1], LocalTime.of(18, 0), 60)
+        repository.updateTiming(ids[2], null, null)
         val items = database.itineraryEditingDao().items("day")
         val legs = database.routeLegDao().legs("day")
         var fail = true

@@ -1046,7 +1046,7 @@ class WorkspaceFlowTest {
         compose.runOnIdle { assertEquals(listOf("zoom-in", "zoom-out"), events) }
     }
 
-    @Test fun drawerTransitionsPreserveViewportInBothSections() {
+    @Test fun drawerRevealRefitsItineraryOnceWithoutRemountingMap() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val token = consentToken()
         val coordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore())
@@ -1066,14 +1066,20 @@ class WorkspaceFlowTest {
             compose.waitForIdle()
             val before = host.viewportCalls
             val mapSize = host.view.width to host.view.height
+            var expectedCalls = before
+            var previousLevel = workspace.state.value.sheetLevel
             listOf(WorkspaceSheetLevel.EXPANDED, WorkspaceSheetLevel.HALF, WorkspaceSheetLevel.COLLAPSED, WorkspaceSheetLevel.HALF).forEach { level ->
+                if (section == WorkspaceSection.ITINERARY && previousLevel == WorkspaceSheetLevel.EXPANDED && level != WorkspaceSheetLevel.EXPANDED) {
+                    expectedCalls++
+                }
                 compose.runOnIdle { workspace.setSheetLevel(level) }
                 compose.waitForIdle()
                 compose.runOnIdle {
-                    assertEquals("$section / $level must retain the camera", before, host.viewportCalls)
+                    assertEquals("$section / $level should fit only when revealing the itinerary", expectedCalls, host.viewportCalls)
                     assertEquals(mapSize, host.view.width to host.view.height)
                     assertEquals(1, mounts)
                 }
+                previousLevel = level
             }
         }
     }

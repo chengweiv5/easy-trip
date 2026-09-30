@@ -12,6 +12,7 @@ class MapViewportController {
     private var retainedPlaceChange: GeoPoint? = null
     private var userMovedViewport = false
     private var placeFilter = PlacePoolMapFilter()
+    private var cameraRetained = false
 
     var currentRequest: MapViewportRequest? = null
         private set
@@ -26,11 +27,14 @@ class MapViewportController {
     ): MapViewportRequest? {
         val normalizedPlaces = placePoints.toSet()
         val normalizedVisible = visiblePoints.toSet()
+        val revealItinerary = cameraRetained && !retainCamera && scope != MapScope.PLACE_POOL
+        cameraRetained = retainCamera
         val retainedChange = retainedPlaceChange?.takeIf { point ->
             normalizedPlaces == placeIdentity + point || normalizedPlaces == placeIdentity - point
         }
         if (retainedChange != null) retainedPlaceChange = null
         val reason = when {
+            revealItinerary -> ViewportReason.SCOPE_CHANGED
             !observedNonemptyPlaces && normalizedPlaces.isNotEmpty() -> ViewportReason.INITIAL
             retainedChange != null -> null
             observedNonemptyPlaces && normalizedPlaces != placeIdentity -> ViewportReason.PLACE_SET_CHANGED
@@ -50,8 +54,8 @@ class MapViewportController {
         this.scope = scope
         this.selectedDayId = selectedDayId
         this.placeFilter = placeFilter
-        // Observe the new scope even when its fit is discarded, so closing the drawer
-        // cannot replay it. Late route results in that scope must not recenter either.
+        // Keep observing while covered. Revealing the map fits the current projection,
+        // not a stale date/route request from when the drawer was expanded.
         if (retainCamera && reason != null) {
             currentRequest = null
             userMovedViewport = true

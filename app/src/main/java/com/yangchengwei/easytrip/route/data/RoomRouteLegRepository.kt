@@ -14,7 +14,7 @@ class RoomRouteLegRepository(private val dao:RouteLegDao):RouteLegRepository {
  override suspend fun claimIfVersionMatches(legId:String,version:Long)=dao.claim(legId,version)==1
  override suspend fun waitForNetworkIfVersionMatches(legId:String,version:Long)=dao.waitNetwork(legId,version)==1
  override suspend fun releaseClaimIfVersionMatches(legId:String,version:Long,online:Boolean)=dao.releaseClaim(legId,version,if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK)==1
- override suspend fun completeIfVersionMatches(legId:String,version:Long,result:RouteResult)=dao.complete(legId,version,result.distanceMeters,result.durationSeconds,PolylineCodec.encode(result.polyline))==1
+ override suspend fun completeIfVersionMatches(legId:String,version:Long,result:RouteResult)=dao.completeWithTiming(legId,version,result.distanceMeters,result.durationSeconds,PolylineCodec.encode(result.polyline))==1
  override suspend fun failIfVersionMatches(legId:String,version:Long,failure:RoutePlanOutcome.Failure)=dao.fail(legId,version,failure.kind,failure.code)==1
  override suspend fun updateDetails(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean):Boolean {
   val normalizedDurationOverrideSeconds = durationOverrideSeconds?.takeIf { it > 0 }

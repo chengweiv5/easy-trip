@@ -5,7 +5,7 @@ import com.yangchengwei.easytrip.route.domain.RouteErrorKind
 import kotlinx.coroutines.flow.Flow
 
 data class RouteLegEndpointRow(val id:String,val version:Long,val status:RouteStatus,val recommendedMode:TransportMode,val selectedMode:TransportMode?,val distanceMeters:Int?,val durationSeconds:Int?,val polyline:String?,val errorKind:RouteErrorKind?,val errorCode:String?,val originLatitude:Double,val originLongitude:Double,val destinationLatitude:Double,val destinationLongitude:Double,val originCity:String?,val destinationCity:String?)
-@Dao interface RouteLegDao {
+@Dao interface RouteLegDao : com.yangchengwei.easytrip.itinerary.data.AutomaticTimingQueries {
  @Query("SELECT expenseCents FROM itinerary_items WHERE tripId=(SELECT tripId FROM trip_days WHERE id=:dayId) AND expenseCents IS NOT NULL UNION ALL SELECT l.expenseCents FROM route_legs l JOIN trip_days d ON d.id=l.tripDayId WHERE d.tripId=(SELECT tripId FROM trip_days WHERE id=:dayId) AND l.id!=:excludedId AND l.expenseCents IS NOT NULL")
  suspend fun otherExpenses(dayId:String,excludedId:String):List<Long>
 
@@ -32,6 +32,11 @@ data class RouteLegEndpointRow(val id:String,val version:Long,val status:RouteSt
  @Query("UPDATE route_legs SET status='WAITING_NETWORK' WHERE id=:id AND version=:version AND status='PENDING'") suspend fun waitNetwork(id:String,version:Long):Int
  @Query("UPDATE route_legs SET status=:status WHERE id=:id AND version=:version AND status='CALCULATING'") suspend fun releaseClaim(id:String,version:Long,status:RouteStatus):Int
  @Query("UPDATE route_legs SET status='SUCCESS',distanceMeters=:distance,durationSeconds=:duration,polyline=:polyline,errorKind=NULL,errorCode=NULL WHERE id=:id AND version=:version AND status='CALCULATING'") suspend fun complete(id:String,version:Long,distance:Int,duration:Int,polyline:String):Int
+ @Transaction suspend fun completeWithTiming(id:String,version:Long,distance:Int,duration:Int,polyline:String):Int {
+  val result=complete(id,version,distance,duration,polyline)
+  if(result==1) leg(id)?.let { refreshAutomaticTimings(it.tripDayId) }
+  return result
+ }
  @Query("UPDATE route_legs SET status='FAILED',errorKind=:kind,errorCode=:code WHERE id=:id AND version=:version AND status='CALCULATING'") suspend fun fail(id:String,version:Long,kind:RouteErrorKind,code:String?):Int
  @Query("UPDATE route_legs SET selectedMode=:mode WHERE id=:legId") suspend fun selectMode(legId:String,mode:TransportMode?):Int
  @Query("SELECT * FROM route_legs WHERE id=:legId") suspend fun leg(legId:String):RouteLegEntity?
@@ -39,7 +44,9 @@ data class RouteLegEndpointRow(val id:String,val version:Long,val status:RouteSt
  @Query("UPDATE route_legs SET selectedMode=:selectedModeOverride,durationOverrideSeconds=:durationOverrideSeconds,note=:note,version=version+1,status=:status,distanceMeters=NULL,durationSeconds=NULL,polyline=NULL,errorKind=NULL,errorCode=NULL WHERE id=:legId") suspend fun updateModeAndMetadata(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,status:RouteStatus):Int
  @Transaction suspend fun updateDetails(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean):Int {
   val current=leg(legId)?:return 0
-  return if(selectedModeOverride == current.selectedMode) updateMetadata(legId,durationOverrideSeconds,note) else updateModeAndMetadata(legId,selectedModeOverride,durationOverrideSeconds,note,if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK)
+  val result=if(selectedModeOverride == current.selectedMode) updateMetadata(legId,durationOverrideSeconds,note) else updateModeAndMetadata(legId,selectedModeOverride,durationOverrideSeconds,note,if(online)RouteStatus.PENDING else RouteStatus.WAITING_NETWORK)
+  if(result==1) refreshAutomaticTimings(current.tripDayId)
+  return result
  }
  @Query("SELECT * FROM route_legs WHERE tripDayId IN (SELECT id FROM trip_days WHERE tripId=:tripId)") suspend fun legsForTrip(tripId:String):List<RouteLegEntity>
  @Query("UPDATE route_legs SET recommendedMode=:mode,version=version+1,status=:status,distanceMeters=NULL,durationSeconds=NULL,polyline=NULL,errorKind=NULL,errorCode=NULL WHERE id=:id") suspend fun resetRecommendation(id:String,mode:TransportMode,status:RouteStatus):Int

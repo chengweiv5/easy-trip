@@ -18,6 +18,7 @@ data class ItineraryItemUi(
     val note: String? = null,
     val placeId: String? = null,
     val expenseCents: Long? = null,
+    val timingWarning: String? = null,
 )
 
 sealed interface RouteLegUiState {
@@ -140,6 +141,7 @@ internal fun ItineraryItem.toItineraryItemUi() = ItineraryItemUi(
     note = note,
     placeId = place.id,
     expenseCents = expenseCents,
+    timingWarning = timingWarning,
 )
 
 internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(

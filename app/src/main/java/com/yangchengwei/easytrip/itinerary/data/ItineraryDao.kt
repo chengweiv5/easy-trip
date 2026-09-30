@@ -27,6 +27,7 @@ data class DayItineraryRow(
     val latitude: Double?,
     val longitude: Double?,
     val expenseCents: Long? = null,
+    val timingWarning: String? = null,
 )
 
 data class TripDayReadSnapshot(
@@ -37,7 +38,7 @@ data class TripDayReadSnapshot(
 )
 
 @Dao
-interface ItineraryDao {
+interface ItineraryDao : AutomaticTimingQueries {
     @Transaction
     @Query("SELECT * FROM trip_days WHERE tripId=:tripId ORDER BY position,id")
     fun observeTripDays(tripId: String): Flow<List<TripDayReadSnapshot>>
@@ -50,7 +51,7 @@ interface ItineraryDao {
 
     @Query("""
         SELECT d.id AS dayId, d.tripId,
-               i.id AS itemId, i.position, i.arrivalTime, i.stayDurationMinutes, i.note, i.expenseCents,
+               i.id AS itemId, i.position, i.arrivalTime, i.stayDurationMinutes, i.note, i.expenseCents, i.timingWarning,
                p.id AS placeId, p.name AS placeName, p.address AS placeAddress,
                p.latitude, p.longitude
         FROM trip_days d
@@ -99,14 +100,14 @@ interface ItineraryDao {
     @Query("DELETE FROM itinerary_items WHERE savedPlaceId=:placeId")
     suspend fun deleteRowsForPlace(placeId: String): Int
 
-    @Query("UPDATE itinerary_items SET arrivalTime=:arrivalTime, stayDurationMinutes=:stayMinutes WHERE id=:itemId")
+    @Query("UPDATE itinerary_items SET arrivalTime=:arrivalTime, stayDurationMinutes=:stayMinutes, autoTimingPending=0, timingWarning=NULL WHERE id=:itemId")
     suspend fun timing(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?): Int
 
-    @Query("UPDATE itinerary_items SET arrivalTime=:arrivalTime, stayDurationMinutes=:stayMinutes, note=:note WHERE id=:itemId")
+    @Query("UPDATE itinerary_items SET arrivalTime=:arrivalTime, stayDurationMinutes=:stayMinutes, note=:note, autoTimingPending=0, timingWarning=NULL WHERE id=:itemId")
     suspend fun details(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?): Int
 
     @Query("""
-        UPDATE itinerary_items SET arrivalTime=:arrival, stayDurationMinutes=:stay
+        UPDATE itinerary_items SET arrivalTime=:arrival, stayDurationMinutes=:stay, autoTimingPending=0, timingWarning=NULL
         WHERE id=:itemId AND tripId=:tripId AND tripDayId=:dayId
           AND arrivalTime IS :expectedArrival AND stayDurationMinutes IS :expectedStay
     """)

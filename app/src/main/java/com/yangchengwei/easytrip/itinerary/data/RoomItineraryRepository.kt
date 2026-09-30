@@ -49,7 +49,7 @@ class RoomItineraryRepository(
             val items = snapshot.items.sortedWith(compareBy<ItineraryItemEntity> { it.position }.thenBy { it.id }).map { item ->
                 val place = places.getValue(item.savedPlaceId)
                 ItineraryItem(item.id, ItineraryPlace(place.id, place.name, place.address, GeoPoint(place.latitude, place.longitude)),
-                    item.arrivalTime, item.stayDurationMinutes, item.note, item.idempotencyKey, item.expenseCents)
+                    item.arrivalTime, item.stayDurationMinutes, item.note, item.idempotencyKey, item.expenseCents, item.timingWarning)
             }
             val order = items.mapIndexed { i, item -> item.id to i }.toMap()
             com.yangchengwei.easytrip.itinerary.domain.DayItinerarySnapshot(
@@ -75,6 +75,7 @@ class RoomItineraryRepository(
                 row.stayDurationMinutes,
                 row.note,
                 expenseCents = row.expenseCents,
+                timingWarning = row.timingWarning,
             )
         })
     }
@@ -117,11 +118,15 @@ class RoomItineraryRepository(
             savedPlaceId = savedPlaceId,
             position = NEW_ITEM_POSITION,
             idempotencyKey = idempotencyKey,
+            stayDurationMinutes = 60,
+            autoTimingAnchorId = old.getOrNull(targetIndex - 1)?.id,
+            autoTimingPending = true,
         )
         itineraryDao.insertItem(item)
         val new = old.toMutableList().apply { add(targetIndex, item) }
         reorder(new)
         syncLegs(dayId, old.map { it.id }, new.map { it.id })
+        itineraryDao.refreshAutomaticTimings(dayId)
         AddItineraryItemResult(id, created = true)
     }
 
@@ -137,6 +142,7 @@ class RoomItineraryRepository(
         val targetOld = if (targetDayId == item.tripDayId) sourceOld else itineraryDao.items(targetDayId)
         val maxIndex = if (targetDayId == item.tripDayId) sourceOld.lastIndex else targetOld.size
         require(targetIndex in 0..maxIndex) { "Invalid target index: $targetIndex" }
+        itineraryDao.freezeAutomaticTiming(itemId)
         val sourceNew = sourceOld.filterNot { it.id == itemId }.toMutableList()
         val targetNew = if (targetDayId == item.tripDayId) sourceNew else targetOld.toMutableList()
         targetNew.add(targetIndex, item.copy(tripDayId = targetDayId, tripId = targetTripId))
@@ -269,7 +275,12 @@ class RoomItineraryRepository(
 
     private suspend fun deleteLegs(dayId: String, edges: Set<Edge>) {
         requireExpenseRemovalConsent(deletedRouteExpenses(dayId, edges))
-        edges.forEach { routeLegDao.deleteEdge(dayId, it.fromItemId, it.toItemId) }
+        edges.forEach {
+            // Removing an original predecessor permanently ends its automatic estimate,
+            // even if a later move recreates the same adjacency before a route responds.
+            itineraryDao.freezeAutomaticTiming(it.toItemId)
+            routeLegDao.deleteEdge(dayId, it.fromItemId, it.toItemId)
+        }
     }
 
     private suspend fun createLegs(dayId: String, edges: Set<Edge>) {

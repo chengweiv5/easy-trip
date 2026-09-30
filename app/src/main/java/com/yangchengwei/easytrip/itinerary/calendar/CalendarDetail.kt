@@ -24,6 +24,7 @@ internal fun CalendarDetail(day: CalendarDay, item: ItineraryItemUi, startDate: 
             Text("到达：${item.arrivalTime ?: "待设置"}")
             Text("结束：${calendarEndLabel(item) ?: "待设置"}")
             Text("停留：${item.stayMinutes?.let { "$it 分钟" } ?: "待设置"}")
+            item.timingWarning?.let { Text(it, color = MaterialTheme.colorScheme.error) }
             item.note?.takeIf { it.isNotBlank() }?.let { Text(it) }
             if (day.events.any { it.item.id == item.id && it.conflicts.isNotEmpty() }) Text("与其他日程时间重叠", color = MaterialTheme.colorScheme.error)
             if (showTrafficConflict) Text("交通可能来不及", color = MaterialTheme.colorScheme.error)
@@ -38,7 +39,7 @@ internal fun CalendarDetail(day: CalendarDay, item: ItineraryItemUi, startDate: 
                         style = MaterialTheme.typography.bodySmall)
                 }
             }
-            Button(onEdit, Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("calendar-detail-edit")) { Text("编辑时间和备注") }
+            Button(onEdit, Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("calendar-detail-edit")) { Text("编辑") }
             Spacer(Modifier.height(16.dp))
         }
     }

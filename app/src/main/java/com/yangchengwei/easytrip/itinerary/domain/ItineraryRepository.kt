@@ -14,6 +14,7 @@ data class ItineraryItem(
     val note: String? = null,
     val idempotencyKey: String? = null,
     val expenseCents: Long? = null,
+    val timingWarning: String? = null,
 )
 data class DayItinerary(val dayId: String, val tripId: String, val items: List<ItineraryItem>)
 data class DayItinerarySnapshot(val itinerary: DayItinerary, val legs: List<com.yangchengwei.easytrip.route.data.RouteLegEntity>)
