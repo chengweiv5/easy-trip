@@ -100,7 +100,7 @@ class V170UiTest {
         compose.onNodeWithTag("place-pool-local-search").performTextInput("赏月")
         compose.onNodeWithText("西湖").assertIsDisplayed()
         compose.onNodeWithText("灵隐寺").assertDoesNotExist()
-        compose.onNodeWithText("清除").performClick()
+        compose.onNodeWithTag("place-pool-clear-search").performClick()
         compose.onNodeWithText("灵隐寺").assertIsDisplayed()
         compose.runOnIdle { assertEquals(0,remote) }
         capture("search")

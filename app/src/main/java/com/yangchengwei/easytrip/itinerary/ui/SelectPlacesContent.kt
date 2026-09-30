@@ -15,9 +15,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,7 +29,6 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.testTag
@@ -41,17 +37,15 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.yangchengwei.easytrip.place.ui.SavedPlaceFilterHeader
 import com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi
-import com.yangchengwei.easytrip.place.ui.PlaceCityFilterBar
 import com.yangchengwei.easytrip.place.ui.PlaceCityGroupHeading
 import com.yangchengwei.easytrip.place.ui.placeCityGroups
 import com.yangchengwei.easytrip.place.ui.filterPlaceCityGroups
 import androidx.compose.foundation.lazy.rememberLazyListState
 import com.yangchengwei.easytrip.workspace.WorkspaceCloseIcon
-import com.yangchengwei.easytrip.workspace.WorkspaceSearchIcon
 
 @Composable
 fun SelectPlacesContent(
@@ -101,21 +95,19 @@ fun SelectPlacesContent(
                 }
             }
         }
-        if (rows.isNotEmpty()) PlaceCityFilterBar(cities, activeCity, { selectedCityKey = it }, Modifier.fillMaxWidth(), enabled = !busy)
-        Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-            com.yangchengwei.easytrip.place.ui.PlaceScheduleFilter.entries.forEach { filter ->
-                Surface(
-                    modifier = Modifier.testTag("place-schedule-${filter.name}").semantics { selected = schedule == filter }
-                        .clickable(enabled = !busy, role = Role.Tab) { schedule = filter },
-                    shape = RoundedCornerShape(8.dp),
-                    color = if (schedule == filter) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.background,
-                ) {
-                    Text(filter.label, Modifier.padding(horizontal = 12.dp, vertical = 7.dp), style = MaterialTheme.typography.labelSmall,
-                        color = if (schedule == filter) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant)
-                }
-            }
-        }
-        PlacePickerSearch(query, { query = it }, enabled = !busy, cityName = cities.firstOrNull { it.key == activeCity }?.name)
+        SavedPlaceFilterHeader(
+            cities = cities,
+            selectedCityKey = activeCity,
+            onSelectCity = { selectedCityKey = it },
+            schedule = schedule,
+            onSelectSchedule = { schedule = it },
+            query = query,
+            onQueryChange = { query = it },
+            searchTag = "select-places-search",
+            clearSearchTag = "select-places-clear-search",
+            scheduleTagPrefix = "place-schedule",
+            enabled = !busy,
+        )
         if (visibleGroups.isEmpty()) {
             Column(
                 Modifier.weight(1f).fillMaxWidth().testTag("select-places-empty"),
@@ -150,35 +142,6 @@ fun SelectPlacesContent(
             enabled = state.canContinue && !busy && !state.hasStaleFixedDay,
             onContinue = { focusManager.clearFocus(); onContinue() },
         )
-    }
-}
-
-@Composable
-private fun PlacePickerSearch(query: String, onQueryChange: (String) -> Unit, enabled: Boolean, cityName: String?) {
-    val focusManager = LocalFocusManager.current
-    Surface(shape = RoundedCornerShape(8.dp), color = MaterialTheme.colorScheme.background) {
-        Row(Modifier.fillMaxWidth().heightIn(min = 36.dp).padding(horizontal = 10.dp, vertical = 6.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            WorkspaceSearchIcon(Modifier.size(16.dp))
-            BasicTextField(
-                value = query, onValueChange = onQueryChange, enabled = enabled, singleLine = true,
-                textStyle = MaterialTheme.typography.bodySmall.copy(color = MaterialTheme.colorScheme.onSurface),
-                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
-                modifier = Modifier.weight(1f).testTag("select-places-search").semantics { contentDescription = "搜索已收藏的地点" },
-                decorationBox = { input ->
-                    Box {
-                        if (query.isEmpty()) Text(cityName?.let { "搜索${it}收藏的地点" } ?: "搜索已收藏的地点", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                        input()
-                    }
-                },
-            )
-            if (query.isNotEmpty()) Box(
-                Modifier.size(24.dp).testTag("select-places-clear-search").semantics { contentDescription = "清空搜索" }
-                    .clickable(enabled = enabled, role = Role.Button) { onQueryChange("") },
-                contentAlignment = Alignment.Center,
-            ) { WorkspaceCloseIcon(Modifier.size(14.dp)) }
-        }
     }
 }
 

@@ -51,6 +51,29 @@ class PlacePoolViewModelTest {
         assertEquals("330100", model.state.value.selectedCityKey)
     }
 
+    @Test fun scheduleSelectionStaysLocalAndRespondsToUsageChanges() = runTest(dispatcher) {
+        val lake = place("lake").copy(name = "西湖", cityName = "杭州市", cityAdCode = "330100")
+        val temple = place("temple").copy(name = "灵隐寺", cityName = "杭州市", cityAdCode = "330100")
+        val repository = PoolRepository(listOf(lake, temple), mapOf("lake" to 2))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.selectCity("330100")
+        model.dispatch(PlacePoolAction.SelectSchedule(PlaceScheduleFilter.UNSCHEDULED))
+        model.dispatch(PlacePoolAction.SetLocalQuery("灵隐"))
+        assertEquals(PlaceScheduleFilter.UNSCHEDULED, model.state.value.scheduleFilter)
+        assertEquals("330100", model.state.value.selectedCityKey)
+        assertEquals("", model.state.value.search.query)
+        assertEquals(listOf("temple"), filterPlaceCityGroups(localSearchRows(model.state.value),
+            activePlacePoolCity(model.state.value), schedule = model.state.value.scheduleFilter).flatMap { it.rows }.map { it.id })
+        repository.setUsage("temple", 1)
+        advanceUntilIdle()
+        assertEquals(emptyList<String>(), filterPlaceCityGroups(localSearchRows(model.state.value),
+            activePlacePoolCity(model.state.value), schedule = model.state.value.scheduleFilter).flatMap { it.rows }.map { it.id })
+        model.dispatch(PlacePoolAction.SelectSchedule(PlaceScheduleFilter.SCHEDULED))
+        assertEquals(listOf("temple"), filterPlaceCityGroups(localSearchRows(model.state.value),
+            activePlacePoolCity(model.state.value), schedule = model.state.value.scheduleFilter).flatMap { it.rows }.map { it.id })
+    }
+
     @Test fun citySelectionIsSharedAndResetsWhenCityDisappears() = runTest(dispatcher) {
         val hangzhou = place("hz").copy(cityName = "杭州市", cityAdCode = "330100")
         val shanghai = place("sh").copy(cityName = "上海市", cityAdCode = "310000")

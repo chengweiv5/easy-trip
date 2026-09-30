@@ -16,7 +16,6 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.material3.OutlinedTextField
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -53,6 +52,7 @@ fun PlacePoolSheet(
         onSetLocalQuery = viewModel::setLocalQuery,
         onToggleTag = viewModel::toggleTag,
         onSelectCity = viewModel::selectCity,
+        onSelectSchedule = viewModel::selectSchedule,
         onEdit = viewModel::edit,
         onDelete = viewModel::requestDelete,
         onToggleCollection = viewModel::toggleCollection,
@@ -76,6 +76,7 @@ sealed interface PlacePoolAction {
     data class SetQuery(val value: String) : PlacePoolAction
     data class ToggleTag(val id: String) : PlacePoolAction
     data class SelectCity(val key: String?) : PlacePoolAction
+    data class SelectSchedule(val filter: PlaceScheduleFilter) : PlacePoolAction
     data class OpenDetail(val placeId: String) : PlacePoolAction
     data object DismissDetail : PlacePoolAction
     data class Edit(val place: com.yangchengwei.easytrip.place.domain.SavedPlace) : PlacePoolAction
@@ -115,6 +116,7 @@ fun PlacePoolContent(
         onSetLocalQuery = { onAction(PlacePoolAction.SetLocalQuery(it)) },
         onToggleTag = { onAction(PlacePoolAction.ToggleTag(it)) },
         onSelectCity = { onAction(PlacePoolAction.SelectCity(it)) },
+        onSelectSchedule = { onAction(PlacePoolAction.SelectSchedule(it)) },
         onEdit = { onAction(PlacePoolAction.Edit(it)) },
         onDelete = { onAction(PlacePoolAction.Delete(it)) },
         onToggleCollection = { onAction(PlacePoolAction.ToggleCollection(it)) },
@@ -148,6 +150,7 @@ fun PlacePoolContent(
     onSetLocalQuery: (String) -> Unit = {},
     onToggleTag: (String) -> Unit,
     onSelectCity: (String?) -> Unit = {},
+    onSelectSchedule: (PlaceScheduleFilter) -> Unit = {},
     onEdit: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
     onDelete: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
     onToggleCollection: (com.yangchengwei.easytrip.place.amap.PlaceCandidate) -> Unit,
@@ -170,7 +173,9 @@ fun PlacePoolContent(
     val cityRows = state.allRows ?: state.rows
     val cities = remember(cityRows) { placeCityGroups(cityRows) }
     val activeCity = activePlacePoolCity(state)
-    val visibleGroups = remember(state.rows, activeCity, state.localQuery) { filterPlaceCityGroups(localSearchRows(state), activeCity) }
+    val visibleGroups = remember(state.rows, activeCity, state.localQuery, state.scheduleFilter) {
+        filterPlaceCityGroups(localSearchRows(state), activeCity, schedule = state.scheduleFilter)
+    }
     Column(modifier.padding(contentPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showSearch) PlaceSearchField(state.search.query, onSetQuery)
         if (cityRows.isEmpty() && !showSearch) {
@@ -185,7 +190,7 @@ fun PlacePoolContent(
             )
         } else {
             val listState = rememberLazyListState()
-            LaunchedEffect(activeCity, state.selectedTagIds, state.localQuery) { listState.scrollToItem(0) }
+            LaunchedEffect(activeCity, state.selectedTagIds, state.localQuery, state.scheduleFilter) { listState.scrollToItem(0) }
             if (!showSearch || onStartAdd != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth().testTag("place-pool-toolbar"),
@@ -212,15 +217,19 @@ fun PlacePoolContent(
                     }
                 }
             }
-            OutlinedTextField(
-                value = state.localQuery,
-                onValueChange = onSetLocalQuery,
-                placeholder = { Text("搜索已收藏地点") },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth().testTag("place-pool-local-search"),
-                trailingIcon = if (state.localQuery.isNotEmpty()) ({ TextButton(onClick = { onSetLocalQuery("") }) { Text("清除") } }) else null,
+            SavedPlaceFilterHeader(
+                cities = cities,
+                selectedCityKey = activeCity,
+                onSelectCity = onSelectCity,
+                schedule = state.scheduleFilter,
+                onSelectSchedule = onSelectSchedule,
+                query = state.localQuery,
+                onQueryChange = onSetLocalQuery,
+                searchTag = "place-pool-local-search",
+                clearSearchTag = "place-pool-clear-search",
+                scheduleTagPrefix = "place-pool-schedule",
+                controlColor = MaterialTheme.colorScheme.surfaceVariant,
             )
-            if (cityRows.isNotEmpty()) PlaceCityFilterBar(cities, activeCity, onSelectCity, Modifier.fillMaxWidth())
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 androidx.compose.foundation.lazy.LazyColumn(
                     state = listState,
@@ -245,7 +254,7 @@ fun PlacePoolContent(
                     if (visibleGroups.isEmpty()) item {
                         Column(Modifier.fillMaxWidth().padding(vertical = 24.dp).testTag("place-pool-filter-empty"), horizontalAlignment = Alignment.CenterHorizontally) {
                             Text(if (state.localQuery.isNotBlank()) "没有找到匹配的收藏地点" else "当前筛选下没有地点", style = MaterialTheme.typography.labelMedium)
-                            Text("切换城市或调整标签试试", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text("调整搜索词、城市、安排状态或标签试试", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
                     visibleGroups.forEach { group ->

@@ -67,6 +67,7 @@ data class PlacePoolUiState(
     val allRows: List<SavedPlaceRowUi>? = null,
     val selectedCityKey: String? = null,
     val localQuery: String = "",
+    val scheduleFilter: PlaceScheduleFilter = PlaceScheduleFilter.ALL,
 )
 
 class PlacePoolViewModel(private val tripId: String, private val repository: SavedPlaceRepository, searchSource: PlaceSearchDataSource?, private val service: PlaceService = PlaceService(repository)) : ViewModel() {
@@ -99,6 +100,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         observePlaces()
     }
     fun setSearchSource(value: PlaceSearchDataSource?) { reducer.setSource(value); cityEnricher.setSource(value) }
+    fun selectSchedule(filter: PlaceScheduleFilter) { mutableState.update { it.copy(scheduleFilter = filter) } }
     fun setLocalQuery(value: String) { mutableState.update { it.copy(localQuery = value) } }
     fun setQuery(value: String) = reducer.setQuery(value)
     fun clearSearch() = reducer.clear()
@@ -373,6 +375,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             is PlacePoolAction.SetQuery -> setQuery(action.value)
             is PlacePoolAction.ToggleTag -> toggleTag(action.id)
             is PlacePoolAction.SelectCity -> selectCity(action.key)
+            is PlacePoolAction.SelectSchedule -> selectSchedule(action.filter)
             is PlacePoolAction.OpenDetail -> openDetail(action.placeId)
             PlacePoolAction.DismissDetail -> dismissDetail()
             is PlacePoolAction.Edit -> edit(action.place)

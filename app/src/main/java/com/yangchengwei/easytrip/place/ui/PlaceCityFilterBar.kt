@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
@@ -29,21 +30,22 @@ internal fun PlaceCityFilterBar(
     onSelect: (String?) -> Unit,
     modifier: Modifier = Modifier,
     enabled: Boolean = true,
+    unselectedColor: Color = MaterialTheme.colorScheme.background,
 ) {
     Row(modifier.horizontalScroll(rememberScrollState()).testTag("place-city-filters"), horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-        CityPill(null, "全部", groups.sumOf { it.rows.size }, selectedKey == null, enabled, onSelect)
-        groups.forEach { CityPill(it.key, it.name, it.rows.size, selectedKey == it.key, enabled, onSelect) }
+        CityPill(null, "全部", groups.sumOf { it.rows.size }, selectedKey == null, enabled, unselectedColor, onSelect)
+        groups.forEach { CityPill(it.key, it.name, it.rows.size, selectedKey == it.key, enabled, unselectedColor, onSelect) }
     }
 }
 
 @Composable
-private fun CityPill(key: String?, name: String, count: Int, selected: Boolean, enabled: Boolean, onSelect: (String?) -> Unit) {
+private fun CityPill(key: String?, name: String, count: Int, selected: Boolean, enabled: Boolean, unselectedColor: Color, onSelect: (String?) -> Unit) {
     Surface(
         Modifier.heightIn(min = 32.dp).testTag("place-city-${key ?: "all"}")
             .semantics { this.selected = selected; contentDescription = "$name，$count 个地点" }
             .clickable(enabled = enabled, role = Role.Tab) { onSelect(key) },
         shape = RoundedCornerShape(8.dp),
-        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
+        color = if (selected) MaterialTheme.colorScheme.primary else unselectedColor,
     ) {
         Text("$name $count", Modifier.padding(horizontal = 10.dp, vertical = 7.dp), style = MaterialTheme.typography.labelSmall, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
     }
