@@ -37,6 +37,7 @@ fun EditRouteLegContent(
     onClearSelectedModeOverride: () -> Unit,
     onDurationMinutesChange: (String) -> Unit,
     onNoteChange: (String) -> Unit,
+    onExpenseChange: (String) -> Unit = {},
     onSave: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -50,6 +51,7 @@ fun EditRouteLegContent(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text("交通路段编辑", style = MaterialTheme.typography.titleMedium)
+            com.yangchengwei.easytrip.expense.ExpenseField(draft.expenseText, onExpenseChange, !draft.isSaving)
             if (draft.fromPlaceName.isNotBlank() && draft.toPlaceName.isNotBlank()) {
                 Text(
                     "${draft.fromPlaceName} → ${draft.toPlaceName}",

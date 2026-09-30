@@ -5,6 +5,15 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.key
+import androidx.compose.runtime.withFrameNanos
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.zIndex
+import kotlin.math.roundToInt
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -38,6 +47,7 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -95,6 +105,32 @@ fun TripSettingsContent(
     dateEditorBottomInset: @Composable () -> WindowInsets = { WindowInsets.navigationBars },
     initialDisplayedMonth: java.time.YearMonth? = null,
 ) {
+    val settingsScroll = rememberScrollState()
+    var viewportTop by remember { mutableFloatStateOf(0f) }
+    var viewportBottom by remember { mutableFloatStateOf(0f) }
+    var draggingDayId by remember { mutableStateOf<String?>(null) }
+    var draggingFrom by remember { mutableIntStateOf(0) }
+    var draggingTarget by remember { mutableIntStateOf(0) }
+    var draggingDelta by remember { mutableFloatStateOf(0f) }
+    var pointerY by remember { mutableFloatStateOf(0f) }
+    var dragStartScroll by remember { mutableIntStateOf(0) }
+    val rowStep = with(LocalDensity.current) { 49.dp.toPx() }
+    val scrollEdge = with(LocalDensity.current) { 56.dp.toPx() }
+    val scrollStep = with(LocalDensity.current) { 6.dp.toPx() }
+    val updateTarget by rememberUpdatedState(newValue = {
+        draggingTarget = (draggingFrom + ((draggingDelta + settingsScroll.value - dragStartScroll) / rowStep).roundToInt()).coerceIn(0, (state.days.size - 1).coerceAtLeast(0))
+    })
+    LaunchedEffect(draggingDayId) {
+        while (draggingDayId != null) {
+            withFrameNanos { }
+            val scroll = when {
+                pointerY < viewportTop + scrollEdge -> -scrollStep
+                pointerY > viewportBottom - scrollEdge -> scrollStep
+                else -> 0f
+            }
+            if (scroll != 0f) { settingsScroll.scrollBy(scroll); updateTarget() }
+        }
+    }
     var editingName by remember { mutableStateOf(false) }
     var editingDates by remember { mutableStateOf(false) }
     var name by remember(state.name) { mutableStateOf(state.name) }
@@ -123,7 +159,8 @@ fun TripSettingsContent(
             .then(if (editingDates) Modifier.clearAndSetSemantics {} else Modifier)
             .background(MaterialTheme.colorScheme.background)
             .statusBarsPadding()
-            .verticalScroll(rememberScrollState())
+            .onGloballyPositioned { viewportTop = it.positionInRoot().y; viewportBottom = viewportTop + it.size.height }
+            .verticalScroll(settingsScroll)
             .padding(horizontal = EasyTripTheme.spacing.settingsGrid, vertical = 12.dp),
         verticalArrangement = Arrangement.spacedBy(EasyTripTheme.spacing.settingsSectionGap),
     ) {
@@ -204,15 +241,28 @@ fun TripSettingsContent(
                 }
                 Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(1.dp)) {
                     state.days.forEachIndexed { index, day ->
-                        TripDaySettingsRow(
-                            day = day,
-                            index = index,
-                            count = state.days.size,
-                            enabled = !settingsWriteLocked,
-                            onMove = { onMoveDay(day, it) },
-                            canReorder = state.dateRange.startDate == null,
-                            onDelete = { onRequestDeleteDay(day) },
-                        )
+                        key(day.id) {
+                            val translation = when {
+                                draggingDayId == null -> 0f
+                                draggingDayId == day.id -> draggingDelta + settingsScroll.value - dragStartScroll
+                                index in (draggingFrom + 1)..draggingTarget -> -rowStep
+                                index in draggingTarget until draggingFrom -> rowStep
+                                else -> 0f
+                            }
+                            TripDaySettingsRow(
+                                day = day, index = index, count = state.days.size,
+                                enabled = !settingsWriteLocked,
+                                dragging = draggingDayId == day.id,
+                                translation = translation,
+                                onDragStart = { y -> draggingDayId = day.id; draggingFrom = index; draggingTarget = index; draggingDelta = 0f; pointerY = y; dragStartScroll = settingsScroll.value },
+                                onDragDelta = { delta -> draggingDelta += delta; pointerY += delta; updateTarget() },
+                                onDragEnd = { cancelled ->
+                                    if (!cancelled && draggingTarget != draggingFrom) onMoveDay(day, draggingTarget)
+                                    draggingDayId = null
+                                },
+                                onDelete = { onRequestDeleteDay(day) },
+                            )
+                        }
                     }
                 }
                 state.dayManagementError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
@@ -289,36 +339,41 @@ private fun TripDaySettingsRow(
     index: Int,
     count: Int,
     enabled: Boolean,
-    onMove: (Int) -> Unit,
-    canReorder: Boolean,
+    dragging: Boolean,
+    translation: Float,
+    onDragStart: (Float) -> Unit,
+    onDragDelta: (Float) -> Unit,
+    onDragEnd: (Boolean) -> Unit,
     onDelete: () -> Unit,
 ) {
-    var drag by remember(day.id) { mutableFloatStateOf(0f) }
-    val currentIndex by rememberUpdatedState(index)
-    val currentOnMove by rememberUpdatedState(onMove)
-    val stepPx = with(LocalDensity.current) { EasyTripTheme.sizes.settingsDayRowHeight.toPx() }
+    var handleTop by remember { mutableFloatStateOf(0f) }
+    val currentStart by rememberUpdatedState(onDragStart)
+    val currentDelta by rememberUpdatedState(onDragDelta)
+    val currentEnd by rememberUpdatedState(onDragEnd)
     Surface(
-        color = MaterialTheme.colorScheme.surface,
+        modifier = Modifier.zIndex(if (dragging) 1f else 0f).graphicsLayer { translationY = translation; shadowElevation = if (dragging) 6.dp.toPx() else 0f },
+        color = if (dragging) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         shape = tripDaySettingsRowShape(index, count, EasyTripTheme.sizes.settingsCardCornerRadius),
     ) {
         Row(Modifier.fillMaxWidth().height(48.dp).padding(horizontal = 6.dp), verticalAlignment = Alignment.CenterVertically) {
-            if (canReorder) {
+            run {
                 androidx.compose.foundation.layout.Box(
                     modifier = Modifier
                         .size(48.dp)
                         .testTag("move-day-handle-${day.id}")
                         .semantics { contentDescription = "拖动调整第 ${index + 1} 天顺序" }
-                        .pointerInput(day.id, count, stepPx) {
-                            var startIndex = currentIndex
+                        .onGloballyPositioned { handleTop = it.positionInRoot().y }
+                        .pointerInput(day.id, count, enabled) {
+                            if (!enabled || count < 2) return@pointerInput
                             detectDragGesturesAfterLongPress(
-                                onDragStart = { drag = 0f; startIndex = currentIndex },
-                                onDrag = { change, amount -> change.consume(); drag += amount.y },
-                                onDragEnd = { currentOnMove((startIndex + (drag / stepPx).toInt()).coerceIn(0, count - 1)); drag = 0f },
-                                onDragCancel = { drag = 0f },
+                                onDragStart = { currentStart(handleTop + it.y) },
+                                onDrag = { change, amount -> change.consume(); currentDelta(amount.y) },
+                                onDragEnd = { currentEnd(false) },
+                                onDragCancel = { currentEnd(true) },
                             )
                         },
                     contentAlignment = Alignment.Center,
-                ) { Text("≡", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.titleLarge) }
+                ) { com.yangchengwei.easytrip.core.ui.component.DragHandleIcon() }
             }
             Surface(Modifier.size(26.dp), shape = RoundedCornerShape(7.dp), color = MaterialTheme.colorScheme.primary.copy(alpha = .12f)) {
                 androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) { Text("${index + 1}", style = MaterialTheme.typography.labelMedium) }

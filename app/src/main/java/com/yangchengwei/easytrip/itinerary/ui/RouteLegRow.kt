@@ -112,6 +112,7 @@ internal fun RouteLegContent(
             Text(
                 buildList {
                     add(leg.modeLabel())
+                    leg.expenseCents?.let { add(com.yangchengwei.easytrip.expense.formatExpense(it)) }
                     leg.effectiveDurationSeconds?.let { add(formatDuration(it)) }
                     state.distanceMeters?.let { add(formatDistance(it)) }
                 }.joinToString(" · "),
@@ -152,6 +153,7 @@ internal fun RouteLegContent(
                 verticalAlignment = Alignment.CenterVertically,
             ) {
                 Column(Modifier.weight(1f)) {
+                    leg.expenseCents?.let { Text(com.yangchengwei.easytrip.expense.formatExpense(it), style = MaterialTheme.typography.bodySmall) }
                     if (showEndpointText && hasEndpoints) {
                         Text(
                             "$fromPlaceName → $toPlaceName",

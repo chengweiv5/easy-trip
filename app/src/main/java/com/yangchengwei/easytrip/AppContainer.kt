@@ -86,7 +86,7 @@ class AppContainer(
     applicationScope: CoroutineScope,
     databaseFactory: (Context) -> EasyTripDatabase = {
         Room.databaseBuilder(it, EasyTripDatabase::class.java, "easy-trip.db")
-            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6)
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7)
             .addCallback(FlexibleRouteDefaultsUpdate)
             .build()
     },
@@ -99,9 +99,10 @@ class AppContainer(
     val locationPermissionRequestStore = SharedPreferencesLocationPermissionRequestStore(
         this.context.getSharedPreferences("permissions", Context.MODE_PRIVATE),
     )
-    val tripRepository = RoomTripRepository(database.tripDao(), database = database, isOnline = { networkMonitor.isOnline.value })
+    val expenseRemovalPrompter = com.yangchengwei.easytrip.expense.ExpenseRemovalPrompter()
+    val tripRepository = RoomTripRepository(database.tripDao(), database = database, isOnline = { networkMonitor.isOnline.value }, confirmExpenseRemoval = expenseRemovalPrompter::confirm)
     val tripService = TripService(tripRepository)
-    val savedPlaceRepository = RoomSavedPlaceRepository(database, isOnline = { networkMonitor.isOnline.value })
+    val savedPlaceRepository = RoomSavedPlaceRepository(database, isOnline = { networkMonitor.isOnline.value }, confirmExpenseRemoval = expenseRemovalPrompter::confirm)
     val placeService = PlaceService(savedPlaceRepository)
     val routeLegRepository = RoomRouteLegRepository(database.routeLegDao())
     val itineraryRepository = RoomItineraryRepository(
@@ -109,6 +110,7 @@ class AppContainer(
         database.itineraryEditingDao(),
         database.routeLegDao(),
         isOnline = { networkMonitor.isOnline.value },
+        confirmExpenseRemoval = expenseRemovalPrompter::confirm,
     )
     val deleteImpactProvider = RoomDeleteImpactProvider(database.deleteImpactDao())
 

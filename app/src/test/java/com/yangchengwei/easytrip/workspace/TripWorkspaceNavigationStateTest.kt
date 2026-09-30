@@ -771,8 +771,10 @@ class TripWorkspaceNavigationStateTest {
 
         model.selectSection(WorkspaceSection.ITINERARY)
         advanceUntilIdle()
-        assertEquals(ViewportReason.SCOPE_CHANGED, model.state.value.map.viewportRequest?.reason)
-        assertEquals(changed?.id?.plus(1), model.state.value.map.viewportRequest?.id)
+        assertNull(model.state.value.map.viewportRequest)
+        model.setSheetLevel(WorkspaceSheetLevel.HALF)
+        advanceUntilIdle()
+        assertNull(model.state.value.map.viewportRequest)
     }
 
     @Test fun `stale day selection is ignored and real navigation changes request viewport once`() = runTest(dispatcher) {

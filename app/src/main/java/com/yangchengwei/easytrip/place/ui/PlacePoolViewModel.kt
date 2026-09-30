@@ -66,6 +66,7 @@ data class PlacePoolUiState(
     val selectedDetailPlace: SavedPlace? = null,
     val allRows: List<SavedPlaceRowUi>? = null,
     val selectedCityKey: String? = null,
+    val localQuery: String = "",
 )
 
 class PlacePoolViewModel(private val tripId: String, private val repository: SavedPlaceRepository, searchSource: PlaceSearchDataSource?, private val service: PlaceService = PlaceService(repository)) : ViewModel() {
@@ -98,6 +99,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         observePlaces()
     }
     fun setSearchSource(value: PlaceSearchDataSource?) { reducer.setSource(value); cityEnricher.setSource(value) }
+    fun setLocalQuery(value: String) { mutableState.update { it.copy(localQuery = value) } }
     fun setQuery(value: String) = reducer.setQuery(value)
     fun clearSearch() = reducer.clear()
     fun selectCity(key: String?) {
@@ -367,6 +369,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     }
     fun dispatch(action: PlacePoolAction) {
         when (action) {
+            is PlacePoolAction.SetLocalQuery -> setLocalQuery(action.value)
             is PlacePoolAction.SetQuery -> setQuery(action.value)
             is PlacePoolAction.ToggleTag -> toggleTag(action.id)
             is PlacePoolAction.SelectCity -> selectCity(action.key)
@@ -449,5 +452,15 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
 
     class Factory(private val tripId: String, private val repository: SavedPlaceRepository, private val source: PlaceSearchDataSource?) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST") override fun <T : ViewModel> create(modelClass: Class<T>): T = PlacePoolViewModel(tripId, repository, source) as T
+    }
+}
+
+/** Filters only the displayed saved rows; map filters and remote search stay independent. */
+fun localSearchRows(state: PlacePoolUiState): List<SavedPlaceRowUi> {
+    val query = state.localQuery.trim()
+    if (query.isEmpty()) return state.rows
+    return state.rows.filter { row ->
+        listOf(row.name, row.address, row.note.orEmpty()).plus(row.tags)
+            .any { it.contains(query, ignoreCase = true) }
     }
 }

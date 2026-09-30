@@ -20,6 +20,8 @@ class RoomRouteLegRepository(private val dao:RouteLegDao):RouteLegRepository {
   val normalizedDurationOverrideSeconds = durationOverrideSeconds?.takeIf { it > 0 }
   return dao.updateDetails(legId,selectedModeOverride,normalizedDurationOverrideSeconds,note,online)==1
  }
+ override suspend fun updateDetailsWithExpense(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean,expenseCents:Long?):Boolean =
+  dao.updateDetailsWithExpense(legId,selectedModeOverride,durationOverrideSeconds?.takeIf { it > 0 },note,online,expenseCents)==1
  override suspend fun retry(legId:String,online:Boolean):Boolean {
   val version=dao.leg(legId)?.version?:return false
   return retry(legId,version,online)

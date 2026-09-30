@@ -335,6 +335,7 @@ fun interface AppNavigationObserver {
 fun AppNavigation() {
     val app = androidx.compose.ui.platform.LocalContext.current.applicationContext as EasyTripApplication
     AppNavigation(app.tripService, app.tripRepository, app.deleteImpactProvider, application = app)
+    com.yangchengwei.easytrip.expense.ExpenseRemovalDialog(app.container.expenseRemovalPrompter)
 }
 
 @Composable

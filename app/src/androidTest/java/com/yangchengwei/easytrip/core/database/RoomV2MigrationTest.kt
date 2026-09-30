@@ -46,17 +46,18 @@ class RoomV2MigrationTest {
 
         helper.runMigrationsAndValidate(
             databaseName,
-            6,
+            7,
             true,
             EasyTripDatabase.MIGRATION_1_2,
             EasyTripDatabase.MIGRATION_2_3,
             EasyTripDatabase.MIGRATION_3_4,
             EasyTripDatabase.MIGRATION_4_5,
             EasyTripDatabase.MIGRATION_5_6,
+            EasyTripDatabase.MIGRATION_6_7,
         ).close()
 
         val database = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), EasyTripDatabase::class.java, databaseName)
-            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6)
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7)
             .allowMainThreadQueries()
             .build()
         try {
@@ -64,6 +65,8 @@ class RoomV2MigrationTest {
             val leg = runBlocking { database.routeLegDao().legs("day").single() }
             assertEquals("trip", item.tripId)
             assertEquals(30, item.stayDurationMinutes)
+            assertNull(item.expenseCents)
+            assertNull(leg.expenseCents)
             assertNull(item.note)
             assertNull(item.idempotencyKey)
             val legacyPlace = runBlocking { database.savedPlaceDao().place("a")!! }

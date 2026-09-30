@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
 import androidx.lifecycle.ViewModel
+import com.yangchengwei.easytrip.expense.*
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.core.model.TransportMode
@@ -27,6 +28,7 @@ import kotlinx.coroutines.flow.emptyFlow
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.launch
 
 private data class PendingAppendDay(
@@ -51,10 +53,12 @@ data class DayItineraryUiState(
     val deleteConfirmation: ItineraryDeleteConfirmation? = null,
     val modeEditor: RouteModeEditDraft? = null,
     val isAppendingDay: Boolean = false,
+    val isReorderingDays: Boolean = false,
     val appendDayError: String? = null,
     val appendDayCompletionToken: Long? = null,
     val error: String? = null,
 ) {
+    val expenseSummary get() = expenseSummary(items.map { it.expenseCents } + legs.map { it.expenseCents })
     val moveItemId: String? get() = crossDayMove?.itemId
     val modeLegId: String? get() = modeEditor?.legId
 }
@@ -103,7 +107,9 @@ class DayItineraryViewModel(
             } else {
                 selectedDay.flatMapLatest { dayId ->
                     if (dayId == null) flowOf(null)
-                    else combine(itineraries.observeDay(dayId), routeLegs.observeDay(dayId)) { day, legs ->
+                    else itineraries.observeTripDays(tripId)?.map { snapshots ->
+                        snapshots.firstOrNull { it.itinerary.dayId == dayId }?.let { DayMapSnapshot(it.itinerary, it.legs) }
+                    } ?: combine(itineraries.observeDay(dayId), routeLegs.observeDay(dayId)) { day, legs ->
                         DayMapSnapshot(day, legs)
                     }
                 }.collect { snapshot ->
@@ -339,6 +345,24 @@ class DayItineraryViewModel(
         )
     }
 
+    fun reorderDay(dayId: String, targetIndex: Int) {
+        val current = state.value
+        if (current.isReorderingDays || current.isAppendingDay || targetIndex !in current.days.indices ||
+            current.days.none { it.id == dayId } || current.days[targetIndex].id == dayId) return
+        mutable.value = current.copy(isReorderingDays = true, error = null)
+        viewModelScope.launch {
+            try {
+                tripService.moveDay(tripId, dayId, targetIndex)
+            } catch (failure: CancellationException) {
+                throw failure
+            } catch (failure: Throwable) {
+                mutable.value = mutable.value.copy(error = failure.message ?: "日期排序失败，已保留原顺序")
+            } finally {
+                mutable.value = mutable.value.copy(isReorderingDays = false)
+            }
+        }
+    }
+
     fun moveToDay(dayId: String) {
         val draft = state.value.crossDayMove ?: return
         if (draft.isMoving) return
@@ -346,7 +370,7 @@ class DayItineraryViewModel(
         mutable.value = mutable.value.copy(crossDayMove = started)
         viewModelScope.launch {
             try {
-                itineraries.moveItem(started.itemId, dayId, 0)
+                itineraries.appendItem(started.itemId, dayId)
                 if (mutable.value.crossDayMove.matches(started)) {
                     mutable.value = mutable.value.copy(crossDayMove = null)
                 }
@@ -414,6 +438,7 @@ class DayItineraryViewModel(
                 arrivalTimeText = item.arrivalTime?.toString().orEmpty(),
                 stayMinutesText = item.stayMinutes?.toString().orEmpty(),
                 noteText = item.note.orEmpty(),
+                expenseText = expenseInput(item.expenseCents),
                 placeId = item.placeId,
                 placeName = item.name,
                 generation = ++nextEditGeneration,
@@ -422,6 +447,14 @@ class DayItineraryViewModel(
         return true
     }
 
+    fun updateExpense(value: String) {
+        val draft = mutable.value.editDraft ?: return
+        if (!draft.isSaving) mutable.value = mutable.value.copy(editDraft = draft.copy(expenseText = value, saveError = null))
+    }
+    fun updateRouteExpense(value: String) {
+        val draft = mutable.value.modeEditor ?: return
+        if (!draft.isSaving) mutable.value = mutable.value.copy(modeEditor = draft.copy(expenseText = value, saveError = null))
+    }
     fun updateArrivalTime(value: String) {
         val draft = mutable.value.editDraft ?: return
         mutable.value = mutable.value.copy(editDraft = draft.copy(arrivalTimeText = value, saveError = null))
@@ -449,7 +482,7 @@ class DayItineraryViewModel(
         mutable.value = mutable.value.copy(editDraft = draft.copy(isSaving = true, saveError = null))
         viewModelScope.launch {
             try {
-                itineraries.updateDetails(draft.itemId, draft.arrivalTime, draft.stayMinutes, draft.noteText.trim().ifEmpty { null })
+                itineraries.updateDetailsWithExpense(draft.itemId, draft.arrivalTime, draft.stayMinutes, draft.noteText.trim().ifEmpty { null }, parseExpense(draft.expenseText))
                 if (mutable.value.editDraft.matches(draft)) {
                     mutable.value = mutable.value.copy(editDraft = null)
                 }
@@ -484,6 +517,7 @@ class DayItineraryViewModel(
                 originalSelectedModeOverride = leg.selectedModeOverride,
                 durationMinutesText = leg.durationOverrideSeconds?.takeIf { it > 0 }?.div(60)?.toString().orEmpty(),
                 noteText = leg.note.orEmpty(),
+                expenseText = expenseInput(leg.expenseCents),
                 plannedDurationSeconds = leg.durationSeconds,
                 originalDurationOverrideSeconds = leg.durationOverrideSeconds?.takeIf { it > 0 },
                 generation = ++nextModeGeneration,
@@ -545,17 +579,19 @@ class DayItineraryViewModel(
                 val modeChanged = started.selectedModeOverride != started.originalSelectedModeOverride
                 val routeCoordinator = coordinator
                 val saved = when {
-                    routeCoordinator != null -> routeCoordinator.updateDetails(
+                    routeCoordinator != null -> routeCoordinator.updateDetailsWithExpense(
                         started.legId,
                         started.selectedModeOverride,
                         started.durationOverrideSeconds,
                         started.noteText.trim().ifEmpty { null },
+                        expenseCents = parseExpense(started.expenseText),
                     )
-                    !modeChanged -> routeLegs.updateDetails(
+                    !modeChanged -> routeLegs.updateDetailsWithExpense(
                         started.legId,
                         started.selectedModeOverride,
                         started.durationOverrideSeconds,
                         started.noteText.trim().ifEmpty { null },
+                        expenseCents = parseExpense(started.expenseText),
                         online = false,
                     )
                     else -> false
@@ -637,9 +673,12 @@ class DayItineraryViewModel(
             is DayItineraryAction.RequestDelete -> requestDelete(action.itemId)
             is DayItineraryAction.RequestMode -> requestMode(action.legId)
             is DayItineraryAction.Retry -> retry(action.legId, action.expectedVersion)
+            is DayItineraryAction.ReorderDay -> reorderDay(action.dayId, action.targetIndex)
             is DayItineraryAction.MoveToDay -> moveToDay(action.dayId)
             is DayItineraryAction.UpdateArrivalTime -> updateArrivalTime(action.value)
             is DayItineraryAction.UpdateStayMinutes -> updateStayMinutes(action.value)
+            is DayItineraryAction.UpdateExpense -> updateExpense(action.value)
+            is DayItineraryAction.UpdateRouteExpense -> updateRouteExpense(action.value)
             is DayItineraryAction.UpdateNote -> updateNote(action.value)
             DayItineraryAction.SaveEdit -> saveTiming()
             DayItineraryAction.DismissEditSaveError -> dismissEditSaveError()

@@ -17,6 +17,7 @@ data class ItineraryItemUi(
     val stayMinutes: Int?,
     val note: String? = null,
     val placeId: String? = null,
+    val expenseCents: Long? = null,
 )
 
 sealed interface RouteLegUiState {
@@ -44,6 +45,7 @@ data class RouteLegUi(
     val note: String? = null,
     val selectedModeOverride: TransportMode? = null,
     val version: Long = 0,
+    val expenseCents: Long? = null,
 ) {
     val effectiveDurationSeconds: Int?
         get() = durationOverrideSeconds ?: durationSeconds
@@ -90,6 +92,7 @@ data class WholeTripDayUi(
     val items: List<ItineraryItemUi>,
     val legs: List<RouteLegUi>,
     val collapsedItemCount: Int = 0,
+    val expenses: com.yangchengwei.easytrip.expense.ExpenseSummary = com.yangchengwei.easytrip.expense.ExpenseSummary(),
 )
 
 internal fun mapWholeTripDays(
@@ -120,6 +123,10 @@ internal fun mapWholeTripDays(
             legs = snapshot?.legs.orEmpty()
                 .map(RouteLegEntity::toRouteLegUi),
             collapsedItemCount = projection.collapsedCounts[day.id] ?: 0,
+            expenses = com.yangchengwei.easytrip.expense.expenseSummary(
+                sourceByDay[day.id]?.itinerary?.items.orEmpty().map { it.expenseCents } +
+                    sourceByDay[day.id]?.legs.orEmpty().map { it.expenseCents },
+            ),
         )
     }
 }
@@ -132,6 +139,7 @@ internal fun ItineraryItem.toItineraryItemUi() = ItineraryItemUi(
     stayMinutes = stayMinutes,
     note = note,
     placeId = place.id,
+    expenseCents = expenseCents,
 )
 
 internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(
@@ -146,6 +154,7 @@ internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(
     note = note,
     selectedModeOverride = selectedMode,
     version = version,
+    expenseCents = expenseCents,
     error = errorKind.toRouteErrorSummary() ?: errorCode,
 )
 

@@ -110,6 +110,7 @@ class WholeTripItineraryMapperTest {
                 WholeTripDayUi(
                     dayId = "day-1",
                     dayNumber = 1,
+                    expenses = com.yangchengwei.easytrip.expense.ExpenseSummary(missing = 5),
                     items = listOf(
                         ItineraryItemUi("item-1", "早餐店", "东街 1 号", LocalTime.of(8, 30), 45, placeId = "place-item-1"),
                         ItineraryItemUi("item-2", "博物馆", "西街 2 号", LocalTime.of(10, 0), 120, placeId = "place-item-2"),

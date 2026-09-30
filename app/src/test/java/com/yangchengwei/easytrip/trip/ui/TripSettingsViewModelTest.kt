@@ -1412,7 +1412,7 @@ class TripSettingsViewModelTest {
         advanceUntilIdle()
     }
 
-    @Test fun datedTripMoveIsRejectedBeforeRepositoryWrite() = runTest(dispatcher) {
+    @Test fun datedTripMoveIsSavedImmediately() = runTest(dispatcher) {
         val repository = FakeRepository()
         val model = model(repository)
         advanceUntilIdle()
@@ -1420,7 +1420,7 @@ class TripSettingsViewModelTest {
         model.moveDay(model.state.value.days.first(), 2)
         advanceUntilIdle()
 
-        assertEquals(0, repository.moveCalls)
+        assertEquals(1, repository.moveCalls)
         assertEquals(LocalDate.parse("2026-10-01"), model.state.value.startDate)
     }
 

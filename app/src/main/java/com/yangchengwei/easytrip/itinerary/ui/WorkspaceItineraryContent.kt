@@ -26,6 +26,8 @@ fun WorkspaceItineraryContent(
     modifier: Modifier = Modifier,
     onAddDay: () -> Unit = {},
     onAppendDay: () -> Unit = onAddDay,
+    onMoveDay: (String, Int) -> Unit = { _, _ -> },
+    dayReorderEnabled: Boolean = true,
     contentPadding: PaddingValues = PaddingValues.Zero,
     startDate: LocalDate? = null,
     calendarContent: (@Composable () -> Unit)? = null,
@@ -38,6 +40,8 @@ fun WorkspaceItineraryContent(
             selected = selected,
             onSelect = onSelect,
             onAddDay = onAppendDay,
+            onMoveDay = onMoveDay,
+            reorderEnabled = dayReorderEnabled,
             modifier = Modifier.fillMaxHeight(),
             startDate = startDate,
         )

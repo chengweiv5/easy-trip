@@ -29,6 +29,29 @@ class MapViewportControllerTest {
         assertNull(c.update(listOf(a,b), MapScope.SINGLE_DAY, listOf(a,b), "b"))
     }
 
+    @Test fun expandedDateSwitchDiscardsFitAndDoesNotReplayOnCollapse() {
+        val c = MapViewportController()
+        val points = listOf(beijing, shanghai)
+        c.update(points, MapScope.SINGLE_DAY, listOf(beijing), "a")
+        assertNull(c.update(points, MapScope.SINGLE_DAY, listOf(shanghai), "b", retainCamera = true))
+        assertNull(c.currentRequest)
+        assertNull(c.update(points, MapScope.SINGLE_DAY, points, "b", retainCamera = true))
+        assertNull(c.update(points, MapScope.SINGLE_DAY, points, "b"))
+        assertNull(c.update(points, MapScope.WHOLE_TRIP, points, retainCamera = true))
+        assertNull(c.update(points, MapScope.WHOLE_TRIP, points))
+        assertEquals(ViewportReason.SEARCH_FOCUS, c.focusSearchResult(beijing).reason)
+        assertEquals(listOf(beijing), c.update(points, MapScope.SINGLE_DAY, listOf(beijing), "a")?.points)
+    }
+
+    @Test fun explicitFocusWhileExpandedSurvivesUnchangedMapProjection() {
+        val c = MapViewportController()
+        val points = listOf(beijing, shanghai)
+        c.update(points, MapScope.SINGLE_DAY, listOf(beijing), "a", retainCamera = true)
+        val focus = c.focusSearchResult(shanghai)
+        c.update(points, MapScope.SINGLE_DAY, listOf(beijing), "a", retainCamera = true)
+        assertEquals(focus, c.currentRequest)
+    }
+
     private val beijing = GeoPoint(39.9, 116.4)
     private val shanghai = GeoPoint(31.2, 121.5)
     private val changedBeijing = GeoPoint(39.91, 116.4)

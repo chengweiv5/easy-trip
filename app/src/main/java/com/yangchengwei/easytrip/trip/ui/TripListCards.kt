@@ -110,6 +110,7 @@ internal fun PrimaryTripCard(
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
                 style = MaterialTheme.typography.bodyMedium,
             )
+            Text(trip.expenseLabel, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("trip-expense-${trip.id}"))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(trip.placeCountLabel, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 Text(trip.tripDayCountLabel, style = MaterialTheme.typography.bodySmall, maxLines = 1)
@@ -202,6 +203,7 @@ internal fun OtherTripRow(
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+            Text(trip.expenseLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 trip.name,
                 modifier = Modifier.testTag("other-trip-name-${trip.id}"),

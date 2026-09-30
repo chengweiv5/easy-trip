@@ -2,12 +2,14 @@ package com.yangchengwei.easytrip.itinerary.ui
 
 import com.yangchengwei.easytrip.core.model.TransportMode
 import java.time.LocalTime
+import com.yangchengwei.easytrip.expense.*
 
 data class ItineraryEditDraft(
     val itemId: String,
     val arrivalTimeText: String,
     val stayMinutesText: String,
     val noteText: String = "",
+    val expenseText: String = "",
     val placeId: String? = null,
     val placeName: String = "",
     val isSaving: Boolean = false,
@@ -23,7 +25,7 @@ data class ItineraryEditDraft(
     val isValid: Boolean
         get() {
             val parsedMinutes = stayMinutes
-            return (arrivalTimeText.isBlank() || arrivalTime != null) &&
+            return validExpense(expenseText) && (arrivalTimeText.isBlank() || arrivalTime != null) &&
                 (stayMinutesText.isBlank() || parsedMinutes != null && parsedMinutes >= 0)
         }
 }
@@ -43,6 +45,7 @@ data class RouteModeEditDraft(
     val originalSelectedModeOverride: TransportMode? = null,
     val durationMinutesText: String = "",
     val noteText: String = "",
+    val expenseText: String = "",
     val plannedDurationSeconds: Int? = null,
     val originalDurationOverrideSeconds: Int? = null,
     val isDurationEdited: Boolean = false,
@@ -57,7 +60,7 @@ data class RouteModeEditDraft(
         get() = if (!isDurationEdited) originalDurationOverrideSeconds else durationMinutesText.takeIf(String::isNotBlank)?.toIntOrNull()?.times(60)
 
     val isValid: Boolean
-        get() = durationMinutesText.isBlank() || durationMinutesText.toIntOrNull() in 1..1_440
+        get() = validExpense(expenseText) && (durationMinutesText.isBlank() || durationMinutesText.toIntOrNull() in 1..1_440)
 }
 
 

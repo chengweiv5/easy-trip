@@ -218,6 +218,10 @@ fun CalendarContent(
                 .then(if (hideSummary) Modifier.clearAndSetSemantics {} else Modifier),
             text = if (single == null) "全程 · ${days.size} 天" else "第 ${selectedDay?.number ?: 1} 天 · ${selectedDay?.sourceItems?.size ?: 0} 站",
             date = selectedDay?.let { wholeTripDayDate(it.number, startDate) },
+            expenseLabel = rawDays.filter { single == null || it.dayId == single }.let { visible ->
+                com.yangchengwei.easytrip.expense.expenseSummary(visible.flatMap { day -> day.items.map { it.expenseCents } + day.legs.map { it.expenseCents } })
+                    .label(if (single == null) "全程已记" else "当日已记")
+            },
             trailingAction = {
                 com.yangchengwei.easytrip.itinerary.ui.ItineraryDayActions(
                     calendarSelected = true,

@@ -181,25 +181,9 @@ private fun ItineraryDragHandle(
             },
         contentAlignment = Alignment.Center,
     ) {
-        Canvas(
-            Modifier
-                .size(18.dp)
-                .testTag("drag-handle-icon-$itemId"),
-        ) {
-            val strokeWidth = 2.dp.toPx()
-            val startX = 4.dp.toPx()
-            val endX = size.width - startX
-            listOf(-5.dp, 0.dp, 5.dp).forEach { offset ->
-                val y = size.height / 2f + offset.toPx()
-                drawLine(
-                    color = handleColor,
-                    start = Offset(startX, y),
-                    end = Offset(endX, y),
-                    strokeWidth = strokeWidth,
-                    cap = StrokeCap.Round,
-                )
-            }
-        }
+        com.yangchengwei.easytrip.core.ui.component.DragHandleIcon(
+            Modifier.testTag("drag-handle-icon-$itemId"),
+        )
     }
 }
 
@@ -255,7 +239,7 @@ internal fun ItineraryPlaceContent(
                     modifier = Modifier.padding(start = contentInset).testTag("itinerary-place-address-${item.id}"),
                 )
             }
-            if (item.arrivalTime != null || item.stayMinutes != null) {
+            if (item.arrivalTime != null || item.stayMinutes != null || item.expenseCents != null) {
                 val arrivalColor = MaterialTheme.colorScheme.primary
                 Text(
                     text = buildAnnotatedString {
@@ -264,6 +248,7 @@ internal fun ItineraryPlaceContent(
                         }
                         if (item.arrivalTime != null && item.stayMinutes != null) append(" · ")
                         item.stayMinutes?.let { append("停留 ${formatStayHours(it)}") }
+                        item.expenseCents?.let { if (length > 0) append(" · "); append(com.yangchengwei.easytrip.expense.formatExpense(it)) }
                     },
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -306,7 +291,7 @@ private fun CompactItineraryStop(
                     textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
                 Text(
-                    item.stayMinutes?.let { "停留 ${formatStayHours(it)}" } ?: "待安排停留时长",
+                    (item.stayMinutes?.let { "停留 ${formatStayHours(it)}" } ?: "待安排停留时长") + item.expenseCents?.let { " · " + com.yangchengwei.easytrip.expense.formatExpense(it) }.orEmpty(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f).alignByBaseline().testTag("itinerary-place-timing-${item.id}"),

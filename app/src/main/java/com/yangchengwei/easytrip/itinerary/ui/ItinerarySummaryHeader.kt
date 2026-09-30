@@ -25,6 +25,7 @@ internal fun ItinerarySummaryHeader(
     text: String,
     modifier: Modifier = Modifier,
     date: String? = null,
+    expenseLabel: String? = null,
     trailingAction: (@Composable () -> Unit)? = null,
     trailingInset: Dp = 0.dp,
 ) {
@@ -41,6 +42,7 @@ internal fun ItinerarySummaryHeader(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.semantics { heading() },
             )
+            expenseLabel?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             date?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

@@ -32,6 +32,25 @@ class PlacePoolViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun localSearchMatchesMetadataWithoutChangingRemoteSearchOrCity() = runTest(dispatcher) {
+        val a = place("a").copy(name = "West LAKE", note = "赏月", cityAdCode = "330100", cityName = "杭州市")
+        val b = place("b").copy(address = "湖滨路")
+        val model = PlacePoolViewModel("trip", PoolRepository(listOf(a, b), mapOf("a" to 2)), null)
+        advanceUntilIdle()
+        model.selectCity("330100")
+        model.dispatch(PlacePoolAction.SetLocalQuery(" lake "))
+        assertEquals(listOf("a"), localSearchRows(model.state.value).map { it.id })
+        assertEquals(2, localSearchRows(model.state.value).single().itineraryOccurrenceCount)
+        assertEquals("", model.state.value.search.query)
+        model.dispatch(PlacePoolAction.SetLocalQuery("湖滨"))
+        assertEquals(listOf("b"), localSearchRows(model.state.value).map { it.id })
+        model.dispatch(PlacePoolAction.SetLocalQuery("不存在"))
+        assertEquals(emptyList<String>(), localSearchRows(model.state.value).map { it.id })
+        model.dispatch(PlacePoolAction.SetLocalQuery(""))
+        assertEquals(listOf("a", "b"), localSearchRows(model.state.value).map { it.id })
+        assertEquals("330100", model.state.value.selectedCityKey)
+    }
+
     @Test fun citySelectionIsSharedAndResetsWhenCityDisappears() = runTest(dispatcher) {
         val hangzhou = place("hz").copy(cityName = "杭州市", cityAdCode = "330100")
         val shanghai = place("sh").copy(cityName = "上海市", cityAdCode = "310000")

@@ -19,6 +19,10 @@ interface RouteLegRepository {
  suspend fun completeIfVersionMatches(legId:String,version:Long,result:RouteResult):Boolean
  suspend fun failIfVersionMatches(legId:String,version:Long,failure:RoutePlanOutcome.Failure):Boolean
  suspend fun updateDetails(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean):Boolean
+ suspend fun updateDetailsWithExpense(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean,expenseCents:Long?):Boolean {
+  require(expenseCents == null) { "此存储暂不支持花费" }
+  return updateDetails(legId,selectedModeOverride,durationOverrideSeconds,note,online)
+ }
  suspend fun retry(legId:String,online:Boolean):Boolean
  suspend fun retry(legId:String,expectedVersion:Long,online:Boolean):Boolean = false
 }

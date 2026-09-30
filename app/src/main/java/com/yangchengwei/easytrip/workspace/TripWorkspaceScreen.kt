@@ -506,7 +506,7 @@ private fun WorkspaceOverlayContent(
                 text = {
                     if (draft.saveError != null) {
                         ItinerarySaveFailureContent(
-                            onKeepEditing = { onItineraryAction(DayItineraryAction.DismissEditSaveError) },
+                        reason = draft.saveError,                            onKeepEditing = { onItineraryAction(DayItineraryAction.DismissEditSaveError) },
                             onRetrySave = { onItineraryAction(DayItineraryAction.SaveEdit) },
                         )
                     } else {
@@ -515,6 +515,7 @@ private fun WorkspaceOverlayContent(
                             onArrivalTimeChange = { onItineraryAction(DayItineraryAction.UpdateArrivalTime(it)) },
                             onStayMinutesChange = { onItineraryAction(DayItineraryAction.UpdateStayMinutes(it)) },
                             onNoteChange = { onItineraryAction(DayItineraryAction.UpdateNote(it)) },
+                        onExpenseChange = { onItineraryAction(DayItineraryAction.UpdateExpense(it)) },
                             onScheduleAgain = draft.placeId?.let { { onItineraryAction(DayItineraryAction.ScheduleAgain(draft.itemId)) } },
                             onSave = { onItineraryAction(DayItineraryAction.SaveEdit) },
                             onCancel = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
@@ -625,6 +626,7 @@ private fun WorkspaceOverlayContent(
                         onClearSelectedModeOverride = { onItineraryAction(DayItineraryAction.ClearSelectedModeOverride) },
                         onDurationMinutesChange = { onItineraryAction(DayItineraryAction.UpdateRouteDurationMinutes(it)) },
                         onNoteChange = { onItineraryAction(DayItineraryAction.UpdateRouteNote(it)) },
+                    onExpenseChange = { onItineraryAction(DayItineraryAction.UpdateRouteExpense(it)) },
                         onSave = { onItineraryAction(DayItineraryAction.SaveMode) },
                         onCancel = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
                     )

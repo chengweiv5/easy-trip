@@ -22,6 +22,7 @@ class MapViewportController {
         visiblePoints: List<GeoPoint>,
         selectedDayId: String? = null,
         placeFilter: PlacePoolMapFilter = PlacePoolMapFilter(),
+        retainCamera: Boolean = false,
     ): MapViewportRequest? {
         val normalizedPlaces = placePoints.toSet()
         val normalizedVisible = visiblePoints.toSet()
@@ -49,6 +50,13 @@ class MapViewportController {
         this.scope = scope
         this.selectedDayId = selectedDayId
         this.placeFilter = placeFilter
+        // Observe the new scope even when its fit is discarded, so closing the drawer
+        // cannot replay it. Late route results in that scope must not recenter either.
+        if (retainCamera && reason != null) {
+            currentRequest = null
+            userMovedViewport = true
+            return null
+        }
         if (visiblePoints.isEmpty() && currentRequest?.reason != ViewportReason.SEARCH_FOCUS) {
             currentRequest = null
         }

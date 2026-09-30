@@ -24,6 +24,7 @@ fun EditItineraryItemContent(
     onStayMinutesChange: (String) -> Unit,
     onNoteChange: (String) -> Unit = {},
     onScheduleAgain: (() -> Unit)? = null,
+    onExpenseChange: (String) -> Unit = {},
     onSave: () -> Unit,
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
@@ -37,8 +38,9 @@ fun EditItineraryItemContent(
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
             Text(draft.placeName.ifBlank { "到达与停留" }, style = MaterialTheme.typography.titleMedium)
-            Text("到达时间、停留时长与备注", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text("到达时间、停留时长、花费与备注", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             ItineraryTimingPickers(draft, onArrivalTimeChange, onStayMinutesChange)
+            com.yangchengwei.easytrip.expense.ExpenseField(draft.expenseText, onExpenseChange, !draft.isSaving)
             OutlinedTextField(
                 value = draft.noteText,
                 onValueChange = onNoteChange,

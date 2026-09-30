@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.trip.data
 
+import com.yangchengwei.easytrip.expense.*
 import androidx.room.withTransaction
 import com.yangchengwei.easytrip.core.model.TimeMode
 import com.yangchengwei.easytrip.core.model.TravelMode
@@ -41,6 +42,7 @@ class RoomTripRepository(
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
     private val database: EasyTripDatabase? = null,
     private val isOnline: () -> Boolean = { true },
+    private val confirmExpenseRemoval: ConfirmExpenseRemoval? = null,
 ) : TripRepository {
     override fun observeTrips(): Flow<List<TripSummary>> = dao.observeTrips().map { trips ->
         val today = LocalDate.now(clock)
@@ -55,6 +57,8 @@ class RoomTripRepository(
                 scheduledDayCount = projection.scheduledDayCount,
                 updatedAt = projection.updatedAt,
                 hasTraveled = projection.hasTraveled,
+                expenseCents = projection.expenseCents,
+                recordedExpenseCount = projection.recordedExpenseCount,
             )
         }.sortedForTripList(today)
     }
@@ -123,7 +127,7 @@ class RoomTripRepository(
         require(command.dayCount in 1..MAX_TRIP_DAYS)
         require(isTripDateRangeRepresentable(command.startDate, command.dayCount)) { "日期范围超出支持范围" }
         val db = requireNotNull(database) { "Date range changes require a database transaction" }
-        db.withTransaction {
+        expenseTransaction(db, confirmExpenseRemoval) {
             val trip = dao.trip(command.tripId)
                 ?: throw com.yangchengwei.easytrip.trip.domain.TripDateRangeTargetNotFoundException()
             val days = dao.days(command.tripId)
@@ -153,6 +157,7 @@ class RoomTripRepository(
                     "Deleted route legs changed after preview",
                 )
             }
+            requireExpenseRemovalConsent(expensesForDays(db, command.expectedDeletedDayIds))
             dao.setStartDateForDayCount(
                 command.tripId,
                 command.startDate,
@@ -207,16 +212,22 @@ class RoomTripRepository(
         dao.moveAndReorderDay(tripId, dayId, targetIndex, clock.instant())
     }
 
-    override suspend fun deleteDay(command: DayDeletion) {
-        dao.deleteAndReorderDay(
-            command.dayId,
-            command.expectedItineraryItems,
-            command.expectedRouteLegs,
-            clock.instant(),
-        )
+    private suspend fun expensesForDays(db: EasyTripDatabase, dayIds: List<String>): List<RecordedExpense> = dayIds.flatMap { dayId ->
+        db.itineraryEditingDao().items(dayId).mapNotNull { item -> item.expenseCents?.let { RecordedExpense("地点", item.id, it) } } +
+            db.routeLegDao().legs(dayId).mapNotNull { leg -> leg.expenseCents?.let { RecordedExpense("交通", leg.id, it) } }
     }
-
+    override suspend fun deleteDay(command: DayDeletion) {
+        val operation: suspend () -> Unit = {
+            database?.let { requireExpenseRemovalConsent(expensesForDays(it, listOf(command.dayId))) }
+            dao.deleteAndReorderDay(command.dayId, command.expectedItineraryItems, command.expectedRouteLegs, clock.instant())
+        }
+        if (database == null) operation() else expenseTransaction(database, confirmExpenseRemoval, operation)
+    }
     override suspend fun deleteTrip(tripId: String) {
-        dao.deleteTripChecked(tripId)
+        val operation: suspend () -> Unit = {
+            database?.let { requireExpenseRemovalConsent(expensesForDays(it, dao.days(tripId).map { day -> day.id })) }
+            dao.deleteTripChecked(tripId)
+        }
+        if (database == null) operation() else expenseTransaction(database, confirmExpenseRemoval, operation)
     }
 }

@@ -16,6 +16,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.OutlinedTextField
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton as TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -49,6 +50,7 @@ fun PlacePoolSheet(
         onOpenDetail = viewModel::openDetail,
         onDismissDetail = { viewModel.dispatch(PlacePoolAction.DismissDetail) },
         onSetQuery = viewModel::setQuery,
+        onSetLocalQuery = viewModel::setLocalQuery,
         onToggleTag = viewModel::toggleTag,
         onSelectCity = viewModel::selectCity,
         onEdit = viewModel::edit,
@@ -70,6 +72,7 @@ fun PlacePoolSheet(
 }
 
 sealed interface PlacePoolAction {
+    data class SetLocalQuery(val value: String) : PlacePoolAction
     data class SetQuery(val value: String) : PlacePoolAction
     data class ToggleTag(val id: String) : PlacePoolAction
     data class SelectCity(val key: String?) : PlacePoolAction
@@ -109,6 +112,7 @@ fun PlacePoolContent(
         onOpenDetail = { onAction(PlacePoolAction.OpenDetail(it)) },
         onDismissDetail = { onAction(PlacePoolAction.DismissDetail) },
         onSetQuery = { onAction(PlacePoolAction.SetQuery(it)) },
+        onSetLocalQuery = { onAction(PlacePoolAction.SetLocalQuery(it)) },
         onToggleTag = { onAction(PlacePoolAction.ToggleTag(it)) },
         onSelectCity = { onAction(PlacePoolAction.SelectCity(it)) },
         onEdit = { onAction(PlacePoolAction.Edit(it)) },
@@ -141,6 +145,7 @@ fun PlacePoolContent(
     onOpenDetail: (String) -> Unit,
     onDismissDetail: () -> Unit,
     onSetQuery: (String) -> Unit,
+    onSetLocalQuery: (String) -> Unit = {},
     onToggleTag: (String) -> Unit,
     onSelectCity: (String?) -> Unit = {},
     onEdit: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
@@ -165,7 +170,7 @@ fun PlacePoolContent(
     val cityRows = state.allRows ?: state.rows
     val cities = remember(cityRows) { placeCityGroups(cityRows) }
     val activeCity = activePlacePoolCity(state)
-    val visibleGroups = remember(state.rows, activeCity) { filterPlaceCityGroups(state.rows, activeCity) }
+    val visibleGroups = remember(state.rows, activeCity, state.localQuery) { filterPlaceCityGroups(localSearchRows(state), activeCity) }
     Column(modifier.padding(contentPadding), verticalArrangement = Arrangement.spacedBy(8.dp)) {
         if (showSearch) PlaceSearchField(state.search.query, onSetQuery)
         if (cityRows.isEmpty() && !showSearch) {
@@ -180,7 +185,7 @@ fun PlacePoolContent(
             )
         } else {
             val listState = rememberLazyListState()
-            LaunchedEffect(activeCity, state.selectedTagIds) { listState.scrollToItem(0) }
+            LaunchedEffect(activeCity, state.selectedTagIds, state.localQuery) { listState.scrollToItem(0) }
             if (!showSearch || onStartAdd != null) {
                 Row(
                     modifier = Modifier.fillMaxWidth().testTag("place-pool-toolbar"),
@@ -207,6 +212,14 @@ fun PlacePoolContent(
                     }
                 }
             }
+            OutlinedTextField(
+                value = state.localQuery,
+                onValueChange = onSetLocalQuery,
+                placeholder = { Text("搜索已收藏地点") },
+                singleLine = true,
+                modifier = Modifier.fillMaxWidth().testTag("place-pool-local-search"),
+                trailingIcon = if (state.localQuery.isNotEmpty()) ({ TextButton(onClick = { onSetLocalQuery("") }) { Text("清除") } }) else null,
+            )
             if (cityRows.isNotEmpty()) PlaceCityFilterBar(cities, activeCity, onSelectCity, Modifier.fillMaxWidth())
             Box(Modifier.fillMaxWidth().weight(1f)) {
                 androidx.compose.foundation.lazy.LazyColumn(
@@ -231,7 +244,7 @@ fun PlacePoolContent(
                 }
                     if (visibleGroups.isEmpty()) item {
                         Column(Modifier.fillMaxWidth().padding(vertical = 24.dp).testTag("place-pool-filter-empty"), horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text("当前筛选下没有地点", style = MaterialTheme.typography.labelMedium)
+                            Text(if (state.localQuery.isNotBlank()) "没有找到匹配的收藏地点" else "当前筛选下没有地点", style = MaterialTheme.typography.labelMedium)
                             Text("切换城市或调整标签试试", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }

@@ -29,6 +29,7 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
@@ -144,7 +145,7 @@ class TripWorkspaceViewModel(
                 coroutineScope {
                     val trip = trips.observeTrip(tripId).shareIn(this, SharingStarted.Eagerly, replay = 1)
                     val snapshots = trip.flatMapLatest { value ->
-                        if (value == null) flowOf(emptyList()) else observeSnapshots(value.days, itineraries, routes)
+                        if (value == null) flowOf(emptyList()) else observeSnapshots(value.id, value.days, itineraries, routes)
                     }
                     combine(
                         trip,
@@ -244,6 +245,7 @@ class TripWorkspaceViewModel(
             selectedDayId = selected,
             visiblePoints = automaticMapViewportPoints(currentMapScope, mapped),
             placeFilter = if (currentMapScope == MapScope.PLACE_POOL) poolFilter else PlacePoolMapFilter(),
+            retainCamera = restoreWorkspaceSheetLevel(values[5] as String?) == WorkspaceSheetLevel.EXPANDED,
         )
         val model = mapped.copy(viewportRequest = viewportController.currentRequest)
         model.corruptRoutes.forEach { route -> viewModelScope.launch { routes.repairCorruptPolyline(route.legId, route.version) } }
@@ -469,10 +471,14 @@ class TripWorkspaceViewModel(
 }
 
 private fun observeSnapshots(
+    tripId: String,
     days: List<TripDay>,
     itineraries: ItineraryRepository,
     routes: RouteLegRepository,
 ): Flow<List<DayMapSnapshot>> {
+    itineraries.observeTripDays(tripId)?.let { consistent ->
+        return consistent.map { snapshots -> snapshots.map { DayMapSnapshot(it.itinerary, it.legs) } }
+    }
     if (days.isEmpty()) return flowOf(emptyList())
     val flows = days.map { day ->
         flow {

@@ -25,6 +25,7 @@ fun ItinerarySaveFailureContent(
     onKeepEditing: () -> Unit,
     onRetrySave: () -> Unit,
     modifier: Modifier = Modifier,
+    reason: String? = null,
 ) {
     Column(
         modifier = modifier
@@ -41,7 +42,8 @@ fun ItinerarySaveFailureContent(
             verticalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             Text("修改尚未保存", Modifier.semantics { heading() })
-            Text("到达时间、停留时长和备注仍保留在当前页面。请重新保存，或稍后再试。")
+            reason?.let { Text(it) }
+            Text("到达时间、停留时长、花费和备注仍保留在当前页面。请重新保存，或稍后再试。")
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 Text("当前编辑内容不会自动回滚")
             }

@@ -274,6 +274,8 @@ private fun WorkspaceReadyContent(
                         onSelect = { if (!calendarBusy) onAction(TripWorkspaceAction.SelectItineraryScope(it)) },
                         onAddDay = { if (!calendarBusy) onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.AddTripDay)) },
                         onAppendDay = { if (!calendarBusy) onItineraryAction(DayItineraryAction.AppendTripDay) },
+                        onMoveDay = { id, target -> onItineraryAction(DayItineraryAction.ReorderDay(id, target)) },
+                        dayReorderEnabled = !calendarBusy && !itineraryState.isReorderingDays && !itineraryState.isAppendingDay,
                         modifier = Modifier.weight(1f),
                         contentPadding = PaddingValues.Zero,
                         startDate = state.startDate,

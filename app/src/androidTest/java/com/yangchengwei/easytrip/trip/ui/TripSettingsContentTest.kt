@@ -50,13 +50,13 @@ import org.junit.Test
 class TripSettingsContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun datedTripDaysExposeOnlyDeleteWithoutDragHandleOrMoreMenu() {
+    @Test fun datedTripDaysExposeReorderAndDeleteWithoutMoreMenu() {
         var appends = 0
         compose.setContent { content(state = datedState().copy(dateRange = datedState().dateRange.copy(phase = DateRangeChangePhase.Idle)), onAppendDay = { appends++ }) }
 
         compose.onNodeWithText("整体出行日期").assertIsDisplayed()
         compose.onNodeWithText("添加一天").assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
-        compose.onNodeWithTag("move-day-handle-day-2").assertDoesNotExist()
+        compose.onNodeWithTag("move-day-handle-day-2").assertIsDisplayed()
         compose.onNodeWithTag("more-day-day-2").assertDoesNotExist()
         compose.onNodeWithTag("delete-day-day-2").assertHeightIsAtLeast(48.dp).assertIsDisplayed()
         assertEquals(1, appends)

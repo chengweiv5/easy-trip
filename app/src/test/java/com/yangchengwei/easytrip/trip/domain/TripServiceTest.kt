@@ -149,18 +149,15 @@ class TripServiceTest {
     }
 
     @Test
-    fun datedTripRejectsMoveBeforeRepositoryCall() = runTest {
+    fun datedTripMovesContentWhileKeepingDateRange() = runTest {
         val repository = FakeTripRepository()
         val service = TripService(repository)
         val tripId = service.createTrip(CreateTrip("Dated", 3, TravelMode.FLEXIBLE, LocalDate.parse("2026-10-01")))
         val originalIds = repository.trip!!.days.map { it.id }
-
-        val failure = assertThrows(IllegalArgumentException::class.java) {
-            kotlinx.coroutines.runBlocking { service.moveDay(tripId, originalIds[0], 2) }
-        }
-
-        assertEquals("已设置日期的旅行日按日期连续排列", failure.message)
-        assertEquals(originalIds, repository.trip!!.days.map { it.id })
+        service.moveDay(tripId, originalIds[0], 2)
+        assertEquals(listOf(originalIds[1], originalIds[2], originalIds[0]), repository.trip!!.days.map { it.id })
+        assertEquals(LocalDate.parse("2026-10-01"), repository.trip!!.startDate)
+        assertEquals(listOf(0, 1, 2), repository.trip!!.days.map { it.index })
     }
 
     @Test

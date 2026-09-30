@@ -900,6 +900,20 @@ class DayItineraryViewModelTest {
         assertNull(model.state.value.error)
     }
 
+    @Test fun `cross day moves append after existing target items`() = runTest(dispatcher) {
+        val model = model(Itineraries())
+        advanceUntilIdle()
+        model.requestCrossDay("item-beta")
+        model.moveToDay("day-2")
+        advanceUntilIdle()
+        model.requestCrossDay("item-alpha")
+        model.moveToDay("day-2")
+        advanceUntilIdle()
+        model.selectDay("day-2")
+        advanceUntilIdle()
+        assertEquals(listOf("item-beta", "item-alpha"), model.state.value.items.map { it.id })
+    }
+
     @Test fun `cross day failure keeps target and error for retry then closes after success`() = runTest(dispatcher) {
         val repository = Itineraries().apply { moveFailure = IllegalStateException("移动失败") }
         val model = model(repository)

@@ -761,7 +761,6 @@ class TripSettingsViewModel(
         val current = mutableState.value
         val currentIndex = current.days.indexOfFirst { it.id == day.id }
         if (
-            current.startDate != null ||
             dayManagementWriteLocked() ||
             currentIndex < 0 ||
             targetIndex !in current.days.indices ||

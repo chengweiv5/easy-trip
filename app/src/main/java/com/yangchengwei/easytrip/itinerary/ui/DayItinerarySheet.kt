@@ -89,6 +89,9 @@ internal data class TimelineDragState(
 }
 
 sealed interface DayItineraryAction {
+    data class UpdateExpense(val value: String) : DayItineraryAction
+    data class UpdateRouteExpense(val value: String) : DayItineraryAction
+    data class ReorderDay(val dayId: String, val targetIndex: Int) : DayItineraryAction
     data object AppendTripDay : DayItineraryAction
     data object AddPlaces : DayItineraryAction
     data class AddPlace(val placeId: String) : DayItineraryAction
@@ -136,6 +139,7 @@ fun DayItineraryContent(
             val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
             ItinerarySummaryHeader(
                 text = itineraryDaySummary(dayNumber, state.items.size),
+                expenseLabel = state.expenseSummary.label("当日已记"),
                 modifier = Modifier.testTag("day-itinerary-summary"),
                 date = dayNumber?.let { wholeTripDayDate(it, startDate) },
                 trailingInset = 0.dp,
@@ -314,7 +318,7 @@ fun DayItineraryContent(
             text = {
                 if (draft.saveError != null) {
                     ItinerarySaveFailureContent(
-                        onKeepEditing = { onAction(DayItineraryAction.DismissEditSaveError) },
+                        reason = draft.saveError,                        onKeepEditing = { onAction(DayItineraryAction.DismissEditSaveError) },
                         onRetrySave = { onAction(DayItineraryAction.SaveEdit) },
                     )
                 } else {
@@ -323,6 +327,7 @@ fun DayItineraryContent(
                         onArrivalTimeChange = { onAction(DayItineraryAction.UpdateArrivalTime(it)) },
                         onStayMinutesChange = { onAction(DayItineraryAction.UpdateStayMinutes(it)) },
                         onNoteChange = { onAction(DayItineraryAction.UpdateNote(it)) },
+                        onExpenseChange = { onAction(DayItineraryAction.UpdateExpense(it)) },
                         onScheduleAgain = if (canScheduleAgain && draft.placeId != null) {
                             { onAction(DayItineraryAction.ScheduleAgain(draft.itemId)) }
                         } else {
@@ -389,6 +394,7 @@ fun DayItineraryContent(
                     onClearSelectedModeOverride = { onAction(DayItineraryAction.ClearSelectedModeOverride) },
                     onDurationMinutesChange = { onAction(DayItineraryAction.UpdateRouteDurationMinutes(it)) },
                     onNoteChange = { onAction(DayItineraryAction.UpdateRouteNote(it)) },
+                    onExpenseChange = { onAction(DayItineraryAction.UpdateRouteExpense(it)) },
                     onSave = { onAction(DayItineraryAction.SaveMode) },
                     onCancel = { onAction(DayItineraryAction.DismissDialogs) },
                 )

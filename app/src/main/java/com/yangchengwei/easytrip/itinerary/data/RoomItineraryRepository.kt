@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.itinerary.data
 
 import androidx.room.RoomDatabase
+import com.yangchengwei.easytrip.expense.*
 import androidx.room.withTransaction
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.model.RouteStatus
@@ -40,7 +41,24 @@ class RoomItineraryRepository(
     private val legIdFactory: () -> String = { UUID.randomUUID().toString() },
     private val isOnline: () -> Boolean = { true },
     private val recommendMode: (SavedPlaceEntity, SavedPlaceEntity, TravelMode) -> TransportMode = ::defaultRecommendMode,
+    private val confirmExpenseRemoval: ConfirmExpenseRemoval? = null,
 ) : ItineraryRepository {
+    override fun observeTripDays(tripId: String) = itineraryDao.observeTripDays(tripId).map { days ->
+        days.map { snapshot ->
+            val places = snapshot.places.associateBy { it.id }
+            val items = snapshot.items.sortedWith(compareBy<ItineraryItemEntity> { it.position }.thenBy { it.id }).map { item ->
+                val place = places.getValue(item.savedPlaceId)
+                ItineraryItem(item.id, ItineraryPlace(place.id, place.name, place.address, GeoPoint(place.latitude, place.longitude)),
+                    item.arrivalTime, item.stayDurationMinutes, item.note, item.idempotencyKey, item.expenseCents)
+            }
+            val order = items.mapIndexed { i, item -> item.id to i }.toMap()
+            com.yangchengwei.easytrip.itinerary.domain.DayItinerarySnapshot(
+                DayItinerary(snapshot.day.id, snapshot.day.tripId, items),
+                snapshot.legs.sortedBy { order[it.fromItemId] },
+            )
+        }
+    }
+
     override fun observeDay(dayId: String): Flow<DayItinerary> = itineraryDao.observeDayRows(dayId).map { rows ->
         if (rows.isEmpty()) throw TargetDayNotFoundException(dayId)
         DayItinerary(dayId, rows.first().tripId, rows.mapNotNull { row ->
@@ -56,6 +74,7 @@ class RoomItineraryRepository(
                 row.arrivalTime,
                 row.stayDurationMinutes,
                 row.note,
+                expenseCents = row.expenseCents,
             )
         })
     }
@@ -75,13 +94,13 @@ class RoomItineraryRepository(
         savedPlaceId: String,
         targetIndex: Int,
         idempotencyKey: String?,
-    ): AddItineraryItemResult = database.withTransaction {
+    ): AddItineraryItemResult = expenseTransaction(database, confirmExpenseRemoval) {
         idempotencyKey?.let { key ->
             itineraryDao.itemByIdempotencyKey(key)?.let { existing ->
                 require(existing.tripDayId == dayId && existing.savedPlaceId == savedPlaceId) {
                     "Idempotency key reused for another occurrence: $key"
                 }
-                return@withTransaction AddItineraryItemResult(existing.id, created = false)
+                return@expenseTransaction AddItineraryItemResult(existing.id, created = false)
             }
         }
         val tripId = itineraryDao.tripIdForDay(dayId) ?: throw TargetDayNotFoundException(dayId)
@@ -106,7 +125,11 @@ class RoomItineraryRepository(
         AddItineraryItemResult(id, created = true)
     }
 
-    override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = database.withTransaction {
+    override suspend fun appendItem(itemId: String, targetDayId: String) = expenseTransaction(database, confirmExpenseRemoval) {
+        moveItem(itemId, targetDayId, itineraryDao.items(targetDayId).count { it.id != itemId })
+    }
+
+    override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = expenseTransaction(database, confirmExpenseRemoval) {
         val item = itineraryDao.item(itemId) ?: throw ItineraryItemNotFoundException(itemId)
         val targetTripId = requireNotNull(itineraryDao.tripIdForDay(targetDayId)) { "Unknown day: $targetDayId" }
         require(item.tripId == targetTripId) { "Cannot move item across trips" }
@@ -125,6 +148,7 @@ class RoomItineraryRepository(
         } else {
             val sourceDiff = adjacencyDiff(sourceOld.map { it.id }, sourceNew.map { it.id })
             val targetDiff = adjacencyDiff(targetOld.map { it.id }, targetNew.map { it.id })
+            requireExpenseRemovalConsent(deletedRouteExpenses(item.tripDayId, sourceDiff.deleted) + deletedRouteExpenses(targetDayId, targetDiff.deleted))
             deleteLegs(item.tripDayId, sourceDiff.deleted)
             deleteLegs(targetDayId, targetDiff.deleted)
             park(sourceOld)
@@ -137,9 +161,13 @@ class RoomItineraryRepository(
         }
     }
 
-    override suspend fun deleteItem(itemId: String) = database.withTransaction {
+    override suspend fun deleteItem(itemId: String) = expenseTransaction(database, confirmExpenseRemoval) {
         val item = itineraryDao.item(itemId) ?: throw ItineraryItemNotFoundException(itemId)
         val old = itineraryDao.items(item.tripDayId)
+        requireExpenseRemovalConsent(
+            listOfNotNull(item.expenseCents?.let { RecordedExpense("地点", item.id, it) }) +
+                deletedRouteExpenses(item.tripDayId, adjacencyDiff(old.map { it.id }, old.filterNot { it.id == itemId }.map { it.id }).deleted),
+        )
         park(old)
         require(itineraryDao.deleteRow(itemId) == 1)
         val new = old.filterNot { it.id == itemId }
@@ -147,12 +175,12 @@ class RoomItineraryRepository(
         syncLegs(item.tripDayId, old.map { it.id }, new.map { it.id })
     }
 
-    override suspend fun compareAndSetTiming(change: ItineraryTimingChange): ItineraryTimingChange? = database.withTransaction {
+    override suspend fun compareAndSetTiming(change: ItineraryTimingChange): ItineraryTimingChange? = expenseTransaction(database, confirmExpenseRemoval) {
         require(change.after.stayMinutes == null || change.after.stayMinutes >= 0)
         val old = itineraryDao.items(change.dayId)
         val oldIds = old.map { it.id }
-        if (change.beforeOrder != null && change.beforeOrder != oldIds) return@withTransaction null
-        val item = old.firstOrNull { it.id == change.itemId } ?: return@withTransaction null
+        if (change.beforeOrder != null && change.beforeOrder != oldIds) return@expenseTransaction null
+        val item = old.firstOrNull { it.id == change.itemId } ?: return@expenseTransaction null
         val newIds = change.afterOrder?.also { requested ->
             require(change.beforeOrder != null)
             require(requested.size == oldIds.size && requested.toSet() == oldIds.toSet())
@@ -175,7 +203,7 @@ class RoomItineraryRepository(
         }
         if (itineraryDao.conditionalTiming(change.tripId, change.dayId, change.itemId,
             change.before.arrivalTime, change.before.stayMinutes,
-            change.after.arrivalTime, change.after.stayMinutes) != 1) return@withTransaction null
+            change.after.arrivalTime, change.after.stayMinutes) != 1) return@expenseTransaction null
         if (newIds != oldIds) {
             park(old)
             val byId = old.associateBy { it.id }
@@ -190,20 +218,30 @@ class RoomItineraryRepository(
         require(itineraryDao.timing(itemId, arrivalTime, stayMinutes) == 1) { "Unknown item: $itemId" }
     }
 
+    override suspend fun updateDetailsWithExpense(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?, expenseCents: Long?) = expenseTransaction(database, confirmExpenseRemoval) {
+        require(expenseCents == null || expenseCents >= 0)
+        val item = itineraryDao.item(itemId) ?: throw ItineraryItemNotFoundException(itemId)
+        requireSummableExpense(itineraryDao.otherExpenses(item.tripId, itemId), expenseCents)
+        updateDetails(itemId, arrivalTime, stayMinutes, note)
+        require(itineraryDao.expense(itemId, expenseCents) == 1)
+    }
+
     override suspend fun updateDetails(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?) {
         require(stayMinutes == null || stayMinutes >= 0)
         val normalizedNote = note?.trim()?.ifEmpty { null }
         require(itineraryDao.details(itemId, arrivalTime, stayMinutes, normalizedNote) == 1) { "Unknown item: $itemId" }
     }
 
-    override suspend fun removePlaceOccurrences(placeId: String) = database.withTransaction {
+    override suspend fun removePlaceOccurrences(placeId: String) = expenseTransaction(database, confirmExpenseRemoval) {
         val affected = itineraryDao.itemsForPlace(placeId)
-        if (affected.isEmpty()) return@withTransaction
+        if (affected.isEmpty()) return@expenseTransaction
         val changes = affected.groupBy(ItineraryItemEntity::tripDayId).map { (dayId, removed) ->
             val old = itineraryDao.items(dayId)
             val removedIds = removed.mapTo(mutableSetOf(), ItineraryItemEntity::id)
             Triple(dayId, old, old.filterNot { it.id in removedIds })
         }
+        requireExpenseRemovalConsent(affected.mapNotNull { item -> item.expenseCents?.let { RecordedExpense("地点", item.id, it) } } +
+            changes.flatMap { (dayId, old, new) -> deletedRouteExpenses(dayId, adjacencyDiff(old.map { it.id }, new.map { it.id }).deleted) })
         require(itineraryDao.deleteRowsForPlace(placeId) == affected.size)
         changes.forEach { (dayId, old, new) ->
             reorder(new)
@@ -225,7 +263,12 @@ class RoomItineraryRepository(
         createLegs(dayId, diff.created)
     }
 
+    private suspend fun deletedRouteExpenses(dayId: String, edges: Set<Edge>): List<RecordedExpense> =
+        routeLegDao.legs(dayId).filter { leg -> edges.any { it.fromItemId == leg.fromItemId && it.toItemId == leg.toItemId } }
+            .mapNotNull { leg -> leg.expenseCents?.let { RecordedExpense("交通", leg.id, it) } }
+
     private suspend fun deleteLegs(dayId: String, edges: Set<Edge>) {
+        requireExpenseRemovalConsent(deletedRouteExpenses(dayId, edges))
         edges.forEach { routeLegDao.deleteEdge(dayId, it.fromItemId, it.toItemId) }
     }
 

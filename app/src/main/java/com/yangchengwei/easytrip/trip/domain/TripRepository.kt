@@ -27,6 +27,8 @@ data class TripSummary(
     val scheduledDayCount: Int,
     val updatedAt: Instant = Instant.EPOCH,
     val hasTraveled: Boolean = false,
+    val expenseCents: Long = 0,
+    val recordedExpenseCount: Int = 0,
 )
 
 fun List<TripSummary>.sortedForTripList(today: LocalDate): List<TripSummary> = sortedWith { left, right ->

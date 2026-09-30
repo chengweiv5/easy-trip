@@ -6,6 +6,19 @@ import kotlinx.coroutines.flow.Flow
 
 data class RouteLegEndpointRow(val id:String,val version:Long,val status:RouteStatus,val recommendedMode:TransportMode,val selectedMode:TransportMode?,val distanceMeters:Int?,val durationSeconds:Int?,val polyline:String?,val errorKind:RouteErrorKind?,val errorCode:String?,val originLatitude:Double,val originLongitude:Double,val destinationLatitude:Double,val destinationLongitude:Double,val originCity:String?,val destinationCity:String?)
 @Dao interface RouteLegDao {
+ @Query("SELECT expenseCents FROM itinerary_items WHERE tripId=(SELECT tripId FROM trip_days WHERE id=:dayId) AND expenseCents IS NOT NULL UNION ALL SELECT l.expenseCents FROM route_legs l JOIN trip_days d ON d.id=l.tripDayId WHERE d.tripId=(SELECT tripId FROM trip_days WHERE id=:dayId) AND l.id!=:excludedId AND l.expenseCents IS NOT NULL")
+ suspend fun otherExpenses(dayId:String,excludedId:String):List<Long>
+
+ @Query("UPDATE route_legs SET expenseCents=:cents WHERE id=:id") suspend fun expense(id:String,cents:Long?):Int
+ @Transaction suspend fun updateDetailsWithExpense(legId:String,selectedModeOverride:TransportMode?,durationOverrideSeconds:Int?,note:String?,online:Boolean,expenseCents:Long?):Int {
+  require(expenseCents == null || expenseCents >= 0)
+  val current = leg(legId) ?: return 0
+  com.yangchengwei.easytrip.expense.requireSummableExpense(otherExpenses(current.tripDayId,legId),expenseCents)
+  val result = updateDetails(legId,selectedModeOverride,durationOverrideSeconds,note,online)
+  if(result == 1) check(expense(legId,expenseCents) == 1)
+  return result
+ }
+
  @Query("SELECT l.* FROM route_legs l JOIN itinerary_items i ON i.id=l.fromItemId AND i.tripDayId=l.tripDayId WHERE l.tripDayId=:dayId ORDER BY i.position,i.id") suspend fun legs(dayId:String):List<RouteLegEntity>
  @Query("SELECT l.* FROM route_legs l JOIN itinerary_items i ON i.id=l.fromItemId AND i.tripDayId=l.tripDayId WHERE l.tripDayId=:dayId ORDER BY i.position,i.id") fun observeLegs(dayId:String):Flow<List<RouteLegEntity>>
  @Insert suspend fun insert(leg:RouteLegEntity)

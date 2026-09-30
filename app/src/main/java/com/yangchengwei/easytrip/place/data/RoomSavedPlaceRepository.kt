@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.place.data
 
 import android.icu.lang.UCharacter
+import com.yangchengwei.easytrip.expense.*
 import androidx.room.withTransaction
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.GeoPoint
@@ -20,6 +21,7 @@ class RoomSavedPlaceRepository(
     private val database: EasyTripDatabase,
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
     private val isOnline: () -> Boolean = { true },
+    private val confirmExpenseRemoval: ConfirmExpenseRemoval? = null,
 ) : SavedPlaceRepository {
     private val dao = database.savedPlaceDao()
 
@@ -88,7 +90,7 @@ class RoomSavedPlaceRepository(
         requireNotNull(dao.place(placeId)) { "Unknown place: $placeId" }
         PlaceDeletionImpact(dao.usageCount(placeId), dao.incidentRouteLegCount(placeId))
     }
-    override suspend fun deletePlaceAndReferences(placeId: String) = database.withTransaction {
+    override suspend fun deletePlaceAndReferences(placeId: String) = expenseTransaction(database, confirmExpenseRemoval) {
         requireNotNull(dao.place(placeId)) { "Unknown place: $placeId" }
         com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository(
             database,

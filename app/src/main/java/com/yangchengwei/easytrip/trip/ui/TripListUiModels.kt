@@ -54,6 +54,7 @@ data class TripCardUiModel(
     val readinessPercent: Int,
     val readinessLabel: String,
     val hasTraveled: Boolean = false,
+    val expenseLabel: String = "尚未记录花费",
 ) {
     val statusLabel: String get() = if (hasTraveled) "已出行" else "待出行"
 }
@@ -101,6 +102,7 @@ fun TripSummary.toTripCardUiModel(): TripCardUiModel {
         dayCountLabel = "${dayCount}天${(dayCount - 1).coerceAtLeast(0)}晚",
         dateLabel = tripDateLabel(startDate, endDate),
         hasTraveled = hasTraveled,
+        expenseLabel = if (recordedExpenseCount == 0) "尚未记录花费" else "已记花费 ${com.yangchengwei.easytrip.expense.formatExpense(expenseCents)}",
         placeCount = placeCount,
         scheduledDayCount = scheduledDayCount,
         placeCountLabel = "$placeCount 个地点",
