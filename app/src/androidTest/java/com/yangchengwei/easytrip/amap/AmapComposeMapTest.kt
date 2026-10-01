@@ -24,6 +24,7 @@ import com.yangchengwei.easytrip.workspace.MapMarkerKind
 import com.yangchengwei.easytrip.workspace.MapMarkerUi
 import com.yangchengwei.easytrip.workspace.MapReadyTimeoutException
 import com.yangchengwei.easytrip.workspace.MapUiModel
+import com.yangchengwei.easytrip.workspace.MapCameraState
 import com.yangchengwei.easytrip.workspace.toMapPoiUi
 import com.amap.api.maps.model.LatLng
 import com.amap.api.maps.model.Poi
@@ -42,6 +43,81 @@ import java.util.concurrent.TimeUnit
 class AmapComposeMapTest {
     @get:Rule val rule = createAndroidComposeRule<MainActivity>()
     private val scenario get() = rule.activityRule.scenario
+
+    @Test fun cameraIsRestoredBeforeRenderAndOldHostCallbacksCannotOverwriteAfterReturn() {
+        val gate = TestConsentGate().also { it.show() }
+        val token = requireNotNull(gate.decide(true))
+        val initial = MapCameraState(GeoPoint(30.28, 120.15), 16f, 25f, 60f, 7L)
+        val afterPan = initial.copy(target = GeoPoint(30.30, 120.16), zoom = 17f)
+        val visible = mutableStateOf(true)
+        val rerender = mutableStateOf(0)
+        var retained = initial
+        val locations = mutableListOf<GeoPoint>()
+        val hosts = mutableListOf<CameraRecordingHost>()
+        scenario.onActivity { activity ->
+            activity.setContent {
+                Text("${rerender.value}")
+                if (visible.value) AmapComposeMap(
+                    model = MapUiModel(),
+                    onMarkerClick = {},
+                    consent = token,
+                    initialCamera = retained,
+                    onCameraChanged = { retained = it },
+                    onLocated = locations::add,
+                    hostFactory = { CameraRecordingHost(it).also(hosts::add) },
+                )
+            }
+        }
+        rule.waitUntil(5_000) { hosts.firstOrNull()?.renders?.let { it > 0 } == true }
+        val first = hosts.single()
+        rule.runOnIdle {
+            assertEquals(initial, first.restored)
+            first.current = afterPan // Snapshot must catch navigation before the SDK's finish callback.
+            rerender.value++
+        }
+        rule.waitForIdle()
+        rule.runOnIdle { assertEquals(1, first.restores); visible.value = false }
+        rule.waitForIdle()
+        rule.runOnIdle {
+            assertEquals(afterPan, retained)
+            first.lastCameraListener?.invoke(initial) // Delayed callback from the disposed map.
+            first.lastLocationListener?.invoke(GeoPoint(39.9, 116.4))
+            assertEquals(afterPan, retained)
+            assertTrue(locations.isEmpty())
+            visible.value = true
+        }
+        rule.waitUntil(5_000) { hosts.size == 2 && hosts.last().renders > 0 }
+        rule.runOnIdle { assertEquals(afterPan, hosts.last().restored) }
+    }
+
+    private class CameraRecordingHost(context: android.content.Context) : AmapMapHost {
+        override val view = View(context)
+        var restored: MapCameraState? = null
+        var current: MapCameraState? = null
+        var restores = 0
+        var renders = 0
+        var lastCameraListener: ((MapCameraState) -> Unit)? = null
+        var lastLocationListener: ((GeoPoint) -> Unit)? = null
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun canRenderBeforeReady() = true
+        override fun setOnCameraChangedListener(listener: ((MapCameraState) -> Unit)?) {
+            if (listener != null) lastCameraListener = listener
+        }
+        override fun setOnLocatedListener(listener: ((GeoPoint) -> Unit)?) {
+            if (listener != null) lastLocationListener = listener
+        }
+        override fun restoreCamera(camera: MapCameraState) {
+            restored = camera; current = camera; restores++
+        }
+        override fun cameraSnapshot() = current
+        override fun render(model: MapUiModel, layer: MapLayer, onMarkerClick: (String) -> Unit, onLayerError: (Throwable, MapLayer) -> Unit) {
+            assertTrue("Restore must happen before the first render", restored != null)
+            renders++
+        }
+    }
 
     @Test fun sdkPoiTranslationKeepsStableIdAndMarksMissingIdUncollectable() {
         val point = LatLng(39.916, 116.397)

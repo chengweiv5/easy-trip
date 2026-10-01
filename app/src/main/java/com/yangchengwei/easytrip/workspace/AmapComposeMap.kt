@@ -319,6 +319,10 @@ interface AmapMapHost {
     fun resetNorth() = Unit
     fun setOnBearingChangedListener(listener: ((Float) -> Unit)?) = Unit
     fun showCurrentLocation() = Unit
+    fun setOnLocatedListener(listener: ((GeoPoint) -> Unit)?) = Unit
+    fun setOnCameraChangedListener(listener: ((MapCameraState) -> Unit)?) = Unit
+    fun cameraSnapshot(): MapCameraState? = null
+    fun restoreCamera(camera: MapCameraState) = Unit
     fun setVisibleViewportInsets(insets: MapViewportInsets) = Unit
     fun setOnUserGestureListener(listener: (() -> Unit)?) = Unit
     fun render(
@@ -507,12 +511,15 @@ internal class RealAmapMapHost(
     private val mapView = MapView(context)
     private var onReadyListener: (() -> Unit)? = null
     private var onBearingChanged: ((Float) -> Unit)? = null
+    private var onCameraChanged: ((MapCameraState) -> Unit)? = null
+    private var onLocated: ((GeoPoint) -> Unit)? = null
     private val cameraChangeListener = object : AMap.OnCameraChangeListener {
         override fun onCameraChange(position: CameraPosition) {
             onBearingChanged?.invoke(position.bearing)
         }
         override fun onCameraChangeFinish(position: CameraPosition) {
             onBearingChanged?.invoke(position.bearing)
+            onCameraChanged?.invoke(cameraSnapshot())
         }
     }
     private val mapLoadedListener = AMap.OnMapLoadedListener { onReadyListener?.invoke() }
@@ -559,6 +566,8 @@ internal class RealAmapMapHost(
         setOnReadyListener(null)
         setOnUserGestureListener(null)
         setOnBearingChangedListener(null)
+        setOnCameraChangedListener(null)
+        setOnLocatedListener(null)
         mapView.map.isMyLocationEnabled = false
         // AMap waits for its GL thread during destruction. Let the destination draw first,
         // then release on the UI thread, outside Compose's removal/layout frame.
@@ -571,8 +580,27 @@ internal class RealAmapMapHost(
     }
     override fun setOnBearingChangedListener(listener: ((Float) -> Unit)?) {
         onBearingChanged = listener
-        mapView.map.setOnCameraChangeListener(if (listener == null) null else cameraChangeListener)
+        updateCameraChangeListener()
         listener?.invoke(mapView.map.cameraPosition.bearing)
+    }
+    override fun setOnCameraChangedListener(listener: ((MapCameraState) -> Unit)?) {
+        onCameraChanged = listener
+        updateCameraChangeListener()
+    }
+    private fun updateCameraChangeListener() {
+        mapView.map.setOnCameraChangeListener(
+            if (onBearingChanged != null || onCameraChanged != null) cameraChangeListener else null,
+        )
+    }
+    override fun setOnLocatedListener(listener: ((GeoPoint) -> Unit)?) { onLocated = listener }
+    override fun cameraSnapshot(): MapCameraState = mapView.map.cameraPosition.let {
+        MapCameraState(GeoPoint(it.target.latitude, it.target.longitude), it.zoom, it.tilt, it.bearing, consumedViewportId)
+    }
+    override fun restoreCamera(camera: MapCameraState) {
+        consumedViewportId = camera.consumedViewportId
+        mapView.map.moveCamera(CameraUpdateFactory.newCameraPosition(CameraPosition(
+            LatLng(camera.target.latitude, camera.target.longitude), camera.zoom, camera.tilt, camera.bearing,
+        )))
     }
     override fun setVisibleViewportInsets(insets: MapViewportInsets) {
         visibleViewportInsets = insets
@@ -587,7 +615,11 @@ internal class RealAmapMapHost(
     }
     private fun centerPendingLocation(location: Location?) {
         if (!pendingLocationCenter || location == null) return
+        if (!location.latitude.isFinite() || !location.longitude.isFinite() ||
+            location.latitude !in -90.0..90.0 || location.longitude !in -180.0..180.0) return
+        if (location.extras?.getInt("errorCode", 0)?.let { it != 0 } == true) return
         pendingLocationCenter = false
+        onLocated?.invoke(GeoPoint(location.latitude, location.longitude))
         mapView.map.moveCamera(
             CameraUpdateFactory.newLatLngZoom(LatLng(location.latitude, location.longitude), 16f),
         )
@@ -600,6 +632,7 @@ internal class RealAmapMapHost(
                 ),
             )
         }
+        onCameraChanged?.invoke(cameraSnapshot())
     }
     override fun setOnUserGestureListener(listener: (() -> Unit)?) {
         touchInteractionDetector?.dispose()
@@ -768,6 +801,9 @@ fun AmapComposeMap(
     retryKey: Int = 0,
     readyTimeoutMillis: Long = DEFAULT_MAP_READY_TIMEOUT_MILLIS,
     visibleInsets: MapViewportInsets = MapViewportInsets(),
+    initialCamera: MapCameraState? = null,
+    onCameraChanged: (MapCameraState) -> Unit = {},
+    onLocated: (GeoPoint) -> Unit = {},
 ) {
     val consentSnapshot by consent.active.collectAsState()
     val context = LocalContext.current
@@ -776,6 +812,8 @@ fun AmapComposeMap(
     val lifecycleOwner = LocalLifecycleOwner.current
     val currentOnUserGesture by rememberUpdatedState(onUserGesture)
     val currentOnBearingChanged by rememberUpdatedState(onBearingChanged)
+    val currentOnCameraChanged by rememberUpdatedState(onCameraChanged)
+    val currentOnLocated by rememberUpdatedState(onLocated)
     val attemptKey = remember(retryKey, readyTimeoutMillis) { retryKey to readyTimeoutMillis }
     val mapFailureState = remember(context, consent, lifecycleOwner, attemptKey) { mutableStateOf<Throwable?>(null) }
     var mapReady by remember(context, consent, lifecycleOwner, attemptKey) { mutableStateOf(false) }
@@ -807,6 +845,13 @@ fun AmapComposeMap(
                 }
                 host.setOnUserGestureListener(callbackGuard::dispatchHost)
                 host.onCreate()
+                initialCamera?.let(host::restoreCamera)
+                host.setOnCameraChangedListener { camera ->
+                    callbackGuard.dispatchHost { currentOnCameraChanged(camera) }
+                }
+                host.setOnLocatedListener { point ->
+                    callbackGuard.dispatchHost { currentOnLocated(point) }
+                }
                 host.setOnBearingChangedListener { bearing ->
                     callbackGuard.dispatchHost { currentOnBearingChanged(bearing) }
                 }
@@ -890,11 +935,16 @@ fun AmapComposeMap(
         controller.syncResumed(lifecycleOwner.lifecycle.currentState.isAtLeast(Lifecycle.State.RESUMED))
         onDispose {
             lifecycleResumed = false
+            if (mapReady && mapFailureState.value == null) {
+                runCatching { host.cameraSnapshot()?.let(currentOnCameraChanged) }
+            }
             callbackGuard.deactivate()
             watchdog.cancel()
             host.setOnReadyListener(null)
             host.setOnUserGestureListener(null)
             host.setOnBearingChangedListener(null)
+            host.setOnCameraChangedListener(null)
+            host.setOnLocatedListener(null)
             lifecycleOwner.lifecycle.removeObserver(observer)
             controller.dispose()
         }

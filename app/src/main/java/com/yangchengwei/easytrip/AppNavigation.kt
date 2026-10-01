@@ -38,6 +38,7 @@ import com.yangchengwei.easytrip.amap.AmapConsentFact
 import com.yangchengwei.easytrip.amap.AmapConsentStore
 import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
+import com.yangchengwei.easytrip.place.amap.LocatedCitySearchSource
 import com.yangchengwei.easytrip.place.ui.PlacePoolSheet
 import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
 import com.yangchengwei.easytrip.place.ui.PlaceSearchRoute
@@ -80,6 +81,7 @@ import com.yangchengwei.easytrip.itinerary.ui.DayItinerarySheet
 import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
 import com.yangchengwei.easytrip.workspace.TripWorkspaceRoute
 import com.yangchengwei.easytrip.workspace.TripWorkspaceViewModel
+import com.yangchengwei.easytrip.workspace.WorkspaceMapSession
 import kotlinx.coroutines.launch
 
 const val TRIP_LIST_ROUTE = "trips"
@@ -489,6 +491,9 @@ fun AppNavigation(
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
                 val workspaceSearchReturnState: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
+                val workspaceMapSession = remember(entry) {
+                    WorkspaceMapSession(entry.savedStateHandle)
+                }
                 val context = androidx.compose.ui.platform.LocalContext.current
                 val activity = context as? Activity
                 val locationCoordinator = remember(entry) {
@@ -566,6 +571,7 @@ fun AppNavigation(
                 )
                 TripWorkspaceRoute(
                     viewModel = workspaceModel,
+                    mapSession = workspaceMapSession,
                     consent = token,
                     consentFact = consentFact,
                     onBack = {
@@ -707,8 +713,21 @@ fun AppNavigation(
                     ),
                 )
                 val remoteSearchGeneration = (consentFact as? AmapConsentFact.Accepted)?.generation ?: -1L
-                LaunchedEffect(remoteSearchGeneration, runtime.placeSearchDataSource) {
-                    model.setRemoteSearchSession(remoteSearchGeneration, runtime.placeSearchDataSource)
+                val workspaceEntry = remember(entry) {
+                    runCatching { navController.getBackStackEntry("trips/$id") }.getOrNull()
+                }
+                val searchLocation = remember(entry) {
+                    workspaceEntry?.savedStateHandle?.let {
+                        WorkspaceMapSession(it).location
+                    }
+                }
+                val citySearchSource = remember(runtime.placeSearchDataSource, searchLocation) {
+                    runtime.placeSearchDataSource?.let {
+                        LocatedCitySearchSource(it, searchLocation)
+                    }
+                }
+                LaunchedEffect(remoteSearchGeneration, citySearchSource) {
+                    model.setRemoteSearchSession(remoteSearchGeneration, citySearchSource)
                 }
                 PlaceSearchRoute(
                     viewModel = model,

@@ -63,7 +63,11 @@ class AmapPlaceDataSource(context: Context, private val consent: AmapConsentToke
         consent.validateActive()
         if (keyword.isBlank()) throw AmapServiceException("POI_ARGUMENT", 0, "keyword must not be blank")
         val query = try {
-            PoiSearch.Query(keyword, "", city.orEmpty()).apply { pageSize = 20; pageNum = 1 }
+            PoiSearch.Query(keyword, "", city.orEmpty()).apply {
+                pageSize = 20
+                pageNum = 1
+                cityLimit = !city.isNullOrBlank()
+            }
         } catch (error: Throwable) {
             if (error is CancellationException) throw error
             throw AmapServiceException("POI_QUERY", 0, error.message.orEmpty())

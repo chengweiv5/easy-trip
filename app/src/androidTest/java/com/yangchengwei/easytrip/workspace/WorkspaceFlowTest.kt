@@ -298,6 +298,91 @@ class WorkspaceFlowTest {
         }
     }
 
+    @Test fun locatingCityScopesSearchInsteadOfUsingDefaultBeijing() = locatedCityNavigation(checkSearch = true)
+
+    @Test fun searchReturnRestoresLocatedCameraInsteadOfDefaultBeijing() = locatedCityNavigation(checkSearch = false)
+
+    private fun locatedCityNavigation(checkSearch: Boolean) {
+        val database = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
+        try {
+            val trips = RoomTripRepository(database.tripDao())
+            val tripId = runBlocking { trips.createTrip(CreateTrip("定位城市回归", 1)) }
+            val location = GeoPoint(30.2741, 120.1551)
+            val camera = MapCameraState(GeoPoint(30.28, 120.1551), 16f, 25f, 60f)
+            val hosts = mutableListOf<LocatedCameraHost>()
+            val cities = mutableListOf<String?>()
+            val dependencies = productionLocationDependencies(InMemoryLocationPermissionRequestStore())
+            val source = object : PlaceSearchDataSource {
+                override suspend fun cityAt(point: GeoPoint): com.yangchengwei.easytrip.place.domain.PlaceCity {
+                    assertEquals(location, point)
+                    return com.yangchengwei.easytrip.place.domain.PlaceCity("杭州市", "330100")
+                }
+                override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                    cities += city
+                    return listOf(PlaceCandidate("museum", if (city == "杭州市") "杭州博物馆" else "北京博物馆", "", location, null))
+                }
+            }
+            compose.setContent {
+                AppNavigation(
+                    service = TripService(trips),
+                    repository = trips,
+                    impacts = RoomDeleteImpactProvider(database.deleteImpactDao()),
+                    dependencies = dependencies.copy(
+                        savedPlaceRepository = RoomSavedPlaceRepository(database),
+                        itineraryRepository = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao()),
+                        routeLegRepository = RoomRouteLegRepository(database.routeLegDao()),
+                        runtimeSessionFactory = { fact ->
+                            requireNotNull(dependencies.runtimeSessionFactory).invoke(fact).copy(placeSearchDataSource = source)
+                        },
+                    ),
+                    locationPermissionSnapshot = { LocationPermissionSnapshot(granted = true, shouldShowRationale = false) },
+                    mapHostFactory = { context -> LocatedCameraHost(context, location, camera).also(hosts::add) },
+                )
+            }
+            compose.onNodeWithTag("primary-trip-$tripId").performClick()
+            compose.waitUntil(5_000) { hosts.isNotEmpty() }
+            compose.onNodeWithTag("workspace-locate").performClick()
+            compose.waitUntil(5_000) { hosts.first().located }
+            compose.onNodeWithTag("workspace-search-launcher").performClick()
+            compose.onNodeWithTag("place-search-field").performTextInput("博物馆")
+            compose.waitUntil(5_000) { cities.isNotEmpty() }
+            if (checkSearch) compose.runOnIdle { assertEquals(listOf("杭州市"), cities) }
+            compose.onNodeWithTag("place-search-back").performClick()
+            compose.waitUntil(5_000) { hosts.size >= 2 }
+            compose.runOnIdle { assertEquals(camera, hosts.last().restored) }
+        } finally {
+            database.close()
+        }
+    }
+
+    private class LocatedCameraHost(
+        context: Context,
+        private val location: GeoPoint,
+        private val locatedCamera: MapCameraState,
+    ) : AmapMapHost {
+        override val view = View(context)
+        var located = false
+        var restored: MapCameraState? = null
+        private var current: MapCameraState? = null
+        private var onLocated: ((GeoPoint) -> Unit)? = null
+        private var onCameraChanged: ((MapCameraState) -> Unit)? = null
+        override fun canRenderBeforeReady() = true
+        override fun onCreate() = Unit
+        override fun onResume() = Unit
+        override fun onPause() = Unit
+        override fun onDestroy() = Unit
+        override fun setOnLocatedListener(listener: ((GeoPoint) -> Unit)?) { onLocated = listener }
+        override fun setOnCameraChangedListener(listener: ((MapCameraState) -> Unit)?) { onCameraChanged = listener }
+        override fun cameraSnapshot() = current
+        override fun restoreCamera(camera: MapCameraState) { restored = camera; current = camera }
+        override fun showCurrentLocation() {
+            located = true
+            current = locatedCamera
+            onLocated?.invoke(location)
+            onCameraChanged?.invoke(locatedCamera)
+        }
+    }
+
     @Test fun workspaceDayDeletionPreviewsCancelsAndPreservesSavedPlaces() {
         val database = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
         try {

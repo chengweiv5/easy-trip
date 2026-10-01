@@ -263,6 +263,7 @@ fun TripWorkspaceRoute(
     locationPermissionCoordinator: LocationPermissionCoordinator,
     locationPermissionSnapshot: () -> LocationPermissionSnapshot,
     onWorkspaceEffect: (WorkspaceEffect) -> Unit,
+    mapSession: WorkspaceMapSession? = null,
 ) {
     val page = viewModel.pageState.collectAsStateWithLifecycle().value
     val places = placeViewModel?.state?.collectAsStateWithLifecycle()?.value ?: placeState
@@ -283,7 +284,10 @@ fun TripWorkspaceRoute(
 
     LaunchedEffect(locationPermissionCoordinator) {
         locationPermissionCoordinator.effectFlow.collect { effect ->
-            if (effect is WorkspaceEffect.ShowCurrentLocation) locateRequest++ else onWorkspaceEffect(effect)
+            if (effect is WorkspaceEffect.ShowCurrentLocation) {
+                viewModel.onMapGesture()
+                locateRequest++
+            } else onWorkspaceEffect(effect)
         }
     }
     LaunchedEffect(locationPermissionUiState.prompt, ready?.overlay) {
@@ -494,6 +498,7 @@ fun TripWorkspaceRoute(
             model.state.value.days.firstOrNull { it.id == selected }?.let(model::requestDelete)
         } },
         pageState = page,
+        mapSession = mapSession,
         consent = consent,
         consentFact = consentFact,
         locationPermissionUiState = locationPermissionUiState,

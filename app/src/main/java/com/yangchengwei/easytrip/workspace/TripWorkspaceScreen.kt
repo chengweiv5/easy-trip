@@ -164,6 +164,7 @@ fun TripWorkspaceScreen(
     locateRequest: Int = 0,
     searchReturn: WorkspaceSearchReturn? = null,
     onDeleteDay: (() -> Unit)? = null,
+    mapSession: WorkspaceMapSession? = null,
 ) {
     var mapAttempt by remember { mutableIntStateOf(0) }
     var zoomInRequest by remember { mutableIntStateOf(0) }
@@ -255,6 +256,9 @@ fun TripWorkspaceScreen(
                                 currentRequest = locateRequest,
                             )
                             AmapComposeMap(
+                                initialCamera = mapSession?.camera,
+                                onCameraChanged = { mapSession?.onCameraChanged(it) },
+                                onLocated = { mapSession?.onLocated(it) },
                                 model = ready.map.copy(
                                     viewportRequest = ready.map.viewportRequest?.copy(safeInsets = mapLayout.fitInsets),
                                 ),
