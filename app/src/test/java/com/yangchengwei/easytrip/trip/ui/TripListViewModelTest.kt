@@ -481,6 +481,24 @@ class TripListViewModelTest {
         assertEquals(TripDeletionUiState.Idle, viewModel.state.value.deletion)
     }
 
+    @Test fun declinedExpenseConfirmationKeepsTripDeletionReadyWithoutAnError() = runTest(dispatcher) {
+        val repository = TestTripRepository(listOf(trip("trip-1", "京都"))).apply {
+            deleteBehavior = { throw com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled() }
+        }
+        val model = TripListViewModel(
+            TripService(repository), repository, TestImpacts { TripDeleteImpact(1, 1, 1, 1, 1) },
+        )
+        advanceUntilIdle()
+        model.onAction(TripListAction.RequestDelete("trip-1"))
+        advanceUntilIdle()
+        model.onAction(TripListAction.ConfirmDelete)
+        advanceUntilIdle()
+        val ready = model.state.value.deletion as TripDeletionUiState.Ready
+        assertEquals(false, ready.isDeleting)
+        assertEquals(null, ready.errorMessage)
+        assertEquals("trip-1", repository.trips.value.single().id)
+    }
+
     @Test fun deleteFailureKeepsExactImpactAndRetries() = runTest(dispatcher) {
         val impact = TripDeleteImpact(3, 2, 1, 4, 5)
         var failDelete = true

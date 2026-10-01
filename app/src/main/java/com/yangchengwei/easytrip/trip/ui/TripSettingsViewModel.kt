@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -491,6 +493,8 @@ class TripSettingsViewModel(
             }
         } catch (exception: CancellationException) {
             throw exception
+        } catch (_: ExpenseRemovalCancelled) {
+            failDateRangeApply(request, null)
         } catch (_: DateRangeSnapshotChangedException) {
             failDateRangeApply(request, "旅行内容已变化，请重新确认")
         } catch (_: com.yangchengwei.easytrip.trip.domain.TripDateRangeTargetNotFoundException) {
@@ -540,7 +544,7 @@ class TripSettingsViewModel(
         }
     }
 
-    private fun failDateRangeApply(request: DateRangeChangeRequest, message: String) {
+    private fun failDateRangeApply(request: DateRangeChangeRequest, message: String?) {
         if (
             request.generation != dateRangeGeneration ||
             dateRangeCommitProgress?.requestGeneration != request.generation ||
@@ -696,14 +700,14 @@ class TripSettingsViewModel(
                 }
             } catch (exception: CancellationException) {
                 throw exception
-            } catch (_: Throwable) {
+            } catch (failure: Throwable) {
                 if (generation == tripDeletionGeneration && mutableState.value.tripDeletion.tripIdOrNull() == deletion.tripId) {
                     if (!completeTripDeletionIfRoomConfirmed(generation, deletion.tripId)) {
                         tripDeletionProgress = null
                         mutableState.value = mutableState.value.copy(
                             tripDeletion = deletion.copy(
                                 isDeleting = false,
-                                errorMessage = TRIP_DELETE_FAILURE_MESSAGE,
+                                errorMessage = if (failure is ExpenseRemovalCancelled) null else TRIP_DELETE_FAILURE_MESSAGE,
                             ),
                         )
                     }
@@ -857,12 +861,12 @@ class TripSettingsViewModel(
                     dayDeleteInProgress = false,
                     dayDeleteError = null,
                 )
-            } catch (_: Throwable) {
+            } catch (failure: Throwable) {
                 mutableState.value = mutableState.value.copy(
                     pendingDayDeletion = null,
-                    dayDeletionRetry = day,
+                    dayDeletionRetry = day.takeUnless { failure is ExpenseRemovalCancelled },
                     dayDeleteInProgress = false,
-                    dayDeleteError = "删除失败，请重新检查影响",
+                    dayDeleteError = if (failure is ExpenseRemovalCancelled) null else "删除失败，请重新检查影响",
                 )
             }
         }

@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewmodel.CreationExtras
@@ -317,13 +319,13 @@ class TripListViewModel(
                 }
             } catch (cancellation: CancellationException) {
                 throw cancellation
-            } catch (_: Throwable) {
+            } catch (failure: Throwable) {
                 if (deleteGeneration == generation && mutableState.value.deletion.tripIdOrNull() == current.tripId) {
                     awaitingDeletedTrip = null
                     mutableState.value = mutableState.value.copy(
                         deletion = current.copy(
                             isDeleting = false,
-                            errorMessage = DELETE_FAILURE_MESSAGE,
+                            errorMessage = if (failure is ExpenseRemovalCancelled) null else DELETE_FAILURE_MESSAGE,
                         ),
                     )
                 }

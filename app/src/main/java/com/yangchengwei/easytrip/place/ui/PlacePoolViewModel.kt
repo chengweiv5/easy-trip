@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.place.ui
 
+import com.yangchengwei.easytrip.expense.expenseMutationErrorOrNull
+
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
@@ -136,7 +138,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                 throw error
             } catch (error: Throwable) {
                 if (isCurrentCollection(candidate.poiId, generation)) {
-                    mutableState.value = mutableState.value.copy(collectionError = error.message ?: "收藏操作失败，请重试")
+                    mutableState.value = mutableState.value.copy(collectionError = error.expenseMutationErrorOrNull("收藏操作失败，请重试"))
                 }
             } finally {
                 updateCollectionBusy(candidate.poiId, false)
@@ -159,7 +161,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                 throw error
             } catch (error: Throwable) {
                 if (isCurrentCollection(pending.candidate.poiId, generation, pending.place.id)) {
-                    mutableState.value = mutableState.value.copy(collectionError = error.message ?: "取消收藏失败，请重试")
+                    mutableState.value = mutableState.value.copy(collectionError = error.expenseMutationErrorOrNull("取消收藏失败，请重试"))
                 }
             } finally {
                 updateCollectionBusy(pending.candidate.poiId, false)
@@ -313,7 +315,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                     mutableState.value = mutableState.value.copy(
                         deleting = place,
                         deletionBusy = false,
-                        deletionError = error.message ?: "删除失败，请重试",
+                        deletionError = error.expenseMutationErrorOrNull("删除失败，请重试"),
                     )
                 }
             } finally {
@@ -346,7 +348,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
                 if (isCurrentDelete(place.id, generation)) {
                     mutableState.value = mutableState.value.copy(
                         deletionBusy = false,
-                        deletionError = error.message ?: "删除失败，请重试",
+                        deletionError = error.expenseMutationErrorOrNull("删除失败，请重试"),
                     )
                 }
             }

@@ -214,6 +214,26 @@ class PlacePoolViewModelTest {
         assertEquals("影响查询失败", model.state.value.deletionError)
     }
 
+    @Test fun declinedExpenseConfirmationKeepsPlaceWithoutAnErrorOrBusyState() = runTest(dispatcher) {
+        val repository = PoolRepository(
+            listOf(place("a")),
+            emptyMap(),
+            impact = PlaceDeletionImpact(1, 1),
+            deleteFailure = com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled(),
+        )
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.requestDelete(place("a"))
+        advanceUntilIdle()
+        model.confirmDelete()
+        advanceUntilIdle()
+        assertEquals("a", model.state.value.deleting?.id)
+        assertEquals(false, model.state.value.deletionBusy)
+        assertNull(model.state.value.deletionError)
+        model.dismissDelete()
+        assertNull(model.state.value.deleting)
+    }
+
     @Test fun zeroImpactDeleteFailureKeepsDeleteContextForRetry() = runTest(dispatcher) {
         val repository = PoolRepository(
             listOf(place("a")),

@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -306,6 +308,8 @@ class AddToItineraryViewModel(
                         index++
                     } catch (failure: CancellationException) {
                         throw failure
+                    } catch (cancelled: ExpenseRemovalCancelled) {
+                        throw cancelled
                     } catch (_: Throwable) {
                         if (requests.size == 1) throw IllegalStateException("single request failed")
                         requests.drop(index).forEach { unfinished ->
@@ -336,9 +340,12 @@ class AddToItineraryViewModel(
                     persistDraft(mutableState.value)
                 }
                 throw failure
-            } catch (_: Throwable) {
+            } catch (failure: Throwable) {
                 if (generation == submitGeneration) {
-                    mutableState.value = mutableState.value.copy(isSubmitting = false, errorMessage = "加入行程失败，请重试")
+                    mutableState.value = mutableState.value.copy(
+                        isSubmitting = false,
+                        errorMessage = if (failure is ExpenseRemovalCancelled) null else "加入行程失败，请重试",
+                    )
                     persistDraft(mutableState.value)
                     applyCurrentValidity()
                 }

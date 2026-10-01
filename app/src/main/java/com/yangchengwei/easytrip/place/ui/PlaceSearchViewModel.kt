@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.place.ui
 
+import com.yangchengwei.easytrip.expense.expenseMutationErrorOrNull
+
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -392,7 +394,7 @@ class PlaceSearchViewModel(
             } catch (error: Throwable) {
                 if (isCurrentCollection(poiId, generation)) {
                     mutableState.value = mutableState.value.copy(
-                        collectionError = error.message ?: "收藏操作失败，请重试",
+                        collectionError = error.expenseMutationErrorOrNull("收藏操作失败，请重试"),
                         collectionErrorPoiId = poiId,
                     )
                 }
@@ -433,7 +435,7 @@ class PlaceSearchViewModel(
             } catch (error: Throwable) {
                 if (isCurrentRemoval(pending, generation)) {
                     mutableState.value = mutableState.value.copy(
-                        collectionError = error.message ?: "取消收藏失败，请重试",
+                        collectionError = error.expenseMutationErrorOrNull("取消收藏失败，请重试"),
                         collectionErrorPoiId = poiId,
                     )
                 }

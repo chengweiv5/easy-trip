@@ -382,7 +382,7 @@ class DayItineraryViewModel(
                     mutable.value = mutable.value.copy(
                         crossDayMove = current?.copy(
                             isMoving = false,
-                            moveError = failure.message ?: "移动失败",
+                            moveError = failure.expenseMutationErrorOrNull("移动失败"),
                         ),
                     )
                 }
@@ -422,7 +422,7 @@ class DayItineraryViewModel(
                     mutable.value = mutable.value.copy(
                         deleteConfirmation = current?.copy(
                             isDeleting = false,
-                            deleteError = failure.message ?: "删除失败",
+                            deleteError = failure.expenseMutationErrorOrNull("删除失败"),
                         ),
                     )
                 }
@@ -494,7 +494,7 @@ class DayItineraryViewModel(
                     mutable.value = mutable.value.copy(
                         editDraft = current?.copy(
                             isSaving = false,
-                            saveError = failure.message ?: "保存失败",
+                            saveError = failure.expenseMutationErrorOrNull("保存失败"),
                         ),
                     )
                 }
@@ -613,7 +613,7 @@ class DayItineraryViewModel(
                     mutable.value = mutable.value.copy(
                         modeEditor = current?.copy(
                             isSaving = false,
-                            saveError = failure.message ?: "保存路段编辑失败",
+                            saveError = failure.expenseMutationErrorOrNull("保存路段编辑失败"),
                         ),
                     )
                 }
@@ -742,7 +742,11 @@ class DayItineraryViewModel(
     private fun RouteModeEditDraft?.matches(started: RouteModeEditDraft): Boolean =
         this?.legId == started.legId && this.generation == started.generation
 
-    private fun showError(t: Throwable) { mutable.value = mutable.value.copy(error = t.message ?: "操作失败") }
+    private fun showError(t: Throwable) {
+        if (t is CancellationException) throw t
+        if (t is ExpenseRemovalCancelled) return
+        mutable.value = mutable.value.copy(error = t.message ?: "操作失败")
+    }
 
     class Factory(
         private val tripId: String,

@@ -43,6 +43,56 @@ class TripSettingsViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun declinedExpenseConfirmationDuringDayDeletionIsSilentAndUnlocksActions() = runTest(dispatcher) {
+        val repository = FakeRepository().apply {
+            deleteFailure = com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled()
+        }
+        val model = model(repository)
+        advanceUntilIdle()
+        val before = model.state.value.days
+        model.requestDelete(before.last())
+        advanceUntilIdle()
+        model.confirmDelete()
+        advanceUntilIdle()
+        assertEquals(before, model.state.value.days)
+        assertEquals(false, model.state.value.dayDeleteInProgress)
+        assertEquals(null, model.state.value.dayDeleteError)
+        assertEquals(null, model.state.value.dayDeletionRetry)
+    }
+
+    @Test fun declinedExpenseConfirmationDuringRangeShrinkDoesNotWaitForAnUnwrittenChange() = runTest(dispatcher) {
+        val repository = FakeRepository().apply {
+            applyFailure = com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled()
+        }
+        val model = model(repository)
+        advanceUntilIdle()
+        val before = model.state.value.days
+        model.updateDateRangeDraft(LocalDate.parse("2026-10-01"), LocalDate.parse("2026-10-02"))
+        model.requestDateRangeChange()
+        advanceUntilIdle()
+        model.confirmDateRangeChange()
+        advanceUntilIdle()
+        assertEquals(before, model.state.value.days)
+        assertEquals(DateRangeChangePhase.Idle, model.state.value.dateRange.phase)
+        assertEquals(null, model.state.value.dateRange.error)
+    }
+
+    @Test fun declinedExpenseConfirmationDuringTripDeletionKeepsTheTripWithoutAnError() = runTest(dispatcher) {
+        val repository = FakeRepository().apply {
+            tripDeleteFailure = com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled()
+        }
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTripDeletion()
+        advanceUntilIdle()
+        model.confirmTripDeletion()
+        advanceUntilIdle()
+        val ready = model.state.value.tripDeletion as TripDeletionUiState.Ready
+        assertEquals(false, ready.isDeleting)
+        assertEquals(null, ready.errorMessage)
+        assertEquals("trip", repository.currentTrip().id)
+    }
+
     @Test fun updateDateRangeDraftAtomicallyUpdatesBothEndpointsAgainstBaseline() = runTest(dispatcher) {
         val repository = FakeRepository()
         val model = model(repository)

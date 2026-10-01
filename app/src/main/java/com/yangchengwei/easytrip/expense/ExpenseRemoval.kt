@@ -15,6 +15,12 @@ import kotlin.coroutines.coroutineContext
 /** Snapshot binds consent to exact recorded entries, not to a reusable destructive flag. */
 data class RecordedExpense(val kind: String, val id: String, val cents: Long)
 class ExpenseRemovalRequired(val entries: List<RecordedExpense>) : IllegalStateException("操作将删除已记录花费，请先确认")
+/** The transaction was rolled back because the user declined, not because an operation failed. */
+class ExpenseRemovalCancelled : IllegalStateException()
+
+fun Throwable.expenseMutationErrorOrNull(fallback: String): String? =
+    if (this is ExpenseRemovalCancelled) null else message ?: fallback
+
 private class ExpenseConsent(val entries: Set<RecordedExpense>) : AbstractCoroutineContextElement(Key) {
     companion object Key : CoroutineContext.Key<ExpenseConsent>
 }
@@ -39,7 +45,8 @@ suspend fun <T> expenseTransaction(
         try {
             return withContext(ExpenseConsent(approved)) { db.withTransaction { block() } }
         } catch (required: ExpenseRemovalRequired) {
-            if (confirm == null || !confirm(required.entries)) throw IllegalStateException("已取消，行程和花费未改变")
+            if (confirm == null) throw required
+            if (!confirm(required.entries)) throw ExpenseRemovalCancelled()
             approved = approved + required.entries
         }
     }

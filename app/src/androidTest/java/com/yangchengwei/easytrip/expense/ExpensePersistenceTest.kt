@@ -2,12 +2,14 @@ package com.yangchengwei.easytrip.expense
 
 import android.content.Context
 import androidx.room.Room
+import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.*
 import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryTiming
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryTimingChange
+import com.yangchengwei.easytrip.itinerary.ui.DayItineraryViewModel
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.data.SavedPlaceEntity
 import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
@@ -21,6 +23,9 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.yield
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.*
 import org.junit.Test
@@ -133,7 +138,7 @@ class ExpensePersistenceTest {
         val leg = routes().observeDay(days[0]).first().single()
         routes().updateDetailsWithExpense(leg.id, null, null, null, true, 3650)
         val beforeCancelledMove = repo.observeDay(days[0]).first()
-        try { repo.moveItem(a, days[0], 1); fail("must cancel") } catch (_: IllegalStateException) { }
+        try { repo.moveItem(a, days[0], 1); fail("must cancel") } catch (_: ExpenseRemovalCancelled) { }
         assertEquals(beforeCancelledMove, repo.observeDay(days[0]).first())
         assertEquals(listOf(a, b), repo.observeDay(days[0]).first().items.map { it.id })
         assertEquals(3650L, routes().observeDay(days[0]).first().single().expenseCents)
@@ -145,6 +150,113 @@ class ExpensePersistenceTest {
         assertEquals(8000L, repo.observeDay(days[0]).first().items.last().expenseCents)
     }
 
+    @Test fun cancelledReorderRestoresPreviewWithoutShowingAnError() = runBlocking {
+        val (trip, days) = seed()
+        val repo = items()
+        val a = repo.addItem(days[0], "a", 0)
+        val b = repo.addItem(days[0], "b", 1)
+        repo.updateDetailsWithExpense(a, LocalTime.of(8, 0), 60, null, 8000)
+        val leg = routes().observeDay(days[0]).first().single()
+        routes().updateDetailsWithExpense(leg.id, null, null, null, true, 3650)
+        val before = repo.observeDay(days[0]).first()
+        val store = ViewModelStore()
+        val model = withContext(Dispatchers.Main) {
+            DayItineraryViewModel(trip, trips(), repo, routes(), null).also {
+                store.put("itinerary", it)
+            }
+        }
+        try {
+            withTimeout(10_000) { model.state.first { it.items.size == 2 } }
+            withContext(Dispatchers.Main) {
+                model.previewMove(b, 0)
+                assertEquals(listOf(b, a), model.state.value.previewOrder)
+                model.commitMove(b, 0)
+            }
+            val settled = withTimeout(10_000) {
+                model.state.first { it.previewOrder == listOf(a, b) }
+            }
+            assertNull(settled.error)
+            assertEquals(before, repo.observeDay(days[0]).first())
+            assertEquals(3650L, routes().observeDay(days[0]).first().single().expenseCents)
+            assertEquals(11650L, trips().observeTrips().first().single().expenseCents)
+            assertEquals(1, prompts.size)
+        } finally {
+            withContext(Dispatchers.Main) { store.clear() }
+        }
+    }
+
+    @Test fun cancelledCrossDayMoveAndDeletionStayEditableWithoutShowingAnError() = runBlocking {
+        val (trip, days) = seed()
+        val repo = items()
+        val a = repo.addItem(days[0], "a", 0)
+        repo.addItem(days[0], "b", 1)
+        repo.updateDetailsWithExpense(a, LocalTime.of(8, 0), 60, null, 8000)
+        val leg = routes().observeDay(days[0]).first().single()
+        routes().updateDetailsWithExpense(leg.id, null, null, null, true, 3650)
+        val before = repo.observeDay(days[0]).first()
+        val store = ViewModelStore()
+        val model = withContext(Dispatchers.Main) {
+            DayItineraryViewModel(trip, trips(), repo, routes(), null).also {
+                store.put("itinerary", it)
+            }
+        }
+        try {
+            withTimeout(10_000) { model.state.first { it.items.size == 2 } }
+            withContext(Dispatchers.Main) {
+                model.requestCrossDay(a)
+                model.moveToDay(days[1])
+                assertTrue(model.state.value.crossDayMove!!.isMoving)
+            }
+            val moved = withTimeout(10_000) {
+                model.state.first { it.crossDayMove?.isMoving == false }
+            }
+            assertNull(moved.error)
+            assertNull(moved.crossDayMove!!.moveError)
+            assertEquals(before, repo.observeDay(days[0]).first())
+            assertTrue(repo.observeDay(days[1]).first().items.isEmpty())
+
+            withContext(Dispatchers.Main) {
+                model.requestDelete(a)
+                model.confirmDelete()
+                assertTrue(model.state.value.deleteConfirmation!!.isDeleting)
+            }
+            val deleted = withTimeout(10_000) {
+                model.state.first { it.deleteConfirmation?.isDeleting == false }
+            }
+            assertNull(deleted.error)
+            assertNull(deleted.deleteConfirmation!!.deleteError)
+            assertEquals(before, repo.observeDay(days[0]).first())
+            assertEquals(3650L, routes().observeDay(days[0]).first().single().expenseCents)
+            assertEquals(11650L, trips().observeTrips().first().single().expenseCents)
+            assertEquals(2, prompts.size)
+
+            confirmed = true
+            withContext(Dispatchers.Main) { model.confirmDelete() }
+            withTimeout(10_000) {
+                model.state.first { it.deleteConfirmation == null && it.items.size == 1 }
+            }
+            assertEquals(1, repo.observeDay(days[0]).first().items.size)
+        } finally {
+            withContext(Dispatchers.Main) { store.clear() }
+        }
+    }
+
+    @Test fun missingExpenseConfirmationRemainsAnActionableFailureAndDoesNotMutateData() = runBlocking {
+        val (_, days) = seed()
+        val repo = items()
+        val a = repo.addItem(days[0], "a", 0)
+        repo.updateDetailsWithExpense(a, null, null, null, 8000)
+        val before = repo.observeDay(days[0]).first()
+        val noPrompt = RoomItineraryRepository(db, db.itineraryEditingDao(), db.routeLegDao())
+        try {
+            noPrompt.deleteItem(a)
+            fail("confirmation is required")
+        } catch (required: ExpenseRemovalRequired) {
+            assertEquals(listOf(RecordedExpense("地点", a, 8000)), required.entries)
+        }
+        assertEquals(before, repo.observeDay(days[0]).first())
+    }
+
     @Test fun deletingOccurrenceConfirmsBothItsExpenseAndCascadingRouteExpense() = runBlocking {
         val (_, days) = seed()
         val repo = items()
@@ -153,7 +265,7 @@ class ExpensePersistenceTest {
         repo.updateDetailsWithExpense(a, null, null, null, 0)
         val leg = routes().observeDay(days[0]).first().single()
         routes().updateDetailsWithExpense(leg.id, null, null, null, true, 1200)
-        try { repo.deleteItem(a); fail("must cancel") } catch (_: IllegalStateException) { }
+        try { repo.deleteItem(a); fail("must cancel") } catch (_: ExpenseRemovalCancelled) { }
         assertEquals(2, repo.observeDay(days[0]).first().items.size)
         assertEquals(2, prompts.single().size)
         confirmed = true
