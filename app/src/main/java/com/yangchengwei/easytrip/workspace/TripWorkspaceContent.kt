@@ -367,12 +367,7 @@ private fun WorkspaceReadyContent(
                             .testTag("more-menu-picker")
                             .pointerInput(Unit) { detectTapGestures { } },
                     ) {
-                        val openTheme = com.yangchengwei.easytrip.core.ui.theme.LocalThemePicker.current
                         WorkspaceMoreMenu(
-                            onOpenTheme = {
-                                onAction(TripWorkspaceAction.CloseOverlay)
-                                openTheme()
-                            },
                             onShareItinerary = {
                                 onAction(TripWorkspaceAction.CloseOverlay)
                                 onAction(TripWorkspaceAction.ShareItinerary)
@@ -380,10 +375,6 @@ private fun WorkspaceReadyContent(
                             onOpenSettings = {
                                 onAction(TripWorkspaceAction.CloseOverlay)
                                 onAction(TripWorkspaceAction.OpenSettings)
-                            },
-                            onOpenConsent = {
-                                onAction(TripWorkspaceAction.CloseOverlay)
-                                onAction(TripWorkspaceAction.OpenPrivacySettings)
                             },
                             onBackToTrips = {
                                 onAction(TripWorkspaceAction.CloseOverlay)

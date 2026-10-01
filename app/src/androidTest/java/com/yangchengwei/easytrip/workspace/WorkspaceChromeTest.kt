@@ -230,7 +230,7 @@ class WorkspaceChromeTest {
         }
     }
 
-    @Test fun moreMenuShowsFourActionsAndClosesOnOutsideTap() {
+    @Test fun moreMenuShowsOnlyTripActionsAndClosesOnOutsideTap() {
         val actions = mutableListOf<TripWorkspaceAction>()
         var overlay by mutableStateOf<WorkspaceOverlay>(WorkspaceOverlay.None)
         compose.setContent {
@@ -266,8 +266,8 @@ class WorkspaceChromeTest {
 
         compose.onNodeWithTag("workspace-more").performClick()
         compose.onNodeWithTag("more-menu-panel").assertIsDisplayed()
-        listOf("旅行设置", "分享行程长图", "地图授权", "返回我的旅行").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
-        listOf("修改名称、日期和旅行日", "管理高德地图权限", "回到旅行列表").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+        listOf("旅行设置", "分享行程长图", "返回我的旅行").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
+        listOf("修改名称、日期和旅行日", "回到旅行列表").forEach { compose.onNodeWithText(it).assertIsDisplayed() }
         val panel = compose.onNodeWithTag("more-menu-panel").getUnclippedBoundsInRoot()
         org.junit.Assert.assertEquals(240f, (panel.right - panel.left).value, 0.5f)
         org.junit.Assert.assertTrue(panel.bottom - panel.top >= 170.dp)
@@ -324,7 +324,6 @@ class WorkspaceChromeTest {
                     Box(Modifier.fillMaxWidth().requiredHeight(360.dp)) {
                         WorkspaceMoreMenu(
                             onOpenSettings = {},
-                            onOpenConsent = {},
                             onBackToTrips = { backCalls++ },
                         )
                     }

@@ -57,11 +57,11 @@ import org.junit.Test
 class TripListContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun themeEntryIsAvailableInEmptyStateWithAccessibleTouchTarget() {
+    @Test fun settingsEntryIsAvailableInEmptyStateWithAccessibleTouchTarget() {
         setContent(TripListPageState.Empty)
-        compose.onNodeWithTag("theme-entry")
+        compose.onNodeWithTag("app-settings-entry")
             .assertIsDisplayed().assert(hasClickAction())
-            .assertContentDescriptionEquals("主题配色")
+            .assertContentDescriptionEquals("设置")
             .assertWidthIsAtLeast(48.dp).assertHeightIsAtLeast(48.dp)
     }
 

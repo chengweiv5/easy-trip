@@ -39,9 +39,10 @@ class ThemePickerTest {
 
     private fun start(store: ThemePreferenceStore) {
         compose.setContent { EasyTripThemeHost(store) {
-            TripListContent(TripListUiState(page = TripListPageState.Content(
-                TripCardUiModel("preview", "杭州 · 春日慢游", "3 天", "4月12日 — 4月14日", "公共交通", 9, 2, "9 个地点", "3 天行程", 67, "已安排 2 天"), emptyList(),
-            )), {})
+            val openTheme = LocalThemePicker.current
+            com.yangchengwei.easytrip.settings.AppSettingsContent(
+                LocalThemePalette.current.displayName, true, "1.7.0", false, {}, openTheme, {}, {},
+            )
         } }
     }
 
@@ -50,7 +51,7 @@ class ThemePickerTest {
         val store = ThemePreferenceStore(memory)
         start(store)
         ThemePalette.entries.forEach { theme ->
-            compose.onNodeWithTag("theme-entry").performClick()
+            compose.onNodeWithTag("app-settings-theme").performClick()
             compose.onNodeWithTag("theme-apply").assertIsNotEnabled()
             compose.onNodeWithTag("theme-option-${theme.id}").performScrollTo().performClick().assertIsSelected()
             compose.runOnIdle { assertEquals(ThemePalette.fromId(memory.id), store.theme.value) }
@@ -61,7 +62,7 @@ class ThemePickerTest {
                 compose.onNodeWithTag("theme-picker").assertDoesNotExist()
             } else compose.onNodeWithTag("theme-back").performClick()
             save("list-${theme.id}")
-            compose.onNodeWithTag("theme-entry").performClick()
+            compose.onNodeWithTag("app-settings-theme").performClick()
             compose.onNodeWithText("已使用${theme.displayName}").assertIsDisplayed()
             val other = if (theme == ThemePalette.ROSE) ThemePalette.LAKE else ThemePalette.ROSE
             compose.onNodeWithTag("theme-option-${other.id}").performScrollTo().performClick()
@@ -76,7 +77,7 @@ class ThemePickerTest {
         val memory = Memory("forest").apply { fail = true; gate = CountDownLatch(1) }
         val store = ThemePreferenceStore(memory)
         start(store)
-        compose.onNodeWithTag("theme-entry").performClick()
+        compose.onNodeWithTag("app-settings-theme").performClick()
         compose.onNodeWithTag("theme-option-violet").performScrollTo().performClick()
         compose.onNodeWithTag("theme-apply").performClick()
         compose.onNodeWithText("正在应用…").assertIsDisplayed()

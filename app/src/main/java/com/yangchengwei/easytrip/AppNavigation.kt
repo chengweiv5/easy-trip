@@ -88,6 +88,9 @@ const val TRIP_WORKSPACE_ROUTE = "trips/{tripId}"
 const val TRIP_SHARE_ROUTE = "trips/{tripId}/share"
 const val TRIP_SETTINGS_ROUTE = "trips/{tripId}/settings"
 const val TRIP_SEARCH_ROUTE = "trips/{tripId}/search"
+const val APP_SETTINGS_ROUTE = "settings"
+const val APP_MAP_CONSENT_ROUTE = "settings/map"
+const val APP_UPDATE_ROUTE = "settings/update"
 internal const val WORKSPACE_SEARCH_RETURN_KEY = "searchReturnPoiIds"
 
 private class LocationPermissionLaunchBridge(
@@ -353,6 +356,14 @@ fun AppNavigation(
     locationPermissionSnapshot: (() -> LocationPermissionSnapshot)? = null,
 ) {
     val navController = rememberNavController()
+    val settingsContext = androidx.compose.ui.platform.LocalContext.current
+    val updateService = remember { com.yangchengwei.easytrip.settings.GitHubUpdateService(
+        java.io.File(settingsContext.applicationContext.cacheDir, "app-updates"),
+        com.yangchengwei.easytrip.settings.ApkInstaller(settingsContext.applicationContext)::verify,
+    ) }
+    val updateModel: com.yangchengwei.easytrip.settings.AppUpdateViewModel = viewModel(
+        key = "app-updates", factory = com.yangchengwei.easytrip.settings.AppUpdateViewModel.Factory(BuildConfig.VERSION_NAME, updateService),
+    )
     val effectiveDependencies = remember(dependencies, application) {
         dependencies ?: application?.let {
             AppNavigationDependencies(
@@ -385,7 +396,31 @@ fun AppNavigation(
                 { navigate(CREATE_TRIP_ROUTE) },
                 { navigate("trips/$it") },
                 { navigate("trips/$it/settings") },
+                onAppSettings = { navigate(APP_SETTINGS_ROUTE) },
             )
+        }
+        composable(APP_SETTINGS_ROUTE) {
+            val palette = com.yangchengwei.easytrip.core.ui.theme.LocalThemePalette.current
+            val openTheme = com.yangchengwei.easytrip.core.ui.theme.LocalThemePicker.current
+            val consent = effectiveDependencies?.consentStore?.state?.collectAsStateWithLifecycle()?.value
+            val update by updateModel.controller.state.collectAsStateWithLifecycle()
+            com.yangchengwei.easytrip.settings.AppSettingsContent(
+                palette.displayName, consent?.fact is AmapConsentFact.Accepted, BuildConfig.VERSION_NAME,
+                update is com.yangchengwei.easytrip.settings.UpdateState.Available || update is com.yangchengwei.easytrip.settings.UpdateState.Downloading || update is com.yangchengwei.easytrip.settings.UpdateState.Ready,
+                { navController.popBackStack() }, openTheme, { navigate(APP_MAP_CONSENT_ROUTE) },
+                { navigate(APP_UPDATE_ROUTE); if (update == com.yangchengwei.easytrip.settings.UpdateState.Idle) updateModel.controller.check() },
+            )
+        }
+        composable(APP_MAP_CONSENT_ROUTE) {
+            effectiveDependencies?.consentStore?.let { store ->
+                com.yangchengwei.easytrip.settings.MapConsentContent(store, { navController.popBackStack() }, {
+                    runCatching { settingsContext.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("https://lbs.amap.com/home/privacy/"))) }
+                        .onFailure { android.widget.Toast.makeText(settingsContext, "无法打开隐私政策，请稍后重试", android.widget.Toast.LENGTH_SHORT).show() }
+                }, effectiveDependencies.stopRuntimeSession)
+            }
+        }
+        composable(APP_UPDATE_ROUTE) {
+            com.yangchengwei.easytrip.settings.UpdateRoute(updateModel.controller) { navController.popBackStack() }
         }
         composable(CREATE_TRIP_ROUTE) {
             val model: CreateTripViewModel = viewModel(factory = CreateTripViewModel.Factory(service))

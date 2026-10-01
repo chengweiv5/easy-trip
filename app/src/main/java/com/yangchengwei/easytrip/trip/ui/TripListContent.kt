@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import androidx.compose.material.icons.rounded.Settings
+
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.semantics.Role
@@ -45,12 +47,13 @@ fun TripListContent(
     onAction: (TripListAction) -> Unit,
     modifier: Modifier = Modifier,
     emptyStateModifier: Modifier = Modifier,
+    onAppSettings: () -> Unit = {},
 ) {
     var showTraveled by rememberSaveable { mutableStateOf(false) }
     var expandedMenuTripId by rememberSaveable { mutableStateOf<String?>(null) }
     Scaffold(modifier = modifier, containerColor = MaterialTheme.colorScheme.background) { padding ->
         Column(Modifier.fillMaxSize().padding(padding)) {
-            TripListHeader(Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp))
+            TripListHeader(Modifier.padding(start = 16.dp, top = 12.dp, end = 16.dp), onAppSettings)
             Spacer(Modifier.height(16.dp))
             state.statusError?.let { error ->
                 Text(error, color = MaterialTheme.colorScheme.error,
@@ -186,22 +189,21 @@ fun TripListContent(
 }
 
 @Composable
-private fun TripListHeader(modifier: Modifier = Modifier) {
-    val openTheme = com.yangchengwei.easytrip.core.ui.theme.LocalThemePicker.current
+private fun TripListHeader(modifier: Modifier = Modifier, onSettings: () -> Unit) {
     Row(modifier.fillMaxWidth().heightIn(min = 64.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
             Text("周末，去远一点", color = MaterialTheme.colorScheme.onSurfaceVariant, style = MaterialTheme.typography.bodySmall)
             Text("我的旅行", modifier = Modifier.testTag("trip-list-title"), style = MaterialTheme.typography.headlineLarge)
         }
         Surface(
-            onClick = openTheme,
-            modifier = Modifier.size(48.dp).testTag("theme-entry").semantics { contentDescription = "主题配色" },
+            onClick = onSettings,
+            modifier = Modifier.size(48.dp).testTag("app-settings-entry").semantics { contentDescription = "设置" },
             shape = CircleShape,
             color = MaterialTheme.colorScheme.primaryContainer,
             contentColor = MaterialTheme.colorScheme.primary,
         ) {
             androidx.compose.foundation.layout.Box(contentAlignment = Alignment.Center) {
-                com.yangchengwei.easytrip.core.ui.theme.ThemePaletteIcon(Modifier.size(23.dp))
+                androidx.compose.material3.Icon(androidx.compose.material.icons.Icons.Rounded.Settings, contentDescription = null, modifier = Modifier.size(23.dp))
             }
         }
     }

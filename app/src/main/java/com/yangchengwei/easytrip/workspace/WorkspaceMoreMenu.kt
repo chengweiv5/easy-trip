@@ -14,7 +14,6 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.Lock
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material.icons.rounded.Share
 import androidx.compose.material3.Icon
@@ -30,11 +29,9 @@ import androidx.compose.ui.unit.dp
 @Composable
 internal fun WorkspaceMoreMenu(
     onOpenSettings: () -> Unit,
-    onOpenConsent: () -> Unit,
     onBackToTrips: () -> Unit,
     modifier: Modifier = Modifier,
     onShareItinerary: () -> Unit = {},
-    onOpenTheme: () -> Unit = {},
 ) {
     Surface(
         modifier = modifier
@@ -64,20 +61,6 @@ internal fun WorkspaceMoreMenu(
                 description = "每日地图、交通与备注",
                 icon = { Icon(Icons.Rounded.Share, contentDescription = null) },
                 onClick = onShareItinerary,
-            )
-            MoreMenuItem(
-                tag = "more-menu-theme",
-                title = "主题配色",
-                description = "${com.yangchengwei.easytrip.core.ui.theme.LocalThemePalette.current.displayName} · 所有旅行",
-                icon = { com.yangchengwei.easytrip.core.ui.theme.ThemePaletteIcon(Modifier.size(18.dp)) },
-                onClick = onOpenTheme,
-            )
-            MoreMenuItem(
-                tag = "more-menu-consent",
-                title = "地图授权",
-                description = "管理高德地图权限",
-                icon = { Icon(Icons.Rounded.Lock, contentDescription = null) },
-                onClick = onOpenConsent,
             )
             MoreMenuItem(
                 tag = "more-menu-back-to-trips",

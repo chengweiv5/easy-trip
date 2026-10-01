@@ -33,7 +33,7 @@ import org.junit.Test
 class ThemeNavigationTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun workspaceSwitchKeepsDateCalendarDrawerScrollAndMapInstance(): Unit = runBlocking {
+    @Test fun globalThemeEntryReplacesWorkspaceEntryAndPreservesTripData(): Unit = runBlocking {
         val db = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
         val trips = RoomTripRepository(db.tripDao(), database=db, isOnline={false})
         val itinerary = RoomItineraryRepository(db, db.itineraryEditingDao(), db.routeLegDao(), isOnline={false})
@@ -98,33 +98,25 @@ class ThemeNavigationTest {
             compose.onNodeWithTag("itinerary-scope-${day.id}").performClick()
             compose.onNodeWithTag("calendar-toggle").performClick()
             compose.onNodeWithTag("calendar-content").assertIsDisplayed()
-            val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
-            val viewBefore = compose.onNodeWithTag("calendar-grid").getUnclippedBoundsInRoot()
-            compose.waitUntil(5_000) { creations > 0 }
-            val createdBefore = creations
-            val cameraBefore = cameraCommands
+            compose.onNodeWithTag("workspace-more").performClick()
+            compose.onNodeWithTag("more-menu-theme").assertDoesNotExist()
+            compose.onNodeWithTag("more-menu-consent").assertDoesNotExist()
+            compose.onNodeWithTag("more-menu-back-to-trips").performScrollTo().performClick()
+            compose.onNodeWithTag("app-settings-entry").performClick()
             ThemePalette.entries.filter { it != ThemePalette.LAKE }.forEach { palette ->
-                compose.onNodeWithTag("workspace-more").performClick()
-                compose.onNodeWithTag("more-menu-theme").performScrollTo().performClick()
+                compose.onNodeWithTag("app-settings-theme").performScrollTo().performClick()
                 compose.onNodeWithTag("theme-option-${palette.id}").performScrollTo().performClick()
                 compose.onNodeWithTag("theme-apply").performClick()
-                compose.waitUntil(5_000) { store.theme.value == palette && appliedPalette == palette }
-                compose.onNodeWithTag("itinerary-scope-${day.id}").assertIsSelected()
-                compose.onNodeWithTag("calendar-content").assertIsDisplayed()
-                assertEquals(sheet, compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot())
-                assertEquals(viewBefore, compose.onNodeWithTag("calendar-grid").getUnclippedBoundsInRoot())
-                assertEquals(createdBefore, creations)
-                assertEquals(0, destroys)
-                assertEquals(cameraBefore, cameraCommands)
-                val dir=File(compose.activity.getExternalFilesDir(null),"themes").apply { mkdirs() }
-                File(dir,"workspace-${palette.id}.png").outputStream().use { compose.onRoot().captureToImage().asAndroidBitmap().compress(Bitmap.CompressFormat.PNG,100,it) }
+                compose.waitUntil(5_000) { store.theme.value == palette }
+                compose.onNodeWithTag("app-settings").assertIsDisplayed()
+                compose.onNodeWithText(palette.displayName).assertIsDisplayed()
             }
+            compose.onNodeWithTag("app-settings-back").performClick()
+            compose.onNodeWithText("主题切换验证").performClick()
+            compose.waitUntil(5_000) { appliedPalette == ThemePalette.ROSE }
             compose.onNodeWithTag("workspace-more").performClick()
-            compose.onNodeWithTag("more-menu-theme").assertIsDisplayed()
-            compose.onNodeWithText("玫瑰沙丘 · 所有旅行").assertIsDisplayed()
-            compose.onNodeWithTag("more-menu-back-to-trips").performScrollTo().performClick()
-            compose.onNodeWithTag("theme-entry").performClick()
-            compose.onNodeWithText("已使用玫瑰沙丘").assertIsDisplayed()
+            compose.onNodeWithTag("more-menu-theme").assertDoesNotExist()
+            compose.onNodeWithTag("more-menu-consent").assertDoesNotExist()
             assertEquals(3, trips.observeTrip(id).first()!!.days.size)
             assertEquals(1, db.savedPlaceDao().observePlaces(id).first().size)
         } finally {

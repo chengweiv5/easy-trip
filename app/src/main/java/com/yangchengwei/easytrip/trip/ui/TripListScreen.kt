@@ -18,6 +18,7 @@ fun TripListScreen(
     onCreateTrip: () -> Unit,
     onWorkspace: (String) -> Unit,
     onSettings: (String) -> Unit,
+    onAppSettings: () -> Unit = {},
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val lifecycle = androidx.lifecycle.compose.LocalLifecycleOwner.current.lifecycle
@@ -40,6 +41,7 @@ fun TripListScreen(
     }
     TripListContent(
         state = state,
+        onAppSettings = onAppSettings,
         onAction = { action ->
             if (action == TripListAction.CreateTrip) onCreateTrip() else viewModel.onAction(action)
         },
