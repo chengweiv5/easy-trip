@@ -9,6 +9,7 @@ import com.yangchengwei.easytrip.core.model.TransportMode
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.itinerary.domain.AddItineraryItemResult
 import com.yangchengwei.easytrip.itinerary.domain.DayItinerary
+import com.yangchengwei.easytrip.itinerary.domain.DEFAULT_STAY_MINUTES
 import com.yangchengwei.easytrip.itinerary.domain.Edge
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItem
 import com.yangchengwei.easytrip.itinerary.domain.ItineraryItemNotFoundException
@@ -142,7 +143,8 @@ class RoomItineraryRepository(
         val targetOld = if (targetDayId == item.tripDayId) sourceOld else itineraryDao.items(targetDayId)
         val maxIndex = if (targetDayId == item.tripDayId) sourceOld.lastIndex else targetOld.size
         require(targetIndex in 0..maxIndex) { "Invalid target index: $targetIndex" }
-        itineraryDao.freezeAutomaticTiming(itemId)
+        val sourceIndex = sourceOld.indexOfFirst { it.id == itemId }
+        if (targetDayId == item.tripDayId && sourceIndex == targetIndex) return@expenseTransaction
         val sourceNew = sourceOld.filterNot { it.id == itemId }.toMutableList()
         val targetNew = if (targetDayId == item.tripDayId) sourceNew else targetOld.toMutableList()
         targetNew.add(targetIndex, item.copy(tripDayId = targetDayId, tripId = targetTripId))
@@ -165,6 +167,24 @@ class RoomItineraryRepository(
             createLegs(item.tripDayId, sourceDiff.created)
             createLegs(targetDayId, targetDiff.created)
         }
+        // Re-arm only after obsolete edges have been removed: deleting an edge freezes
+        // its old successor. Order, route replacement and timing commit together.
+        if (targetDayId != item.tripDayId) {
+            reestimateAfterMove(item.tripDayId, sourceIndex, itemId)
+        }
+        val targetStart = if (targetDayId == item.tripDayId) minOf(sourceIndex, targetIndex) else targetIndex
+        reestimateAfterMove(targetDayId, targetStart, itemId)
+    }
+
+    private suspend fun reestimateAfterMove(dayId: String, startIndex: Int, movedItemId: String) {
+        val ordered = itineraryDao.items(dayId)
+        for (index in startIndex until ordered.size) {
+            val item = ordered[index]
+            val stay = if (item.id == movedItemId) DEFAULT_STAY_MINUTES
+                else item.stayDurationMinutes ?: DEFAULT_STAY_MINUTES
+            require(itineraryDao.restartAutomaticTiming(item.id, ordered.getOrNull(index - 1)?.id, stay) == 1)
+        }
+        itineraryDao.refreshAutomaticTimings(dayId)
     }
 
     override suspend fun deleteItem(itemId: String) = expenseTransaction(database, confirmExpenseRemoval) {
@@ -276,8 +296,8 @@ class RoomItineraryRepository(
     private suspend fun deleteLegs(dayId: String, edges: Set<Edge>) {
         requireExpenseRemovalConsent(deletedRouteExpenses(dayId, edges))
         edges.forEach {
-            // Removing an original predecessor permanently ends its automatic estimate,
-            // even if a later move recreates the same adjacency before a route responds.
+            // Stop estimates tied to the removed adjacency. Explicit moves re-arm
+            // their affected suffix after all replacement edges have been created.
             itineraryDao.freezeAutomaticTiming(it.toItemId)
             routeLegDao.deleteEdge(dayId, it.fromItemId, it.toItemId)
         }

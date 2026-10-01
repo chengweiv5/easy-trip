@@ -59,13 +59,18 @@ class AutomaticItineraryTimingTest {
         assertEquals(LocalTime.of(10,15),items.observeDay("day").first().items.last().arrivalTime)
         assertEquals("已确认",items.observeDay("day").first().items.last().note)
     }
-    @Test fun movingAnchorAwayAndBackDoesNotReactivateOldAutomaticTiming() = runBlocking {
+    @Test fun movingAnchorAwayAndBackUsesTheNewRouteAndRejectsTheOldCompletion() = runBlocking {
         val a = items.addItem("day", "a", 0)
         val b = items.addItem("day", "b", 1)
+        val old = routes.observeDay("day").first().single()
+        assertTrue(routes.claimIfVersionMatches(old.id, old.version))
         items.moveItem(a, "other", 0)
         items.moveItem(a, "day", 0)
+        assertFalse(routes.completeIfVersionMatches(old.id, old.version,
+            RouteResult(100, 7200, listOf(GeoPoint(30.0, 120.0), GeoPoint(30.0, 120.001)))))
+        assertEquals(LocalTime.of(9, 0), day().last().arrivalTime)
         complete(a, b, 3600)
-        assertEquals(LocalTime.of(9, 0), items.observeDay("day").first().items.last().arrivalTime)
+        assertEquals(LocalTime.of(10, 0), day().last().arrivalTime)
     }
     @Test fun insertionAtStartDoesNotRescheduleExistingStops() = runBlocking {
         val a = items.addItem("day", "a", 0)
@@ -98,16 +103,16 @@ class AutomaticItineraryTimingTest {
         assertEquals(listOf(LocalTime.of(8, 0), LocalTime.of(9, 0), LocalTime.of(10, 0)), day().map { it.arrivalTime })
     }
 
-    @Test fun movedStopKeepsTimingAndDeletedAnchorDoesNotRescheduleItsSuccessor() = runBlocking {
+    @Test fun movedStopReestimatesTimingButDeletionStillKeepsItsSuccessorTime() = runBlocking {
         val a = items.addItem("day", "a", 0)
         val b = items.addItem("day", "b", 1)
         val c = items.addItem("day", "c", 2)
         items.moveItem(b, "other", 0)
-        assertEquals(LocalTime.of(9, 0), items.observeDay("other").first().items.single().arrivalTime)
+        assertEquals(LocalTime.of(8, 0), items.observeDay("other").first().items.single().arrivalTime)
         complete(a, c, 7200)
-        assertEquals(LocalTime.of(10, 0), day().last().arrivalTime)
+        assertEquals(LocalTime.of(11, 0), day().last().arrivalTime)
         items.deleteItem(a)
-        assertEquals(LocalTime.of(10, 0), day().single().arrivalTime)
+        assertEquals(LocalTime.of(11, 0), day().single().arrivalTime)
     }
 
     @Test fun idempotentRetryDoesNotResetUserTimingOrAddAnotherStop() = runBlocking {

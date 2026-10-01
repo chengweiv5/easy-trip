@@ -25,6 +25,10 @@ interface AutomaticTimingQueries {
     @Query("UPDATE itinerary_items SET autoTimingPending=0 WHERE id=:itemId")
     suspend fun freezeAutomaticTiming(itemId: String): Int
 
+    @Query("""UPDATE itinerary_items SET autoTimingAnchorId=:anchorId, autoTimingPending=1,
+        stayDurationMinutes=:stay, timingWarning=NULL WHERE id=:itemId""")
+    suspend fun restartAutomaticTiming(itemId: String, anchorId: String?, stay: Int): Int
+
     @Query("""UPDATE itinerary_items SET arrivalTime=:arrival, stayDurationMinutes=:stay,
         autoTimingPending=:pending, timingWarning=:warning WHERE id=:itemId AND autoTimingPending=1""")
     suspend fun writeAutomaticTiming(itemId: String, arrival: LocalTime?, stay: Int, pending: Boolean, warning: String?): Int
@@ -39,7 +43,8 @@ interface AutomaticTimingQueries {
             val item = items[index]
             if (!item.autoTimingPending) return@forEach
             val previous = items.getOrNull(index - 1)
-            // Insertion/reordering must not reschedule pre-existing neighbours.
+            // An insertion must not reschedule pre-existing neighbours. Explicit moves
+            // opt the affected suffix back in with anchors from the new order.
             if (item.autoTimingAnchorId != previous?.id) {
                 freezeAutomaticTiming(item.id)
                 items[index] = item.copy(autoTimingPending = false)

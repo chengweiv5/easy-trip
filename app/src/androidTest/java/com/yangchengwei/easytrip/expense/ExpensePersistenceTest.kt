@@ -132,7 +132,9 @@ class ExpensePersistenceTest {
         repo.updateDetailsWithExpense(a, null, null, null, 8000)
         val leg = routes().observeDay(days[0]).first().single()
         routes().updateDetailsWithExpense(leg.id, null, null, null, true, 3650)
+        val beforeCancelledMove = repo.observeDay(days[0]).first()
         try { repo.moveItem(a, days[0], 1); fail("must cancel") } catch (_: IllegalStateException) { }
+        assertEquals(beforeCancelledMove, repo.observeDay(days[0]).first())
         assertEquals(listOf(a, b), repo.observeDay(days[0]).first().items.map { it.id })
         assertEquals(3650L, routes().observeDay(days[0]).first().single().expenseCents)
         assertEquals(listOf(RecordedExpense("交通", leg.id, 3650)), prompts.single())
