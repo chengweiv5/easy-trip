@@ -96,7 +96,7 @@ class WorkspaceMapSessionTest {
         assertEquals(listOf("杭州市", "杭州市"), cities)
     }
 
-    @Test fun noLocationPreservesNationwideSearchWithoutGuessingACity() = runTest {
+    @Test fun missingLocationDoesNotSilentlySearchNationwide() = runTest {
         val cities = mutableListOf<String?>()
         val source = object : PlaceSearchDataSource {
             override suspend fun cityAt(point: GeoPoint): PlaceCity = error("No location to resolve")
@@ -105,8 +105,9 @@ class WorkspaceMapSessionTest {
                 return emptyList()
             }
         }
-        LocatedCitySearchSource(source, null).search("故宫", null)
-        assertEquals(listOf<String?>(null), cities)
+        val result = runCatching { LocatedCitySearchSource(source, null).search("西施猪蹄", null) }
+        assertTrue(result.isFailure)
+        assertTrue(cities.isEmpty())
     }
 
     @Test fun restoredCameraDoesNotReplayOldFitButNewExplicitFitStillWorks() {

@@ -28,6 +28,8 @@ fun PlaceSearchRoute(
     consent: AmapConsentToken? = null,
     mapHostFactory: (Context) -> AmapMapHost = ::RealAmapMapHost,
     onOpenConsent: () -> Unit = {},
+    onRequestLocationPermission: () -> Unit = {},
+    onRetryLocation: () -> Unit = {},
     onBack: () -> Unit,
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
@@ -52,7 +54,14 @@ fun PlaceSearchRoute(
 
     PlaceSearchContent(
         state = state,
-        onAction = viewModel::dispatch,
+        onAction = { action ->
+            if (action == PlaceSearchAction.Retry && state.search.phase == PlaceSearchPhase.LocationPermissionRequired) {
+                onRequestLocationPermission()
+            } else {
+                if (action == PlaceSearchAction.Retry && state.search.phase is PlaceSearchPhase.LocationFailure) onRetryLocation()
+                viewModel.dispatch(action)
+            }
+        },
         autoFocusSearch = !autoFocusConsumed,
         onAutoFocusConsumed = { autoFocusConsumed = true },
         resultsListState = resultsListState,

@@ -95,7 +95,7 @@ const val APP_MAP_CONSENT_ROUTE = "settings/map"
 const val APP_UPDATE_ROUTE = "settings/update"
 internal const val WORKSPACE_SEARCH_RETURN_KEY = "searchReturnPoiIds"
 
-private class LocationPermissionLaunchBridge(
+internal class LocationPermissionLaunchBridge(
     val generation: Long,
     private val coordinator: LocationPermissionCoordinator,
 ) {
@@ -381,6 +381,20 @@ fun AppNavigation(
         }
     }
     val currentNavigationObserver = rememberUpdatedState(navigationObserver)
+    val appConsent = effectiveDependencies?.consentStore?.state?.collectAsStateWithLifecycle()?.value?.fact
+    var appRuntimeSession by remember(effectiveDependencies?.consentStore) { mutableStateOf<AmapRuntimeSession?>(null) }
+    LaunchedEffect(appConsent) {
+        appRuntimeSession = when (val fact = appConsent) {
+            is AmapConsentFact.Accepted -> effectiveDependencies?.runtimeSessionFactory?.invoke(fact)?.also {
+                it.locationSession?.warmUp()
+            }
+            is AmapConsentFact.Declined, is AmapConsentFact.Undecided -> {
+                effectiveDependencies?.stopRuntimeSession?.invoke()
+                null
+            }
+            null -> null
+        }
+    }
     val navigate: (String) -> Unit = { route ->
         currentNavigationObserver.value?.onNavigate(route)
         navController.navigate(route)
@@ -453,7 +467,6 @@ fun AppNavigation(
                 val consentStore = workspaceDependencies.consentStore
                 val consentState = consentStore?.state?.collectAsStateWithLifecycle()?.value
                 val consentFact = consentState?.fact
-                var runtimeSession by remember { mutableStateOf<AmapRuntimeSession?>(null) }
                 var showConsent by remember { mutableStateOf(consentFact is AmapConsentFact.Undecided) }
                 var policyRead by remember { mutableStateOf(false) }
                 val openConsentRequest by entry.savedStateHandle.getStateFlow("openConsent", false).collectAsStateWithLifecycle()
@@ -466,19 +479,9 @@ fun AppNavigation(
                 }
                 var consentError by remember { mutableStateOf<String?>(null) }
                 val coroutineScope = rememberCoroutineScope()
-                LaunchedEffect(consentFact) {
-                    runtimeSession = when (val fact = consentFact) {
-                        is AmapConsentFact.Accepted -> workspaceDependencies.runtimeSessionFactory?.invoke(fact)
-                        is AmapConsentFact.Declined, is AmapConsentFact.Undecided -> {
-                            workspaceDependencies.stopRuntimeSession()
-                            null
-                        }
-                        null -> null
-                    }
-                }
                 val runtime = resolveAmapRuntimeDependencies(
                     consentFact = consentFact,
-                    session = runtimeSession,
+                    session = appRuntimeSession,
                     legacy = AmapRuntimeDependencies(
                         workspaceDependencies.mapConsentToken?.takeIf { it.isActive() },
                         workspaceDependencies.placeSearchDataSource,
@@ -491,8 +494,8 @@ fun AppNavigation(
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
                 val workspaceSearchReturnState: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
-                val workspaceMapSession = remember(entry) {
-                    WorkspaceMapSession(entry.savedStateHandle)
+                val workspaceMapSession = remember(entry, runtime.locationSession) {
+                    WorkspaceMapSession(entry.savedStateHandle) { runtime.locationSession?.updateLocation(it) }
                 }
                 val context = androidx.compose.ui.platform.LocalContext.current
                 val activity = context as? Activity
@@ -685,20 +688,9 @@ fun AppNavigation(
                 }
             } else {
                 val consentFact = effectiveDependencies?.consentStore?.state?.collectAsStateWithLifecycle()?.value?.fact
-                var session by remember { mutableStateOf<AmapRuntimeSession?>(null) }
-                LaunchedEffect(consentFact) {
-                    session = when (val fact = consentFact) {
-                        is AmapConsentFact.Accepted -> effectiveDependencies.runtimeSessionFactory?.invoke(fact)
-                        is AmapConsentFact.Declined, is AmapConsentFact.Undecided -> {
-                            effectiveDependencies.stopRuntimeSession()
-                            null
-                        }
-                        null -> null
-                    }
-                }
                 val runtime = resolveAmapRuntimeDependencies(
                     consentFact = consentFact,
-                    session = session,
+                    session = appRuntimeSession,
                     legacy = AmapRuntimeDependencies(
                         effectiveDependencies?.mapConsentToken?.takeIf { it.isActive() },
                         effectiveDependencies?.placeSearchDataSource,
@@ -721,16 +713,28 @@ fun AppNavigation(
                         WorkspaceMapSession(it).location
                     }
                 }
-                val citySearchSource = remember(runtime.placeSearchDataSource, searchLocation) {
+                val citySearchSource = remember(runtime.placeSearchDataSource, searchLocation, runtime.locationSession) {
                     runtime.placeSearchDataSource?.let {
-                        LocatedCitySearchSource(it, searchLocation)
+                        LocatedCitySearchSource(it, searchLocation, runtime.locationSession)
                     }
                 }
                 LaunchedEffect(remoteSearchGeneration, citySearchSource) {
                     model.setRemoteSearchSession(remoteSearchGeneration, citySearchSource)
                 }
+                val requestSearchLocationPermission = rememberSearchLocationPermissionRequest(
+                    requestStore = effectiveDependencies.locationPermissionRequestStore,
+                    snapshot = locationPermissionSnapshot,
+                    permissionLauncher = onLaunchLocationPermission,
+                    settingsLauncher = onOpenApplicationSettings,
+                    onGranted = {
+                        runtime.locationSession?.retry()
+                        model.dispatch(com.yangchengwei.easytrip.place.ui.PlaceSearchAction.Retry)
+                    },
+                )
                 PlaceSearchRoute(
                     viewModel = model,
+                    onRequestLocationPermission = requestSearchLocationPermission,
+                    onRetryLocation = { runtime.locationSession?.retry() },
                     consent = runtime.token,
                     mapHostFactory = mapHostFactory
                         ?: { context -> com.yangchengwei.easytrip.workspace.RealAmapMapHost(context) },

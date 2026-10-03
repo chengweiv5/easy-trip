@@ -13,7 +13,10 @@ data class MapCameraState(
 )
 
 /** Owned by one workspace back-stack entry, never shared between trips or with the search map. */
-class WorkspaceMapSession(private val savedState: SavedStateHandle) {
+class WorkspaceMapSession(
+    private val savedState: SavedStateHandle,
+    private val onLocationUpdated: (GeoPoint) -> Unit = {},
+) {
     val location: GeoPoint?
         get() = savedState.get<DoubleArray>(LOCATION)?.let { GeoPoint(it[0], it[1]) }
 
@@ -24,6 +27,7 @@ class WorkspaceMapSession(private val savedState: SavedStateHandle) {
 
     fun onLocated(point: GeoPoint) {
         savedState[LOCATION] = doubleArrayOf(point.latitude, point.longitude)
+        onLocationUpdated(point)
     }
 
     fun onCameraChanged(camera: MapCameraState) {

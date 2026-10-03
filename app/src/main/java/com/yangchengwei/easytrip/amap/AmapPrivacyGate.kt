@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.amap
 import android.content.Context
 import com.amap.api.maps.MapsInitializer
 import com.amap.api.services.core.ServiceSettings
+import com.amap.api.location.AMapLocationClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -47,11 +48,13 @@ class AmapPrivacyGate internal constructor(
     override suspend fun reportShown() {
         MapsInitializer.updatePrivacyShow(context, true, true)
         ServiceSettings.updatePrivacyShow(context, true, true)
+        AMapLocationClient.updatePrivacyShow(context, true, true)
     }
 
     override suspend fun reportDecision(accepted: Boolean) {
         MapsInitializer.updatePrivacyAgree(context, accepted)
         ServiceSettings.updatePrivacyAgree(context, accepted)
+        AMapLocationClient.updatePrivacyAgree(context, accepted)
     }
 
     companion object {

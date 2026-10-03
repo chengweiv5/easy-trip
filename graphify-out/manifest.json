@@ -102,15 +102,15 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/AppContainer.kt": {
-    "mtime": 1790856975.0678012,
-    "seen": 1790858089.175513,
-    "ast_hash": "2f8f8fdd22e5d2335617bde3747b5e72",
+    "mtime": 1790864061.8589234,
+    "seen": 1790900013.433988,
+    "ast_hash": "c62437ef8ef5b14669e97329b26ef655",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt": {
-    "mtime": 1790861406.356365,
-    "seen": 1790861489.4789371,
-    "ast_hash": "382eb58c06573ab8d854ac8ff78bf24b",
+    "mtime": 1790899652.6653125,
+    "seen": 1790900013.433989,
+    "ast_hash": "35f34554f97d0c391562e7b64aae5eae",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/EasyTripApplication.kt": {
@@ -126,9 +126,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/amap/AmapPrivacyGate.kt": {
-    "mtime": 1790856975.0702198,
-    "seen": 1790858089.175518,
-    "ast_hash": "1540d7e43ab68e0d5cc7e9b63a316df8",
+    "mtime": 1790864061.8577554,
+    "seen": 1790900013.433994,
+    "ast_hash": "ec22aab057a49cbc9b9078455cd064c2",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/amap/AmapServiceException.kt": {
@@ -336,9 +336,9 @@
     "semantic_hash": "d287e9a42ab3c3989fa1169bff579869"
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt": {
-    "mtime": 1790856975.13982,
-    "seen": 1790858089.175597,
-    "ast_hash": "8ecf4fbd9574eb30c7b57fb8714596a2",
+    "mtime": 1790864109.5789168,
+    "seen": 1790900013.434072,
+    "ast_hash": "3f65e6cfd591410df15436a20ff14dd0",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/route/amap/AmapRouteDataSource.kt": {
@@ -1188,15 +1188,15 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContent.kt": {
-    "mtime": 1790856975.139146,
-    "seen": 1790858089.175596,
-    "ast_hash": "58bdd17d63afd3d7e32b5c68e6cfe1ad",
+    "mtime": 1790864109.5792487,
+    "seen": 1790900013.434071,
+    "ast_hash": "629051d3acfbc553a6a3fcd015fd7d6d",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchRoute.kt": {
-    "mtime": 1790856975.1403015,
-    "seen": 1790858089.1755981,
-    "ast_hash": "d64d0e59f53b486cb86fcccc7bc91076",
+    "mtime": 1790864109.5796328,
+    "seen": 1790900013.4340742,
+    "ast_hash": "131af481f6092c08b9e3262b7d28d991",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModel.kt": {
@@ -3000,9 +3000,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/amap/LocatedCitySearchSource.kt": {
-    "mtime": 1790861406.3567955,
-    "seen": 1790861489.47901,
-    "ast_hash": "7cd3f56e4a8a8bace02abbe32ba3ba94",
+    "mtime": 1790864061.8595867,
+    "seen": 1790900013.43406,
+    "ast_hash": "ae203a87dbeb823d884d595782d4184e",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/ui/SavedPlaceFilterHeader.kt": {
@@ -3060,9 +3060,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceMapSession.kt": {
-    "mtime": 1790861406.3577752,
-    "seen": 1790861489.479085,
-    "ast_hash": "61743da2aeeaf3122547afb2931e6aea",
+    "mtime": 1790864061.8593314,
+    "seen": 1790900013.43413,
+    "ast_hash": "a171a4f4ca0d2149461d6864bc08316e",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/core/ui/theme/ThemePreferenceStoreTest.kt": {
@@ -3114,9 +3114,9 @@
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/workspace/WorkspaceMapSessionTest.kt": {
-    "mtime": 1790861406.3579316,
-    "seen": 1790861489.4791439,
-    "ast_hash": "fdb5606b9e83ba44641897d4e2615430",
+    "mtime": 1790863521.742363,
+    "seen": 1790900013.434187,
+    "ast_hash": "f675428b91671da504a5289d96ef2749",
     "semantic_hash": ""
   },
   "design/v1.3.0-calendar-interaction.js": {
@@ -3915,6 +3915,48 @@
     "mtime": 1790861406.2698972,
     "seen": 1790861489.479271,
     "ast_hash": "74a6365e467c94686f68969fe197cdb6",
+    "semantic_hash": ""
+  },
+  "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapCurrentLocationSmokeTest.kt": {
+    "mtime": 1790899980.033434,
+    "seen": 1790900013.433922,
+    "ast_hash": "0bf99bcd1e2847385a2bed9ec4126d86",
+    "semantic_hash": ""
+  },
+  "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/AppSessionCitySearchTest.kt": {
+    "mtime": 1790988294.8734183,
+    "seen": 1790988668.817537,
+    "ast_hash": "b161d743cab0437d6c80100e8eccaaa8",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/yangchengwei/easytrip/SearchLocationPermission.kt": {
+    "mtime": 1790864109.5801787,
+    "seen": 1790900013.433991,
+    "ast_hash": "2204595fb0573ca754f59f943ea54ca7",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/yangchengwei/easytrip/amap/AmapCurrentLocation.kt": {
+    "mtime": 1790899652.6656313,
+    "seen": 1790900013.4339929,
+    "ast_hash": "6adfd64ca9414a604e577c95555ed3ca",
+    "semantic_hash": ""
+  },
+  "app/src/main/java/com/yangchengwei/easytrip/place/amap/AppLocationSession.kt": {
+    "mtime": 1790864227.7169209,
+    "seen": 1790900013.434059,
+    "ast_hash": "2921daf6479887fbc0472b26e85cbf85",
+    "semantic_hash": ""
+  },
+  "app/src/test/java/com/yangchengwei/easytrip/place/amap/AppLocationSessionTest.kt": {
+    "mtime": 1790864188.186754,
+    "seen": 1790900013.434158,
+    "ast_hash": "aadb366a3bde186356058477b1744342",
+    "semantic_hash": ""
+  },
+  "docs/verification/2026-10-01-map-city-rebase.md": {
+    "mtime": 1790861622.2847686,
+    "seen": 1790900013.434299,
+    "ast_hash": "18abe9af05695f6971527f5ad01ac9a6",
     "semantic_hash": ""
   }
 }

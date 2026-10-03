@@ -11,6 +11,9 @@ import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
 import com.yangchengwei.easytrip.permission.SharedPreferencesLocationPermissionRequestStore
 import com.yangchengwei.easytrip.place.amap.AmapPlaceDataSource
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
+import com.yangchengwei.easytrip.place.amap.AppLocationSession
+import com.yangchengwei.easytrip.amap.AmapCurrentLocation
+import com.yangchengwei.easytrip.amap.hasDeviceLocationPermission
 import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
 import com.yangchengwei.easytrip.place.domain.PlaceService
 import com.yangchengwei.easytrip.route.amap.AmapRouteDataSource
@@ -32,12 +35,14 @@ data class AmapRuntimeSession(
     val token: AmapConsentToken,
     val placeSearchDataSource: PlaceSearchDataSource,
     val routeRefreshCoordinator: RouteRefreshCoordinator,
+    val locationSession: AppLocationSession? = null,
 )
 
 data class AmapRuntimeDependencies(
     val token: AmapConsentToken? = null,
     val placeSearchDataSource: PlaceSearchDataSource? = null,
     val routeRefreshCoordinator: RouteRefreshCoordinator? = null,
+    val locationSession: AppLocationSession? = null,
 )
 
 internal fun resolveAmapRuntimeDependencies(
@@ -47,7 +52,7 @@ internal fun resolveAmapRuntimeDependencies(
 ): AmapRuntimeDependencies = when (consentFact) {
     is AmapConsentFact.Accepted -> session
         ?.takeIf { it.generation == consentFact.generation && it.token === consentFact.token }
-        ?.let { AmapRuntimeDependencies(it.token, it.placeSearchDataSource, it.routeRefreshCoordinator) }
+        ?.let { AmapRuntimeDependencies(it.token, it.placeSearchDataSource, it.routeRefreshCoordinator, it.locationSession) }
         ?: AmapRuntimeDependencies()
     is AmapConsentFact.Declined, is AmapConsentFact.Undecided -> AmapRuntimeDependencies()
     null -> legacy
@@ -75,6 +80,7 @@ internal class AmapRuntimeSessionManager(
 
     @Synchronized
     fun stopRuntimeSession() {
+        activeSession?.locationSession?.close()
         activeScope?.coroutineContext?.get(Job)?.cancel()
         activeScope = null
         activeSession = null
@@ -115,10 +121,17 @@ class AppContainer(
     val deleteImpactProvider = RoomDeleteImpactProvider(database.deleteImpactDao())
 
     private val runtimeSessions = AmapRuntimeSessionManager(applicationScope) { generation, token, scope ->
+        val places = AmapPlaceDataSource(this.context, token)
         AmapRuntimeSession(
             generation = generation,
             token = token,
-            placeSearchDataSource = AmapPlaceDataSource(this.context, token),
+            placeSearchDataSource = places,
+            locationSession = AppLocationSession(
+                scope,
+                hasPermission = { hasDeviceLocationPermission(this.context) },
+                locate = { AmapCurrentLocation(this.context, token).locate() },
+                resolveCity = places::cityAt,
+            ),
             routeRefreshCoordinator = DefaultRouteRefreshCoordinator(
                 routeLegRepository,
                 DataSourceRoutePlanner(AmapRouteDataSource(this.context, token)),

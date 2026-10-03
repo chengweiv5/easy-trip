@@ -376,6 +376,24 @@ private fun SearchBody(
             message = "收藏后会停留在搜索页，可继续收藏更多地点。",
         )
         PlaceSearchPhase.ConsentRequired -> ConsentRequiredBody(state.search.savedPlaces, onAction, modifier)
+        PlaceSearchPhase.LocationPermissionRequired -> SearchMessage(
+            modifier = modifier,
+            emptyIllustration = EmptyIllustration.Search,
+            title = "允许定位以搜索当前城市",
+            message = "仅获取一次当前位置，供本次打开 App 使用，不会持续后台定位。",
+            buttonLabel = "允许定位",
+            testTagPrefix = "place-search-location-permission",
+            onButtonClick = { onAction(PlaceSearchAction.Retry) },
+        )
+        is PlaceSearchPhase.LocationFailure -> SearchMessage(
+            modifier = modifier,
+            emptyIllustration = EmptyIllustration.Failure,
+            title = "无法获取当前城市",
+            message = phase.message,
+            buttonLabel = "重试定位",
+            testTagPrefix = "place-search-location-failure",
+            onButtonClick = { onAction(PlaceSearchAction.Retry) },
+        )
         PlaceSearchPhase.Loading -> SearchMessage(
             modifier = modifier,
             testTagPrefix = "place-search-loading",

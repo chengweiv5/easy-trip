@@ -2,6 +2,8 @@ package com.yangchengwei.easytrip.place.ui
 
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
+import com.yangchengwei.easytrip.place.amap.LocationPermissionRequired
+import com.yangchengwei.easytrip.place.amap.CurrentLocationUnavailable
 import com.yangchengwei.easytrip.place.domain.SavedPlace
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineDispatcher
@@ -20,6 +22,8 @@ sealed interface PlaceSearchPhase {
     data object Results : PlaceSearchPhase
     data object Empty : PlaceSearchPhase
     data class NetworkFailure(val message: String) : PlaceSearchPhase
+    data object LocationPermissionRequired : PlaceSearchPhase
+    data class LocationFailure(val message: String) : PlaceSearchPhase
 }
 
 data class PlaceSearchState(
@@ -125,7 +129,11 @@ class PlaceSearchReducer(
                 if (current == generation && currentRemoteSession == remoteSessionGeneration) {
                     mutableState.value = mutableState.value.copy(
                         results = emptyList(),
-                        phase = PlaceSearchPhase.NetworkFailure(error.message ?: "搜索失败"),
+                        phase = when (error) {
+                            is LocationPermissionRequired -> PlaceSearchPhase.LocationPermissionRequired
+                            is CurrentLocationUnavailable -> PlaceSearchPhase.LocationFailure(error.message ?: "定位失败，请重试")
+                            else -> PlaceSearchPhase.NetworkFailure(error.message ?: "搜索失败")
+                        },
                     )
                 }
             }
