@@ -1,5 +1,9 @@
 # easy-trip 项目约定
 
+## UI 设计
+
+- UI 设计与设计修改必须使用 Pencil；若 Pencil 不可用或执行失败，立即停止并向用户报告具体错误，不得自动改用其他工具或绕过 Pencil 继续设计。
+
 ## Git 推送
 
 - 在功能分支开发和提交；本项目始终推送到 `origin/main`，使用 `git push origin HEAD:main`。
