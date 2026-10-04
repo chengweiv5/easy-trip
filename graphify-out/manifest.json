@@ -276,9 +276,9 @@
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/amap/AmapPlaceDataSource.kt": {
-    "mtime": 1790861406.3566825,
-    "seen": 1790861489.479009,
-    "ast_hash": "bec82e7ffe2d9934216e620cabae14e9",
+    "mtime": 1791122503.870859,
+    "seen": 1791122634.717888,
+    "ast_hash": "e1172765c43f651b4e20726c529cc3f3",
     "semantic_hash": ""
   },
   "app/src/main/java/com/yangchengwei/easytrip/place/amap/PlaceContracts.kt": {
@@ -3957,6 +3957,12 @@
     "mtime": 1790861622.2847686,
     "seen": 1790900013.434299,
     "ast_hash": "18abe9af05695f6971527f5ad01ac9a6",
+    "semantic_hash": ""
+  },
+  "app/src/androidTest/java/com/yangchengwei/easytrip/amap/AmapCitySearchRegressionTest.kt": {
+    "mtime": 1791122547.1971836,
+    "seen": 1791122634.717744,
+    "ast_hash": "55d99a133d9017c962abc703672cfe04",
     "semantic_hash": ""
   }
 }

@@ -66,7 +66,8 @@ class AmapPlaceDataSource(context: Context, private val consent: AmapConsentToke
             PoiSearch.Query(keyword, "", city.orEmpty()).apply {
                 pageSize = 20
                 pageNum = 1
-                cityLimit = !city.isNullOrBlank()
+                // Keep the current city as a hint without excluding destinations named in the keyword.
+                cityLimit = false
             }
         } catch (error: Throwable) {
             if (error is CancellationException) throw error
