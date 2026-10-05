@@ -94,6 +94,8 @@ const val APP_SETTINGS_ROUTE = "settings"
 const val APP_MAP_CONSENT_ROUTE = "settings/map"
 const val APP_UPDATE_ROUTE = "settings/update"
 internal const val WORKSPACE_SEARCH_RETURN_KEY = "searchReturnPoiIds"
+internal const val WORKSPACE_SEARCH_RESULTS_KEY = "searchResultsReturn"
+private const val SEARCH_MAP_RESULTS_KEY = "map-search-results"
 
 internal class LocationPermissionLaunchBridge(
     val generation: Long,
@@ -544,6 +546,11 @@ fun AppNavigation(
                 LaunchedEffect(searchReturnPayload) {
                     if (searchReturnPayload != null) workspaceSearchReturnState.show(consumeWorkspaceSearchReturn(entry.savedStateHandle))
                 }
+                val searchResultsPayload by entry.savedStateHandle.getStateFlow<ArrayList<String>?>(WORKSPACE_SEARCH_RESULTS_KEY, null).collectAsStateWithLifecycle()
+                LaunchedEffect(searchResultsPayload) {
+                    com.yangchengwei.easytrip.workspace.WorkspaceSearchResults.restore(searchResultsPayload)?.let(workspaceModel::showSearchResults)
+                    if (searchResultsPayload != null) entry.savedStateHandle[WORKSPACE_SEARCH_RESULTS_KEY] = null
+                }
                 val addToItineraryModel: com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel = viewModel(
                     viewModelStoreOwner = entry,
                     factory = com.yangchengwei.easytrip.itinerary.ui.AddToItineraryViewModel.Factory(
@@ -593,6 +600,9 @@ fun AppNavigation(
                     onOpenSearch = {
                         workspaceSearchReturnState.clear()
                         navigate(tripSearchRoute(id))
+                        workspaceModel.state.value.searchResults?.let { results ->
+                            navController.currentBackStackEntry?.savedStateHandle?.set(SEARCH_MAP_RESULTS_KEY, results.save())
+                        }
                     },
                     placeViewModel = placeModel,
                     itineraryViewModel = itineraryModel,
@@ -720,6 +730,11 @@ fun AppNavigation(
                 }
                 LaunchedEffect(remoteSearchGeneration, citySearchSource) {
                     model.setRemoteSearchSession(remoteSearchGeneration, citySearchSource)
+                    if (citySearchSource != null) {
+                        com.yangchengwei.easytrip.workspace.WorkspaceSearchResults.restore(
+                            entry.savedStateHandle.remove<ArrayList<String>>(SEARCH_MAP_RESULTS_KEY),
+                        )?.let(model::restoreMapResults)
+                    }
                 }
                 val requestSearchLocationPermission = rememberSearchLocationPermissionRequest(
                     requestStore = effectiveDependencies.locationPermissionRequestStore,
@@ -733,6 +748,13 @@ fun AppNavigation(
                 )
                 PlaceSearchRoute(
                     viewModel = model,
+                    onShowResultsOnMap = { results ->
+                        if (workspaceEntry != null) {
+                            workspaceEntry.savedStateHandle[WORKSPACE_SEARCH_RESULTS_KEY] = results.save()
+                            publishWorkspaceSearchReturn(workspaceEntry.savedStateHandle, model.recentlyCollectedPoiIds())
+                            navController.popBackStack()
+                        }
+                    },
                     onRequestLocationPermission = requestSearchLocationPermission,
                     onRetryLocation = { runtime.locationSession?.retry() },
                     consent = runtime.token,

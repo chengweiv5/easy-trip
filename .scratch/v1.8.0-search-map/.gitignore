@@ -1,0 +1,4 @@
+# Local device details, APK provenance, and notification receipts are not source artifacts.
+delivery/
+evidence/notification-send.json
+evidence/notification-readback.json

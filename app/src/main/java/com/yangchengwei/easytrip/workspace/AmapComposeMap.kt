@@ -372,7 +372,7 @@ internal fun mapMarkerRendering(marker: MapMarkerUi, palette: ThemePalette = The
     val primary = palette.colors.primary.toArgb()
     val focusedBorder = palette.colors.tertiary.toArgb()
     return when (marker.kind) {
-        MapMarkerKind.UNSAVED_SEARCH -> MapMarkerRendering(
+        MapMarkerKind.UNSAVED_SEARCH, MapMarkerKind.SEARCH_RESULT -> MapMarkerRendering(
             glyph = "●",
             foregroundColor = 0xFFFFFFFF.toInt(),
             backgroundColor = palette.colors.tertiary.toArgb(),
@@ -398,9 +398,13 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
     private val density = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val name = marker.label.takeIf {
-        marker.kind == MapMarkerKind.SAVED_ITINERARY || marker.kind == MapMarkerKind.SAVED_PLACE_POOL
+        marker.kind == MapMarkerKind.SAVED_ITINERARY || marker.kind == MapMarkerKind.SAVED_PLACE_POOL || marker.kind == MapMarkerKind.SEARCH_RESULT
     }?.let { if (it.length > 18) it.take(17) + "…" else it }
-    private val diameter = if (marker.kind == MapMarkerKind.UNSAVED_SEARCH) 44f else 28f
+    private val diameter = when (marker.kind) {
+        MapMarkerKind.UNSAVED_SEARCH -> 44f
+        MapMarkerKind.SEARCH_RESULT -> 32f
+        else -> 28f
+    }
     private val textSizePx = 15f * density
     private val segments = marker.badgeSegments.takeIf {
         marker.kind == MapMarkerKind.SAVED_ITINERARY && marker.scheduled
@@ -453,7 +457,14 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
         paint.color = rendering.borderColor
         if (rendering.borderWidth > 0) canvas.drawRoundRect(badgeBounds, radius, radius, paint)
         paint.color = rendering.foregroundColor
-        if (rendering.geometry.isEmpty()) {
+        if (marker.kind == MapMarkerKind.SEARCH_RESULT) {
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 2f * density
+            paint.strokeCap = Paint.Cap.ROUND
+            canvas.drawCircle(cx - 1.5f * density, cy - 1.5f * density, 5f * density, paint)
+            canvas.drawLine(cx + 2f * density, cy + 2f * density, cx + 7f * density, cy + 7f * density, paint)
+            paint.strokeCap = Paint.Cap.BUTT
+        } else if (rendering.geometry.isEmpty()) {
             paint.style = Paint.Style.FILL
             paint.textSize = textSizePx
             paint.typeface = android.graphics.Typeface.DEFAULT_BOLD

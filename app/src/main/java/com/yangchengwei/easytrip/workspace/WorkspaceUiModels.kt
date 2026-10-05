@@ -55,6 +55,7 @@ data class TripWorkspaceReadyState(
     val calendarMode: Boolean = false,
     val calendarFocus: String? = null,
     val calendarSave: com.yangchengwei.easytrip.itinerary.calendar.CalendarSaveState = com.yangchengwei.easytrip.itinerary.calendar.CalendarSaveState(),
+    val searchResults: WorkspaceSearchResults? = null,
 )
 
 internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
@@ -79,6 +80,7 @@ internal fun TripWorkspaceUiState.toReadyState() = TripWorkspaceReadyState(
     calendarMode = calendarMode,
     calendarFocus = calendarFocus,
     calendarSave = calendarSave,
+    searchResults = searchResults,
 )
 
 sealed interface TripWorkspacePageState {
@@ -108,6 +110,7 @@ sealed interface TripWorkspaceAction {
     data object OpenSettings : TripWorkspaceAction
     data object OpenPrivacySettings : TripWorkspaceAction
     data object OpenSearch : TripWorkspaceAction
+    data object ClearSearchResults : TripWorkspaceAction
     data object ZoomIn : TripWorkspaceAction
     data object ZoomOut : TripWorkspaceAction
     data object ResetNorth : TripWorkspaceAction

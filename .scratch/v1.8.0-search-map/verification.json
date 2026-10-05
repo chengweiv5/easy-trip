@@ -1,0 +1,82 @@
+{
+  "status": "DONE",
+  "verified_at": "2026-10-05T00:20:59.981562+08:00",
+  "branch": "codex/v1.8.0-search-map",
+  "base": "c6e06fcb4f972c9a5f9fbd7f421f2e33bf00f7eb",
+  "unit_tests": {
+    "tests": 903,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "ui_tests": {
+    "total": 42,
+    "passed": 39,
+    "baseline_failures": 3,
+    "feature_tests_passed": 3
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 54,
+    "hints": 1
+  },
+  "git_diff_check": true,
+  "committed": false,
+  "pushed": false,
+  "published": false,
+  "physical_device_used": false,
+  "emulator": "emulator-5570 Android 36 read-only",
+  "visual": {
+    "real_amap": true,
+    "camera_fixed_all_sheet_levels": true,
+    "summary_fixed_all_sheet_levels": true,
+    "ocr_readability_passed": true,
+    "collapsed_labels_above_summary": true
+  },
+  "backup": "/tmp/easy-trip-v1.8.0-search-map-dev/before/",
+  "source_hashes": {
+    "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt": "94f4599d290c8cbbe9aa4af14e7901fc801b760b969aa2f2a85f1a84e43f0b4b",
+    "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContent.kt": "2076a161258f83f10ebd8011ab1aff28b9cd709660ebc2b8ff0d1c6c3fa2f1bc",
+    "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt": "536feb1afa0fb59f0ed583373feca4bc63b4ee03ba01af1f9626455569184ff2",
+    "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchRoute.kt": "864d92b5fb406a7730d07df79a808b322ccc7d1a3be943b1b50b301af5845d2d",
+    "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModel.kt": "452eba8c4adf8379b644dce0e46b5c7c4cab40f009bb954be1f0c5d99d4dad78",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/AmapComposeMap.kt": "abfc149db6d45cceae917377be20a0674396103923246d5a6d8790207de9d805",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/MapFacade.kt": "1842a79fedad33d4df29f330dd672dc25d61b9b1221b8e5d37ed8337593219bc",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/MapViewportController.kt": "c7c1611f73e35fe5c9e8b9ccd3a6c4c4490df6b1e9821641800a3b509ad72d5f",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContent.kt": "69ccf4472782caa544f9cb470872c4e4b31eeafb78f9537c8653d223b233bc38",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceRoute.kt": "7e03d1a3f1d8d9aa1569eed1a54a68e86c8276ca993de2b49828058d9a091678",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt": "b717f4bb808447b875fa88363accf22e8a3bdca670b47f45ca09144fd4a68fb0",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceViewModel.kt": "ad41c0cd4c80dcff6ec124b2916d57d7da4d07010ea92504124fa54964c453cd",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceScaffold.kt": "66803f57b5e4077e900900de23e9975b58d77c77b0e0bdda49e2ccec026b9aca",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt": "f191c8f787693a657f8089c94837dc5d42280aa96abd0805e99089a912f0bc2e",
+    "app/src/test/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModelTest.kt": "c8042c97ba40d0fb5a1d52fef5d8b3007b84874ee0357c35cd62869dc1f64a05",
+    "app/src/test/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContentStateTest.kt": "e5a8e8fb8f32d25a2b7e73e307f8179d22d84088a8aa8c46b97fa8af865e751f",
+    "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchResultsMapFlowTest.kt": "ddedf780140e4bb8cc4f0177c9a3814d03b918280446fff153a61280aeb1e24e",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceSearchResults.kt": "ac6504baadd7c77329a1ad429ed5bab05985853665bd11cc6e192c2a9e64805a",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceSearchSummary.kt": "bc7d83f28c80663ebb45e555425e37de331e078d7e2c5b78d4e21b12520e46d0",
+    "app/src/test/java/com/yangchengwei/easytrip/workspace/WorkspaceSearchResultsTest.kt": "a1b8555c9c1d636f26c56a9079ab3bd16de872bd506c0a84c7560170ecadf2d8"
+  },
+  "apk_sha256": "67db946cd357b7670cceaee45878758f1bbd33ee3aab4d6d37b648573f9a409c",
+  "evidence_sha256": {
+    "collapsed-ocr.json": "44b6bd5fac2ec673b067d88889516c40147fc730cbe80a93c0ac91780ff12920",
+    "expanded-ocr.json": "caeaebde4151af2ad61af0bec212c042f5f6cb8972d794fd22e2e119b85168fe",
+    "collapsed.png": "f8b108c0d80838a1d5376498d471fb9090d7133c8118d9f63d4a410f98ca228f",
+    "ui-regression.log": "940e798c62e0b6b666b994218b32c8a92eb2d9369e40d7312f200b1c9959e741",
+    "feature-ui.log": "24b76e8abb9b4a7d9de85426e0da7a80444da69a7b54e6e4aa210fa66f22b024",
+    "half.png": "f342a42a5b1f2e2086296bb55d4220b97fc7ea1bc38a0b5e2228fd3d46b873a6",
+    "lint.txt": "dbc872746c28750659ff07e82b9732d44880dc59811e5c622080f6f36662eb25",
+    "baseline-ui.log": "fcbdb33401d33236994abf3ec7f48d41c7f8e23e55f30c2a1e9a010099b8c06e",
+    "build.log": "ecd6034c3fd118096fb006365a79b3cb96c5fc8614df08b2d78cf17da593f5db",
+    "expanded.png": "9d7057fd404076b5abe1ab57b776944496d2419c0102a624b552ad8ac0be95b0"
+  },
+  "independent_agent_reviews": "Unavailable: repeated stream-disconnected errors. Manual review completed.",
+  "cleanup": {
+    "emulator_stopped": true,
+    "prototype_server_stopped": true
+  },
+  "notification": {
+    "bot": "punk-12-for-codex",
+    "message_id": "om_x100b63138102a4a0c47944c3140c069",
+    "readback_verified": true
+  }
+}

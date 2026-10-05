@@ -72,6 +72,27 @@ internal fun workspaceLayoutMetrics(
 internal fun workspaceLegendTop(metrics: WorkspaceLayoutMetrics): Dp =
     (metrics.sheetTop - 12.dp - 32.dp).coerceAtLeast(0.dp)
 
+/** A search result is positioned once. Dragging the sheet only occludes this layer. */
+internal fun workspaceSearchMapMetrics(metrics: WorkspaceLayoutMetrics): WorkspaceLayoutMetrics =
+    workspaceLayoutMetrics(
+        availableHeight = metrics.availableHeight,
+        availableWidth = metrics.availableWidth,
+        visibleSheetHeight = workspaceSheetAnchors(metrics.availableHeight).collapsed,
+    )
+
+internal fun workspaceSearchMapLayout(metrics: WorkspaceLayoutMetrics, density: Float): WorkspaceMapLayout {
+    val fixed = workspaceSearchMapMetrics(metrics)
+    return workspaceMapLayout(fixed, density).let { layout ->
+        layout.copy(fitInsets = layout.fitInsets.copy(
+            leftPx = (32 * density).toInt(),
+            topPx = (100 * density).toInt(),
+            rightPx = (64 * density).toInt(),
+            bottomPx = ((fixed.sheetHeight.value + 132) * density).toInt()
+                .coerceAtMost(((fixed.availableHeight.value - 77).coerceAtLeast(0f) * density).toInt()),
+        ))
+    }
+}
+
 data class WorkspaceMapLayout(
     val fitInsets: MapViewportInsets,
     val visibleInsets: MapViewportInsets,

@@ -64,6 +64,7 @@ data class TripWorkspaceUiState(
     val selectedMarkerPoi: MapPoiUi? = null,
     val selectedMapPoi: MapPoiUi? = null,
     val searchSelection: SearchResultSelection? = null,
+    val searchResults: WorkspaceSearchResults? = null,
     val mapLayer: MapLayer = MapLayer.STANDARD,
     val overlay: WorkspaceOverlay = WorkspaceOverlay.None,
     val isItineraryAllEmpty: Boolean = false,
@@ -100,6 +101,9 @@ class TripWorkspaceViewModel(
     private val overlay = MutableStateFlow<WorkspaceOverlay>(WorkspaceOverlay.None)
     private val selectedMapPoi = MutableStateFlow<MapPoiUi?>(null)
     private val placePoolFilter = MutableStateFlow(PlacePoolMapFilter())
+    private val submittedSearch = MutableStateFlow(
+        WorkspaceSearchResults.restore(savedState.get<ArrayList<String>>("submitted-search-results")),
+    )
     private val restoredFocusPoint = savedState.get<Double>(FOCUSED_LATITUDE)?.let { latitude ->
         savedState.get<Double>(FOCUSED_LONGITUDE)?.let { longitude -> GeoPoint(latitude, longitude) }
     }
@@ -115,6 +119,7 @@ class TripWorkspaceViewModel(
     )
     private val viewportController = MapViewportController().apply {
         restoredFocusPoint?.let(::focusSearchResult)
+        submittedSearch.value?.let { showSearchResults(it.mappedPlaces.map { place -> requireNotNull(place.point) }) }
     }
     private var focusedResultObserved = false
     private var previousDays = emptyList<TripDay>()
@@ -165,6 +170,7 @@ class TripWorkspaceViewModel(
                         calendarMode,
                         calendarFocus,
                         calendarTiming.state,
+                        submittedSearch,
                     ) { values -> mapWorkspaceState(values) }
                         .collect { next ->
                             if (next == null) {
@@ -239,7 +245,8 @@ class TripWorkspaceViewModel(
             ?: restoredFocusPoint.takeIf { activeFocusedId != null }
         val poolFilter = values[13] as PlacePoolMapFilter
         val mapped = MapUiModelMapper.map(currentMapScope, currentPlaces, currentTrip.days, currentSnapshots, selected, currentTrip.startDate, currentSearch, activeFocusedId, focusPoint, focusedCandidate, poolFilter)
-        viewportController.update(
+        val activeSearch = values[17] as WorkspaceSearchResults?
+        if (activeSearch == null) viewportController.update(
             placePoints = currentPlaces.map(SavedPlace::point),
             scope = currentMapScope,
             selectedDayId = selected,
@@ -247,7 +254,14 @@ class TripWorkspaceViewModel(
             placeFilter = if (currentMapScope == MapScope.PLACE_POOL) poolFilter else PlacePoolMapFilter(),
             retainCamera = restoreWorkspaceSheetLevel(values[5] as String?) == WorkspaceSheetLevel.EXPANDED,
         )
-        val model = mapped.copy(viewportRequest = viewportController.currentRequest)
+        val model = if (activeSearch == null) mapped.copy(viewportRequest = viewportController.currentRequest)
+        else MapUiModel(
+            markers = activeSearch.mappedPlaces.map { candidate ->
+                MapMarkerUi("result-${candidate.poiId}", requireNotNull(candidate.point), candidate.name,
+                    emptyList(), MapMarkerKind.SEARCH_RESULT)
+            },
+            viewportRequest = viewportController.currentRequest,
+        )
         model.corruptRoutes.forEach { route -> viewModelScope.launch { routes.repairCorruptPolyline(route.legId, route.version) } }
         val selectedMarker = model.markers.firstOrNull { it.key == values[6] as String? }
         return TripWorkspaceUiState(
@@ -274,6 +288,7 @@ class TripWorkspaceViewModel(
             selectedMarkerPoi = selectedMarker?.savedPlaceId?.let { savedPlaceId -> currentPlaces.firstOrNull { it.id == savedPlaceId }?.let { MapPoiUi(it.amapPoiId, it.name, it.address, it.point) } },
             selectedMapPoi = values[11] as MapPoiUi?,
             searchSelection = activeFocusedId?.let { id -> focusPoint?.let { SearchResultSelection(id, it) } },
+            searchResults = activeSearch,
             mapLayer = values[10] as MapLayer,
             overlay = values[12] as WorkspaceOverlay,
             isItineraryAllEmpty = isItineraryAllEmpty,
@@ -323,6 +338,22 @@ class TripWorkspaceViewModel(
         savedState[ITINERARY_SCOPE] = encodeItineraryScope(value)
         itineraryScope.value = value
     }
+    fun showSearchResults(results: WorkspaceSearchResults) {
+        clearSearchFocus()
+        closeOverlay()
+        viewportController.showSearchResults(results.mappedPlaces.map { requireNotNull(it.point) })
+        savedState["submitted-search-results"] = results.save()
+        submittedSearch.value = results
+        setSheetLevel(WorkspaceSheetLevel.COLLAPSED)
+    }
+
+    fun clearSearchResults() {
+        closeOverlay()
+        viewportController.retainViewportOnNextUpdate()
+        savedState["submitted-search-results"] = null
+        submittedSearch.value = null
+    }
+
     fun focusSearchResult(candidate: PlaceCandidate) {
         val point = candidate.point ?: return
         savedState[FOCUSED_POI] = candidate.poiId
@@ -396,6 +427,11 @@ class TripWorkspaceViewModel(
     }
     fun selectMarker(key: String) {
         val marker = mutable.value.map.markers.firstOrNull { it.key == key }
+        if (marker?.kind == MapMarkerKind.SEARCH_RESULT) {
+            val candidate = submittedSearch.value?.mappedPlaces?.firstOrNull { "result-${it.poiId}" == key } ?: return
+            selectMapPoi(MapPoiUi(candidate.poiId, candidate.name, candidate.address, requireNotNull(candidate.point)))
+            return
+        }
         if (marker?.kind == MapMarkerKind.UNSAVED_SEARCH) {
             val candidate = restoredFocusedCandidate?.takeIf { it.poiId == key.removePrefix("search-") }
             if (candidate != null) {

@@ -1,0 +1,67 @@
+
+com.yangchengwei.easytrip.workspace.SearchResultsMapFlowTest:...
+com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest:.......................
+Error in systemBackPublishesCurrentSessionCollectionsThroughSameCallback(com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest):
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest.systemBackPublishesCurrentSessionCollectionsThroughSameCallback(PlaceSearchContentTest.kt:671)
+.......
+Error in controlsUseSpecifiedVisualAndTouchBounds(com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest):
+java.lang.AssertionError: expected:<46.0> but was:<48.0>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:577)
+	at org.junit.Assert.assertEquals(Assert.java:701)
+	at com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest.assertSize(PlaceSearchContentTest.kt:818)
+	at com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest.assertSize$default(PlaceSearchContentTest.kt:815)
+	at com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest.controlsUseSpecifiedVisualAndTouchBounds(PlaceSearchContentTest.kt:696)
+
+com.yangchengwei.easytrip.workspace.WorkspaceSearchTabsTest:
+Error in workspaceHasTwoTabsAndReadOnlySearchLauncher(com.yangchengwei.easytrip.workspace.WorkspaceSearchTabsTest):
+java.lang.AssertionError: Failed to assert the following: (OnClick is defined)
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'workspace-search-launcher')
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:262)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:254)
+	at androidx.compose.ui.test.AssertionsKt.assertHasClickAction(Assertions.kt:235)
+	at com.yangchengwei.easytrip.workspace.WorkspaceSearchTabsTest.workspaceHasTwoTabsAndReadOnlySearchLauncher(WorkspaceSearchTabsTest.kt:67)
+
+com.yangchengwei.easytrip.workspace.SearchMapFocusTest:.....
+com.yangchengwei.easytrip.workspace.AppSessionCitySearchTest:.
+
+Time: 92.933
+There were 3 failures:
+1) systemBackPublishesCurrentSessionCollectionsThroughSameCallback(com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest)
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest.systemBackPublishesCurrentSessionCollectionsThroughSameCallback(PlaceSearchContentTest.kt:671)
+2) controlsUseSpecifiedVisualAndTouchBounds(com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest)
+java.lang.AssertionError: expected:<46.0> but was:<48.0>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:577)
+	at org.junit.Assert.assertEquals(Assert.java:701)
+	at com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest.assertSize(PlaceSearchContentTest.kt:818)
+	at com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest.assertSize$default(PlaceSearchContentTest.kt:815)
+	at com.yangchengwei.easytrip.place.ui.PlaceSearchContentTest.controlsUseSpecifiedVisualAndTouchBounds(PlaceSearchContentTest.kt:696)
+3) workspaceHasTwoTabsAndReadOnlySearchLauncher(com.yangchengwei.easytrip.workspace.WorkspaceSearchTabsTest)
+java.lang.AssertionError: Failed to assert the following: (OnClick is defined)
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'workspace-search-launcher')
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:262)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:254)
+	at androidx.compose.ui.test.AssertionsKt.assertHasClickAction(Assertions.kt:235)
+	at com.yangchengwei.easytrip.workspace.WorkspaceSearchTabsTest.workspaceHasTwoTabsAndReadOnlySearchLauncher(WorkspaceSearchTabsTest.kt:67)
+
+FAILURES!!!
+Tests run: 42,  Failures: 3
+
+

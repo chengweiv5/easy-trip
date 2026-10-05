@@ -379,6 +379,7 @@ fun TripWorkspaceScreen(
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
                 TripWorkspaceAction.OpenSearch -> onOpenSearch()
+                TripWorkspaceAction.ClearSearchResults -> viewModel.clearSearchResults()
                 TripWorkspaceAction.ZoomIn,
                 TripWorkspaceAction.ZoomOut,
                 TripWorkspaceAction.ResetNorth,

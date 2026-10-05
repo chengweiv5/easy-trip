@@ -1,5 +1,9 @@
 package com.yangchengwei.easytrip.workspace
 
+import com.yangchengwei.easytrip.core.model.GeoPoint
+import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
+
 import androidx.lifecycle.SavedStateHandle
 import com.yangchengwei.easytrip.amap.AmapConsentFact
 import com.yangchengwei.easytrip.amap.AmapConsentToken
@@ -125,6 +129,88 @@ class TripWorkspaceContentStateTest {
         trips.value.value = TripWithDays("trip", "北京", LocalDate.of(2026, 8, 23), TravelMode.FLEXIBLE, listOf(TripDay("day", 0)))
         advanceUntilIdle()
         assertEquals("北京", (model.pageState.value as TripWorkspacePageState.Ready).content.tripName)
+    }
+
+    @Test fun searchResultsCollapseDrawerAndDrawerChangesDoNotMoveMap() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips)
+        trips.value.value = TripWithDays("trip", "北京", LocalDate.of(2026, 8, 23), TravelMode.FLEXIBLE, listOf(TripDay("day", 0)))
+        advanceUntilIdle()
+        model.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+        model.showSearchResults(WorkspaceSearchResults("景点", listOf(
+            PlaceCandidate("poi-a", "景点甲", "", GeoPoint(30.1, 120.1), null),
+            PlaceCandidate("poi-b", "景点乙", "", GeoPoint(30.2, 120.2), null),
+        )))
+        advanceUntilIdle()
+        val camera = model.state.value.map.viewportRequest
+        assertEquals(WorkspaceSheetLevel.COLLAPSED, model.state.value.sheetLevel)
+        assertEquals(WorkspaceSection.ITINERARY, model.state.value.section)
+        assertEquals(2, model.state.value.map.markers.size)
+        assertEquals(ViewportReason.SEARCH_RESULTS, camera?.reason)
+
+        for (level in listOf(WorkspaceSheetLevel.HALF, WorkspaceSheetLevel.EXPANDED, WorkspaceSheetLevel.COLLAPSED)) {
+            model.setSheetLevel(level)
+            advanceUntilIdle()
+            assertEquals(camera, model.state.value.map.viewportRequest)
+        }
+        model.selectMarker("result-poi-a")
+        advanceUntilIdle()
+        assertEquals("景点甲", model.state.value.selectedMapPoi?.name)
+        model.clearSearchResults()
+        advanceUntilIdle()
+        assertNull(model.state.value.searchResults)
+        assertEquals(WorkspaceSection.ITINERARY, model.state.value.section)
+        assertTrue(model.state.value.map.markers.isEmpty())
+    }
+
+    @Test fun clearingSearchAfterSwitchingDayRestoresLayerWithoutRefittingMap() = runTest(dispatcher) {
+        val trips = Trips()
+        val itineraries = ControlledItineraries(mapOf(
+            "day-1" to DayItinerary("day-1", "trip", emptyList()),
+            "day-2" to DayItinerary("day-2", "trip", listOf(itineraryItem("item-1"))),
+        ))
+        val model = TripWorkspaceViewModel("trip", trips, Places(listOf(savedPlace())), itineraries, Legs(), SavedStateHandle())
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+        model.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
+        model.showSearchResults(WorkspaceSearchResults("景点", listOf(
+            PlaceCandidate("poi-a", "景点甲", "", GeoPoint(30.1, 120.1), null),
+        )))
+        model.selectSection(WorkspaceSection.ITINERARY)
+        model.selectItineraryScope(ItineraryScope.Day("day-2"))
+        advanceUntilIdle()
+        model.clearSearchResults()
+        advanceUntilIdle()
+        assertEquals(ItineraryScope.Day("day-2"), model.state.value.itineraryScope)
+        assertNull(model.state.value.searchResults)
+        assertNull(model.state.value.map.viewportRequest)
+    }
+
+    @Test fun savedSearchSnapshotRestoresOnlyInItsWorkspaceAndKeepsSelectedDay() = runTest(dispatcher) {
+        val trips = Trips()
+        trips.value.value = tripWithTwoDays()
+        val handle = SavedStateHandle()
+        val original = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), handle)
+        advanceUntilIdle()
+        original.selectSection(WorkspaceSection.ITINERARY)
+        original.selectItineraryScope(ItineraryScope.Day("day-2"))
+        val results = WorkspaceSearchResults("景点", listOf(
+            PlaceCandidate("poi-a", "景点甲", "", GeoPoint(30.1, 120.1), null),
+            PlaceCandidate("poi-b", "无坐标", "", null, null),
+        ))
+        original.showSearchResults(results)
+        advanceUntilIdle()
+        val restoredHandle = SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) })
+        val restored = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), restoredHandle)
+        val separate = model(trips)
+        advanceUntilIdle()
+        assertEquals(results, restored.state.value.searchResults)
+        assertEquals(ItineraryScope.Day("day-2"), restored.state.value.itineraryScope)
+        assertEquals(WorkspaceSection.ITINERARY, restored.state.value.section)
+        assertEquals(WorkspaceSheetLevel.COLLAPSED, restored.state.value.sheetLevel)
+        assertEquals(listOf("景点甲"), restored.state.value.map.markers.map { it.label })
+        assertNull(separate.state.value.searchResults)
     }
 
     @Test fun fullPlaceIdsMissingPreventsReconciliationDespiteReadyFilteredRows() {

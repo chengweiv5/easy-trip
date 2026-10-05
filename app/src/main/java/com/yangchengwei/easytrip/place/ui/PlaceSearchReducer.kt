@@ -97,6 +97,17 @@ class PlaceSearchReducer(
 
     fun retry() = submit()
 
+    fun restoreResults(query: String, results: List<PlaceCandidate>) {
+        generation++
+        searchJob?.cancel()
+        searchJob = null
+        mutableState.value = mutableState.value.copy(
+            query = query,
+            results = results,
+            phase = if (results.isEmpty()) PlaceSearchPhase.Empty else PlaceSearchPhase.Results,
+        )
+    }
+
     private fun search(query: String, debounce: Boolean = true) {
         val current = ++generation
         val currentRemoteSession = remoteSessionGeneration

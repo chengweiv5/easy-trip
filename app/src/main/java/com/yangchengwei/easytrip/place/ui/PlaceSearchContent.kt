@@ -271,6 +271,7 @@ private fun SearchHeader(
 ) {
     val focusRequester = remember { FocusRequester() }
     val keyboardController = LocalSoftwareKeyboardController.current
+    val submit = { onAction(PlaceSearchAction.Submit) }
     LaunchedEffect(autoFocusSearch) {
         if (autoFocusSearch) {
             focusRequester.requestFocus()
@@ -309,7 +310,7 @@ private fun SearchHeader(
                 fontWeight = FontWeight.SemiBold,
             ),
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-            keyboardActions = KeyboardActions(onSearch = { onAction(PlaceSearchAction.Submit) }),
+            keyboardActions = KeyboardActions(onSearch = { submit() }),
             decorationBox = { input ->
                 Box(Modifier.fillMaxSize()) {
                     Box(
@@ -357,6 +358,11 @@ private fun SearchHeader(
                 }
             },
         )
+        com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton(
+            onClick = submit,
+            enabled = query.isNotBlank(),
+            modifier = Modifier.height(48.dp).testTag("place-search-submit"),
+        ) { Text("搜索") }
     }
 }
 

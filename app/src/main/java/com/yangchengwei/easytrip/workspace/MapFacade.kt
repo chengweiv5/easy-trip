@@ -22,7 +22,7 @@ data class OccurrenceUi(
     val savedPlaceId: String,
 )
 
-enum class MapMarkerKind { UNSAVED_SEARCH, SAVED_PLACE_POOL, SAVED_ITINERARY }
+enum class MapMarkerKind { UNSAVED_SEARCH, SAVED_PLACE_POOL, SAVED_ITINERARY, SEARCH_RESULT }
 
 data class MapMarkerBadgeSegment(val text: String, val colorArgb: Long)
 
@@ -60,7 +60,7 @@ data class MapRouteLabelUi(
 
 data class CorruptRoute(val legId: String, val version: Long)
 
-enum class ViewportReason { INITIAL, PLACE_SET_CHANGED, SCOPE_CHANGED, VISIBLE_SET_CHANGED, SEARCH_FOCUS }
+enum class ViewportReason { INITIAL, PLACE_SET_CHANGED, SCOPE_CHANGED, VISIBLE_SET_CHANGED, SEARCH_FOCUS, SEARCH_RESULTS }
 
 data class MapViewportInsets(
     val leftPx: Int = 0,

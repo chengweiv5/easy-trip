@@ -13,6 +13,7 @@ class MapViewportController {
     private var userMovedViewport = false
     private var placeFilter = PlacePoolMapFilter()
     private var cameraRetained = false
+    private var retainNextViewportUpdate = false
 
     var currentRequest: MapViewportRequest? = null
         private set
@@ -34,6 +35,7 @@ class MapViewportController {
         }
         if (retainedChange != null) retainedPlaceChange = null
         val reason = when {
+            retainNextViewportUpdate -> null
             revealItinerary -> ViewportReason.SCOPE_CHANGED
             !observedNonemptyPlaces && normalizedPlaces.isNotEmpty() -> ViewportReason.INITIAL
             retainedChange != null -> null
@@ -45,6 +47,7 @@ class MapViewportController {
             this.scope == scope && scope != MapScope.PLACE_POOL && normalizedVisible != visibleIdentity -> ViewportReason.VISIBLE_SET_CHANGED
             else -> null
         }
+        retainNextViewportUpdate = false
         if (reason == ViewportReason.INITIAL || reason == ViewportReason.PLACE_SET_CHANGED || reason == ViewportReason.SCOPE_CHANGED || this.selectedDayId != selectedDayId || this.placeFilter != placeFilter) {
             userMovedViewport = false
         }
@@ -72,12 +75,23 @@ class MapViewportController {
         currentRequest = null
     }
 
+    /** Reconcile changes made under the search layer without moving the camera on dismissal. */
+    fun retainViewportOnNextUpdate() {
+        onUserGesture()
+        retainNextViewportUpdate = true
+    }
+
     fun retainViewportForPlaceChange(point: GeoPoint) {
         retainedPlaceChange = point
     }
 
     fun focusSearchResult(point: GeoPoint): MapViewportRequest =
         requireNotNull(emit(ViewportReason.SEARCH_FOCUS, listOf(point), SEARCH_FOCUS_ZOOM))
+
+    fun showSearchResults(points: List<GeoPoint>) {
+        currentRequest = null
+        emit(ViewportReason.SEARCH_RESULTS, points)
+    }
 
     private fun emit(
         reason: ViewportReason?,

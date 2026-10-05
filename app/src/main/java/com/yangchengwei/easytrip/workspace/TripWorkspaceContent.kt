@@ -297,7 +297,8 @@ private fun WorkspaceReadyContent(
         map = { metrics ->
             Box(Modifier.fillMaxSize().testTag("workspace-map")) {
                 if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) {
-                    mapContent(workspaceMapLayout(metrics, density.density))
+                    mapContent(if (state.searchResults != null) workspaceSearchMapLayout(metrics, density.density)
+                        else workspaceMapLayout(metrics, density.density))
                 }
                 if (mapState != WorkspaceMapState.Ready && workspaceMapOverlaysFit(metrics)) {
                     WorkspaceMapFallback(
@@ -385,7 +386,8 @@ private fun WorkspaceReadyContent(
                 }
             }
         },
-        topOverlay = { metrics ->
+        topOverlay = { liveMetrics ->
+            val metrics = if (state.searchResults != null) workspaceSearchMapMetrics(liveMetrics) else liveMetrics
             layerFailureMessage?.let { message ->
                 WorkspaceLayerFailureFeedback(
                     message = message,
@@ -416,7 +418,7 @@ private fun WorkspaceReadyContent(
                 modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp),
             )
             if (mapOverlaysFit && mapState == WorkspaceMapState.Ready) {
-                if (state.section == WorkspaceSection.PLACE_POOL && placeState.placesReady) {
+                if (state.searchResults == null && state.section == WorkspaceSection.PLACE_POOL && placeState.placesReady) {
                     MapCollectionSummary(
                         count = com.yangchengwei.easytrip.place.ui.placePoolCollectionTotal(placeState),
                         modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 70.dp),
@@ -435,7 +437,7 @@ private fun WorkspaceReadyContent(
                             end = 12.dp,
                         ),
                 )
-                Row(
+                if (state.searchResults == null) Row(
                     Modifier.align(Alignment.TopStart)
                         .padding(start = 12.dp, end = 12.dp, top = workspaceLegendTop(metrics))
                         .fillMaxWidth(),
@@ -450,6 +452,15 @@ private fun WorkspaceReadyContent(
                         onClick = { onAction(TripWorkspaceAction.OpenSearch) },
                     )
                 }
+            }
+            state.searchResults?.let { results ->
+                WorkspaceSearchSummary(
+                    results = results,
+                    onOpenList = { onAction(TripWorkspaceAction.OpenSearch) },
+                    onClear = { onAction(TripWorkspaceAction.ClearSearchResults) },
+                    modifier = Modifier.align(Alignment.BottomCenter)
+                        .padding(start = 12.dp, end = 12.dp, bottom = metrics.sheetHeight + 12.dp),
+                )
             }
         },
     )

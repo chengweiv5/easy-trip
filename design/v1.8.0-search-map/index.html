@@ -1,0 +1,326 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <title>Easy Trip · v1.8.0 搜索结果地图</title>
+  <style>
+    :root {
+      --primary: #086f76; --bg: #ecf3f4; --soft: #d9ebed;
+      --ink: #20343b; --muted: #53676d; --line: #ccdde0;
+      --accent: #a3532b; --accent-soft: #f5e6d9; --surface: #fff;
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "PingFang SC", "Microsoft YaHei", sans-serif;
+      color: var(--ink); background: #f4f6f5; font-synthesis: none;
+    }
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+    button { font: inherit; color: inherit; cursor: pointer; border: 0; background: none; }
+    button:focus-visible { outline: 3px solid var(--primary); outline-offset: 3px; }
+    .icon { width: 20px; height: 20px; stroke: currentColor; fill: none; stroke-width: 1.7; stroke-linecap: round; stroke-linejoin: round; flex: none; }
+    .symbols { position: absolute; width: 0; height: 0; overflow: hidden; }
+    .page { max-width: 1072px; margin: auto; padding: 42px 40px 32px; }
+    .eyebrow { font-size: 12px; letter-spacing: 1.8px; font-weight: 700; color: var(--primary); }
+    .page-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 24px; border-bottom: 1px solid #dce4e3; padding-bottom: 25px; }
+    h1 { font-size: 30px; letter-spacing: -1px; line-height: 1.35; margin: 12px 0 9px; font-weight: 650; }
+    .intro { font-size: 14px; line-height: 1.7; color: var(--muted); margin: 0; }
+    .review-badge { flex: none; font-size: 12px; padding: 8px 11px; border: 1px solid var(--line); border-radius: 6px; margin-top: 2px; background: #fff; }
+    .review-layout { display: grid; grid-template-columns: 440px 1fr; align-items: start; gap: 68px; margin-top: 30px; }
+    .device-section { min-width: 0; }
+    .device-toolbar { display: flex; justify-content: space-between; align-items: center; max-width: 390px; margin: 0 auto 14px; gap: 10px; }
+    .device-toolbar span { font-size: 12px; color: var(--muted); }
+    .sizes { display: flex; border: 1px solid var(--line); border-radius: 6px; background: #fff; }
+    .sizes button { font-size: 11px; min-height: 32px; padding: 0 12px; border-radius: 5px; }
+    .sizes button[aria-pressed="true"] { background: var(--soft); color: var(--primary); font-weight: 600; }
+    .phone { width: min(390px, 100%); height: 844px; margin: auto; position: relative; overflow: hidden; background: var(--bg); border-radius: 24px; box-shadow: 0 0 0 1px #d1dcda, 0 18px 48px #20343b16; isolation: isolate; }
+    .phone.compact { width: min(320px, 100%); }
+    .map-canvas { position: absolute; inset: 28px 0 28px; overflow: hidden; background: #e7eee3; }
+    .map-canvas > svg { position: absolute; width: 100%; height: 100%; inset: 0; }
+    .status { position: absolute; z-index: 4; left: 0; top: 0; right: 0; height: 28px; display: flex; align-items: center; justify-content: space-between; padding: 0 22px; font-size: 12px; font-weight: 600; background: #ecf3f4; }
+    .status-right { display: flex; gap: 5px; align-items: center; }
+    .status .icon { width: 14px; height: 14px; stroke-width: 1.8; }
+    .trip-bar { position: absolute; z-index: 4; left: 12px; right: 12px; top: 40px; height: 56px; display: flex; align-items: center; border-radius: 12px; background: #fff; box-shadow: 0 2px 8px #29484b13; }
+    .icon-button { display: inline-flex; align-items: center; justify-content: center; width: 48px; min-width: 48px; height: 48px; padding: 0; border-radius: 9px; }
+    .trip-title { min-width: 0; flex: 1; display: flex; flex-direction: column; gap: 3px; }
+    .trip-title strong { font-size: 15px; font-weight: 650; white-space: nowrap; }
+    .trip-title span { font-size: 11px; color: var(--muted); }
+    .map-label { position: absolute; font-size: 10px; color: #637868; pointer-events: none; white-space: nowrap; }
+    .lake-label { top: 325px; left: 46%; font-size: 27px; color: #5c959e; font-weight: 400; letter-spacing: 8px; transform: rotate(-9deg); }
+    .map-tools { position: absolute; right: 12px; top: 112px; z-index: 5; display: grid; gap: 8px; }
+    .map-tool { display: flex; align-items: center; justify-content: center; width: 48px; height: 48px; border-radius: 50%; background: #fff; color: var(--primary); box-shadow: 0 2px 8px #29484b14; border: 1px solid #dae5e2; }
+    .map-tool .icon { width: 21px; height: 21px; }
+    .result-marker { position: absolute; z-index: 3; width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; padding: 0; transform: translate(-50%, -50%); border-radius: 50%; }
+    .marker-dot { width: 30px; height: 30px; background: var(--accent); border: 2px solid #fff; border-radius: 50%; box-shadow: 0 2px 5px #67472a35; display: flex; align-items: center; justify-content: center; color: white; transition: box-shadow .16s, transform .16s; }
+    .marker-dot .icon { width: 15px; height: 15px; stroke-width: 2; }
+    .marker-label { position: absolute; top: 45px; left: 50%; transform: translateX(-50%); white-space: nowrap; color: #60381f; background: #fffdf8; border: 1px solid #ddc6b3; border-radius: 5px; padding: 3px 6px; font-size: 11px; line-height: 15px; font-weight: 600; box-shadow: 0 1px 3px #5f472514; pointer-events: none; }
+    .result-marker[aria-pressed="true"] { z-index: 6; }
+    .result-marker[aria-pressed="true"] .marker-dot { transform: scale(1.16); box-shadow: 0 0 0 5px #a3532b24, 0 2px 5px #67472a35; }
+    .result-marker[aria-pressed="true"] .marker-label { background: var(--accent); color: white; border-color: var(--accent); }
+    .cluster .marker-dot { width: 38px; height: 38px; font-size: 14px; font-weight: 700; }
+    .cluster .marker-label { font-weight: 500; }
+    .position-dot { position: absolute; left: 81%; top: 371px; width: 13px; height: 13px; border: 2px solid white; border-radius: 50%; background: #3b80c3; box-shadow: 0 0 0 8px #3b80c31a, 0 1px 4px #20343b22; }
+    .position-label { position: absolute; left: 72%; top: 393px; color: #3a668b; font-size: 10px; }
+    .legend { position: absolute; bottom: 232px; left: 16px; z-index: 4; display: flex; align-items: center; gap: 6px; font-size: 11px; color: #70462d; background: #fffdf8ed; padding: 6px 9px; border-radius: 5px; border: 1px solid #e1d6c5; }
+    .legend-dot { width: 8px; height: 8px; flex: none; background: var(--accent); border-radius: 50%; }
+    .search-summary { position: absolute; z-index: 6; bottom: 148px; left: 12px; right: 12px; height: 68px; border: 1px solid #d0ddda; border-radius: 12px; background: white; box-shadow: 0 3px 14px #20343b17; display: flex; align-items: center; padding: 8px; gap: 2px; }
+    .search-query { flex: 1; min-width: 0; display: flex; gap: 10px; align-items: center; text-align: left; border-radius: 6px; min-height: 48px; padding: 0 8px; }
+    .search-query > .icon { color: var(--primary); }
+    .query-copy { display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+    .query-copy strong { font-size: 15px; font-weight: 650; }
+    .query-copy small { color: var(--muted); font-size: 11px; white-space: nowrap; }
+    .list-button { display: inline-flex; align-items: center; justify-content: center; gap: 4px; min-width: 66px; min-height: 48px; border-radius: 8px; color: var(--primary); background: var(--bg); font-size: 13px; font-weight: 600; }
+    .list-button .icon { width: 16px; height: 16px; }
+    .clear-button { margin-left: 1px; color: var(--muted); }
+    .clear-button .icon { width: 18px; height: 18px; }
+    .sheet { position: absolute; z-index: 7; bottom: 28px; left: 0; right: 0; height: 108px; border-radius: 16px 16px 0 0; background: var(--bg); box-shadow: 0 -2px 10px #263e4a09; border-top: 1px solid #d8e3e2; }
+    .sheet-grip { width: 32px; height: 4px; border-radius: 8px; background: #a7babc; margin: 7px auto 0; }
+    .tabs { height: 48px; display: flex; justify-content: space-evenly; align-items: stretch; padding: 0 20px; }
+    .tabs button { position: relative; min-width: 100px; min-height: 48px; color: var(--muted); font-size: 15px; }
+    .tabs button[aria-selected="true"] { color: var(--primary); font-weight: 650; }
+    .tabs button[aria-selected="true"]::after { content: ""; position: absolute; width: 42px; height: 3px; bottom: 0; left: calc(50% - 21px); background: var(--primary); }
+    .sheet-summary { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 48px; padding: 0 20px; gap: 8px; }
+    .sheet-summary > span { font-size: 12px; }
+    .sheet-summary > small { display: flex; gap: 4px; align-items: center; color: var(--muted); font-size: 11px; }
+    .sheet-summary .icon { width: 14px; height: 14px; }
+    .system-nav { position: absolute; z-index: 8; height: 28px; left: 0; bottom: 0; right: 0; display: flex; align-items: center; justify-content: space-around; padding: 0 62px; background: var(--bg); }
+    .system-nav .icon { width: 14px; height: 14px; stroke: #658087; }
+    .map-caption { position: absolute; bottom: 138px; left: 17px; z-index: 3; color: #5d786e; font-size: 8px; letter-spacing: .4px; }
+    .map-toast { position: absolute; top: 113px; left: 20px; right: 20px; z-index: 12; background: #20343bf2; color: #fff; font-size: 12px; line-height: 1.65; border-radius: 8px; padding: 11px 13px; box-shadow: 0 5px 18px #20343b20; }
+    [hidden] { display: none !important; }
+    .phone-caption { font-size: 11px; line-height: 1.7; color: var(--muted); text-align: center; margin: 15px 0 0; }
+    .review-notes { padding-top: 46px; }
+    .section-kicker { font-size: 11px; color: var(--primary); letter-spacing: 1.5px; font-weight: 700; }
+    h2 { margin: 10px 0 13px; font-size: 23px; font-weight: 650; line-height: 1.45; letter-spacing: -.5px; }
+    .note-lead { color: var(--muted); font-size: 13px; line-height: 1.85; margin: 0 0 30px; }
+    .note { display: grid; grid-template-columns: 26px 1fr; gap: 12px; margin: 22px 0; }
+    .note-num { border: 1px solid var(--line); color: var(--primary); border-radius: 6px; height: 26px; display: flex; align-items: center; justify-content: center; font-size: 11px; background: #fff; }
+    .note h3 { font-size: 14px; margin: 2px 0 7px; font-weight: 650; }
+    .note p { font-size: 12px; line-height: 1.85; margin: 0; color: var(--muted); }
+    .demo-panel { border: 1px solid var(--line); padding: 17px; background: #fff; border-radius: 10px; margin-top: 29px; }
+    .demo-panel h3 { margin: 0 0 8px; font-size: 12px; }
+    .demo-panel p { margin: 0 0 13px; font-size: 11px; color: var(--muted); line-height: 1.7; }
+    .demo-actions { display: flex; flex-wrap: wrap; gap: 7px; }
+    .demo-actions button { min-height: 40px; border: 1px solid var(--line); padding: 0 12px; font-size: 12px; border-radius: 6px; }
+    .demo-actions button.active { color: var(--primary); background: var(--soft); border-color: #a8cace; font-weight: 600; }
+    .boundary { margin-top: 24px; padding-top: 19px; border-top: 1px solid #d9e3e1; font-size: 11px; color: var(--muted); line-height: 1.85; }
+    .boundary strong { color: var(--ink); }
+    .foot { font-size: 11px; color: var(--muted); border-top: 1px solid #dce4e3; margin-top: 30px; padding-top: 18px; display: flex; gap: 16px; justify-content: space-between; line-height: 1.8; }
+    .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
+    @media (max-width: 900px) {
+      .page { padding: 25px 20px; max-width: 560px; }
+      .review-layout { grid-template-columns: 1fr; gap: 26px; }
+      .review-notes { padding-top: 0; }
+      .page-head { gap: 14px; } h1 { font-size: 26px; }
+      .review-badge { font-size: 10px; }
+      .foot { flex-direction: column; gap: 4px; }
+    }
+    @media (max-width: 380px) {
+      .page { padding: 20px 10px; } .review-badge { display: none; }
+      h1 { font-size: 24px; } .intro { font-size: 12px; }
+      .phone { border-radius: 18px; }
+      .trip-title strong { font-size: 14px; }
+    }
+    @media (prefers-reduced-motion: reduce) { * { transition: none !important; scroll-behavior: auto !important; } }
+  </style>
+</head>
+<body>
+<svg class="symbols" aria-hidden="true" xmlns="http://www.w3.org/2000/svg"><defs>
+  <symbol id="search" viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="m16 16 4.5 4.5"/></symbol>
+  <symbol id="back" viewBox="0 0 24 24"><path d="m14 6-6 6 6 6"/></symbol>
+  <symbol id="more" viewBox="0 0 24 24"><circle cx="5" cy="12" r="1" fill="currentColor"/><circle cx="12" cy="12" r="1" fill="currentColor"/><circle cx="19" cy="12" r="1" fill="currentColor"/></symbol>
+  <symbol id="close" viewBox="0 0 24 24"><path d="m7 7 10 10M17 7 7 17"/></symbol>
+  <symbol id="list" viewBox="0 0 24 24"><path d="M9 6h11M9 12h11M9 18h11M4 6h.1M4 12h.1M4 18h.1"/></symbol>
+  <symbol id="layers" viewBox="0 0 24 24"><path d="m12 3 10 5-10 5L2 8Zm-9 9 9 5 9-5M3 16l9 5 9-5"/></symbol>
+  <symbol id="locate" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/><circle cx="12" cy="12" r="2"/><path d="M12 1v4M12 19v4M1 12h4M19 12h4"/></symbol>
+  <symbol id="fit" viewBox="0 0 24 24"><path d="M9 3H3v6M15 3h6v6M21 15v6h-6M9 21H3v-6"/><circle cx="12" cy="12" r="3"/></symbol>
+  <symbol id="up" viewBox="0 0 24 24"><path d="m6 15 6-6 6 6"/></symbol>
+  <symbol id="wifi" viewBox="0 0 24 24"><path d="M2 7q10-9 20 0M5 11q7-6 14 0M9 15q3-3 6 0"/><circle cx="12" cy="19" r="1" fill="currentColor"/></symbol>
+  <symbol id="battery" viewBox="0 0 24 24"><rect x="3" y="7" width="16" height="10" rx="2"/><path d="M21 10v4M6 10h9v4H6z" fill="currentColor"/></symbol>
+  <symbol id="signal" viewBox="0 0 24 24"><path d="M5 19v-3M10 19v-7M15 19V8M20 19V4"/></symbol>
+  <symbol id="triangle" viewBox="0 0 24 24"><path d="m16 4-12 8 12 8Z"/></symbol>
+  <symbol id="circle" viewBox="0 0 24 24"><circle cx="12" cy="12" r="7"/></symbol>
+  <symbol id="square" viewBox="0 0 24 24"><rect x="5" y="5" width="14" height="14" rx="1"/></symbol>
+</defs></svg>
+<main class="page">
+  <header class="page-head">
+    <div><div class="eyebrow">EASY TRIP / v1.8.0</div><h1>搜索之后，回到地图。</h1><p class="intro">看清地点在哪里，再决定下一步。只设计搜索提交后的地图状态。</p></div>
+    <span class="review-badge">UI 设计 · 待评审</span>
+  </header>
+  <div class="review-layout">
+    <section class="device-section" aria-label="可交互手机设计稿">
+      <div class="device-toolbar"><span>搜索结果 · 抽屉收起态</span><div class="sizes" aria-label="画布宽度"><button type="button" data-size="390" aria-pressed="true">390</button><button type="button" data-size="320" aria-pressed="false">320</button></div></div>
+      <div class="phone" id="phone" aria-label="搜索西湖后的地图工作台">
+        <div class="map-canvas" id="map" aria-label="西湖周边示意地图">
+          <svg viewBox="0 0 390 788" preserveAspectRatio="none" aria-hidden="true">
+            <rect width="390" height="788" fill="#e9eee4"/>
+            <path d="M0 0H138l-8 67-24 56 19 55-23 71-8 69-36 56-20 68L0 465Z" fill="#ccdfbb"/>
+            <path d="M0 466 48 439l19 13 28 61 59 18 51 59-2 71-20 60H0Z" fill="#d1e0bf"/>
+            <path d="m97 143 27-32 65 3 51 42 42 29 33 61-10 63 1 47-13 31 3 50-33 59-10 35-44 25-44-11-33-40-50-41-18-33-8-74 12-71-5-48Z" fill="#b7dfe3" stroke="#aeced0" stroke-width="2"/>
+            <path d="m109 201 41-13 36 13 32-4 6 15-21 14-36-3-32 4-24-8Z" fill="#d1e0bf" stroke="#b3cea9" stroke-width="2"/>
+            <path d="m142 200 45 3 44-19 39-12" fill="none" stroke="#f7f6e9" stroke-width="4"/>
+            <path d="m110 178-3 61-8 70-3 62-9 58-2 47" fill="none" stroke="#afcda2" stroke-width="8"/>
+            <path d="m110 178-3 61-8 70-3 62-9 58-2 47" fill="none" stroke="#f6f5e4" stroke-width="3"/>
+            <path d="m176 349 7-7 12 1 8 12-6 12-18-2-8-10Z" fill="#d1e0bf" stroke="#b4cba5" stroke-width="2"/>
+            <path d="m234 422 9-6 9 6-2 9-12 1Z" fill="#d1e0bf"/>
+            <g fill="#dfe5dc" stroke="#d3dcd0" stroke-width=".6">
+              <path d="M311 23h62v33h-62zM298 70h36v37h-36zM343 72h34v35h-34zM306 126h72v26h-72z"/>
+              <path d="M331 186h49v33h-49zM328 243h52v36h-52zM324 300h25v39h-25zM362 300h18v39h-18z"/>
+              <path d="M327 358h51v29h-51zM321 406h24v31h-24zM361 406h18v31h-18zM316 455h64v28h-64z"/>
+              <path d="M290 542h42v32h-42zM346 510h34v64h-34zM247 604h84v38h-84zM349 595h30v47h-30z"/>
+              <path d="M220 663h110v45H220zM348 663h31v45h-31zM221 730h159v35H221z"/>
+            </g>
+            <g fill="none" stroke="#fffdf6" stroke-width="7" stroke-linejoin="round">
+              <path d="M293 0 291 89l-15 55 33 44 11 69-5 71-8 54 3 68-23 53-39 56-40 40-8 80 5 99"/>
+              <path d="M340 0 341 92l6 82 7 80-1 169-11 73 0 292"/>
+              <path d="M378 0v788M247 64l143-3M274 116h116M299 168h91M318 232h72M319 291h71M316 349h74M312 398h78M302 444h88M281 494h109M245 586h145M201 651h189M201 719h189"/>
+              <path d="M0 105 67 124 92 164M0 263l70 25M0 478l45-14 39 22 58 27 32 30 34 15M0 566l62-9 69 11 57 24 53 6"/>
+            </g>
+            <g fill="none" stroke="#e7d9a9" stroke-width="2.5">
+              <path d="M292 0 291 89l-15 55 33 44 11 69-5 71-8 54 3 68-23 53-39 56-40 40-8 80 5 99"/>
+              <path d="M340 0 341 92l6 82 7 80-1 169-11 73 0 292"/>
+              <path d="M0 566l62-9 69 11 57 24 53 6 149-12"/>
+            </g>
+            <g fill="#b5cdac"><circle cx="43" cy="181" r="16"/><circle cx="60" cy="221" r="11"/><circle cx="20" cy="339" r="19"/><circle cx="35" cy="378" r="12"/><circle cx="114" cy="602" r="22"/><circle cx="63" cy="643" r="27"/></g>
+            <g fill="none" stroke="#c7d8bd" stroke-width="2"><path d="M15 163q52 54 42 113t-34 115M25 501q52 12 114 60M57 669q25-49 111-23"/></g>
+          </svg>
+          <span class="map-label" style="left:8%;top:125px">北山街</span>
+          <span class="map-label" style="left:33%;top:223px">孤 山</span>
+          <span class="map-label lake-label">西 湖</span>
+          <span class="map-label" style="left:7%;top:297px">曲院风荷</span>
+          <span class="map-label" style="left:89%;top:250px;writing-mode:vertical-rl;letter-spacing:3px">湖滨路</span>
+          <span class="map-label" style="left:88%;top:451px;writing-mode:vertical-rl;letter-spacing:3px">南山路</span>
+          <span class="map-label" style="left:9%;top:517px">花港观鱼</span>
+          <span class="map-label" style="left:40%;top:587px">南屏山</span>
+          <div class="position-dot" aria-hidden="true"></div><span class="position-label">我的位置</span>
+        </div>
+        <div class="status"><span>09:41</span><div class="status-right"><svg class="icon"><use href="#signal"/></svg><svg class="icon"><use href="#wifi"/></svg><svg class="icon"><use href="#battery"/></svg></div></div>
+        <header class="trip-bar">
+          <button type="button" class="icon-button" data-existing="返回我的旅行" aria-label="返回我的旅行"><svg class="icon"><use href="#back"/></svg></button>
+          <div class="trip-title"><strong>杭州 · 湖畔慢游</strong><span>10 月 1 日 — 10 月 3 日</span></div>
+          <button type="button" class="icon-button" data-existing="旅行更多菜单" aria-label="旅行更多菜单"><svg class="icon"><use href="#more"/></svg></button>
+        </header>
+        <div id="markers" aria-label="本次搜索的地点"></div>
+        <div class="map-tools">
+          <button type="button" class="map-tool" data-existing="原有图层菜单" aria-label="地图图层"><svg class="icon"><use href="#layers"/></svg></button>
+          <button type="button" class="map-tool" data-existing="原有定位当前位置操作" aria-label="定位当前位置"><svg class="icon"><use href="#locate"/></svg></button>
+          <button type="button" class="map-tool" id="fit-results" aria-label="查看全部搜索结果"><svg class="icon"><use href="#fit"/></svg></button>
+        </div>
+        <div class="legend" id="legend"><span class="legend-dot"></span><span>搜索结果</span></div>
+        <section class="search-summary" id="search-summary" aria-label="当前搜索：西湖，共六个结果">
+          <button type="button" class="search-query" data-existing="原搜索页（保留关键词与结果）" aria-label="修改搜索关键词，当前为西湖">
+            <svg class="icon"><use href="#search"/></svg><span class="query-copy"><strong id="query-text">西湖</strong><small id="result-count">6 个搜索结果</small></span>
+          </button>
+          <button type="button" class="list-button" id="list-button" data-existing="原搜索结果列表（保留当前结果）"><svg class="icon"><use href="#list"/></svg>列表</button>
+          <button type="button" class="icon-button clear-button" id="clear-results" aria-label="清除本次搜索结果"><svg class="icon"><use href="#close"/></svg></button>
+        </section>
+        <span class="map-caption">示意底图 · 非真实地图定位</span>
+        <section class="sheet" aria-label="已收起的工作台抽屉">
+          <div class="sheet-grip"></div>
+          <div class="tabs" role="tablist" aria-label="工作区">
+            <button type="button" role="tab" aria-selected="true" id="pool-tab" data-section="pool">地点池</button>
+            <button type="button" role="tab" aria-selected="false" id="itinerary-tab" data-section="itinerary">行程</button>
+          </div>
+          <button type="button" class="sheet-summary" id="sheet-summary" data-existing="原工作台抽屉展开态"><span id="sheet-copy">8 个收藏地点</span><small>上拉展开<svg class="icon"><use href="#up"/></svg></small></button>
+        </section>
+        <div class="system-nav" aria-hidden="true"><svg class="icon"><use href="#triangle"/></svg><svg class="icon"><use href="#circle"/></svg><svg class="icon"><use href="#square"/></svg></div>
+        <div class="map-toast" id="toast" role="status" hidden></div>
+        <div class="sr-only" id="selection-status" aria-live="polite"></div>
+      </div>
+      <p class="phone-caption">390 × 844 基准画布 · 湖畔晴空<br>地点、数量与地图布局均为演示，不代表实时搜索结果。</p>
+    </section>
+    <aside class="review-notes">
+      <div class="section-kicker">SEARCH → MAP</div>
+      <h2>地点留在地图上，<br>操作先让出空间。</h2>
+      <p class="note-lead">明确点击“搜索”后出现此状态。<br>键盘关闭，镜头适配本次结果，抽屉回到收起档。</p>
+      <div class="note"><span class="note-num">01</span><div><h3>一眼区分：这是搜索结果</h3><p>暖橙色放大镜标记＋地点名称。与已有蓝绿色行程序号、收藏书签区分；不把结果误读为已安排的站点。</p></div></div>
+      <div class="note"><span class="note-num">02</span><div><h3>关键词和结果数随时可见</h3><p>沿用地图底部的搜索入口位置。点“列表”回看原结果；点 × 仅移除本次搜索图层，不删除收藏或行程。</p></div></div>
+      <div class="note"><span class="note-num">03</span><div><h3>抽屉收起，不改变工作区</h3><p>保留原先选中的“地点池 / 行程”，只展示现有摘要。上拉后仍是原工作台内容，不把搜索结果塞进地点池。</p></div></div>
+      <div class="demo-panel">
+        <h3>试一下这个界面</h3>
+        <p>可点击地图标记、清除结果或切换画布宽度。其他页面只标明跳转去向，不在本轮重做。</p>
+        <div class="demo-actions">
+          <button type="button" id="show-all" class="active">全部结果</button>
+          <button type="button" id="select-example">点选地点</button>
+          <button type="button" id="dense-example">密集标记</button>
+        </div>
+      </div>
+      <div class="boundary"><strong>实现边界</strong><br>只展示本次有效、有坐标的搜索结果；密集地点聚合，点击展开。适配视野时避开顶部栏、底部搜索条和收起抽屉。无结果或查询失败不进入此状态。<br><br>本轮不包含日期选择、搜索排序、搜索列表重设计，也不修改 Android 代码。</div>
+    </aside>
+  </div>
+  <footer class="foot"><span>可编辑 HTML / SVG · 全部交互仅作用于当前预览</span><span>v1.8.0 · 单界面设计 · 2026.10.04</span></footer>
+</main>
+<script>
+  // Demo coordinates are percentages of the phone width and CSS pixels from its top.
+  // They are not geographic coordinates and no map API or device data is accessed.
+  const places = [
+    { id: 'duanqiao', name: '断桥残雪', x: 67, y: 167 },
+    { id: 'pinghu', name: '平湖秋月', x: 40, y: 260 },
+    { id: 'xihu', name: '西湖风景名胜区', x: 55, y: 437 },
+    { id: 'sudi', name: '苏堤', x: 21, y: 390 },
+    { id: 'liulang', name: '柳浪闻莺', x: 77, y: 470 },
+    { id: 'leifeng', name: '雷峰塔', x: 57, y: 551 }
+  ];
+  const $ = s => document.querySelector(s);
+  let selected = null, dense = false, cleared = false, section = 'pool', toastTimer;
+  function notify(text) {
+    clearTimeout(toastTimer); $('#toast').textContent = text; $('#toast').hidden = false;
+    toastTimer = setTimeout(() => { $('#toast').hidden = true; }, 3400);
+  }
+  function renderMarkers() {
+    const shown = cleared ? [] : places.filter(p => !dense || !['duanqiao', 'pinghu'].includes(p.id));
+    $('#markers').innerHTML = shown.map(p => `<button type="button" class="result-marker" data-poi="${p.id}" style="left:${p.x}%;top:${p.y}px" aria-label="搜索结果：${p.name}" aria-pressed="${selected === p.id}"><span class="marker-dot"><svg class="icon" aria-hidden="true"><use href="#search"/></svg></span><span class="marker-label">${p.name}</span></button>`).join('');
+    if (dense && !cleared) $('#markers').insertAdjacentHTML('beforeend', '<button type="button" class="result-marker cluster" id="cluster-marker" style="left:55%;top:200px" aria-label="展开此处两个搜索结果"><span class="marker-dot">2</span><span class="marker-label">2 个地点</span></button>');
+    $('#legend').hidden = cleared;
+    $('#query-text').textContent = cleared ? '搜索地点' : '西湖';
+    $('#result-count').textContent = cleared ? '发现想去的地方' : '6 个搜索结果';
+    $('#list-button').hidden = cleared; $('#clear-results').hidden = cleared;
+    $('#search-summary').setAttribute('aria-label', cleared ? '搜索地点入口' : '当前搜索：西湖，共六个结果');
+    $('.search-query').setAttribute('aria-label', cleared ? '搜索地点' : '修改搜索关键词，当前为西湖');
+    $('#show-all').classList.toggle('active', !selected && !dense && !cleared);
+    $('#select-example').classList.toggle('active', !!selected && !cleared);
+    $('#dense-example').classList.toggle('active', dense && !cleared);
+  }
+  function resetMap() { selected = null; dense = false; cleared = false; $('#toast').hidden = true; clearTimeout(toastTimer); renderMarkers(); }
+  document.addEventListener('click', event => {
+    const marker = event.target.closest('[data-poi]');
+    if (marker) {
+      selected = selected === marker.dataset.poi ? null : marker.dataset.poi;
+      const name = places.find(p => p.id === selected)?.name;
+      renderMarkers();
+      $(`[data-poi="${marker.dataset.poi}"]`)?.focus({preventScroll:true});
+      $('#selection-status').textContent = name ? `已选中${name}，仍为未收藏的搜索结果` : '已取消选中地点';
+      return;
+    }
+    const size = event.target.closest('[data-size]');
+    if (size) {
+      $('#phone').classList.toggle('compact', size.dataset.size === '320');
+      document.querySelectorAll('[data-size]').forEach(b => b.setAttribute('aria-pressed', String(b === size)));
+      return;
+    }
+    const tab = event.target.closest('[data-section]');
+    if (tab) {
+      section = tab.dataset.section;
+      document.querySelectorAll('[data-section]').forEach(b => b.setAttribute('aria-selected', String(b === tab)));
+      $('#sheet-copy').textContent = section === 'pool' ? '8 个收藏地点' : '第 2 天 · 3 站';
+      return;
+    }
+    if (event.target.closest('#clear-results')) {
+      selected = null; dense = false; cleared = true; renderMarkers(); $('.search-query').focus({preventScroll:true});
+      notify('已清除本次搜索标记，收藏和行程保持不变。'); return;
+    }
+    if (event.target.closest('#show-all')) { resetMap(); return; }
+    if (event.target.closest('#select-example')) { resetMap(); selected = 'xihu'; renderMarkers(); return; }
+    if (event.target.closest('#dense-example')) { resetMap(); dense = true; renderMarkers(); return; }
+    if (event.target.closest('#cluster-marker')) { dense = false; renderMarkers(); $('#selection-status').textContent = '已展开两个地点；产品中放大至该区域'; return; }
+    if (event.target.closest('#fit-results')) {
+      if (cleared) { notify('设计预览：原地图定位控件。'); return; }
+      resetMap(); notify('设计预览：重新适配本次 6 个结果。'); return;
+    }
+    const existing = event.target.closest('[data-existing]');
+    if (existing) notify(`设计边界：${existing.dataset.existing}。沿用现有页面，本预览不另行设计。`);
+  });
+  document.addEventListener('keydown', event => { if (event.key === 'Escape') { selected = null; $('#toast').hidden = true; renderMarkers(); } });
+  renderMarkers();
+</script>
+</body>
+</html>

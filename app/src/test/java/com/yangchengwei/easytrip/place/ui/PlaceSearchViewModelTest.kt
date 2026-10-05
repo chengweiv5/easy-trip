@@ -39,6 +39,57 @@ class PlaceSearchViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun explicitSubmitReturnsDisplayedResultsToMapWithoutSearchingAgain() = runTest(dispatcher) {
+        val source = RecordingSearchSource(mapOf("西湖" to listOf(candidate("west-lake"))))
+        val model = PlaceSearchViewModel("trip", FakeSavedPlaces(), source, SavedStateHandle())
+        model.dispatch(PlaceSearchAction.QueryChanged("西湖"))
+        advanceUntilIdle()
+        val effect = async { model.effects.first() }
+
+        model.dispatch(PlaceSearchAction.Submit)
+        advanceUntilIdle()
+
+        val result = effect.await() as PlaceSearchEffect.ShowResultsOnMap
+        assertEquals("西湖", result.results.query)
+        assertEquals(listOf("west-lake"), result.results.places.map { it.poiId })
+        assertEquals(listOf("西湖"), source.keywords)
+    }
+
+    @Test fun typingResultsAndBackDoNotPublishMapResults() = runTest(dispatcher) {
+        val model = PlaceSearchViewModel("trip", FakeSavedPlaces(),
+            RecordingSearchSource(mapOf("西湖" to listOf(candidate("lake")))), SavedStateHandle())
+        model.dispatch(PlaceSearchAction.QueryChanged("西湖"))
+        advanceUntilIdle()
+        val effect = async { model.effects.first() }
+        advanceUntilIdle()
+        assertFalse(effect.isCompleted)
+        model.dispatch(PlaceSearchAction.Back)
+        advanceUntilIdle()
+        assertEquals(PlaceSearchEffect.ExitDestination, effect.await())
+    }
+
+    @Test fun repeatedSubmitPublishesOneSnapshotAndChangedQueryDoesNotPublishStaleResults() = runTest(dispatcher) {
+        val source = RecordingSearchSource(mapOf("西湖" to listOf(candidate("lake"))))
+        val model = PlaceSearchViewModel("trip", FakeSavedPlaces(), source, SavedStateHandle())
+        model.dispatch(PlaceSearchAction.QueryChanged("西湖"))
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.QueryChanged("无结果"))
+        model.dispatch(PlaceSearchAction.Submit)
+        val effect = async { model.effects.first() }
+        advanceUntilIdle()
+        assertFalse(effect.isCompleted)
+        model.dispatch(PlaceSearchAction.QueryChanged("西湖"))
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.Submit)
+        model.dispatch(PlaceSearchAction.Submit)
+        advanceUntilIdle()
+        assertTrue(effect.await() is PlaceSearchEffect.ShowResultsOnMap)
+        val duplicate = async { model.effects.first() }
+        advanceUntilIdle()
+        assertFalse(duplicate.isCompleted)
+        duplicate.cancel()
+    }
+
     @Test fun restoredQueryIsTrimmedAndAutomaticallySearched() = runTest(dispatcher) {
         val source = RecordingSearchSource(mapOf("故宫" to listOf(candidate("restored"))))
         val model = PlaceSearchViewModel(

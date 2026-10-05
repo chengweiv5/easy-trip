@@ -51,6 +51,7 @@ sealed interface PlaceSearchBackDecision {
 sealed interface PlaceSearchEffect {
     data object ExitDestination : PlaceSearchEffect
     data object OpenConsent : PlaceSearchEffect
+    data class ShowResultsOnMap(val results: com.yangchengwei.easytrip.workspace.WorkspaceSearchResults) : PlaceSearchEffect
 }
 
 sealed interface PlaceSearchAction {
@@ -143,6 +144,10 @@ class PlaceSearchViewModel(
 
     fun recentlyCollectedPoiIds(): Set<String> = recentlyCollectedPoiIds.toSet()
 
+    fun restoreMapResults(results: com.yangchengwei.easytrip.workspace.WorkspaceSearchResults) {
+        reducer.restoreResults(results.query, results.places)
+    }
+
     fun setSearchSource(source: PlaceSearchDataSource?) = reducer.setSource(source)
 
     fun setRemoteSearchSession(generation: Long, source: PlaceSearchDataSource?) =
@@ -180,7 +185,7 @@ class PlaceSearchViewModel(
             PlaceSearchAction.Back -> handleBack()
             is PlaceSearchAction.OpenDetail -> openDetail(action.poiId)
             is PlaceSearchAction.QueryChanged -> reducer.setQuery(action.value)
-            PlaceSearchAction.Submit -> reducer.submit()
+            PlaceSearchAction.Submit -> submit()
             PlaceSearchAction.Retry -> reducer.retry()
             PlaceSearchAction.OpenConsent -> viewModelScope.launch { effectChannel.send(PlaceSearchEffect.OpenConsent) }
             PlaceSearchAction.RecenterDetail -> recenterDetail()
@@ -196,6 +201,19 @@ class PlaceSearchViewModel(
             PlaceSearchAction.CancelEdit -> cancelEdit()
             PlaceSearchAction.DismissRemovalConfirmation -> dismissRemovalConfirmation()
             PlaceSearchAction.ConfirmRemoval -> confirmRemoval()
+        }
+    }
+
+    private fun submit() {
+        if (exitRequested) return
+        val search = reducer.state.value
+        if (search.phase == PlaceSearchPhase.Results && search.results.isNotEmpty()) {
+            exitRequested = true
+            effectChannel.trySend(PlaceSearchEffect.ShowResultsOnMap(
+                com.yangchengwei.easytrip.workspace.WorkspaceSearchResults(search.query.trim(), search.results.toList()),
+            ))
+        } else {
+            reducer.submit()
         }
     }
 

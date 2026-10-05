@@ -30,6 +30,7 @@ fun PlaceSearchRoute(
     onOpenConsent: () -> Unit = {},
     onRequestLocationPermission: () -> Unit = {},
     onRetryLocation: () -> Unit = {},
+    onShowResultsOnMap: (com.yangchengwei.easytrip.workspace.WorkspaceSearchResults) -> Unit = {},
     onBack: () -> Unit,
 ) {
     val state = viewModel.state.collectAsStateWithLifecycle().value
@@ -37,6 +38,9 @@ fun PlaceSearchRoute(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val currentOnBack = rememberUpdatedState(onBack)
     val currentOnOpenConsent = rememberUpdatedState(onOpenConsent)
+    val currentOnShowResultsOnMap = rememberUpdatedState(onShowResultsOnMap)
+    val keyboardController = androidx.compose.ui.platform.LocalSoftwareKeyboardController.current
+    val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
     var autoFocusConsumed by rememberSaveable { androidx.compose.runtime.mutableStateOf(false) }
 
     BackHandler { viewModel.dispatch(PlaceSearchAction.Back) }
@@ -47,6 +51,11 @@ fun PlaceSearchRoute(
                 when (effect) {
                     PlaceSearchEffect.ExitDestination -> currentOnBack.value()
                     PlaceSearchEffect.OpenConsent -> currentOnOpenConsent.value()
+                    is PlaceSearchEffect.ShowResultsOnMap -> {
+                        keyboardController?.hide()
+                        focusManager.clearFocus()
+                        currentOnShowResultsOnMap.value(effect.results)
+                    }
                 }
             }
         }
