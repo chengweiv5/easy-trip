@@ -84,8 +84,8 @@
     "app/src/test/java/com/yangchengwei/easytrip/place/domain/LocatedPositionTest.kt": "45b5666447106273bbe061deffebb76cb3522bf42021331ce14fd85e449b09e0",
     "app/src/test/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContentStateTest.kt": "03159047a5504a05bb4387f10b83c980718d86a0dbaeee36fb68c07681618af3",
     "app/src/test/java/com/yangchengwei/easytrip/workspace/WorkspaceSearchResultsTest.kt": "d594bd1a1daa84b420ab711b1b99c435e7e244316bac4b776f730de1672f117c",
-    ".codex/TASK_STATE.md": "6144d4185db58d7707c9feb23277bb627dc380cc9641c100a893f17bc8e0da8e",
-    ".scratch/v1.8.0-location-improvements/verification.md": "3d49727201bf77ee300c568d399e0d5285136e3768ed939fd483ad8e2ad09245"
+    ".codex/TASK_STATE.md": "0d4f785355dc7093a98427d4c7489f40af5d8f776520fe2d4d27219ffdc903e9",
+    ".scratch/v1.8.0-location-improvements/verification.md": "ec0579de4f228c689356ad1a253c52df0fd7cf6823f202b8205d971f04f2b27b"
   },
   "artifact_sha256": {
     "app/build/outputs/apk/debug/app-debug.apk": "60fc1a1909809b810628bf9dcb8083aec803291ff8aadeee0736da0333cf868c",
@@ -109,10 +109,10 @@
     "evidence/images/search-map-half.png": "324d9135cff98281ccc641fa6b43676b20e843e186747835f9c152db241a9b4f",
     "evidence/ocr.json": "114df71a6a29ffa82508682ad07e59810bd2df0fe4fd0080dc06ed7392cb7e3e",
     "evidence/ui-final-build.log": "fd20f1e4ab7fa7ef83b4851c6323bee01138a92d865227095d2ac847a30697f5",
-    "evidence/ui-final.log": "c55da4ea9a02a4eacb8e74659cfd410fc39ba066ba9ba6ee9c717d27c93b929b",
-    "evidence/ui-first-complete.log": "181891c1bb87f94c681315190a42460b8224e2eef701faa7a45efd11a7d3bb98",
-    "evidence/ui-first.log": "662b4991073b404da6a6bd50b6e2e86ca30d9e75d29ad30c20d19e6a7286cc0d",
-    "evidence/ui-green.log": "f972a71e08b36c045a9a7f72d9c983b74fb14c881f89f0e128156f8d03b0662c"
+    "evidence/ui-final.log": "d085c820067dd018772ee9d693660029a1413c20359da3ce38a47ee2495550a2",
+    "evidence/ui-first-complete.log": "e849e0b3c73eb6105df961100a2773bd5bcb646bbe81552d3f39c0472ebd50a8",
+    "evidence/ui-first.log": "942b82c36656a24529f0ff2ff021cce793e4a87521983ce7e1c1390126b5873e",
+    "evidence/ui-green.log": "f6b49aaa8771c09fdddbcea9b11399a5f1f6ccd09e5f6b13daab1f4bafc2e29f"
   },
   "delivery": {
     "committed": false,
@@ -127,5 +127,7 @@
     "exact_content_verified": true,
     "local_receipts": "local/",
     "text_sha256": "d926c38121777706d4b9f422547282658fd780c953db22e40596acaee6d05aff"
-  }
+  },
+  "delivery_record": "local/push-20261006/verification.json",
+  "format_normalized_at": "2026-10-06"
 }

@@ -107,5 +107,3 @@ java.lang.AssertionError: expected:<15.333333.dp> but was:<3.3333333.dp>
 
 FAILURES!!!
 Tests run: 17,  Failures: 5
-
-
