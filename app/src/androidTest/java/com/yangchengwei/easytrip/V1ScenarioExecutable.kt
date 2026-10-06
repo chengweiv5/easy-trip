@@ -1685,7 +1685,7 @@ object V1ScenarioExecutableFactory {
             { onNodeWithText("继续").performClick() },
             {
                 onNodeWithText("允许 Easy Trip 获取你的位置").assertIsDisplayed()
-                onNodeWithText("用于在地图上定位当前位置。只有点击定位按钮时才会使用，拒绝后仍可正常规划行程。").assertIsDisplayed()
+                onNodeWithText("用于搜索当前城市、显示距我的距离和地图上的我的位置，不会持续后台定位。拒绝后仍可正常规划行程。").assertIsDisplayed()
                 onNodeWithText("继续").assertIsDisplayed()
                 onNodeWithText("暂不使用").assertIsDisplayed()
                 check(continued)

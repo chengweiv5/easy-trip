@@ -501,6 +501,7 @@ private fun SearchResults(
             items(state.search.results, key = { it.poiId }) { candidate ->
                 SearchResultRow(
                     candidate = candidate,
+                    distanceLabel = com.yangchengwei.easytrip.place.domain.distanceFromMeLabel(state.currentLocation, candidate.point),
                     saved = candidate.poiId in state.savedPoiIds,
                     busy = candidate.poiId in state.collectionBusyPoiIds,
                     onOpenDetail = { onAction(PlaceSearchAction.OpenDetail(candidate.poiId)) },
@@ -583,6 +584,7 @@ private fun SearchMessage(
 @Composable
 private fun SearchResultRow(
     candidate: PlaceCandidate,
+    distanceLabel: String?,
     saved: Boolean,
     busy: Boolean,
     onOpenDetail: () -> Unit,
@@ -615,6 +617,17 @@ private fun SearchResultRow(
             if (candidate.address.isNotBlank()) {
                 Spacer(Modifier.height(3.dp))
                 Text(candidate.address, color = MaterialTheme.colorScheme.onSurfaceVariant, fontSize = 12.sp, maxLines = 2, overflow = TextOverflow.Ellipsis)
+            }
+            distanceLabel?.let {
+                Spacer(Modifier.height(4.dp))
+                Text(
+                    it,
+                    modifier = Modifier.testTag("place-search-distance-${candidate.poiId}"),
+                    color = MaterialTheme.colorScheme.primary,
+                    fontSize = 12.sp,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
             }
         }
         Box(

@@ -30,6 +30,7 @@ fun PlaceSearchRoute(
     onOpenConsent: () -> Unit = {},
     onRequestLocationPermission: () -> Unit = {},
     onRetryLocation: () -> Unit = {},
+    currentLocation: com.yangchengwei.easytrip.core.model.GeoPoint? = null,
     onShowResultsOnMap: (com.yangchengwei.easytrip.workspace.WorkspaceSearchResults) -> Unit = {},
     onBack: () -> Unit,
 ) {
@@ -62,7 +63,7 @@ fun PlaceSearchRoute(
     }
 
     PlaceSearchContent(
-        state = state,
+        state = state.copy(currentLocation = currentLocation),
         onAction = { action ->
             if (action == PlaceSearchAction.Retry && state.search.phase == PlaceSearchPhase.LocationPermissionRequired) {
                 onRequestLocationPermission()

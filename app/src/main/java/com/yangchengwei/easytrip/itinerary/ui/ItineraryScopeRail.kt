@@ -26,6 +26,7 @@ import com.yangchengwei.easytrip.trip.domain.TripDay
 import com.yangchengwei.easytrip.workspace.ItineraryScope
 import java.time.LocalDate
 import kotlin.math.abs
+import kotlinx.coroutines.flow.first
 
 @Composable
 fun ItineraryScopeRail(
@@ -47,6 +48,21 @@ fun ItineraryScopeRail(
     var dragged by remember { mutableStateOf<TripDay?>(null) }
     var dragTop by remember { mutableFloatStateOf(0f) }
     var target by remember { mutableIntStateOf(0) }
+    LaunchedEffect(selected, ordered.map(TripDay::id)) {
+        val selectedIndex = when (selected) {
+            ItineraryScope.WholeTrip -> 0
+            is ItineraryScope.Day -> ordered.indexOfFirst { it.id == selected.dayId }
+                .takeIf { it >= 0 }?.plus(1)
+        } ?: return@LaunchedEffect
+        val layout = snapshotFlow { list.layoutInfo }
+            .first { it.totalItemsCount > 0 && it.visibleItemsInfo.isNotEmpty() }
+        val visible = layout.visibleItemsInfo.firstOrNull { it.index == selectedIndex }
+        if (visible == null || visible.offset < layout.viewportStartOffset ||
+            visible.offset + visible.size > layout.viewportEndOffset
+        ) {
+            list.scrollToItem(selectedIndex)
+        }
+    }
     val currentMove by rememberUpdatedState(onMoveDay)
     val updateTarget by rememberUpdatedState(newValue = {
         val center = dragTop + step / 2f

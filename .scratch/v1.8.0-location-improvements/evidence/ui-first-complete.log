@@ -1,0 +1,33 @@
+Performing Streamed Install
+Success
+Performing Streamed Install
+Success
+
+com.yangchengwei.easytrip.place.ui.SearchDistanceUiTest:.
+com.yangchengwei.easytrip.workspace.CurrentLocationIconTest:.
+com.yangchengwei.easytrip.workspace.SearchResultsMapFlowTest:
+Error in submitListAndClearUseRealNavigationWithoutSavingSearchResults(com.yangchengwei.easytrip.workspace.SearchResultsMapFlowTest):
+java.lang.AssertionError: expected:<2> but was:<3>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.workspace.SearchResultsMapFlowTest.submitListAndClearUseRealNavigationWithoutSavingSearchResults(SearchResultsMapFlowTest.kt:140)
+..
+com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest:......
+com.yangchengwei.easytrip.workspace.AppSessionCitySearchTest:..
+
+Time: 41.985
+There was 1 failure:
+1) submitListAndClearUseRealNavigationWithoutSavingSearchResults(com.yangchengwei.easytrip.workspace.SearchResultsMapFlowTest)
+java.lang.AssertionError: expected:<2> but was:<3>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.workspace.SearchResultsMapFlowTest.submitListAndClearUseRealNavigationWithoutSavingSearchResults(SearchResultsMapFlowTest.kt:140)
+
+FAILURES!!!
+Tests run: 13,  Failures: 1
+
+

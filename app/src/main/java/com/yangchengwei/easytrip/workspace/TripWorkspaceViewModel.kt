@@ -82,6 +82,7 @@ class TripWorkspaceViewModel(
     private val savedState: SavedStateHandle,
     private val searchResults: Flow<List<PlaceCandidate>> = flowOf(emptyList()),
     private val mapPreferences: MapPreferences = InMemoryMapPreferences(),
+    private val clock: java.time.Clock = java.time.Clock.systemDefaultZone(),
 ) : ViewModel() {
     private val restoredNavigation = restoreWorkspaceNavigation(
         savedState[SECTION],
@@ -101,6 +102,7 @@ class TripWorkspaceViewModel(
     private val overlay = MutableStateFlow<WorkspaceOverlay>(WorkspaceOverlay.None)
     private val selectedMapPoi = MutableStateFlow<MapPoiUi?>(null)
     private val placePoolFilter = MutableStateFlow(PlacePoolMapFilter())
+    private val currentPosition = MutableStateFlow<com.yangchengwei.easytrip.place.domain.LocatedPosition?>(null)
     private val submittedSearch = MutableStateFlow(
         WorkspaceSearchResults.restore(savedState.get<ArrayList<String>>("submitted-search-results")),
     )
@@ -171,6 +173,7 @@ class TripWorkspaceViewModel(
                         calendarFocus,
                         calendarTiming.state,
                         submittedSearch,
+                        currentPosition,
                     ) { values -> mapWorkspaceState(values) }
                         .collect { next ->
                             if (next == null) {
@@ -221,7 +224,10 @@ class TripWorkspaceViewModel(
         }
         val currentSection = values[3] as WorkspaceSection
         val requestedItineraryScope = values[4] as ItineraryScope?
-        val currentItineraryScope = reconcileItineraryScope(requestedItineraryScope, previousDays, currentTrip.days)
+        val currentItineraryScope = reconcileItineraryScope(
+            requestedItineraryScope, previousDays, currentTrip.days,
+            currentTrip.startDate, java.time.LocalDate.now(clock),
+        )
         previousDays = currentTrip.days
         if (currentItineraryScope != requestedItineraryScope) itineraryScope.value = currentItineraryScope
         savedState[ITINERARY_SCOPE] = encodeItineraryScope(currentItineraryScope)
@@ -261,6 +267,7 @@ class TripWorkspaceViewModel(
                     emptyList(), MapMarkerKind.SEARCH_RESULT)
             },
             viewportRequest = viewportController.currentRequest,
+            currentLocation = activeSearch.locationInResultsCity(values[18] as com.yangchengwei.easytrip.place.domain.LocatedPosition?),
         )
         model.corruptRoutes.forEach { route -> viewModelScope.launch { routes.repairCorruptPolyline(route.legId, route.version) } }
         val selectedMarker = model.markers.firstOrNull { it.key == values[6] as String? }
@@ -341,10 +348,23 @@ class TripWorkspaceViewModel(
     fun showSearchResults(results: WorkspaceSearchResults) {
         clearSearchFocus()
         closeOverlay()
-        viewportController.showSearchResults(results.mappedPlaces.map { requireNotNull(it.point) })
+        viewportController.showSearchResults(results.viewportPoints(currentPosition.value))
         savedState["submitted-search-results"] = results.save()
         submittedSearch.value = results
         setSheetLevel(WorkspaceSheetLevel.COLLAPSED)
+    }
+
+    fun updateCurrentPosition(position: com.yangchengwei.easytrip.place.domain.LocatedPosition?) {
+        if (position == currentPosition.value) return
+        val results = submittedSearch.value
+        // A late foreground fix may complete the initial fit, but never undo a map gesture.
+        if (results != null && results.locationInResultsCity(currentPosition.value) == null &&
+            results.locationInResultsCity(position) != null &&
+            viewportController.currentRequest?.reason == ViewportReason.SEARCH_RESULTS
+        ) {
+            viewportController.showSearchResults(results.viewportPoints(position))
+        }
+        currentPosition.value = position
     }
 
     fun clearSearchResults() {

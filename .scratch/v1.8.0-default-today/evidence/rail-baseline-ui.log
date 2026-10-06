@@ -1,0 +1,109 @@
+
+com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest:.
+Error in railOrdersWholeTripIndexedDaysThenNonScopeAddAction(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest):
+java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '第一天' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode$default(SemanticsNodeInteraction.kt:83)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.railOrdersWholeTripIndexedDaysThenNonScopeAddAction(ItineraryScopeRailTest.kt:90)
+
+Error in railHasFixedWidthLabelsAndSelectableScopes(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest):
+java.lang.AssertionError: Actual width is 64.0.dp, expected 88.0.dp (tolerance: 0.5.dp)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU(BoundsAssertions.kt:322)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU$default(BoundsAssertions.kt:319)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertWidthIsEqualTo_3ABfNKs$lambda$0(BoundsAssertions.kt:45)
+	at androidx.compose.ui.test.BoundsAssertionsKt.$r8$lambda$fYMWut8eYiD8bmgu45-T4bw8LsM(Unknown Source:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:266)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertWidthIsEqualTo-3ABfNKs(BoundsAssertions.kt:45)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.railHasFixedWidthLabelsAndSelectableScopes(ItineraryScopeRailTest.kt:60)
+.....
+Error in scopeRailAndDayContentStayInsideSheetBounds(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest):
+java.lang.AssertionError: expected:<32.0.dp> but was:<36.0.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.scopeRailAndDayContentStayInsideSheetBounds(ItineraryScopeRailTest.kt:250)
+
+Error in scrollingRailRevealsLastDayWithoutMovingRightContent(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest):
+java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '第七天' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #197 at (l=48.0, t=0.0, r=240.0, b=540.0)px, Tag: 'itinerary-scope-rail'
+CollectionInfo = 'androidx.compose.ui.semantics.CollectionInfo@9fe8c7b'
+IsTraversalGroup = 'true'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=2626.0, maxValue=2626.0, reverseScrolling=false)'
+[SelectableGroup]
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 4 children, 1 sibling
+Selector used: (TestTag = 'itinerary-scope-rail')
+
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:257)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.scrollingRailRevealsLastDayWithoutMovingRightContent(ItineraryScopeRailTest.kt:222)
+
+Error in railWholeTripAndBothScopeHeadersShareTheSameTopEdge(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest):
+java.lang.AssertionError: expected:<15.333333.dp> but was:<3.3333333.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.railWholeTripAndBothScopeHeadersShareTheSameTopEdge(ItineraryScopeRailTest.kt:283)
+
+
+Time: 18.251
+There were 5 failures:
+1) railOrdersWholeTripIndexedDaysThenNonScopeAddAction(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest)
+java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '第一天' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode$default(SemanticsNodeInteraction.kt:83)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.railOrdersWholeTripIndexedDaysThenNonScopeAddAction(ItineraryScopeRailTest.kt:90)
+2) railHasFixedWidthLabelsAndSelectableScopes(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest)
+java.lang.AssertionError: Actual width is 64.0.dp, expected 88.0.dp (tolerance: 0.5.dp)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU(BoundsAssertions.kt:322)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU$default(BoundsAssertions.kt:319)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertWidthIsEqualTo_3ABfNKs$lambda$0(BoundsAssertions.kt:45)
+	at androidx.compose.ui.test.BoundsAssertionsKt.$r8$lambda$fYMWut8eYiD8bmgu45-T4bw8LsM(Unknown Source:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt$$ExternalSyntheticLambda2.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:266)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertWidthIsEqualTo-3ABfNKs(BoundsAssertions.kt:45)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.railHasFixedWidthLabelsAndSelectableScopes(ItineraryScopeRailTest.kt:60)
+3) scopeRailAndDayContentStayInsideSheetBounds(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest)
+java.lang.AssertionError: expected:<32.0.dp> but was:<36.0.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.scopeRailAndDayContentStayInsideSheetBounds(ItineraryScopeRailTest.kt:250)
+4) scrollingRailRevealsLastDayWithoutMovingRightContent(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest)
+java.lang.AssertionError: No node found that matches Text + InputText + EditableText contains '第七天' (ignoreCase: false) in scrollable container
+Semantics of the node:
+Node #197 at (l=48.0, t=0.0, r=240.0, b=540.0)px, Tag: 'itinerary-scope-rail'
+CollectionInfo = 'androidx.compose.ui.semantics.CollectionInfo@9fe8c7b'
+IsTraversalGroup = 'true'
+VerticalScrollAxisRange = 'ScrollAxisRange(value=2626.0, maxValue=2626.0, reverseScrolling=false)'
+[SelectableGroup]
+Actions = [GetScrollViewportLength, IndexForKey, ScrollBy, ScrollByOffset, ScrollToIndex]
+Has 4 children, 1 sibling
+Selector used: (TestTag = 'itinerary-scope-rail')
+
+	at androidx.compose.ui.test.ActionsKt.performScrollToNode(Actions.kt:257)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.scrollingRailRevealsLastDayWithoutMovingRightContent(ItineraryScopeRailTest.kt:222)
+5) railWholeTripAndBothScopeHeadersShareTheSameTopEdge(com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest)
+java.lang.AssertionError: expected:<15.333333.dp> but was:<3.3333333.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.ItineraryScopeRailTest.railWholeTripAndBothScopeHeadersShareTheSameTopEdge(ItineraryScopeRailTest.kt:283)
+
+FAILURES!!!
+Tests run: 11,  Failures: 5
+
+

@@ -1,6 +1,8 @@
 package com.yangchengwei.easytrip.workspace
 
 import com.yangchengwei.easytrip.trip.domain.TripDay
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 
 private const val WHOLE_TRIP_VALUE = "WHOLE_TRIP"
 private const val DAY_PREFIX = "DAY:"
@@ -71,14 +73,18 @@ internal fun reconcileItineraryScope(
     current: ItineraryScope?,
     previousDays: List<TripDay>,
     currentDays: List<TripDay>,
+    startDate: LocalDate? = null,
+    today: LocalDate = LocalDate.now(),
 ): ItineraryScope {
     if (current == ItineraryScope.WholeTrip) return current
     if (current is ItineraryScope.Day && currentDays.any { it.id == current.dayId }) return current
     if (currentDays.isEmpty()) return ItineraryScope.WholeTrip
-    if (current !is ItineraryScope.Day) return ItineraryScope.Day(currentDays.first().id)
+    val todayIndex = startDate?.let { ChronoUnit.DAYS.between(it, today) }
+    val defaultDay = currentDays.firstOrNull { it.index.toLong() == todayIndex } ?: currentDays.first()
+    if (current !is ItineraryScope.Day) return ItineraryScope.Day(defaultDay.id)
 
     val previousIndex = previousDays.indexOfFirst { it.id == current.dayId }
-    if (previousIndex < 0) return ItineraryScope.Day(currentDays.first().id)
+    if (previousIndex < 0) return ItineraryScope.Day(defaultDay.id)
     val replacement = currentDays.getOrNull(previousIndex) ?: currentDays.last()
     return ItineraryScope.Day(replacement.id)
 }

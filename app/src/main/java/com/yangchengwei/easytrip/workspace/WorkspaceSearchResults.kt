@@ -2,9 +2,20 @@ package com.yangchengwei.easytrip.workspace
 
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.place.domain.LocatedPosition
+import com.yangchengwei.easytrip.place.domain.isInCity
+import com.yangchengwei.easytrip.place.domain.isUsableLocation
 
 /** Temporary search snapshot, scoped to one workspace; never written to the place repository. */
 data class WorkspaceSearchResults(val query: String, val places: List<PlaceCandidate>) {
+    fun locationInResultsCity(position: LocatedPosition?): GeoPoint? {
+        val city = position?.city ?: return null
+        return position.point.takeIf { it.isUsableLocation() && mappedPlaces.any { place -> place.isInCity(city) } }
+    }
+
+    fun viewportPoints(position: LocatedPosition?): List<GeoPoint> =
+        (mappedPlaces.map { requireNotNull(it.point) } + listOfNotNull(locationInResultsCity(position))).distinct()
+
     val mappedPlaces: List<PlaceCandidate>
         get() = places.filter { candidate ->
             candidate.point?.let {

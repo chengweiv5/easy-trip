@@ -88,6 +88,7 @@ data class PlaceSearchUiState(
     val collectionErrorPoiId: String? = null,
     val detailDraft: PlaceDetailEditState? = null,
     val detailMapRequestId: Long = 1L,
+    val currentLocation: com.yangchengwei.easytrip.core.model.GeoPoint? = null,
 )
 
 internal fun decidePlaceSearchBack(state: PlaceSearchUiState): PlaceSearchBackDecision {

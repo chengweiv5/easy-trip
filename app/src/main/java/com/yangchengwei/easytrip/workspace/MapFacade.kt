@@ -116,6 +116,7 @@ data class MapUiModel(
     val highlightedMarkerKey: String? = null,
     val viewportRequest: MapViewportRequest? = null,
     val corruptRoutes: List<CorruptRoute> = emptyList(),
+    val currentLocation: GeoPoint? = null,
 )
 
 fun mapViewportPoints(scope: MapScope, model: MapUiModel): List<GeoPoint> =

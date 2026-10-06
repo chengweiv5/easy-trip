@@ -50,8 +50,8 @@ import java.util.concurrent.atomic.AtomicBoolean
 class SearchResultsMapFlowTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val candidates = listOf(
-        PlaceCandidate("a", "断桥残雪", "北山街", GeoPoint(30.258, 120.149), "0571"),
-        PlaceCandidate("b", "雷峰塔", "南山路", GeoPoint(30.230, 120.148), "0571"),
+        PlaceCandidate("a", "断桥残雪", "北山街", GeoPoint(30.258, 120.149), "0571", "杭州市", "330100", 1),
+        PlaceCandidate("b", "雷峰塔", "南山路", GeoPoint(30.230, 120.148), "0571", "杭州市", "330100", 1),
         PlaceCandidate("c", "无坐标结果", "", null, null),
     )
 
@@ -75,7 +75,8 @@ class SearchResultsMapFlowTest {
                 override fun readDecision() = true
                 override fun writeDecision(accepted: Boolean) = Unit
             }, AmapPrivacyGate.create(compose.activity), ConsentRegistry())
-            val locationSession = AppLocationSession(scope, { true }, { GeoPoint(30.258, 120.149) }, source::cityAt)
+            val here = GeoPoint(30.25, 120.16)
+            val locationSession = AppLocationSession(scope, { true }, { here }, source::cityAt)
             compose.setContent {
                 AppNavigation(
                     service = TripService(trips), repository = trips,
@@ -126,6 +127,7 @@ class SearchResultsMapFlowTest {
             compose.onNodeWithTag("workspace-search-launcher").performClick()
             compose.onNodeWithTag("place-search-field").performTextInput("西湖")
             compose.waitUntil(5_000) { compose.onAllNodesWithText("断桥残雪").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("place-search-distance-a", useUnmergedTree = true).assertTextEquals("距我 1.4 公里 · 直线")
             compose.onNodeWithTag("place-search-submit").performClick()
             compose.onNodeWithTag("workspace-search-summary").assertIsDisplayed()
             compose.onNodeWithTag("workspace-collapsed-content").assertExists()
@@ -133,7 +135,9 @@ class SearchResultsMapFlowTest {
             compose.onNodeWithText("3 个结果 · 2 个可定位").assertIsDisplayed()
             compose.waitUntil(5_000) { models.any { it.markers.any { marker -> marker.kind == MapMarkerKind.SEARCH_RESULT } } }
             assertEquals(listOf("断桥残雪", "雷峰塔"), models.last().markers.map { it.label })
-            assertEquals(2, models.last().viewportRequest?.points?.size)
+            compose.waitUntil(5_000) { models.last().currentLocation == here }
+            assertTrue(models.last().viewportRequest!!.points.contains(here))
+            assertEquals(3, models.last().viewportRequest?.points?.size)
 
             compose.onNodeWithTag("workspace-search-results-list").performClick()
             compose.onNodeWithTag("place-search-field").assertTextEquals("西湖")
@@ -195,8 +199,8 @@ class SearchResultsMapFlowTest {
             MapMarkerUi("result-${it.poiId}", requireNotNull(it.point), it.name, emptyList(), MapMarkerKind.SEARCH_RESULT)
         }
         val model = MapUiModel(markers = markers, viewportRequest = MapViewportRequest(
-            1, ViewportReason.SEARCH_RESULTS, markers.map { it.point },
-        ))
+            1, ViewportReason.SEARCH_RESULTS, markers.map { it.point } + GeoPoint(30.247, 120.159),
+        ), currentLocation = GeoPoint(30.247, 120.159))
         val places = results.mappedPlaces.map {
             SavedPlaceRowUi(SavedPlace(it.poiId, "visual", it.poiId, it.name, it.address, requireNotNull(it.point), "", emptyList()), 0, false)
         }

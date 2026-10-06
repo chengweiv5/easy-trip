@@ -1,0 +1,15 @@
+Performing Streamed Install
+Success
+
+com.yangchengwei.easytrip.place.ui.SearchDistanceUiTest:.
+com.yangchengwei.easytrip.workspace.CurrentLocationIconTest:.
+com.yangchengwei.easytrip.itinerary.ui.ItineraryRailSpacingTest:.
+com.yangchengwei.easytrip.workspace.SearchResultsMapFlowTest:...
+com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest:......
+com.yangchengwei.easytrip.workspace.AppSessionCitySearchTest:..
+
+Time: 37.164
+
+OK (14 tests)
+
+

@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.workspace
 
 import com.yangchengwei.easytrip.trip.domain.TripDay
+import java.time.LocalDate
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
@@ -75,6 +76,50 @@ class WorkspaceNavigationTest {
     @Test fun `first itinerary entry defaults to first day and no days defaults whole trip`() {
         assertEquals(ItineraryScope.Day("day-1"), reconcileItineraryScope(null, emptyList(), days("day-1", "day-2")))
         assertEquals(ItineraryScope.WholeTrip, reconcileItineraryScope(null, emptyList(), emptyList()))
+    }
+
+    @Test fun `ongoing trip defaults to today including both date boundaries`() {
+        val start = LocalDate.of(2026, 10, 4)
+        val tripDays = days("day-1", "day-2", "day-3")
+        for (offset in 0L..2L) {
+            assertEquals(
+                ItineraryScope.Day("day-${offset + 1}"),
+                reconcileItineraryScope(null, emptyList(), tripDays, start, start.plusDays(offset)),
+            )
+        }
+    }
+
+    @Test fun `future past and undated trips default to first day`() {
+        val start = LocalDate.of(2026, 10, 4)
+        val tripDays = days("day-1", "day-2", "day-3")
+        for (today in listOf(start.minusDays(1), start.plusDays(3))) {
+            assertEquals(ItineraryScope.Day("day-1"), reconcileItineraryScope(null, emptyList(), tripDays, start, today))
+        }
+        assertEquals(ItineraryScope.Day("day-1"), reconcileItineraryScope(null, emptyList(), tripDays, null, start.plusDays(1)))
+        assertEquals(ItineraryScope.WholeTrip, reconcileItineraryScope(null, emptyList(), emptyList(), start, start))
+    }
+
+    @Test fun `default day uses calendar day index across month year and leap boundaries`() {
+        for (start in listOf(LocalDate.of(2026, 12, 31), LocalDate.of(2028, 2, 28))) {
+            assertEquals(
+                ItineraryScope.Day("day-2"),
+                reconcileItineraryScope(null, emptyList(), days("day-1", "day-2", "day-3"), start, start.plusDays(1)),
+            )
+        }
+        assertEquals(
+            ItineraryScope.Day("day-2"),
+            reconcileItineraryScope(null, emptyList(), listOf(TripDay("day-2", 1), TripDay("day-1", 0)), LocalDate.of(2026, 10, 4), LocalDate.of(2026, 10, 5)),
+        )
+    }
+
+    @Test fun `valid manual selections and deleted day fallback take priority over today`() {
+        val start = LocalDate.of(2026, 10, 4)
+        val old = days("day-1", "day-2", "day-3")
+        val today = start.plusDays(1)
+        assertEquals(ItineraryScope.Day("day-1"), reconcileItineraryScope(ItineraryScope.Day("day-1"), old, old, start, today))
+        assertEquals(ItineraryScope.WholeTrip, reconcileItineraryScope(ItineraryScope.WholeTrip, old, old, start, today))
+        assertEquals(ItineraryScope.Day("day-3"), reconcileItineraryScope(ItineraryScope.Day("day-2"), old, days("day-1", "day-3"), start, today))
+        assertEquals(ItineraryScope.Day("day-2"), reconcileItineraryScope(ItineraryScope.Day("stale"), emptyList(), old, start, today))
     }
 
     @Test fun `deleted day selects successor then predecessor and keeps valid id across reorder`() {

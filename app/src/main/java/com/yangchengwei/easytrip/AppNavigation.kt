@@ -495,6 +495,8 @@ fun AppNavigation(
                 val token = runtime.token
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
+                val currentPosition = com.yangchengwei.easytrip.place.ui.rememberLocatedPosition(runtime.locationSession)
+                LaunchedEffect(workspaceModel, currentPosition) { workspaceModel.updateCurrentPosition(currentPosition) }
                 val workspaceSearchReturnState: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
                 val workspaceMapSession = remember(entry, runtime.locationSession) {
                     WorkspaceMapSession(entry.savedStateHandle) { runtime.locationSession?.updateLocation(it) }
@@ -748,6 +750,7 @@ fun AppNavigation(
                 )
                 PlaceSearchRoute(
                     viewModel = model,
+                    currentLocation = com.yangchengwei.easytrip.place.ui.rememberLocatedPosition(runtime.locationSession)?.point,
                     onShowResultsOnMap = { results ->
                         if (workspaceEntry != null) {
                             workspaceEntry.savedStateHandle[WORKSPACE_SEARCH_RESULTS_KEY] = results.save()

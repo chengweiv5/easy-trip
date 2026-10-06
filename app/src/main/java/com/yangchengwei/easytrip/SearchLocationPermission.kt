@@ -92,7 +92,7 @@ internal fun rememberSearchLocationPermissionRequest(
         AlertDialog(
             onDismissRequest = ::dismiss,
             title = { Text("需要定位权限") },
-            text = { Text(state.error ?: if (settings) "请在系统设置中允许定位，然后返回继续搜索当前城市。" else "定位仅用于获取当前城市，不会持续后台定位。") },
+            text = { Text(state.error ?: if (settings) "请在系统设置中允许定位，然后返回继续搜索当前城市。" else "定位用于搜索当前城市、显示距我的距离及地图上的我的位置，不会持续后台定位。") },
             confirmButton = {
                 TextButton(
                     enabled = !state.busy,

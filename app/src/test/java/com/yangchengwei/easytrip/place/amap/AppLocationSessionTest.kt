@@ -17,10 +17,89 @@ import kotlinx.coroutines.test.advanceUntilIdle
 import org.junit.Assert.assertTrue
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class AppLocationSessionTest {
+    @Test fun publishesPointBeforeCityAndClearsBothAfterPermissionRevocation() = runTest {
+        var allowed = true
+        val city = CompletableDeferred<PlaceCity>()
+        val point = GeoPoint(30.0, 120.0)
+        val session = AppLocationSession(backgroundScope, { allowed }, { point }, { city.await() })
+        session.warmUp()
+        runCurrent()
+        assertEquals(point, session.position.value?.point)
+        assertNull(session.position.value?.city)
+        city.complete(PlaceCity("杭州市", "330100"))
+        runCurrent()
+        assertEquals("杭州市", session.position.value?.city?.name)
+        allowed = false
+        session.warmUp()
+        assertNull(session.position.value)
+        assertNull(session.location)
+        session.close()
+    }
+
+    @Test fun explicitLocateReplacesCityWithoutPairingNewPointWithOldCity() = runTest {
+        val nextCity = CompletableDeferred<PlaceCity>()
+        val first = GeoPoint(30.0, 120.0)
+        val second = GeoPoint(34.454, 113.05)
+        val session = AppLocationSession(backgroundScope, { true }, { first }, {
+            if (it == first) PlaceCity("杭州市", "330100") else nextCity.await()
+        })
+        session.currentCity()
+        session.updateLocation(second)
+        assertEquals(second, session.position.value?.point)
+        assertNull(session.position.value?.city)
+        nextCity.complete(PlaceCity("登封市", "410185"))
+        runCurrent()
+        assertEquals("登封市", session.position.value?.city?.name)
+        session.close()
+        assertNull(session.position.value)
+    }
+
+    @Test fun expiredFixRefreshesOnForegroundEntryWithoutBackgroundPolling() = runTest {
+        var now = 0L
+        var calls = 0
+        val secondFix = CompletableDeferred<GeoPoint>()
+        val session = AppLocationSession(backgroundScope, { true }, {
+            if (++calls == 1) GeoPoint(30.0, 120.0) else secondFix.await()
+        }, { PlaceCity("杭州市", "330100") }, { now })
+        session.currentCity()
+        now = 120_001
+        runCurrent()
+        assertEquals(1, calls)
+        session.warmUp()
+        assertNull(session.position.value)
+        runCurrent()
+        assertEquals(2, calls)
+        secondFix.complete(GeoPoint(30.01, 120.0))
+        assertEquals("杭州市", session.currentCity().name)
+        assertEquals(GeoPoint(30.01, 120.0), session.position.value?.point)
+        session.close()
+    }
+
+    @Test fun deniedOrInvalidLateFixNeverPublishesLocation() = runTest {
+        var allowed = true
+        val fix = CompletableDeferred<GeoPoint>()
+        val session = AppLocationSession(backgroundScope, { allowed }, { fix.await() }, { PlaceCity("杭州市", "330100") })
+        session.warmUp()
+        runCurrent()
+        allowed = false
+        fix.complete(GeoPoint(30.0, 120.0))
+        runCurrent()
+        assertNull(session.position.value)
+        assertTrue(runCatching { session.currentCity() }.exceptionOrNull() is LocationPermissionRequired)
+        session.updateLocation(GeoPoint(30.0, 120.0))
+        assertNull(session.position.value)
+        session.close()
+        val invalid = AppLocationSession(backgroundScope, { true }, { GeoPoint(0.0, 0.0) }, { PlaceCity("杭州市", "330100") })
+        assertTrue(runCatching { invalid.currentCity() }.exceptionOrNull() is CurrentLocationUnavailable)
+        assertNull(invalid.position.value)
+        invalid.close()
+    }
+
     @Test fun coldStartAndSearchesAcrossDestinationsShareOneLocationAndCity() = runTest {
         var fixes = 0
         var geocodes = 0

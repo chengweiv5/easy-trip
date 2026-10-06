@@ -31,6 +31,9 @@ import com.yangchengwei.easytrip.trip.domain.TripSummary
 import com.yangchengwei.easytrip.trip.domain.TripWithDays
 import java.time.LocalDate
 import java.time.LocalTime
+import java.time.Clock
+import java.time.Instant
+import java.time.ZoneId
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.Flow
@@ -58,6 +61,120 @@ class TripWorkspaceContentStateTest {
 
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
+
+    @Test fun sameCityLocationIsSeparateFromSearchPinsAndDrawerDoesNotRefitIt() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips)
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+        val here = com.yangchengwei.easytrip.place.domain.LocatedPosition(
+            GeoPoint(30.25, 120.16), com.yangchengwei.easytrip.place.domain.PlaceCity("杭州市", "330100"),
+        )
+        model.updateCurrentPosition(here)
+        val results = WorkspaceSearchResults("景点", listOf(
+            PlaceCandidate("poi-a", "断桥", "", GeoPoint(30.258, 120.149), "0571", "杭州市", "330100", 1),
+        ))
+        model.showSearchResults(results)
+        advanceUntilIdle()
+        assertEquals(here.point, model.state.value.map.currentLocation)
+        assertEquals(1, model.state.value.map.markers.size)
+        val camera = model.state.value.map.viewportRequest
+        assertTrue(camera!!.points.contains(here.point))
+        model.setSheetLevel(WorkspaceSheetLevel.EXPANDED)
+        advanceUntilIdle()
+        assertEquals(camera, model.state.value.map.viewportRequest)
+        model.updateCurrentPosition(null)
+        advanceUntilIdle()
+        assertNull(model.state.value.map.currentLocation)
+        model.updateCurrentPosition(here)
+        model.clearSearchResults()
+        advanceUntilIdle()
+        assertNull(model.state.value.map.currentLocation)
+    }
+
+    @Test fun lateSameCityFixCompletesInitialFitButDoesNotUndoUserMapGesture() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips)
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+        val here = com.yangchengwei.easytrip.place.domain.LocatedPosition(
+            GeoPoint(30.25, 120.16), com.yangchengwei.easytrip.place.domain.PlaceCity("杭州市", "330100"),
+        )
+        val results = WorkspaceSearchResults("景点", listOf(
+            PlaceCandidate("poi-a", "断桥", "", GeoPoint(30.258, 120.149), "0571", "杭州市", "330100", 1),
+        ))
+        model.showSearchResults(results)
+        advanceUntilIdle()
+        model.updateCurrentPosition(here)
+        advanceUntilIdle()
+        assertTrue(model.state.value.map.viewportRequest!!.points.contains(here.point))
+        model.updateCurrentPosition(null)
+        advanceUntilIdle()
+        model.onMapGesture()
+        model.updateCurrentPosition(here)
+        advanceUntilIdle()
+        assertNull(model.state.value.map.viewportRequest)
+        assertEquals(here.point, model.state.value.map.currentLocation)
+        model.updateCurrentPosition(here.copy(city = com.yangchengwei.easytrip.place.domain.PlaceCity("宁波市", "330200")))
+        advanceUntilIdle()
+        assertNull(model.state.value.map.currentLocation)
+    }
+
+    @Test fun enteringOngoingTripSelectsTodayInsteadOfFirstDay() = runTest(dispatcher) {
+        val trips = Trips()
+        val clock = Clock.fixed(Instant.parse("2026-10-04T16:30:00Z"), ZoneId.of("Asia/Shanghai"))
+        val model = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), SavedStateHandle(), clock = clock)
+        trips.value.value = TripWithDays(
+            "trip", "进行中的旅行", LocalDate.of(2026, 10, 4), TravelMode.FLEXIBLE,
+            listOf(TripDay("day-1", 0), TripDay("day-2", 1), TripDay("day-3", 2)),
+        )
+        advanceUntilIdle()
+        model.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+
+        assertEquals(ItineraryScope.Day("day-2"), model.state.value.itineraryScope)
+        assertEquals("day-2", model.selectedDayId.value)
+    }
+
+    @Test fun manualDayAndWholeTripSurviveTabSwitchSearchAndStateRestoration() = runTest(dispatcher) {
+        val trips = Trips()
+        val clock = Clock.fixed(Instant.parse("2026-10-04T16:30:00Z"), ZoneId.of("Asia/Shanghai"))
+        trips.value.value = TripWithDays(
+            "trip", "进行中的旅行", LocalDate.of(2026, 10, 4), TravelMode.FLEXIBLE,
+            listOf(TripDay("day-1", 0), TripDay("day-2", 1), TripDay("day-3", 2)),
+        )
+        val handle = SavedStateHandle()
+        val model = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), handle, clock = clock)
+        advanceUntilIdle()
+        model.selectSection(WorkspaceSection.ITINERARY)
+        model.selectItineraryScope(ItineraryScope.Day("day-3"))
+        advanceUntilIdle()
+        model.selectSection(WorkspaceSection.PLACE_POOL)
+        model.selectSection(WorkspaceSection.ITINERARY)
+        model.showSearchResults(WorkspaceSearchResults("地点", listOf(
+            PlaceCandidate("poi", "地点", "", GeoPoint(30.0, 120.0), null),
+        )))
+        advanceUntilIdle()
+        model.clearSearchResults()
+        advanceUntilIdle()
+        assertEquals("day-3", model.selectedDayId.value)
+        val restored = TripWorkspaceViewModel(
+            "trip", trips, Places(), Itineraries(), Legs(),
+            SavedStateHandle(handle.keys().associateWith { handle.get<Any?>(it) }), clock = clock,
+        )
+        advanceUntilIdle()
+        assertEquals("day-3", restored.selectedDayId.value)
+        model.selectItineraryScope(ItineraryScope.WholeTrip)
+        model.selectSection(WorkspaceSection.PLACE_POOL)
+        model.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+        assertEquals(ItineraryScope.WholeTrip, model.state.value.itineraryScope)
+        val reopened = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), SavedStateHandle(), clock = clock)
+        advanceUntilIdle()
+        reopened.selectSection(WorkspaceSection.ITINERARY)
+        advanceUntilIdle()
+        assertEquals("day-2", reopened.selectedDayId.value)
+    }
 
     @Test fun emptyPoolFilterClearsOldSearchViewportAndMarkers() = runTest(dispatcher) {
         val trips = Trips()

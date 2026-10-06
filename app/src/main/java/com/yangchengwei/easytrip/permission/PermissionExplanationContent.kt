@@ -53,7 +53,7 @@ fun PermissionExplanationBody(
             style = MaterialTheme.typography.titleLarge,
         )
         Text(
-            "用于在地图上定位当前位置。只有点击定位按钮时才会使用，拒绝后仍可正常规划行程。",
+            "用于搜索当前城市、显示距我的距离和地图上的我的位置，不会持续后台定位。拒绝后仍可正常规划行程。",
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

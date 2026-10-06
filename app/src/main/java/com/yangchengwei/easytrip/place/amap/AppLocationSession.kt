@@ -2,6 +2,8 @@ package com.yangchengwei.easytrip.place.amap
 
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.domain.PlaceCity
+import com.yangchengwei.easytrip.place.domain.LocatedPosition
+import com.yangchengwei.easytrip.place.domain.isUsableLocation
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
@@ -10,6 +12,8 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.currentCoroutineContext
 import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withTimeoutOrNull
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.asStateFlow
 
 class LocationPermissionRequired : IllegalStateException("请允许定位权限，以搜索当前城市的地点")
 class CurrentLocationUnavailable(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
@@ -20,25 +24,36 @@ class AppLocationSession(
     private val hasPermission: () -> Boolean,
     private val locate: suspend () -> GeoPoint,
     private val resolveCity: suspend (GeoPoint) -> PlaceCity?,
+    private val nowMillis: () -> Long = System::currentTimeMillis,
 ) {
     private val lock = Any()
     private var request: Deferred<Result<PlaceCity>>? = null
     private var revision = 0L
     private var closed = false
     private var point: GeoPoint? = null
+    private var locatedAt: Long? = null
+    private val mutablePosition = MutableStateFlow<LocatedPosition?>(null)
+    val position = mutablePosition.asStateFlow()
 
     val location: GeoPoint? get() = synchronized(lock) { point }
 
     fun warmUp() {
-        if (hasPermission()) synchronized(lock) { if (!closed) startRequest() }
+        synchronized(lock) {
+            if (closed) return
+            if (!hasPermission()) clearLocation() else startRequest()
+        }
     }
 
     suspend fun currentCity(): PlaceCity {
         while (true) {
-            if (!hasPermission()) throw LocationPermissionRequired()
+            if (!hasPermission()) {
+                synchronized(lock) { clearLocation() }
+                throw LocationPermissionRequired()
+            }
             val (generation, pending) = synchronized(lock) {
                 check(!closed) { "地图服务已关闭" }
-                revision to startRequest()
+                val active = startRequest()
+                revision to active
             }
             val result = try {
                 pending.await()
@@ -48,18 +63,24 @@ class AppLocationSession(
                 throw error
             }
             if (synchronized(lock) { generation != revision }) continue
-            if (!hasPermission()) throw LocationPermissionRequired()
+            if (!hasPermission()) {
+                synchronized(lock) { clearLocation() }
+                throw LocationPermissionRequired()
+            }
             return result.getOrThrow()
         }
     }
 
     /** Explicit map locate overrides an older startup request, without moving any other map. */
     fun updateLocation(value: GeoPoint) = synchronized(lock) {
-        if (closed) return@synchronized
+        if (closed || !hasPermission() || !value.isUsableLocation()) return@synchronized
         revision++
         request?.cancel()
         request = null
         point = value
+        locatedAt = nowMillis()
+        mutablePosition.value = LocatedPosition(value)
+        startRequest()
     }
 
     fun retry() = synchronized(lock) {
@@ -70,13 +91,23 @@ class AppLocationSession(
 
     fun close() = synchronized(lock) {
         closed = true
+        clearLocation()
+    }
+
+    private fun clearLocation() {
         revision++
         request?.cancel()
         request = null
         point = null
+        locatedAt = null
+        mutablePosition.value = null
     }
 
     private fun startRequest(): Deferred<Result<PlaceCity>> {
+        // Refresh on foreground entry/search after two minutes; never start a background loop.
+        if (request?.isActive != true && locatedAt?.let { nowMillis() - it !in 0..120_000 } == true) {
+            clearLocation()
+        }
         request?.let { return it }
         val generation = revision
         val knownPoint = point
@@ -84,9 +115,20 @@ class AppLocationSession(
             try {
                 val city = withTimeoutOrNull(20_000) {
                     val fix = knownPoint ?: locate()
-                    synchronized(lock) { if (!closed && revision == generation) point = fix }
-                    resolveCity(fix)?.takeIf { it.name.isNotBlank() }
+                    if (!fix.isUsableLocation()) throw CurrentLocationUnavailable("无法获取有效当前位置，请重试")
+                    synchronized(lock) {
+                        if (!closed && revision == generation && hasPermission()) {
+                            point = fix
+                            locatedAt = nowMillis()
+                            mutablePosition.value = LocatedPosition(fix)
+                        }
+                    }
+                    val resolved = resolveCity(fix)?.takeIf { it.name.isNotBlank() }
                         ?: throw CurrentLocationUnavailable("无法识别当前定位城市，请重试")
+                    synchronized(lock) {
+                        if (!closed && revision == generation && hasPermission()) mutablePosition.value = LocatedPosition(fix, resolved)
+                    }
+                    resolved
                 } ?: throw CurrentLocationUnavailable("定位超时，请检查系统定位服务后重试")
                 Result.success(city)
             } catch (error: CancellationException) {

@@ -764,6 +764,17 @@ internal class RealAmapMapHost(
                     .zIndex(if (marker.isFocused) FOCUSED_MARKER_Z_INDEX else DEFAULT_MARKER_Z_INDEX),
             ).`object` = marker.key
         }
+        model.currentLocation?.let { point ->
+            val icon = CurrentLocationIconView(mapView.context)
+            mapView.map.addMarker(
+                MarkerOptions()
+                    .position(LatLng(point.latitude, point.longitude))
+                    .title("我的位置")
+                    .icon(BitmapDescriptorFactory.fromView(icon))
+                    .anchor(.5f, icon.anchorY)
+                    .zIndex(10f),
+            )
+        }
     }
 
     private fun markerIcon(marker: MapMarkerUi) = BitmapDescriptorFactory.fromView(

@@ -1,0 +1,83 @@
+{
+  "status": "DONE_LOCAL_FIX_VERIFIED",
+  "date": "2026-10-05",
+  "branch": "codex/v1.8.0-default-today",
+  "base_commit": "474728f8062ad7ce5c0c76a0b36d22cee3e0d423",
+  "root_cause": "The previous search-map delivery omitted the date requirement; initial scope always selected the first day without consulting startDate or today.",
+  "unit_tests": {
+    "tests": 909,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 54,
+    "hints": 1
+  },
+  "build": {
+    "debug": true,
+    "android_test": true
+  },
+  "ui_tests": {
+    "new_tests_passed": 6,
+    "search_map_regression_passed": 1,
+    "targeted_total": 7,
+    "targeted_failed": 0,
+    "expanded_total": 18,
+    "expanded_passed": 13,
+    "expanded_failed": 5,
+    "baseline_total": 11,
+    "baseline_failed": 5,
+    "same_baseline_failures": [
+      "railOrdersWholeTripIndexedDaysThenNonScopeAddAction",
+      "railHasFixedWidthLabelsAndSelectableScopes",
+      "scopeRailAndDayContentStayInsideSheetBounds",
+      "scrollingRailRevealsLastDayWithoutMovingRightContent",
+      "railWholeTripAndBothScopeHeadersShareTheSameTopEdge"
+    ]
+  },
+  "file_sha256": {
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceNavigation.kt": "0700254d0343610e5c194319f446b7870f7ca49ae13cba83237452991fd62b93",
+    "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceViewModel.kt": "06aeff933a4f9cdf275676d3b46c8e74f868d7217f071d40fc1f28d588b477f1",
+    "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryScopeRail.kt": "14eca18255025e891ef942272dabd58e8813afc134d6fd7cf1801765bf2abc4d",
+    "app/src/test/java/com/yangchengwei/easytrip/workspace/WorkspaceNavigationTest.kt": "978daded05fad17566b897a480669e850f52da331b030857cc02cfa2e9fea8cd",
+    "app/src/test/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContentStateTest.kt": "b01d92e4885c883dfbd7f48f9714dee0ee401fe7e49dcbbeb6a46ed3031d699a",
+    "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/DefaultItineraryDayTest.kt": "4ac8b9bc56d7cf76eadc593fd84856a033ee3f5bfb2c85aabca55275493a438f",
+    ".codex/TASK_STATE.md": "eec16d97d6610d876ab33157297125c1ffe9861c99e59a1f549dcc366920a8b6",
+    ".scratch/v1.8.0-default-today/spec.md": "59d62aa6e4b0f8fe1a192f7f32955e0d873c1c2f6cf25b7456ba5753c108dad6",
+    ".scratch/v1.8.0-default-today/verification.md": "626da33d12de48d2af72247203bffab3850a50c727934dac8eea866ed5311923"
+  },
+  "validated_debug_apk_sha256": "ea909b0053d3030075564e63eedcfa7920133b5b0621d51e137adae096720410",
+  "validated_android_test_apk_sha256": "c73e403c6903ec7a1f9bbdf547566166834c4bea371a9907b4eae91a7bddf129",
+  "evidence_sha256": {
+    "evidence/final-build.log": "973aea6201edb649c195b2edf283ac754ca30bc24bcf3a58148ce1262c00a10d",
+    "evidence/full-build.log": "527c848d76965c698eaa29afa193ea1d036e6b884c53eafefa6345ee2d8dfc73",
+    "evidence/navigation-ui-final.log": "2b8582fccbb131a6c9699b7ee2579b01407999357be25fb8cc2d0bb1eb10e7d0",
+    "evidence/navigation-ui-first.log": "4b4833fcb64493d6b06530f669b11d111dfc1c92c9cd0a830b9063d310043689",
+    "evidence/navigation-ui-verified.log": "5c2f5ca150a81b2430a8a12870d14ae89f5daf7ab9b6fa0c19703a349feaff44",
+    "evidence/rail-baseline-ui.log": "cb39c8458adb7a04d4958260df23ea3b6edf810e2d2f257cdbdc3b321783dddf",
+    "evidence/repro-red.log": "4f82e7e23a74db20e09365b3109b3bd74894a87195bb9ae8141cf5afe7398d6e",
+    "evidence/targeted-green.log": "0fc13007fc586ba42567078fce8c174386e5e9959fd8e445733072857df76dc2",
+    "evidence/targeted-ui-green.log": "d12e63a20c1c77a737433a3850a42d079a10ee4eec47f349487cdb9685ea5a1e",
+    "evidence/ui-build-2.log": "fb99f8b6da88281a26d63b0029ebec1636a666000fe1a861e3158274cf9c7227",
+    "evidence/ui-build.log": "cb3be17c7b9d4f7d54442f858674d73ae7751c8bec88b6738d262f8e2556d0ab"
+  },
+  "backup": "/tmp/easy-trip-default-today-20261005/before",
+  "git_diff_check": true,
+  "isolated_emulator_stopped": true,
+  "delivery": {
+    "committed": false,
+    "pushed": false,
+    "physical_device_installed": false,
+    "version_changed": false
+  },
+  "notification": {
+    "status": "SENT_AND_READBACK_VERIFIED",
+    "identity": "bot",
+    "expected_bot_config_verified": true,
+    "exact_text_verified": true,
+    "local_receipts": "local/",
+    "text_sha256": "caf8e09c0f66fe2a21adea37feeced20fe8c2e87ac9cb75630923a17ced0b4ec"
+  }
+}

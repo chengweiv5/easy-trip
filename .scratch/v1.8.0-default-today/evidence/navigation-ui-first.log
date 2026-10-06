@@ -1,0 +1,85 @@
+
+com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest:
+Error in futureTripOpensFirstDay(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest):
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$openItinerary(DefaultItineraryDayTest.kt:99)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation(DefaultItineraryDayTest.kt:102)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$default(DefaultItineraryDayTest.kt:71)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.futureTripOpensFirstDay(DefaultItineraryDayTest.kt:45)
+
+Error in undatedTripOpensFirstDay(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest):
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$openItinerary(DefaultItineraryDayTest.kt:99)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation(DefaultItineraryDayTest.kt:102)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$default(DefaultItineraryDayTest.kt:71)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.undatedTripOpensFirstDay(DefaultItineraryDayTest.kt:53)
+
+Error in defaultSelectedDayIsVisibleWithoutManualScrollingInLongTrip(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest):
+java.lang.AssertionError: Assert failed: The component with TestTag = 'itinerary-scope-day-20' is not displayed!
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.defaultSelectedDayIsVisibleWithoutManualScrollingInLongTrip(DefaultItineraryDayTest.kt:68)
+
+Error in ongoingTripOpensTodayAndReenteringReappliesDefault(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest):
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$openItinerary(DefaultItineraryDayTest.kt:99)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation(DefaultItineraryDayTest.kt:102)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.ongoingTripOpensTodayAndReenteringReappliesDefault(DefaultItineraryDayTest.kt:41)
+
+Error in pastTripOpensFirstDay(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest):
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$openItinerary(DefaultItineraryDayTest.kt:99)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation(DefaultItineraryDayTest.kt:102)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$default(DefaultItineraryDayTest.kt:71)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.pastTripOpensFirstDay(DefaultItineraryDayTest.kt:49)
+
+
+Time: 28.763
+There were 5 failures:
+1) futureTripOpensFirstDay(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest)
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$openItinerary(DefaultItineraryDayTest.kt:99)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation(DefaultItineraryDayTest.kt:102)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$default(DefaultItineraryDayTest.kt:71)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.futureTripOpensFirstDay(DefaultItineraryDayTest.kt:45)
+2) undatedTripOpensFirstDay(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest)
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$openItinerary(DefaultItineraryDayTest.kt:99)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation(DefaultItineraryDayTest.kt:102)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$default(DefaultItineraryDayTest.kt:71)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.undatedTripOpensFirstDay(DefaultItineraryDayTest.kt:53)
+3) defaultSelectedDayIsVisibleWithoutManualScrollingInLongTrip(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest)
+java.lang.AssertionError: Assert failed: The component with TestTag = 'itinerary-scope-day-20' is not displayed!
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.defaultSelectedDayIsVisibleWithoutManualScrollingInLongTrip(DefaultItineraryDayTest.kt:68)
+4) ongoingTripOpensTodayAndReenteringReappliesDefault(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest)
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$openItinerary(DefaultItineraryDayTest.kt:99)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation(DefaultItineraryDayTest.kt:102)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.ongoingTripOpensTodayAndReenteringReappliesDefault(DefaultItineraryDayTest.kt:41)
+5) pastTripOpensFirstDay(com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest)
+androidx.compose.ui.test.ComposeTimeoutException: Condition still not satisfied after 5000 ms
+	at androidx.compose.ui.test.AndroidComposeUiTestEnvironment$AndroidComposeUiTestImpl.waitUntil(ComposeUiTest.android.kt:755)
+	at androidx.compose.ui.test.junit4.AndroidComposeTestRule.waitUntil(AndroidComposeTestRule.android.kt:362)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$openItinerary(DefaultItineraryDayTest.kt:99)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation(DefaultItineraryDayTest.kt:102)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.verifyNavigation$default(DefaultItineraryDayTest.kt:71)
+	at com.yangchengwei.easytrip.workspace.DefaultItineraryDayTest.pastTripOpensFirstDay(DefaultItineraryDayTest.kt:49)
+
+FAILURES!!!
+Tests run: 5,  Failures: 5
+
+

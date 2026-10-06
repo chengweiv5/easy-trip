@@ -5,8 +5,6 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.VerticalDivider
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.ui.Modifier
@@ -45,7 +43,6 @@ fun WorkspaceItineraryContent(
             modifier = Modifier.fillMaxHeight(),
             startDate = startDate,
         )
-        VerticalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = .45f))
         Box(Modifier.weight(1f).fillMaxHeight().padding(start = 12.dp)) {
             savedViews.SaveableStateProvider(if (calendarContent != null) "calendar" else "list-$selected") {
             if (calendarContent != null) calendarContent() else when (selected) {
