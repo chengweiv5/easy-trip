@@ -1,10 +1,12 @@
 # Easy Trip 设计实现指南
 
+> 适用范围：本文保留旧 `design/easy-trip-v2.0.pen` 的页面、节点和实现映射，不是所有版本的通用设计基线。版本选择、完整快照及验收遵循根目录 `AGENTS.md` 的“版本设计快照”；仅在核实映射适用于目标版本后参考本文。文中“当前”指本文对应的设计，不代表仓库当前发布版本；既有进度也不能证明 v2.0 整体已实现。
+
 本文档指导 Claude Code 根据 `design/easy-trip-v2.0.pen` 分批实现 Easy Trip Android Jetpack Compose 应用。设计文件负责表达视觉、状态和交互，现有 Android 工程负责提供业务模型、数据约束和运行架构。
 
 ## 1. 事实来源与优先级
 
-开发时按以下顺序判断：
+仅在确认目标版本与本文映射一致后，按以下顺序判断；其他版本不得套用其中的 v2.0 文件和节点：
 
 1. 当前用户明确确认的需求。
 2. `design/easy-trip-v2.0.pen` 中对应顶层界面的可见内容与 `context`。
@@ -16,11 +18,11 @@
 
 发现冲突时不得静默折中。先记录冲突、影响和推荐处理方式；只有不同选择会导致实质性产品差异时才请求用户决策。
 
-`design/easy-trip-design-formula.md` 是较早版本的规则记录，其中“地点池是加入行程的唯一入口”等内容已经被当前双入口设计替代。当前实现以本指南和 `easy-trip-v2.0.pen` 为准。
+`design/easy-trip-design-formula.md` 是较早版本的规则记录，其中“地点池是加入行程的唯一入口”等内容已被本文对应的双入口设计替代；该结论的版本适用性仍须按 `AGENTS.md` 核验，不能覆盖其他版本的实际状态。
 
 ## 2. Claude Code 开始工作前必须执行
 
-1. 阅读仓库根目录 `CLAUDE.md`、本文档和 `design/EASY_TRIP_IMPLEMENTATION_PLAN.md`。
+1. 先阅读根目录 `AGENTS.md` 并核验目标版本快照；确认本文适用后，再阅读 `CLAUDE.md`、本文档和 `design/EASY_TRIP_IMPLEMENTATION_PLAN.md`。
 2. 执行 `git status --short`，识别现有未提交改动。
 3. 不重置、不覆盖、不清理与当前批次无关的改动。
 4. 若 `graphify-out/graph.json` 存在，先执行：

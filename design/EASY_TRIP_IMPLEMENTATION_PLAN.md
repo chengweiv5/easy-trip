@@ -1,5 +1,7 @@
 # Easy Trip 实现计划
 
+> 适用范围：本文件保留旧 v2.0 设计映射及历史批次记录，不是仓库当前版本的统一计划，也不证明 v2.0 整体已实现。版本设计快照遵循根目录 `AGENTS.md`；其他版本应使用各自核验后的快照与实现计划，不套用本文件的页面清单、节点或完成状态。
+
 本文件记录 `design/easy-trip-v2.0.pen` 到 Android Jetpack Compose 的动态映射和批次进度。每个批次开始前核对设计与现有代码，每个批次结束后更新状态、测试和已知差异。
 
 详细规则见 `design/EASY_TRIP_IMPLEMENTATION_GUIDE.md`。

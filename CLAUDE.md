@@ -10,6 +10,8 @@ Rules:
 
 ## Batch gates
 
+以下约束实现批次的验证粒度，不豁免 `AGENTS.md` 中版本设计快照的完整性与交付门禁。
+
 - Batch gates do not require per-screen screenshots or pixel-by-pixel comparison.
 - Block a batch only for functional or state errors, data inconsistency, crashes, unreachable flows, severe clipping, or broken key interactions.
 - Treat spacing, typography, small visual differences, and minor design-baseline inconsistencies as non-blocking final physical-device acceptance items.
@@ -17,15 +19,15 @@ Rules:
 
 ## Easy Trip 设计实现
 
-设计事实来源：
+版本设计快照以 `AGENTS.md` 的“UI 设计 / 版本设计快照”为唯一管理规范，设计事实来源按以下范围使用：
 
-- `design/easy-trip-v2.0.pen`
-- `design/EASY_TRIP_IMPLEMENTATION_GUIDE.md`
-- `design/EASY_TRIP_IMPLEMENTATION_PLAN.md`
+- 当前工作树中、与目标版本匹配且已核验的完整 `design/easy-trip-v<完整版本号>.pen`。
+- 与该版本匹配的代码基线、实际运行界面和已确认需求；用于核验继承页面及新增能力的状态。
+- `design/EASY_TRIP_IMPLEMENTATION_GUIDE.md` 与 `design/EASY_TRIP_IMPLEMENTATION_PLAN.md` 保留旧 v2.0 映射，仅在确认适用时参考，不作为其他版本的默认基线。
 
 规则：
 
-- 开始 UI 开发前，先阅读实现指南和实现计划。
+- 开始 UI 开发前，先按 `AGENTS.md` 核验版本设计快照，再阅读适用于该版本的实现指南和计划。
 - 修改前检查 `git status` 和目标文件 diff，不覆盖无关未提交改动。
 - 有 `graphify-out/graph.json` 时，先用 `graphify query` 定位相关代码；修改代码后运行 `graphify update .`。命令不可用时明确说明。
 - 使用 Pencil MCP 读取本批涉及的 UI Kit、状态规范、顶层 frame、`context` 和必要截图，不直接全量解析 `.pen` 文件。
@@ -34,7 +36,7 @@ Rules:
 - 同一页面的多个设计状态由同一个 Composable 和参数化 UiState 表达。
 - 复用现有架构、数据模型和组件，不按截图建立平行实现。
 - 每批完成端到端业务闭环，不只实现静态布局。
-- 每批结束更新 `design/EASY_TRIP_IMPLEMENTATION_PLAN.md`。
+- 每批结束更新对应版本的设计／实现／验收状态和实现计划，不把其他版本进度写入旧 v2.0 计划。
 - UI 改动必须在模拟器或实体设备实际操作验证；无法验证时明确说明。
 - 完成前运行适用的 assemble、unit test、lint 和 Android UI 测试，并如实报告失败或未运行项。
 - 未经用户明确要求，不 commit、不 push。
