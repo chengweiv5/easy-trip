@@ -1,0 +1,82 @@
+{
+  "date": "2026-10-08",
+  "release_directory": "/Users/bytedance/.codex/artifacts/easy-trip/release-v1.8.0-20261006",
+  "apk": {
+    "path": "/Users/bytedance/.codex/artifacts/easy-trip/release-v1.8.0-20261006/easy-trip-v1.8.0-release.apk",
+    "sha256": "b15af3b95fe8e694e554b37dc3b0c3996ba270f07455887e770f5ae1acc7aa53",
+    "size": 62389357,
+    "hash_and_size_rechecked": true
+  },
+  "release_artifact_record": {
+    "versionName": "1.8.0",
+    "versionCode": 10,
+    "package": "com.yangchengwei.easytrip",
+    "commit": "154f8ed018104d182d8f9e3f37e4f4aab76cf656",
+    "sourceState": "CLEAN",
+    "debuggable": false,
+    "size": 62389357,
+    "sha256": "b15af3b95fe8e694e554b37dc3b0c3996ba270f07455887e770f5ae1acc7aa53",
+    "signerSha256": "a12b60ce83aaacd76899a66d81d78f3fc4cfe3b7424f9a5cf7479732c415048e",
+    "signatureVerified": true,
+    "zipalign16kb": true,
+    "amapKeyPresent": true,
+    "privateFilesAbsent": true,
+    "unitTests": {
+      "tests": 920,
+      "failures": 0,
+      "errors": 0,
+      "skipped": 0
+    },
+    "lint": {
+      "Warning": 52,
+      "Hint": 1
+    },
+    "priorUiTests": {
+      "count": 27,
+      "passed": 27,
+      "sourceAndEvidenceHashVerified": true,
+      "rerunThisRelease": false
+    }
+  },
+  "historical_upgrade": {
+    "status": "PASS",
+    "device": "isolated temporary Android 36 emulator",
+    "before": {
+      "appId": "10150",
+      "versionCode": "9",
+      "versionName": "1.7.0",
+      "dataDir": "/data/user/0/com.yangchengwei.easytrip",
+      "firstInstallTime": "2026-10-06 08:41:41",
+      "uid": "10150"
+    },
+    "after": {
+      "appId": "10150",
+      "versionCode": "10",
+      "versionName": "1.8.0",
+      "dataDir": "/data/user/0/com.yangchengwei.easytrip",
+      "firstInstallTime": "2026-10-06 08:41:41",
+      "uid": "10150"
+    },
+    "installedApkSha256": "b15af3b95fe8e694e554b37dc3b0c3996ba270f07455887e770f5ae1acc7aa53",
+    "uidPreserved": true,
+    "firstInstallTimePreserved": true,
+    "dataDirPreserved": true,
+    "coldLaunchPassed": true,
+    "homeUiVerified": true,
+    "appCrashAbsent": true,
+    "testData": "empty installation; business database rows not seeded or compared",
+    "physicalDeviceTouched": false
+  },
+  "historical_source_comparison": {
+    "unchanged": true,
+    "fileCount": 435
+  },
+  "file_hashes": {
+    "/Users/bytedance/.codex/artifacts/easy-trip/release-v1.8.0-20261006/artifact.json": "c72cf1aa869dbde111b62a8ba6cb90c26d655744c940716e24a1545b1f89cb9c",
+    "/Users/bytedance/.codex/artifacts/easy-trip/release-v1.8.0-20261006/source-comparison.json": "e6fb67e6b76615581c22d1e50c50a265681a38c821e593dcbfd816f79a5deb89",
+    "/Users/bytedance/.codex/artifacts/easy-trip/release-v1.8.0-20261006/upgrade-verification.json": "142c00657bc4dd4bd839a5a5c80c2d9f38c95d5f7589aa15782078652bb3d5d4",
+    "/Users/bytedance/.codex/artifacts/easy-trip/release-v1.8.0-20261006/public-verification.json": "e12bb3052f128d788d1e84e0c7416ae2f5d25db9b1a129769b8f5473c39953ef",
+    "/Users/bytedance/.codex/artifacts/easy-trip/release-v1.8.0-20261006/upgrade-after.png": "3c19170d568f827322bfd2cbfcaf42f735786a7084ddb13545528c12f0f3d419"
+  },
+  "boundary": "Only local hashes and code comparison verified now. Release tests/upgrade results remain historical; public release network availability not rechecked this audit."
+}

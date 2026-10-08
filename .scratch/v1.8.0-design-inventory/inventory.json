@@ -1,0 +1,2570 @@
+{
+  "schema_version": 1,
+  "target_version": "1.8.0",
+  "version_code": 10,
+  "audit_date": "2026-10-08",
+  "code_head": "d815ce903bd64e350a108e0a103ba9453994db27",
+  "release_code_commit": "154f8ed018104d182d8f9e3f37e4f4aab76cf656",
+  "scope": "源码页面/状态清单与设计缺口盘点，不是完整Pencil修复或运行验收。",
+  "canonical_design": "design/easy-trip-v1.8.0.pen",
+  "canonical_design_exists": false,
+  "route_mapping": {
+    "TRIP_LIST_ROUTE": "N01",
+    "CREATE_TRIP_ROUTE": "N02",
+    "TRIP_WORKSPACE_ROUTE": "N03",
+    "TRIP_SEARCH_ROUTE": "N04",
+    "TRIP_SHARE_ROUTE": "N05",
+    "TRIP_SETTINGS_ROUTE": "N06",
+    "APP_SETTINGS_ROUTE": "N07",
+    "APP_MAP_CONSENT_ROUTE": "N08",
+    "APP_UPDATE_ROUTE": "N09"
+  },
+  "groups": [
+    {
+      "id": "N01",
+      "title": "我的旅行",
+      "kind": "导航页面",
+      "entry": "应用启动 / 返回我的旅行",
+      "states": [
+        "加载",
+        "无旅行",
+        "待出行/已出行筛选及筛选为空",
+        "主旅行与其他旅行",
+        "加载失败重试",
+        "准备度及已记花费"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+          "line": 405,
+          "anchor": "composable("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListContent.kt",
+          "line": 45,
+          "anchor": "fun TripListContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt",
+          "line": 30,
+          "anchor": "sealed interface TripListPageState"
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D16",
+        "H16",
+        "H18"
+      ],
+      "gap": "首页右上角必须是 App 设置入口，不能复用旧主题入口；需补当前费用摘要。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripListContentTest.kt"
+      ],
+      "route_constant": "TRIP_LIST_ROUTE",
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "N02",
+      "title": "创建旅行",
+      "kind": "导航页面",
+      "entry": "首页创建按钮",
+      "states": [
+        "空表单",
+        "名称校验",
+        "日期范围未完整/超出30天",
+        "灵活/自驾",
+        "提交中",
+        "提交失败保留输入",
+        "成功进入工作台"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripContent.kt",
+          "line": 47,
+          "anchor": "fun CreateTripContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripUiState.kt",
+          "line": 7,
+          "anchor": "data class CreateTripUiState("
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "按当前表单、日期和出行方式核验，旧主画板仅作候选。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/CreateTripContentTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/CreateTripRouteTest.kt"
+      ],
+      "route_constant": "CREATE_TRIP_ROUTE",
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "N03",
+      "title": "旅行工作台外壳",
+      "kind": "导航页面",
+      "entry": "首页打开旅行 / 创建成功",
+      "states": [
+        "加载",
+        "旅行不存在",
+        "读取失败重试",
+        "就绪",
+        "地图未授权/加载/失败/就绪",
+        "抽屉收起/半屏/展开",
+        "返回与遮罩层顺序",
+        "地图平移缩放、定位与恢复正北；控件选中与避让；服务商署名"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+          "line": 458,
+          "anchor": "TRIP_WORKSPACE_ROUTE,"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt",
+          "line": 86,
+          "anchor": "sealed interface TripWorkspacePageState"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 126,
+          "anchor": "fun TripWorkspaceScreen("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/MapControls.kt",
+          "line": 39,
+          "anchor": "fun MapControls("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D16",
+        "D18",
+        "H18L"
+      ],
+      "gap": "需要完整外壳及降级状态；搜索单页不能代表全工作台。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContentTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceFlowTest.kt"
+      ],
+      "route_constant": "TRIP_WORKSPACE_ROUTE",
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "N04",
+      "title": "地点搜索",
+      "kind": "导航页面",
+      "entry": "工作台搜索按钮 / 地图搜索摘要中的列表",
+      "states": [
+        "初始输入及键盘",
+        "地图服务未授权",
+        "加载",
+        "结果",
+        "无结果",
+        "网络失败",
+        "定位权限不足",
+        "定位失败",
+        "有/无距我的距离",
+        "收藏忙碌/失败"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContent.kt",
+          "line": 79,
+          "anchor": "fun PlaceSearchContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt",
+          "line": 18,
+          "anchor": "sealed interface PlaceSearchPhase"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchRoute.kt",
+          "line": 25,
+          "anchor": "fun PlaceSearchRoute("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "H18L"
+      ],
+      "gap": "v1.8.0 单页不含搜索列表；需补距离有/无、权限和明确提交返回地图。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/SearchDistanceUiTest.kt"
+      ],
+      "route_constant": "TRIP_SEARCH_ROUTE",
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "N05",
+      "title": "分享行程长图",
+      "kind": "导航页面",
+      "entry": "工作台更多 / 分享行程长图",
+      "states": [
+        "加载行程",
+        "空行程",
+        "加载失败",
+        "全程/选一天",
+        "包含/不含备注",
+        "生成地图和长图",
+        "地图缺失降级",
+        "生成失败/过长",
+        "保存/分享中及失败"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+          "line": 50,
+          "anchor": "fun ItineraryShareScreen("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+          "line": 42,
+          "anchor": "internal sealed interface ShareGeneration"
+        }
+      ],
+      "material_ids": [
+        "D14",
+        "H16"
+      ],
+      "gap": "采用 R4 每日地图+清单，不混入已取消的分享日历；补各种生成状态。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/share/ItineraryShareScreenTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/share/ShareNavigationTest.kt"
+      ],
+      "route_constant": "TRIP_SHARE_ROUTE",
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "N06",
+      "title": "旅行设置",
+      "kind": "导航页面",
+      "entry": "首页旅行菜单 / 工作台更多",
+      "states": [
+        "无权威旅行数据/读取失败",
+        "名称",
+        "出行日期",
+        "灵活/自驾",
+        "旅行日列表",
+        "添加/排序/删除旅行日",
+        "写入中互斥",
+        "删除旅行入口"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt",
+          "line": 83,
+          "anchor": "fun TripSettingsContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsViewModel.kt",
+          "line": 60,
+          "anchor": "data class TripSettingsUiState("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "DSET"
+      ],
+      "gap": "只放旅行级设置；与 App 设置严格区分，核验日期影响确认及危险操作。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContentTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripSettingsNavigationTest.kt"
+      ],
+      "route_constant": "TRIP_SETTINGS_ROUTE",
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "N07",
+      "title": "App 设置",
+      "kind": "导航页面",
+      "entry": "我的旅行右上角齿轮（空旅行也可进入）",
+      "states": [
+        "当前主题",
+        "地图授权状态",
+        "已安装版本离线显示",
+        "存在可更新版本提示",
+        "进入主题/授权/更新"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/settings/AppSettingsContent.kt",
+          "line": 45,
+          "anchor": "fun AppSettingsContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+          "line": 420,
+          "anchor": "composable(APP_SETTINGS_ROUTE)"
+        }
+      ],
+      "material_ids": [
+        "DSET",
+        "H18"
+      ],
+      "gap": "现存对应材料为 HTML/JPG，不是可用的版本 Pencil 正式页面。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/settings/AppSettingsTest.kt"
+      ],
+      "route_constant": "APP_SETTINGS_ROUTE",
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "N08",
+      "title": "地图授权管理",
+      "kind": "导航页面",
+      "entry": "App 设置 / 地图授权",
+      "states": [
+        "未授权",
+        "已授权",
+        "阅读政策/已读勾选",
+        "展示报告失败重试",
+        "允许处理中/失败",
+        "撤回入口",
+        "不自动申请定位"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/settings/MapConsentContent.kt",
+          "line": 18,
+          "anchor": "fun MapConsentContent("
+        }
+      ],
+      "material_ids": [
+        "DSET"
+      ],
+      "gap": "需在完整 Pencil 中补原生页面；与首次授权弹窗、系统定位权限分开。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/settings/AppSettingsTest.kt"
+      ],
+      "route_constant": "APP_MAP_CONSENT_ROUTE",
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "N09",
+      "title": "版本更新",
+      "kind": "导航页面",
+      "entry": "App 设置 / 检查更新",
+      "states": [
+        "Idle",
+        "Checking",
+        "Current",
+        "Ahead",
+        "Available",
+        "Downloading",
+        "Ready",
+        "Failed",
+        "取消下载",
+        "稍后安装",
+        "系统返回后的提示",
+        "重新下载/检查"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/settings/AppSettingsContent.kt",
+          "line": 102,
+          "anchor": "fun UpdateContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/settings/UpdateController.kt",
+          "line": 17,
+          "anchor": "sealed interface UpdateState"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/settings/UpdateRoute.kt",
+          "line": 14,
+          "anchor": "fun UpdateRoute("
+        }
+      ],
+      "material_ids": [
+        "DSET"
+      ],
+      "gap": "需补全原生更新页面和状态，不能把未发布 main 当正式更新或模拟已安装成功。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/settings/AppSettingsTest.kt"
+      ],
+      "route_constant": "APP_UPDATE_ROUTE",
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "T01",
+      "title": "日期范围选择",
+      "kind": "共享弹层",
+      "entry": "创建旅行 / 旅行设置日期编辑",
+      "states": [
+        "初始月",
+        "开始/结束日期",
+        "跨月/跨年",
+        "30天限制",
+        "固定天数改起始日",
+        "取消",
+        "确认受校验限制"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripDateRangePickerSheet.kt",
+          "line": 79,
+          "anchor": "fun TripDateRangePickerSheet("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt",
+          "line": 287,
+          "anchor": "TripDateRangePickerModalHost("
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "同一选择器的创建/设置变体归组，不重复当新页面。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripDateRangePickerSheetTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "T02",
+      "title": "旅行卡片更多菜单",
+      "kind": "菜单",
+      "entry": "我的旅行 / 单个旅行更多",
+      "states": [
+        "标记已出行/待出行",
+        "设置",
+        "删除",
+        "菜单关闭"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListCards.kt",
+          "line": 243,
+          "anchor": "private fun TripMenu("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "H16"
+      ],
+      "gap": "需核验当前手动出行状态菜单，不把日期自动状态作为事实。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripListContentTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "T03",
+      "title": "删除旅行确认",
+      "kind": "共享弹层",
+      "entry": "首页菜单 / 旅行设置",
+      "states": [
+        "Idle不展示",
+        "LoadingImpact",
+        "ImpactFailure",
+        "影响清单确认",
+        "删除中",
+        "失败",
+        "同步失败重试",
+        "取消"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripDeletionDialog.kt",
+          "line": 20,
+          "anchor": "fun TripDeletionDialog("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt",
+          "line": 62,
+          "anchor": "sealed interface TripDeletionUiState"
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "记录删除/保留内容及不可撤销语义，不能复用泛化确认文案。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripDeletionDialogTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "T04",
+      "title": "重命名旅行",
+      "kind": "弹层",
+      "entry": "旅行设置 / 修改旅行名称",
+      "states": [
+        "当前名称",
+        "编辑",
+        "确认",
+        "取消恢复",
+        "其他写入锁定"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt",
+          "line": 457,
+          "anchor": "private fun RenameDialog("
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "旧画板的命名、按钮与当前弹层对照后再复用。",
+      "test_sources": [],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "T05",
+      "title": "旅行日期变更及影响确认",
+      "kind": "流程状态组",
+      "entry": "旅行设置 / 提交日期范围",
+      "states": [
+        "Idle",
+        "Previewing",
+        "AwaitingConfirmation",
+        "Applying",
+        "AwaitingRoom",
+        "SyncFailed",
+        "移除旅行日影响",
+        "取消/重试"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/DateRangeChangeRequest.kt",
+          "line": 15,
+          "anchor": "sealed interface DateRangeChangePhase"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt",
+          "line": 137,
+          "anchor": "val datePhase ="
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "需覆盖非破坏性改期与缩短日期范围的影响确认，不以一个日期框代替整条流程。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContentTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "T06",
+      "title": "旅行日管理",
+      "kind": "页面内状态组",
+      "entry": "旅行设置 / 旅行日列表",
+      "states": [
+        "添加一天",
+        "拖拽排序",
+        "删除候选",
+        "忙碌禁用",
+        "影响计算/失败",
+        "保存失败",
+        "长列表滚动"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt",
+          "line": 111,
+          "anchor": "var draggingDayId"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsViewModel.kt",
+          "line": 60,
+          "anchor": "data class TripSettingsUiState("
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "按实际实现核验排序和日期映射；删除确认与 I05 共用语义。",
+      "test_sources": [],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "W01",
+      "title": "地点池",
+      "kind": "工作台子视图",
+      "entry": "工作台 / 地点池标签",
+      "states": [
+        "加载",
+        "空池",
+        "城市分组及切换",
+        "本地关键词",
+        "标签",
+        "全部/未排入/已排入",
+        "无筛选结果",
+        "收藏卡片",
+        "备注展开",
+        "批量安排入口"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlacePoolSheet.kt",
+          "line": 98,
+          "anchor": "fun PlacePoolContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlacePoolViewModel.kt",
+          "line": 47,
+          "anchor": "data class PlacePoolUiState("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceCityGroups.kt",
+          "line": 30,
+          "anchor": "enum class PlaceScheduleFilter"
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D16",
+        "H16"
+      ],
+      "gap": "补当前城市/排入状态/本地搜索，旧池内在线搜索不另画为正式页面。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceCityGroupingTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlacePoolFlowTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "W02",
+      "title": "单日行程清单",
+      "kind": "工作台子视图",
+      "entry": "行程标签 / 选旅行日",
+      "states": [
+        "默认设备当天（范围外第一天）",
+        "手选与返回恢复",
+        "加载/空/有行程",
+        "行程与相邻交通",
+        "拖拽排序",
+        "备注展开",
+        "当日费用及未填数",
+        "增删当天/日历按钮"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItinerarySheet.kt",
+          "line": 122,
+          "anchor": "fun DayItineraryContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceNavigation.kt",
+          "line": 72,
+          "anchor": "internal fun reconcileItineraryScope("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryDayActions.kt",
+          "line": 22,
+          "anchor": "internal fun ItineraryDayActions("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D13",
+        "H16",
+        "H18L"
+      ],
+      "gap": "补默认当天和无重复竖线的日期栏；费用是总额而非六分类。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/DefaultItineraryDayTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryRailSpacingTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "W03",
+      "title": "全程行程清单",
+      "kind": "工作台子视图",
+      "entry": "行程 / 全程",
+      "states": [
+        "全空",
+        "分日清单",
+        "连续重复地点合并",
+        "无行程日",
+        "相邻/跨日展示交通",
+        "各日已记费用",
+        "备注展开"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContent.kt",
+          "line": 27,
+          "anchor": "fun WholeTripItineraryContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryUiModels.kt",
+          "line": 99,
+          "anchor": "internal fun mapWholeTripDays("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D13",
+        "H16"
+      ],
+      "gap": "按当前全程投影核验，不把合并显示误当删除实际费用。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContentTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "W04",
+      "title": "单日时间日历",
+      "kind": "工作台子视图",
+      "entry": "单日行程 / 日历切换",
+      "states": [
+        "空日",
+        "未设时间待安排",
+        "时间轴地点与交通",
+        "重叠",
+        "短卡",
+        "拖入/移动/调时",
+        "保存/撤销/失败",
+        "跨午夜信息"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt",
+          "line": 52,
+          "anchor": "fun CalendarContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarTraffic.kt",
+          "line": 98,
+          "anchor": "fun CalendarTraffic("
+        }
+      ],
+      "material_ids": [
+        "D13",
+        "D14",
+        "H16"
+      ],
+      "gap": "复用候选需包含后续调时提示、交通同列和短时长表现。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarInteractionTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarResizeWorkspaceTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "W05",
+      "title": "全程时间日历",
+      "kind": "工作台子视图",
+      "entry": "全程 / 日历切换",
+      "states": [
+        "多日列",
+        "日期分页首尾",
+        "30天浏览",
+        "无日期",
+        "待安排计数",
+        "单日聚焦",
+        "跨日/重叠及交通"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt",
+          "line": 252,
+          "anchor": "calendar-date-pager"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt",
+          "line": 74,
+          "anchor": "val single ="
+        }
+      ],
+      "material_ids": [
+        "D13",
+        "D14",
+        "H16"
+      ],
+      "gap": "补后续页头对齐与日期分页；不继承旧重复内容。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarHeaderAlignmentTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "W06",
+      "title": "搜索结果返回地图",
+      "kind": "工作台子视图",
+      "entry": "明确提交搜索 / 返回工作台",
+      "states": [
+        "搜索标记",
+        "可定位/总结果数量",
+        "收起/半屏/展开",
+        "保留地点池/行程标签",
+        "关键词/列表返回",
+        "清除",
+        "同城我的位置",
+        "无位置/坐标不可用"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceSearchSummary.kt",
+          "line": 33,
+          "anchor": "internal fun WorkspaceSearchSummary("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceSearchResults.kt",
+          "line": 10,
+          "anchor": "data class WorkspaceSearchResults"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+          "line": 754,
+          "anchor": "onShowResultsOnMap ="
+        }
+      ],
+      "material_ids": [
+        "D18",
+        "H18L"
+      ],
+      "gap": "当前仅收起态单页有原生回读；需补其余状态、结果计数及当前位置样式核验。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchResultsMapFlowTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/SearchMapFocusTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "W07",
+      "title": "地图图层与工作台更多",
+      "kind": "菜单组",
+      "entry": "地图图层工具 / 工作台右上角更多",
+      "states": [
+        "标准/卫星/卫星路网",
+        "菜单空间不足回退",
+        "旅行设置",
+        "分享行程长图",
+        "返回我的旅行",
+        "关闭菜单"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/MapControls.kt",
+          "line": 90,
+          "anchor": "internal fun MapLayerMenu("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceMoreMenu.kt",
+          "line": 30,
+          "anchor": "internal fun WorkspaceMoreMenu("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContent.kt",
+          "line": 315,
+          "anchor": "workspaceLayerMenuFits(metrics)"
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D16",
+        "DSET"
+      ],
+      "gap": "旧主题、地图授权菜单入口应移除；两个菜单分别归组，不混为同一画板。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspaceChromeTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "W08",
+      "title": "地图 POI 与收藏标记详情",
+      "kind": "弹层组",
+      "entry": "点击地图原生地点 / 收藏或行程标记",
+      "states": [
+        "名称/地址缺失",
+        "可收藏/不可收藏",
+        "收藏/取消收藏中及失败",
+        "同地点多次行程",
+        "关闭"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 728,
+          "anchor": "private fun MapPoiDialog("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 753,
+          "anchor": "private fun MarkerDialog("
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "分别保留地图 POI 和收藏标记两种容器，不能与完整收藏地点详情混为一页。",
+      "test_sources": [],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "P01",
+      "title": "收藏地点详情与编辑",
+      "kind": "弹层状态组",
+      "entry": "地点池卡片 / 收藏地点",
+      "states": [
+        "只读详情",
+        "未安排/按天重复安排/安排信息未知",
+        "收藏状态",
+        "备注和标签编辑",
+        "预设/新标签/校验",
+        "保存中/失败",
+        "取消",
+        "加入行程",
+        "删除"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceDetailPanel.kt",
+          "line": 58,
+          "anchor": "fun PlaceDetailPanel("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/WorkspacePlaceDetailSheet.kt",
+          "line": 23,
+          "anchor": "fun WorkspacePlaceDetailSheet("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "H16"
+      ],
+      "gap": "保留只读与编辑状态；地点评注不是行程某次安排的备注或费用。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceDetailPanelTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "P02",
+      "title": "搜索结果地图详情与编辑",
+      "kind": "搜索子视图",
+      "entry": "搜索列表 / 点结果",
+      "states": [
+        "地图加载/失败",
+        "未收藏/已收藏",
+        "收藏切换",
+        "地址及安排信息",
+        "已收藏地点备注/标签编辑",
+        "返回结果列表"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContent.kt",
+          "line": 136,
+          "anchor": "private fun SearchMapDetail("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModel.kt",
+          "line": 29,
+          "anchor": "sealed interface SearchDisplayMode"
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "与 W08 原生 POI 弹窗、W06 搜索返回地图区分；当前生产调用 detailContent 默认路径。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceDetailPanelTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContentTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "P03",
+      "title": "删除收藏/取消收藏影响确认",
+      "kind": "共享弹层组",
+      "entry": "地点池删除 / 搜索或地图取消已安排行程的收藏",
+      "states": [
+        "受影响行程/路线清单",
+        "计算中/失败",
+        "确认",
+        "处理中",
+        "失败保留",
+        "取消"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 641,
+          "anchor": "is WorkspaceOverlay.Confirmation ->"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchRoute.kt",
+          "line": 83,
+          "anchor": "state.pendingCollectionRemoval?.let"
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "必须区分删除收藏连带安排与仅移除一次行程；费用删除另由 F02 确认。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/place/ui/PlacePoolFlowTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/expense/ExpenseCancellationUiTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I01",
+      "title": "从地点池选地点",
+      "kind": "编辑弹层",
+      "entry": "当天添加 / 地点池批量安排",
+      "states": [
+        "无候选",
+        "未选/多选",
+        "关键词/城市筛选",
+        "选择计数",
+        "固定目标日失效",
+        "继续/取消"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/SelectPlacesContent.kt",
+          "line": 51,
+          "anchor": "fun SelectPlacesContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 555,
+          "anchor": "WorkspaceOverlay.SelectAddPlaces ->"
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "按当前固定日期与批量入口分别表达；不把测试宿主中的屏幕当额外导航。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/PlacePickerRefinementTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I02",
+      "title": "选择安排日期",
+      "kind": "编辑弹层",
+      "entry": "选地点后继续 / 地点详情加入 / 再次安排",
+      "states": [
+        "多日选择",
+        "已有安排次数",
+        "无旅行日",
+        "添加一天入口",
+        "提交中",
+        "日期失效",
+        "取消"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/SelectTargetDayContent.kt",
+          "line": 32,
+          "anchor": "fun SelectTargetDayContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/AddToItineraryUiState.kt",
+          "line": 31,
+          "anchor": "data class AddToItineraryUiState("
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "需要覆盖单地点多次安排，不把已排入状态作为禁用理由。",
+      "test_sources": [],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I03",
+      "title": "安排异常结果与恢复",
+      "kind": "结果弹层",
+      "entry": "批量安排部分失败 / 日期失效 / 撤销",
+      "states": [
+        "部分成功",
+        "失败地点重试",
+        "目标日失效重选",
+        "撤销中/失败",
+        "已撤销查看地点池",
+        "成功自动收起而不弹成功对话框"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/AddToItineraryResultContent.kt",
+          "line": 11,
+          "anchor": "fun AddToItineraryResultContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 572,
+          "anchor": "WorkspaceOverlay.AddToItineraryResult ->"
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "不得照搬旧成功结果弹窗；当前全成功会关闭。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/AddPlacesRoomIntegrationTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I04",
+      "title": "添加旅行日",
+      "kind": "弹层",
+      "entry": "工作台日期栏新增 / 选日期无日可用",
+      "states": [
+        "追加末尾说明",
+        "确认",
+        "添加中",
+        "失败重试",
+        "取消"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/AddTripDayContent.kt",
+          "line": 13,
+          "anchor": "fun AddTripDayContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 697,
+          "anchor": "WorkspaceOverlay.AddTripDay ->"
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "同一能力多个入口共用状态，不凭旧版本另画不同流程。",
+      "test_sources": [],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I05",
+      "title": "删除旅行日",
+      "kind": "共享确认流程",
+      "entry": "单日头部删除 / 旅行设置删日",
+      "states": [
+        "影响数量",
+        "保留收藏说明",
+        "忙碌",
+        "错误",
+        "取消",
+        "确认删除",
+        "后续日期/范围变化"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/WorkspaceDayDeletionDialog.kt",
+          "line": 9,
+          "anchor": "internal fun WorkspaceDayDeletionDialog("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt",
+          "line": 97,
+          "anchor": "onConfirmDeleteDay"
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "核对两个宿主的实际确认容器和按钮，不覆盖费用损失确认。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryDayActionsTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContentTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I06",
+      "title": "编辑单次行程",
+      "kind": "编辑弹层",
+      "entry": "行程项编辑 / 日历详情编辑",
+      "states": [
+        "到达时间滚轮及分时段",
+        "停留时长",
+        "未设时间",
+        "备注",
+        "花费空/0/小数/无效/溢出",
+        "再次安排",
+        "保存中",
+        "取消保留原值"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/EditItineraryItemContent.kt",
+          "line": 21,
+          "anchor": "fun EditItineraryItemContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryTimingPickers.kt",
+          "line": 55,
+          "anchor": "fun ItineraryTimingPickers("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditDraft.kt",
+          "line": 7,
+          "anchor": "data class ItineraryEditDraft("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D13",
+        "H16"
+      ],
+      "gap": "旧 v1.6 截图无费用输入；补现有金额，不加入 v1.9 分类。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditingTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryTimingPickerTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/expense/ExpenseCancellationUiTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I07",
+      "title": "编辑交通路段",
+      "kind": "编辑弹层",
+      "entry": "点交通 / 日历详情查看交通",
+      "states": [
+        "起终点/距离",
+        "步行/打车/驾车/公交",
+        "恢复推荐",
+        "覆盖/恢复用时",
+        "备注",
+        "金额及无效输入",
+        "保存中/失败",
+        "取消"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/EditRouteLegContent.kt",
+          "line": 34,
+          "anchor": "fun EditRouteLegContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditDraft.kt",
+          "line": 41,
+          "anchor": "data class RouteModeEditDraft("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 618,
+          "anchor": "is WorkspaceOverlay.EditRouteLeg ->"
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D13"
+      ],
+      "gap": "按当前推荐与手动覆盖表达，并补费用字段。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditingTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/expense/ExpensePersistenceTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I08",
+      "title": "行程项菜单与跨日移动",
+      "kind": "菜单/弹层组",
+      "entry": "行程项更多",
+      "states": [
+        "编辑",
+        "再次安排",
+        "移动到其他日期",
+        "删除",
+        "目标日期列表排除当天",
+        "移动中/失败",
+        "取消"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryItemMenu.kt",
+          "line": 28,
+          "anchor": "internal fun ItineraryItemMenu("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 532,
+          "anchor": "is WorkspaceOverlay.SelectMoveTargetDay ->"
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D13"
+      ],
+      "gap": "菜单与目标日弹层分状态；跨日移动后原费用保持在该次安排。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditingTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I09",
+      "title": "移出单次行程确认",
+      "kind": "弹层",
+      "entry": "行程项菜单 / 删除行程项",
+      "states": [
+        "仅移除本次安排",
+        "收藏保留",
+        "相邻路线重算",
+        "确认/取消",
+        "删除中/失败"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 651,
+          "anchor": "移出${itineraryDelete.placeName}？"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditDraft.kt",
+          "line": 67,
+          "anchor": "data class ItineraryDeleteConfirmation("
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "与删除收藏、删除旅行日、费用删除四种风险文案分别归属。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/expense/ExpenseCancellationUiTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "I10",
+      "title": "编辑保存失败恢复",
+      "kind": "编辑弹层状态",
+      "entry": "行程编辑保存失败",
+      "states": [
+        "原因",
+        "继续编辑",
+        "重试保存",
+        "关闭错误后回草稿"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItinerarySaveFailureContent.kt",
+          "line": 24,
+          "anchor": "fun ItinerarySaveFailureContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 512,
+          "anchor": "if (draft.saveError != null)"
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "属于 I06 的错误状态，不是独立导航；交通编辑错误由 I07 内联展示。",
+      "test_sources": [],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "C01",
+      "title": "日历详情与交叠列表",
+      "kind": "底部弹层组",
+      "entry": "点日历卡片 / 交叠组",
+      "states": [
+        "交叠成员列表",
+        "单次日程日期/次序/到达/结束/停留",
+        "长备注",
+        "时间冲突",
+        "交通来不及",
+        "入站/出站交通",
+        "转编辑",
+        "条目已删除"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt",
+          "line": 341,
+          "anchor": "expandedGroup?.let"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarDetail.kt",
+          "line": 17,
+          "anchor": "internal fun CalendarDetail("
+        }
+      ],
+      "material_ids": [
+        "D13",
+        "D14"
+      ],
+      "gap": "交叠列表和单条详情分画板；没有源码的费用/分类字段不要补入详情。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarInteractionTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "C02",
+      "title": "日历拖动与调时反馈",
+      "kind": "页面内状态组",
+      "entry": "单日长按移动 / 调整起止",
+      "states": [
+        "未触发/长按门槛",
+        "拖动草稿",
+        "调时提示避手指",
+        "大字体/顶部边界",
+        "保存中",
+        "成功撤销",
+        "失败重试",
+        "撤销失败"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarResizeHint.kt",
+          "line": 34,
+          "anchor": "fun CalendarResizeHint("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarTimingController.kt",
+          "line": 8,
+          "anchor": "data class CalendarSaveState("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt",
+          "line": 237,
+          "anchor": "if (saveState.message != null)"
+        }
+      ],
+      "material_ids": [
+        "D13",
+        "D14",
+        "H16"
+      ],
+      "gap": "采用后续调时修订，不复制原始日历设计中的旧提示位置。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarResizeWorkspaceTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "F01",
+      "title": "现有费用录入与总额展示",
+      "kind": "跨页面能力",
+      "entry": "首页卡片 / 日行程 / 全程各日 / 行程及交通编辑",
+      "states": [
+        "未记金额与0元区分",
+        "两位小数",
+        "已记总额",
+        "未填项数量",
+        "非法输入",
+        "合计溢出拒绝",
+        "编辑保存后刷新"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/expense/Expense.kt",
+          "line": 15,
+          "anchor": "fun expenseSummary("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/expense/ExpenseField.kt",
+          "line": 13,
+          "anchor": "fun ExpenseField("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt",
+          "line": 105,
+          "anchor": "expenseLabel ="
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryUiModels.kt",
+          "line": 127,
+          "anchor": "expenses ="
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "未找到 v1.7.0 正式 Pencil；金额能力需映射进各现有页面，当前无独立费用统计页和六分类。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/expense/ExpensePersistenceTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/v170/V170UiTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "F02",
+      "title": "已记费用丢失二次确认",
+      "kind": "全局弹层",
+      "entry": "调整/删除引起已记花费丢失",
+      "states": [
+        "受影响笔数/金额",
+        "交通会重新生成且费用不转移",
+        "删除花费并继续",
+        "取消调整无错误提示"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/expense/ExpenseRemovalDialog.kt",
+          "line": 11,
+          "anchor": "fun ExpenseRemovalDialog("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+          "line": 345,
+          "anchor": "ExpenseRemovalDialog("
+        }
+      ],
+      "material_ids": [
+        "D12"
+      ],
+      "gap": "补独立风险确认，不与删除旅行/收藏的内容确认合并。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/expense/ExpenseCancellationUiTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "A01",
+      "title": "主题选择与预览",
+      "kind": "全局全屏弹层",
+      "entry": "App 设置 / 主题配色",
+      "states": [
+        "湖畔晴空",
+        "松林晨光",
+        "落日陶土",
+        "山岚暮紫",
+        "玫瑰沙丘",
+        "当前项禁用应用",
+        "本页预览",
+        "应用中/失败",
+        "返回放弃",
+        "成功 Toast"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemeHost.kt",
+          "line": 20,
+          "anchor": "fun EasyTripThemeHost("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemePickerScreen.kt",
+          "line": 30,
+          "anchor": "fun ThemePickerScreen("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemePalette.kt",
+          "line": 7,
+          "anchor": "enum class ThemePalette("
+        }
+      ],
+      "material_ids": [
+        "D16",
+        "H16"
+      ],
+      "gap": "旧双入口失效；保留五主题与预览规则，没有虚构旅行预览卡片。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/core/ui/theme/ThemePickerTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/core/ui/theme/ThemeNavigationTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "A02",
+      "title": "首次地图服务授权",
+      "kind": "应用弹层",
+      "entry": "首次工作台 / 地图未授权恢复",
+      "states": [
+        "政策入口",
+        "已读勾选",
+        "展示报告失败重试",
+        "允许/暂不允许",
+        "忙碌/失败",
+        "拒绝仍可用离线内容"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+          "line": 170,
+          "anchor": "internal fun AmapConsentDialog("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+          "line": 234,
+          "anchor": "internal fun AmapConsentBody("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "DSET"
+      ],
+      "gap": "不等同 N08 管理页，不凭权限弹窗猜测地图服务授权。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspacePermissionFlowTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "A03",
+      "title": "撤回地图授权确认",
+      "kind": "弹层",
+      "entry": "地图授权管理 / 撤回",
+      "states": [
+        "暂停在线地图搜索路线",
+        "保留已有旅行收藏",
+        "确认/取消",
+        "撤回中/失败"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/settings/MapConsentContent.kt",
+          "line": 57,
+          "anchor": "if (confirmRevoke) AlertDialog("
+        }
+      ],
+      "material_ids": [
+        "DSET"
+      ],
+      "gap": "补原生确认及数据保留说明。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/settings/AppSettingsTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "A04",
+      "title": "工作台定位权限",
+      "kind": "应用弹层组",
+      "entry": "点击地图定位工具",
+      "states": [
+        "用途解释",
+        "允许/取消",
+        "系统请求中",
+        "永久拒绝转设置",
+        "打开设置失败",
+        "返回后重新读取权限"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/permission/PermissionExplanationContent.kt",
+          "line": 23,
+          "anchor": "fun PermissionExplanationContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/permission/LocationPermissionSettingsContent.kt",
+          "line": 23,
+          "anchor": "fun LocationPermissionSettingsContent("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+          "line": 710,
+          "anchor": "is WorkspaceOverlay.PermissionExplanation ->"
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "H18L"
+      ],
+      "gap": "仅画应用自有解释页；系统弹窗单列边界。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/WorkspacePermissionFlowTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "A05",
+      "title": "搜索定位权限",
+      "kind": "应用弹层组",
+      "entry": "搜索当前城市需要定位",
+      "states": [
+        "用途包含当前城市/距我/我的位置",
+        "允许定位/暂不",
+        "永久拒绝打开设置",
+        "忙碌/错误",
+        "恢复搜索"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/SearchLocationPermission.kt",
+          "line": 25,
+          "anchor": "internal fun rememberSearchLocationPermissionRequest("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/SearchLocationPermission.kt",
+          "line": 94,
+          "anchor": "title = { Text(\"需要定位权限\") }"
+        }
+      ],
+      "material_ids": [
+        "H18L"
+      ],
+      "gap": "当前为独立 AlertDialog，不能强行套用工作台弹窗布局。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/workspace/AppSessionCitySearchTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "H01",
+      "title": "分享选择日期与放大预览",
+      "kind": "子视图/弹层组",
+      "entry": "分享页 / 选一天或放大",
+      "states": [
+        "旅行日选择/关闭",
+        "当前日期",
+        "放大长图滚动",
+        "返回分享页",
+        "图片读取失败"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+          "line": 131,
+          "anchor": "if(enlarged && ready!=null)"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+          "line": 193,
+          "anchor": "if(picker) AlertDialog("
+        }
+      ],
+      "material_ids": [
+        "D14",
+        "H16"
+      ],
+      "gap": "两个附属界面不能遗漏，放大预览不是第二份导出内容。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/share/ItineraryShareScreenTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "H02",
+      "title": "每日地图行程长图",
+      "kind": "导出视觉产物",
+      "entry": "分享页生成",
+      "states": [
+        "全程/单日",
+        "旅行摘要",
+        "每日地图/地图不可用",
+        "地点/交通/备注",
+        "长备注",
+        "重复地点",
+        "空日",
+        "过长失败"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/share/ShareImageRenderer.kt",
+          "line": 35,
+          "anchor": "suspend fun render("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareModels.kt",
+          "line": 15,
+          "anchor": "data class ShareOptions("
+        }
+      ],
+      "material_ids": [
+        "D14",
+        "H16"
+      ],
+      "gap": "采用 R4；不含分享日历。独立产物分区，不能冒充 App 页面。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/share/FullTripExportTest.kt",
+        "app/src/androidTest/java/com/yangchengwei/easytrip/share/ShareImageExportTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "G01",
+      "title": "共用组件、主题与全局反馈",
+      "kind": "组件/状态规范",
+      "entry": "全部页面",
+      "states": [
+        "默认五主题色值",
+        "标题/正文/金额",
+        "主次危险按钮",
+        "禁用/加载",
+        "输入错误",
+        "空态",
+        "网络/同步失败",
+        "可展开备注",
+        "Toast/Snackbar",
+        "键盘/系统栏/大字体"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemePalette.kt",
+          "line": 7,
+          "anchor": "enum class ThemePalette("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/ConfirmationDialog.kt",
+          "line": 29,
+          "anchor": "fun ConfirmationDialog("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/FeedbackState.kt",
+          "line": 20,
+          "anchor": "fun FeedbackState("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/ExpandableNote.kt",
+          "line": 31,
+          "anchor": "fun ExpandableNote("
+        }
+      ],
+      "material_ids": [
+        "D12",
+        "D16"
+      ],
+      "gap": "完整版本需要自身 UI Kit；当前 D18 无 reusable 组件。系统样式属于运行验证，不应伪造设计控件。",
+      "test_sources": [
+        "app/src/androidTest/java/com/yangchengwei/easytrip/core/ui/component/ConfirmationDialogTest.kt"
+      ],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    },
+    {
+      "id": "X01",
+      "title": "Android / 外部界面交接",
+      "kind": "系统边界",
+      "entry": "授权/隐私链接/保存/分享/安装",
+      "states": [
+        "系统定位授权与应用设置",
+        "浏览器隐私政策",
+        "Android 8–9 相册权限",
+        "系统分享选择器及返回",
+        "未知来源授权",
+        "安装确认及返回"
+      ],
+      "sources": [
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/SearchLocationPermission.kt",
+          "line": 25,
+          "anchor": "rememberSearchLocationPermissionRequest("
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+          "line": 120,
+          "anchor": "ActivityResultContracts.RequestPermission()"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/settings/ApkInstaller.kt",
+          "line": 54,
+          "anchor": "fun permissionIntent()"
+        },
+        {
+          "path": "app/src/main/java/com/yangchengwei/easytrip/settings/UpdateRoute.kt",
+          "line": 14,
+          "anchor": "fun UpdateRoute("
+        }
+      ],
+      "material_ids": [],
+      "gap": "记录调用和返回状态，不重绘为应用自有页面；本轮未操作系统授权或安装。",
+      "test_sources": [],
+      "route_constant": null,
+      "runtime_verified_this_audit": false,
+      "canonical_v180_frame": null
+    }
+  ],
+  "state_model_coverage": [
+    {
+      "name": "TripListPageState",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt",
+      "coverage": {
+        "Loading": [
+          "N01"
+        ],
+        "Empty": [
+          "N01"
+        ],
+        "Content": [
+          "N01"
+        ],
+        "Error": [
+          "N01"
+        ]
+      }
+    },
+    {
+      "name": "TripDeletionUiState",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt",
+      "coverage": {
+        "Idle": [
+          "T03"
+        ],
+        "LoadingImpact": [
+          "T03"
+        ],
+        "ImpactFailure": [
+          "T03"
+        ],
+        "Ready": [
+          "T03"
+        ]
+      }
+    },
+    {
+      "name": "TripWorkspacePageState",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt",
+      "coverage": {
+        "Loading": [
+          "N03"
+        ],
+        "NotFound": [
+          "N03"
+        ],
+        "Error": [
+          "N03"
+        ],
+        "Ready": [
+          "N03"
+        ]
+      }
+    },
+    {
+      "name": "WorkspaceMapState",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt",
+      "coverage": {
+        "Loading": [
+          "N03"
+        ],
+        "Ready": [
+          "N03"
+        ],
+        "ConsentRequired": [
+          "N03"
+        ],
+        "Failed": [
+          "N03"
+        ]
+      }
+    },
+    {
+      "name": "MapHostState",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt",
+      "coverage": {
+        "Loading": [
+          "N03"
+        ],
+        "Ready": [
+          "N03"
+        ],
+        "Failed": [
+          "N03"
+        ]
+      }
+    },
+    {
+      "name": "WorkspaceOverlay",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt",
+      "coverage": {
+        "None": [
+          "N03"
+        ],
+        "PlaceDetail": [
+          "W08",
+          "P01"
+        ],
+        "SelectAddPlaces": [
+          "I01"
+        ],
+        "SelectAddTargetDay": [
+          "I02"
+        ],
+        "AddToItineraryResult": [
+          "I03"
+        ],
+        "SelectMoveTargetDay": [
+          "I08"
+        ],
+        "AddTripDay": [
+          "I04"
+        ],
+        "EditItineraryItem": [
+          "I06",
+          "I10"
+        ],
+        "EditRouteLeg": [
+          "I07"
+        ],
+        "LayerMenu": [
+          "W07"
+        ],
+        "MoreMenu": [
+          "W07"
+        ],
+        "Confirmation": [
+          "P03",
+          "I09"
+        ],
+        "PermissionExplanation": [
+          "A04"
+        ],
+        "Feedback": [
+          "EX01"
+        ]
+      }
+    },
+    {
+      "name": "PlaceSearchPhase",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt",
+      "coverage": {
+        "Initial": [
+          "N04"
+        ],
+        "ConsentRequired": [
+          "N04"
+        ],
+        "Loading": [
+          "N04"
+        ],
+        "Results": [
+          "N04"
+        ],
+        "Empty": [
+          "N04"
+        ],
+        "NetworkFailure": [
+          "N04"
+        ],
+        "LocationPermissionRequired": [
+          "N04"
+        ],
+        "LocationFailure": [
+          "N04"
+        ]
+      }
+    },
+    {
+      "name": "SearchDisplayMode",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModel.kt",
+      "coverage": {
+        "Results": [
+          "N04"
+        ],
+        "MapDetail": [
+          "P02"
+        ]
+      }
+    },
+    {
+      "name": "DateRangeChangePhase",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/DateRangeChangeRequest.kt",
+      "coverage": {
+        "Idle": [
+          "T05"
+        ],
+        "Previewing": [
+          "T05"
+        ],
+        "AwaitingConfirmation": [
+          "T05"
+        ],
+        "Applying": [
+          "T05"
+        ],
+        "AwaitingRoom": [
+          "T05"
+        ],
+        "SyncFailed": [
+          "T05"
+        ]
+      }
+    },
+    {
+      "name": "UpdateState",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/settings/UpdateController.kt",
+      "coverage": {
+        "Idle": [
+          "N09"
+        ],
+        "Checking": [
+          "N09"
+        ],
+        "Current": [
+          "N09"
+        ],
+        "Ahead": [
+          "N09"
+        ],
+        "Available": [
+          "N09"
+        ],
+        "Downloading": [
+          "N09"
+        ],
+        "Ready": [
+          "N09"
+        ],
+        "Failed": [
+          "N09"
+        ]
+      }
+    },
+    {
+      "name": "AddToItineraryStep",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/AddToItineraryUiState.kt",
+      "coverage": {
+        "IDLE": [
+          "N03"
+        ],
+        "SELECT_PLACES": [
+          "I01"
+        ],
+        "SELECT_TARGET_DAY": [
+          "I02"
+        ],
+        "COMPLETED": [
+          "I03"
+        ]
+      }
+    },
+    {
+      "name": "RouteStatus",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/core/model/RouteStatus.kt",
+      "coverage": {
+        "WAITING_NETWORK": [
+          "W02",
+          "W03",
+          "I07"
+        ],
+        "PENDING": [
+          "W02",
+          "W03",
+          "I07"
+        ],
+        "CALCULATING": [
+          "W02",
+          "W03",
+          "I07"
+        ],
+        "SUCCESS": [
+          "W02",
+          "W03",
+          "I07"
+        ],
+        "FAILED": [
+          "W02",
+          "W03",
+          "I07"
+        ]
+      }
+    },
+    {
+      "name": "ThemePalette",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemePalette.kt",
+      "coverage": {
+        "LAKE": [
+          "A01",
+          "G01"
+        ],
+        "FOREST": [
+          "A01",
+          "G01"
+        ],
+        "SUNSET": [
+          "A01",
+          "G01"
+        ],
+        "VIOLET": [
+          "A01",
+          "G01"
+        ],
+        "ROSE": [
+          "A01",
+          "G01"
+        ]
+      }
+    },
+    {
+      "name": "WorkspaceSheetLevel",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceBottomSheet.kt",
+      "coverage": {
+        "COLLAPSED": [
+          "N03",
+          "W06"
+        ],
+        "HALF": [
+          "N03",
+          "W06"
+        ],
+        "EXPANDED": [
+          "N03",
+          "W06"
+        ]
+      }
+    },
+    {
+      "name": "PermissionKind",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt",
+      "coverage": {
+        "DEVICE_LOCATION": [
+          "A04"
+        ],
+        "DEVICE_LOCATION_SETTINGS": [
+          "A04"
+        ]
+      }
+    },
+    {
+      "name": "LocationPermissionPrompt",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/permission/LocationPermissionCoordinator.kt",
+      "coverage": {
+        "NONE": [
+          "A04",
+          "A05"
+        ],
+        "EXPLANATION": [
+          "A04",
+          "A05"
+        ],
+        "SETTINGS": [
+          "A04",
+          "A05"
+        ]
+      }
+    },
+    {
+      "name": "ShareGeneration",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+      "coverage": {
+        "Working": [
+          "N05"
+        ],
+        "Ready": [
+          "N05"
+        ],
+        "Failed": [
+          "N05"
+        ]
+      }
+    }
+  ],
+  "exceptions": [
+    {
+      "id": "EX01",
+      "symbol": "WorkspaceOverlay.Feedback",
+      "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt",
+      "finding": "有类型和渲染分支，但当前生产源未找到构造调用；不作为已证实可达页面。",
+      "disposition": "保留可达性待核查，不为凑齐 enum 单独画页面。"
+    },
+    {
+      "id": "EX02",
+      "symbol": "EditTimingDialog / PlaceDetailDialog / SavedPlacesContent",
+      "finding": "当前 main source 仅找到定义，无生产调用；现用行程编辑与共享地点详情已有对应组。",
+      "disposition": "不按源码文件名机械生成页面；若后续发现实际入口，再补清单。"
+    },
+    {
+      "id": "EX03",
+      "symbol": "PlacePoolContent(showSearch=true, showDialogs=true) / DayItineraryContent(showDialogs=true)",
+      "finding": "保留 standalone/测试宿主分支；当前工作台调用显式关闭内置在线搜索和重复 dialogs，由 WorkspaceOverlay 统一承载。",
+      "disposition": "复用流程语义，不把重复宿主画成新的正式入口。"
+    },
+    {
+      "id": "EX04",
+      "symbol": "旧 v2.0 / V1Scenario 画板映射",
+      "finding": "现有测试场景目录包含旧设计映射，不证明未来 v2.0 整体已实现。",
+      "disposition": "每个入口以当前 AppNavigation 和实际宿主核验；不继承固定旧 frame 清单。"
+    }
+  ],
+  "materials": [
+    {
+      "id": "D12",
+      "paths": [
+        "design/easy-trip-v1.0.pen",
+        "design/easy-trip-v1.1-color-directions.pen",
+        "design/easy-trip-v1.2.0.pen"
+      ],
+      "status": "CANDIDATE_NOT_OPENED",
+      "scope": "旧主界面及共用样式候选；本轮没有在 Pencil 成功切换和回读这些文件，页数与覆盖未知。",
+      "sha256": {
+        "design/easy-trip-v1.0.pen": "cc68210a6a50740234ae8fb02feb365feea0de79c0eb172fddf024e913a88027",
+        "design/easy-trip-v1.1-color-directions.pen": "9e0cfb936dfa480b9e39cbc281185c2b487733ee7fce467dd9a0c2492df65b25",
+        "design/easy-trip-v1.2.0.pen": "220572e26e4f664c651a1fc05cd9c4c486ec9e72b78d9070be254eb9f2a4005c"
+      }
+    },
+    {
+      "id": "D13",
+      "paths": [
+        "design/easy-trip-v1.3.0.pen",
+        "design/v1.3.0-calendar-design.md",
+        "design/v1.3.0-inline-traffic-design.md"
+      ],
+      "status": "DOCS_READ_PEN_PENDING",
+      "scope": "日历/交通候选；需结合后续调时、页头和删除重复卡片修订。",
+      "sha256": {
+        "design/easy-trip-v1.3.0.pen": "3c5cbaa2c79ccb56bada04236186e6da90deb9a3e98b38aef47144ca213512c6",
+        "design/v1.3.0-calendar-design.md": "83e56c8ab877e10fe2413689127f90153a9a174c342e0ef1c908bfd8ad441ce7",
+        "design/v1.3.0-inline-traffic-design.md": "c0b215b5d31eb3f40aa43fe0723ffc9aac3a5ec1cc4d283802c6f12008c8183e"
+      }
+    },
+    {
+      "id": "D14",
+      "paths": [
+        "design/easy-trip-v1.4.0.pen",
+        "design/v1.4.0-itinerary-share.md",
+        "docs/testing/v1.4.0-itinerary-share.md",
+        "design/v1.4.0-calendar-resize-hint-design.md"
+      ],
+      "status": "DOCS_READ_PEN_PENDING",
+      "scope": "历史记录确认 R4 去分享日历；当前文件 SHA 与历史 R4 记录一致，不等同本轮完整画板验收。",
+      "sha256": {
+        "design/easy-trip-v1.4.0.pen": "fad85b98991149a93b981baaa5cbc145ae1b2dfa3e79ec209588228105dc1e62",
+        "design/v1.4.0-itinerary-share.md": "bbfa3868493070c07e307e2ac7df2d88968adb9c9f61d18be31abb8b38b2bbda",
+        "docs/testing/v1.4.0-itinerary-share.md": "1b76d1af20ad01869c8982b9bbce5d185958904f5fc8ab265411b0b38d953c0f",
+        "design/v1.4.0-calendar-resize-hint-design.md": "45fa21841b342de91a96e7f7c3cd96167126e5cb9a09afc24ab861856c4e8497"
+      }
+    },
+    {
+      "id": "D16",
+      "paths": [
+        "design/easy-trip-v1.6.0.pen",
+        "design/v1.6.0-themes.md"
+      ],
+      "status": "DOCS_READ_PEN_PENDING",
+      "scope": "文档列出20个主题相关画板，不能据此认定文件仅20画板或完整；双入口与当前源码冲突。",
+      "sha256": {
+        "design/easy-trip-v1.6.0.pen": "e0971f9dc699054f87549d9b7cc140d0ac0789aa9a6760fe2b42c6d395e05450",
+        "design/v1.6.0-themes.md": "f5a60913f6092650392edcda98c8edfa6f6f489fdaa3bcc52c7d58e6cdda3a5e"
+      }
+    },
+    {
+      "id": "D18",
+      "paths": [
+        "design/easy-trip-v1.8.0-search-map.pen",
+        "design/v1.8.0-search-map/README.md"
+      ],
+      "status": "PENCIL_READ_SINGLE_FRAME",
+      "scope": "仅 H43yZ7 搜索返回地图收起态；390×844；无 reusable；不是完整版本快照。已存在“我的位置”文本及圆点，不能误报完全缺失。",
+      "sha256": {
+        "design/easy-trip-v1.8.0-search-map.pen": "44df64430284940f5a048d6d9e5afb5f262be68105f5c0a3ec8039c435664587",
+        "design/v1.8.0-search-map/README.md": "50b15bb9480ed61f81c144e14144a33fc67059f83a9f3de116a0722d9da5a799"
+      }
+    },
+    {
+      "id": "DSET",
+      "paths": [
+        "design/app-settings-update/README.md",
+        "design/app-settings-update/index.html",
+        "docs/verification/2026-10-01-app-settings-update.md"
+      ],
+      "status": "NON_PENCIL_REFERENCE",
+      "scope": "App设置、授权与更新的HTML/JPG候选；旧README发布状态已过时，不能作为正式原生Pencil交付。",
+      "sha256": {
+        "design/app-settings-update/README.md": "5a0bcebfa386c23c93efc7d9b480027019be8d8cc1ea563437d649f2c073af91",
+        "design/app-settings-update/index.html": "d8dbc53e97057abe4ba1789e5afc3186ec199a0c9cb628993fae57b380d910e2",
+        "docs/verification/2026-10-01-app-settings-update.md": "94c5c663eedbe8781d220bf07a281a7b09c12cd25f3909bd391c8e1a90c98b40"
+      }
+    },
+    {
+      "id": "H16",
+      "paths": [
+        "docs/images/README.md"
+      ],
+      "status": "HISTORICAL_RUNTIME_REFERENCE",
+      "scope": "16张 v1.6.0 正式包截图/导出；仅参考当时界面，首页主题入口、费用等与v1.8有差异。",
+      "sha256": {
+        "docs/images/README.md": "2ba5f8e61d1f3f360d997e6739ea92cc8f1be5175f1215a6340cfba264e691fa"
+      }
+    },
+    {
+      "id": "H18",
+      "paths": [
+        "docs/testing/v1.8.0-release.md"
+      ],
+      "status": "HISTORICAL_RUNTIME_REFERENCE",
+      "scope": "v1.8正式包、本地SHA校验及空数据升级首页截图；不是全量业务页运行覆盖。",
+      "sha256": {
+        "docs/testing/v1.8.0-release.md": "6713150794904dec2a8f5a175e88c8fe70572b3f45094d7d2fe00f99743b2d9f"
+      }
+    },
+    {
+      "id": "H18L",
+      "paths": [
+        ".scratch/v1.8.0-location-improvements/verification.json",
+        ".scratch/v1.8.0-default-today/verification.json",
+        ".scratch/v1.8.0-search-map/verification.json"
+      ],
+      "status": "HISTORICAL_RUNTIME_REFERENCE",
+      "scope": "27项后期专项UI记录及搜索/定位截图；早期记录另有基线失败，本轮不重跑、不合并成全套通过。",
+      "sha256": {
+        ".scratch/v1.8.0-location-improvements/verification.json": "502076d09a2281579b7a0e93c5919e283ce349da8759d719236aa0778e2b251f",
+        ".scratch/v1.8.0-default-today/verification.json": "649adaf5fe255868626bfb340f5640f7e34d32d6f916aeb2015aac4990123128",
+        ".scratch/v1.8.0-search-map/verification.json": "2615c06ced8de14168b12eeafdbee3acb6d93360cabae0ee3a0819b13f042c4d"
+      }
+    },
+    {
+      "id": "FUTURE",
+      "paths": [
+        "design/easy-trip-v2.0.pen"
+      ],
+      "status": "EXCLUDED_FUTURE_BASELINE",
+      "scope": "用户明确未开发的未来设计，保留不动，不作为v1.8完整基线。",
+      "sha256": {
+        "design/easy-trip-v2.0.pen": "1cbe490d0a79e6d9d40433010db8c5cd38ab325aba2469a4f93a50cfe1b0ee04"
+      }
+    }
+  ],
+  "runtime_this_audit": {
+    "connected_devices": [],
+    "new_emulator_started": false,
+    "app_launched": false,
+    "tests_run": false
+  },
+  "pencil_readback": {
+    "active_file": "design/easy-trip-v1.8.0-search-map.pen",
+    "top_level_frames": [
+      {
+        "id": "H43yZ7",
+        "name": "v1.8.0 · 搜索结果返回地图",
+        "width": 390,
+        "height": 844
+      }
+    ],
+    "reusable_count": 0,
+    "text_count": 27,
+    "my_location_text_present": true,
+    "location_nodes": [
+      "rLFiG",
+      "g3DMKK"
+    ],
+    "layout_diagnostics": [
+      {
+        "id": "Z9z3Y1",
+        "name": "标签 · 断桥残雪"
+      },
+      {
+        "id": "GWclE",
+        "name": "标签 · 平湖秋月"
+      },
+      {
+        "id": "fiWPJ",
+        "name": "标签 · 西湖风景名胜区"
+      },
+      {
+        "id": "EIxYn",
+        "name": "标签 · 苏堤"
+      },
+      {
+        "id": "B4QWm",
+        "name": "标签 · 柳浪闻莺"
+      },
+      {
+        "id": "Pi4kY",
+        "name": "标签 · 雷峰塔"
+      },
+      {
+        "id": "owc6e",
+        "name": "文字 · 上拉展开"
+      }
+    ],
+    "diagnostic_interpretation": "7处 partially clipped 为工具几何诊断；部分地图标签可能有意超出容器，不能直接等同视觉文字被截。需在补齐阶段放大检查。",
+    "other_pen_files_readback_verified": false
+  },
+  "audit_status": {
+    "source_inventory": "COMPLETE_FOR_RECORDED_SCOPE",
+    "complete_version_design": "NOT_RESTORED",
+    "runtime_validation": "NOT_RUN",
+    "v190_implementation": "NOT_STARTED"
+  },
+  "counting_rule": "49 groups include 9 navigation pages plus subviews, dialogs, cross-page capabilities, reusable components and external boundaries; not 49 independent pages or a Cartesian product of states.",
+  "workspace": "/Users/bytedance/.codex/worktrees/6934/easy-trip",
+  "state_model_scope": "17 selected UI state models, 82 declared variants; does not represent every type or every runtime combination.",
+  "baseline_observations": {
+    "canonical_snapshots_missing": [
+      "design/easy-trip-v1.5.0.pen",
+      "design/easy-trip-v1.7.0.pen",
+      "design/easy-trip-v1.8.0.pen"
+    ],
+    "v160_exists_but_completeness_unverified": true,
+    "all_canonical_frames_unmapped": true,
+    "future_baseline_excluded": "2.0"
+  }
+}

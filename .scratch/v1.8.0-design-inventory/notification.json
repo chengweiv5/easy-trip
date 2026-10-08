@@ -1,0 +1,11 @@
+{
+  "status": "SENT_AND_READ_BACK",
+  "message_id": "om_x100b634e467b70a4c111f614547d63e",
+  "chat_id": "oc_b5dc30707aff7eb5628922703c9b3814",
+  "sender_app_id": "cli_aaa104e4de399cca",
+  "sender_name": "punk-12 for Codex",
+  "content_sha256": "32c42962171bfc906f60237c263af8377abb2ea6528163e673150dac0a4f86a4",
+  "text_equal": true,
+  "readback_verified": true,
+  "create_time": "2026-10-08 21:54"
+}

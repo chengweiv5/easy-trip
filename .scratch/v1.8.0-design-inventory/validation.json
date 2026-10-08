@@ -1,0 +1,494 @@
+{
+  "schema_version": 1,
+  "result": "PASS",
+  "scope": "Inventory consistency and source provenance only; not UI/runtime acceptance.",
+  "ui_group_count": 49,
+  "route_count": 9,
+  "selected_state_model_count": 17,
+  "checks": [
+    {
+      "name": "code_baseline",
+      "passed": true,
+      "details": {
+        "head": "d815ce903bd64e350a108e0a103ba9453994db27",
+        "audit_head": "d815ce903bd64e350a108e0a103ba9453994db27"
+      }
+    },
+    {
+      "name": "app_equals_v180_release_source",
+      "passed": true,
+      "details": []
+    },
+    {
+      "name": "version_1_8_0_code_10",
+      "passed": true,
+      "details": "app/build.gradle.kts"
+    },
+    {
+      "name": "canonical_file_observation",
+      "passed": true,
+      "details": {
+        "path": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.8.0.pen",
+        "exists": false,
+        "meaning": "Expected missing file; passing is not design completeness."
+      }
+    },
+    {
+      "name": "unique_group_ids",
+      "passed": true,
+      "details": {
+        "groups": 49
+      }
+    },
+    {
+      "name": "unique_material_and_exception_ids",
+      "passed": true,
+      "details": {
+        "materials": 10,
+        "exceptions": 4
+      }
+    },
+    {
+      "name": "navigation_routes",
+      "passed": true,
+      "details": {
+        "declarations": [
+          "TRIP_LIST_ROUTE",
+          "CREATE_TRIP_ROUTE",
+          "TRIP_WORKSPACE_ROUTE",
+          "TRIP_SHARE_ROUTE",
+          "TRIP_SETTINGS_ROUTE",
+          "TRIP_SEARCH_ROUTE",
+          "APP_SETTINGS_ROUTE",
+          "APP_MAP_CONSENT_ROUTE",
+          "APP_UPDATE_ROUTE"
+        ],
+        "composable_calls": [
+          "TRIP_LIST_ROUTE",
+          "APP_SETTINGS_ROUTE",
+          "APP_MAP_CONSENT_ROUTE",
+          "APP_UPDATE_ROUTE",
+          "CREATE_TRIP_ROUTE",
+          "TRIP_WORKSPACE_ROUTE",
+          "TRIP_SEARCH_ROUTE",
+          "TRIP_SHARE_ROUTE",
+          "TRIP_SETTINGS_ROUTE"
+        ]
+      }
+    },
+    {
+      "name": "source_test_material_references",
+      "passed": true,
+      "details": {
+        "source_anchors": 114,
+        "unique_test_files": 41,
+        "errors": []
+      }
+    },
+    {
+      "name": "selected_state_models",
+      "passed": true,
+      "details": [
+        {
+          "name": "TripListPageState",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt",
+          "line": 30,
+          "actual_variants": [
+            "Loading",
+            "Empty",
+            "Content",
+            "Error"
+          ],
+          "mapped_variants": [
+            "Loading",
+            "Empty",
+            "Content",
+            "Error"
+          ],
+          "passed": true
+        },
+        {
+          "name": "TripDeletionUiState",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt",
+          "line": 62,
+          "actual_variants": [
+            "Idle",
+            "LoadingImpact",
+            "ImpactFailure",
+            "Ready"
+          ],
+          "mapped_variants": [
+            "Idle",
+            "LoadingImpact",
+            "ImpactFailure",
+            "Ready"
+          ],
+          "passed": true
+        },
+        {
+          "name": "TripWorkspacePageState",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt",
+          "line": 86,
+          "actual_variants": [
+            "Loading",
+            "NotFound",
+            "Error",
+            "Ready"
+          ],
+          "mapped_variants": [
+            "Loading",
+            "NotFound",
+            "Error",
+            "Ready"
+          ],
+          "passed": true
+        },
+        {
+          "name": "WorkspaceMapState",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt",
+          "line": 93,
+          "actual_variants": [
+            "Loading",
+            "Ready",
+            "ConsentRequired",
+            "Failed"
+          ],
+          "mapped_variants": [
+            "Loading",
+            "Ready",
+            "ConsentRequired",
+            "Failed"
+          ],
+          "passed": true
+        },
+        {
+          "name": "MapHostState",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt",
+          "line": 5,
+          "actual_variants": [
+            "Loading",
+            "Ready",
+            "Failed"
+          ],
+          "mapped_variants": [
+            "Loading",
+            "Ready",
+            "Failed"
+          ],
+          "passed": true
+        },
+        {
+          "name": "WorkspaceOverlay",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt",
+          "line": 5,
+          "actual_variants": [
+            "None",
+            "PlaceDetail",
+            "SelectAddPlaces",
+            "SelectAddTargetDay",
+            "AddToItineraryResult",
+            "SelectMoveTargetDay",
+            "AddTripDay",
+            "EditItineraryItem",
+            "EditRouteLeg",
+            "LayerMenu",
+            "MoreMenu",
+            "Confirmation",
+            "PermissionExplanation",
+            "Feedback"
+          ],
+          "mapped_variants": [
+            "None",
+            "PlaceDetail",
+            "SelectAddPlaces",
+            "SelectAddTargetDay",
+            "AddToItineraryResult",
+            "SelectMoveTargetDay",
+            "AddTripDay",
+            "EditItineraryItem",
+            "EditRouteLeg",
+            "LayerMenu",
+            "MoreMenu",
+            "Confirmation",
+            "PermissionExplanation",
+            "Feedback"
+          ],
+          "passed": true
+        },
+        {
+          "name": "PlaceSearchPhase",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt",
+          "line": 18,
+          "actual_variants": [
+            "Initial",
+            "ConsentRequired",
+            "Loading",
+            "Results",
+            "Empty",
+            "NetworkFailure",
+            "LocationPermissionRequired",
+            "LocationFailure"
+          ],
+          "mapped_variants": [
+            "Initial",
+            "ConsentRequired",
+            "Loading",
+            "Results",
+            "Empty",
+            "NetworkFailure",
+            "LocationPermissionRequired",
+            "LocationFailure"
+          ],
+          "passed": true
+        },
+        {
+          "name": "SearchDisplayMode",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModel.kt",
+          "line": 29,
+          "actual_variants": [
+            "Results",
+            "MapDetail"
+          ],
+          "mapped_variants": [
+            "Results",
+            "MapDetail"
+          ],
+          "passed": true
+        },
+        {
+          "name": "DateRangeChangePhase",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/trip/ui/DateRangeChangeRequest.kt",
+          "line": 15,
+          "actual_variants": [
+            "Idle",
+            "Previewing",
+            "AwaitingConfirmation",
+            "Applying",
+            "AwaitingRoom",
+            "SyncFailed"
+          ],
+          "mapped_variants": [
+            "Idle",
+            "Previewing",
+            "AwaitingConfirmation",
+            "Applying",
+            "AwaitingRoom",
+            "SyncFailed"
+          ],
+          "passed": true
+        },
+        {
+          "name": "UpdateState",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/settings/UpdateController.kt",
+          "line": 17,
+          "actual_variants": [
+            "Idle",
+            "Checking",
+            "Current",
+            "Ahead",
+            "Available",
+            "Downloading",
+            "Ready",
+            "Failed"
+          ],
+          "mapped_variants": [
+            "Idle",
+            "Checking",
+            "Current",
+            "Ahead",
+            "Available",
+            "Downloading",
+            "Ready",
+            "Failed"
+          ],
+          "passed": true
+        },
+        {
+          "name": "AddToItineraryStep",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/AddToItineraryUiState.kt",
+          "line": 5,
+          "actual_variants": [
+            "IDLE",
+            "SELECT_PLACES",
+            "SELECT_TARGET_DAY",
+            "COMPLETED"
+          ],
+          "mapped_variants": [
+            "IDLE",
+            "SELECT_PLACES",
+            "SELECT_TARGET_DAY",
+            "COMPLETED"
+          ],
+          "passed": true
+        },
+        {
+          "name": "RouteStatus",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/core/model/RouteStatus.kt",
+          "line": 3,
+          "actual_variants": [
+            "WAITING_NETWORK",
+            "PENDING",
+            "CALCULATING",
+            "SUCCESS",
+            "FAILED"
+          ],
+          "mapped_variants": [
+            "WAITING_NETWORK",
+            "PENDING",
+            "CALCULATING",
+            "SUCCESS",
+            "FAILED"
+          ],
+          "passed": true
+        },
+        {
+          "name": "ThemePalette",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemePalette.kt",
+          "line": 7,
+          "actual_variants": [
+            "LAKE",
+            "FOREST",
+            "SUNSET",
+            "VIOLET",
+            "ROSE"
+          ],
+          "mapped_variants": [
+            "LAKE",
+            "FOREST",
+            "SUNSET",
+            "VIOLET",
+            "ROSE"
+          ],
+          "passed": true
+        },
+        {
+          "name": "WorkspaceSheetLevel",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceBottomSheet.kt",
+          "line": 25,
+          "actual_variants": [
+            "COLLAPSED",
+            "HALF",
+            "EXPANDED"
+          ],
+          "mapped_variants": [
+            "COLLAPSED",
+            "HALF",
+            "EXPANDED"
+          ],
+          "passed": true
+        },
+        {
+          "name": "PermissionKind",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceOverlay.kt",
+          "line": 22,
+          "actual_variants": [
+            "DEVICE_LOCATION",
+            "DEVICE_LOCATION_SETTINGS"
+          ],
+          "mapped_variants": [
+            "DEVICE_LOCATION",
+            "DEVICE_LOCATION_SETTINGS"
+          ],
+          "passed": true
+        },
+        {
+          "name": "LocationPermissionPrompt",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/permission/LocationPermissionCoordinator.kt",
+          "line": 26,
+          "actual_variants": [
+            "NONE",
+            "EXPLANATION",
+            "SETTINGS"
+          ],
+          "mapped_variants": [
+            "NONE",
+            "EXPLANATION",
+            "SETTINGS"
+          ],
+          "passed": true
+        },
+        {
+          "name": "ShareGeneration",
+          "path": "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+          "line": 42,
+          "actual_variants": [
+            "Working",
+            "Ready",
+            "Failed"
+          ],
+          "mapped_variants": [
+            "Working",
+            "Ready",
+            "Failed"
+          ],
+          "passed": true
+        }
+      ]
+    },
+    {
+      "name": "human_readable_document_links_and_groups",
+      "passed": true,
+      "details": {
+        "local_links": 227,
+        "listed_group_count": 49,
+        "errors": []
+      }
+    },
+    {
+      "name": "preexisting_tracked_files_unchanged",
+      "passed": true,
+      "details": {
+        "tracked_files": 781,
+        "app_source_files": 435,
+        "changed_or_missing": [],
+        "tracked_scope_matches": true,
+        "inventory_files_now_staged_or_committed": 9
+      }
+    },
+    {
+      "name": "all_existing_pencil_files_unchanged",
+      "passed": true,
+      "details": {
+        "design/easy-trip-v1.0.pen": "cc68210a6a50740234ae8fb02feb365feea0de79c0eb172fddf024e913a88027",
+        "design/easy-trip-v1.1-color-directions.pen": "9e0cfb936dfa480b9e39cbc281185c2b487733ee7fce467dd9a0c2492df65b25",
+        "design/easy-trip-v1.2.0.pen": "220572e26e4f664c651a1fc05cd9c4c486ec9e72b78d9070be254eb9f2a4005c",
+        "design/easy-trip-v1.3.0.pen": "3c5cbaa2c79ccb56bada04236186e6da90deb9a3e98b38aef47144ca213512c6",
+        "design/easy-trip-v1.4.0.pen": "fad85b98991149a93b981baaa5cbc145ae1b2dfa3e79ec209588228105dc1e62",
+        "design/easy-trip-v1.6.0.pen": "e0971f9dc699054f87549d9b7cc140d0ac0789aa9a6760fe2b42c6d395e05450",
+        "design/easy-trip-v1.8.0-search-map.pen": "44df64430284940f5a048d6d9e5afb5f262be68105f5c0a3ec8039c435664587",
+        "design/easy-trip-v2.0.pen": "1cbe490d0a79e6d9d40433010db8c5cd38ab325aba2469a4f93a50cfe1b0ee04"
+      }
+    },
+    {
+      "name": "git_diff_check",
+      "passed": true,
+      "details": {
+        "working_tree": "",
+        "staged": ""
+      }
+    },
+    {
+      "name": "changes_limited_to_inventory",
+      "passed": true,
+      "details": [
+        "A  .scratch/v1.8.0-design-inventory/README.md",
+        "A  .scratch/v1.8.0-design-inventory/baseline-evidence.json",
+        "A  .scratch/v1.8.0-design-inventory/inventory.json",
+        "A  .scratch/v1.8.0-design-inventory/materials.md",
+        "A  .scratch/v1.8.0-design-inventory/notification.json",
+        "A  .scratch/v1.8.0-design-inventory/screens-and-states.md",
+        "A  .scratch/v1.8.0-design-inventory/tracked-before.json",
+        "A  .scratch/v1.8.0-design-inventory/validate.py",
+        "AM .scratch/v1.8.0-design-inventory/validation.json"
+      ]
+    }
+  ],
+  "not_run": [
+    "build",
+    "unit_tests",
+    "lint",
+    "android_ui_tests",
+    "app_launch",
+    "full_Pencil_validation"
+  ]
+}
