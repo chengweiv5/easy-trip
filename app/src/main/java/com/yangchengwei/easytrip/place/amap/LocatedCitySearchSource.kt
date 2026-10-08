@@ -10,6 +10,10 @@ class LocatedCitySearchSource(
 ) : PlaceSearchDataSource by delegate {
     private var locatedCity: String? = null
 
+    override fun retryFailedLocation() {
+        locationSession?.retry()
+    }
+
     override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
         if (city.isNullOrBlank() && locationSession != null) {
             return delegate.search(keyword, locationSession.currentCity().name)

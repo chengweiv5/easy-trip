@@ -29,6 +29,8 @@ data class PlaceCandidate(
 
 interface PlaceSearchDataSource {
     suspend fun search(keyword: String, city: String?): List<PlaceCandidate>
+    /** Explicit search only: discard a failed location attempt, not a usable fix or active request. */
+    fun retryFailedLocation() = Unit
     suspend fun cityAt(point: GeoPoint): com.yangchengwei.easytrip.place.domain.PlaceCity? = null
     suspend fun cityForPoi(poiId: String): com.yangchengwei.easytrip.place.domain.PlaceCity? = null
 }

@@ -127,6 +127,7 @@ class PlaceSearchReducer(
                 mutableState.value = mutableState.value.copy(phase = PlaceSearchPhase.Loading)
             }
             try {
+                if (!debounce) active.retryFailedLocation()
                 val result = active.search(query.trim(), null)
                 if (current == generation && currentRemoteSession == remoteSessionGeneration) {
                     mutableState.value = mutableState.value.copy(

@@ -22,6 +22,129 @@ import org.junit.Test
 
 @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
 class AppLocationSessionTest {
+    @Test fun eachExplicitSearchRetriesFailedLocationWithoutRequiringAppRestart() = runTest {
+        var fixes = 0
+        val session = AppLocationSession(backgroundScope, { true }, {
+            if (++fixes <= 2) throw CurrentLocationUnavailable("定位失败（4），请检查系统定位服务后重试")
+            GeoPoint(34.454, 113.050)
+        }, { PlaceCity("登封市", "410185") })
+        val searchedCities = mutableListOf<String?>()
+        val delegate = object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                searchedCities += city
+                return listOf(PlaceCandidate("poi", "西施猪蹄", "", null, null))
+            }
+        }
+        session.warmUp()
+        runCurrent()
+        val reducer = PlaceSearchReducer(LocatedCitySearchSource(delegate, null, session), this, StandardTestDispatcher(testScheduler))
+        reducer.setQuery("西施猪蹄")
+        advanceTimeBy(300); runCurrent()
+        assertTrue(reducer.state.value.phase is PlaceSearchPhase.LocationFailure)
+        assertEquals(1, fixes)
+
+        reducer.submit()
+        runCurrent()
+        assertTrue(reducer.state.value.phase is PlaceSearchPhase.LocationFailure)
+        assertEquals("Clicking search must start a new attempt after failure", 2, fixes)
+        assertTrue("Never search without a resolved city", searchedCities.isEmpty())
+
+        reducer.submit()
+        runCurrent()
+        assertEquals(PlaceSearchPhase.Results, reducer.state.value.phase)
+        assertEquals(listOf("登封市"), searchedCities)
+        assertEquals(3, fixes)
+    }
+
+    @Test fun explicitSearchKeepsSuccessfulLocationAndCityUntilTheyExpire() = runTest {
+        var fixes = 0
+        var cityLookups = 0
+        val session = AppLocationSession(backgroundScope, { true }, {
+            fixes++
+            GeoPoint(34.454, 113.050)
+        }, {
+            cityLookups++
+            PlaceCity("登封市", "410185")
+        })
+        val searchedCities = mutableListOf<String?>()
+        val delegate = object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                searchedCities += city
+                return emptyList()
+            }
+        }
+        val reducer = PlaceSearchReducer(LocatedCitySearchSource(delegate, null, session), this, StandardTestDispatcher(testScheduler))
+        reducer.setQuery("西施猪蹄")
+        advanceTimeBy(300); runCurrent()
+        reducer.submit()
+        runCurrent()
+        reducer.retry()
+        runCurrent()
+
+        assertEquals(listOf("登封市", "登封市", "登封市"), searchedCities)
+        assertEquals(1, fixes)
+        assertEquals("Explicit search must not discard a usable resolved city", 1, cityLookups)
+    }
+
+    @Test fun explicitSearchWhileLocatingWaitsForTheSameRequest() = runTest {
+        var fixes = 0
+        val fix = CompletableDeferred<GeoPoint>()
+        val session = AppLocationSession(backgroundScope, { true }, {
+            fixes++
+            fix.await()
+        }, { PlaceCity("登封市", "410185") })
+        val searchedCities = mutableListOf<String?>()
+        val delegate = object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                searchedCities += city
+                return emptyList()
+            }
+        }
+        val reducer = PlaceSearchReducer(LocatedCitySearchSource(delegate, null, session), this, StandardTestDispatcher(testScheduler))
+        reducer.setQuery("西施猪蹄")
+        advanceTimeBy(300); runCurrent()
+        reducer.submit()
+        runCurrent()
+        reducer.submit()
+        runCurrent()
+        assertEquals(PlaceSearchPhase.Loading, reducer.state.value.phase)
+        assertEquals(1, fixes)
+        assertTrue(searchedCities.isEmpty())
+
+        fix.complete(GeoPoint(34.454, 113.050))
+        runCurrent()
+        assertEquals(PlaceSearchPhase.Empty, reducer.state.value.phase)
+        assertEquals(listOf("登封市"), searchedCities)
+        assertEquals(1, fixes)
+    }
+
+    @Test fun explicitSearchRetriesCityLookupWithoutDiscardingTheAvailableCoordinate() = runTest {
+        var fixes = 0
+        var cityLookups = 0
+        val session = AppLocationSession(backgroundScope, { true }, {
+            fixes++
+            GeoPoint(34.454, 113.050)
+        }, {
+            if (++cityLookups == 1) error("City service temporarily unavailable")
+            PlaceCity("登封市", "410185")
+        })
+        val delegate = object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                assertEquals("登封市", city)
+                return emptyList()
+            }
+        }
+        val reducer = PlaceSearchReducer(LocatedCitySearchSource(delegate, null, session), this, StandardTestDispatcher(testScheduler))
+        reducer.setQuery("西施猪蹄")
+        advanceTimeBy(300); runCurrent()
+        assertTrue(reducer.state.value.phase is PlaceSearchPhase.LocationFailure)
+        reducer.submit()
+        runCurrent()
+        assertEquals(PlaceSearchPhase.Empty, reducer.state.value.phase)
+        assertEquals(1, fixes)
+        assertEquals(2, cityLookups)
+    }
+
     @Test fun publishesPointBeforeCityAndClearsBothAfterPermissionRevocation() = runTest {
         var allowed = true
         val city = CompletableDeferred<PlaceCity>()

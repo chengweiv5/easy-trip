@@ -18,7 +18,7 @@ import kotlinx.coroutines.flow.asStateFlow
 class LocationPermissionRequired : IllegalStateException("请允许定位权限，以搜索当前城市的地点")
 class CurrentLocationUnavailable(message: String, cause: Throwable? = null) : IllegalStateException(message, cause)
 
-/** In-memory application-session cache. Failed requests stay failed until an explicit retry. */
+/** In-memory cache. Explicit search/retry clears failures; typing reuses the current attempt. */
 class AppLocationSession(
     private val scope: CoroutineScope,
     private val hasPermission: () -> Boolean,
@@ -28,6 +28,7 @@ class AppLocationSession(
 ) {
     private val lock = Any()
     private var request: Deferred<Result<PlaceCity>>? = null
+    private var requestFailed = false
     private var revision = 0L
     private var closed = false
     private var point: GeoPoint? = null
@@ -83,10 +84,12 @@ class AppLocationSession(
         startRequest()
     }
 
+    /** Keep successful fixes and active requests; only a completed failure can be retried. */
     fun retry() = synchronized(lock) {
-        if (closed || request?.isActive == true) return@synchronized
+        if (closed || request?.isActive == true || !requestFailed) return@synchronized
         revision++
         request = null
+        requestFailed = false
     }
 
     fun close() = synchronized(lock) {
@@ -98,6 +101,7 @@ class AppLocationSession(
         revision++
         request?.cancel()
         request = null
+        requestFailed = false
         point = null
         locatedAt = null
         mutablePosition.value = null
@@ -109,6 +113,7 @@ class AppLocationSession(
             clearLocation()
         }
         request?.let { return it }
+        requestFailed = false
         val generation = revision
         val knownPoint = point
         return scope.async(start = CoroutineStart.LAZY) {
@@ -134,6 +139,9 @@ class AppLocationSession(
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
+                synchronized(lock) {
+                    if (!closed && revision == generation) requestFailed = true
+                }
                 Result.failure(
                     if (error is LocationPermissionRequired || error is CurrentLocationUnavailable) error
                     else CurrentLocationUnavailable("无法获取当前城市，请检查定位和网络后重试", error),

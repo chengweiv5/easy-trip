@@ -35,6 +35,7 @@ import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
+import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.amap.TestConsentGate
@@ -59,6 +60,73 @@ import org.junit.Test
 
 class PlaceSearchContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun searchButtonRetriesFailedCurrentCity() = assertCurrentCityRecovery {
+        compose.onNodeWithTag("place-search-submit").performClick()
+    }
+
+    @Test fun keyboardSearchRetriesFailedCurrentCity() = assertCurrentCityRecovery {
+        compose.onNodeWithTag("place-search-field").performImeAction()
+    }
+
+    @Test fun retryLocationButtonStillRecoversCurrentCity() = assertCurrentCityRecovery {
+        compose.onNodeWithText("重试定位").performClick()
+    }
+
+    private fun assertCurrentCityRecovery(submit: () -> Unit) {
+        val scope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.SupervisorJob() + kotlinx.coroutines.Dispatchers.Main.immediate)
+        val fixes = java.util.concurrent.atomic.AtomicInteger()
+        val searchedCities = java.util.concurrent.CopyOnWriteArrayList<String>()
+        val session = com.yangchengwei.easytrip.place.amap.AppLocationSession(
+            scope,
+            { true },
+            {
+                if (fixes.incrementAndGet() == 1) {
+                    throw com.yangchengwei.easytrip.place.amap.CurrentLocationUnavailable("定位失败（4），请检查系统定位服务后重试")
+                }
+                GeoPoint(34.454, 113.050)
+            },
+            { com.yangchengwei.easytrip.place.domain.PlaceCity("登封市", "410185") },
+        )
+        val source = object : com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                searchedCities += requireNotNull(city)
+                return listOf(PlaceCandidate("recovered", "恢复后的搜索结果", "", null, null))
+            }
+        }
+        lateinit var model: PlaceSearchViewModel
+        compose.runOnIdle {
+            model = PlaceSearchViewModel(
+                "trip",
+                TestSavedPlaces(),
+                com.yangchengwei.easytrip.place.amap.LocatedCitySearchSource(source, null, session),
+                SavedStateHandle(),
+            )
+        }
+        try {
+            compose.setContent {
+                PlaceSearchRoute(model, onRetryLocation = session::retry, onBack = {})
+            }
+            compose.onNodeWithTag("place-search-field").performTextInput("西施猪蹄")
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText("无法获取当前城市").fetchSemanticsNodes().isNotEmpty()
+            }
+            assertEquals(1, fixes.get())
+            assertTrue(searchedCities.isEmpty())
+
+            submit()
+
+            compose.waitUntil(5_000) {
+                compose.onAllNodesWithText("恢复后的搜索结果").fetchSemanticsNodes().isNotEmpty()
+            }
+            compose.onAllNodesWithText("无法获取当前城市").assertCountEquals(0)
+            assertEquals(2, fixes.get())
+            assertEquals(listOf("登封市"), searchedCities.toList())
+        } finally {
+            session.close()
+            scope.coroutineContext[kotlinx.coroutines.Job]?.cancel()
+        }
+    }
 
     @Test fun resultRowOpensDetailWhileBookmarkOnlyTogglesCollection() {
         val candidate = PlaceCandidate("poi-1", "故宫博物院", "北京市东城区景山前街4号", GeoPoint(39.916, 116.397), "010")
