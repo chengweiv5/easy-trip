@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="1290" viewBox="0 0 1640 1290">
+  <defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L10 4 L0 8 z" fill="#0055A4"/></marker></defs>
+  <rect x="0" y="0" width="1640" height="1290" fill="#FFFFFF"/>
+  <text x="70" y="86" font-size="46" font-weight="700" fill="#0055A4">Easy Trip v2.0 · Agent 总体架构</text>
+  <text x="70" y="139" font-size="26" fill="#0055A4">手机端持有业务事实和执行权；云端负责理解、推理与提出候选调用</text>
+
+  <rect x="70" y="186" width="960" height="56" rx="6" fill="#DCF4A2"/>
+  <text x="90" y="224" font-size="28" font-weight="700" fill="#0055A4">手机端 · 本地权威数据与执行边界</text>
+  <line x1="1090" y1="190" x2="1090" y2="1208" stroke="#0055A4" stroke-width="2" stroke-dasharray="10 10"/>
+  <text x="1150" y="225" font-size="28" font-weight="700" fill="#0055A4">云端 / 外部服务</text>
+
+  <rect x="90" y="280" width="370" height="130" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+  <text x="114" y="322" font-size="28" font-weight="700" fill="#0055A4">触屏工作台</text>
+  <text x="114" y="360" font-size="23" fill="#0055A4">地图 / 地点池 / 行程 / 日历</text>
+  <text x="114" y="390" font-size="22" fill="#0055A4">直接编辑，查看方案与执行结果</text>
+
+  <rect x="620" y="280" width="370" height="130" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+  <text x="644" y="322" font-size="28" font-weight="700" fill="#0055A4">Agent 面板</text>
+  <text x="644" y="360" font-size="23" fill="#0055A4">全局入口 + 当前行程入口</text>
+  <text x="644" y="390" font-size="22" fill="#0055A4">自然语言 / 范围提示 / 方案预览</text>
+
+  <line x1="805" y1="410" x2="805" y2="460" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="620" y="460" width="370" height="130" rx="8" fill="#DCF4A2"/>
+  <text x="644" y="500" font-size="28" font-weight="700" fill="#0055A4">Agent Runtime</text>
+  <text x="644" y="538" font-size="22" fill="#0055A4">上下文裁剪 / 工具循环 / 任务恢复</text>
+  <text x="644" y="568" font-size="22" fill="#0055A4">检查候选调用，再交给能力层</text>
+
+  <line x1="275" y1="410" x2="275" y2="654" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="125" y="470" width="300" height="80" rx="6" fill="#FFFFFF"/>
+  <text x="151" y="501" font-size="24" font-weight="700" fill="#0055A4">触屏与 Agent</text>
+  <text x="151" y="534" font-size="23" fill="#0055A4">共用业务能力与修改链路</text>
+  <line x1="805" y1="590" x2="805" y2="654" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="90" y="660" width="900" height="146" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+  <text x="114" y="702" font-size="28" font-weight="700" fill="#0055A4">TripCapabilities · 统一能力层</text>
+  <text x="114" y="743" font-size="23" fill="#0055A4">读上下文　　查地点与路线　　生成修改草稿　　校验约束</text>
+  <text x="114" y="779" font-size="22" fill="#0055A4">工具结果有来源；写操作生成 ChangeSet，读取复用现有领域查询</text>
+
+  <line x1="540" y1="806" x2="540" y2="862" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+  <text x="565" y="844" font-size="21" fill="#0055A4">已确认方案</text>
+  <rect x="90" y="868" width="900" height="136" rx="8" fill="#DCF4A2"/>
+  <text x="114" y="910" font-size="28" font-weight="700" fill="#0055A4">ChangeSet Executor · 唯一修改执行入口</text>
+  <text x="114" y="951" font-size="23" fill="#0055A4">授权策略 / 版本检查 / 幂等编号 / 原子提交 / 安全撤销</text>
+  <text x="114" y="985" font-size="22" fill="#0055A4">先校验再执行；冲突回到方案调整，不覆盖用户后续编辑</text>
+
+  <line x1="540" y1="1004" x2="540" y2="1054" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+  <rect x="90" y="1060" width="900" height="146" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+  <text x="114" y="1102" font-size="28" font-weight="700" fill="#0055A4">现有领域服务与 Room</text>
+  <text x="114" y="1143" font-size="23" fill="#0055A4">旅行 / 地点 / 到访 / 行程 / 路线　　+　　Agent 任务与执行日志</text>
+  <text x="114" y="1179" font-size="22" fill="#0055A4">业务事实以本地为准；界面订阅变更；断网仍可查看和手动编辑</text>
+
+  <rect x="1150" y="460" width="410" height="130" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+  <text x="1174" y="500" font-size="28" font-weight="700" fill="#0055A4">模型网关</text>
+  <text x="1174" y="538" font-size="23" fill="#0055A4">会话鉴权 / 额度 / 模型协议</text>
+  <text x="1174" y="568" font-size="22" fill="#0055A4">凭证保管 / 调用追踪</text>
+  <line x1="996" y1="526" x2="1144" y2="526" stroke="#0055A4" stroke-width="3" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <rect x="1003" y="472" width="137" height="30" fill="#FFFFFF"/>
+  <text x="1012" y="495" font-size="19" fill="#0055A4">最少上下文</text>
+  <rect x="1003" y="546" width="137" height="30" fill="#FFFFFF"/>
+  <text x="1012" y="569" font-size="19" fill="#0055A4">候选工具调用</text>
+  <line x1="1355" y1="590" x2="1355" y2="654" stroke="#0055A4" stroke-width="3" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <rect x="1150" y="660" width="410" height="120" rx="8" fill="#DCF4A2"/>
+  <text x="1174" y="702" font-size="28" font-weight="700" fill="#0055A4">LLM</text>
+  <text x="1174" y="742" font-size="23" fill="#0055A4">理解意图 / 推理 / 结构化输出</text>
+
+  <rect x="1150" y="868" width="410" height="136" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+  <text x="1174" y="910" font-size="28" font-weight="700" fill="#0055A4">高德 · 地点与路线</text>
+  <text x="1174" y="951" font-size="23" fill="#0055A4">手机端隐私门控后发起调用</text>
+  <text x="1174" y="985" font-size="22" fill="#0055A4">位置、时间、来源回传给工具层</text>
+  <polyline points="990,756 1046,756 1046,936 1144,936" fill="none" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+
+  <rect x="1150" y="1060" width="410" height="146" rx="8" fill="#DCF4A2"/>
+  <text x="1174" y="1102" font-size="27" font-weight="700" fill="#0055A4">云端不直接写 Room</text>
+  <text x="1174" y="1143" font-size="23" fill="#0055A4">模型输出是候选动作</text>
+  <text x="1174" y="1179" font-size="23" fill="#0055A4">执行结果由手机端事实确认</text>
+</svg>
