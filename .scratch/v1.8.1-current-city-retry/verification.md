@@ -67,3 +67,17 @@ UI 测试仅运行在本任务新建的独立 Android 36 模拟器 `emulator-556
 本轮证据目录为前述证据目录下的 `delivery/`。交付前已备份构建配置和任务文档；计划从干净提交执行 Release 单测、lint 和构建，核验签名与版本后快进推送，再用 `adb install -r` 覆盖安装。安装完成前不将本段计划记作交付成功，最终结果另行追加。
 
 推送后源码回滚使用新的 revert 提交，按快进规则交付；已升级手机如需回滚功能，应以相同签名、递增 versionCode 的修复包覆盖安装，不卸载、不清除数据、不强制降级。
+
+### 交付结果
+
+- 功能与版本提交：`d24214bb93dbb3c4919924d2ba25cfdb97855965`，已从功能分支快进推送到 `origin/main`，远端 `refs/heads/main` 回读匹配。后续文档提交不改变安装包源码。
+- 从该干净提交执行 `testReleaseUnitTest lintRelease assembleRelease` 成功：924 项 Release 单测通过，0 失败、0 错误、0 跳过；lint 0 Error/Fatal、52 Warning、1 Hint。
+- 安装包：`delivery/easy-trip-v1.8.1-release.apk`，62,389,357 字节；版本 `1.8.1 / 11`，`BUILD_TYPE=release`、`DEBUG=false`、`SOURCE_STATE=CLEAN`，内嵌提交为上述功能提交。
+- APK SHA256：`134f0053bfa4c584ef4185ba0212cf5c1a6d7073c21f5aa3e0b84eb9f392c32c`。
+- 签名证书 SHA256：`a12b60ce83aaacd76899a66d81d78f3fc4cfe3b7424f9a5cf7479732c415048e`，与手机安装前 APK 独立比对一致；16 KB zipalign 校验通过，包内无私有签名配置或密钥文件。
+- 已执行 `adb install -r` 覆盖安装到连接的华为 `ALN-AL00` 手机，返回 `Success`。版本回读为 `1.8.1 / 11`，最后更新时间为 `2026-10-08 22:14:01`；UID、首次安装时间、数据目录与升级前一致。
+- 安装后回拉 APK，与构建包 SHA256 完全一致。冷启动返回 `Status: ok`，首页原有青州旅行仍可见；本次启动进程日志未发现 `FATAL EXCEPTION` 或 `Fatal signal`。未对所有业务数据逐行比对。
+- 真机搜索复查时前台切换到其他应用，立即停止触控；此项未完成，不宣称真机搜索重试已验收。重试逻辑仍以上述 7 项模拟器 UI 回归为证据。
+- 未创建发布标签或 GitHub Release，不将设备安装称为公开发布。
+
+交付证据包括 `delivery/artifact.json`、`build-release.log`、`remote-code-main.txt`、`install.txt`、`device-before.json`、`device-after.json`、`launch-after.txt`、`ui-after-home.json` 以及回拉的安装前后 APK。最终文档推送和通知回读另存于同一 `delivery/` 目录。
