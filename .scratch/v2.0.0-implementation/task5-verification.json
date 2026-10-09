@@ -1,0 +1,23 @@
+{
+  "status": "verified",
+  "scope": "Task5 exact period confirmation and cancellation; Task6 final handoff pending",
+  "base": "abb754c",
+  "unitTests": 952,
+  "unitFailures": 0,
+  "expenseDeviceTests": 32,
+  "dateTransactionDeviceTests": 71,
+  "deviceFailures": 0,
+  "legacyAcceptanceRerun": {
+    "tests": 23,
+    "failures": 8,
+    "notes": "Same 8 legacy assertions remain: narrow trip list 1, whole trip 6, system chooser package 1. New 5 period tests passed in this run."
+  },
+  "lint": {
+    "errors": 0,
+    "warnings": 54,
+    "hints": 1
+  },
+  "artifacts": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task5-20261009",
+  "review": "2 P2 findings fixed and re-reviewed: cancelled day actions no failure, cascade deletion names yearly/monthly removal",
+  "rollback": "Revert reviewed batch only; before/source-state.tgz plus Git baseline. Never clear/downgrade schema9."
+}

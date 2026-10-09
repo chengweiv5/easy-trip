@@ -45,6 +45,7 @@ class RoomItineraryRepository(
     private val recommendMode: (SavedPlaceEntity, SavedPlaceEntity, TravelMode) -> TransportMode = ::defaultRecommendMode,
     private val confirmExpenseRemoval: ConfirmExpenseRemoval? = null,
     private val expenseIdFactory: () -> String = { UUID.randomUUID().toString() },
+    private val confirmExpensePeriod: ConfirmExpensePeriod? = null,
 ) : ItineraryRepository {
     override fun observeTripDays(tripId: String) = itineraryDao.observeTripDays(tripId).map { days ->
         days.map { snapshot ->
@@ -127,11 +128,11 @@ class RoomItineraryRepository(
         AddItineraryItemResult(id, created = true)
     }
 
-    override suspend fun appendItem(itemId: String, targetDayId: String) = expenseTransaction(database, confirmExpenseRemoval) {
+    override suspend fun appendItem(itemId: String, targetDayId: String) = expenseTransaction(database, confirmExpenseRemoval, itineraryDao.tripIdForDay(targetDayId), confirmExpensePeriod) {
         moveItem(itemId, targetDayId, itineraryDao.items(targetDayId).count { it.id != itemId })
     }
 
-    override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = expenseTransaction(database, confirmExpenseRemoval) {
+    override suspend fun moveItem(itemId: String, targetDayId: String, targetIndex: Int) = expenseTransaction(database, confirmExpenseRemoval, itineraryDao.tripIdForDay(targetDayId), confirmExpensePeriod) {
         val item = itineraryDao.item(itemId) ?: throw ItineraryItemNotFoundException(itemId)
         val targetTripId = requireNotNull(itineraryDao.tripIdForDay(targetDayId)) { "Unknown day: $targetDayId" }
         require(item.tripId == targetTripId) { "Cannot move item across trips" }

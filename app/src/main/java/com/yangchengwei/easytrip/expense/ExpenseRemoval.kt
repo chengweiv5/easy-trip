@@ -37,13 +37,34 @@ suspend fun requireExpenseRemovalConsent(entries: List<RecordedExpense>) {
 suspend fun <T> expenseTransaction(
     db: RoomDatabase,
     confirm: ConfirmExpenseRemoval?,
+    periodTripId: String? = null,
+    confirmPeriod: ConfirmExpensePeriod? = null,
     block: suspend () -> T,
 ): T {
     if (coroutineContext[ExpenseConsent] != null) return db.withTransaction { block() }
     var approved = emptySet<RecordedExpense>()
+    var approvedPeriod: ExpensePeriodPreview? = null
     while (true) {
         try {
-            return withContext(ExpenseConsent(approved)) { db.withTransaction { block() } }
+            return withContext(ExpenseConsent(approved)) { db.withTransaction {
+                val database = if (periodTripId == null) null else requireNotNull(db as? com.yangchengwei.easytrip.core.database.EasyTripDatabase) { "花费归属校验需要完整数据库" }
+                suspend fun records() = if (database == null) emptyList() else com.yangchengwei.easytrip.expense.data.expenseRecords(database.expenseDao().snapshots())
+                val before = records()
+                val result = block()
+                if (database != null) {
+                    val after = records()
+                    val changes = expensePeriodImpact(before, after)
+                    if (changes.isNotEmpty()) {
+                        val preview = ExpensePeriodPreview(changes, before, after)
+                        if (preview != approvedPeriod) throw ExpensePeriodRequired(preview)
+                    }
+                }
+                result
+            } }
+        } catch (required: ExpensePeriodRequired) {
+            if (confirmPeriod == null) throw required
+            if (!confirmPeriod(required.preview)) throw ExpenseRemovalCancelled()
+            approvedPeriod = required.preview
         } catch (required: ExpenseRemovalRequired) {
             if (confirm == null) throw required
             if (!confirm(required.entries)) throw ExpenseRemovalCancelled()

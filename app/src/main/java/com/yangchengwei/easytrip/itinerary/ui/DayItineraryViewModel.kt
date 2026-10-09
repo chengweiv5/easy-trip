@@ -284,7 +284,7 @@ class DayItineraryViewModel(
                     pendingAppendDay = null
                     mutable.value = mutable.value.copy(
                         isAppendingDay = false,
-                        appendDayError = failure.message ?: "新增旅行日失败",
+                        appendDayError = failure.expenseMutationErrorOrNull("新增旅行日失败"),
                     )
                     mustRestoreTripObservationGeneration = tripObservationGeneration
                     ensureTripObservation()
@@ -358,7 +358,7 @@ class DayItineraryViewModel(
             } catch (failure: CancellationException) {
                 throw failure
             } catch (failure: Throwable) {
-                mutable.value = mutable.value.copy(error = failure.message ?: "日期排序失败，已保留原顺序")
+                mutable.value = mutable.value.copy(error = failure.expenseMutationErrorOrNull("日期排序失败，已保留原顺序"))
             } finally {
                 mutable.value = mutable.value.copy(isReorderingDays = false)
             }

@@ -43,6 +43,16 @@ class TripSettingsViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun declinedPeriodConfirmationDuringDayReorderUnlocksWithoutFailure() = runTest(dispatcher) {
+        val repository = FakeRepository().apply { moveFailure = com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled() }
+        val model = model(repository); advanceUntilIdle()
+        val before = model.state.value.days
+        model.moveDay(before.first(), before.lastIndex); advanceUntilIdle()
+        assertEquals(before,model.state.value.days)
+        assertEquals(false,model.state.value.dayManagementInProgress)
+        assertEquals(null,model.state.value.dayManagementError)
+    }
+
     @Test fun declinedExpenseConfirmationDuringDayDeletionIsSilentAndUnlocksActions() = runTest(dispatcher) {
         val repository = FakeRepository().apply {
             deleteFailure = com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled()
@@ -1776,7 +1786,8 @@ class TripSettingsViewModelTest {
             trip.value = current.copy(days = current.days + TripDay(id, current.days.size))
             return id
         }
-        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) { moveCalls++ }
+        var moveFailure: Throwable? = null
+        override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) { moveCalls++; moveFailure?.let { throw it } }
         override suspend fun deleteTrip(tripId: String) {
             tripDeleteCalls++
             tripDeleteBlock?.await()

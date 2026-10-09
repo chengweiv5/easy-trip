@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.trip.ui
 
 import com.yangchengwei.easytrip.expense.ExpenseRemovalCancelled
+import com.yangchengwei.easytrip.expense.expenseMutationErrorOrNull
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
@@ -788,7 +789,7 @@ class TripSettingsViewModel(
                 if (generation == dayManagementGeneration) {
                     mutableState.value = mutableState.value.copy(
                         dayManagementInProgress = false,
-                        dayManagementError = exception.message ?: "旅行日操作失败",
+                        dayManagementError = exception.expenseMutationErrorOrNull("旅行日操作失败"),
                     )
                 }
             }

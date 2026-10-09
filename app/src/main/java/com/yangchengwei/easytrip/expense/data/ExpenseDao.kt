@@ -23,6 +23,10 @@ interface ExpenseDao {
     fun observeSnapshots(): Flow<List<ExpenseTripReadSnapshot>>
 
     @Transaction
+    @Query("SELECT * FROM trips ORDER BY id")
+    suspend fun snapshots(): List<ExpenseTripReadSnapshot>
+
+    @Transaction
     @Query("SELECT * FROM trips WHERE id=:tripId")
     suspend fun tripSnapshot(tripId: String): List<ExpenseTripReadSnapshot>
 

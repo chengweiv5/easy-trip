@@ -43,6 +43,7 @@ class RoomTripRepository(
     private val database: EasyTripDatabase? = null,
     private val isOnline: () -> Boolean = { true },
     private val confirmExpenseRemoval: ConfirmExpenseRemoval? = null,
+    private val confirmExpensePeriod: ConfirmExpensePeriod? = null,
 ) : TripRepository {
     override fun observeTrips(): Flow<List<TripSummary>> = dao.observeTrips().map { trips ->
         val today = LocalDate.now(clock)
@@ -105,7 +106,8 @@ class RoomTripRepository(
     }
 
     override suspend fun setStartDate(tripId: String, startDate: LocalDate?) {
-        dao.setStartDate(tripId, startDate, if (startDate == null) TimeMode.DRAFT else TimeMode.DATED, clock.instant())
+        val operation: suspend () -> Unit = { dao.setStartDate(tripId, startDate, if (startDate == null) TimeMode.DRAFT else TimeMode.DATED, clock.instant()) }
+        if (database == null) operation() else expenseTransaction(database, confirmExpenseRemoval, tripId, confirmExpensePeriod, operation)
     }
 
     override suspend fun dateRangeDeletionCounts(tripId: String, dayIds: List<String>): DateRangeDeletionCounts {
@@ -127,7 +129,7 @@ class RoomTripRepository(
         require(command.dayCount in 1..MAX_TRIP_DAYS)
         require(isTripDateRangeRepresentable(command.startDate, command.dayCount)) { "日期范围超出支持范围" }
         val db = requireNotNull(database) { "Date range changes require a database transaction" }
-        expenseTransaction(db, confirmExpenseRemoval) {
+        expenseTransaction(db, confirmExpenseRemoval, command.tripId, confirmExpensePeriod) {
             val trip = dao.trip(command.tripId)
                 ?: throw com.yangchengwei.easytrip.trip.domain.TripDateRangeTargetNotFoundException()
             val days = dao.days(command.tripId)
@@ -204,12 +206,14 @@ class RoomTripRepository(
 
     override suspend fun insertDay(tripId: String, anchorDayId: String?, side: InsertSide): String {
         val dayId = idFactory()
-        dao.insertAndReorderDay(tripId, anchorDayId, side == InsertSide.AFTER, dayId, clock.instant(), MAX_TRIP_DAYS)
+        val operation: suspend () -> Unit = { dao.insertAndReorderDay(tripId, anchorDayId, side == InsertSide.AFTER, dayId, clock.instant(), MAX_TRIP_DAYS) }
+        if (database == null) operation() else expenseTransaction(database, confirmExpenseRemoval, tripId, confirmExpensePeriod, operation)
         return dayId
     }
 
     override suspend fun moveDay(tripId: String, dayId: String, targetIndex: Int) {
-        dao.moveAndReorderDay(tripId, dayId, targetIndex, clock.instant())
+        val operation: suspend () -> Unit = { dao.moveAndReorderDay(tripId, dayId, targetIndex, clock.instant()) }
+        if (database == null) operation() else expenseTransaction(database, confirmExpenseRemoval, tripId, confirmExpensePeriod, operation)
     }
 
     private suspend fun expensesForDays(db: EasyTripDatabase, dayIds: List<String>): List<RecordedExpense> = dayIds.flatMap { dayId ->
@@ -223,13 +227,16 @@ class RoomTripRepository(
             database?.let { requireExpenseRemovalConsent(expensesForDays(it, listOf(command.dayId))) }
             dao.deleteAndReorderDay(command.dayId, command.expectedItineraryItems, command.expectedRouteLegs, clock.instant())
         }
-        if (database == null) operation() else expenseTransaction(database, confirmExpenseRemoval, operation)
+        if (database == null) operation() else {
+            val tripId = database.itineraryEditingDao().tripIdForDay(command.dayId)
+            expenseTransaction(database, confirmExpenseRemoval, tripId, confirmExpensePeriod, operation)
+        }
     }
     override suspend fun deleteTrip(tripId: String) {
         val operation: suspend () -> Unit = {
             database?.let { requireExpenseRemovalConsent(expensesForDays(it, dao.days(tripId).map { day -> day.id })) }
             dao.deleteTripChecked(tripId)
         }
-        if (database == null) operation() else expenseTransaction(database, confirmExpenseRemoval, operation)
+        if (database == null) operation() else expenseTransaction(database, confirmExpenseRemoval, block = operation)
     }
 }

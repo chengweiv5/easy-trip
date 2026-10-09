@@ -20,8 +20,8 @@ import org.junit.Test
 class ExpenseV2PersistenceTest {
     private val context = ApplicationProvider.getApplicationContext<Context>()
     private val db = Room.inMemoryDatabaseBuilder(context, EasyTripDatabase::class.java).build()
-    private val items = RoomItineraryRepository(db, db.itineraryEditingDao(), db.routeLegDao())
-    private val trips = RoomTripRepository(db.tripDao(), database = db)
+    private val items = RoomItineraryRepository(db, db.itineraryEditingDao(), db.routeLegDao(), confirmExpensePeriod = { true })
+    private val trips = RoomTripRepository(db.tripDao(), database = db, confirmExpensePeriod = { true })
     private val expenses = RoomExpenseRepository(db)
     @After fun close() { db.close() }
 

@@ -105,9 +105,10 @@ class AppContainer(
     val locationPermissionRequestStore = SharedPreferencesLocationPermissionRequestStore(
         this.context.getSharedPreferences("permissions", Context.MODE_PRIVATE),
     )
+    val expensePeriodPrompter = com.yangchengwei.easytrip.expense.ExpensePeriodPrompter()
     val expenseRemovalPrompter = com.yangchengwei.easytrip.expense.ExpenseRemovalPrompter()
     val expenseRepository = com.yangchengwei.easytrip.expense.data.RoomExpenseRepository(database)
-    val tripRepository = RoomTripRepository(database.tripDao(), database = database, isOnline = { networkMonitor.isOnline.value }, confirmExpenseRemoval = expenseRemovalPrompter::confirm)
+    val tripRepository = RoomTripRepository(database.tripDao(), database = database, isOnline = { networkMonitor.isOnline.value }, confirmExpenseRemoval = expenseRemovalPrompter::confirm, confirmExpensePeriod = expensePeriodPrompter::confirm)
     val tripService = TripService(tripRepository)
     val savedPlaceRepository = RoomSavedPlaceRepository(database, isOnline = { networkMonitor.isOnline.value }, confirmExpenseRemoval = expenseRemovalPrompter::confirm)
     val placeService = PlaceService(savedPlaceRepository)
@@ -118,6 +119,7 @@ class AppContainer(
         database.routeLegDao(),
         isOnline = { networkMonitor.isOnline.value },
         confirmExpenseRemoval = expenseRemovalPrompter::confirm,
+        confirmExpensePeriod = expensePeriodPrompter::confirm,
     )
     val deleteImpactProvider = RoomDeleteImpactProvider(database.deleteImpactDao())
 
