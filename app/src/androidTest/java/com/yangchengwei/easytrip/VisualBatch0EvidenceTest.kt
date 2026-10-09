@@ -453,15 +453,16 @@ class VisualBatch0EvidenceTest {
                 onAction = {},
                 placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
                 onPlaceAction = {},
-                itineraryState = DayItineraryUiState(),
+                itineraryState = DayItineraryUiState(days = workspaceDays(), selectedDayId = "day-1"),
                 onItineraryAction = {},
                 mapContent = { _ -> DeterministicFakeMapSurface() },
                 modifier = Modifier.fillMaxSize().testTag("workspace-root"),
             )
         }
         assertWorkspaceHost()
-        compose.onNodeWithTag("itinerary-all-empty").assertIsDisplayed()
-        compose.onAllNodesWithTag("itinerary-scope-rail").assertCountEquals(0)
+        compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
+        compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
+        compose.onAllNodesWithTag("itinerary-all-empty").assertCountEquals(0)
     }
 
     @Test fun productionComposeWorkspaceHostWithDeterministicFakeMapSurface_jQhXs() {

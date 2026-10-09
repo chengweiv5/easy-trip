@@ -13,6 +13,7 @@ import androidx.compose.ui.test.assertCountEquals
 import androidx.compose.ui.test.assertHasClickAction
 import androidx.compose.ui.test.isDisplayed
 import androidx.compose.ui.test.assertIsDisplayed
+import androidx.compose.ui.test.assertIsNotEnabled
 import androidx.compose.ui.test.assertIsSelected
 import androidx.compose.ui.test.assertTextContains
 import androidx.compose.ui.test.assertTextEquals
@@ -100,6 +101,12 @@ class V2AcceptanceTest {
         val source = object : PlaceSearchDataSource {
             override suspend fun search(keyword: String, city: String?) = listOf(museum, park)
         }
+        val locationSession = com.yangchengwei.easytrip.place.amap.AppLocationSession(
+            observationScope,
+            { true },
+            { GeoPoint(39.9, 116.4) },
+            { com.yangchengwei.easytrip.place.domain.PlaceCity("北京市", "110100") },
+        )
         val consentStore = com.yangchengwei.easytrip.amap.AmapConsentStore(
             persistence = object : com.yangchengwei.easytrip.amap.AmapConsentPersistence {
                 override fun readDecision(): Boolean? = null
@@ -149,8 +156,10 @@ class V2AcceptanceTest {
                                 override suspend fun retry(legId: String) = false
                                 override suspend fun updateDetails(legId: String, selectedModeOverride: com.yangchengwei.easytrip.core.model.TransportMode?, durationOverrideSeconds: Int?, note: String?) = false
                             },
+                            locationSession = locationSession,
                         )
                     },
+                    stopRuntimeSession = locationSession::close,
                     mapConsentToken = consent,
                 ),
                 navigationObserver = AppNavigationObserver(navigationRoutes::add),
@@ -194,9 +203,107 @@ class V2AcceptanceTest {
 
         compose.onNodeWithTag("section-ITINERARY").performClick()
         compose.onNodeWithTag("section-ITINERARY").assertIsSelected()
-        waitFor("itinerary all-empty state") { hasTag("itinerary-all-empty") }
-        compose.onNodeWithTag("itinerary-all-empty").assertIsDisplayed()
-        compose.onNodeWithTag("itinerary-scope-rail").assertDoesNotExist()
+        waitForTag("itinerary-scope-rail")
+        compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-all-empty").assertDoesNotExist()
+    }
+
+    @Test fun emptyThreeDayTripAddsToSelectedDayWithoutReturningToPool() {
+        fun hasTag(tag: String) = compose.onAllNodesWithTag(tag).fetchSemanticsNodes().isNotEmpty()
+        val trips = RoomTripRepository(database.tripDao(), idFactory = { "empty-trip-${nextId++}" })
+        val places = RoomSavedPlaceRepository(database, idFactory = { "empty-place-${nextId++}" })
+        val itineraries = RoomItineraryRepository(
+            database, database.itineraryEditingDao(), database.routeLegDao(),
+            itemIdFactory = { "empty-item-${nextId++}" },
+            legIdFactory = { "empty-leg-${nextId++}" },
+            isOnline = { false },
+        )
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        val tripId = runBlocking { trips.createTrip(CreateTrip("空旅行日验收", 3)) }
+        val museumId = runBlocking {
+            (places.save(tripId, candidate("museum", "测试博物馆", 36.7, 118.4))
+                as com.yangchengwei.easytrip.place.domain.SavePlaceResult.Saved).id
+        }
+        runBlocking { places.save(tripId, candidate("park", "测试公园", 36.71, 118.41)) }
+        setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), mutableListOf())
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
+        waitForTag("workspace-top-bar")
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        waitForTag("itinerary-scope-rail")
+        val days = runBlocking { requireNotNull(trips.observeTrip(tripId).first()).days }
+        assertEquals(3, days.size)
+        days.forEach { day ->
+            compose.onNodeWithTag("itinerary-scope-${day.id}").assertIsDisplayed().performClick()
+            waitForTag("add-places-to-selected-day")
+            compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
+        }
+        val secondDay = days[1].id
+        compose.onNodeWithTag("itinerary-scope-$secondDay").performClick()
+        compose.onNodeWithTag("itinerary-scope-$secondDay").assertIsSelected()
+        compose.onRoot().captureToImage().asAndroidBitmap().let { bitmap ->
+            java.io.File(compose.activity.getExternalFilesDir(null), "v183-empty-three-days.png").outputStream().use {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+            }
+        }
+        compose.onNodeWithTag("add-places-to-selected-day").performClick()
+        waitForTag("select-places-content")
+        compose.onNodeWithText("第 2 天 · 已安排地点可重复添加").assertIsDisplayed()
+        compose.onNodeWithTag("select-places-close").performClick()
+        waitFor("cancel returns to selected day") { !hasTag("select-places-content") }
+        compose.onNodeWithTag("itinerary-scope-$secondDay").assertIsSelected()
+        days.forEach { day ->
+            assertTrue(runBlocking { itineraries.observeDay(day.id).first().items.isEmpty() })
+        }
+        compose.onNodeWithTag("add-places-to-selected-day").performClick()
+        waitForTag("select-places-content")
+        compose.onNodeWithTag("select-place-$museumId").performClick()
+        compose.onNodeWithText("加入第 2 天").assertIsDisplayed()
+        compose.onNodeWithTag("select-places-continue").performClick()
+        waitFor("selected place appears in day two") {
+            runBlocking { itineraries.observeDay(secondDay).first().items.singleOrNull()?.place?.id == museumId }
+        }
+        waitFor("picker closes after success") { !hasTag("select-places-content") }
+        compose.onNodeWithTag("itinerary-scope-$secondDay").assertIsSelected()
+        val addedItemId = runBlocking { itineraries.observeDay(secondDay).first().items.single().id }
+        waitForTag("item-$addedItemId")
+        compose.onNodeWithTag("item-$addedItemId").assertIsDisplayed()
+        listOf(days.first(), days.last()).forEach { day ->
+            assertTrue(runBlocking { itineraries.observeDay(day.id).first().items.isEmpty() })
+        }
+        assertEquals(setOf("museum", "park"), runBlocking { places.observeSavedPoiIds(tripId).first() })
+        compose.onRoot().captureToImage().asAndroidBitmap().let { bitmap ->
+            java.io.File(compose.activity.getExternalFilesDir(null), "v183-day-two-added.png").outputStream().use {
+                bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+            }
+        }
+    }
+
+    @Test fun undatedEmptyTripOpensAndCancelsDayPickerWithoutCreatingData() {
+        val trips = RoomTripRepository(database.tripDao(), idFactory = { "undated-trip-${nextId++}" })
+        val places = RoomSavedPlaceRepository(database)
+        val itineraries = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao())
+        val routes = RoomRouteLegRepository(database.routeLegDao())
+        val tripId = runBlocking { trips.createTrip(CreateTrip("日期未定", 1)) }
+        setProductionNavigation(trips, places, itineraries, routes, mutableListOf(), mutableListOf())
+        compose.onNodeWithTag("primary-trip-$tripId").performClick()
+        waitForTag("workspace-top-bar")
+        compose.onNodeWithTag("section-ITINERARY").performClick()
+        waitForTag("add-places-to-selected-day")
+        compose.onNodeWithText("第 1 天 · 暂无行程").assertIsDisplayed()
+        compose.onNodeWithTag("add-places-to-selected-day").performClick()
+        waitForTag("select-places-empty")
+        compose.onNodeWithText("还没有收藏地点").assertIsDisplayed()
+        compose.onNodeWithTag("select-places-continue").assertIsNotEnabled()
+        compose.onNodeWithTag("select-places-close").performClick()
+        waitFor("empty picker dismissed") {
+            compose.onAllNodesWithTag("select-places-content").fetchSemanticsNodes().isEmpty()
+        }
+        compose.onNodeWithText("第 1 天 · 暂无行程").assertIsDisplayed()
+        val trip = runBlocking { requireNotNull(trips.observeTrip(tripId).first()) }
+        assertEquals(null, trip.startDate)
+        assertEquals(1, trip.days.size)
+        assertTrue(runBlocking { itineraries.observeDay(trip.days.single().id).first().items.isEmpty() })
+        assertTrue(runBlocking { places.observeSavedPoiIds(tripId).first().isEmpty() })
     }
 
     internal fun executeBatch5ProductionNavigationRoomMainFlow(): Set<Batch5FrameCheckpoint> =

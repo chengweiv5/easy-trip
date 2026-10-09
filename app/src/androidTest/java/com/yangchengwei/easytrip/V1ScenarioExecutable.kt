@@ -295,8 +295,8 @@ object V1ScenarioExecutableFactory {
         section = WorkspaceSection.ITINERARY,
         isWorkspaceAllEmpty = false,
         isItineraryAllEmpty = true,
-        expectedTag = "itinerary-all-empty",
-        expectedText = "还没有安排行程",
+        expectedTag = "itinerary-scope-rail",
+        expectedText = "第 1 天 · 暂无行程",
     )
 
     private fun itineraryAllEmptyFixture(): WorkspaceEmptyScenarioFixture {
@@ -310,7 +310,7 @@ object V1ScenarioExecutableFactory {
                 section = WorkspaceSection.ITINERARY,
                 itineraryScope = ItineraryScope.Day(day.id),
                 wholeTripDays = wholeTripDays,
-                sheetLevel = WorkspaceSheetLevel.HALF,
+                sheetLevel = WorkspaceSheetLevel.EXPANDED,
                 map = MapUiModel(),
                 mapLayer = MapLayer.STANDARD,
                 selectedMarker = null,
@@ -370,7 +370,9 @@ object V1ScenarioExecutableFactory {
                 onNodeWithTag(expectedTag).assertIsDisplayed()
                 onNodeWithText(expectedText).assertIsDisplayed()
                 if (isItineraryAllEmpty && !isWorkspaceAllEmpty) {
-                    onAllNodesWithTag("itinerary-scope-rail").assertCountEquals(0)
+                    onNodeWithTag("itinerary-scope-day-1").assertIsDisplayed()
+                    onNodeWithTag("add-places-to-selected-day").assertIsDisplayed()
+                    onAllNodesWithTag("itinerary-all-empty").assertCountEquals(0)
                 }
             },
         )

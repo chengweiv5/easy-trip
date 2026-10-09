@@ -234,14 +234,7 @@ private fun WorkspaceReadyContent(
                         showDialogs = false,
                         contentPadding = PaddingValues(bottom = 4.dp),
                     )
-                    WorkspaceSection.ITINERARY -> if (state.isItineraryAllEmpty && !state.calendarMode) {
-                        EmptyState(
-                            title = "还没有安排行程",
-                            message = "当前旅行的所有旅行日都没有行程项。先去地点池收藏地点，再添加到对应旅行日。",
-                            emptyIllustration = EmptyIllustration.Itinerary,
-                            modifier = Modifier.weight(1f).testTag("itinerary-all-empty"),
-                        )
-                    } else WorkspaceItineraryContent(
+                    WorkspaceSection.ITINERARY -> WorkspaceItineraryContent(
                         days = state.days,
                         selected = state.itineraryScope,
                         wholeTripDays = state.wholeTripDays,

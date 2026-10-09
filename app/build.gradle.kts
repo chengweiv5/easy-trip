@@ -70,8 +70,8 @@ android {
         applicationId = "com.yangchengwei.easytrip"
         minSdk = 26
         targetSdk = 36
-        versionCode = 12
-        versionName = "1.8.2"
+        versionCode = 13
+        versionName = "1.8.3"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         manifestPlaceholders["AMAP_API_KEY"] = amapApiKey
         buildConfigField("String", "GIT_SHA", "\"$buildGitSha\"")

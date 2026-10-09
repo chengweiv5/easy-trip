@@ -81,40 +81,111 @@ class TripWorkspaceContentTest {
         compose.onAllNodesWithText("搜索地点").assertCountEquals(0)
     }
 
-    @Test fun itineraryFullEmptyShowsWFOpgForBothScopesWithoutRailOrContentCta() {
+    @Test fun allEmptyItineraryKeepsThreeDaysAndAddsFromEachSelectedDay() {
         val scope = mutableStateOf<ItineraryScope>(ItineraryScope.WholeTrip)
+        val days = (1..3).map { TripDay("day-$it", it - 1) }
+        val savedPlace = com.yangchengwei.easytrip.place.domain.SavedPlace(
+            "saved-1", "trip", "poi-1", "测试收藏地点", "",
+            com.yangchengwei.easytrip.core.model.GeoPoint(36.7, 118.4), "", emptyList(),
+        )
+        val addTargets = mutableListOf<String?>()
         compose.setContent {
             EasyTripTheme {
                 TripWorkspaceContent(
                     pageState = TripWorkspacePageState.Ready(
                         TripWorkspaceUiState(
-                            tripName = "北京",
-                            days = listOf(TripDay("day-1", 0)),
+                            tripName = "三日计划",
+                            days = days,
                             section = WorkspaceSection.ITINERARY,
                             itineraryScope = scope.value,
+                            wholeTripDays = days.map {
+                                WholeTripDayUi(it.id, it.index + 1, emptyList(), emptyList())
+                            },
                             isItineraryAllEmpty = true,
+                            sheetLevel = WorkspaceSheetLevel.EXPANDED,
                         ).toReadyState(),
                     ),
                     mapState = WorkspaceMapState.Ready,
-                    onAction = {},
-                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                    onAction = { action ->
+                        if (action is TripWorkspaceAction.SelectItineraryScope) {
+                            scope.value = action.scope
+                        }
+                    },
+                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(
+                        rows = listOf(com.yangchengwei.easytrip.place.ui.SavedPlaceRowUi(savedPlace, 0, false)),
+                    ),
                     onPlaceAction = {},
-                    itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(),
-                    onItineraryAction = {},
+                    itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(
+                        days = days,
+                        selectedDayId = scope.value.selectedDayId(),
+                        savedPlaces = listOf(savedPlace),
+                    ),
+                    onItineraryAction = { action ->
+                        if (action == com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction.AddPlaces) {
+                            addTargets += scope.value.selectedDayId()
+                        }
+                    },
                     mapContent = { _ -> Text("地图就绪") },
                     modifier = Modifier.fillMaxSize().testTag("workspace-root"),
                 )
             }
         }
 
-        compose.onNodeWithTag("itinerary-all-empty").assertIsDisplayed()
-        compose.onNodeWithText("还没有安排行程").assertIsDisplayed()
-        compose.onNodeWithText("当前旅行的所有旅行日都没有行程项。先去地点池收藏地点，再添加到对应旅行日。").assertIsDisplayed()
-        compose.onAllNodesWithTag("itinerary-scope-rail").assertCountEquals(0)
-        compose.onAllNodesWithTag("add-places-to-selected-day").assertCountEquals(0)
-        compose.runOnIdle { scope.value = ItineraryScope.Day("day-1") }
-        compose.onNodeWithTag("itinerary-all-empty").assertIsDisplayed()
-        compose.onAllNodesWithTag("itinerary-scope-rail").assertCountEquals(0)
+        compose.onNodeWithTag("itinerary-scope-rail").assertIsDisplayed()
+        compose.onNodeWithText("全程 · 3 天 · 0 站").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-all-empty").assertDoesNotExist()
+        days.forEach { day ->
+            compose.onNodeWithTag("itinerary-scope-${day.id}").assertIsDisplayed().performClick()
+            compose.onNodeWithText("第 ${day.index + 1} 天 · 暂无行程").assertIsDisplayed()
+            compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed().performClick()
+        }
+        compose.runOnIdle { assertEquals(days.map { it.id }, addTargets) }
+        compose.onNodeWithTag("itinerary-scope-WHOLE_TRIP").performClick()
+        compose.onNodeWithText("全程 · 3 天 · 0 站").assertIsDisplayed()
+    }
+
+    @Test fun halfSheetEmptyDayKeepsGuidanceAndAddActionFullyVisibleWithoutSavedPlaces() {
+        val days = listOf(TripDay("day-1", 0))
+        var addCalls = 0
+        compose.setContent {
+            EasyTripTheme {
+                TripWorkspaceContent(
+                    pageState = TripWorkspacePageState.Ready(
+                        TripWorkspaceUiState(
+                            tripName = "日期未定",
+                            days = days,
+                            section = WorkspaceSection.ITINERARY,
+                            itineraryScope = ItineraryScope.Day("day-1"),
+                            isItineraryAllEmpty = true,
+                            isWorkspaceAllEmpty = true,
+                            sheetLevel = WorkspaceSheetLevel.HALF,
+                        ).toReadyState(),
+                    ),
+                    mapState = WorkspaceMapState.Ready,
+                    onAction = {},
+                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(),
+                    onPlaceAction = {},
+                    itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(
+                        days = days,
+                        selectedDayId = "day-1",
+                    ),
+                    onItineraryAction = {
+                        if (it == com.yangchengwei.easytrip.itinerary.ui.DayItineraryAction.AddPlaces) addCalls++
+                    },
+                    mapContent = { _ -> Text("地图就绪") },
+                    modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                )
+            }
+        }
+
+        compose.onNodeWithTag("itinerary-scope-day-1").assertIsDisplayed()
+        compose.onNodeWithTag("add-places-to-selected-day").assertIsDisplayed().performClick()
+        compose.runOnIdle { assertEquals(1, addCalls) }
+        val viewport = compose.onNodeWithTag("day-itinerary-timeline").getUnclippedBoundsInRoot()
+        listOf("第 1 天 · 暂无行程", "从地点池添加地点，开始安排这一天").forEach { text ->
+            assertContainedBy(text, compose.onNodeWithText(text).getUnclippedBoundsInRoot(), viewport)
+        }
+        compose.onNodeWithTag("workspace-all-empty").assertDoesNotExist()
     }
 
     @Test fun ordinaryPlaceEmptyRemainsWhenItineraryHasItems() {

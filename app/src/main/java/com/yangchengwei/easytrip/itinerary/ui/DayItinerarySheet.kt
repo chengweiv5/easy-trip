@@ -34,14 +34,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextAlign
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.yangchengwei.easytrip.core.model.TransportMode
-import com.yangchengwei.easytrip.core.ui.component.EmptyState
+import com.yangchengwei.easytrip.core.ui.component.EmptyIllustration
+import com.yangchengwei.easytrip.core.ui.component.EmptyIllustrationImage
 
 @Composable
 fun DayItinerarySheet(
@@ -238,13 +241,7 @@ fun DayItineraryContent(
                 if (state.isDayLoaded && state.items.isEmpty() && state.selectedDayId != null) {
                     val dayNumber = state.days.firstOrNull { it.id == state.selectedDayId }?.index?.plus(1)
                     item {
-                        EmptyState(
-                            title = if (dayNumber == null) "暂无行程" else "第 $dayNumber 天 · 暂无行程",
-                            message = "从地点池添加地点，开始安排这一天",
-                            emptyIllustration = com.yangchengwei.easytrip.core.ui.component.EmptyIllustration.Itinerary,
-                            verticalPadding = 16.dp,
-                            action = null,
-                        )
+                        EmptyDayGuidance(dayNumber)
                     }
                 }
                 displayItems.forEachIndexed { index, item ->
@@ -399,6 +396,29 @@ fun DayItineraryContent(
                     onCancel = { onAction(DayItineraryAction.DismissDialogs) },
                 )
             },
+        )
+    }
+}
+
+@Composable
+private fun EmptyDayGuidance(dayNumber: Int?) {
+    Column(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 8.dp, vertical = 8.dp),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+    ) {
+        EmptyIllustrationImage(EmptyIllustration.Itinerary, Modifier.size(42.dp))
+        Text(
+            text = if (dayNumber == null) "暂无行程" else "第 $dayNumber 天 · 暂无行程",
+            style = MaterialTheme.typography.titleMedium,
+            color = MaterialTheme.colorScheme.onSurface,
+            textAlign = TextAlign.Center,
+        )
+        Text(
+            text = "从地点池添加地点，开始安排这一天",
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
         )
     }
 }
