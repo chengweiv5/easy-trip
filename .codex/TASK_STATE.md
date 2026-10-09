@@ -1,3 +1,17 @@
+# v2.0.0 Task2存储验收通过，UI尚待接入
+
+状态：**IN_PROGRESS — Task1–2完成，Task3–6待实现。**（2026-10-09）
+
+- 地点费用迁至独立place_expenses表，schema8→9保留旧NULL/0/待分类；路段仍单金额交通。旧地点金额列置NULL，不再统计。
+- Room一致快照、地点与多笔费用原子保存、expected/来源/ID校验、独立费用编辑删除、汇总/删除影响已切换；再次安排不复制费用。
+- 8项新增instrumentation，连同旧费用、迁移、行程事务与日期测试共79项通过；941 JVM通过，Debug/AndroidTest构建和lint通过（0错误、54警告、1提示）。
+- 设备为emulator-5590 / easy_trip_v183_audit_6934，read-only且禁快照；未操作个人手机。App仍1.8.3/build13，原8项UI断言保持开放。
+- 证据：`.scratch/v2.0.0-implementation/task2-verification.json`；修改前备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task2-20261009-175612/before/source-state.tgz`。
+- Task3设计已通过Pencil MCP按精确worktree路径读取12状态context与单笔/空白截图；此时尚未修改UI。
+- 未推送开发代码；正式设计提交c3e43ce已推送。
+
+---
+
 # v2.0.0 开发 Task1 完成，进入数据迁移与原子保存
 
 状态：**IN_PROGRESS — 用户已确认串行开发及三个公共测试边界；Task1完成，Task2–6待实现。**（2026-10-09）

@@ -213,7 +213,9 @@ class RoomTripRepository(
     }
 
     private suspend fun expensesForDays(db: EasyTripDatabase, dayIds: List<String>): List<RecordedExpense> = dayIds.flatMap { dayId ->
-        db.itineraryEditingDao().items(dayId).mapNotNull { item -> item.expenseCents?.let { RecordedExpense("地点", item.id, it) } } +
+        db.itineraryEditingDao().items(dayId).flatMap { item ->
+            db.itineraryEditingDao().placeExpenses(item.id).map { RecordedExpense("地点", it.id, it.cents) }
+        } +
             db.routeLegDao().legs(dayId).mapNotNull { leg -> leg.expenseCents?.let { RecordedExpense("交通", leg.id, it) } }
     }
     override suspend fun deleteDay(command: DayDeletion) {

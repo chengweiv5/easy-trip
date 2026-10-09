@@ -58,7 +58,7 @@ class ExpenseCancellationUiTest {
                 )
             }
             val ids = listOf(items.addItem(day, "a", 0), items.addItem(day, "b", 1))
-            items.updateDetailsWithExpense(ids.first(), null, null, null, 8000)
+            items.saveSingleExpenseForTest(db, ids.first(), null, null, null, 8000)
             val leg = routes.observeDay(day).first().single()
             routes.updateDetailsWithExpense(leg.id, null, null, null, true, 3650)
             Triple(trip, day, ids)

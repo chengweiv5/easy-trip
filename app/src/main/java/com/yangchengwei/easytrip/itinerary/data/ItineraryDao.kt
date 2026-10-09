@@ -35,6 +35,13 @@ data class TripDayReadSnapshot(
     @Relation(parentColumn = "id", entityColumn = "tripDayId") val items: List<ItineraryItemEntity>,
     @Relation(parentColumn = "tripId", entityColumn = "tripId") val places: List<SavedPlaceEntity>,
     @Relation(parentColumn = "id", entityColumn = "tripDayId") val legs: List<RouteLegEntity>,
+    @Relation(
+        parentColumn = "id", entityColumn = "itineraryItemId",
+        associateBy = androidx.room.Junction(
+            value = ItineraryItemEntity::class, parentColumn = "tripDayId", entityColumn = "id",
+        ),
+    )
+    val expenses: List<com.yangchengwei.easytrip.expense.data.PlaceExpenseEntity>,
 )
 
 @Dao
@@ -43,15 +50,29 @@ interface ItineraryDao : AutomaticTimingQueries {
     @Query("SELECT * FROM trip_days WHERE tripId=:tripId ORDER BY position,id")
     fun observeTripDays(tripId: String): Flow<List<TripDayReadSnapshot>>
 
-    @Query("SELECT expenseCents FROM itinerary_items WHERE tripId=:tripId AND id!=:excludedId AND expenseCents IS NOT NULL UNION ALL SELECT l.expenseCents FROM route_legs l JOIN trip_days d ON d.id=l.tripDayId WHERE d.tripId=:tripId AND l.expenseCents IS NOT NULL")
+    @Transaction
+    @Query("SELECT * FROM trip_days WHERE id=:dayId")
+    fun observeDaySnapshot(dayId: String): Flow<TripDayReadSnapshot?>
+
+    @Query("SELECT e.cents FROM place_expenses e JOIN itinerary_items i ON i.id=e.itineraryItemId WHERE i.tripId=:tripId AND i.id!=:excludedId UNION ALL SELECT l.expenseCents FROM route_legs l JOIN trip_days d ON d.id=l.tripDayId WHERE d.tripId=:tripId AND l.expenseCents IS NOT NULL")
     suspend fun otherExpenses(tripId: String, excludedId: String): List<Long>
 
-    @Query("UPDATE itinerary_items SET expenseCents=:cents WHERE id=:id")
-    suspend fun expense(id: String, cents: Long?): Int
+    @Query("SELECT * FROM place_expenses WHERE itineraryItemId=:itemId ORDER BY position,id")
+    suspend fun placeExpenses(itemId: String): List<com.yangchengwei.easytrip.expense.data.PlaceExpenseEntity>
+
+    @Insert
+    suspend fun insertExpenses(values: List<com.yangchengwei.easytrip.expense.data.PlaceExpenseEntity>)
+
+    @Query("DELETE FROM place_expenses WHERE itineraryItemId=:itemId")
+    suspend fun deleteExpenses(itemId: String)
+
+    @Query("UPDATE trips SET updatedAt=:now WHERE id=:tripId")
+    suspend fun touchExpenseTrip(tripId: String, now: java.time.Instant): Int
 
     @Query("""
         SELECT d.id AS dayId, d.tripId,
-               i.id AS itemId, i.position, i.arrivalTime, i.stayDurationMinutes, i.note, i.expenseCents, i.timingWarning,
+               i.id AS itemId, i.position, i.arrivalTime, i.stayDurationMinutes, i.note,
+               (SELECT SUM(e.cents) FROM place_expenses e WHERE e.itineraryItemId=i.id) AS expenseCents, i.timingWarning,
                p.id AS placeId, p.name AS placeName, p.address AS placeAddress,
                p.latitude, p.longitude
         FROM trip_days d

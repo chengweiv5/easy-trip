@@ -92,7 +92,7 @@ class AppContainer(
     applicationScope: CoroutineScope,
     databaseFactory: (Context) -> EasyTripDatabase = {
         Room.databaseBuilder(it, EasyTripDatabase::class.java, "easy-trip.db")
-            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8)
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9)
             .addCallback(FlexibleRouteDefaultsUpdate)
             .build()
     },
@@ -106,6 +106,7 @@ class AppContainer(
         this.context.getSharedPreferences("permissions", Context.MODE_PRIVATE),
     )
     val expenseRemovalPrompter = com.yangchengwei.easytrip.expense.ExpenseRemovalPrompter()
+    val expenseRepository = com.yangchengwei.easytrip.expense.data.RoomExpenseRepository(database)
     val tripRepository = RoomTripRepository(database.tripDao(), database = database, isOnline = { networkMonitor.isOnline.value }, confirmExpenseRemoval = expenseRemovalPrompter::confirm)
     val tripService = TripService(tripRepository)
     val savedPlaceRepository = RoomSavedPlaceRepository(database, isOnline = { networkMonitor.isOnline.value }, confirmExpenseRemoval = expenseRemovalPrompter::confirm)

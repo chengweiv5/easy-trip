@@ -14,6 +14,7 @@ import org.junit.Assert.assertNull
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertThrows
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.flow.first
 import org.junit.Test
 import org.junit.runner.RunWith
 
@@ -47,7 +48,7 @@ class RoomV2MigrationTest {
 
         helper.runMigrationsAndValidate(
             databaseName,
-            8,
+            9,
             true,
             EasyTripDatabase.MIGRATION_1_2,
             EasyTripDatabase.MIGRATION_2_3,
@@ -56,10 +57,11 @@ class RoomV2MigrationTest {
             EasyTripDatabase.MIGRATION_5_6,
             EasyTripDatabase.MIGRATION_6_7,
             EasyTripDatabase.MIGRATION_7_8,
+            EasyTripDatabase.MIGRATION_8_9,
         ).close()
 
         val database = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), EasyTripDatabase::class.java, databaseName)
-            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8)
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9)
             .allowMainThreadQueries()
             .build()
         try {
@@ -106,9 +108,9 @@ class RoomV2MigrationTest {
             execSQL("INSERT INTO route_legs (id, tripDayId, fromItemId, toItemId, recommendedMode, status, distanceMeters, durationSeconds, polyline, version, updatedAt, durationOverrideSeconds, note, expenseCents) VALUES ('leg', 'day', 'i1', 'i2', 'WALK', 'SUCCESS', 42, 60, 'polyline', 7, 0, 120, '交通备注', 250)")
             close()
         }
-        helper.runMigrationsAndValidate(databaseName, 8, true, EasyTripDatabase.MIGRATION_7_8).close()
+        helper.runMigrationsAndValidate(databaseName, 9, true, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9).close()
         val database = Room.databaseBuilder(ApplicationProvider.getApplicationContext(), EasyTripDatabase::class.java, databaseName)
-            .addMigrations(EasyTripDatabase.MIGRATION_7_8).build()
+            .addMigrations(EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9).build()
         try {
             runBlocking {
                 database.itineraryEditingDao().refreshAutomaticTimings("day")
@@ -118,7 +120,10 @@ class RoomV2MigrationTest {
                 assertEquals(java.time.LocalTime.of(11, 20), first.arrivalTime)
                 assertEquals(45, first.stayDurationMinutes)
                 assertEquals("原备注", first.note)
-                assertEquals(3500L, first.expenseCents)
+                assertNull(first.expenseCents)
+                val records = com.yangchengwei.easytrip.expense.data.RoomExpenseRepository(database)
+                    .observeRecords().first()
+                assertEquals(3500L, records.single { it.key.id == "legacy:i1" }.cents)
                 assertFalse(first.autoTimingPending)
                 assertFalse(second.autoTimingPending)
                 assertNull(second.arrivalTime)

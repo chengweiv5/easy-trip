@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.itinerary.data
 
 import android.content.Context
+import com.yangchengwei.easytrip.expense.saveSingleExpenseForTest
 import androidx.room.Room
 import androidx.lifecycle.ViewModelStore
 import androidx.test.core.app.ApplicationProvider
@@ -46,7 +47,7 @@ class ItineraryMoveTimingTest {
 
     @Test fun appendToAnotherDayReestimatesArrivalAndStayFromItsLastStop() = runBlocking {
         val moved = items.addItem("source", "a", 0)
-        items.updateDetailsWithExpense(moved, LocalTime.of(7, 0), 15, "门票备注", 3500)
+        items.saveSingleExpenseForTest(db, moved, LocalTime.of(7, 0), 15, "门票备注", 3500)
         val last = items.addItem("target", "b", 0)
         items.updateTiming(last, LocalTime.of(14, 0), 90)
 
@@ -147,7 +148,7 @@ class ItineraryMoveTimingTest {
         val b = items.addItem("source", "b", 1)
         val c = items.addItem("source", "c", 2)
         items.moveItem(c, "source", 1)
-        items.updateDetailsWithExpense(c, LocalTime.of(9, 0), 60, "手动确认", 1234)
+        items.saveSingleExpenseForTest(db, c, LocalTime.of(9, 0), 60, "手动确认", 1234)
         items.updateTiming(b, LocalTime.of(12, 0), 30)
         items.updateTiming(b, LocalTime.of(10, 0), 60)
         val before = day("source")

@@ -6,7 +6,7 @@ import kotlinx.coroutines.flow.Flow
 
 data class RouteLegEndpointRow(val id:String,val version:Long,val status:RouteStatus,val recommendedMode:TransportMode,val selectedMode:TransportMode?,val distanceMeters:Int?,val durationSeconds:Int?,val polyline:String?,val errorKind:RouteErrorKind?,val errorCode:String?,val originLatitude:Double,val originLongitude:Double,val destinationLatitude:Double,val destinationLongitude:Double,val originCity:String?,val destinationCity:String?)
 @Dao interface RouteLegDao : com.yangchengwei.easytrip.itinerary.data.AutomaticTimingQueries {
- @Query("SELECT expenseCents FROM itinerary_items WHERE tripId=(SELECT tripId FROM trip_days WHERE id=:dayId) AND expenseCents IS NOT NULL UNION ALL SELECT l.expenseCents FROM route_legs l JOIN trip_days d ON d.id=l.tripDayId WHERE d.tripId=(SELECT tripId FROM trip_days WHERE id=:dayId) AND l.id!=:excludedId AND l.expenseCents IS NOT NULL")
+ @Query("SELECT e.cents FROM place_expenses e JOIN itinerary_items i ON i.id=e.itineraryItemId WHERE i.tripId=(SELECT tripId FROM trip_days WHERE id=:dayId) UNION ALL SELECT l.expenseCents FROM route_legs l JOIN trip_days d ON d.id=l.tripDayId WHERE d.tripId=(SELECT tripId FROM trip_days WHERE id=:dayId) AND l.id!=:excludedId AND l.expenseCents IS NOT NULL")
  suspend fun otherExpenses(dayId:String,excludedId:String):List<Long>
 
  @Query("UPDATE route_legs SET expenseCents=:cents WHERE id=:id") suspend fun expense(id:String,cents:Long?):Int

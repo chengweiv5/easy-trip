@@ -27,10 +27,20 @@ interface SchemaItineraryDao {
     @Query("SELECT COUNT(*) FROM itinerary_items WHERE tripId=:tripId") suspend fun items(tripId:String):Int
     @Query("SELECT COUNT(*) FROM route_legs WHERE tripDayId IN (SELECT id FROM trip_days WHERE tripId=:tripId)") suspend fun legs(tripId:String):Int
 }
-@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class],version=8,exportSchema=true)
+@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class,com.yangchengwei.easytrip.expense.data.PlaceExpenseEntity::class],version=9,exportSchema=true)
 @TypeConverters(Converters::class) abstract class EasyTripDatabase:RoomDatabase(){
+    abstract fun expenseDao(): com.yangchengwei.easytrip.expense.data.ExpenseDao
     abstract fun tripDao():TripDao; abstract fun placeDao():SchemaPlaceDao; abstract fun savedPlaceDao():com.yangchengwei.easytrip.place.data.PlaceDao; abstract fun itineraryDao():SchemaItineraryDao; abstract fun itineraryEditingDao():com.yangchengwei.easytrip.itinerary.data.ItineraryDao; abstract fun routeDao():SchemaRouteDao; abstract fun routeLegDao():com.yangchengwei.easytrip.route.data.RouteLegDao; abstract fun deleteImpactDao():DeleteImpactDao; abstract fun cascadeCountDao():CascadeCountDao
     companion object {
+        val MIGRATION_8_9 = object : Migration(8, 9) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS place_expenses (id TEXT NOT NULL PRIMARY KEY, itineraryItemId TEXT NOT NULL, cents INTEGER NOT NULL, category TEXT, note TEXT, position INTEGER NOT NULL, FOREIGN KEY(itineraryItemId) REFERENCES itinerary_items(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE INDEX IF NOT EXISTS index_place_expenses_itineraryItemId ON place_expenses(itineraryItemId)")
+                db.execSQL("INSERT INTO place_expenses(id,itineraryItemId,cents,category,note,position) SELECT 'legacy:' || id,id,expenseCents,NULL,NULL,0 FROM itinerary_items WHERE expenseCents IS NOT NULL")
+                db.execSQL("UPDATE itinerary_items SET expenseCents=NULL")
+            }
+        }
+
         val MIGRATION_7_8 = object : Migration(7, 8) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("ALTER TABLE itinerary_items ADD COLUMN autoTimingAnchorId TEXT")

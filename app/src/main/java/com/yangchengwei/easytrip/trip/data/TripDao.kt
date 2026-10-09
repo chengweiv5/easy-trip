@@ -33,9 +33,9 @@ private const val TRIP_LIST_PROJECTION = """
            (SELECT COUNT(DISTINCT i.tripDayId)
             FROM itinerary_items i
             WHERE i.tripId = t.id) AS scheduledDayCount,
-           (SELECT COALESCE(SUM(i.expenseCents),0) FROM itinerary_items i WHERE i.tripId=t.id) +
+           (SELECT COALESCE(SUM(e.cents),0) FROM place_expenses e JOIN itinerary_items i ON i.id=e.itineraryItemId WHERE i.tripId=t.id) +
            (SELECT COALESCE(SUM(l.expenseCents),0) FROM route_legs l JOIN trip_days d ON d.id=l.tripDayId WHERE d.tripId=t.id) AS expenseCents,
-           (SELECT COUNT(i.expenseCents) FROM itinerary_items i WHERE i.tripId=t.id) +
+           (SELECT COUNT(*) FROM place_expenses e JOIN itinerary_items i ON i.id=e.itineraryItemId WHERE i.tripId=t.id) +
            (SELECT COUNT(l.expenseCents) FROM route_legs l JOIN trip_days d ON d.id=l.tripDayId WHERE d.tripId=t.id) AS recordedExpenseCount
     FROM trips t
 """

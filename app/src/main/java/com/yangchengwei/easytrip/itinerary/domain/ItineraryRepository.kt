@@ -15,6 +15,7 @@ data class ItineraryItem(
     val idempotencyKey: String? = null,
     val expenseCents: Long? = null,
     val timingWarning: String? = null,
+    val expenses: List<com.yangchengwei.easytrip.expense.PlaceExpenseInput> = emptyList(),
 )
 data class DayItinerary(val dayId: String, val tripId: String, val items: List<ItineraryItem>)
 data class DayItinerarySnapshot(val itinerary: DayItinerary, val legs: List<com.yangchengwei.easytrip.route.data.RouteLegEntity>)
@@ -52,6 +53,13 @@ interface ItineraryRepository {
     suspend fun updateDetailsWithExpense(itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?, expenseCents: Long?) {
         require(expenseCents == null) { "此存储暂不支持花费" }
         updateDetails(itemId, arrivalTime, stayMinutes, note)
+    }
+    suspend fun saveDetailsWithExpenses(
+        itemId: String, arrivalTime: LocalTime?, stayMinutes: Int?, note: String?,
+        expectedExpenses: List<com.yangchengwei.easytrip.expense.PlaceExpenseInput>,
+        expenses: List<com.yangchengwei.easytrip.expense.PlaceExpenseInput>,
+    ) {
+        error("此存储暂不支持多笔花费")
     }
     suspend fun removePlaceOccurrences(placeId: String)
 }

@@ -59,7 +59,7 @@ class ExpensePersistenceTest {
         val (trip, days) = seed()
         val repo = items()
         val a = repo.addItem(days[0], "a", 0)
-        repo.updateDetailsWithExpense(a, null, null, null, Long.MAX_VALUE)
+        repo.saveSingleExpenseForTest(db, a, null, null, null, Long.MAX_VALUE)
         val stream = requireNotNull(repo.observeTripDays(trip))
         var observations = 0
         val collector = launch(start = CoroutineStart.UNDISPATCHED) {
@@ -80,17 +80,17 @@ class ExpensePersistenceTest {
         val a = repo.addItem(days[0], "a", 0)
         val b = repo.addItem(days[1], "b", 0)
         repo.addItem(days[1], "c", 1)
-        repo.updateDetailsWithExpense(a, null, null, null, Long.MAX_VALUE - 1)
+        repo.saveSingleExpenseForTest(db, a, null, null, null, Long.MAX_VALUE - 1)
         val leg = routes().observeDay(days[1]).first().single()
         routes().updateDetailsWithExpense(leg.id, null, null, null, true, 1)
-        try { repo.updateDetailsWithExpense(b, null, null, "must rollback", 1); fail("must reject overflow") } catch (_: IllegalArgumentException) { }
+        try { repo.saveSingleExpenseForTest(db, b, null, null, "must rollback", 1); fail("must reject overflow") } catch (_: IllegalArgumentException) { }
         assertNull(repo.observeDay(days[1]).first().items.first().expenseCents)
         assertNull(repo.observeDay(days[1]).first().items.first().note)
         try { routes().updateDetailsWithExpense(leg.id, null, null, null, true, 2); fail("must reject overflow") } catch (_: IllegalArgumentException) { }
         assertEquals(1L, routes().observeDay(days[1]).first().single().expenseCents)
         assertEquals(Long.MAX_VALUE, trips().observeTrips().first().single().expenseCents)
-        repo.updateDetailsWithExpense(a, null, null, null, null)
-        repo.updateDetailsWithExpense(b, null, null, null, 1)
+        repo.saveSingleExpenseForTest(db, a, null, null, null, null)
+        repo.saveSingleExpenseForTest(db, b, null, null, null, 1)
         assertEquals(2L, trips().observeTrips().first().single().expenseCents)
     }
 
@@ -99,8 +99,8 @@ class ExpensePersistenceTest {
         val repo = items()
         val a = repo.addItem(days[0], "a", 0)
         val b = repo.addItem(days[1], "b", 0)
-        repo.updateDetailsWithExpense(a, LocalTime.of(8, 0), 60, "门票", 8000)
-        repo.updateDetailsWithExpense(b, null, null, null, 0)
+        repo.saveSingleExpenseForTest(db, a, LocalTime.of(8, 0), 60, "门票", 8000)
+        repo.saveSingleExpenseForTest(db, b, null, null, null, 0)
         repo.appendItem(a, days[1])
         assertEquals(listOf(b, a), repo.observeDay(days[1]).first().items.map { it.id })
         assertEquals(8000L, repo.observeDay(days[1]).first().items.last().expenseCents)
@@ -134,7 +134,7 @@ class ExpensePersistenceTest {
         val repo = items()
         val a = repo.addItem(days[0], "a", 0)
         val b = repo.addItem(days[0], "b", 1)
-        repo.updateDetailsWithExpense(a, null, null, null, 8000)
+        repo.saveSingleExpenseForTest(db, a, null, null, null, 8000)
         val leg = routes().observeDay(days[0]).first().single()
         routes().updateDetailsWithExpense(leg.id, null, null, null, true, 3650)
         val beforeCancelledMove = repo.observeDay(days[0]).first()
@@ -155,7 +155,7 @@ class ExpensePersistenceTest {
         val repo = items()
         val a = repo.addItem(days[0], "a", 0)
         val b = repo.addItem(days[0], "b", 1)
-        repo.updateDetailsWithExpense(a, LocalTime.of(8, 0), 60, null, 8000)
+        repo.saveSingleExpenseForTest(db, a, LocalTime.of(8, 0), 60, null, 8000)
         val leg = routes().observeDay(days[0]).first().single()
         routes().updateDetailsWithExpense(leg.id, null, null, null, true, 3650)
         val before = repo.observeDay(days[0]).first()
@@ -190,7 +190,7 @@ class ExpensePersistenceTest {
         val repo = items()
         val a = repo.addItem(days[0], "a", 0)
         repo.addItem(days[0], "b", 1)
-        repo.updateDetailsWithExpense(a, LocalTime.of(8, 0), 60, null, 8000)
+        repo.saveSingleExpenseForTest(db, a, LocalTime.of(8, 0), 60, null, 8000)
         val leg = routes().observeDay(days[0]).first().single()
         routes().updateDetailsWithExpense(leg.id, null, null, null, true, 3650)
         val before = repo.observeDay(days[0]).first()
@@ -245,14 +245,15 @@ class ExpensePersistenceTest {
         val (_, days) = seed()
         val repo = items()
         val a = repo.addItem(days[0], "a", 0)
-        repo.updateDetailsWithExpense(a, null, null, null, 8000)
+        repo.saveSingleExpenseForTest(db, a, null, null, null, 8000)
         val before = repo.observeDay(days[0]).first()
         val noPrompt = RoomItineraryRepository(db, db.itineraryEditingDao(), db.routeLegDao())
         try {
             noPrompt.deleteItem(a)
             fail("confirmation is required")
         } catch (required: ExpenseRemovalRequired) {
-            assertEquals(listOf(RecordedExpense("地点", a, 8000)), required.entries)
+            val expenseId = requireNotNull(before.items.single().expenses.single().id)
+            assertEquals(listOf(RecordedExpense("地点", expenseId, 8000)), required.entries)
         }
         assertEquals(before, repo.observeDay(days[0]).first())
     }
@@ -262,7 +263,7 @@ class ExpensePersistenceTest {
         val repo = items()
         val a = repo.addItem(days[0], "a", 0)
         repo.addItem(days[0], "b", 1)
-        repo.updateDetailsWithExpense(a, null, null, null, 0)
+        repo.saveSingleExpenseForTest(db, a, null, null, null, 0)
         val leg = routes().observeDay(days[0]).first().single()
         routes().updateDetailsWithExpense(leg.id, null, null, null, true, 1200)
         try { repo.deleteItem(a); fail("must cancel") } catch (_: ExpenseRemovalCancelled) { }
