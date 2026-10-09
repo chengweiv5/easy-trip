@@ -1,0 +1,18 @@
+{
+  "roots": 187,
+  "active": 186,
+  "expensePages": 40,
+  "unchangedVisualRoots": 145,
+  "approvedScreensPreserved": 25,
+  "edgeStatesAmountsPreserved": 15,
+  "ids": 37949,
+  "duplicateIds": 0,
+  "brokenRefs": 0,
+  "placeholders": 0,
+  "upstreamVariablesPreserved": true,
+  "nativeReopened": true,
+  "nativeMcpActiveRootOverlaps": 0,
+  "nativeMcpExpenseClipping": 0,
+  "sha256": "04a6c47322c1956c4e9ceb7b4e6f51ce142c859067b936cdb676df3785c873e9",
+  "knownInheritedUiGaps": "8 legacy UI and 22 timeline assertions not re-certified"
+}

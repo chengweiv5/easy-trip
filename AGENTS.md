@@ -3,7 +3,7 @@
 ## UI 设计
 
 - UI 设计与设计修改必须使用 Pencil MCP，不得因报错自动改用其他设计工具或直接修改 `.pen` 文件来绕过 Pencil。
-- **当前设计目标**：2026-10-09 用户将花费大改统一调整为 **v2.0.0**；正式源为 `design/easy-trip-v2.0.0.pen`，规格见 `docs/superpowers/specs/2026-10-09-v2.0.0-expense-review-design.md`。原 `easy-trip-v1.9.0.pen` 为改版前冻结设计，原 `easy-trip-v2.0.pen` 为历史探索，均不作为当前开发入口；运行实现仍以实际代码版本为准。
+- **当前设计目标**：2026-10-09 用户确认 **v2.1.0 花费分区与年月控件** 并完成开发。正式源 `design/easy-trip-v2.1.0.pen`，规格 `design/explorations/v2.1.0-expense-sections-review.md`，验证 `docs/testing/v2.1.0-implementation.md`。继承已发布 `design/easy-trip-v2.0.0.pen`，历史源保持冻结；原 v1.9.0 与 v2.0 探索不作为当前入口。运行实现以实际代码版本为准，旧UI验收缺口见验证文档。
 
 ### Pencil 错误恢复
 

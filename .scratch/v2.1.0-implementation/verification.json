@@ -1,5 +1,5 @@
 {
-  "status": "implementation_verified_delivery_blocked",
+  "status": "implementation_and_design_verified",
   "version": "2.1.0",
   "versionCode": 15,
   "schema": 9,
@@ -24,9 +24,28 @@
   "pushed": false,
   "published": false,
   "independentReview": "unavailable: all subagent review attempts response.failed stream disconnected",
-  "blocker": "Mac locked during Pencil native Save As; formal cumulative v2.1 snapshot has not been created or validated",
+  "blocker": null,
   "reviewDesignSha256": "96aa02d9ae224880f41c6712b19d8d599f205b73411b54500e5a466dd5b97807",
   "v200SourceSha256": "d1ce4672d9d73f056d3fc7954d1db6ef96a8fdba2394318d852c2ff76c067b7a",
   "apkSha256": "c1d8d82bc247641b0ffd7fc8864406b685b3956ae77d6857c1fd1577cb7488a5",
-  "rerunNote": "final-expense-device.log was interrupted by starting system-font test before completion; final-expense-rerun.log completed 37/37. The transient stale-item assertion is retained in raw logs, not counted as a clean initial run."
+  "rerunNote": "final-expense-device.log was interrupted by starting system-font test before completion; final-expense-rerun.log completed 37/37. The transient stale-item assertion is retained in raw logs, not counted as a clean initial run.",
+  "codeCheckpoint": "7e31c687d77ea9049bf0421c5bb8b849e681cf0a",
+  "design": {
+    "roots": 187,
+    "active": 186,
+    "expensePages": 40,
+    "unchangedVisualRoots": 145,
+    "approvedScreensPreserved": 25,
+    "edgeStatesAmountsPreserved": 15,
+    "ids": 37949,
+    "duplicateIds": 0,
+    "brokenRefs": 0,
+    "placeholders": 0,
+    "upstreamVariablesPreserved": true,
+    "nativeReopened": true,
+    "nativeMcpActiveRootOverlaps": 0,
+    "nativeMcpExpenseClipping": 0,
+    "sha256": "04a6c47322c1956c4e9ceb7b4e6f51ce142c859067b936cdb676df3785c873e9",
+    "knownInheritedUiGaps": "8 legacy UI and 22 timeline assertions not re-certified"
+  }
 }
