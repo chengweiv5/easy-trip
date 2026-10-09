@@ -22,5 +22,8 @@
   "releasePublished": false,
   "finalReview": "Task6 one P2 menu overlay fixed and independently re-reviewed; no remaining new findings",
   "finalNavigationDeviceTests": 6,
-  "finalNavigationFailures": 0
+  "finalNavigationFailures": 0,
+  "codePushSha": "8215a6a859c34385582eee479f336bfa3cebc743",
+  "remoteMainVerified": true,
+  "commitHook": "hardcoding scanner timed out after 2 seconds; not a passed gate"
 }
