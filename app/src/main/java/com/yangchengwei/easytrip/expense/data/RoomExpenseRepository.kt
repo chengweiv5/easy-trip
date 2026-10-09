@@ -72,14 +72,14 @@ internal fun expenseRecords(trips: List<ExpenseTripReadSnapshot>): List<ExpenseR
             ExpenseRecord(
                 ExpenseKey(ExpenseSourceKind.PLACE, expense.id), trip.trip.id, snapshot.day.id,
                 expense.itineraryItemId, name(expense.itineraryItemId), date, expense.cents,
-                ExpenseCategory.fromStorageKey(expense.category), expense.note,
+                ExpenseCategory.fromStorageKey(expense.category), expense.note, trip.trip.name, index + 1,
             )
         } + snapshot.legs.sortedBy { it.id }.mapNotNull { leg ->
             leg.expenseCents?.let { cents ->
                 ExpenseRecord(
                     ExpenseKey(ExpenseSourceKind.ROUTE, leg.id), trip.trip.id, snapshot.day.id,
                     leg.id, "${name(leg.fromItemId)} → ${name(leg.toItemId)}", date, cents,
-                    ExpenseCategory.TRANSPORT, leg.note,
+                    ExpenseCategory.TRANSPORT, leg.note, trip.trip.name, index + 1,
                 )
             }
         }

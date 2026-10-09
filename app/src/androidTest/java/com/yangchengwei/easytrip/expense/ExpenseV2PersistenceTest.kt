@@ -172,7 +172,7 @@ class ExpenseV2PersistenceTest {
         val before = expenses.observeRecords().first().single()
         items.appendItem(hotel, days[1])
         val moved = expenses.observeRecords().first().single()
-        assertEquals(before.copy(dayId = days[1], date = LocalDate.of(2026, 1, 1)), moved)
+        assertEquals(before.copy(dayId = days[1], date = LocalDate.of(2026, 1, 1), dayNumber = 2), moved)
         trips.setStartDate(trip, LocalDate.of(2026, 1, 1))
         val dated = expenses.observeRecords().first().single()
         assertEquals(moved.copy(date = LocalDate.of(2026, 1, 2)), dated)

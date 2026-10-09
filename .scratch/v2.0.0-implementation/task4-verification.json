@@ -1,0 +1,20 @@
+{
+  "status": "verified",
+  "scope": "Task4 review navigation and independent expense edits; Task5–6 pending",
+  "base": "b514609",
+  "unitTests": 949,
+  "unitFailures": 0,
+  "instrumentationTests": 18,
+  "instrumentationFailures": 0,
+  "newInstrumentationTests": 3,
+  "artifacts": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task4-20261009",
+  "lint": "0 errors; warnings retained",
+  "review": "1 P1 + 3 P2 fixed and independently re-reviewed: reentry filter/history, session scroll, grouping, explicit period contribution",
+  "notes": [
+    "Latest broad JVM run had 949 passing tests before Task5 files were added.",
+    "Graphify has 10 parser warnings, Kotlin build passed.",
+    "Original 8 UI acceptance gaps and 22 reproduced baseline assertions remain open.",
+    "Old persistence assertion now includes correct moved dayNumber=2."
+  ],
+  "rollback": "Review/revert Task4 commit only; backup before/source-state.tar. No database downgrade or clearing."
+}

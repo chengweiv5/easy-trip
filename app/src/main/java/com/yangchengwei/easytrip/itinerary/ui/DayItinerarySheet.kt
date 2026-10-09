@@ -157,6 +157,7 @@ fun DayItineraryContent(
             ItinerarySummaryHeader(
                 text = itineraryDaySummary(dayNumber, state.items.size),
                 expenseLabel = state.expenseSummary.label("当日已记"),
+                onExpenseClick = com.yangchengwei.easytrip.expense.ui.LocalExpenseReviewOpener.current?.let { open -> { open(state.selectedDayId) } },
                 modifier = Modifier.testTag("day-itinerary-summary"),
                 date = dayNumber?.let { wholeTripDayDate(it, startDate) },
                 trailingInset = 0.dp,

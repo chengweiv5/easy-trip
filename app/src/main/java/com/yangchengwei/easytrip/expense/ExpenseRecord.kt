@@ -36,6 +36,8 @@ data class ExpenseRecord(
     val cents: Long,
     val category: ExpenseCategory?,
     val note: String?,
+    val tripName: String = "",
+    val dayNumber: Int? = null,
 ) {
     init {
         require(tripId.isNotBlank() && dayId.isNotBlank() && sourceId.isNotBlank()) { "费用来源已失效" }

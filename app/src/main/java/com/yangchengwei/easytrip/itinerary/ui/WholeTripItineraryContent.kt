@@ -39,6 +39,7 @@ fun WholeTripItineraryContent(
         if (days.isNotEmpty()) {
             ItinerarySummaryHeader(
                 text = "全程 · ${days.size} 天 · $totalStops 站",
+                onExpenseClick = com.yangchengwei.easytrip.expense.ui.LocalExpenseReviewOpener.current?.let { open -> { open(null) } },
                 expenseLabel = com.yangchengwei.easytrip.expense.ExpenseSummary(days.sumOf { it.expenses.cents }, days.sumOf { it.expenses.recorded }, days.sumOf { it.expenses.missing }).label("全程已记"),
                 trailingAction = onToggleCalendar?.let { toggle -> { com.yangchengwei.easytrip.itinerary.calendar.CalendarToggle(false, toggle) } },
                 modifier = Modifier.testTag("whole-trip-summary"),
@@ -68,6 +69,7 @@ fun WholeTripItineraryContent(
                     ItinerarySummaryHeader(
                         text = itineraryDaySummary(day.dayNumber, day.items.size),
                         expenseLabel = day.expenses.label("当日已记"),
+                        onExpenseClick = com.yangchengwei.easytrip.expense.ui.LocalExpenseReviewOpener.current?.let { open -> { open(day.dayId) } },
                         date = wholeTripDayDate(day.dayNumber, startDate),
                         modifier = Modifier
                             .fillMaxWidth()

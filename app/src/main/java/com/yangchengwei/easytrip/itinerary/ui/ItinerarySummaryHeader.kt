@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.ui.text.style.TextOverflow
@@ -26,6 +27,7 @@ internal fun ItinerarySummaryHeader(
     modifier: Modifier = Modifier,
     date: String? = null,
     expenseLabel: String? = null,
+    onExpenseClick: (() -> Unit)? = null,
     trailingAction: (@Composable () -> Unit)? = null,
     trailingInset: Dp = 0.dp,
 ) {
@@ -42,7 +44,7 @@ internal fun ItinerarySummaryHeader(
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.semantics { heading() },
             )
-            expenseLabel?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            expenseLabel?.let { Text(if (onExpenseClick == null) it else "$it ›", modifier = if (onExpenseClick == null) Modifier else Modifier.clickable(onClick = onExpenseClick).padding(vertical = 8.dp), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
             date?.let {
                 Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

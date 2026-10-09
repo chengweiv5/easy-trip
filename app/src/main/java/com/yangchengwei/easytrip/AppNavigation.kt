@@ -1,5 +1,11 @@
 package com.yangchengwei.easytrip
 
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.runtime.CompositionLocalProvider
+import com.yangchengwei.easytrip.expense.*
+import com.yangchengwei.easytrip.expense.ui.*
+import com.yangchengwei.easytrip.expense.ui.LocalExpenseReviewOpener
 import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton as Button
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -332,6 +338,7 @@ data class AppNavigationDependencies(
     val routeCoordinator: RouteRefreshCoordinator? = null,
     val placeSearchDataSource: PlaceSearchDataSource? = null,
     val mapConsentToken: AmapConsentToken? = null,
+    val expenseRepository: ExpenseRepository? = null,
 )
 
 fun interface AppNavigationObserver {
@@ -379,9 +386,18 @@ fun AppNavigation(
                 consentStore = it.amapConsentStore,
                 runtimeSessionFactory = it.container::runtimeSession,
                 stopRuntimeSession = it.container::stopRuntimeSession,
+                expenseRepository = it.container.expenseRepository,
             )
         }
     }
+    val expenseStore = effectiveDependencies?.expenseRepository ?: remember {
+        object : ExpenseRepository {
+            override fun observeRecords(): kotlinx.coroutines.flow.Flow<List<ExpenseRecord>> = kotlinx.coroutines.flow.flow { throw IllegalStateException("花费存储尚不可用") }
+            override suspend fun updatePlaceExpense(itemId: String, expected: ExpenseRecord, value: PlaceExpenseInput) { error("花费存储尚不可用") }
+            override suspend fun deletePlaceExpense(itemId: String, expected: ExpenseRecord) { error("花费存储尚不可用") }
+        }
+    }
+    val expenseModel: ExpenseReviewViewModel = viewModel(key = "global-expense-review", factory = ExpenseReviewViewModel.Factory(expenseStore))
     val currentNavigationObserver = rememberUpdatedState(navigationObserver)
     val appConsent = effectiveDependencies?.consentStore?.state?.collectAsStateWithLifecycle()?.value?.fact
     var appRuntimeSession by remember(effectiveDependencies?.consentStore) { mutableStateOf<AmapRuntimeSession?>(null) }
@@ -409,13 +425,38 @@ fun AppNavigation(
             },
         ) {
             val model: TripListViewModel = viewModel(factory = TripListViewModel.Factory(service, repository, impacts))
-            TripListScreen(
+            Column(Modifier.fillMaxSize()) {
+            Box(Modifier.weight(1f)) { TripListScreen(
                 model,
                 { navigate(CREATE_TRIP_ROUTE) },
                 { navigate("trips/$it") },
                 { navigate("trips/$it/settings") },
                 onAppSettings = { navigate(APP_SETTINGS_ROUTE) },
-            )
+            ) }
+            ExpensePrimaryNavigation(false, {}, { navigate("expenses") })
+            }
+        }
+        composable("expenses") {
+            ExpenseReviewScreen(expenseModel, onBack = { navController.popBackStack() }, onTrips = { navController.popBackStack(TRIP_LIST_ROUTE, false) },
+                onOpenTrip = { navigate("trips/${Uri.encode(it)}") }, onTripSettings = { navigate("trips/${Uri.encode(it)}/settings") },
+                onOpenSource = { record -> navigate("expense-route/${Uri.encode(record.tripId)}/${Uri.encode(record.dayId)}/${Uri.encode(record.sourceId)}") })
+        }
+        composable("trip-expenses/{tripId}?dayId={dayId}", arguments = listOf(navArgument("tripId") { type = NavType.StringType }, navArgument("dayId") { nullable = true; defaultValue = null; type = NavType.StringType })) { entry ->
+            val tripId = checkNotNull(entry.arguments?.getString("tripId"))
+            val model: ExpenseReviewViewModel = viewModel(factory = ExpenseReviewViewModel.Factory(expenseStore))
+            LaunchedEffect(entry) { model.openTrip(tripId, entry.arguments?.getString("dayId")) }
+            ExpenseReviewScreen(model, onBack = { navController.popBackStack() }, onOpenTrip = { navigate("trips/${Uri.encode(it)}") }, onTripSettings = { navigate("trips/${Uri.encode(it)}/settings") },
+                onOpenSource = { record -> navigate("expense-route/${Uri.encode(record.tripId)}/${Uri.encode(record.dayId)}/${Uri.encode(record.sourceId)}") })
+        }
+        composable("expense-route/{tripId}/{dayId}/{legId}", arguments = listOf("tripId", "dayId", "legId").map { navArgument(it) { type = NavType.StringType } }) { entry ->
+            effectiveDependencies?.let { deps ->
+                val tripId = checkNotNull(entry.arguments?.getString("tripId"))
+                val dayId = checkNotNull(entry.arguments?.getString("dayId"))
+                val legId = checkNotNull(entry.arguments?.getString("legId"))
+                val model: DayItineraryViewModel = viewModel(factory = DayItineraryViewModel.Factory(tripId, repository, deps.itineraryRepository, deps.routeLegRepository,
+                    appRuntimeSession?.routeRefreshCoordinator ?: deps.routeCoordinator, deps.savedPlaceRepository.observePlaces(tripId, emptySet()), kotlinx.coroutines.flow.flowOf(dayId)))
+                ExpenseRouteEditor(model, legId, dayId) { navController.popBackStack() }
+            }
         }
         composable(APP_SETTINGS_ROUTE) {
             val palette = com.yangchengwei.easytrip.core.ui.theme.LocalThemePalette.current
@@ -581,6 +622,7 @@ fun AppNavigation(
                     viewModelStoreOwner = entry,
                     factory = TripSettingsViewModel.Factory(service, repository, impacts),
                 )
+                CompositionLocalProvider(LocalExpenseReviewOpener provides { dayId: String? -> navigate("trip-expenses/${Uri.encode(id)}" + (dayId?.let { "?dayId=${Uri.encode(it)}" } ?: "")) }) {
                 TripWorkspaceRoute(
                     viewModel = workspaceModel,
                     mapSession = workspaceMapSession,
@@ -678,6 +720,7 @@ fun AppNavigation(
                         }
                     },
                 )
+                }
                 if (showConsent && consentStore != null) {
                     AmapConsentDialog(
                         store = consentStore,

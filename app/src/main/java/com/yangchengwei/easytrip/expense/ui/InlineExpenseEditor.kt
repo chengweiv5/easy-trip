@@ -50,7 +50,7 @@ fun InlineExpenseEditor(draft: ItineraryEditDraft, onAction: (DayItineraryAction
                     ) {
                         Column(Modifier.padding(12.dp)) {
                             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                Text(row.note.ifBlank { row.category?.label ?: "待分类" }, Modifier.weight(1f))
+                                Text(listOfNotNull(row.category?.label ?: "待分类", row.note.takeIf { it.isNotBlank() }).joinToString(" · "), Modifier.weight(1f))
                                 Text(parseExpense(row.amount)?.let(::formatExpense) ?: "待填写")
                             }
                             if (validation is ExpenseDraftValidation.Invalid && validation.rowKey == row.key) {
@@ -88,9 +88,9 @@ fun InlineExpenseEditor(draft: ItineraryEditDraft, onAction: (DayItineraryAction
 }
 
 @Composable
-private fun InlineExpenseRow(
+internal fun InlineExpenseRow(
     row: ExpenseDraftRow, enabled: Boolean, error: ExpenseDraftValidation.Invalid?,
-    onChange: (ExpenseDraftRow) -> Unit, onRemove: () -> Unit,
+    onChange: (ExpenseDraftRow) -> Unit, onRemove: (() -> Unit)?,
 ) {
     val keyboard = LocalSoftwareKeyboardController.current
     val focus = remember(row.key) { FocusRequester() }
@@ -141,7 +141,7 @@ private fun InlineExpenseRow(
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 if (!showNote) TextButton({ showNote = true }, enabled = enabled) { Text("＋ 费用备注（选填）") }
                 else Spacer(Modifier.weight(1f))
-                TextButton(onRemove, enabled = enabled, modifier = Modifier.testTag("expense-remove-${row.key}")) { Text("移除本笔") }
+                if (onRemove != null) TextButton(onRemove, enabled = enabled, modifier = Modifier.testTag("expense-remove-${row.key}")) { Text("移除本笔") }
             }
         }
     }
