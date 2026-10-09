@@ -128,6 +128,7 @@ class ItineraryTimingPickerTest {
             EditItineraryItemContent(draft.value, { draft.value = draft.value.copy(arrivalTimeText = it) },
                 { draft.value = draft.value.copy(stayMinutesText = it) }, onSave = {}, onCancel = {})
         } }
+        compose.expandTimingIfNeeded()
         compose.onNodeWithTag("arrival-hour-picker").performTouchInput { swipeUp(durationMillis = 500) }
         compose.waitUntil(5_000) { draft.value.arrivalTime?.hour != 9 }
         val oldMinute = draft.value.arrivalTime?.minute
@@ -175,6 +176,7 @@ class ItineraryTimingPickerTest {
             EditItineraryItemContent(draft.value, { draft.value = draft.value.copy(arrivalTimeText = it) },
                 { draft.value = draft.value.copy(stayMinutesText = it) }, onSave = { saved = draft.value }, onCancel = {})
         } }
+        compose.expandTimingIfNeeded()
         compose.onNodeWithTag("arrival-period-pm").performClick().assertIsSelected()
         compose.assertArrivalTime(21, 40)
         compose.onNodeWithTag("arrival-hour-picker").performSemanticsAction(SemanticsActions.SetProgress) { it(11f) }
@@ -196,6 +198,7 @@ class ItineraryTimingPickerTest {
             EditItineraryItemContent(draft.value, { draft.value = draft.value.copy(arrivalTimeText = it) },
                 { draft.value = draft.value.copy(stayMinutesText = it) }, onSave = {}, onCancel = {})
         } }
+        compose.expandTimingIfNeeded()
         compose.onNodeWithTag("arrival-minute-picker").assertIsNotEnabled()
         compose.selectArrivalTime(0, 0)
         assertEquals(LocalTime.MIDNIGHT, draft.value.arrivalTime)
@@ -232,6 +235,7 @@ class ItineraryTimingPickerTest {
             EditItineraryItemContent(draft.value, { draft.value = draft.value.copy(arrivalTimeText = it) }, {},
                 onScheduleAgain = {}, onSave = {}, onCancel = {})
         } } }
+        compose.expandTimingIfNeeded()
         listOf("am", "pm").forEach { period ->
             compose.onNodeWithTag("arrival-period-$period").performClick()
             saveEvidence("itinerary-time-wheel-$period.png")

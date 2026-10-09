@@ -15,7 +15,26 @@ data class ItineraryEditDraft(
     val isSaving: Boolean = false,
     val saveError: String? = null,
     val generation: Long = 0,
+    val originalArrivalTimeText: String = arrivalTimeText,
+    val originalStayMinutesText: String = stayMinutesText,
+    val originalNoteText: String = noteText,
+    val originalExpenses: List<PlaceExpenseInput> = emptyList(),
+    val expenses: List<ExpenseDraftRow> = listOf(ExpenseDraftRow("first")),
+    val expandedExpenseKey: String? = null,
+    val showAllExpenses: Boolean = false,
+    val expenseRemoval: ExpenseDraftRemoval? = null,
+    val nextExpenseNumber: Int = 1,
+    val showDiscardConfirmation: Boolean = false,
+    val scheduleAfterDiscard: Boolean = false,
+    val sourceMissing: Boolean = false,
 ) {
+    val expenseValidation get() = validateExpenseDraft(expenses, originalExpenses)
+    val isDirty: Boolean get() = arrivalTimeText != originalArrivalTimeText ||
+        stayMinutesText != originalStayMinutesText || noteText != originalNoteText ||
+        when (val validated = expenseValidation) {
+            is ExpenseDraftValidation.Invalid -> true
+            is ExpenseDraftValidation.Valid -> validated.expenses != originalExpenses
+        }
     val arrivalTime: LocalTime?
         get() = arrivalTimeText.takeIf(String::isNotBlank)?.let { runCatching { LocalTime.parse(it) }.getOrNull() }
 
@@ -25,7 +44,7 @@ data class ItineraryEditDraft(
     val isValid: Boolean
         get() {
             val parsedMinutes = stayMinutes
-            return validExpense(expenseText) && (arrivalTimeText.isBlank() || arrivalTime != null) &&
+            return !sourceMissing && expenseValidation is ExpenseDraftValidation.Valid && (arrivalTimeText.isBlank() || arrivalTime != null) &&
                 (stayMinutesText.isBlank() || parsedMinutes != null && parsedMinutes >= 0)
         }
 }

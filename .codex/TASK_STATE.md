@@ -1,3 +1,15 @@
+# v2.0.0 Task3 地点多笔花费编辑闭环完成
+
+状态：**IN_PROGRESS — Task1–3完成，Task4–6待实现。**（2026-10-09）
+
+- 编辑地点内原位录入六类费用，多笔同类、展开全部、移除撤销、时间/停留/备注与费用统一草稿和原子保存；退出确认、失败保留和来源失效保护已接入。
+- 943 JVM、41项最终设备定向测试通过；Debug/AndroidTest构建成功，lint 0错误/54警告/1提示。模拟器生产工作台实际截图已检查，关键操作可达。
+- 广泛旧UI回归22项在未改UI基线878d198同样失败；新增时间控件回归已修复，最终定向回归通过。原8项验收缺口保留，不声称全量UI通过。
+- 证据：`.scratch/v2.0.0-implementation/task3-verification.json`。修改前备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task3-20261009-181750/before/source-state.tgz`。
+- 当前App仍1.8.3/build13、schema9。开发代码未推main，未安装个人手机、未发布Release。继续Task4花费一级入口、年月分类回顾及独立单笔编辑。
+
+---
+
 # v2.0.0 Task2存储验收通过，UI尚待接入
 
 状态：**IN_PROGRESS — Task1–2完成，Task3–6待实现。**（2026-10-09）

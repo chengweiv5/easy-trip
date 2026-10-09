@@ -106,14 +106,16 @@ class V170UiTest {
         capture("search")
     }
     @Test fun itemExpenseFieldRetainsInvalidInputAndDisablesSave() {
-        var draft by mutableStateOf(ItineraryEditDraft("a","08:00","60",placeName="西湖"))
-        compose.setContent { EasyTripTheme { EditItineraryItemContent(draft,{}, {}, onExpenseChange={draft=draft.copy(expenseText=it)},onSave={},onCancel={}) } }
-        compose.onNodeWithTag("expense-input").performTextInput("36.50")
+        var draft by mutableStateOf(ItineraryEditDraft("a","08:00","60",placeName="西湖",
+            expenses=listOf(com.yangchengwei.easytrip.expense.ExpenseDraftRow("first",category=com.yangchengwei.easytrip.expense.ExpenseCategory.ATTRACTION))))
+        compose.setContent { EasyTripTheme { EditItineraryItemContent(draft,{}, {},
+            onExpenseAction={if(it is DayItineraryAction.UpdateExpenseRow) draft=draft.copy(expenses=listOf(it.row))},onSave={},onCancel={}) } }
+        compose.onNodeWithTag("expense-amount-first").performScrollTo().performTextInput("36.50")
         compose.onNodeWithText("保存").assertIsEnabled()
         capture("expense-editor")
-        compose.onNodeWithTag("expense-input").performTextReplacement("-1")
+        compose.onNodeWithTag("expense-amount-first").performTextReplacement("-1")
         compose.onNodeWithText("保存").assertIsNotEnabled()
-        compose.onNodeWithTag("expense-input").performTextReplacement("0")
+        compose.onNodeWithTag("expense-amount-first").performTextReplacement("0")
         compose.onNodeWithText("保存").assertIsEnabled()
     }
     @Test fun wholeTripShowsUncollapsedExpenseTotals() {

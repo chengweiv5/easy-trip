@@ -58,7 +58,9 @@ data class DayItineraryUiState(
     val appendDayCompletionToken: Long? = null,
     val error: String? = null,
 ) {
-    val expenseSummary get() = expenseSummary(items.map { it.expenseCents } + legs.map { it.expenseCents })
+    val expenseSummary get() = expenseSummary(items.flatMap { item ->
+        item.expenses.takeIf { it.isNotEmpty() }?.map { it.cents } ?: listOf(item.expenseCents)
+    } + legs.map { it.expenseCents })
     val moveItemId: String? get() = crossDayMove?.itemId
     val modeLegId: String? get() = modeEditor?.legId
 }
@@ -432,6 +434,8 @@ class DayItineraryViewModel(
 
     fun requestTiming(itemId: String): Boolean {
         val item = state.value.items.firstOrNull { it.id == itemId } ?: return false
+        val rows = item.expenses.map { ExpenseDraftRow(requireNotNull(it.id), it.id, expenseInput(it.cents), it.category, it.note.orEmpty()) }
+            .ifEmpty { listOf(ExpenseDraftRow("first")) }
         mutable.value = mutable.value.copy(
             editDraft = ItineraryEditDraft(
                 itemId = itemId,
@@ -442,6 +446,9 @@ class DayItineraryViewModel(
                 placeId = item.placeId,
                 placeName = item.name,
                 generation = ++nextEditGeneration,
+                originalExpenses = item.expenses,
+                expenses = rows,
+                expandedExpenseKey = rows.singleOrNull()?.key,
             ),
         )
         return true
@@ -449,7 +456,59 @@ class DayItineraryViewModel(
 
     fun updateExpense(value: String) {
         val draft = mutable.value.editDraft ?: return
-        if (!draft.isSaving) mutable.value = mutable.value.copy(editDraft = draft.copy(expenseText = value, saveError = null))
+        val row = draft.expenses.firstOrNull() ?: return
+        updateExpenseRow(row.key, row.copy(amount = value))
+    }
+
+    fun updateExpenseRow(key: String, row: ExpenseDraftRow) {
+        val draft = mutable.value.editDraft ?: return
+        val old = draft.expenses.singleOrNull { it.key == key } ?: return
+        if (draft.isSaving) return
+        require(row.key == key && row.savedId == old.savedId)
+        mutable.value = mutable.value.copy(editDraft = draft.copy(
+            expenses = draft.expenses.map { if (it.key == key) row else it }, saveError = null,
+        ))
+    }
+
+    fun addExpense() {
+        val draft = mutable.value.editDraft ?: return
+        if (draft.isSaving) return
+        val row = ExpenseDraftRow("new-${draft.nextExpenseNumber}")
+        mutable.value = mutable.value.copy(editDraft = draft.copy(
+            expenses = draft.expenses + row, expandedExpenseKey = row.key, showAllExpenses = true,
+            nextExpenseNumber = draft.nextExpenseNumber + 1, saveError = null,
+        ))
+    }
+
+    fun expandExpense(key: String) {
+        val draft = mutable.value.editDraft ?: return
+        if (!draft.isSaving && draft.expenses.any { it.key == key }) {
+            mutable.value = mutable.value.copy(editDraft = draft.copy(expandedExpenseKey = key))
+        }
+    }
+
+    fun showAllExpenses() {
+        val draft = mutable.value.editDraft ?: return
+        if (!draft.isSaving) mutable.value = mutable.value.copy(editDraft = draft.copy(showAllExpenses = !draft.showAllExpenses))
+    }
+
+    fun removeExpense(key: String) {
+        val draft = mutable.value.editDraft ?: return
+        if (draft.isSaving || draft.expenses.none { it.key == key }) return
+        val removal = removeExpenseDraftRow(draft.expenses, key)
+        mutable.value = mutable.value.copy(editDraft = draft.copy(
+            expenses = removal.remainingRows, expenseRemoval = removal, expandedExpenseKey = null, saveError = null,
+        ))
+    }
+
+    fun undoExpenseRemoval() {
+        val draft = mutable.value.editDraft ?: return
+        val removal = draft.expenseRemoval ?: return
+        if (draft.isSaving) return
+        mutable.value = mutable.value.copy(editDraft = draft.copy(
+            expenses = restoreExpenseDraftRow(draft.expenses, removal),
+            expenseRemoval = null, expandedExpenseKey = removal.removed.key, showAllExpenses = true,
+        ))
     }
     fun updateRouteExpense(value: String) {
         val draft = mutable.value.modeEditor ?: return
@@ -482,7 +541,9 @@ class DayItineraryViewModel(
         mutable.value = mutable.value.copy(editDraft = draft.copy(isSaving = true, saveError = null))
         viewModelScope.launch {
             try {
-                itineraries.updateDetailsWithExpense(draft.itemId, draft.arrivalTime, draft.stayMinutes, draft.noteText.trim().ifEmpty { null }, parseExpense(draft.expenseText))
+                val expenses = (draft.expenseValidation as ExpenseDraftValidation.Valid).expenses
+                itineraries.saveDetailsWithExpenses(draft.itemId, draft.arrivalTime, draft.stayMinutes,
+                    draft.noteText.trim().ifEmpty { null }, draft.originalExpenses, expenses)
                 if (mutable.value.editDraft.matches(draft)) {
                     mutable.value = mutable.value.copy(editDraft = null)
                 }
@@ -652,12 +713,40 @@ class DayItineraryViewModel(
             mutable.value.deleteConfirmation?.isDeleting == true ||
             mutable.value.modeEditor?.isSaving == true
         ) return
+        if (!requestEditDiscard()) return
         mutable.value = mutable.value.copy(
             editDraft = null,
             crossDayMove = null,
             deleteConfirmation = null,
             modeEditor = null,
         )
+    }
+
+    fun requestEditDiscard(scheduleAgain: Boolean = false): Boolean {
+        val draft = mutable.value.editDraft ?: return true
+        if (draft.isSaving) return false
+        if (draft.isDirty) {
+            mutable.value = mutable.value.copy(editDraft = draft.copy(
+                showDiscardConfirmation = true, scheduleAfterDiscard = scheduleAgain,
+            ))
+            return false
+        }
+        mutable.value = mutable.value.copy(editDraft = null)
+        return true
+    }
+
+    fun keepEditing() {
+        val draft = mutable.value.editDraft ?: return
+        if (!draft.isSaving) mutable.value = mutable.value.copy(editDraft = draft.copy(
+            showDiscardConfirmation = false, scheduleAfterDiscard = false,
+        ))
+    }
+
+    fun discardEdit() {
+        val draft = mutable.value.editDraft ?: return
+        if (!draft.isSaving && draft.showDiscardConfirmation) {
+            mutable.value = mutable.value.copy(editDraft = null)
+        }
     }
 
     fun dispatch(action: DayItineraryAction) {
@@ -678,6 +767,14 @@ class DayItineraryViewModel(
             is DayItineraryAction.UpdateArrivalTime -> updateArrivalTime(action.value)
             is DayItineraryAction.UpdateStayMinutes -> updateStayMinutes(action.value)
             is DayItineraryAction.UpdateExpense -> updateExpense(action.value)
+            is DayItineraryAction.UpdateExpenseRow -> updateExpenseRow(action.key, action.row)
+            is DayItineraryAction.ExpandExpense -> expandExpense(action.key)
+            is DayItineraryAction.RemoveExpense -> removeExpense(action.key)
+            DayItineraryAction.AddExpense -> addExpense()
+            DayItineraryAction.UndoExpenseRemoval -> undoExpenseRemoval()
+            DayItineraryAction.ShowAllExpenses -> showAllExpenses()
+            DayItineraryAction.KeepEditing -> keepEditing()
+            DayItineraryAction.DiscardEdit -> discardEdit()
             is DayItineraryAction.UpdateRouteExpense -> updateRouteExpense(action.value)
             is DayItineraryAction.UpdateNote -> updateNote(action.value)
             DayItineraryAction.SaveEdit -> saveTiming()
@@ -710,7 +807,9 @@ class DayItineraryViewModel(
         if (day.tripId != tripId || day.dayId != selectedDay.value) return
         val items = day.items.map { it.toItineraryItemUi() }
         val previous = mutable.value
-        val activeEdit = previous.editDraft?.takeIf { draft -> items.any { it.id == draft.itemId } }
+        val activeEdit = previous.editDraft?.let { draft ->
+            if (items.any { it.id == draft.itemId }) draft else draft.copy(sourceMissing = true)
+        }
         val officialOrder = items.map(ItineraryItemUi::id)
         val keepPreview = previous.items.map(ItineraryItemUi::id) == officialOrder && previous.previewOrder.toSet() == officialOrder.toSet()
         val previewOrder = if (keepPreview) previous.previewOrder else officialOrder

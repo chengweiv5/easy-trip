@@ -108,13 +108,13 @@ class DayItineraryViewModelTest {
         model.updateArrivalTime("08:30")
         model.updateStayMinutes("90")
         model.updateNote("保留\n备注")
-        val generation = requireNotNull(model.state.value.editDraft).generation
+        val beforeSave = requireNotNull(model.state.value.editDraft)
 
         model.saveTiming()
         advanceUntilIdle()
 
         assertEquals(
-            ItineraryEditDraft("item-alpha", "08:30", "90", "保留\n备注", placeId = "place-alpha", placeName = "酒店", saveError = "保存失败", generation = generation),
+            beforeSave.copy(saveError = "保存失败"),
             model.state.value.editDraft,
         )
         val persistedItem = model.state.value.items.first { it.id == "item-alpha" }
@@ -125,7 +125,7 @@ class DayItineraryViewModelTest {
         model.dispatch(DayItineraryAction.DismissEditSaveError)
 
         assertEquals(
-            ItineraryEditDraft("item-alpha", "08:30", "90", "保留\n备注", placeId = "place-alpha", placeName = "酒店", generation = generation),
+            beforeSave,
             model.state.value.editDraft,
         )
         assertEquals(callsBeforeClear, repository.detailCalls.size)
@@ -1280,7 +1280,48 @@ class DayItineraryViewModelTest {
         repository.emitWithout("item-alpha")
         advanceUntilIdle()
 
+        assertEquals("item-alpha", model.state.value.editDraft?.itemId)
+        assertFalse(model.state.value.editDraft!!.isValid)
+        assertTrue(model.state.value.editDraft!!.sourceMissing)
+    }
+
+    @Test fun `expense rows stay local preserve identity and undo restores exact row`() = runTest(dispatcher) {
+        val repository = Itineraries()
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTiming("item-alpha")
+        val row = model.state.value.editDraft!!.expenses.single()
+        model.updateExpenseRow(row.key, row.copy(amount = "600", category = com.yangchengwei.easytrip.expense.ExpenseCategory.LODGING))
+        model.addExpense()
+        val second = model.state.value.editDraft!!.expenses.last()
+        model.updateExpenseRow(second.key, second.copy(amount = "120", category = com.yangchengwei.easytrip.expense.ExpenseCategory.FOOD))
+        val before = model.state.value.editDraft!!.expenses
+        model.removeExpense(row.key)
+        assertEquals(listOf(second.key), model.state.value.editDraft!!.expenses.map { it.key })
+        model.undoExpenseRemoval()
+        assertEquals(before, model.state.value.editDraft!!.expenses)
+        assertTrue(repository.detailCalls.isEmpty())
+    }
+
+    @Test fun `cancel confirms dirty expense draft but blank row does not require confirmation`() = runTest(dispatcher) {
+        val repository = Itineraries()
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTiming("item-alpha")
+        model.dismissDialogs()
         assertNull(model.state.value.editDraft)
+        model.requestTiming("item-alpha")
+        model.updateExpense("0")
+        assertFalse(model.state.value.editDraft!!.isValid)
+        model.dismissDialogs()
+        assertTrue(model.state.value.editDraft!!.showDiscardConfirmation)
+        model.keepEditing()
+        assertEquals("0", model.state.value.editDraft!!.expenses.single().amount)
+        assertFalse(model.state.value.editDraft!!.showDiscardConfirmation)
+        model.dismissDialogs()
+        model.discardEdit()
+        assertNull(model.state.value.editDraft)
+        assertTrue(repository.detailCalls.isEmpty())
     }
 
     private fun model(

@@ -58,7 +58,13 @@ fun DayItinerarySheet(
         modifier = modifier,
         onAction = { action ->
             if (action is DayItineraryAction.ScheduleAgain) {
-                onScheduleAgain?.invoke(action.itemId)
+                if (viewModel.requestEditDiscard(scheduleAgain = true)) onScheduleAgain?.invoke(action.itemId)
+            } else if (action == DayItineraryAction.DiscardEdit) {
+                val draft = viewModel.state.value.editDraft
+                viewModel.dispatch(action)
+                if (draft?.scheduleAfterDiscard == true && viewModel.state.value.editDraft == null) {
+                    onScheduleAgain?.invoke(draft.itemId)
+                }
             } else {
                 viewModel.dispatch(action)
             }
@@ -92,6 +98,14 @@ internal data class TimelineDragState(
 }
 
 sealed interface DayItineraryAction {
+    data class UpdateExpenseRow(val key: String, val row: com.yangchengwei.easytrip.expense.ExpenseDraftRow) : DayItineraryAction
+    data class ExpandExpense(val key: String) : DayItineraryAction
+    data class RemoveExpense(val key: String) : DayItineraryAction
+    data object AddExpense : DayItineraryAction
+    data object UndoExpenseRemoval : DayItineraryAction
+    data object ShowAllExpenses : DayItineraryAction
+    data object KeepEditing : DayItineraryAction
+    data object DiscardEdit : DayItineraryAction
     data class UpdateExpense(val value: String) : DayItineraryAction
     data class UpdateRouteExpense(val value: String) : DayItineraryAction
     data class ReorderDay(val dayId: String, val targetIndex: Int) : DayItineraryAction
@@ -325,6 +339,7 @@ fun DayItineraryContent(
                         onStayMinutesChange = { onAction(DayItineraryAction.UpdateStayMinutes(it)) },
                         onNoteChange = { onAction(DayItineraryAction.UpdateNote(it)) },
                         onExpenseChange = { onAction(DayItineraryAction.UpdateExpense(it)) },
+                        onExpenseAction = onAction,
                         onScheduleAgain = if (canScheduleAgain && draft.placeId != null) {
                             { onAction(DayItineraryAction.ScheduleAgain(draft.itemId)) }
                         } else {

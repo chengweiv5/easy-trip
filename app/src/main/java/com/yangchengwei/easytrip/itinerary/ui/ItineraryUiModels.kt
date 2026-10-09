@@ -19,6 +19,7 @@ data class ItineraryItemUi(
     val placeId: String? = null,
     val expenseCents: Long? = null,
     val timingWarning: String? = null,
+    val expenses: List<com.yangchengwei.easytrip.expense.PlaceExpenseInput> = emptyList(),
 )
 
 sealed interface RouteLegUiState {
@@ -125,7 +126,9 @@ internal fun mapWholeTripDays(
                 .map(RouteLegEntity::toRouteLegUi),
             collapsedItemCount = projection.collapsedCounts[day.id] ?: 0,
             expenses = com.yangchengwei.easytrip.expense.expenseSummary(
-                sourceByDay[day.id]?.itinerary?.items.orEmpty().map { it.expenseCents } +
+                sourceByDay[day.id]?.itinerary?.items.orEmpty().flatMap { item ->
+                    item.expenses.takeIf { it.isNotEmpty() }?.map { it.cents } ?: listOf(item.expenseCents)
+                } +
                     sourceByDay[day.id]?.legs.orEmpty().map { it.expenseCents },
             ),
         )
@@ -142,6 +145,7 @@ internal fun ItineraryItem.toItineraryItemUi() = ItineraryItemUi(
     placeId = place.id,
     expenseCents = expenseCents,
     timingWarning = timingWarning,
+    expenses = expenses,
 )
 
 internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(

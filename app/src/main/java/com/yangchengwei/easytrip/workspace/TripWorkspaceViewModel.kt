@@ -283,7 +283,7 @@ class TripWorkspaceViewModel(
             calendarDays = currentTrip.days.sortedBy { it.index }.map { day ->
                 val snapshot = currentSnapshots.firstOrNull { it.itinerary.dayId == day.id }
                 WholeTripDayUi(day.id, day.index + 1,
-                    snapshot?.itinerary?.items.orEmpty().map { com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi(it.id, it.place.name, it.place.address, it.arrivalTime, it.stayMinutes, it.note, it.place.id, it.expenseCents, it.timingWarning) },
+                    snapshot?.itinerary?.items.orEmpty().map { com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi(it.id, it.place.name, it.place.address, it.arrivalTime, it.stayMinutes, it.note, it.place.id, it.expenseCents, it.timingWarning, it.expenses) },
                     snapshot?.legs.orEmpty().map { it.toRouteLegUi() })
             },
             calendarMode = values[14] as Boolean,

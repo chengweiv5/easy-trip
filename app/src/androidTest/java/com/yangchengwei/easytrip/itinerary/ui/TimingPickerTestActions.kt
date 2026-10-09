@@ -6,6 +6,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.ComposeTestRule
 
 fun ComposeTestRule.selectArrivalTime(hour: Int, minute: Int) {
+    expandTimingIfNeeded()
     require(minute == 0 || minute == 30)
     require(hour in 0..23)
     onNodeWithTag(if (hour < 12) "arrival-period-am" else "arrival-period-pm").performClick()
@@ -14,6 +15,7 @@ fun ComposeTestRule.selectArrivalTime(hour: Int, minute: Int) {
 }
 
 fun ComposeTestRule.selectStayHours(hours: Int) {
+    expandTimingIfNeeded()
     val node = onNodeWithTag("stay-hours-picker")
     // Navigate through the public accessibility action, including any legacy fractional entry.
     node.performSemanticsAction(SemanticsActions.SetProgress) { it(0f) }
@@ -26,10 +28,19 @@ fun ComposeTestRule.selectStayHours(hours: Int) {
 }
 
 fun ComposeTestRule.assertArrivalTime(hour: Int, minute: Int) {
+    expandTimingIfNeeded()
     onNodeWithTag("arrival-hour-picker").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, hour.toString().padStart(2, '0')))
     onNodeWithTag("arrival-minute-picker").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, minute.toString().padStart(2, '0')))
 }
 
 fun ComposeTestRule.assertStayHours(hours: String) {
+    expandTimingIfNeeded()
     onNodeWithTag("stay-hours-picker").assert(SemanticsMatcher.expectValue(SemanticsProperties.StateDescription, hours))
+}
+
+fun ComposeTestRule.expandTimingIfNeeded() {
+    if (onAllNodesWithTag("arrival-hour-picker").fetchSemanticsNodes().isEmpty() &&
+        onAllNodesWithTag("itinerary-timing-toggle").fetchSemanticsNodes().isNotEmpty()) {
+        onNodeWithTag("itinerary-timing-toggle").performScrollTo().performClick()
+    }
 }

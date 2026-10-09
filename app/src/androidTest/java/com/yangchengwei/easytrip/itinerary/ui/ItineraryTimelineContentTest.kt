@@ -117,7 +117,7 @@ class ItineraryTimelineContentTest {
             .assert(SemanticsMatcher.keyIsDefined(SemanticsProperties.Heading))
         val container = compose.onNodeWithTag("save-failure-container").getUnclippedBoundsInRoot()
         val title = compose.onNodeWithText("修改尚未保存").getUnclippedBoundsInRoot()
-        val body = compose.onNodeWithText("到达时间、停留时长和备注仍保留在当前页面。请重新保存，或稍后再试。")
+        val body = compose.onNodeWithText("到达时间、停留时长、花费和备注仍保留在当前页面。请重新保存，或稍后再试。")
             .getUnclippedBoundsInRoot()
         val keep = compose.onNodeWithTag("itinerary-save-failure-keep-editing")
             .assertIsDisplayed().assertHasClickAction().getUnclippedBoundsInRoot()

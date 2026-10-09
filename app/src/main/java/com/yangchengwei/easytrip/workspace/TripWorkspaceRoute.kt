@@ -320,6 +320,10 @@ fun TripWorkspaceRoute(
             dispatchItinerary(DayItineraryAction.DismissEditSaveError)
             return
         }
+        if (overlay is WorkspaceOverlay.EditItineraryItem && itinerary.editDraft?.isDirty == true) {
+            dispatchItinerary(DayItineraryAction.DismissDialogs)
+            return
+        }
         placeViewModel?.dismissDetail()
         dismissPendingDialogs()
         if (overlay.isAddToItineraryOverlay() ||
@@ -632,9 +636,22 @@ fun TripWorkspaceRoute(
                 }
                 is DayItineraryAction.ScheduleAgain -> {
                     val placeId = itinerary.items.firstOrNull { it.id == action.itemId }?.placeId
-                    if (placeId != null && addToItineraryViewModel?.startForPlace(placeId) == true) {
+                        ?: itinerary.editDraft?.takeIf { it.itemId == action.itemId }?.placeId
+                    val canLeave = itineraryViewModel?.requestEditDiscard(scheduleAgain = true)
+                        ?: (itinerary.editDraft?.isDirty != true)
+                    if (canLeave && placeId != null && addToItineraryViewModel?.startForPlace(placeId) == true) {
                         dismissPendingDialogs()
                         viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
+                    }
+                }
+                DayItineraryAction.DiscardEdit -> {
+                    val draft = itineraryViewModel?.state?.value?.editDraft ?: itinerary.editDraft
+                    dispatchItinerary(action)
+                    if (draft?.showDiscardConfirmation == true && !draft.isSaving) {
+                        if (draft.scheduleAfterDiscard && draft.placeId != null &&
+                            addToItineraryViewModel?.startForPlace(draft.placeId) == true) {
+                            viewModel.openOverlay(WorkspaceOverlay.SelectAddTargetDay)
+                        } else viewModel.closeOverlay()
                     }
                 }
                 is DayItineraryAction.RequestCrossDay -> {

@@ -1,0 +1,21 @@
+{
+  "status": "verified",
+  "scope": "Task3 inline place expense editing; Task4–6 pending",
+  "base": "878d198a3721c14a202969cb11b7244405a66359",
+  "unitTests": 943,
+  "unitFailures": 0,
+  "instrumentationTests": 41,
+  "instrumentationFailures": 0,
+  "newInstrumentationTests": 7,
+  "lint": {
+    "errors": 0,
+    "warnings": 54,
+    "hints": 1
+  },
+  "artifacts": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task3-20261009-181750",
+  "device": "emulator-5590, read-only no-snapshot",
+  "screenshot": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task3-20261009-181750/images/v200-inline-editor.jpg",
+  "openRegressions": "Broad run: 23 failures; 22 reproduced on unchanged 878d198 baseline. New timing-picker failure fixed, final targeted run passed. Broad suite not claimed green; original 8 acceptance gaps remain open.",
+  "review": "Two P2 findings fixed: deleted source re-arrange fallback and collapsed invalid row navigation. Independent re-review passed; separate spec agent unavailable.",
+  "rollback": "Review/revert this batch commit or restore narrowly from before/source-state.tgz after backing up later work. Never downgrade or clear schema9 user data."
+}

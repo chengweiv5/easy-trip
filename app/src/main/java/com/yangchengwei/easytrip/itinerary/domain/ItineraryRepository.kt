@@ -59,7 +59,8 @@ interface ItineraryRepository {
         expectedExpenses: List<com.yangchengwei.easytrip.expense.PlaceExpenseInput>,
         expenses: List<com.yangchengwei.easytrip.expense.PlaceExpenseInput>,
     ) {
-        error("此存储暂不支持多笔花费")
+        require(expectedExpenses.isEmpty() && expenses.isEmpty()) { "此存储暂不支持多笔花费" }
+        updateDetails(itemId, arrivalTime, stayMinutes, note)
     }
     suspend fun removePlaceOccurrences(placeId: String)
 }

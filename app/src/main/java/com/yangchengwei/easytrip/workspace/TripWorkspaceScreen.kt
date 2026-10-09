@@ -503,7 +503,6 @@ private fun WorkspaceOverlayContent(
                         draft.saveError != null -> onItineraryAction(DayItineraryAction.DismissEditSaveError)
                         else -> {
                             onItineraryAction(DayItineraryAction.DismissDialogs)
-                            onClose()
                         }
                     }
                 },
@@ -521,9 +520,10 @@ private fun WorkspaceOverlayContent(
                             onStayMinutesChange = { onItineraryAction(DayItineraryAction.UpdateStayMinutes(it)) },
                             onNoteChange = { onItineraryAction(DayItineraryAction.UpdateNote(it)) },
                         onExpenseChange = { onItineraryAction(DayItineraryAction.UpdateExpense(it)) },
+                            onExpenseAction = onItineraryAction,
                             onScheduleAgain = draft.placeId?.let { { onItineraryAction(DayItineraryAction.ScheduleAgain(draft.itemId)) } },
                             onSave = { onItineraryAction(DayItineraryAction.SaveEdit) },
-                            onCancel = { onItineraryAction(DayItineraryAction.DismissDialogs); onClose() },
+                            onCancel = { onItineraryAction(DayItineraryAction.DismissDialogs) },
                         )
                     }
                 },
