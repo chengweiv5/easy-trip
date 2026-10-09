@@ -1,6 +1,21 @@
 # v1.8.3 空行程保留旅行日及当天添加入口
 
-状态：DONE（2026-10-09；已提交、快进推送 origin/main、同签名覆盖安装手机并回读）
+状态：DONE（2026-10-09；GitHub v1.8.3 已公开发布为 Latest，附件回下载验证完成）
+
+- 发布地址：`https://github.com/chengweiv5/easy-trip/releases/tag/v1.8.3`。
+- 标签与 APK 源码均为 `bd370c4f44df8369bfb993bbea881a6396c2a0f5`；
+  `draft=false`、`prerelease=false`，认证 API 和公开 Latest 页面回读一致。
+- 正式 APK 与 SHA256 文件已上传；认证下载与无认证公开下载均与原件逐字节一致。
+- 复用已安装并验收的原始 APK，不重新构建；已从 APK 内回读源码 SHA、
+  CLEAN、release、非调试和版本 1.8.3/13，签名及 16KB zipalign 复验通过。
+- 当前共享出口匿名 API 因限流返回403，未称应用内更新运行验证通过；
+  公开页面、APK、校验文件均HTTP 200，更新资产格式与digest符合源码契约。
+- Pencil 仅更新发布状态并原生保存、关闭重开回读；
+  最新设计 SHA256 `e000566287d0941e8db20a1d0a0fdb23a6e43e16ab1b75c0c0f1a9a7af333b54`。
+- 发布记录：`docs/testing/v1.8.3-release.md`，README 正式下载入口已同步。
+- 发布证据：`.scratch/v1.8.3-empty-itinerary-days/local/release-20261009/`。
+
+## 提交与安装验收历史（早于公开发布）
 
 - 功能及正式 APK 来源：`bd370c4f44df8369bfb993bbea881a6396c2a0f5`。
   由 `51f80f9` 快进推送，远端 main SHA 已回读一致；后续仅更新交付文档和设计元数据。

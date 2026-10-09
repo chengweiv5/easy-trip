@@ -24,7 +24,7 @@ Easy Trip 支持**同一地点重复加入行程**。酒店、餐厅、景点，
 
 从出门到回酒店，把当天每一站和往返交通都规划进去。收藏地点、调整顺序、查看路线，专心把自己的旅行安排好。
 
-> 当前正式版为 **[v1.8.0](https://github.com/chengweiv5/easy-trip/releases/tag/v1.8.0)**。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v1.8.0/easy-trip-v1.8.0-release.apk) · [发布验证](docs/testing/v1.8.0-release.md)。下方截图仍采集自 v1.6.0 正式安装包，未将旧截图标为新版；图片可点击放大。
+> 当前正式版为 **[v1.8.3](https://github.com/chengweiv5/easy-trip/releases/tag/v1.8.3)**。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v1.8.3/easy-trip-v1.8.3-release.apk) · [发布验证](docs/testing/v1.8.3-release.md)。下方截图仍采集自 v1.6.0 正式安装包，未将旧截图标为新版；图片可点击放大。
 
 ## v1.8.0：当天行程与搜索地图更清楚
 

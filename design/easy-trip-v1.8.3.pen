@@ -2173,7 +2173,7 @@
           "fill": "$primary-dark",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "v1.8.3 / 13 已交付（2026-10-09）：代码快进推送 origin/main；Huawei 手机由 1.8.2/12 同签名覆盖升级，拉回 APK 哈希一致。928 项 Release 单测通过，lint 0 errors。青州实测 3 日可见、第2天选择器可打开并取消；收藏 5 个、全程 0 站及旅行摘要不变。未创建 Release 或标签。",
+          "content": "v1.8.3 / 13 已发布（2026-10-09）：GitHub Latest 正式版，标签与 APK 来源 bd370c4。发布附件已重新下载并核对哈希，签名/版本/16KB 对齐通过，与手机已安装包一致。928 项 Release 单测通过，lint 0 errors。青州实测3日可见、第2天选择器可打开并取消；收藏5个、全程0站及旅行摘要不变。",
           "fontFamily": "Inter",
           "fontSize": 18,
           "fontWeight": "normal"
