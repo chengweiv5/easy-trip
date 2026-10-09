@@ -1,0 +1,113 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-09T17:09:17.460894+08:00",
+  "target_version": "2.0.0",
+  "status": "DESIGN_VERIFIED_READY_TO_COMMIT",
+  "design_file": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v2.0.0.pen",
+  "design_sha256": "d31d42703006c980835111b7c60941918d4c44bbfe14f45def85af55598eae3e",
+  "history_note": "v1.9.0 audit remains historical; this manifest describes only the v2.0.0 retarget. No runtime acceptance claimed.",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2735,
+      "sha256": "e680a4c3b5d4f0e02c43bdb6652ce0b5302f971b66ed99a3e95c002de813f6fd"
+    },
+    {
+      "path": "coverage.json",
+      "bytes": 104932,
+      "sha256": "1cb928800c4d5c55deca2000f4523eec1dced91acf0ff13dbb46ad1dd4ad8bfe"
+    },
+    {
+      "path": "delivery-request-checks.json",
+      "bytes": 940,
+      "sha256": "4351afc29137709f97d54069638e1e56d8c28bd76cde01e3515776653467d3dd"
+    },
+    {
+      "path": "delivery-request-notification-content.txt",
+      "bytes": 391,
+      "sha256": "7b9b7d6e620f44020f939bbfd92037bf9baf61bd1570c8eafb5e547fdabea69e"
+    },
+    {
+      "path": "delivery-request-notification-proof.json",
+      "bytes": 246,
+      "sha256": "36781ddf4b77c4f372823b116fd6b5101877501b447ee2abf6b7b3261e49cef3"
+    },
+    {
+      "path": "delivery-request-notification-readback.json",
+      "bytes": 1354,
+      "sha256": "01f5ea22deec64026eb515bbf8009f1aba80ee9ae51c2318c68dcce5f2a246e2"
+    },
+    {
+      "path": "delivery-request-notification-send.json",
+      "bytes": 207,
+      "sha256": "e6494400fc45c205ecf5419333bd9245a5e68a8be2a8f4fb7707209f57d7a78a"
+    },
+    {
+      "path": "notification-content.txt",
+      "bytes": 692,
+      "sha256": "b9f73092a00c636abbd0726e6c19eb7669682538b6e0e3b4dedab37728741005"
+    },
+    {
+      "path": "notification-message-id.txt",
+      "bytes": 36,
+      "sha256": "b1bce20e436e90f3b8378c2e38e82aa4c61919badb6f93061e3f4371c0f06051"
+    },
+    {
+      "path": "notification-proof.json",
+      "bytes": 341,
+      "sha256": "ca4c49e4804499cbd0c4ad1f95892b52ac2cd634543fe35dca45e8ddb141c5dc"
+    },
+    {
+      "path": "notification-readback.json",
+      "bytes": 1661,
+      "sha256": "8fb0a9554edcaae8977cc028034f128edd17939c86dca8ee30082c229fc27a5f"
+    },
+    {
+      "path": "notification-send.json",
+      "bytes": 207,
+      "sha256": "2c0dc8221bfe254604f623755b0b2361d122bb24c80d0a82d02f9d40fce0625d"
+    },
+    {
+      "path": "retarget-diff.json",
+      "bytes": 247881,
+      "sha256": "2e05b6ea1ef260d1d415b834ae9c7e9836287c7f5bedf3edb728fdf047dc3352"
+    },
+    {
+      "path": "retarget-verification.json",
+      "bytes": 2914,
+      "sha256": "a3cfbcef67b165be9b7a951cd9494a2862f583368a6bf505dcd70175b5675fb3"
+    }
+  ],
+  "workspace_files": [
+    {
+      "path": "AGENTS.md",
+      "bytes": 4773,
+      "sha256": "d8a424bb4d78c059450e1571dfc6fefa615ed61a24fe14c4d254acca7df02783"
+    },
+    {
+      "path": ".codex/TASK_STATE.md",
+      "bytes": 42400,
+      "sha256": "a6b6c4c862dce875edb7ab0d1e1c5a2530142bc48236ec2d900497d83e5cc39e"
+    },
+    {
+      "path": "design/README.md",
+      "bytes": 1293,
+      "sha256": "84bfb40f970d5662f1398ffb3daf42267e8a3d166eada70c4f7e803867c99145"
+    },
+    {
+      "path": "design/EASY_TRIP_IMPLEMENTATION_GUIDE.md",
+      "bytes": 14808,
+      "sha256": "f02a5644cb1238dca1af170de436a780cb8bda4746ae8526a36a579bdb3917d0"
+    },
+    {
+      "path": "design/EASY_TRIP_IMPLEMENTATION_PLAN.md",
+      "bytes": 157488,
+      "sha256": "c80238ae732188eb97948ea7046423eb151044c302e881b43228d0155c0670ec"
+    },
+    {
+      "path": "docs/superpowers/specs/2026-10-09-v2.0.0-expense-review-design.md",
+      "bytes": 13005,
+      "sha256": "b46c7540293bea5061358299edb2eb3777b795599b8d16468bdfbde7e1132320"
+    }
+  ]
+}

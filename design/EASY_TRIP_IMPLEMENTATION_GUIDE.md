@@ -1,5 +1,7 @@
 # Easy Trip 设计实现指南
 
+> **2026-10-09 当前版本入口**：本次花费大改已调整为 `v2.0.0`，正式源为 `design/easy-trip-v2.0.0.pen`，详见 `design/README.md`。本指南下文仍是旧 `easy-trip-v2.0.pen` 探索的历史映射，不因版本名称相似而适用于新设计。
+
 > 适用范围：本文保留旧 `design/easy-trip-v2.0.pen` 的页面、节点和实现映射，不是所有版本的通用设计基线。版本选择、完整快照及验收遵循根目录 `AGENTS.md` 的“版本设计快照”；仅在核实映射适用于目标版本后参考本文。文中“当前”指本文对应的设计，不代表仓库当前发布版本；既有进度也不能证明 v2.0 整体已实现。
 
 本文档指导 Claude Code 根据 `design/easy-trip-v2.0.pen` 分批实现 Easy Trip Android Jetpack Compose 应用。设计文件负责表达视觉、状态和交互，现有 Android 工程负责提供业务模型、数据约束和运行架构。

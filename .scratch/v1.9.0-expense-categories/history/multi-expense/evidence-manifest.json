@@ -1,0 +1,109 @@
+{
+  "schema_version": 2,
+  "recorded_at": "2026-10-09T14:28:21.193295+08:00",
+  "current_revision": "multi-expense",
+  "history_note": "history/first-draft and non-multi-expense evidence files describe earlier milestone, not the current .pen hash. Historical copied manifest has paths scoped to its original backup.",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "81d029302dcb6aaf9b94b9590f403fd4f979490869b5bd004465b1866273c15a",
+      "bytes": 9329
+    },
+    {
+      "path": "coverage.json",
+      "sha256": "b88a0900e5e4efad4ad422b9a41e5eff5eb642dc67f88ad3b40a7796d9d6ab2c",
+      "bytes": 84286
+    },
+    {
+      "path": "evidence/design-verification.json",
+      "sha256": "3d4ead3918ab091e4cf9ab9a379a8f7013aaa92b5411f19a66803eed0c611b7a",
+      "bytes": 3953
+    },
+    {
+      "path": "evidence/final-checks.json",
+      "sha256": "8a43ee9005220f4ef250e6b0115b0298163716809548f00791460f25e0a55a86",
+      "bytes": 1023
+    },
+    {
+      "path": "evidence/multi-expense-final-checks.json",
+      "sha256": "7e6267bd242ae41a42af09dcbf1229ee5f8bc9f5d5d3bd45afbf216d66654399",
+      "bytes": 778
+    },
+    {
+      "path": "evidence/multi-expense-notification-content.txt",
+      "sha256": "70e364021b84bc6c68af064199ceb2599e38eca7b6225d0b8e685e260d3794ad",
+      "bytes": 950
+    },
+    {
+      "path": "evidence/multi-expense-notification-proof.json",
+      "sha256": "4555f8700215799a3d94cb5df5ce43cdea7701c50dd3654354e8d0b2edb4a962",
+      "bytes": 427
+    },
+    {
+      "path": "evidence/multi-expense-notification-readback.json",
+      "sha256": "43f099cc1d28da02d4b7506ca8a96d879a2793229a10687cb9756f6168c7b4a3",
+      "bytes": 1954
+    },
+    {
+      "path": "evidence/multi-expense-notification-send.json",
+      "sha256": "3ad9f193cd2901314a6a2482325faf64690e305d511888ec116941e2d4addf83",
+      "bytes": 207
+    },
+    {
+      "path": "evidence/multi-expense-verification.json",
+      "sha256": "8685337145b89a5010bfe1acab140bcf5618b4dc35e6b2fe4935d987337f0271",
+      "bytes": 5113
+    },
+    {
+      "path": "evidence/notification-content.txt",
+      "sha256": "b9d898bb3535b1b034e91e67cf5e87810e23a165d205fcac40ecdc3f94eabfea",
+      "bytes": 907
+    },
+    {
+      "path": "evidence/notification-proof.json",
+      "sha256": "8a8fab3ce80f74f7716205ea591955a98a8f4e5d37de20327a9369b5f7bc2331",
+      "bytes": 436
+    },
+    {
+      "path": "evidence/notification-readback.json",
+      "sha256": "308cb31d2779bd4fa7e019eda0485616baa8202dea1464260350ca28b3433216",
+      "bytes": 1910
+    },
+    {
+      "path": "evidence/notification-send.json",
+      "sha256": "dc4854e80363e32412734f2f73f7fe02b62b2a9469c87559f3818ad97534da50",
+      "bytes": 207
+    },
+    {
+      "path": "evidence/push-proof.json",
+      "sha256": "772b56497d99ccdb700c94d8b8a0963de9e0e304d38e4574234f1ed92c4cace6",
+      "bytes": 551
+    },
+    {
+      "path": "history/first-draft/README.md",
+      "sha256": "eb145088781ad10ecde6f2fbfbeda11d45db317e3d1b7ec9fcdb921fdfb35b61",
+      "bytes": 7618
+    },
+    {
+      "path": "history/first-draft/coverage.json",
+      "sha256": "c51240c5b7a8f127e3881d8ecf13ab138126f010021bbe4781cf2daaa348ce66",
+      "bytes": 77348
+    },
+    {
+      "path": "history/first-draft/evidence-manifest.json",
+      "sha256": "435010129ecd47bfd7b01b505f02f1943f3781f593a782c35742ce362a844b40",
+      "bytes": 1943
+    }
+  ],
+  "external_files": [
+    {
+      "path": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
+      "sha256": "9e4b821a140ca304b38e43079a2a1cdb726fbe11ca71527dd53872c0a25287b2"
+    },
+    {
+      "path": "/Users/bytedance/.codex/worktrees/6934/easy-trip/.codex/TASK_STATE.md",
+      "sha256": "8de5f91e069852e8d332162b3adbba5ca9e50958aa169754298c8b49a391c2cf"
+    }
+  ],
+  "git_delivery_note": "Precommit authorization note added to current README and TASK_STATE; design hash unchanged. Final delivery proof stored outside worktree."
+}

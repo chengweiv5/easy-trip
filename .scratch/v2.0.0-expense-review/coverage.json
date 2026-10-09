@@ -1,22 +1,22 @@
 {
   "schema_version": 1,
-  "version": "1.9.0",
-  "design_status": "INLINE_EXPENSE_DESIGN_SAVED_REOPENED_AWAITING_UI_REVIEW",
-  "date": "2026-10-09T15:51:15.011909+08:00",
+  "version": "2.0.0",
+  "design_status": "APPROVED_DESIGN_SAVED_REOPENED_VERIFIED",
+  "date": "2026-10-09",
   "workspace": "/Users/bytedance/.codex/worktrees/6934/easy-trip",
-  "design_file": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
-  "inherited_version": "1.8.3",
+  "design_file": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v2.0.0.pen",
+  "inherited_version": "1.9.0-design-freeze",
   "inheritance_commit": "1a626f7c2122b7bd812251a95b309814f66aee91",
   "implementation_source_commit": "bd370c4f44df8369bfb993bbea881a6396c2a0f5",
   "implementation_version": "1.8.3",
   "implementation_version_code": 13,
-  "design_sha256": "952a4835495afc5698c5d73ea7ccac5fe4d99d9f9d467940ac1450ffd5080a95",
-  "inherited_design_sha256": "0cb8f48fb14932e8850b426e1f18412b94149a43f5798fb61cfd40f6f90f033a",
+  "design_sha256": "d31d42703006c980835111b7c60941918d4c44bbfe14f45def85af55598eae3e",
+  "inherited_design_sha256": "952a4835495afc5698c5d73ea7ccac5fe4d99d9f9d467940ac1450ffd5080a95",
   "counts": {
     "active_roots": 185,
-    "inherited_active_roots": 131,
-    "new_page_state_roots": 49,
-    "new_kit_and_index_roots": 5,
+    "direct_inherited_active_roots": 185,
+    "inherited_v183_active_roots": 131,
+    "new_page_state_roots_in_this_retarget": 0,
     "disabled_history_roots": 1,
     "design_routes": 11,
     "state_groups": 70
@@ -152,9 +152,7 @@
     "f0TO9",
     "FpRZH",
     "S2mZg",
-    "OUIyx"
-  ],
-  "new_root_ids": [
+    "OUIyx",
     "yTqpm",
     "yDpRU",
     "ZDSMb",
@@ -210,746 +208,747 @@
     "mJFlG",
     "I7jshV"
   ],
+  "new_root_ids": [],
   "active_roots": [
     {
       "id": "f7rS8",
-      "name": "v1.9.0 · Easy Trip UI Kit"
+      "name": "v2.0.0 · Easy Trip UI Kit"
     },
     {
       "id": "t3MG7p",
-      "name": "v1.9.0 · 00 版本基线与覆盖清单"
+      "name": "v2.0.0 · 00 版本基线与覆盖清单"
     },
     {
       "id": "K9h3r",
-      "name": "v1.9.0 · 01 我的旅行 / 我的旅行"
+      "name": "v2.0.0 · 01 我的旅行 / 我的旅行"
     },
     {
       "id": "D03lK",
-      "name": "v1.9.0 · 01 我的旅行 / 我的旅行 · 已出行"
+      "name": "v2.0.0 · 01 我的旅行 / 我的旅行 · 已出行"
     },
     {
       "id": "zIbEu",
-      "name": "v1.9.0 · 01 我的旅行 / 我的旅行 · 空状态"
+      "name": "v2.0.0 · 01 我的旅行 / 我的旅行 · 空状态"
     },
     {
       "id": "rd2Iu",
-      "name": "v1.9.0 · 01 我的旅行 / N01a 我的旅行 · 加载"
+      "name": "v2.0.0 · 01 我的旅行 / N01a 我的旅行 · 加载"
     },
     {
       "id": "LoQrS",
-      "name": "v1.9.0 · 01 我的旅行 / N01b 我的旅行 · 读取失败"
+      "name": "v2.0.0 · 01 我的旅行 / N01b 我的旅行 · 读取失败"
     },
     {
       "id": "yq8pE",
-      "name": "v1.9.0 · 01 我的旅行 / N01c 我的旅行 · 筛选为空"
+      "name": "v2.0.0 · 01 我的旅行 / N01c 我的旅行 · 筛选为空"
     },
     {
       "id": "oYNJg",
-      "name": "v1.9.0 · 01 我的旅行 / T02 旅行卡片更多菜单"
+      "name": "v2.0.0 · 01 我的旅行 / T02 旅行卡片更多菜单"
     },
     {
       "id": "PnhPb",
-      "name": "v1.9.0 · 02 创建旅行 / 创建旅行 · 初始状态"
+      "name": "v2.0.0 · 02 创建旅行 / 创建旅行 · 初始状态"
     },
     {
       "id": "SKABj",
-      "name": "v1.9.0 · 02 创建旅行 / 创建旅行 · 仅名称即可创建"
+      "name": "v2.0.0 · 02 创建旅行 / 创建旅行 · 仅名称即可创建"
     },
     {
       "id": "dzhkC",
-      "name": "v1.9.0 · 02 创建旅行 / 创建旅行"
+      "name": "v2.0.0 · 02 创建旅行 / 创建旅行"
     },
     {
       "id": "QDPQR",
-      "name": "v1.9.0 · 02 创建旅行 / 创建旅行 · 已清空日期"
+      "name": "v2.0.0 · 02 创建旅行 / 创建旅行 · 已清空日期"
     },
     {
       "id": "YYo6U",
-      "name": "v1.9.0 · 02 创建旅行 / 创建旅行 · 填写出行日期"
+      "name": "v2.0.0 · 02 创建旅行 / 创建旅行 · 填写出行日期"
     },
     {
       "id": "yIGiQ",
-      "name": "v1.9.0 · 02 创建旅行 / 创建旅行 · 表单校验"
+      "name": "v2.0.0 · 02 创建旅行 / 创建旅行 · 表单校验"
     },
     {
       "id": "mpGO8",
-      "name": "v1.9.0 · 02 创建旅行 / 创建旅行 · 名称必填错误"
+      "name": "v2.0.0 · 02 创建旅行 / 创建旅行 · 名称必填错误"
     },
     {
       "id": "AC91v",
-      "name": "v1.9.0 · 02 创建旅行 / N02 创建旅行 · 提交中"
+      "name": "v2.0.0 · 02 创建旅行 / N02 创建旅行 · 提交中"
     },
     {
       "id": "PtwjB",
-      "name": "v1.9.0 · 02 创建旅行 / N02 创建旅行 · 提交失败保留输入"
+      "name": "v2.0.0 · 02 创建旅行 / N02 创建旅行 · 提交失败保留输入"
     },
     {
       "id": "WWA8d",
-      "name": "v1.9.0 · 02 创建旅行 / 未定日期创建成功 · 第1天空日可添加"
+      "name": "v2.0.0 · 02 创建旅行 / 未定日期创建成功 · 第1天空日可添加"
     },
     {
       "id": "A9EKX",
-      "name": "v1.9.0 · 03 工作台与地图 / 旅行工作台 · 地点池"
+      "name": "v2.0.0 · 03 工作台与地图 / 旅行工作台 · 地点池"
     },
     {
       "id": "lsr1I",
-      "name": "v1.9.0 · 03 工作台与地图 / 地点池 · 空状态"
+      "name": "v2.0.0 · 03 工作台与地图 / 地点池 · 空状态"
     },
     {
       "id": "BrYVA",
-      "name": "v1.9.0 · 03 工作台与地图 / 旅行工作台 · 全空状态"
+      "name": "v2.0.0 · 03 工作台与地图 / 旅行工作台 · 全空状态"
     },
     {
       "id": "SwjuL",
-      "name": "v1.9.0 · 03 工作台与地图 / N03a 工作台 · 加载"
+      "name": "v2.0.0 · 03 工作台与地图 / N03a 工作台 · 加载"
     },
     {
       "id": "i3yxsc",
-      "name": "v1.9.0 · 03 工作台与地图 / N03b 工作台 · 旅行不存在"
+      "name": "v2.0.0 · 03 工作台与地图 / N03b 工作台 · 旅行不存在"
     },
     {
       "id": "RC3d3",
-      "name": "v1.9.0 · 03 工作台与地图 / N03c 工作台 · 读取失败"
+      "name": "v2.0.0 · 03 工作台与地图 / N03c 工作台 · 读取失败"
     },
     {
       "id": "GoxB6",
-      "name": "v1.9.0 · 03 工作台与地图 / 地图 · 加载中"
+      "name": "v2.0.0 · 03 工作台与地图 / 地图 · 加载中"
     },
     {
       "id": "U8R5i",
-      "name": "v1.9.0 · 03 工作台与地图 / 地图 · 加载失败"
+      "name": "v2.0.0 · 03 工作台与地图 / 地图 · 加载失败"
     },
     {
       "id": "LFmzR",
-      "name": "v1.9.0 · 03 工作台与地图 / 旅行工作台 · 行程"
+      "name": "v2.0.0 · 03 工作台与地图 / 旅行工作台 · 行程"
     },
     {
       "id": "Bcf6A",
-      "name": "v1.9.0 · 03 工作台与地图 / 行程 · 当天无地点"
+      "name": "v2.0.0 · 03 工作台与地图 / 行程 · 当天无地点"
     },
     {
       "id": "ge7BC",
-      "name": "v1.9.0 · 03 工作台与地图 / 行程全空 · 3天仍可逐日添加"
+      "name": "v2.0.0 · 03 工作台与地图 / 行程全空 · 3天仍可逐日添加"
     },
     {
       "id": "FTIOF",
-      "name": "v1.9.0 · 03 工作台与地图 / 旅行工作台 · 全程行程"
+      "name": "v2.0.0 · 03 工作台与地图 / 旅行工作台 · 全程行程"
     },
     {
       "id": "kuta1",
-      "name": "v1.9.0 · 03 工作台与地图 / 全程概览 · 3个空旅行日"
+      "name": "v2.0.0 · 03 工作台与地图 / 全程概览 · 3个空旅行日"
     },
     {
       "id": "P7k0M",
-      "name": "v1.9.0 · 03 工作台与地图 / 行程 · 等待联网"
+      "name": "v2.0.0 · 03 工作台与地图 / 行程 · 等待联网"
     },
     {
       "id": "E3EhSv",
-      "name": "v1.9.0 · 03 工作台与地图 / 行程 · 路线计算失败"
+      "name": "v2.0.0 · 03 工作台与地图 / 行程 · 路线计算失败"
     },
     {
       "id": "ijpZD",
-      "name": "v1.9.0 · 03 工作台与地图 / 旅行工作台 · 更多菜单"
+      "name": "v2.0.0 · 03 工作台与地图 / 旅行工作台 · 更多菜单"
     },
     {
       "id": "shoPV",
-      "name": "v1.9.0 · 03 工作台与地图 / 旅行工作台 · 地图图层"
+      "name": "v2.0.0 · 03 工作台与地图 / 旅行工作台 · 地图图层"
     },
     {
       "id": "ny0pT",
-      "name": "v1.9.0 · 04 搜索与地图结果 / N04 搜索 · 初始输入"
+      "name": "v2.0.0 · 04 搜索与地图结果 / N04 搜索 · 初始输入"
     },
     {
       "id": "ofdn5",
-      "name": "v1.9.0 · 04 搜索与地图结果 / 搜索地点"
+      "name": "v2.0.0 · 04 搜索与地图结果 / 搜索地点"
     },
     {
       "id": "s1OvvX",
-      "name": "v1.9.0 · 04 搜索与地图结果 / 搜索地点 · 加载中"
+      "name": "v2.0.0 · 04 搜索与地图结果 / 搜索地点 · 加载中"
     },
     {
       "id": "S0psO",
-      "name": "v1.9.0 · 04 搜索与地图结果 / 搜索地点 · 无结果"
+      "name": "v2.0.0 · 04 搜索与地图结果 / 搜索地点 · 无结果"
     },
     {
       "id": "GJo79",
-      "name": "v1.9.0 · 04 搜索与地图结果 / 搜索地点 · 网络失败"
+      "name": "v2.0.0 · 04 搜索与地图结果 / 搜索地点 · 网络失败"
     },
     {
       "id": "RK5rH",
-      "name": "v1.9.0 · 04 搜索与地图结果 / N04 搜索 · 定位权限不足"
+      "name": "v2.0.0 · 04 搜索与地图结果 / N04 搜索 · 定位权限不足"
     },
     {
       "id": "sT8u9",
-      "name": "v1.9.0 · 04 搜索与地图结果 / N04 搜索 · 定位失败重试"
+      "name": "v2.0.0 · 04 搜索与地图结果 / N04 搜索 · 定位失败重试"
     },
     {
       "id": "EBQcJ",
-      "name": "v1.9.0 · 04 搜索与地图结果 / N04 搜索 · 地图服务未授权"
+      "name": "v2.0.0 · 04 搜索与地图结果 / N04 搜索 · 地图服务未授权"
     },
     {
       "id": "aKaPs",
-      "name": "v1.9.0 · 04 搜索与地图结果 / 搜索结果返回地图 · 半屏抽屉"
+      "name": "v2.0.0 · 04 搜索与地图结果 / 搜索结果返回地图 · 半屏抽屉"
     },
     {
       "id": "PchBt",
-      "name": "v1.9.0 · 04 搜索与地图结果 / 搜索结果返回地图 · 展开抽屉"
+      "name": "v2.0.0 · 04 搜索与地图结果 / 搜索结果返回地图 · 展开抽屉"
     },
     {
       "id": "QrBb8",
-      "name": "v1.9.0 · 04 搜索与地图结果 / 搜索结果返回地图 · 收起抽屉"
+      "name": "v2.0.0 · 04 搜索与地图结果 / 搜索结果返回地图 · 收起抽屉"
     },
     {
       "id": "p4G1tS",
-      "name": "v1.9.0 · 05 地点详情 / 地点详情与编辑"
+      "name": "v2.0.0 · 05 地点详情 / 地点详情与编辑"
     },
     {
       "id": "XsGon",
-      "name": "v1.9.0 · 05 地点详情 / 地点详情与编辑 · 仅收藏"
+      "name": "v2.0.0 · 05 地点详情 / 地点详情与编辑 · 仅收藏"
     },
     {
       "id": "n2oJu",
-      "name": "v1.9.0 · 05 地点详情 / P01 地点备注与标签编辑"
+      "name": "v2.0.0 · 05 地点详情 / P01 地点备注与标签编辑"
     },
     {
       "id": "cmlqS",
-      "name": "v1.9.0 · 05 地点详情 / P02 搜索结果地图详情 · 未收藏"
+      "name": "v2.0.0 · 05 地点详情 / P02 搜索结果地图详情 · 未收藏"
     },
     {
       "id": "SkMyH",
-      "name": "v1.9.0 · 05 地点详情 / P02 搜索结果地图详情 · 已收藏"
+      "name": "v2.0.0 · 05 地点详情 / P02 搜索结果地图详情 · 已收藏"
     },
     {
       "id": "pfaVY",
-      "name": "v1.9.0 · 05 地点详情 / P03 删除收藏地点"
+      "name": "v2.0.0 · 05 地点详情 / P03 删除收藏地点"
     },
     {
       "id": "yXOEq",
-      "name": "v1.9.0 · 05 地点详情 / P03 取消收藏影响确认"
+      "name": "v2.0.0 · 05 地点详情 / P03 取消收藏影响确认"
     },
     {
       "id": "Pqdkf",
-      "name": "v1.9.0 · 06 安排与编辑 / 从地点池添加地点"
+      "name": "v2.0.0 · 06 安排与编辑 / 从地点池添加地点"
     },
     {
       "id": "zDqcV",
-      "name": "v1.9.0 · 06 安排与编辑 / 从地点池添加 · 未选择状态"
+      "name": "v2.0.0 · 06 安排与编辑 / 从地点池添加 · 未选择状态"
     },
     {
       "id": "xwaRW",
-      "name": "v1.9.0 · 06 安排与编辑 / 从地点池添加 · 已选状态"
+      "name": "v2.0.0 · 06 安排与编辑 / 从地点池添加 · 已选状态"
     },
     {
       "id": "JCOPS",
-      "name": "v1.9.0 · 06 安排与编辑 / 从地点池添加 · 全部城市分组"
+      "name": "v2.0.0 · 06 安排与编辑 / 从地点池添加 · 全部城市分组"
     },
     {
       "id": "xQfD0",
-      "name": "v1.9.0 · 06 安排与编辑 / 加入行程 · 选择日期"
+      "name": "v2.0.0 · 06 安排与编辑 / 加入行程 · 选择日期"
     },
     {
       "id": "cRdBn",
-      "name": "v1.9.0 · 06 安排与编辑 / 加入行程 · 长日期列表"
+      "name": "v2.0.0 · 06 安排与编辑 / 加入行程 · 长日期列表"
     },
     {
       "id": "p7U8B",
-      "name": "v1.9.0 · 06 安排与编辑 / 加入行程 · 无旅行日"
+      "name": "v2.0.0 · 06 安排与编辑 / 加入行程 · 无旅行日"
     },
     {
       "id": "D3XZi",
-      "name": "v1.9.0 · 06 安排与编辑 / 加入行程 · 旅行日已删除"
+      "name": "v2.0.0 · 06 安排与编辑 / 加入行程 · 旅行日已删除"
     },
     {
       "id": "mGhKO",
-      "name": "v1.9.0 · 06 安排与编辑 / 加入行程 · 部分成功"
+      "name": "v2.0.0 · 06 安排与编辑 / 加入行程 · 部分成功"
     },
     {
       "id": "KPBBb",
-      "name": "v1.9.0 · 06 安排与编辑 / 撤销加入 · 成功反馈"
+      "name": "v2.0.0 · 06 安排与编辑 / 撤销加入 · 成功反馈"
     },
     {
       "id": "K336N",
-      "name": "v1.9.0 · 06 安排与编辑 / I11 单笔费用 · 原位填写"
+      "name": "v2.0.0 · 06 安排与编辑 / I11 单笔费用 · 原位填写"
     },
     {
       "id": "T7aESo",
-      "name": "v1.9.0 · 06 安排与编辑 / 交通路段编辑"
+      "name": "v2.0.0 · 06 安排与编辑 / 交通路段编辑"
     },
     {
       "id": "btWFB",
-      "name": "v1.9.0 · 06 安排与编辑 / I08 行程项菜单"
+      "name": "v2.0.0 · 06 安排与编辑 / I08 行程项菜单"
     },
     {
       "id": "dGRLD",
-      "name": "v1.9.0 · 06 安排与编辑 / I08 跨日移动目标"
+      "name": "v2.0.0 · 06 安排与编辑 / I08 跨日移动目标"
     },
     {
       "id": "l2xCsM",
-      "name": "v1.9.0 · 06 安排与编辑 / 删除行程项确认"
+      "name": "v2.0.0 · 06 安排与编辑 / 删除行程项确认"
     },
     {
       "id": "OOEsk",
-      "name": "v1.9.0 · 06 安排与编辑 / 行程修改 · 保存失败"
+      "name": "v2.0.0 · 06 安排与编辑 / 行程修改 · 保存失败"
     },
     {
       "id": "c0vRa",
-      "name": "v1.9.0 · 12 费用统计 / F08 金额格式不合法"
+      "name": "v2.0.0 · 12 费用统计 / F08 金额格式不合法"
     },
     {
       "id": "AnBuD",
-      "name": "v1.9.0 · 06 安排与编辑 / 花费 · 删除影响确认"
+      "name": "v2.0.0 · 06 安排与编辑 / 花费 · 删除影响确认"
     },
     {
       "id": "U06l7P",
-      "name": "v1.9.0 · 07 旅行设置与日期 / 旅行设置"
+      "name": "v2.0.0 · 07 旅行设置与日期 / 旅行设置"
     },
     {
       "id": "zlRxO",
-      "name": "v1.9.0 · 07 旅行设置与日期 / 旅行设置 · 未定日期"
+      "name": "v2.0.0 · 07 旅行设置与日期 / 旅行设置 · 未定日期"
     },
     {
       "id": "hJBDC",
-      "name": "v1.9.0 · 07 旅行设置与日期 / N06 旅行设置 · 读取失败"
+      "name": "v2.0.0 · 07 旅行设置与日期 / N06 旅行设置 · 读取失败"
     },
     {
       "id": "os9Ln",
-      "name": "v1.9.0 · 07 旅行设置与日期 / T04 重命名旅行"
+      "name": "v2.0.0 · 07 旅行设置与日期 / T04 重命名旅行"
     },
     {
       "id": "IKTv5",
-      "name": "v1.9.0 · 07 旅行设置与日期 / 旅行设置 · 修改出行日期"
+      "name": "v2.0.0 · 07 旅行设置与日期 / 旅行设置 · 修改出行日期"
     },
     {
       "id": "L7z4R",
-      "name": "v1.9.0 · 07 旅行设置与日期 / 日期选择 · 超过30天与不完整选择"
+      "name": "v2.0.0 · 07 旅行设置与日期 / 日期选择 · 超过30天与不完整选择"
     },
     {
       "id": "yT6kr",
-      "name": "v1.9.0 · 07 旅行设置与日期 / 旅行日期 · 缩短范围确认"
+      "name": "v2.0.0 · 07 旅行设置与日期 / 旅行日期 · 缩短范围确认"
     },
     {
       "id": "Z9abQQ",
-      "name": "v1.9.0 · 07 旅行设置与日期 / 旅行日期 · 同步失败"
+      "name": "v2.0.0 · 07 旅行设置与日期 / 旅行日期 · 同步失败"
     },
     {
       "id": "zvO9Z",
-      "name": "v1.9.0 · 07 旅行设置与日期 / 添加旅行日"
+      "name": "v2.0.0 · 07 旅行设置与日期 / 添加旅行日"
     },
     {
       "id": "K2LnC",
-      "name": "v1.9.0 · 07 旅行设置与日期 / T06 旅行日排序 · 写入失败"
+      "name": "v2.0.0 · 07 旅行设置与日期 / T06 旅行日排序 · 写入失败"
     },
     {
       "id": "J7PZ7u",
-      "name": "v1.9.0 · 07 旅行设置与日期 / 删除旅行日确认"
+      "name": "v2.0.0 · 07 旅行设置与日期 / 删除旅行日确认"
     },
     {
       "id": "oW9mK",
-      "name": "v1.9.0 · 07 旅行设置与日期 / 删除旅行确认"
+      "name": "v2.0.0 · 07 旅行设置与日期 / 删除旅行确认"
     },
     {
       "id": "Vl15d",
-      "name": "v1.9.0 · 07 旅行设置与日期 / T03 删除旅行 · 影响读取失败"
+      "name": "v2.0.0 · 07 旅行设置与日期 / T03 删除旅行 · 影响读取失败"
     },
     {
       "id": "APvJ3",
-      "name": "v1.9.0 · 07 旅行设置与日期 / T03 删除旅行 · 同步失败"
+      "name": "v2.0.0 · 07 旅行设置与日期 / T03 删除旅行 · 同步失败"
     },
     {
       "id": "W4SNt6",
-      "name": "v1.9.0 · 08 日历 / 时间日历 · 单日"
+      "name": "v2.0.0 · 08 日历 / 时间日历 · 单日"
     },
     {
       "id": "Klkfn",
-      "name": "v1.9.0 · 08 日历 / 时间日历 · 全程"
+      "name": "v2.0.0 · 08 日历 / 时间日历 · 全程"
     },
     {
       "id": "LhMcy",
-      "name": "v1.9.0 · 08 日历 / 时间日历 · 调整时长与未排时间"
+      "name": "v2.0.0 · 08 日历 / 时间日历 · 调整时长与未排时间"
     },
     {
       "id": "T7sn5p",
-      "name": "v1.9.0 · 08 日历 / 时间日历 · 无时间安排"
+      "name": "v2.0.0 · 08 日历 / 时间日历 · 无时间安排"
     },
     {
       "id": "qsgyR",
-      "name": "v1.9.0 · 08 日历 / C01 交叠日程列表"
+      "name": "v2.0.0 · 08 日历 / C01 交叠日程列表"
     },
     {
       "id": "Z1PFU",
-      "name": "v1.9.0 · 08 日历 / C01 日程详情与冲突"
+      "name": "v2.0.0 · 08 日历 / C01 日程详情与冲突"
     },
     {
       "id": "aBMG6",
-      "name": "v1.9.0 · 08 日历 / C02 日历调时 · 保存中"
+      "name": "v2.0.0 · 08 日历 / C02 日历调时 · 保存中"
     },
     {
       "id": "IIQHg",
-      "name": "v1.9.0 · 08 日历 / C02 日历调时 · 保存成功"
+      "name": "v2.0.0 · 08 日历 / C02 日历调时 · 保存成功"
     },
     {
       "id": "dpJ4s",
-      "name": "v1.9.0 · 08 日历 / C02 日历调时 · 保存失败"
+      "name": "v2.0.0 · 08 日历 / C02 日历调时 · 保存失败"
     },
     {
       "id": "EF8ik",
-      "name": "v1.9.0 · 08 日历 / C02 日历调时 · 已撤销"
+      "name": "v2.0.0 · 08 日历 / C02 日历调时 · 已撤销"
     },
     {
       "id": "OSDtB",
-      "name": "v1.9.0 · 09 分享 / R4 当前版 · 全程预览"
+      "name": "v2.0.0 · 09 分享 / R4 当前版 · 全程预览"
     },
     {
       "id": "g2NJ9Q",
-      "name": "v1.9.0 · 09 分享 / R4 当前版 · 单日隐藏备注"
+      "name": "v2.0.0 · 09 分享 / R4 当前版 · 单日隐藏备注"
     },
     {
       "id": "L1ww5",
-      "name": "v1.9.0 · 09 分享 / H01 分享 · 选择旅行日"
+      "name": "v2.0.0 · 09 分享 / H01 分享 · 选择旅行日"
     },
     {
       "id": "ZaTMA",
-      "name": "v1.9.0 · 09 分享 / N05 分享 · 行程加载失败"
+      "name": "v2.0.0 · 09 分享 / N05 分享 · 行程加载失败"
     },
     {
       "id": "Pu1Sx",
-      "name": "v1.9.0 · 09 分享 / N05 分享 · 图片读取失败"
+      "name": "v2.0.0 · 09 分享 / N05 分享 · 图片读取失败"
     },
     {
       "id": "bSyPn",
-      "name": "v1.9.0 · 09 分享 / N05 分享 · 地图缺失降级"
+      "name": "v2.0.0 · 09 分享 / N05 分享 · 地图缺失降级"
     },
     {
       "id": "fSrZV",
-      "name": "v1.9.0 · 09 分享 / R4 当前版 · 最终长图"
+      "name": "v2.0.0 · 09 分享 / R4 当前版 · 最终长图"
     },
     {
       "id": "ryMk5",
-      "name": "v1.9.0 · 09 分享 / H01 分享 · 放大长图展开示意"
+      "name": "v2.0.0 · 09 分享 / H01 分享 · 放大长图展开示意"
     },
     {
       "id": "vdAvS",
-      "name": "v1.9.0 · 09 分享 / R4 当前版 · 生成与失败状态"
+      "name": "v2.0.0 · 09 分享 / R4 当前版 · 生成与失败状态"
     },
     {
       "id": "GUKFC",
-      "name": "v1.9.0 · 09 分享 / R4 当前版 · 输出规则"
+      "name": "v2.0.0 · 09 分享 / R4 当前版 · 输出规则"
     },
     {
       "id": "DUpeg",
-      "name": "v1.9.0 · 10 应用设置主题权限 / 设置 · 主页面"
+      "name": "v2.0.0 · 10 应用设置主题权限 / 设置 · 主页面"
     },
     {
       "id": "WBSL0",
-      "name": "v1.9.0 · 10 应用设置主题权限 / 设置 · 主题配色 · 当前主题"
+      "name": "v2.0.0 · 10 应用设置主题权限 / 设置 · 主题配色 · 当前主题"
     },
     {
       "id": "PDyHG",
-      "name": "v1.9.0 · 10 应用设置主题权限 / 设置 · 主题配色 · 预览与保存失败"
+      "name": "v2.0.0 · 10 应用设置主题权限 / 设置 · 主题配色 · 预览与保存失败"
     },
     {
       "id": "t7QLVZ",
-      "name": "v1.9.0 · 10 应用设置主题权限 / 设置 · 地图授权"
+      "name": "v2.0.0 · 10 应用设置主题权限 / 设置 · 地图授权"
     },
     {
       "id": "ogpD5",
-      "name": "v1.9.0 · 10 应用设置主题权限 / 设置 · 地图授权 · 未授权"
+      "name": "v2.0.0 · 10 应用设置主题权限 / 设置 · 地图授权 · 未授权"
     },
     {
       "id": "tymNg",
-      "name": "v1.9.0 · 10 应用设置主题权限 / A02 首次地图服务授权"
+      "name": "v2.0.0 · 10 应用设置主题权限 / A02 首次地图服务授权"
     },
     {
       "id": "muIJJ",
-      "name": "v1.9.0 · 10 应用设置主题权限 / A02 地图授权 · 报告失败与重试"
+      "name": "v2.0.0 · 10 应用设置主题权限 / A02 地图授权 · 报告失败与重试"
     },
     {
       "id": "YjnJq",
-      "name": "v1.9.0 · 10 应用设置主题权限 / 设置 · 地图授权 · 撤回确认"
+      "name": "v2.0.0 · 10 应用设置主题权限 / 设置 · 地图授权 · 撤回确认"
     },
     {
       "id": "JFhZ7",
-      "name": "v1.9.0 · 10 应用设置主题权限 / 定位权限说明"
+      "name": "v2.0.0 · 10 应用设置主题权限 / 定位权限说明"
     },
     {
       "id": "HYCsZ",
-      "name": "v1.9.0 · 10 应用设置主题权限 / 定位权限 · 前往设置"
+      "name": "v2.0.0 · 10 应用设置主题权限 / 定位权限 · 前往设置"
     },
     {
       "id": "y3Gew",
-      "name": "v1.9.0 · 10 应用设置主题权限 / A05 搜索定位用途说明"
+      "name": "v2.0.0 · 10 应用设置主题权限 / A05 搜索定位用途说明"
     },
     {
       "id": "KyU0S",
-      "name": "v1.9.0 · 10 应用设置主题权限 / A05 搜索定位 · 永久拒绝"
+      "name": "v2.0.0 · 10 应用设置主题权限 / A05 搜索定位 · 永久拒绝"
     },
     {
       "id": "Bl8pI",
-      "name": "v1.9.0 · 11 版本更新 / 设置 · 应用更新 · Idle"
+      "name": "v2.0.0 · 11 版本更新 / 设置 · 应用更新 · Idle"
     },
     {
       "id": "au8lI",
-      "name": "v1.9.0 · 11 版本更新 / 设置 · 应用更新 · Checking"
+      "name": "v2.0.0 · 11 版本更新 / 设置 · 应用更新 · Checking"
     },
     {
       "id": "Tftvp",
-      "name": "v1.9.0 · 11 版本更新 / 设置 · 应用更新 · Current"
+      "name": "v2.0.0 · 11 版本更新 / 设置 · 应用更新 · Current"
     },
     {
       "id": "nSd8w",
-      "name": "v1.9.0 · 11 版本更新 / 设置 · 应用更新 · Ahead"
+      "name": "v2.0.0 · 11 版本更新 / 设置 · 应用更新 · Ahead"
     },
     {
       "id": "TxcuJ",
-      "name": "v1.9.0 · 11 版本更新 / 设置 · 应用更新 · Available"
+      "name": "v2.0.0 · 11 版本更新 / 设置 · 应用更新 · Available"
     },
     {
       "id": "O8f2w",
-      "name": "v1.9.0 · 11 版本更新 / 设置 · 应用更新 · Downloading"
+      "name": "v2.0.0 · 11 版本更新 / 设置 · 应用更新 · Downloading"
     },
     {
       "id": "iNBUq",
-      "name": "v1.9.0 · G01 五主题与状态组件"
+      "name": "v2.0.0 · G01 五主题与状态组件"
     },
     {
       "id": "rg5j1",
-      "name": "v1.9.0 · 11 版本更新 / 设置 · 应用更新 · Ready"
+      "name": "v2.0.0 · 11 版本更新 / 设置 · 应用更新 · Ready"
     },
     {
       "id": "IQMCC",
-      "name": "v1.9.0 · 00A 路由与旅行状态索引"
+      "name": "v2.0.0 · 00A 路由与旅行状态索引"
     },
     {
       "id": "f0TO9",
-      "name": "v1.9.0 · 11 版本更新 / 设置 · 应用更新 · Failed"
+      "name": "v2.0.0 · 11 版本更新 / 设置 · 应用更新 · Failed"
     },
     {
       "id": "FpRZH",
-      "name": "v1.9.0 · 00B 地点与行程状态索引"
+      "name": "v2.0.0 · 00B 地点与行程状态索引"
     },
     {
       "id": "S2mZg",
-      "name": "v1.9.0 · 11 版本更新 / 设置 · 应用更新 · DownloadFailed"
+      "name": "v2.0.0 · 11 版本更新 / 设置 · 应用更新 · DownloadFailed"
     },
     {
       "id": "OUIyx",
-      "name": "v1.9.0 · 00C 费用权限分享与系统索引"
+      "name": "v2.0.0 · 00C 费用权限分享与系统索引"
     },
     {
       "id": "yTqpm",
-      "name": "v1.9.0 · UI Kit 扩展 / 费用分类与状态约定"
+      "name": "v2.0.0 · UI Kit 扩展 / 费用分类与状态约定"
     },
     {
       "id": "yDpRU",
-      "name": "v1.9.0 · 12 费用统计 / F03 全程分类汇总"
+      "name": "v2.0.0 · 12 费用统计 / F03 全程分类汇总"
     },
     {
       "id": "ZDSMb",
-      "name": "v1.9.0 · 12 费用统计 / F03 第1天分类汇总"
+      "name": "v2.0.0 · 12 费用统计 / F03 第1天分类汇总"
     },
     {
       "id": "qpK3w",
-      "name": "v1.9.0 · 12 费用统计 / F04 全程费用明细"
+      "name": "v2.0.0 · 12 费用统计 / F04 全程费用明细"
     },
     {
       "id": "h9eKnf",
-      "name": "v1.9.0 · 12 费用统计 / F04 吃饭分类明细"
+      "name": "v2.0.0 · 12 费用统计 / F04 吃饭分类明细"
     },
     {
       "id": "kdeup",
-      "name": "v1.9.0 · 12 费用统计 / F05 选择费用分类"
+      "name": "v2.0.0 · 12 费用统计 / F05 选择费用分类"
     },
     {
       "id": "UtdGR",
-      "name": "v1.9.0 · 12 费用统计 / F06 旧费用待分类"
+      "name": "v2.0.0 · 12 费用统计 / F06 旧费用待分类"
     },
     {
       "id": "XLxbY",
-      "name": "v1.9.0 · 12 费用统计 / F07 尚未记录费用"
+      "name": "v2.0.0 · 12 费用统计 / F07 尚未记录费用"
     },
     {
       "id": "qMLBw",
-      "name": "v1.9.0 · 12 费用统计 / F07 读取失败"
+      "name": "v2.0.0 · 12 费用统计 / F07 读取失败"
     },
     {
       "id": "b2TIs",
-      "name": "v1.9.0 · 12 费用统计 / F07 正在加载"
+      "name": "v2.0.0 · 12 费用统计 / F07 正在加载"
     },
     {
       "id": "R38ET",
-      "name": "v1.9.0 · 12 费用统计 / F07 分类暂无记录"
+      "name": "v2.0.0 · 12 费用统计 / F07 分类暂无记录"
     },
     {
       "id": "lstLS",
-      "name": "v1.9.0 · 12 费用统计 / F07 已记录零元"
+      "name": "v2.0.0 · 12 费用统计 / F07 已记录零元"
     },
     {
       "id": "wtN9w",
-      "name": "v1.9.0 · 12 费用统计 / F08 未选类别"
+      "name": "v2.0.0 · 12 费用统计 / F08 未选类别"
     },
     {
       "id": "jc8OW",
-      "name": "v1.9.0 · 12 费用统计 / F08 正在保存费用"
+      "name": "v2.0.0 · 12 费用统计 / F08 正在保存费用"
     },
     {
       "id": "e9v0Ll",
-      "name": "v1.9.0 · 12 费用统计 / F08 保存失败保留草稿"
+      "name": "v2.0.0 · 12 费用统计 / F08 保存失败保留草稿"
     },
     {
       "id": "zeIKe",
-      "name": "v1.9.0 · 00D 费用分类新增页面与交互索引"
+      "name": "v2.0.0 · 00D 费用分类新增页面与交互索引"
     },
     {
       "id": "a3Vyzc",
-      "name": "v1.9.0 · 12 费用统计 / F09 已保存地点费用"
+      "name": "v2.0.0 · 12 费用统计 / F09 已保存地点费用"
     },
     {
       "id": "g04zi6",
-      "name": "v1.9.0 · 12 费用统计 / F10 编辑已有单笔费用"
+      "name": "v2.0.0 · 12 费用统计 / F10 编辑已有单笔费用"
     },
     {
       "id": "ZKtJS",
-      "name": "v1.9.0 · 12 费用统计 / F09 地点尚无费用"
+      "name": "v2.0.0 · 12 费用统计 / F09 地点尚无费用"
     },
     {
       "id": "bO8eg",
-      "name": "v1.9.0 · 12 费用统计 / F10 删除单笔费用确认"
+      "name": "v2.0.0 · 12 费用统计 / F10 删除单笔费用确认"
     },
     {
       "id": "qf6FO",
-      "name": "v1.9.0 · 12 费用统计 / F10 删除失败保留记录"
+      "name": "v2.0.0 · 12 费用统计 / F10 删除失败保留记录"
     },
     {
       "id": "J0icRI",
-      "name": "v1.9.0 · 12 费用统计 / F10 放弃未保存费用确认"
+      "name": "v2.0.0 · 12 费用统计 / F10 放弃未保存费用确认"
     },
     {
       "id": "e9WXQ7",
-      "name": "v1.9.0 · 12 费用统计 / F11 行程移动与费用归属"
+      "name": "v2.0.0 · 12 费用统计 / F11 行程移动与费用归属"
     },
     {
       "id": "X6moH",
-      "name": "v1.9.0 · 12 费用统计 / F10 删除成功后的费用列表"
+      "name": "v2.0.0 · 12 费用统计 / F10 删除成功后的费用列表"
     },
     {
       "id": "cLK9E",
-      "name": "v1.9.0 · UI Kit / 花费一级导航与回顾组件"
+      "name": "v2.0.0 · UI Kit / 花费一级导航与回顾组件"
     },
     {
       "id": "RXZKO",
-      "name": "v1.9.0 · 13 花费回顾 / R01b 往年年度回顾"
+      "name": "v2.0.0 · 13 花费回顾 / R01b 往年年度回顾"
     },
     {
       "id": "KRpe6",
-      "name": "v1.9.0 · 13 花费回顾 / R01a 当前年度默认页"
+      "name": "v2.0.0 · 13 花费回顾 / R01a 当前年度默认页"
     },
     {
       "id": "HneoD",
-      "name": "v1.9.0 · 13 花费回顾 / R02a 历年花费"
+      "name": "v2.0.0 · 13 花费回顾 / R02a 历年花费"
     },
     {
       "id": "zTmms",
-      "name": "v1.9.0 · 13 花费回顾 / R02b 选择年份"
+      "name": "v2.0.0 · 13 花费回顾 / R02b 选择年份"
     },
     {
       "id": "Vhvrp",
-      "name": "v1.9.0 · 13 花费回顾 / R03 月度花费"
+      "name": "v2.0.0 · 13 花费回顾 / R03 月度花费"
     },
     {
       "id": "nQ6Rc",
-      "name": "v1.9.0 · 13 花费回顾 / R04 吃饭明细"
+      "name": "v2.0.0 · 13 花费回顾 / R04 吃饭明细"
     },
     {
       "id": "hdBAO",
-      "name": "v1.9.0 · 13 花费回顾 / R05a 旅行花费"
+      "name": "v2.0.0 · 13 花费回顾 / R05a 旅行花费"
     },
     {
       "id": "aMjeC",
-      "name": "v1.9.0 · 13 花费回顾 / R05b 旅行花费"
+      "name": "v2.0.0 · 13 花费回顾 / R05b 旅行花费"
     },
     {
       "id": "LKCrU",
-      "name": "v1.9.0 · 13 花费回顾 / R06 未确定日期"
+      "name": "v2.0.0 · 13 花费回顾 / R06 未确定日期"
     },
     {
       "id": "j0Qyo",
-      "name": "v1.9.0 · 13 花费回顾 / R07 日期变更影响"
+      "name": "v2.0.0 · 13 花费回顾 / R07 日期变更影响"
     },
     {
       "id": "UsCW3",
-      "name": "v1.9.0 · 13 花费回顾 / R08a 全局尚无费用"
+      "name": "v2.0.0 · 13 花费回顾 / R08a 全局尚无费用"
     },
     {
       "id": "Gtkn0",
-      "name": "v1.9.0 · 13 花费回顾 / R08b 选中月份无记录"
+      "name": "v2.0.0 · 13 花费回顾 / R08b 选中月份无记录"
     },
     {
       "id": "J6FXq8",
-      "name": "v1.9.0 · 13 花费回顾 / R08c 正在读取"
+      "name": "v2.0.0 · 13 花费回顾 / R08c 正在读取"
     },
     {
       "id": "p7wMl",
-      "name": "v1.9.0 · 13 花费回顾 / R08d 读取失败"
+      "name": "v2.0.0 · 13 花费回顾 / R08d 读取失败"
     },
     {
       "id": "FcfWi",
-      "name": "v1.9.0 · 13 花费回顾 / R09 已记录零元"
+      "name": "v2.0.0 · 13 花费回顾 / R09 已记录零元"
     },
     {
       "id": "tZBIo",
-      "name": "v1.9.0 · 13 花费回顾 / R03b 选择月份"
+      "name": "v2.0.0 · 13 花费回顾 / R03b 选择月份"
     },
     {
       "id": "zigQL",
-      "name": "v1.9.0 · 13 花费回顾 / R08e 年度无记录"
+      "name": "v2.0.0 · 13 花费回顾 / R08e 年度无记录"
     },
     {
       "id": "wrCUP",
-      "name": "v1.9.0 · 00E 花费一级入口与年月回顾索引"
+      "name": "v2.0.0 · 00E 花费一级入口与年月回顾索引"
     },
     {
       "id": "n3gdp",
-      "name": "v1.9.0 · 06 安排与编辑 / I12 时间展开 · 费用草稿保留"
+      "name": "v2.0.0 · 06 安排与编辑 / I12 时间展开 · 费用草稿保留"
     },
     {
       "id": "xvbGI",
-      "name": "v1.9.0 · 00F 编辑地点内联费用 / I11–I20"
+      "name": "v2.0.0 · 00F 编辑地点内联费用 / I11–I20"
     },
     {
       "id": "K1FWk",
-      "name": "v1.9.0 · 06 安排与编辑 / I11a 无费用 · 直接填写"
+      "name": "v2.0.0 · 06 安排与编辑 / I11a 无费用 · 直接填写"
     },
     {
       "id": "c6Qm4",
-      "name": "v1.9.0 · 06 安排与编辑 / I13 再记一笔 · 原位展开"
+      "name": "v2.0.0 · 06 安排与编辑 / I13 再记一笔 · 原位展开"
     },
     {
       "id": "AUmc8",
-      "name": "v1.9.0 · 06 安排与编辑 / I14 已有多笔 · 按需展开"
+      "name": "v2.0.0 · 06 安排与编辑 / I14 已有多笔 · 按需展开"
     },
     {
       "id": "s3Zi55",
-      "name": "v1.9.0 · 06 安排与编辑 / I15 半填与金额校验"
+      "name": "v2.0.0 · 06 安排与编辑 / I15 半填与金额校验"
     },
     {
       "id": "v1Jpf",
-      "name": "v1.9.0 · 06 安排与编辑 / I16 数字键盘 · 保存可达"
+      "name": "v2.0.0 · 06 安排与编辑 / I16 数字键盘 · 保存可达"
     },
     {
       "id": "I8AeaP",
-      "name": "v1.9.0 · 06 安排与编辑 / I17 统一保存中"
+      "name": "v2.0.0 · 06 安排与编辑 / I17 统一保存中"
     },
     {
       "id": "ADrnE",
-      "name": "v1.9.0 · 06 安排与编辑 / I18 放弃整份草稿确认"
+      "name": "v2.0.0 · 06 安排与编辑 / I18 放弃整份草稿确认"
     },
     {
       "id": "mJFlG",
-      "name": "v1.9.0 · 06 安排与编辑 / I19 移除本笔 · 保存前可撤销"
+      "name": "v2.0.0 · 06 安排与编辑 / I19 移除本笔 · 保存前可撤销"
     },
     {
       "id": "I7jshV",
-      "name": "v1.9.0 · 06 安排与编辑 / I20 多笔列表 · 本页展开全部"
+      "name": "v2.0.0 · 06 安排与编辑 / I20 多笔列表 · 本页展开全部"
     }
   ],
   "disabled_roots": [
@@ -1345,8 +1344,8 @@
         "yq8pE",
         "oYNJg"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1378,8 +1377,8 @@
         "PtwjB",
         "WWA8d"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1412,8 +1411,8 @@
         "i3yxsc",
         "RC3d3"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1447,8 +1446,8 @@
         "sT8u9",
         "EBQcJ"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1478,8 +1477,8 @@
         "Pu1Sx",
         "bSyPn"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1506,8 +1505,8 @@
         "hJBDC",
         "K2LnC"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1528,8 +1527,8 @@
       "frames": [
         "DUpeg"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1554,8 +1553,8 @@
         "muIJJ",
         "YjnJq"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1592,8 +1591,8 @@
         "f0TO9",
         "S2mZg"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1618,8 +1617,8 @@
         "IKTv5",
         "L7z4R"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1638,8 +1637,8 @@
       "frames": [
         "oYNJg"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1665,8 +1664,8 @@
         "Vl15d",
         "APvJ3"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1686,8 +1685,8 @@
       "frames": [
         "os9Ln"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1713,8 +1712,8 @@
         "yT6kr",
         "Z9abQQ"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1740,8 +1739,8 @@
         "zvO9Z",
         "J7PZ7u"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1770,8 +1769,8 @@
         "lsr1I",
         "JCOPS"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1799,8 +1798,8 @@
         "ge7BC",
         "WWA8d"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1824,8 +1823,8 @@
         "FTIOF",
         "kuta1"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1851,8 +1850,8 @@
         "T7sn5p",
         "LhMcy"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1875,8 +1874,8 @@
       "frames": [
         "Klkfn"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1903,8 +1902,8 @@
         "PchBt",
         "QrBb8"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1928,8 +1927,8 @@
         "ijpZD",
         "shoPV"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1953,8 +1952,8 @@
         "cmlqS",
         "SkMyH"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -1981,8 +1980,8 @@
         "XsGon",
         "n2oJu"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2006,8 +2005,8 @@
         "SkMyH",
         "n2oJu"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2030,8 +2029,8 @@
         "pfaVY",
         "yXOEq"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2056,8 +2055,8 @@
         "zDqcV",
         "JCOPS"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2083,8 +2082,8 @@
         "p7U8B",
         "D3XZi"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2108,8 +2107,8 @@
         "KPBBb",
         "D3XZi"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2130,8 +2129,8 @@
       "frames": [
         "zvO9Z"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2154,8 +2153,8 @@
       "frames": [
         "J7PZ7u"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2183,8 +2182,8 @@
         "c6Qm4",
         "AUmc8"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE",
       "v1_9_amendment": "地点时间、停留、备注与全部费用共享整页草稿；保存一次原子提交，取消整份放弃。"
@@ -2212,8 +2211,8 @@
         "c0vRa",
         "OOEsk"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2237,8 +2236,8 @@
         "btWFB",
         "dGRLD"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2259,8 +2258,8 @@
       "frames": [
         "l2xCsM"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2280,8 +2279,8 @@
       "frames": [
         "OOEsk"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE",
       "v1_9_amendment": "时间、停留、地点备注与全部费用改动一起留稿；已保存数据完全不变，不允许部分成功。"
@@ -2307,8 +2306,8 @@
         "qsgyR",
         "Z1PFU"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2337,8 +2336,8 @@
         "EF8ik",
         "aBMG6"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2369,8 +2368,8 @@
         "s3Zi55",
         "T7aESo"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE",
       "v1_9_amendment": "地点页直接填写第一笔，第二笔及以后在同页增加；费用和地点整页统一保存。交通路段沿用原金额录入。"
@@ -2391,8 +2390,8 @@
       "frames": [
         "AnBuD"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE",
       "v1_9_amendment": "删除影响按所有受影响费用记录计数和合计，不按地点数量；取消全部保留。"
@@ -2422,8 +2421,8 @@
         "PDyHG",
         "iNBUq"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2447,8 +2446,8 @@
         "ogpD5",
         "muIJJ"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2468,8 +2467,8 @@
         "YjnJq",
         "t7QLVZ"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2493,8 +2492,8 @@
         "JFhZ7",
         "HYCsZ"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2518,8 +2517,8 @@
         "RK5rH",
         "sT8u9"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2542,8 +2541,8 @@
         "ryMk5",
         "Pu1Sx"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2571,8 +2570,8 @@
         "bSyPn",
         "GUKFC"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2602,8 +2601,8 @@
         "iNBUq",
         "vdAvS"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2632,8 +2631,8 @@
         "rg5j1",
         "OSDtB"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE"
     },
@@ -2651,10 +2650,10 @@
         "yDpRU",
         "ZDSMb"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "MCP设计结构和静态回读，不代表已实现路由或运行验收。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "F03",
@@ -2671,10 +2670,10 @@
         "yDpRU",
         "ZDSMb"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "MCP设计结构和静态回读，不代表已实现路由或运行验收。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "F04",
@@ -2689,10 +2688,10 @@
         "qpK3w",
         "h9eKnf"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "MCP设计结构和静态回读，不代表已实现路由或运行验收。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "F05",
@@ -2714,10 +2713,10 @@
         "g04zi6",
         "T7aESo"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "MCP设计结构和静态回读，不代表已实现路由或运行验收。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "F06",
@@ -2734,10 +2733,10 @@
       "frames": [
         "UtdGR"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "MCP设计结构和静态回读，不代表已实现路由或运行验收。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "F07",
@@ -2757,10 +2756,10 @@
         "R38ET",
         "lstLS"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_DRAFT_AWAITING_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "MCP设计结构和静态回读，不代表已实现路由或运行验收。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "F08",
@@ -2783,10 +2782,10 @@
         "e9v0Ll",
         "c0vRa"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "MCP设计结构和静态回读，不代表已实现路由或运行验收。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "F09",
@@ -2802,10 +2801,10 @@
         "a3Vyzc",
         "ZKtJS"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "状态画板与契约覆盖；加载/键盘/来源失效等不是逐一运行验收，也并非每项都有独立画板。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "F10",
@@ -2825,10 +2824,10 @@
         "J0icRI",
         "X6moH"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "状态画板与契约覆盖；加载/键盘/来源失效等不是逐一运行验收，也并非每项都有独立画板。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "F11",
@@ -2845,10 +2844,10 @@
         "ZKtJS",
         "a3Vyzc"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "状态画板与契约覆盖；加载/键盘/来源失效等不是逐一运行验收，也并非每项都有独立画板。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "N11",
@@ -2870,9 +2869,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "R01",
@@ -2887,9 +2886,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "R02",
@@ -2904,9 +2903,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "R03",
@@ -2921,9 +2920,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "R04",
@@ -2939,9 +2938,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "R05",
@@ -2956,9 +2955,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "R06",
@@ -2972,9 +2971,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "R07",
@@ -2989,9 +2988,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "R08",
@@ -3009,9 +3008,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "R09",
@@ -3025,9 +3024,9 @@
       "source_paths": [
         "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
       ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     },
     {
       "id": "I11",
@@ -3061,10 +3060,10 @@
         "n3gdp",
         "OOEsk"
       ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_INLINE_EXPENSE_UI_REVIEW",
+      "introduced_in": "2.0.0",
+      "design_status": "INHERITED_LAYOUT_UNCHANGED_CURRENT_FILE_REOPEN_VERIFIED",
       "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Pencil MCP结构、原生保存关闭重开和静态视觉回读；不代表应用路由、数据库或运行验收。"
+      "evidence_boundary": "继承已核验v1.9.0冻结设计，根ID/结构保留；当前v2.0.0正式源已原生关闭重开并MCP回读，不是逐状态运行验收。"
     }
   ],
   "categories": [
@@ -3074,14 +3073,6 @@
     "吃饭",
     "购物",
     "其它"
-  ],
-  "pending_review_assumptions": [
-    "地点内联费用默认最多展示三笔，更多记录在当前页展开全部",
-    "同一时间最多展开一笔费用编辑，其余收起为可读摘要",
-    "到达时间默认显示紧凑摘要，点击继续使用原时间滚轮和待定能力",
-    "数字键盘出现时统一保存区固定在键盘上方，正文允许滚动",
-    "交通路段继续沿用单金额录入并归交通，本轮只扩展地点多笔",
-    "跨日房费整笔归所在旅行日，不自动摊销；移动行程时费用随行"
   ],
   "sample": {
     "currency": "CNY",
@@ -3184,19 +3175,7 @@
     "WholeTrip structural/semantic/layout/timing assertions (6)",
     "API31 system-share chooser package assertion; final return validation not reached (1)"
   ],
-  "this_revision_new_roots": [
-    "n3gdp",
-    "K1FWk",
-    "c6Qm4",
-    "AUmc8",
-    "s3Zi55",
-    "v1Jpf",
-    "I8AeaP",
-    "ADrnE",
-    "mJFlG",
-    "I7jshV",
-    "xvbGI"
-  ],
+  "this_revision_new_roots": [],
   "approved_requirements": [
     "一个行程地点可以录入多笔费用",
     "每笔独立选择一个固定类别，同一类别也能录入多笔",
@@ -3208,13 +3187,188 @@
     "花费独立入口，跨旅行按历年年度月度回顾",
     "按费用所属旅行日归集年月，不按录入时间",
     "跨年按笔分开，无日期列入未确定日期并计入全部",
-    "不增加预付实付或支付状态"
+    "不增加预付实付或支付状态",
+    "本轮花费大改目标版本统一改为v2.0.0"
   ],
-  "review_boundary": "用户已确认业务方向、日期口径和地点内联费用主交互；本轮界面细节仍待评审，不代表实现、发布或运行验收授权。",
+  "review_boundary": "用户于2026-10-09确认界面方案并改目标为v2.0.0；原生保存关闭重开及MCP回读通过。尚未实现、发布或运行验收。",
   "this_revision_baseline_commit": "e27731de309d7ec6e536e24aea10921f7bc63443",
   "this_revision_changed_roots": [
+    "f7rS8",
+    "t3MG7p",
+    "K9h3r",
+    "D03lK",
+    "zIbEu",
+    "rd2Iu",
+    "LoQrS",
+    "yq8pE",
+    "oYNJg",
+    "PnhPb",
+    "SKABj",
+    "dzhkC",
+    "QDPQR",
+    "YYo6U",
+    "yIGiQ",
+    "mpGO8",
+    "AC91v",
+    "PtwjB",
+    "WWA8d",
+    "A9EKX",
+    "lsr1I",
+    "BrYVA",
+    "SwjuL",
+    "i3yxsc",
+    "RC3d3",
+    "GoxB6",
+    "U8R5i",
+    "LFmzR",
+    "Bcf6A",
+    "ge7BC",
+    "FTIOF",
+    "kuta1",
+    "P7k0M",
+    "E3EhSv",
+    "ijpZD",
+    "shoPV",
+    "ny0pT",
+    "ofdn5",
+    "s1OvvX",
+    "S0psO",
+    "GJo79",
+    "RK5rH",
+    "sT8u9",
+    "EBQcJ",
+    "aKaPs",
+    "PchBt",
+    "QrBb8",
+    "p4G1tS",
+    "XsGon",
+    "n2oJu",
+    "cmlqS",
+    "SkMyH",
+    "pfaVY",
+    "yXOEq",
+    "Pqdkf",
+    "zDqcV",
+    "xwaRW",
+    "JCOPS",
+    "xQfD0",
+    "cRdBn",
+    "p7U8B",
+    "D3XZi",
+    "mGhKO",
+    "KPBBb",
     "K336N",
+    "T7aESo",
+    "btWFB",
+    "dGRLD",
+    "l2xCsM",
+    "OOEsk",
+    "c0vRa",
+    "AnBuD",
+    "U06l7P",
+    "zlRxO",
+    "hJBDC",
+    "os9Ln",
+    "IKTv5",
+    "L7z4R",
+    "yT6kr",
+    "Z9abQQ",
+    "zvO9Z",
+    "K2LnC",
+    "J7PZ7u",
+    "oW9mK",
+    "Vl15d",
+    "APvJ3",
+    "W4SNt6",
+    "Klkfn",
+    "LhMcy",
+    "T7sn5p",
+    "qsgyR",
+    "Z1PFU",
+    "aBMG6",
+    "IIQHg",
+    "dpJ4s",
+    "EF8ik",
+    "OSDtB",
+    "g2NJ9Q",
+    "L1ww5",
+    "ZaTMA",
+    "Pu1Sx",
+    "bSyPn",
+    "fSrZV",
+    "ryMk5",
+    "vdAvS",
+    "GUKFC",
+    "DUpeg",
+    "WBSL0",
+    "PDyHG",
+    "t7QLVZ",
+    "ogpD5",
+    "tymNg",
+    "muIJJ",
+    "YjnJq",
+    "JFhZ7",
+    "HYCsZ",
+    "y3Gew",
+    "KyU0S",
+    "Bl8pI",
+    "au8lI",
+    "Tftvp",
+    "nSd8w",
+    "TxcuJ",
+    "O8f2w",
+    "iNBUq",
+    "rg5j1",
+    "IQMCC",
+    "f0TO9",
+    "FpRZH",
+    "S2mZg",
+    "OUIyx",
+    "yTqpm",
+    "yDpRU",
+    "ZDSMb",
+    "qpK3w",
+    "h9eKnf",
+    "kdeup",
+    "UtdGR",
+    "XLxbY",
+    "qMLBw",
+    "b2TIs",
+    "R38ET",
+    "lstLS",
+    "wtN9w",
+    "jc8OW",
+    "e9v0Ll",
+    "zeIKe",
+    "a3Vyzc",
+    "g04zi6",
+    "ZKtJS",
+    "bO8eg",
+    "qf6FO",
+    "J0icRI",
+    "e9WXQ7",
+    "X6moH",
+    "cLK9E",
+    "RXZKO",
+    "KRpe6",
+    "HneoD",
+    "zTmms",
+    "Vhvrp",
+    "nQ6Rc",
+    "hdBAO",
+    "aMjeC",
+    "LKCrU",
+    "j0Qyo",
+    "UsCW3",
+    "Gtkn0",
+    "J6FXq8",
+    "p7wMl",
+    "FcfWi",
+    "tZBIo",
+    "zigQL",
+    "wrCUP",
     "n3gdp",
+    "xvbGI",
     "K1FWk",
     "c6Qm4",
     "AUmc8",
@@ -3223,27 +3377,7 @@
     "I8AeaP",
     "ADrnE",
     "mJFlG",
-    "I7jshV",
-    "xvbGI",
-    "OOEsk",
-    "FpRZH",
-    "OUIyx",
-    "yTqpm",
-    "zeIKe",
-    "a3Vyzc",
-    "X6moH",
-    "ZKtJS",
-    "t3MG7p",
-    "g04zi6",
-    "wtN9w",
-    "jc8OW",
-    "e9v0Ll",
-    "c0vRa",
-    "bO8eg",
-    "qf6FO",
-    "J0icRI",
-    "kdeup",
-    "DRICS"
+    "I7jshV"
   ],
   "annual_review_sample": {
     "currency": "CNY",
@@ -3297,5 +3431,148 @@
       "year2026_after": 1000,
       "all_total_unchanged": 23233
     }
-  }
+  },
+  "inheritance_note": "完整直接继承185个有效根的v1.9.0未发布冻结设计；实现功能基线仍v1.8.3，保留131根。旧easy-trip-v2.0.pen历史探索未使用。",
+  "implementation_baseline_version": "1.8.3",
+  "implementation_baseline_root_ids": [
+    "f7rS8",
+    "t3MG7p",
+    "K9h3r",
+    "D03lK",
+    "zIbEu",
+    "rd2Iu",
+    "LoQrS",
+    "yq8pE",
+    "oYNJg",
+    "PnhPb",
+    "SKABj",
+    "dzhkC",
+    "QDPQR",
+    "YYo6U",
+    "yIGiQ",
+    "mpGO8",
+    "AC91v",
+    "PtwjB",
+    "WWA8d",
+    "A9EKX",
+    "lsr1I",
+    "BrYVA",
+    "SwjuL",
+    "i3yxsc",
+    "RC3d3",
+    "GoxB6",
+    "U8R5i",
+    "LFmzR",
+    "Bcf6A",
+    "ge7BC",
+    "FTIOF",
+    "kuta1",
+    "P7k0M",
+    "E3EhSv",
+    "ijpZD",
+    "shoPV",
+    "ny0pT",
+    "ofdn5",
+    "s1OvvX",
+    "S0psO",
+    "GJo79",
+    "RK5rH",
+    "sT8u9",
+    "EBQcJ",
+    "aKaPs",
+    "PchBt",
+    "QrBb8",
+    "p4G1tS",
+    "XsGon",
+    "n2oJu",
+    "cmlqS",
+    "SkMyH",
+    "pfaVY",
+    "yXOEq",
+    "Pqdkf",
+    "zDqcV",
+    "xwaRW",
+    "JCOPS",
+    "xQfD0",
+    "cRdBn",
+    "p7U8B",
+    "D3XZi",
+    "mGhKO",
+    "KPBBb",
+    "K336N",
+    "T7aESo",
+    "btWFB",
+    "dGRLD",
+    "l2xCsM",
+    "OOEsk",
+    "c0vRa",
+    "AnBuD",
+    "U06l7P",
+    "zlRxO",
+    "hJBDC",
+    "os9Ln",
+    "IKTv5",
+    "L7z4R",
+    "yT6kr",
+    "Z9abQQ",
+    "zvO9Z",
+    "K2LnC",
+    "J7PZ7u",
+    "oW9mK",
+    "Vl15d",
+    "APvJ3",
+    "W4SNt6",
+    "Klkfn",
+    "LhMcy",
+    "T7sn5p",
+    "qsgyR",
+    "Z1PFU",
+    "aBMG6",
+    "IIQHg",
+    "dpJ4s",
+    "EF8ik",
+    "OSDtB",
+    "g2NJ9Q",
+    "L1ww5",
+    "ZaTMA",
+    "Pu1Sx",
+    "bSyPn",
+    "fSrZV",
+    "ryMk5",
+    "vdAvS",
+    "GUKFC",
+    "DUpeg",
+    "WBSL0",
+    "PDyHG",
+    "t7QLVZ",
+    "ogpD5",
+    "tymNg",
+    "muIJJ",
+    "YjnJq",
+    "JFhZ7",
+    "HYCsZ",
+    "y3Gew",
+    "KyU0S",
+    "Bl8pI",
+    "au8lI",
+    "Tftvp",
+    "nSd8w",
+    "TxcuJ",
+    "O8f2w",
+    "iNBUq",
+    "rg5j1",
+    "IQMCC",
+    "f0TO9",
+    "FpRZH",
+    "S2mZg",
+    "OUIyx"
+  ],
+  "approved_design_decisions": [
+    "地点内联费用默认最多展示三笔，更多记录在当前页展开全部",
+    "同一时间最多展开一笔费用编辑，其余收起为可读摘要",
+    "到达时间默认显示紧凑摘要，点击继续使用原时间滚轮和待定能力",
+    "数字键盘出现时统一保存区固定在键盘上方，正文允许滚动",
+    "交通路段继续沿用单金额录入并归交通，本轮只扩展地点多笔",
+    "跨日房费整笔归所在旅行日，不自动摊销；移动行程时费用随行"
+  ]
 }

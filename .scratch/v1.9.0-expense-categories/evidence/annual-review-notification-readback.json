@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "identity": "bot",
+  "data": {
+    "messages": [
+      {
+        "chat_id": "oc_b5dc30707aff7eb5628922703c9b3814",
+        "content": "Easy Trip v1.9.0 花费回顾设计已更新，待评审。\n\n• 新增旅行／花费一级切换；支持历年、年度、月度、六类明细与旅行贡献。\n• 按旅行日归属年月，跨年按笔拆分；未定日期单列。不新增预付、支付状态或独立记账。\n• 保留原地点多笔能力；新增17个页面状态，正式源现176有效根。\n• 已原生保存、关闭并从当前6934工作树精确路径重开；32个修改根文字裁切/引用断开为0，顶层重叠为0。年度画板已在Pencil选中，可继续查看。\n• 仅设计：未改应用或数据库，未运行应用测试，未提交或推送；旧8项UI断言仍开放。\n\n正式源：/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen\n规格：docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md\nSHA256：e3c190488e07ae2262a7435bfee0e2c8fd460348e5ed77a0acc3cdbc9ad8fff3",
+        "create_time": "2026-10-09 15:06",
+        "deleted": false,
+        "message_app_link": "https://applink.feishu.cn/client/chat/open?openChatId=oc_b5dc30707aff7eb5628922703c9b3814\u0026position=2654",
+        "message_id": "om_x100b63bd698fd49cc33810bcadd5769",
+        "message_position": "2654",
+        "msg_type": "text",
+        "sender": {
+          "id": "cli_aaa104e4de399cca",
+          "id_type": "app_id",
+          "name": "punk-12 for Codex",
+          "open_bot_id": "ou_7c43439a6f6149329ae2770457ad1b23",
+          "sender_i18n_names": {
+            "en_us": "punk-12 for Codex",
+            "zh_cn": "punk-12 for Codex"
+          },
+          "sender_type": "app",
+          "tenant_key": "736588c9260f175d"
+        },
+        "update_time": "2026-10-09 15:06",
+        "updated": true
+      }
+    ],
+    "total": 1
+  }
+}

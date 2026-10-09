@@ -1,0 +1,605 @@
+{
+  "label": "Synthetic design example, not user data or application test",
+  "records": [
+    {
+      "id": "hangzhou-1",
+      "trip": "hangzhou",
+      "date": "2025-04-12",
+      "category": "景点",
+      "cents": 0,
+      "label": "西湖天地"
+    },
+    {
+      "id": "hangzhou-2",
+      "trip": "hangzhou",
+      "date": "2025-04-12",
+      "category": "吃饭",
+      "cents": 6800,
+      "label": "知味观"
+    },
+    {
+      "id": "hangzhou-3",
+      "trip": "hangzhou",
+      "date": "2025-04-12",
+      "category": "住宿",
+      "cents": 60000,
+      "label": "湖畔酒店"
+    },
+    {
+      "id": "hangzhou-4",
+      "trip": "hangzhou",
+      "date": "2025-04-12",
+      "category": "吃饭",
+      "cents": 12000,
+      "label": "湖畔酒店晚餐"
+    },
+    {
+      "id": "hangzhou-5",
+      "trip": "hangzhou",
+      "date": "2025-04-12",
+      "category": "吃饭",
+      "cents": 4000,
+      "label": "湖畔酒店早餐"
+    },
+    {
+      "id": "hangzhou-6",
+      "trip": "hangzhou",
+      "date": "2025-04-13",
+      "category": "景点",
+      "cents": 9000,
+      "label": "灵隐寺"
+    },
+    {
+      "id": "hangzhou-7",
+      "trip": "hangzhou",
+      "date": "2025-04-13",
+      "category": "交通",
+      "cents": 3850,
+      "label": "路线"
+    },
+    {
+      "id": "hangzhou-8",
+      "trip": "hangzhou",
+      "date": "2025-04-13",
+      "category": "吃饭",
+      "cents": 11000,
+      "label": "北山街"
+    },
+    {
+      "id": "hangzhou-9",
+      "trip": "hangzhou",
+      "date": "2025-04-14",
+      "category": "购物",
+      "cents": 12000,
+      "label": "小河直街"
+    },
+    {
+      "id": "hangzhou-10",
+      "trip": "hangzhou",
+      "date": "2025-04-14",
+      "category": "交通",
+      "cents": 2000,
+      "label": "路线"
+    },
+    {
+      "id": "hangzhou-11",
+      "trip": "hangzhou",
+      "date": "2025-04-14",
+      "category": "其它",
+      "cents": 4000,
+      "label": "拱宸桥"
+    },
+    {
+      "id": "chengdu-12",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "住宿",
+      "cents": 320000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-13",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "交通",
+      "cents": 46667,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-14",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "交通",
+      "cents": 46667,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-15",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "交通",
+      "cents": 46666,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-16",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "景点",
+      "cents": 25000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-17",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "景点",
+      "cents": 25000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-18",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "吃饭",
+      "cents": 16667,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-19",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "吃饭",
+      "cents": 16667,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-20",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "吃饭",
+      "cents": 16667,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-21",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "吃饭",
+      "cents": 16667,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-22",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "吃饭",
+      "cents": 16666,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-23",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "吃饭",
+      "cents": 16666,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-24",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "购物",
+      "cents": 30000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "chengdu-25",
+      "trip": "chengdu",
+      "date": "2025-07-18",
+      "category": "其它",
+      "cents": 10000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "yunnan-26",
+      "trip": "yunnan",
+      "date": "2025-10-02",
+      "category": "住宿",
+      "cents": 110000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "yunnan-27",
+      "trip": "yunnan",
+      "date": "2025-10-02",
+      "category": "住宿",
+      "cents": 110000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "yunnan-28",
+      "trip": "yunnan",
+      "date": "2025-10-02",
+      "category": "交通",
+      "cents": 40000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "yunnan-29",
+      "trip": "yunnan",
+      "date": "2025-10-02",
+      "category": "交通",
+      "cents": 40000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "yunnan-30",
+      "trip": "yunnan",
+      "date": "2025-10-02",
+      "category": "景点",
+      "cents": 50000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "yunnan-31",
+      "trip": "yunnan",
+      "date": "2025-10-02",
+      "category": "吃饭",
+      "cents": 25000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "yunnan-32",
+      "trip": "yunnan",
+      "date": "2025-10-02",
+      "category": "吃饭",
+      "cents": 25000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "yunnan-33",
+      "trip": "yunnan",
+      "date": "2025-10-02",
+      "category": "购物",
+      "cents": 10000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "yunnan-34",
+      "trip": "yunnan",
+      "date": "2025-10-02",
+      "category": "其它",
+      "cents": 10000,
+      "label": "synthetic design fixture"
+    },
+    {
+      "id": "xiamen-35",
+      "trip": "xiamen",
+      "date": "2025-12-31",
+      "category": "吃饭",
+      "cents": 30000,
+      "label": ""
+    },
+    {
+      "id": "xiamen-36",
+      "trip": "xiamen",
+      "date": "2026-01-01",
+      "category": "住宿",
+      "cents": 45000,
+      "label": ""
+    },
+    {
+      "id": "xiamen-37",
+      "trip": "xiamen",
+      "date": "2026-01-02",
+      "category": "交通",
+      "cents": 25000,
+      "label": ""
+    },
+    {
+      "id": "old-a-38",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-a-39",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-a-40",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-a-41",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-a-42",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-a-43",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-a-44",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-a-45",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-a-46",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-a-47",
+      "trip": "old-a",
+      "date": "2024-04-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-48",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-49",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-50",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-51",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-52",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-53",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-54",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-55",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-56",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "old-b-57",
+      "trip": "old-b",
+      "date": "2024-08-01",
+      "category": "其它",
+      "cents": 49000,
+      "label": ""
+    },
+    {
+      "id": "undated-58",
+      "trip": "undated",
+      "date": null,
+      "category": "交通",
+      "cents": 3850,
+      "label": ""
+    },
+    {
+      "id": "undated-59",
+      "trip": "undated",
+      "date": null,
+      "category": "交通",
+      "cents": 2000,
+      "label": ""
+    },
+    {
+      "id": "undated-60",
+      "trip": "undated",
+      "date": null,
+      "category": "待分类",
+      "cents": 0,
+      "label": ""
+    },
+    {
+      "id": "undated-61",
+      "trip": "undated",
+      "date": null,
+      "category": "待分类",
+      "cents": 6800,
+      "label": ""
+    },
+    {
+      "id": "undated-62",
+      "trip": "undated",
+      "date": null,
+      "category": "待分类",
+      "cents": 9000,
+      "label": ""
+    },
+    {
+      "id": "undated-63",
+      "trip": "undated",
+      "date": null,
+      "category": "待分类",
+      "cents": 11000,
+      "label": ""
+    },
+    {
+      "id": "undated-64",
+      "trip": "undated",
+      "date": null,
+      "category": "待分类",
+      "cents": 12000,
+      "label": ""
+    },
+    {
+      "id": "undated-65",
+      "trip": "undated",
+      "date": null,
+      "category": "待分类",
+      "cents": 4000,
+      "label": ""
+    }
+  ],
+  "checks": {
+    "years_cents": {
+      "2025": 1224650,
+      "2026": 70000,
+      "2024": 980000,
+      "undated": 48650
+    },
+    "months_cents": {
+      "2025-04": 124650,
+      "2025-07": 650000,
+      "2025-10": 420000,
+      "2025-12": 30000,
+      "2026-01": 70000,
+      "2024-04": 490000,
+      "2024-08": 490000
+    },
+    "category_2025_cents": {
+      "景点": 109000,
+      "吃饭": 213800,
+      "住宿": 600000,
+      "交通": 225850,
+      "购物": 52000,
+      "其它": 24000
+    },
+    "record_counts": {
+      "2025": 35,
+      "2026": 2,
+      "2024": 20,
+      "undated": 8
+    },
+    "trip_counts": {
+      "2025": 4,
+      "2026": 1,
+      "2024": 2,
+      "undated": 1
+    },
+    "all_cents": 2323300,
+    "all_records": 65,
+    "unique_trips": 7
+  },
+  "after_date_move": {
+    "years_cents": {
+      "2025": 1194650,
+      "2026": 100000,
+      "2024": 980000,
+      "undated": 48650
+    },
+    "months_cents": {
+      "2025-04": 124650,
+      "2025-07": 650000,
+      "2025-10": 420000,
+      "2026-01": 100000,
+      "2024-04": 490000,
+      "2024-08": 490000
+    },
+    "category_2025_cents": {
+      "景点": 109000,
+      "吃饭": 183800,
+      "住宿": 600000,
+      "交通": 225850,
+      "购物": 52000,
+      "其它": 24000
+    },
+    "record_counts": {
+      "2025": 34,
+      "2026": 3,
+      "2024": 20,
+      "undated": 8
+    },
+    "trip_counts": {
+      "2025": 3,
+      "2026": 1,
+      "2024": 2,
+      "undated": 1
+    },
+    "all_cents": 2323300,
+    "all_records": 65,
+    "unique_trips": 7
+  },
+  "all_assertions_passed": true
+}

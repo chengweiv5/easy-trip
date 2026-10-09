@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "version": "1.9.0",
-  "design_status": "INLINE_EXPENSE_DESIGN_SAVED_REOPENED_AWAITING_UI_REVIEW",
-  "date": "2026-10-09T15:51:15.011909+08:00",
+  "design_status": "MULTI_EXPENSE_DESIGN_SAVED_REOPENED_AWAITING_UI_REVIEW",
+  "date": "2026-10-09T14:15:58.758870+08:00",
   "workspace": "/Users/bytedance/.codex/worktrees/6934/easy-trip",
   "design_file": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
   "inherited_version": "1.8.3",
@@ -10,16 +10,16 @@
   "implementation_source_commit": "bd370c4f44df8369bfb993bbea881a6396c2a0f5",
   "implementation_version": "1.8.3",
   "implementation_version_code": 13,
-  "design_sha256": "952a4835495afc5698c5d73ea7ccac5fe4d99d9f9d467940ac1450ffd5080a95",
+  "design_sha256": "9e4b821a140ca304b38e43079a2a1cdb726fbe11ca71527dd53872c0a25287b2",
   "inherited_design_sha256": "0cb8f48fb14932e8850b426e1f18412b94149a43f5798fb61cfd40f6f90f033a",
   "counts": {
-    "active_roots": 185,
+    "active_roots": 157,
     "inherited_active_roots": 131,
-    "new_page_state_roots": 49,
-    "new_kit_and_index_roots": 5,
+    "new_page_state_roots": 24,
+    "new_kit_and_index_roots": 2,
     "disabled_history_roots": 1,
-    "design_routes": 11,
-    "state_groups": 70
+    "design_routes": 10,
+    "state_groups": 59
   },
   "inherited_active_root_ids": [
     "f7rS8",
@@ -161,6 +161,7 @@
     "qpK3w",
     "h9eKnf",
     "kdeup",
+    "JbEYv",
     "UtdGR",
     "XLxbY",
     "qMLBw",
@@ -178,37 +179,8 @@
     "qf6FO",
     "J0icRI",
     "e9WXQ7",
-    "X6moH",
-    "cLK9E",
-    "RXZKO",
-    "KRpe6",
-    "HneoD",
-    "zTmms",
-    "Vhvrp",
-    "nQ6Rc",
-    "hdBAO",
-    "aMjeC",
-    "LKCrU",
-    "j0Qyo",
-    "UsCW3",
-    "Gtkn0",
-    "J6FXq8",
-    "p7wMl",
-    "FcfWi",
-    "tZBIo",
-    "zigQL",
-    "wrCUP",
-    "n3gdp",
-    "xvbGI",
-    "K1FWk",
-    "c6Qm4",
-    "AUmc8",
-    "s3Zi55",
-    "v1Jpf",
-    "I8AeaP",
-    "ADrnE",
-    "mJFlG",
-    "I7jshV"
+    "enMK0",
+    "X6moH"
   ],
   "active_roots": [
     {
@@ -469,7 +441,7 @@
     },
     {
       "id": "K336N",
-      "name": "v1.9.0 · 06 安排与编辑 / I11 单笔费用 · 原位填写"
+      "name": "v1.9.0 · 06 安排与编辑 / 行程项编辑"
     },
     {
       "id": "T7aESo",
@@ -760,6 +732,10 @@
       "name": "v1.9.0 · 12 费用统计 / F05 选择费用分类"
     },
     {
+      "id": "JbEYv",
+      "name": "v1.9.0 · 12 费用统计 / F05 添加费用 · 已填待保存"
+    },
+    {
       "id": "UtdGR",
       "name": "v1.9.0 · 12 费用统计 / F06 旧费用待分类"
     },
@@ -801,7 +777,7 @@
     },
     {
       "id": "a3Vyzc",
-      "name": "v1.9.0 · 12 费用统计 / F09 已保存地点费用"
+      "name": "v1.9.0 · 12 费用统计 / F09 地点多笔费用"
     },
     {
       "id": "g04zi6",
@@ -828,128 +804,12 @@
       "name": "v1.9.0 · 12 费用统计 / F11 行程移动与费用归属"
     },
     {
+      "id": "enMK0",
+      "name": "v1.9.0 · 12 费用统计 / F10 新增费用初始状态"
+    },
+    {
       "id": "X6moH",
       "name": "v1.9.0 · 12 费用统计 / F10 删除成功后的费用列表"
-    },
-    {
-      "id": "cLK9E",
-      "name": "v1.9.0 · UI Kit / 花费一级导航与回顾组件"
-    },
-    {
-      "id": "RXZKO",
-      "name": "v1.9.0 · 13 花费回顾 / R01b 往年年度回顾"
-    },
-    {
-      "id": "KRpe6",
-      "name": "v1.9.0 · 13 花费回顾 / R01a 当前年度默认页"
-    },
-    {
-      "id": "HneoD",
-      "name": "v1.9.0 · 13 花费回顾 / R02a 历年花费"
-    },
-    {
-      "id": "zTmms",
-      "name": "v1.9.0 · 13 花费回顾 / R02b 选择年份"
-    },
-    {
-      "id": "Vhvrp",
-      "name": "v1.9.0 · 13 花费回顾 / R03 月度花费"
-    },
-    {
-      "id": "nQ6Rc",
-      "name": "v1.9.0 · 13 花费回顾 / R04 吃饭明细"
-    },
-    {
-      "id": "hdBAO",
-      "name": "v1.9.0 · 13 花费回顾 / R05a 旅行花费"
-    },
-    {
-      "id": "aMjeC",
-      "name": "v1.9.0 · 13 花费回顾 / R05b 旅行花费"
-    },
-    {
-      "id": "LKCrU",
-      "name": "v1.9.0 · 13 花费回顾 / R06 未确定日期"
-    },
-    {
-      "id": "j0Qyo",
-      "name": "v1.9.0 · 13 花费回顾 / R07 日期变更影响"
-    },
-    {
-      "id": "UsCW3",
-      "name": "v1.9.0 · 13 花费回顾 / R08a 全局尚无费用"
-    },
-    {
-      "id": "Gtkn0",
-      "name": "v1.9.0 · 13 花费回顾 / R08b 选中月份无记录"
-    },
-    {
-      "id": "J6FXq8",
-      "name": "v1.9.0 · 13 花费回顾 / R08c 正在读取"
-    },
-    {
-      "id": "p7wMl",
-      "name": "v1.9.0 · 13 花费回顾 / R08d 读取失败"
-    },
-    {
-      "id": "FcfWi",
-      "name": "v1.9.0 · 13 花费回顾 / R09 已记录零元"
-    },
-    {
-      "id": "tZBIo",
-      "name": "v1.9.0 · 13 花费回顾 / R03b 选择月份"
-    },
-    {
-      "id": "zigQL",
-      "name": "v1.9.0 · 13 花费回顾 / R08e 年度无记录"
-    },
-    {
-      "id": "wrCUP",
-      "name": "v1.9.0 · 00E 花费一级入口与年月回顾索引"
-    },
-    {
-      "id": "n3gdp",
-      "name": "v1.9.0 · 06 安排与编辑 / I12 时间展开 · 费用草稿保留"
-    },
-    {
-      "id": "xvbGI",
-      "name": "v1.9.0 · 00F 编辑地点内联费用 / I11–I20"
-    },
-    {
-      "id": "K1FWk",
-      "name": "v1.9.0 · 06 安排与编辑 / I11a 无费用 · 直接填写"
-    },
-    {
-      "id": "c6Qm4",
-      "name": "v1.9.0 · 06 安排与编辑 / I13 再记一笔 · 原位展开"
-    },
-    {
-      "id": "AUmc8",
-      "name": "v1.9.0 · 06 安排与编辑 / I14 已有多笔 · 按需展开"
-    },
-    {
-      "id": "s3Zi55",
-      "name": "v1.9.0 · 06 安排与编辑 / I15 半填与金额校验"
-    },
-    {
-      "id": "v1Jpf",
-      "name": "v1.9.0 · 06 安排与编辑 / I16 数字键盘 · 保存可达"
-    },
-    {
-      "id": "I8AeaP",
-      "name": "v1.9.0 · 06 安排与编辑 / I17 统一保存中"
-    },
-    {
-      "id": "ADrnE",
-      "name": "v1.9.0 · 06 安排与编辑 / I18 放弃整份草稿确认"
-    },
-    {
-      "id": "mJFlG",
-      "name": "v1.9.0 · 06 安排与编辑 / I19 移除本笔 · 保存前可撤销"
-    },
-    {
-      "id": "I7jshV",
-      "name": "v1.9.0 · 06 安排与编辑 / I20 多笔列表 · 本页展开全部"
     }
   ],
   "disabled_roots": [
@@ -1257,65 +1117,6 @@
         "node": "hafh4",
         "group": "F11",
         "title": "F11 日期归属与去重"
-      }
-    ],
-    "wrCUP": [
-      {
-        "node": "RkY34",
-        "group": "N11",
-        "title": "N11 全局花费"
-      },
-      {
-        "node": "sv3Gb",
-        "group": "R01",
-        "title": "R01 年度回顾"
-      },
-      {
-        "node": "u6AfZ4",
-        "group": "R02",
-        "title": "R02 历年及选年"
-      },
-      {
-        "node": "N0hMc",
-        "group": "R03",
-        "title": "R03 月度及选月"
-      },
-      {
-        "node": "hxRaL",
-        "group": "R04",
-        "title": "R04 分类明细"
-      },
-      {
-        "node": "HMLBW",
-        "group": "R05",
-        "title": "R05 跨年旅行贡献"
-      },
-      {
-        "node": "Py92T",
-        "group": "R06",
-        "title": "R06 未确定日期"
-      },
-      {
-        "node": "qAC6T",
-        "group": "R07",
-        "title": "R07 日期及删除影响"
-      },
-      {
-        "node": "tm3ev",
-        "group": "R08",
-        "title": "R08 读取与无记录"
-      },
-      {
-        "node": "V6fNX",
-        "group": "R09",
-        "title": "R09 零元与溢出"
-      }
-    ],
-    "xvbGI": [
-      {
-        "node": "xvbGI",
-        "group": "I11",
-        "title": "I11 编辑地点内联费用"
       }
     ]
   },
@@ -2163,13 +1964,14 @@
       "id": "I06",
       "title": "编辑单次行程",
       "states": [
-        "紧凑时间摘要",
-        "原时间滚轮展开",
-        "地点备注",
-        "单笔费用直接填",
-        "再记一笔原位增加",
-        "已有多笔摘要",
-        "统一保存和取消"
+        "到达时间滚轮及分时段",
+        "停留时长",
+        "未设时间",
+        "备注",
+        "花费空/0/小数/无效/溢出",
+        "再次安排",
+        "保存中",
+        "取消保留原值"
       ],
       "source_paths": [
         "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/EditItineraryItemContent.kt",
@@ -2178,16 +1980,13 @@
       ],
       "frames": [
         "K336N",
-        "n3gdp",
-        "K1FWk",
-        "c6Qm4",
-        "AUmc8"
+        "c0vRa"
       ],
       "design_status": "represented-in-saved-pencil-and-reopened-verified",
       "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE",
-      "v1_9_amendment": "地点时间、停留、备注与全部费用共享整页草稿；保存一次原子提交，取消整份放弃。"
+      "v1_9_amendment": "时间/停留/地点备注与费用编辑隔离；管理费用进入F09，返回保留草稿。"
     },
     {
       "id": "I07",
@@ -2268,10 +2067,10 @@
       "id": "I10",
       "title": "编辑保存失败恢复",
       "states": [
-        "整页原子保存失败",
+        "原因",
         "继续编辑",
         "重试保存",
-        "关闭错误后回完整草稿"
+        "关闭错误后回草稿"
       ],
       "source_paths": [
         "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItinerarySaveFailureContent.kt",
@@ -2284,7 +2083,7 @@
       "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE",
-      "v1_9_amendment": "时间、停留、地点备注与全部费用改动一起留稿；已保存数据完全不变，不允许部分成功。"
+      "v1_9_amendment": "地点草稿失败不回滚已保存费用，费用编辑失败单独归F08。"
     },
     {
       "id": "C01",
@@ -2346,11 +2145,13 @@
       "id": "F01",
       "title": "现有费用录入与总额展示",
       "states": [
-        "未记录与明确0元区分",
-        "地点单笔直接填",
-        "多笔原位增加和展开",
-        "两位小数和溢出校验",
-        "已保存统计刷新"
+        "未记金额与0元区分",
+        "两位小数",
+        "已记总额",
+        "未填项数量",
+        "非法输入",
+        "合计溢出拒绝",
+        "编辑保存后刷新"
       ],
       "source_paths": [
         "app/src/main/java/com/yangchengwei/easytrip/expense/Expense.kt",
@@ -2363,17 +2164,14 @@
         "LFmzR",
         "FTIOF",
         "K336N",
-        "K1FWk",
-        "c6Qm4",
-        "AUmc8",
-        "s3Zi55",
-        "T7aESo"
+        "T7aESo",
+        "c0vRa"
       ],
       "design_status": "represented-in-saved-pencil-and-reopened-verified",
       "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance.",
       "inherited_from": "1.8.3",
       "runtime_acceptance": "NOT_RERUN_THIS_MILESTONE",
-      "v1_9_amendment": "地点页直接填写第一笔，第二笔及以后在同页增加；费用和地点整页统一保存。交通路段沿用原金额录入。"
+      "v1_9_amendment": "地点每个行程项多笔费用；每笔独立类别金额备注，地点编辑只读合计及管理入口；独立逐笔保存；交通路段沿用原金额录入。"
     },
     {
       "id": "F02",
@@ -2696,22 +2494,17 @@
     },
     {
       "id": "F05",
-      "title": "费用分类选择",
+      "title": "选择费用类别",
       "states": [
-        "地点内联六类快捷选择",
-        "已保存单笔明细的分类选择",
-        "同类多笔",
+        "每笔单选六类之一",
+        "同地点多笔和同类别多笔均支持",
         "取消选择保持原草稿",
-        "分类金额必填且明确0合法",
+        "分类和金额必填，0元合法",
         "交通路段固定交通"
       ],
       "frames": [
-        "K336N",
-        "K1FWk",
-        "c6Qm4",
-        "AUmc8",
         "kdeup",
-        "g04zi6",
+        "JbEYv",
         "T7aESo"
       ],
       "introduced_in": "1.9.0",
@@ -2766,22 +2559,19 @@
       "id": "F08",
       "title": "保存与校验",
       "states": [
-        "地点空白行忽略且不生成0",
-        "半填必须补全或移除",
-        "非法金额和溢出拒绝",
-        "整页保存中防重复",
-        "整页失败全部留稿",
-        "全局明细独立编辑仅保存当前费用ID"
+        "首次新增空白不提前报错",
+        "类别/金额必填",
+        "非法金额/溢出拒绝",
+        "保存中防重复",
+        "失败保留类别金额备注",
+        "逐笔原子保存、不覆盖其它笔"
       ],
       "frames": [
-        "K1FWk",
-        "s3Zi55",
-        "I8AeaP",
-        "OOEsk",
         "wtN9w",
         "jc8OW",
         "e9v0Ll",
-        "c0vRa"
+        "c0vRa",
+        "enMK0"
       ],
       "introduced_in": "1.9.0",
       "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
@@ -2790,17 +2580,17 @@
     },
     {
       "id": "F09",
-      "title": "已保存地点费用查看",
+      "title": "地点费用列表",
       "states": [
         "地点合计及费用笔数",
-        "同地点多笔和同类多笔",
+        "同地点多笔、同类多笔",
         "空列表与已记0元区分",
-        "从统计查看已保存记录",
-        "新增返回编辑地点内联区"
+        "列表加载/失败复用F07组件和契约"
       ],
       "frames": [
         "a3Vyzc",
-        "ZKtJS"
+        "ZKtJS",
+        "K336N"
       ],
       "introduced_in": "1.9.0",
       "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
@@ -2809,16 +2599,20 @@
     },
     {
       "id": "F10",
-      "title": "已保存单笔费用增删改",
+      "title": "单笔费用增删改",
       "states": [
-        "从已保存明细编辑原费用ID",
+        "新增初始",
+        "编辑原费用ID",
         "删除确认仅当前费用",
         "删除失败不扣减",
         "删除成功刷新列表和统计",
-        "放弃当前单笔草稿",
-        "来源失效禁止保存"
+        "放弃草稿确认",
+        "键盘/大字体下动作可达契约",
+        "来源失效禁止保存契约"
       ],
       "frames": [
+        "enMK0",
+        "JbEYv",
         "g04zi6",
         "bO8eg",
         "qf6FO",
@@ -2849,222 +2643,6 @@
       "design_status": "SAVED_REOPENED_MULTI_EXPENSE_UI_REVIEW",
       "implementation_status": "NOT_IMPLEMENTED",
       "evidence_boundary": "状态画板与契约覆盖；加载/键盘/来源失效等不是逐一运行验收，也并非每项都有独立画板。"
-    },
-    {
-      "id": "N11",
-      "title": "全局花费",
-      "states": [
-        "旅行／花费两个一级目的地；启动保留旅行。首次花费为当前年，返回保留年/月/分类及位置。设置保留原入口，不新增无来源记账。"
-      ],
-      "frames": [
-        "K9h3r",
-        "D03lK",
-        "zIbEu",
-        "rd2Iu",
-        "LoQrS",
-        "yq8pE",
-        "oYNJg",
-        "KRpe6",
-        "RXZKO"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "R01",
-      "title": "年度回顾",
-      "states": [
-        "年度=各月；本年旅行贡献只显示本年部分。未定日期单列，不包含在年度。点击月份/分类/旅行分别进入R03/R04/R05。"
-      ],
-      "frames": [
-        "KRpe6",
-        "RXZKO"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "R02",
-      "title": "历年及选年",
-      "states": [
-        "全部=各年+未确定日期。年份倒序，可进入无记录年；跨年旅行全局按tripId去重，费用按记录ID去重。"
-      ],
-      "frames": [
-        "HneoD",
-        "zTmms"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "R03",
-      "title": "月度及选月",
-      "states": [
-        "只汇总费用日期属于所选月的记录；选择器显示12个月金额或—。点击分类查看该月明细；返回仍为原年度。"
-      ],
-      "frames": [
-        "Vhvrp",
-        "tZBIo"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "R04",
-      "title": "分类明细",
-      "states": [
-        "同地点多笔分别显示；年月/分类不丢失。保存后刷新同一范围；改类移出原类，删除同步总额。旧待分类沿用F06处理，不是第七类。"
-      ],
-      "frames": [
-        "nQ6Rc",
-        "h9eKnf",
-        "g04zi6"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "R05",
-      "title": "跨年旅行贡献",
-      "states": [
-        "年度入口默认本年部分，可切换全程并明确范围改变；不把全程金额带回年度列表。厦门300属2025，700属2026，全程1000。"
-      ],
-      "frames": [
-        "hdBAO",
-        "aMjeC"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "R06",
-      "title": "未确定日期",
-      "states": [
-        "缺日期与缺分类分别处理；进入已有旅行设置补日期。成功按行程日归年月，失败归属不变。不按录入时间猜测。"
-      ],
-      "frames": [
-        "LKCrU"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "R07",
-      "title": "日期及删除影响",
-      "states": [
-        "旅行开始日或行程日变化可能跨月跨年；确认受影响记录和金额，保持记录ID/全程总额。删除沿用级联语义并确认统计减少，失败不扣减。"
-      ],
-      "frames": [
-        "j0Qyo",
-        "e9WXQ7"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "R08",
-      "title": "读取与无记录",
-      "states": [
-        "无记录≠0元；加载/失败不显示假合计，保留范围可重试。下级月度空态无全局底栏。仅有未定日期时，年度空态保留未定日期入口。"
-      ],
-      "frames": [
-        "UsCW3",
-        "Gtkn0",
-        "J6FXq8",
-        "p7wMl",
-        "zigQL"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "R09",
-      "title": "零元与溢出",
-      "states": [
-        "已记录0元仍计笔数，总额为0时占比—。整型分求和，溢出时保留数据并显示无法统计，不截断或回绕。独立边界案例不混入主数据集。"
-      ],
-      "frames": [
-        "FcfWi"
-      ],
-      "source_paths": [
-        "docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md"
-      ],
-      "design_status": "represented-in-saved-pencil-and-reopened-verified",
-      "runtime_acceptance": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Design and interaction contracts only; not runtime acceptance."
-    },
-    {
-      "id": "I11",
-      "title": "编辑地点内联费用",
-      "states": [
-        "无费用直接填写",
-        "单笔原位编辑",
-        "再记一笔",
-        "已有多笔",
-        "半填与金额校验",
-        "数字键盘保存可达",
-        "统一保存中",
-        "放弃整份草稿确认",
-        "移除待保存可撤销",
-        "本页展开全部"
-      ],
-      "source_paths": [
-        "design/easy-trip-v1.9.0.pen"
-      ],
-      "frames": [
-        "K1FWk",
-        "K336N",
-        "c6Qm4",
-        "AUmc8",
-        "s3Zi55",
-        "v1Jpf",
-        "I8AeaP",
-        "ADrnE",
-        "mJFlG",
-        "I7jshV",
-        "n3gdp",
-        "OOEsk"
-      ],
-      "introduced_in": "1.9.0",
-      "design_status": "SAVED_REOPENED_INLINE_EXPENSE_UI_REVIEW",
-      "implementation_status": "NOT_IMPLEMENTED",
-      "evidence_boundary": "Pencil MCP结构、原生保存关闭重开和静态视觉回读；不代表应用路由、数据库或运行验收。"
     }
   ],
   "categories": [
@@ -3076,11 +2654,9 @@
     "其它"
   ],
   "pending_review_assumptions": [
-    "地点内联费用默认最多展示三笔，更多记录在当前页展开全部",
-    "同一时间最多展开一笔费用编辑，其余收起为可读摘要",
-    "到达时间默认显示紧凑摘要，点击继续使用原时间滚轮和待定能力",
-    "数字键盘出现时统一保存区固定在键盘上方，正文允许滚动",
-    "交通路段继续沿用单金额录入并归交通，本轮只扩展地点多笔",
+    "费用采用独立列表及逐笔编辑，保存与地点时间备注草稿隔离",
+    "交通路段沿用现有单笔金额录入并归交通，本轮只扩展地点多笔",
+    "旧地点非空金额各迁为一笔待分类记录，交通迁为交通，保留原总额",
     "跨日房费整笔归所在旅行日，不自动摊销；移动行程时费用随行"
   ],
   "sample": {
@@ -3185,117 +2761,21 @@
     "API31 system-share chooser package assertion; final return validation not reached (1)"
   ],
   "this_revision_new_roots": [
-    "n3gdp",
-    "K1FWk",
-    "c6Qm4",
-    "AUmc8",
-    "s3Zi55",
-    "v1Jpf",
-    "I8AeaP",
-    "ADrnE",
-    "mJFlG",
-    "I7jshV",
-    "xvbGI"
-  ],
-  "approved_requirements": [
-    "一个行程地点可以录入多笔费用",
-    "每笔独立选择一个固定类别，同一类别也能录入多笔",
-    "多数地点只记一笔时直接在编辑地点页填写，不再先跳费用列表",
-    "需要第二笔时点击再记一笔在当前页原位增加",
-    "地点时间、停留、备注与费用统一保存和取消，不允许费用提前独立生效",
-    "从已保存花费明细独立编辑一笔时仍只保存该费用ID",
-    "费用归属某天某次行程安排，不因同地点多天出现而重复计费",
-    "花费独立入口，跨旅行按历年年度月度回顾",
-    "按费用所属旅行日归集年月，不按录入时间",
-    "跨年按笔分开，无日期列入未确定日期并计入全部",
-    "不增加预付实付或支付状态"
-  ],
-  "review_boundary": "用户已确认业务方向、日期口径和地点内联费用主交互；本轮界面细节仍待评审，不代表实现、发布或运行验收授权。",
-  "this_revision_baseline_commit": "e27731de309d7ec6e536e24aea10921f7bc63443",
-  "this_revision_changed_roots": [
-    "K336N",
-    "n3gdp",
-    "K1FWk",
-    "c6Qm4",
-    "AUmc8",
-    "s3Zi55",
-    "v1Jpf",
-    "I8AeaP",
-    "ADrnE",
-    "mJFlG",
-    "I7jshV",
-    "xvbGI",
-    "OOEsk",
-    "FpRZH",
-    "OUIyx",
-    "yTqpm",
-    "zeIKe",
     "a3Vyzc",
-    "X6moH",
-    "ZKtJS",
-    "t3MG7p",
     "g04zi6",
-    "wtN9w",
-    "jc8OW",
-    "e9v0Ll",
-    "c0vRa",
+    "ZKtJS",
     "bO8eg",
     "qf6FO",
     "J0icRI",
-    "kdeup",
-    "DRICS"
+    "e9WXQ7",
+    "enMK0",
+    "X6moH"
   ],
-  "annual_review_sample": {
-    "currency": "CNY",
-    "fictional_design_fixture": true,
-    "years": {
-      "2024": 9800,
-      "2025": 12246.5,
-      "2026": 700
-    },
-    "undated": 486.5,
-    "all_total": 23233,
-    "records": 65,
-    "unique_trips": 7,
-    "year2025": {
-      "total": 12246.5,
-      "records": 35,
-      "trips": 4,
-      "months": {
-        "04": 1246.5,
-        "07": 6500,
-        "10": 4200,
-        "12": 300
-      },
-      "categories": [
-        6000,
-        2258.5,
-        1090,
-        2138,
-        520,
-        240
-      ],
-      "category_counts": [
-        4,
-        7,
-        5,
-        13,
-        3,
-        3
-      ]
-    },
-    "cross_year_trip": {
-      "total": 1000,
-      "records": 3,
-      "year2025": 300,
-      "year2026": 700
-    },
-    "date_change": {
-      "before_start": "2025-12-31",
-      "after_start": "2026-01-01",
-      "year2025_after": 11946.5,
-      "year2026_after": 1000,
-      "all_total_unchanged": 23233
-    }
-  }
+  "approved_requirements": [
+    "一个行程地点可以录入多笔费用",
+    "每笔独立选择一个固定类别",
+    "同一个类别也能录入多笔",
+    "费用归属某天某次行程安排，不因同地点多天出现而重复计费"
+  ],
+  "review_boundary": "多笔费用业务方案已获用户同意，本轮界面细化未被当作实现或发布授权。"
 }

@@ -1,20 +1,20 @@
 {
   "schema_version": 2,
-  "recorded_at": "2026-10-09T15:52:31.888529+08:00",
-  "current_revision": "inline-expense",
+  "recorded_at": "2026-10-09T15:07:18.733208+08:00",
+  "current_revision": "annual-review",
   "design_file": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
-  "design_sha256": "952a4835495afc5698c5d73ea7ccac5fe4d99d9f9d467940ac1450ffd5080a95",
-  "history_note": "Only inline-expense-prefixed evidence proves the current revision. Annual-review and prior files describe their historical snapshots.",
+  "design_sha256": "e3c190488e07ae2262a7435bfee0e2c8fd460348e5ed77a0acc3cdbc9ad8fff3",
+  "history_note": "Only annual-review-prefixed evidence proves current design. Prior first-draft/multi-expense evidence and copied manifests are historical snapshots.",
   "files": [
     {
       "path": "README.md",
-      "sha256": "ad3ea93df317def0149e61e05931d32df12012f32653c6af264d93d2beec7cb1",
-      "bytes": 3407
+      "sha256": "d97e3db306c68dd47ce0765ff620c5f04b863b2d2287be6967b92b3bffb5978d",
+      "bytes": 4827
     },
     {
       "path": "coverage.json",
-      "sha256": "52e6a0de00f1de20c604d59ee938553d777b463e7cf191a0c08801b3e42e3d94",
-      "bytes": 99040
+      "sha256": "754ea4ca7d4645569d918cd7f81dcdf92508052e6a9db846e27d3ebb7a6f16e1",
+      "bytes": 96302
     },
     {
       "path": "evidence/annual-review-final-checks.json",
@@ -102,81 +102,6 @@
       "bytes": 1023
     },
     {
-      "path": "evidence/inline-expense-final-checks.json",
-      "sha256": "e91185d6931233552e6e8d0acd8d1832e7eaf3e179c6b5c1d7f14abaa32b0fd2",
-      "bytes": 928
-    },
-    {
-      "path": "evidence/inline-expense-notification-content.txt",
-      "sha256": "ff2858840344ca59ac3803e8c35d1e0c8912845ee4cabbdca65c5e104b6fdcd0",
-      "bytes": 981
-    },
-    {
-      "path": "evidence/inline-expense-notification-proof.json",
-      "sha256": "884a05d1720e9f511a66034ce4380bc40825e2e00f426307e46e40cc12cc827c",
-      "bytes": 307
-    },
-    {
-      "path": "evidence/inline-expense-notification-readback.json",
-      "sha256": "6aa36fdf32047841ed1a8c7c65270304b7cfaae659d7c61c7069f863fdf70fe8",
-      "bytes": 1988
-    },
-    {
-      "path": "evidence/inline-expense-notification-send.json",
-      "sha256": "a221790d918b3cf411836b92af65d053abd7438d9d7d7f9707b7e88502541b63",
-      "bytes": 207
-    },
-    {
-      "path": "evidence/inline-expense-previews/ADrnE.jpeg",
-      "sha256": "793bda771ee1d5ce4639898a2aaa417ea972b139abf4ad5525e25b774a4422a1",
-      "bytes": 36585
-    },
-    {
-      "path": "evidence/inline-expense-previews/AUmc8.jpeg",
-      "sha256": "18dca8f3731674206138d4a14a20a99f36a91b234394e612cc5c033f9a23e43f",
-      "bytes": 34918
-    },
-    {
-      "path": "evidence/inline-expense-previews/I8AeaP.jpeg",
-      "sha256": "148e5d128c9cf1aceac3b2abcdaed375d310846db96216fec56c7d94520e7a94",
-      "bytes": 36286
-    },
-    {
-      "path": "evidence/inline-expense-previews/K1FWk.jpeg",
-      "sha256": "cfc96952056b944f86cc87c100304b8ba3930190b39204bd64a22d06d8c5e812",
-      "bytes": 34321
-    },
-    {
-      "path": "evidence/inline-expense-previews/K336N.jpeg",
-      "sha256": "834b399dfba1d5f201cb05abb11513766dbbffd664488b1a594c7fdd7c7514db",
-      "bytes": 35993
-    },
-    {
-      "path": "evidence/inline-expense-previews/OOEsk.jpeg",
-      "sha256": "689d6cdc8af6e0991b5fd307eec48467c2d8813d0f565df0fdc952fca2283764",
-      "bytes": 37313
-    },
-    {
-      "path": "evidence/inline-expense-previews/c6Qm4.jpeg",
-      "sha256": "818fe3e004aef57974ddf243f5fd080a73b323adf91841da303d639040aff1de",
-      "bytes": 38744
-    },
-    {
-      "path": "evidence/inline-expense-previews/v1Jpf.jpeg",
-      "sha256": "aacd5943fb5302014ef2175bb6361c33b06e30b4ef3791ebbda9b3242c497c5d",
-      "bytes": 36443
-    },
-    {
-      "path": "evidence/inline-expense-sample.json",
-      "sha256": "46e98c57c79b71c831a14fed04b387c6bab9f63bfe33d079dc2b6c19d65454ab",
-      "bytes": 482
-    },
-    {
-      "path": "evidence/inline-expense-verification.json",
-      "sha256": "091169bd8deda420cbb93e9490b32626f7b6eb506b6b271b112b623c50848c69",
-      "bytes": 2928
-    },
-    {
       "path": "evidence/multi-expense-final-checks.json",
       "sha256": "7e6267bd242ae41a42af09dcbf1229ee5f8bc9f5d5d3bd45afbf216d66654399",
       "bytes": 778
@@ -232,21 +157,6 @@
       "bytes": 551
     },
     {
-      "path": "history/annual-review/README.md",
-      "sha256": "d97e3db306c68dd47ce0765ff620c5f04b863b2d2287be6967b92b3bffb5978d",
-      "bytes": 4827
-    },
-    {
-      "path": "history/annual-review/coverage.json",
-      "sha256": "754ea4ca7d4645569d918cd7f81dcdf92508052e6a9db846e27d3ebb7a6f16e1",
-      "bytes": 96302
-    },
-    {
-      "path": "history/annual-review/evidence-manifest.json",
-      "sha256": "37c6c13235637fd722ea94e3d7ea0f8be741f94fefc3cdc66f3d087f172e081b",
-      "bytes": 6346
-    },
-    {
       "path": "history/first-draft/README.md",
       "sha256": "eb145088781ad10ecde6f2fbfbeda11d45db317e3d1b7ec9fcdb921fdfb35b61",
       "bytes": 7618
@@ -257,11 +167,6 @@
       "bytes": 77348
     },
     {
-      "path": "history/first-draft/evidence-manifest.json",
-      "sha256": "435010129ecd47bfd7b01b505f02f1943f3781f593a782c35742ce362a844b40",
-      "bytes": 1943
-    },
-    {
       "path": "history/multi-expense/README.md",
       "sha256": "81d029302dcb6aaf9b94b9590f403fd4f979490869b5bd004465b1866273c15a",
       "bytes": 9329
@@ -270,23 +175,6 @@
       "path": "history/multi-expense/coverage.json",
       "sha256": "b88a0900e5e4efad4ad422b9a41e5eff5eb642dc67f88ad3b40a7796d9d6ab2c",
       "bytes": 84286
-    },
-    {
-      "path": "history/multi-expense/evidence-manifest.json",
-      "sha256": "8b162fd0c9deb197b6b1603272123ae06267b83b99f813dc3ee050b40e99d158",
-      "bytes": 3930
-    }
-  ],
-  "workspace_documents": [
-    {
-      "path": "/Users/bytedance/.codex/worktrees/6934/easy-trip/.codex/TASK_STATE.md",
-      "sha256": "4194e13ec2bac0fe5c615d5360f29a9662633c7ca937c25a90ce335d8ceeed38",
-      "bytes": 39923
-    },
-    {
-      "path": "/Users/bytedance/.codex/worktrees/6934/easy-trip/docs/superpowers/specs/2026-10-09-v1.9.0-expense-review-design.md",
-      "sha256": "3bafc44bd42d3df86461ee909112581e6efdf5d825074bcdff13e6119ca5e513",
-      "bytes": 13176
     }
   ]
 }

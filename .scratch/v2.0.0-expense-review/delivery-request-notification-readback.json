@@ -1,0 +1,32 @@
+{
+  "ok": true,
+  "identity": "bot",
+  "data": {
+    "messages": [
+      {
+        "chat_id": "oc_b5dc30707aff7eb5628922703c9b3814",
+        "content": "Easy Trip：已记录你的执行顺序——设计修改验收完成后提交、快进推送 origin/main，再开始 v2.0.0 开发。\n\n当前 Mac 仍锁屏，Pencil 重开验收无法继续；请解锁 Mac。已保存的 v2.0.0 设计文件哈希稳定，fetch 确认远端与本地同为 e27731d、无待合并 PR。尚未提交、推送或修改应用代码，避免跳过设计验收。\n",
+        "create_time": "2026-10-09 16:13",
+        "deleted": false,
+        "message_app_link": "https://applink.feishu.cn/client/chat/open?openChatId=oc_b5dc30707aff7eb5628922703c9b3814\u0026position=2660",
+        "message_id": "om_x100b63be6d4e98b4deb40599bebbca6",
+        "message_position": "2660",
+        "msg_type": "text",
+        "sender": {
+          "id": "cli_aaa104e4de399cca",
+          "id_type": "app_id",
+          "name": "punk-12 for Codex",
+          "open_bot_id": "ou_7c43439a6f6149329ae2770457ad1b23",
+          "sender_i18n_names": {
+            "en_us": "punk-12 for Codex",
+            "zh_cn": "punk-12 for Codex"
+          },
+          "sender_type": "app",
+          "tenant_key": "736588c9260f175d"
+        },
+        "updated": false
+      }
+    ],
+    "total": 1
+  }
+}

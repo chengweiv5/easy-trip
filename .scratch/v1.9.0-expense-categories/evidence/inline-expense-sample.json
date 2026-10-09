@@ -1,0 +1,14 @@
+{
+  "timestamp": "2026-10-09T15:51:15.011909+08:00",
+  "design_sha256": "952a4835495afc5698c5d73ea7ccac5fe4d99d9f9d467940ac1450ffd5080a95",
+  "unit": "integer cents",
+  "single": 60000,
+  "add_second_draft": 72000,
+  "multi_saved": 76000,
+  "remove_dinner_draft": 64000,
+  "many_records_separate_fixture": 90000,
+  "annual_2025_unchanged": 1224650,
+  "all_years_unchanged": 2323300,
+  "assertions_passed": true,
+  "scope": "synthetic design arithmetic only; no application tests"
+}
