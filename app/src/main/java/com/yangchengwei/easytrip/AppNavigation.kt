@@ -427,6 +427,7 @@ fun AppNavigation(
         ) {
             val model: TripListViewModel = viewModel(factory = TripListViewModel.Factory(service, repository, impacts))
             Column(Modifier.fillMaxSize()) {
+            CompositionLocalProvider(LocalTripExpenseOpener provides { tripId: String -> navigate("trip-expenses/${Uri.encode(tripId)}") }) {
             Box(Modifier.weight(1f)) { TripListScreen(
                 model,
                 { navigate(CREATE_TRIP_ROUTE) },
@@ -434,6 +435,7 @@ fun AppNavigation(
                 { navigate("trips/$it/settings") },
                 onAppSettings = { navigate(APP_SETTINGS_ROUTE) },
             ) }
+            }
             ExpensePrimaryNavigation(false, {}, { navigate("expenses") })
             }
         }

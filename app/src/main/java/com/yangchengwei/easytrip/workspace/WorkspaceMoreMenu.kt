@@ -32,6 +32,7 @@ internal fun WorkspaceMoreMenu(
     onBackToTrips: () -> Unit,
     modifier: Modifier = Modifier,
     onShareItinerary: () -> Unit = {},
+    onOpenExpenses: (() -> Unit)? = null,
 ) {
     Surface(
         modifier = modifier
@@ -48,6 +49,7 @@ internal fun WorkspaceMoreMenu(
                 .padding(8.dp),
             verticalArrangement = Arrangement.spacedBy(1.dp),
         ) {
+            if (onOpenExpenses != null) MoreMenuItem("more-menu-expenses", "旅行花费", "分类明细与全程已记录花费", { Text("¥") }, onOpenExpenses)
             MoreMenuItem(
                 tag = "more-menu-settings",
                 title = "旅行设置",

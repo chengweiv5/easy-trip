@@ -55,6 +55,7 @@ internal fun PrimaryTripCard(
     onMenuExpandedChange: (Boolean) -> Unit,
     onAction: (TripListAction) -> Unit,
 ) {
+    val openExpense = com.yangchengwei.easytrip.expense.ui.LocalTripExpenseOpener.current
     Surface(
         modifier = Modifier.fillMaxWidth()
             .testTag("primary-trip-${trip.id}")
@@ -110,7 +111,7 @@ internal fun PrimaryTripCard(
                 color = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.82f),
                 style = MaterialTheme.typography.bodyMedium,
             )
-            Text(trip.expenseLabel, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("trip-expense-${trip.id}"))
+            Text(trip.expenseLabel, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("trip-expense-${trip.id}").then(if (openExpense == null) Modifier else Modifier.clickable { openExpense(trip.id) }.padding(vertical = 8.dp)))
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text(trip.placeCountLabel, style = MaterialTheme.typography.bodySmall, maxLines = 1)
                 Text(trip.tripDayCountLabel, style = MaterialTheme.typography.bodySmall, maxLines = 1)
@@ -185,6 +186,7 @@ internal fun OtherTripRow(
     onMenuExpandedChange: (Boolean) -> Unit,
     onAction: (TripListAction) -> Unit,
 ) {
+    val openExpense = com.yangchengwei.easytrip.expense.ui.LocalTripExpenseOpener.current
     Row(
         modifier = Modifier.fillMaxWidth()
             .heightIn(min = 72.dp)
@@ -203,7 +205,7 @@ internal fun OtherTripRow(
             }
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-            Text(trip.expenseLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(trip.expenseLabel, modifier = Modifier.testTag("trip-expense-${trip.id}").then(if (openExpense == null) Modifier else Modifier.clickable { openExpense(trip.id) }.padding(vertical = 8.dp)), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             Text(
                 trip.name,
                 modifier = Modifier.testTag("other-trip-name-${trip.id}"),

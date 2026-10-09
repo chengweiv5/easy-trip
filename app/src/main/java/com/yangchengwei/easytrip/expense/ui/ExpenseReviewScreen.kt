@@ -20,6 +20,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import java.util.Locale
 
+val LocalTripExpenseOpener = staticCompositionLocalOf<((String) -> Unit)?> { null }
 val LocalExpenseReviewOpener = staticCompositionLocalOf<((String?) -> Unit)?> { null }
 
 fun expenseMoney(cents: Long): String = "¥" + String.format(Locale.CHINA, "%,.2f", BigDecimal.valueOf(cents, 2))

@@ -50,6 +50,26 @@ class ExpenseReviewNavigationTest {
         assertEquals(0, mapCreated)
     }
 
+    @Test fun tripListExpenseSummaryOpensTripScopeWithoutOpeningMap() {
+        val id = runBlocking { trips.createTrip(CreateTrip("费用入口", 1)) }
+        compose.setContent { EasyTripTheme {
+            com.yangchengwei.easytrip.AppNavigation(com.yangchengwei.easytrip.trip.domain.TripService(trips),trips,
+                com.yangchengwei.easytrip.trip.ui.RoomDeleteImpactProvider(db.deleteImpactDao()),
+                dependencies = com.yangchengwei.easytrip.AppNavigationDependencies(
+                    com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository(db),items,
+                    com.yangchengwei.easytrip.route.data.RoomRouteLegRepository(db.routeLegDao()),
+                    com.yangchengwei.easytrip.workspace.InMemoryMapPreferences(),
+                    com.yangchengwei.easytrip.permission.InMemoryLocationPermissionRequestStore(),expenseRepository=expenses),
+                mapHostFactory = { error("花费入口不得创建地图") })
+        } }
+        compose.waitUntil(5000) { compose.onAllNodesWithTag("trip-expense-$id").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("trip-expense-$id").performClick()
+        compose.onNodeWithText("旅行花费").assertExists()
+        compose.onNodeWithTag("expense-primary-navigation").assertDoesNotExist()
+        compose.onNodeWithTag("expense-back").performClick()
+        compose.onNodeWithTag("trip-expense-$id").assertExists()
+    }
+
     @Test fun undatedZeroExpenseIsRealRecordAndCanBeDeletedAtLargeFont() {
         runBlocking {
             val id = trips.createTrip(CreateTrip("未定日期旅行",1))

@@ -1,3 +1,16 @@
+# v2.0.0 功能开发与专项验收完成，交付收尾
+
+状态：**IN_PROGRESS — Task1–6功能和验证记录完成，等待最终快进推送及SHA回读。完整UI验收仍有旧缺口，未发布。**
+
+- 版本2.0.0/build14，Room schema9。六类、多笔、年月回顾、原位编辑、独立明细及跨年月精确确认已实现。
+- 952 JVM、33费用包设备、71日期/事务设备回归通过；Debug/AndroidTest构建成功；lint 0错误/54警告/1提示。
+- 原8项UI断言复测仍失败；Task3旧timeline基线22项失败保留。没有声称全量UI验收通过。
+- Pencil正式源已MCP更新状态、原生保存/关闭重开并回读，185有效根+1历史根，0重叠/placeholder；历史版本哈希未改。
+- 证据：`.scratch/v2.0.0-implementation/verification.md`、`final-verification.json`；原始日志/备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-delivery-20261009`。
+- 未发布Release、未安装个人手机。最终代码提交推送及机器人通知待收尾。
+
+---
+
 # v2.0.0 Task5 年月归属与删除一致性完成
 
 状态：**IN_PROGRESS — Task1–5完成，Task6版本与设计实现状态、最终交付处理中。**

@@ -361,7 +361,12 @@ private fun WorkspaceReadyContent(
                             .testTag("more-menu-picker")
                             .pointerInput(Unit) { detectTapGestures { } },
                     ) {
+                        val openExpenses = com.yangchengwei.easytrip.expense.ui.LocalExpenseReviewOpener.current
                         WorkspaceMoreMenu(
+                            onOpenExpenses = openExpenses?.let { open -> {
+                                onAction(TripWorkspaceAction.CloseOverlay)
+                                open(null)
+                            } },
                             onShareItinerary = {
                                 onAction(TripWorkspaceAction.CloseOverlay)
                                 onAction(TripWorkspaceAction.ShareItinerary)

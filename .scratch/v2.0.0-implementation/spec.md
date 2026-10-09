@@ -1,6 +1,6 @@
 # v2.0.0 花费实现
 
-Status: in-progress
+Status: implemented; release not published; legacy UI acceptance remains open
 
 本功能以已确认正式设计 `design/easy-trip-v2.0.0.pen` 和规格 `docs/superpowers/specs/2026-10-09-v2.0.0-expense-review-design.md` 为准。
 
@@ -11,8 +11,10 @@ Status: in-progress
 - 实现基线：v1.8.3/build13，Room schema8。
 - 基线测试：81套、928项JVM单元测试，全部通过。
 - Task1领域、Task2存储、Task3原位费用编辑完成，当前Room schema9；943 JVM与41项最终设备定向回归通过，未操作个人手机。
-- 用户已确认Native串行实现和三个公共测试边界；Task1–3完成，逐批继续，不再重开产品设计讨论。
+- 用户已确认Native串行实现和三个公共测试边界；Task1–5完成，逐批继续，不再重开产品设计讨论。
 
 ## 回滚
 
 Task1–3各批独立提交；代码回滚使用确认后的revert或限定文件还原。schema9不可对用户库直接降级/清空。已推送设计只能通过审阅后的revert回滚，禁止reset远端或强推。
+
+最终实现：v2.0.0/build14，schema9；详见verification.md。历史设计推送和基线记录保留为当时事实。
