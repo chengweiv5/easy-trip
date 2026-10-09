@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -32,10 +31,8 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.SemanticsPropertyKey
 import androidx.compose.ui.semantics.SemanticsPropertyReceiver
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -145,37 +142,17 @@ private fun ContinuousReadinessProgress(
     contentDescription: String,
     modifier: Modifier = Modifier,
 ) {
-    val visualProgress = progress.coerceIn(0f, 1f).coerceAtLeast(0.02f)
     val highlight = com.yangchengwei.easytrip.core.ui.theme.LocalThemePalette.current.highlight
     val trackColor = MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.18f)
-    Box(
-        modifier.semantics(mergeDescendants = true) {
+    com.yangchengwei.easytrip.core.ui.component.ContinuousProgressBar(
+        progress = progress,
+        color = highlight,
+        trackColor = trackColor,
+        minimumVisibleFraction = 0.02f,
+        modifier = modifier.semantics(mergeDescendants = true) {
             this.contentDescription = contentDescription
-            progressBarRangeInfo = ProgressBarRangeInfo(progress.coerceIn(0f, 1f), 0f..1f)
         },
-    ) {
-        Canvas(Modifier.fillMaxSize()) {
-            val radius = size.height / 2f
-            drawRoundRect(
-                color = trackColor,
-                cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius, radius),
-            )
-            val fillWidth = (size.width * visualProgress).coerceIn(size.height, size.width)
-            if (fillWidth == size.width) {
-                drawRoundRect(
-                    color = highlight,
-                    cornerRadius = androidx.compose.ui.geometry.CornerRadius(radius, radius),
-                )
-            } else {
-                drawCircle(highlight, radius, Offset(radius, radius))
-                drawRect(
-                    color = highlight,
-                    topLeft = Offset(radius, 0f),
-                    size = androidx.compose.ui.geometry.Size(fillWidth - radius, size.height),
-                )
-            }
-        }
-    }
+    )
 }
 
 @Composable

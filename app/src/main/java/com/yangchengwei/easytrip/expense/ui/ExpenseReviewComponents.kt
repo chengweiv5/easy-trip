@@ -143,8 +143,12 @@ internal fun ReviewRow(
         if (total.records > 0) Text("${total.records}笔 · ${total.trips}次旅行" +
             (fraction?.let { " · ${String.format(Locale.CHINA, "%.1f%%", it * 100)}" } ?: ""),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        if (fraction != null) LinearProgressIndicator(progress = { fraction.coerceIn(0f, 1f) },
-            modifier = Modifier.fillMaxWidth().height(4.dp), trackColor = MaterialTheme.colorScheme.primaryContainer)
+        if (fraction != null) com.yangchengwei.easytrip.core.ui.component.ContinuousProgressBar(
+            progress = fraction,
+            color = MaterialTheme.colorScheme.primary,
+            trackColor = MaterialTheme.colorScheme.primaryContainer,
+            modifier = Modifier.fillMaxWidth(),
+        )
         detail?.let { Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
     }
 }
