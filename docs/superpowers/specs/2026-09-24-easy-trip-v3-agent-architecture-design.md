@@ -1,8 +1,8 @@
-# Easy Trip v2.0 Agent 架构设计：手机端执行、云端推理
+# Easy Trip v3.0 Agent 架构设计：手机端执行、云端推理
 
-归档说明：原设计日期为 2026-09-24；2026-10-08 归档时已回读飞书第 4 版，正文及三张画板的原生节点与原交付一致。本文保留原设计的源码基线和拟议状态，不代表已按后续版本重新验证或实现。
+归档说明：原设计日期为 2026-09-24；2026-10-08 归档时已回读飞书第 4 版，正文及三张画板的原生节点与原交付一致。2026-10-09 因 Agent 能力属于大版本变化，将方案版本由 v2.0 调整为 v3.0；架构内容、源码核对基线和“尚未实现”状态不变。
 
-在线文档（含可编辑画板）：[Easy Trip v2.0 Agent 架构设计：手机端执行、云端推理](https://bytedance.larkoffice.com/docx/MhG8dAiFHorRB9xPts1cLx9enuc)。下方插图使用随文归档的 SVG 源文件。
+在线文档（含可编辑画板）：[Easy Trip v3.0 Agent 架构设计：手机端执行、云端推理](https://bytedance.larkoffice.com/docx/MhG8dAiFHorRB9xPts1cLx9enuc)。下方插图使用随文归档的 SVG 源文件。
 
 设计评审稿 · 2026-09-24 · 面向产品负责人、Android 与后端开发者。本文细化推荐方案；新增模块、接口、状态与指标均为拟议设计，尚未实现或进行模型联调。源码核对基线：781a543ddb218abf2467b79b2a7f1d4767fa6aa5。
 
@@ -35,7 +35,7 @@
 
 ## 总体架构与部署边界
 
-![总体架构：手机端执行、云端推理与共享业务能力](assets/easy-trip-v2-agent/architecture.svg)
+![总体架构：手机端执行、云端推理与共享业务能力](assets/easy-trip-v3-agent/architecture.svg)
 
 主线：用户意图进入手机 Runtime；Runtime 读取上下文、请求模型、验证候选工具调用；查询和草稿进入 TripCapabilities；用户确认后，受信任的应用代码调用 ChangeSet Executor；执行器通过领域规则与 Room 提交。云端模型没有数据库连接或本地提交授权。
 
@@ -70,7 +70,7 @@
 
 ## 一次调整的完整时序
 
-![完整时序：自然语言调整、方案预览、原子提交与回执](assets/easy-trip-v2-agent/sequence.svg)
+![完整时序：自然语言调整、方案预览、原子提交与回执](assets/easy-trip-v3-agent/sequence.svg)
 
 先持久化 runId，读取一致的旅行快照和 editRevision；Runtime 发送受限工具列表与最小上下文。手机对模型候选调用校验名称、参数、范围和授权，再执行查询或草稿修改，将结构化结果记入调用日志并反馈模型，直到可预览或存在明确阻塞。
 
@@ -114,7 +114,7 @@
 | CommitReceipt | operationId、argsDigest、changeSetId、fromRevision、toRevision、appliedIds、inverseRef、routeStatus | 与业务修改同事务写入，证明是否已提交。 |
 | Trip.editRevision | 旅行级单调递增版本 | 所有正式用户编辑都递增；路线结果用 leg.version，不无故使草稿失效。 |
 
-![ChangeSet 生命周期：校验、授权、提交、冲突与撤销](assets/easy-trip-v2-agent/changeset.svg)
+![ChangeSet 生命周期：校验、授权、提交、冲突与撤销](assets/easy-trip-v3-agent/changeset.svg)
 
 ChangeSet 主流程：DRAFT → VALIDATED → AWAITING_APPROVAL → READY → APPLIED。修改草稿增加 planRevision 并回到 DRAFT；正式行程改变进入 CONFLICT；到期或放弃进入 EXPIRED / DISCARDED；校验失败保留 DRAFT 并返回错误；授权到期退回等待确认；APPLIED 后经反向操作到 UNDONE。简单直接指令可由本地策略签发 READY，但不跳过校验。
 
