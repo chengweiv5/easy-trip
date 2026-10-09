@@ -1,0 +1,32 @@
+{
+  "status": "implementation_verified_delivery_blocked",
+  "version": "2.1.0",
+  "versionCode": 15,
+  "schema": 9,
+  "base": "79c60a82683d82732cd73344516bc87a37b261bb",
+  "unit": {
+    "tests": 955,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Warning": 54,
+    "Hint": 1
+  },
+  "expenseDeviceTests": 37,
+  "expenseDeviceFailures": 0,
+  "dateTransactionTests": 71,
+  "dateTransactionFailures": 0,
+  "systemFont320dp2xTests": 4,
+  "systemFontFailures": 0,
+  "phoneTouched": false,
+  "pushed": false,
+  "published": false,
+  "independentReview": "unavailable: all subagent review attempts response.failed stream disconnected",
+  "blocker": "Mac locked during Pencil native Save As; formal cumulative v2.1 snapshot has not been created or validated",
+  "reviewDesignSha256": "96aa02d9ae224880f41c6712b19d8d599f205b73411b54500e5a466dd5b97807",
+  "v200SourceSha256": "d1ce4672d9d73f056d3fc7954d1db6ef96a8fdba2394318d852c2ff76c067b7a",
+  "apkSha256": "c1d8d82bc247641b0ffd7fc8864406b685b3956ae77d6857c1fd1577cb7488a5",
+  "rerunNote": "final-expense-device.log was interrupted by starting system-font test before completion; final-expense-rerun.log completed 37/37. The transient stale-item assertion is retained in raw logs, not counted as a clean initial run."
+}

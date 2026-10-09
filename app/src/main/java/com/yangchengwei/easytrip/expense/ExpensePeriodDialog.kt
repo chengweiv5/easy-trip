@@ -6,6 +6,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -21,14 +22,20 @@ fun ExpensePeriodDialog(prompter: ExpensePeriodPrompter) {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(preview.before.firstOrNull { it.tripId == preview.changes.first().tripId }?.tripName.orEmpty())
                 Text("以下${preview.changes.size}笔费用将随行程日期调整；不会复制费用或改变其金额。")
-                preview.changes.groupBy { it.beforeDate?.let(YearMonth::from) to it.afterDate?.let(YearMonth::from) }.forEach { (periods, group) ->
-                    Text("${periods.first ?: "未确定日期"} → ${periods.second ?: "未确定日期"}\n${group.size}笔 · ${expenseMoney(group.fold(0L) { sum, row -> Math.addExact(sum, row.cents) })}")
+                Surface(color = Color(0xFFFFF6E6), contentColor = Color(0xFF79521E), shape = MaterialTheme.shapes.medium) {
+                    Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        preview.changes.groupBy { it.beforeDate?.let(YearMonth::from) to it.afterDate?.let(YearMonth::from) }.forEach { (periods, group) ->
+                            Text("${periods.first ?: "未确定日期"} → ${periods.second ?: "未确定日期"}\n${group.size}笔 · ${expenseMoney(group.fold(0L) { sum, row -> Math.addExact(sum, row.cents) })}")
+                        }
+                    }
                 }
+                HorizontalDivider()
                 val years = preview.changes.flatMap { listOfNotNull(it.beforeDate?.year, it.afterDate?.year) }.distinct().sorted()
                 years.forEach { year ->
                     Text("全部旅行 · ${year}年：${periodAmount(preview.before, ExpensePeriod.Year(year))} → ${periodAmount(preview.after, ExpensePeriod.Year(year))}")
                 }
                 Text("全部总额：${periodAmount(preview.before, ExpensePeriod.All)} → ${periodAmount(preview.after, ExpensePeriod.All)}")
+                HorizontalDivider()
                 preview.changes.forEach { change -> Text("${change.sourceName} · ${change.beforeDate ?: "未确定日期"} → ${change.afterDate ?: "未确定日期"}", style = MaterialTheme.typography.bodySmall) }
                 Text("取消后日期、行程与费用均保持原样。金额按旅行日统计，不按录入时间。", style = MaterialTheme.typography.bodySmall)
             }

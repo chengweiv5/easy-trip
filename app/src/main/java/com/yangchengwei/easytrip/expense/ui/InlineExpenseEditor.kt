@@ -123,6 +123,7 @@ internal fun InlineExpenseRow(
                                 FilterChip(
                                     selected = row.category == category, onClick = { onChange(row.copy(category = category)) },
                                     label = { Text(category.label) }, enabled = enabled,
+                                    leadingIcon = if (row.category == category) ({ Text("✓") }) else null,
                                     modifier = Modifier.weight(1f).heightIn(min = 44.dp)
                                         .testTag("expense-category-${row.key}-${category.storageKey}"),
                                 )

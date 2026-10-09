@@ -114,9 +114,14 @@ class ExpenseReviewViewModel(
 
     fun selectPeriod(period: ExpensePeriod) {
         val current = state.value.scope
-        val rootYearChange = history.isEmpty() && current.tripId == null &&
-            current.period is ExpensePeriod.Year && period is ExpensePeriod.Year && current.category == null && !current.unclassified
-        go(current.copy(period = period), push = !rootYearChange)
+        val sameLevel = (current.period is ExpensePeriod.Year && period is ExpensePeriod.Year) ||
+            (current.period is ExpensePeriod.Month && period is ExpensePeriod.Month)
+        go(current.copy(period = period), push = !sameLevel)
+    }
+    fun shiftPeriod(delta: Int) {
+        val current = state.value.scope
+        val next = current.period.adjacent(delta) ?: return
+        go(current.copy(period = next), push = false)
     }
     fun selectCategory(category: ExpenseCategory?) = go(state.value.scope.copy(category = category, unclassified = category == null))
     fun showWholeTrip() = go(state.value.scope.copy(period = ExpensePeriod.All, dayId = null, category = null, unclassified = false))
@@ -142,6 +147,15 @@ class ExpenseReviewViewModel(
         if (push) history.add(state.value.scope)
         mutable.update { it.copy(scope = scope, canGoBack = history.isNotEmpty()) }
     }
+}
+
+/** Adjacent navigation preserves granularity and never wraps the supported calendar bounds. */
+fun ExpensePeriod.adjacent(delta: Int): ExpensePeriod? = when (this) {
+    is ExpensePeriod.Year -> (value.toLong() + delta).takeIf {
+        it in LocalDate.MIN.year.toLong()..LocalDate.MAX.year.toLong()
+    }?.let { ExpensePeriod.Year(it.toInt()) }
+    is ExpensePeriod.Month -> runCatching { ExpensePeriod.Month(value.plusMonths(delta.toLong())) }.getOrNull()
+    ExpensePeriod.All, ExpensePeriod.Undated -> null
 }
 
 fun ExpenseScope.select(records: List<ExpenseRecord>): List<ExpenseRecord> = records.filter { record ->

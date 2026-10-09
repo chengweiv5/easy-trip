@@ -15,6 +15,22 @@ class ExpenseReviewViewModelTest {
     @Before fun setup() = Dispatchers.setMain(dispatcher)
     @After fun cleanup() = Dispatchers.resetMain()
 
+    @Test fun `adjacent months cross years without adding history and back restores parent scroll`() = runTest(dispatcher) {
+        val model = ExpenseReviewViewModel(Store(), clock)
+        model.selectPeriod(ExpensePeriod.Year(2025))
+        val parent = model.state.value.scope
+        model.rememberScroll(parent, 420)
+        model.selectPeriod(ExpensePeriod.Month(YearMonth.of(2025, 12)))
+        model.shiftPeriod(1)
+        assertEquals(ExpensePeriod.Month(YearMonth.of(2026, 1)), model.state.value.scope.period)
+        model.shiftPeriod(-1)
+        assertEquals(ExpensePeriod.Month(YearMonth.of(2025, 12)), model.state.value.scope.period)
+        assertTrue(model.back())
+        assertEquals(parent, model.state.value.scope)
+        assertEquals(420, model.scrollOffset(model.state.value.scope))
+        assertFalse(model.back())
+    }
+
     @Test fun `first visit is current year and back preserves year month and category`() = runTest(dispatcher) {
         val store = Store()
         val model = ExpenseReviewViewModel(store, clock)
@@ -28,6 +44,32 @@ class ExpenseReviewViewModelTest {
         assertEquals(ExpensePeriod.Month(YearMonth.of(2025, 4)), model.state.value.scope.period)
         model.back()
         assertEquals(ExpensePeriod.Year(2025), model.state.value.scope.period)
+    }
+
+    @Test fun `calendar bounds and non calendar ranges disable adjacent navigation`() {
+        assertNull(ExpensePeriod.Year(LocalDate.MIN.year).adjacent(-1))
+        assertNull(ExpensePeriod.Year(LocalDate.MAX.year).adjacent(1))
+        assertNull(ExpensePeriod.Month(YearMonth.from(LocalDate.MIN)).adjacent(-1))
+        assertNull(ExpensePeriod.Month(YearMonth.from(LocalDate.MAX)).adjacent(1))
+        assertNull(ExpensePeriod.All.adjacent(1))
+        assertNull(ExpensePeriod.Undated.adjacent(-1))
+    }
+
+    @Test fun `picker replaces sibling month while failed read and trip filter are retained`() = runTest(dispatcher) {
+        val store = Store().apply { failRead = true }
+        val model = ExpenseReviewViewModel(store, clock)
+        model.selectPeriod(ExpensePeriod.Year(2025))
+        model.selectTrip("trip")
+        model.selectPeriod(ExpensePeriod.Month(YearMonth.of(2025, 4)))
+        model.selectCategory(ExpenseCategory.FOOD)
+        advanceUntilIdle()
+        model.shiftPeriod(1)
+        assertEquals(ExpenseScope(ExpensePeriod.Month(YearMonth.of(2025, 5)), "trip", category = ExpenseCategory.FOOD), model.state.value.scope)
+        assertTrue(model.state.value.load is ExpenseLoadState.Failed)
+        model.back()
+        model.selectPeriod(ExpensePeriod.Month(YearMonth.of(2026, 1)))
+        model.back()
+        assertEquals(ExpenseScope(ExpensePeriod.Year(2025), "trip"), model.state.value.scope)
     }
 
     @Test fun `single record edit keeps scope and failure retains draft until retry succeeds`() = runTest(dispatcher) {
