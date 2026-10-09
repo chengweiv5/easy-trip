@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "identity": "bot",
+  "data": {
+    "messages": [
+      {
+        "chat_id": "oc_b5dc30707aff7eb5628922703c9b3814",
+        "content": "Easy Trip v1.9.0 多笔费用设计已更新并保存重开验证。\n\n已按确认方案：一个行程地点可录入多笔费用，每笔独立类别、金额、备注，同一类别也可多笔。酒店示例为住宿600元、晚餐120元、早餐40元，合计760元；支持逐笔新增、编辑、删除、失败留稿和跨天归属。全程/单日/分类统计及原有入口已同步更新。\n\n当前唯一设计源：/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen\n保留全部旧画板，本轮新增9个状态；累计157有效根、59组状态。顶层重叠0，38个相关画板文字裁切和无效组件引用均为0；已检查原生可编辑属性。\n\n本轮只修改设计和审计记录，未改应用代码、未提交或推送，旧8项UI验收问题仍开放。界面细化待评审。\n审计与回滚：/Users/bytedance/.codex/worktrees/6934/easy-trip/.scratch/v1.9.0-expense-categories/README.md",
+        "create_time": "2026-10-09 14:20",
+        "deleted": false,
+        "message_app_link": "https://applink.feishu.cn/client/chat/open?openChatId=oc_b5dc30707aff7eb5628922703c9b3814&position=2652",
+        "message_id": "om_x100b63bc372590acc22b6804d0e1b8e",
+        "message_position": "2652",
+        "msg_type": "text",
+        "sender": {
+          "id": "cli_aaa104e4de399cca",
+          "id_type": "app_id",
+          "name": "punk-12 for Codex",
+          "open_bot_id": "ou_7c43439a6f6149329ae2770457ad1b23",
+          "sender_i18n_names": {
+            "en_us": "punk-12 for Codex",
+            "zh_cn": "punk-12 for Codex"
+          },
+          "sender_type": "app",
+          "tenant_key": "736588c9260f175d"
+        },
+        "update_time": "2026-10-09 14:20",
+        "updated": true
+      }
+    ],
+    "total": 1
+  }
+}

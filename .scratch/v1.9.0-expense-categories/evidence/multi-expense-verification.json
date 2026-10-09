@@ -1,0 +1,173 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-09T14:19:58.531406+08:00",
+  "method": "Filesystem read-only hash/JSON plus manual transcription of Pencil MCP and native CUA tool responses from this turn; not raw MCP export. .pen edits only via Pencil MCP and native Save.",
+  "workspace": "/Users/bytedance/.codex/worktrees/6934/easy-trip",
+  "head": "1a626f7c2122b7bd812251a95b309814f66aee91",
+  "open_pr_check": {
+    "result": [],
+    "performed_before_design_changes": true
+  },
+  "saved_file": {
+    "file": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
+    "sha256": "9e4b821a140ca304b38e43079a2a1cdb726fbe11ca71527dd53872c0a25287b2",
+    "bytes": 18578477,
+    "mtime": "2026-10-09T14:18:13.861157+08:00",
+    "active_roots": 157
+  },
+  "native_reopen": {
+    "verified": true,
+    "path": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
+    "window_url": "file:///Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
+    "mcp_active_path_matches": true,
+    "edited_indicator_after_reopen": false,
+    "method": "File Save; close; getApp Dashboard; Open File; Go To exact6934 path; open; MCP reread.",
+    "final_count_correction_reopened": true
+  },
+  "inheritance": {
+    "all_131_v183_active_roots_retained": true,
+    "all_148_previous_v190_roots_retained": true,
+    "new_roots": [
+      "a3Vyzc",
+      "g04zi6",
+      "ZKtJS",
+      "bO8eg",
+      "qf6FO",
+      "J0icRI",
+      "e9WXQ7",
+      "enMK0",
+      "X6moH"
+    ],
+    "v183_sha256_unchanged": "0cb8f48fb14932e8850b426e1f18412b94149a43f5798fb61cfd40f6f90f033a"
+  },
+  "mcp_readback": {
+    "active_roots": 157,
+    "disabled_roots": [
+      "DRICS"
+    ],
+    "state_groups": 59,
+    "design_routes": 10,
+    "top_level_overlaps": [],
+    "placeholders": [],
+    "wrong_version_root_names": [],
+    "checked_text_ref_roots": [
+      "K9h3r",
+      "D03lK",
+      "LFmzR",
+      "FTIOF",
+      "K336N",
+      "c0vRa",
+      "OOEsk",
+      "AnBuD",
+      "yTqpm",
+      "zeIKe",
+      "t3MG7p",
+      "IQMCC",
+      "FpRZH",
+      "OUIyx",
+      "yDpRU",
+      "ZDSMb",
+      "qpK3w",
+      "h9eKnf",
+      "kdeup",
+      "JbEYv",
+      "UtdGR",
+      "XLxbY",
+      "qMLBw",
+      "b2TIs",
+      "R38ET",
+      "lstLS",
+      "wtN9w",
+      "jc8OW",
+      "e9v0Ll",
+      "a3Vyzc",
+      "g04zi6",
+      "ZKtJS",
+      "bO8eg",
+      "qf6FO",
+      "J0icRI",
+      "e9WXQ7",
+      "enMK0",
+      "X6moH"
+    ],
+    "clipped_visible_text": [],
+    "unresolved_refs": [],
+    "old_single_amount_restriction_scan": [],
+    "new_reusable_record_row": "c2VhmZ"
+  },
+  "visual_review": {
+    "method": "TakeScreenshot incremental plus post-reopen",
+    "post_reopen_screens": [
+      "yDpRU",
+      "ZDSMb",
+      "a3Vyzc"
+    ],
+    "other_reviewed_screens": [
+      "yDpRU",
+      "h9eKnf",
+      "K336N",
+      "qpK3w",
+      "kdeup",
+      "g04zi6",
+      "e9v0Ll",
+      "ZKtJS"
+    ],
+    "result": "No broken/collapsed/overflowing layout seen in reviewed screens. Not exhaustive all-page or runtime acceptance."
+  },
+  "native_editability": {
+    "selected_node": "a3Vyzc",
+    "selected_name": "v1.9.0 · 12 费用统计 / F09 地点多笔费用",
+    "settable_properties": [
+      "name",
+      "context",
+      "x",
+      "y",
+      "width",
+      "height",
+      "theme"
+    ],
+    "actual_native_content_change": false,
+    "new_native_reusable_component_verified": true
+  },
+  "recovered_issues": [
+    {
+      "error": "missing obsolete temporary node T9w6Ja",
+      "edit_id": "ZS27j",
+      "fix": "same editId edits replaced lookup with current subtree diagnostic; passed"
+    },
+    {
+      "error": "Replace warnings referred to removed old body node IDs",
+      "fix": "queried replacement roots; current layout valid and clipping0"
+    },
+    {
+      "error": "old category overlay remained and category refs exceeded rows",
+      "fix": "disabled explicitly superseded overlay, resized refs horizontally, screenshot and clipping check passed"
+    },
+    {
+      "error": "long full detail overlapped next row",
+      "fix": "FindEmptySpace moved qpK3w to5880,34980; final overlaps0"
+    },
+    {
+      "error": "CUA screen capture -10005 after closing last design, MCP no document",
+      "fix": "rebound native app Dashboard and opened exact saved path"
+    },
+    {
+      "error": "CUA user-changed-app protection during Go To",
+      "fix": "refreshed MCP/AX and continued from current dialog; no content overwrite"
+    }
+  ],
+  "tests_run": false,
+  "app_source_changes": false,
+  "implementation_status": "NOT_IMPLEMENTED",
+  "inherited_open_assertions": [
+    "Narrow-width large-font other-trip card not displayed (1)",
+    "WholeTrip structural/semantic/layout/timing assertions (6)",
+    "API31 system-share chooser package assertion; final return validation not reached (1)"
+  ],
+  "full_version_runtime_acceptance": "NOT_PASSED",
+  "backup_directory": "/var/folders/2w/1f00699j5n5f4jp09txy9n2c0000gn/T/easy-trip-v190-multi-expense-20261009-8pc9i4x8",
+  "sample_missing_sources": {
+    "trip": 4,
+    "day1": 2
+  }
+}

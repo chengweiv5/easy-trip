@@ -1,0 +1,61 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-09T13:47:28.790161+08:00",
+  "files": [
+    {
+      "path": "README.md",
+      "sha256": "eb145088781ad10ecde6f2fbfbeda11d45db317e3d1b7ec9fcdb921fdfb35b61",
+      "bytes": 7618
+    },
+    {
+      "path": "coverage.json",
+      "sha256": "c51240c5b7a8f127e3881d8ecf13ab138126f010021bbe4781cf2daaa348ce66",
+      "bytes": 77348
+    },
+    {
+      "path": "evidence/design-verification.json",
+      "sha256": "3d4ead3918ab091e4cf9ab9a379a8f7013aaa92b5411f19a66803eed0c611b7a",
+      "bytes": 3953
+    },
+    {
+      "path": "evidence/final-checks.json",
+      "sha256": "8a43ee9005220f4ef250e6b0115b0298163716809548f00791460f25e0a55a86",
+      "bytes": 1023
+    },
+    {
+      "path": "evidence/notification-content.txt",
+      "sha256": "b9d898bb3535b1b034e91e67cf5e87810e23a165d205fcac40ecdc3f94eabfea",
+      "bytes": 907
+    },
+    {
+      "path": "evidence/notification-proof.json",
+      "sha256": "8a8fab3ce80f74f7716205ea591955a98a8f4e5d37de20327a9369b5f7bc2331",
+      "bytes": 436
+    },
+    {
+      "path": "evidence/notification-readback.json",
+      "sha256": "308cb31d2779bd4fa7e019eda0485616baa8202dea1464260350ca28b3433216",
+      "bytes": 1910
+    },
+    {
+      "path": "evidence/notification-send.json",
+      "sha256": "dc4854e80363e32412734f2f73f7fe02b62b2a9469c87559f3818ad97534da50",
+      "bytes": 207
+    },
+    {
+      "path": "evidence/push-proof.json",
+      "sha256": "772b56497d99ccdb700c94d8b8a0963de9e0e304d38e4574234f1ed92c4cace6",
+      "bytes": 551
+    }
+  ],
+  "external_files": [
+    {
+      "path": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
+      "sha256": "2bd2a9677bf261ee74744dccc8c707d90e5ab347357c13d72c104de49058c010"
+    },
+    {
+      "path": "/Users/bytedance/.codex/worktrees/6934/easy-trip/.codex/TASK_STATE.md",
+      "sha256": "1359f210dece8fc14ca0bff3dc9b2c7bf7b37876abeb814993eff99b15adc61b"
+    }
+  ]
+}

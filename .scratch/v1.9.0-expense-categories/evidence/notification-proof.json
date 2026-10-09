@@ -1,0 +1,12 @@
+{
+  "checked_at": "2026-10-09T13:47:00.040374+08:00",
+  "message_id": "om_x100b63b3b5b7d8a4dda501265e279cc",
+  "chat_id": "oc_b5dc30707aff7eb5628922703c9b3814",
+  "sender_app_id": "cli_aaa104e4de399cca",
+  "sender_name": "punk-12 for Codex",
+  "send_ok": true,
+  "readback_ok": true,
+  "exact_content_match": true,
+  "not_deleted": true,
+  "expected_content_sha256": "24b5855f86bb9c08a2d9da1114738f2904e2263d78248008deee0e95731d6961"
+}

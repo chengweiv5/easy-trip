@@ -1,0 +1,33 @@
+{
+  "ok": true,
+  "identity": "bot",
+  "data": {
+    "messages": [
+      {
+        "chat_id": "oc_b5dc30707aff7eb5628922703c9b3814",
+        "content": "Easy Trip：v1.8.3 设计补全已提交并快进推送到 origin/main，提交 1a626f7c2122b7bd812251a95b309814f66aee91，远端 SHA 已回读一致。\n\nv1.9.0 六类费用统计设计首稿已在当前 6934 工作树保存并关闭重开验证：住宿、交通、景点、吃饭、购物、其它；含全程/单日统计、分类明细、类别录入及旧费用待分类。保留全部 131 个旧有效画板，新增 15 个页面状态和 2 个组件/索引画板；共 148 个有效根，顶层重叠 0。\n\n待评审假设：每笔费用单选一类，交通路段归交通；旧地点费用不猜分类。v1.9 未实现、未提交或推送；v1.8.3 的 8 项 UI 断言仍开放，本轮未重跑。\n\n正式设计源：/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen\n审计：/Users/bytedance/.codex/worktrees/6934/easy-trip/.scratch/v1.9.0-expense-categories/README.md",
+        "create_time": "2026-10-09 13:46",
+        "deleted": false,
+        "message_app_link": "https://applink.feishu.cn/client/chat/open?openChatId=oc_b5dc30707aff7eb5628922703c9b3814&position=2651",
+        "message_id": "om_x100b63b3b5b7d8a4dda501265e279cc",
+        "message_position": "2651",
+        "msg_type": "text",
+        "sender": {
+          "id": "cli_aaa104e4de399cca",
+          "id_type": "app_id",
+          "name": "punk-12 for Codex",
+          "open_bot_id": "ou_7c43439a6f6149329ae2770457ad1b23",
+          "sender_i18n_names": {
+            "en_us": "punk-12 for Codex",
+            "zh_cn": "punk-12 for Codex"
+          },
+          "sender_type": "app",
+          "tenant_key": "736588c9260f175d"
+        },
+        "update_time": "2026-10-09 13:46",
+        "updated": true
+      }
+    ],
+    "total": 1
+  }
+}

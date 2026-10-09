@@ -1,0 +1,30 @@
+{
+  "checked_at": "2026-10-09T13:46:03.726898+08:00",
+  "local_head": "1a626f7c2122b7bd812251a95b309814f66aee91",
+  "remote_main": "1a626f7c2122b7bd812251a95b309814f66aee91",
+  "remote_matches": true,
+  "git_diff_check": "PASS",
+  "changed_worktree_paths": [
+    " M .codex/TASK_STATE.md",
+    "?? .scratch/v1.9.0-expense-categories/",
+    "?? design/easy-trip-v1.9.0.pen"
+  ],
+  "app_and_v183_diff_vs_HEAD": "EMPTY",
+  "earlier_task_state_history": "UNCHANGED",
+  "design_sha256": "2bd2a9677bf261ee74744dccc8c707d90e5ab347357c13d72c104de49058c010",
+  "coverage": {
+    "old_roots_preserved": 131,
+    "new_roots": 17,
+    "total_active_roots": 148,
+    "groups": 56,
+    "all_frame_references_resolve": true
+  },
+  "arithmetic_checks": "PASS",
+  "json_parse": "PASS",
+  "runtime_tests": "NOT_RUN",
+  "v190_committed": false,
+  "v190_pushed": false,
+  "delivery_rechecked_at": "2026-10-09T13:47:28.787732+08:00",
+  "notification_exact_readback": "PASS",
+  "notification_message_id": "om_x100b63b3b5b7d8a4dda501265e279cc"
+}

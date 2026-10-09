@@ -1,0 +1,23 @@
+{
+  "checked_at": "2026-10-09T14:19:58.710962+08:00",
+  "design_sha256": "9e4b821a140ca304b38e43079a2a1cdb726fbe11ca71527dd53872c0a25287b2",
+  "active_roots": 157,
+  "state_groups": 59,
+  "old_131_roots_preserved": true,
+  "all_148_first_draft_roots_preserved": true,
+  "frames_resolve": true,
+  "arithmetic": "PASS",
+  "missing_source_count": {
+    "trip": 4,
+    "day1": 2
+  },
+  "git_diff_check": "PASS",
+  "app_and_v183_diff_vs_HEAD": "EMPTY",
+  "previous_task_state_verbatim_preserved": true,
+  "head_unchanged": "1a626f7c2122b7bd812251a95b309814f66aee91",
+  "runtime_tests": "NOT_RUN",
+  "commit_push_this_turn": false,
+  "notification_readback": "PASS",
+  "message_id": "om_x100b63bc372590acc22b6804d0e1b8e",
+  "delivery_checked_at": "2026-10-09T14:21:11.050278+08:00"
+}

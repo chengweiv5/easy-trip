@@ -1,0 +1,133 @@
+{
+  "schema_version": 1,
+  "recorded_at": "2026-10-09T13:45:39.363496+08:00",
+  "observation_method": "Filesystem read-only JSON/hash verification and manual transcription of native CUA/Pencil MCP responses from this turn; not a raw MCP export. No .pen file written by script.",
+  "workspace": "/Users/bytedance/.codex/worktrees/6934/easy-trip",
+  "active_document": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
+  "saved_file": {
+    "file": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
+    "sha256": "2bd2a9677bf261ee74744dccc8c707d90e5ab347357c13d72c104de49058c010",
+    "bytes": 19053003,
+    "mtime": "2026-10-09T13:37:22.418009+08:00"
+  },
+  "native_save_reopen": {
+    "verified": true,
+    "method": "Native File Save, close, File Open exact 6934 path; active MCP document and native window URL matched after reopen.",
+    "file_url": "file:///Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.9.0.pen",
+    "edited_indicator_seen_on_final_readback": false
+  },
+  "inheritance": {
+    "all_131_old_active_roots_preserved": true,
+    "new_roots": [
+      "yTqpm",
+      "yDpRU",
+      "ZDSMb",
+      "qpK3w",
+      "h9eKnf",
+      "kdeup",
+      "JbEYv",
+      "UtdGR",
+      "XLxbY",
+      "qMLBw",
+      "b2TIs",
+      "R38ET",
+      "lstLS",
+      "wtN9w",
+      "jc8OW",
+      "e9v0Ll",
+      "zeIKe"
+    ],
+    "old_file_unchanged": true,
+    "old_sha256": "0cb8f48fb14932e8850b426e1f18412b94149a43f5798fb61cfd40f6f90f033a"
+  },
+  "mcp_checks": {
+    "active_roots": 148,
+    "disabled_history_roots": [
+      "DRICS"
+    ],
+    "top_level_overlaps": [],
+    "root_placeholder_ids": [],
+    "wrong_version_root_names": [],
+    "checked_text_and_ref_roots": [
+      "yDpRU",
+      "ZDSMb",
+      "qpK3w",
+      "h9eKnf",
+      "kdeup",
+      "JbEYv",
+      "UtdGR",
+      "XLxbY",
+      "qMLBw",
+      "b2TIs",
+      "R38ET",
+      "lstLS",
+      "wtN9w",
+      "jc8OW",
+      "e9v0Ll",
+      "K336N",
+      "c0vRa",
+      "T7aESo",
+      "yTqpm",
+      "zeIKe"
+    ],
+    "clipped_text": [],
+    "unresolved_refs": [],
+    "state_groups": 56,
+    "design_routes": 10,
+    "new_reusable_category_components": [
+      "zzoFC",
+      "c3nj5",
+      "u32n1J",
+      "Fmmfy",
+      "eyOlU",
+      "KzjtT"
+    ],
+    "new_reusable_summary_row": "bUkIu"
+  },
+  "visual_check": {
+    "method": "Pencil MCP TakeScreenshot after reopen",
+    "screens": [
+      "yDpRU",
+      "JbEYv",
+      "UtdGR"
+    ],
+    "result": "No collapsed/broken/overflowing layout observed in reviewed screens; not full runtime or all-screen acceptance."
+  },
+  "native_editability": {
+    "selected_node": "yDpRU",
+    "selected_name": "v1.9.0 · 12 费用统计 / F03 全程分类汇总",
+    "properties_observed_settable": [
+      "name",
+      "context",
+      "position",
+      "dimensions",
+      "theme"
+    ],
+    "actual_content_change_for_native_check": false,
+    "mcp_native_component_creation_and_readback": true
+  },
+  "recovered_errors": [
+    {
+      "id": "NK4WU",
+      "error": "readonly diagnostic syntax error",
+      "recovery": "patched using same editId, succeeded"
+    },
+    {
+      "error": "new UI kit overlapped old theme kit",
+      "recovery": "FindEmptySpace; moved to x5620,y0; final overlap0"
+    },
+    {
+      "error": "native CUA guard: user changed application",
+      "recovery": "requery MCP/getAXState before actions; native Layers selection succeeded"
+    }
+  ],
+  "tests_rerun": false,
+  "implementation_changes": false,
+  "old_open_assertions": [
+    "Narrow-width large-font other-trip card not displayed (1)",
+    "WholeTrip structural/semantic/layout/timing assertions (6)",
+    "API31 system-share chooser package assertion; final return validation not reached (1)"
+  ],
+  "full_version_runtime_acceptance": "NOT_PASSED",
+  "backup_directory": "/var/folders/2w/1f00699j5n5f4jp09txy9n2c0000gn/T/easy-trip-v190-start-20261009-a0dl8khu"
+}
