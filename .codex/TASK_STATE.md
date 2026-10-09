@@ -1,13 +1,15 @@
 # v2.0.0 README 与正式发布
 
-状态：**DONE — README图文与v2.0.0公开发布完成；设计内发布元数据未同步，说明如下。**（2026-10-09）
+状态：**DONE — README图文与v2.0.0公开发布完成；设计内发布元数据已同步，原生保存／关闭重开验证通过。**（2026-10-09）
 
 - README已改为行程规划与旅行记账，14张展示图全部从v2.0.0正式包重新采集；共17个新版图片文件。独立合成数据，不公开用户手机数据；旧图仅作历史材料。
 - 文档提交f7bb3c362da562ee329797e2cc06111bee11bd5f已快进推送。公开README内容SHA一致、14张图片线上加载成功；19个本地目标、OCR、三天长图页脚、1024/390px布局和比例检查通过。
 - 2026-10-09 20:33:19（Asia/Shanghai）公开GitHub Release v2.0.0，draft=false、prerelease=false、Latest=true。远端annotated tag解引用ebce69e，与正式包源码一致。
 - APK 2.0.0/build14，62,520,425字节，SHA256 44ec9300610a2a72caa7a5486847f01af3b70225eb010472cd1db3e36e2c2660。草稿资产digest、发布后gh重下载、匿名HTTP下载及Latest跳转全部核验。
 - 复用已完成手机保留数据升级验证的同签名包；本次未重新构建、未再操作个人手机。952 Release单测通过，lint 0错误/52警告/1提示；费用33/日期事务71/导航6专项沿用。原8项UI与22项旧时间轴基线失败保留，不声称全量验收通过。
-- Pencil原生前台是其它v2.1探索稿；为不干扰，MCP撤回本次未保存发布文字。v2.0.0.pen磁盘/Git未变，发布元数据未同步；当前事实见docs/testing/v2.0.0-release.md，不以设计旧状态为准。
+- 设计同步重试成功：原生窗口URL与MCP均确认当前6934工作树正式源。仅更新`t3MG7p.context`和`Ae1i9.content`，原生保存、关闭并精确重开后，新发布状态仍在；Layers中可选中原生文字并查看可编辑属性。
+- JSON递归对比仅两处文字变化；185有效根+1历史根、placeholder0，基线画板与子节点边界不变且无裁切，最终可读性检查通过。正式源SHA256为`d1ce4672d9d73f056d3fc7954d1db6ef96a8fdba2394318d852c2ff76c067b7a`。未改应用代码、未重跑测试或安装手机，原UI验收缺口保留。
+- 本轮设计同步证据及备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-design-release-retry-20261009-204708/`。完整发布事实与仅撤销本轮修改的方法见`docs/testing/v2.0.0-release.md`；不移动已发布标签、不覆盖APK附件。
 - 证据与备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-release-20261009/`；回滚只限定文档/图片，不移动已发布标签，不覆盖资产，不卸载、清库或降级schema9。
 
 ---

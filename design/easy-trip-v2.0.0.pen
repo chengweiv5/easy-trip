@@ -2126,7 +2126,7 @@
       "x": 1660,
       "y": 0,
       "name": "v2.0.0 · 00 版本基线与覆盖清单",
-      "context": "2026-10-09：v2.0.0功能Task1–5已实现，继承v1.8.3/build13；代码功能基线d7c707d，当前版本2.0.0/build14、Room schema9。185有效根+1停用根保持。952 JVM、32费用包设备、71日期事务回归通过。旧8项UI断言复测仍未通过；未发布、未安装个人手机，不声明全量UI验收。最终交付证据见.scratch/v2.0.0-implementation。",
+      "context": "2026-10-09：v2.0.0/build14已发布为GitHub Latest，标签及APK源码ebce69e95c494e6840dae3451f7035bdfabac6a0，Room schema9。已同签名覆盖升级Huawei手机，旅行摘要和费用总额保留。952 Release单测、费用33/日期71/导航6专项通过；原8项UI断言仍开放，不声明全量UI验收。185有效根+1历史根，页面布局未改；发布证据docs/testing/v2.0.0-release.md。",
       "theme": {
         "Palette": "lake"
       },
@@ -2203,7 +2203,7 @@
           "fill": "$primary-dark",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "实现状态：v2.0.0/build14、Room schema9；多笔迁移、原位编辑、年月分类回顾及日期影响确认已实现。952 JVM、32项费用设备和71项日期事务回归通过。原8项UI断言仍开放；未发布Release、未安装个人手机，完整版本UI验收未通过。",
+          "content": "发布状态：v2.0.0/build14已于2026-10-09公开为Latest；标签与正式APK源码ebce69e，Room schema9。952 Release单测通过；费用33、日期事务71、导航6专项通过。Huawei同签名保留数据升级及费用回顾冒烟通过；旧8项UI断言仍开放，完整UI验收未全部通过。README全部展示图已用本正式包与独立示例数据重采，未公开个人数据。",
           "fontFamily": "Inter",
           "fontSize": 18,
           "fontWeight": "normal"
