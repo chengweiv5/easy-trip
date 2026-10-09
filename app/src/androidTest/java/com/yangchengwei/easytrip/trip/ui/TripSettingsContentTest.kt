@@ -371,7 +371,7 @@ class TripSettingsContentTest {
         compose.onNodeWithTag("trip-date-2026-10-05").performClick()
 
         compose.onNodeWithTag("trip-date-range-sheet").assertIsDisplayed()
-        compose.onNodeWithTag("trip-date-range-error").assertIsDisplayed()
+        compose.onNodeWithTag("trip-date-range-error").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("trip-date-range-confirm").assertIsNotEnabled()
         assertEquals(0, submissions)
     }
@@ -726,7 +726,7 @@ class TripSettingsContentTest {
         }
 
         compose.onNodeWithText("删除旅行请返回旅行列表操作").assertDoesNotExist()
-        compose.onNodeWithTag("settings-delete-trip").assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
+        compose.onNodeWithTag("settings-delete-trip").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
         assertEquals(1, deletionRequests)
     }
 

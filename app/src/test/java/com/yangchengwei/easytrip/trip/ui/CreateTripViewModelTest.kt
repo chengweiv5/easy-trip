@@ -42,16 +42,18 @@ class CreateTripViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
-    @Test fun createRequiresCompleteDateRange() = runTest(dispatcher) {
+    @Test fun nameOnlyCreatesOneUndatedDayAndOpensWorkspace() = runTest(dispatcher) {
         val repository = FakeRepository()
         val viewModel = model(repository)
+        val effect = async { viewModel.effects.first() }
         viewModel.onAction(CreateTripAction.NameChanged("东京"))
 
         viewModel.onAction(CreateTripAction.Submit)
         advanceUntilIdle()
 
-        assertEquals(0, repository.createCalls)
-        assertEquals("请选择开始和结束日期", viewModel.state.value.dateError)
+        assertEquals(CreateTrip("东京", 1, TravelMode.FLEXIBLE, null, requestId = "trip-1"), repository.commands.single())
+        assertEquals(CreateTripEffect.OpenWorkspace("trip-1"), effect.await())
+        assertEquals(CreateTripUiState(), viewModel.state.value)
     }
 
     @Test fun rangeChangeAtomicallyDerivesInclusiveDayCountAndCreates() = runTest(dispatcher) {
@@ -65,6 +67,27 @@ class CreateTripViewModelTest {
         advanceUntilIdle()
 
         assertEquals(CreateTrip("东京", 3, TravelMode.FLEXIBLE, LocalDate.of(2026, 10, 1), requestId = "trip-1"), repository.commands.single())
+    }
+
+    @Test fun clearingRangePreservesNameAndModeAndRestoresUndatedDraft() = runTest(dispatcher) {
+        val saved = SavedStateHandle()
+        val repository = FakeRepository()
+        val viewModel = model(repository, saved)
+        enterValidRange(viewModel)
+        viewModel.onAction(CreateTripAction.TravelModeChanged(TravelMode.SELF_DRIVE))
+
+        viewModel.onAction(CreateTripAction.ClearDateRange)
+
+        assertEquals("东京", viewModel.state.value.name)
+        assertEquals(TravelMode.SELF_DRIVE, viewModel.state.value.travelMode)
+        assertNull(viewModel.state.value.startDate)
+        assertNull(viewModel.state.value.endDate)
+        assertNull(viewModel.state.value.dayCount)
+        val restored = model(repository, saved)
+        assertEquals(viewModel.state.value, restored.state.value)
+        restored.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+        assertEquals(CreateTrip("东京", 1, TravelMode.SELF_DRIVE, null, requestId = "trip-1"), repository.commands.single())
     }
 
     @Test fun retryAfterFailureReusesRequestIdUntilRangeChanges() = runTest(dispatcher) {
@@ -175,6 +198,7 @@ class CreateTripViewModelTest {
 
         viewModel.onAction(CreateTripAction.NameChanged("大阪"))
         viewModel.onAction(CreateTripAction.DateRangeChanged(LocalDate.of(2027, 1, 1), LocalDate.of(2027, 1, 3)))
+        viewModel.onAction(CreateTripAction.ClearDateRange)
         viewModel.onAction(CreateTripAction.TravelModeChanged(TravelMode.SELF_DRIVE))
         viewModel.onAction(CreateTripAction.Back)
 
@@ -221,6 +245,27 @@ class CreateTripViewModelTest {
         viewModel.onAction(CreateTripAction.Back)
         advanceUntilIdle()
         assertEquals(CreateTripEffect.NavigateBack, effect.await())
+    }
+
+    @Test fun clearingFailedDatedRequestRotatesIdAndUndatedRetryReusesIt() = runTest(dispatcher) {
+        val ids = ArrayDeque(listOf("dated-request", "undated-request"))
+        val repository = FakeRepository().apply { failure = IllegalStateException("failed") }
+        val viewModel = CreateTripViewModel(TripService(repository), SavedStateHandle()) { ids.removeFirst() }
+        enterValidRange(viewModel)
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+
+        viewModel.onAction(CreateTripAction.ClearDateRange)
+        assertNull(viewModel.state.value.requestId)
+        assertNull(viewModel.state.value.submitError)
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+        viewModel.onAction(CreateTripAction.ClearDateRange)
+        viewModel.onAction(CreateTripAction.Submit)
+        advanceUntilIdle()
+
+        assertEquals(listOf("dated-request", "undated-request", "undated-request"), repository.commands.map { it.requestId })
+        assertNull(repository.commands.last().startDate)
     }
 
     private fun enterValidRange(viewModel: CreateTripViewModel) {

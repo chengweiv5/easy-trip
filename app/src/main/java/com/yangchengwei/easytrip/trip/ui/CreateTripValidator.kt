@@ -6,7 +6,7 @@ import com.yangchengwei.easytrip.trip.domain.isTripDateRangeRepresentable
 
 data class ValidCreateTrip(
     val command: CreateTrip,
-    val startDate: java.time.LocalDate,
+    val startDate: java.time.LocalDate?,
 )
 
 data class CreateTripValidation(
@@ -16,11 +16,14 @@ data class CreateTripValidation(
 )
 
 fun createTripCommand(state: CreateTripUiState): CreateTrip? {
+    if (state.name.isBlank()) return null
+    if (state.startDate == null && state.endDate == null) {
+        return CreateTrip(state.name.trim(), 1, state.travelMode, null)
+    }
     val startDate = state.startDate ?: return null
     val endDate = state.endDate ?: return null
     val days = state.dayCount ?: return null
     if (
-        state.name.isBlank() ||
         endDate.isBefore(startDate) ||
         days !in 1..MAX_TRIP_DAYS ||
         !isTripDateRangeRepresentable(startDate, days)
@@ -33,6 +36,7 @@ fun validateCreateTrip(state: CreateTripUiState): CreateTripValidation {
     val selection = DateRangeSelection(state.startDate, state.endDate)
     val dayCount = state.dayCount
     val dateError = when {
+        state.startDate == null && state.endDate == null -> null
         selection.validationError != null -> selection.validationError
         dayCount != null && !isTripDateRangeRepresentable(state.startDate, dayCount) -> "日期范围超出支持范围"
         else -> null
@@ -41,6 +45,6 @@ fun validateCreateTrip(state: CreateTripUiState): CreateTripValidation {
         return CreateTripValidation(nameError = nameError, dateError = dateError)
     }
     return CreateTripValidation(
-        valid = ValidCreateTrip(createTripCommand(state)!!.copy(requestId = state.requestId), state.startDate!!),
+        valid = ValidCreateTrip(createTripCommand(state)!!.copy(requestId = state.requestId), state.startDate),
     )
 }

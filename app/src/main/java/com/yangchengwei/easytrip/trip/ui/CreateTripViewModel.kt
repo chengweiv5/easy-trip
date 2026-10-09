@@ -42,6 +42,10 @@ class CreateTripViewModel(
                 current,
                 current.copy(startDate = action.startDate, endDate = action.endDate, dateError = null, submitError = null),
             )
+            CreateTripAction.ClearDateRange -> updateForCommandChange(
+                current,
+                current.copy(startDate = null, endDate = null, dateError = null, submitError = null),
+            )
             is CreateTripAction.TravelModeChanged -> updateForCommandChange(current, current.copy(travelMode = action.value, submitError = null))
             CreateTripAction.Submit -> submit(current)
         }

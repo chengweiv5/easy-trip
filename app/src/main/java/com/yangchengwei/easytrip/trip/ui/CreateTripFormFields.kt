@@ -22,6 +22,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
@@ -73,7 +74,20 @@ internal fun CreateTripFormFields(
             Modifier.testTag("create-date-control-container"),
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Text("出行日期", style = MaterialTheme.typography.labelLarge)
+            Row(
+                Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                Text("出行日期（可选）", style = MaterialTheme.typography.labelLarge)
+                if (state.startDate != null || state.endDate != null) {
+                    TextButton(
+                        onClick = { onAction(CreateTripAction.ClearDateRange) },
+                        enabled = enabled,
+                        modifier = Modifier.testTag("create-clear-dates"),
+                    ) { Text("清空日期") }
+                }
+            }
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -98,14 +112,14 @@ internal fun CreateTripFormFields(
                     DateFieldIcon(Modifier.size(36.dp).testTag("create-date-leading-icon"))
                     Column(Modifier.weight(1f).testTag("create-date-text")) {
                         Text(
-                            state.startDate?.toString() ?: "选择开始和结束日期",
+                            state.startDate?.toString() ?: "日期未定",
                             style = MaterialTheme.typography.bodyMedium,
                         )
                         Text(
                             state.endDate?.let { endDate ->
                                 val duration = state.dayCount?.let { days -> "${days}天${days - 1}晚" } ?: "范围无效"
                                 "至 $endDate · $duration"
-                            } ?: "完整范围后自动计算行程天数",
+                            } ?: "可稍后设置日期和天数",
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )

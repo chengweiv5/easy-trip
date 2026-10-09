@@ -1,3 +1,45 @@
+# v1.8.2 创建旅行可不设置日期和天数
+
+状态：IN_PROGRESS（2026-10-09；本地验收已完成，用户追加授权提交、推送、安装）
+
+## 追加交付
+
+远端已到 `f1c35c3`，包含 v1.8.1 定位重试修复。将本功能提交后 rebase 到最新 main，
+保留上游能力；v1.8.2 构建号递增为 12。正式签名 APK 备份已完成；手机当前
+v1.8.1 / 11，私有数据不可导出，采用同签名保留数据覆盖安装并比较公开 UI。
+不卸载、不清数据、不强制降级，不创建 Release 或标签。
+本轮证据与备份位于 `.scratch/v1.8.2-optional-trip-dates/local/delivery-20261009/`。
+下方保留交付前本地验收快照。
+
+## 实际结果
+
+- 分支 `codex/v1.8.2-optional-trip-dates`，HEAD `d815ce903bd64e350a108e0a103ba9453994db27`；改动未提交、未推送、未发布、未安装物理手机。
+- 仅名称必填；双空日期创建一个无日期 Day 1；清空保留名称/方式；部分日期、逆序和超过30天仍校验；本地版本1.8.2 / 11，无数据库迁移。
+- 924项Debug单测、85项设备回归通过，lint 0 errors / 54 warnings / 1 hint，Debug/AndroidTest构建成功。
+- 真实应用已验证仅名称创建、清空日期后创建、空旅行日增删、补日期及重启后日期/天数/自驾持久化；10项UI状态断言汇总落盘。
+- 独立Spec审查无可复核缺陷；Standards代理连接失败，主代理手工审查，不声称双代理均通过。
+- 专用 emulator-5596 已关闭且回读确认消失；物理设备未操作。
+
+完成通知：punk-12 已发送并逐字回读确认，message_id `om_x100b63b7514b14a0c12d7e37a457632`。
+
+## 设计最终验收
+
+- v1.8.0 补建基线已经原生保存、重开回读，SHA256 `dbd81b6f97731feca1e64a07e86706911fbbed87d5ac9c4ee1001c38fc864124`，本轮未再修改。
+- 目标 `/Users/bytedance/.codex/worktrees/2101/easy-trip/design/easy-trip-v1.8.2.pen` 已在Mac解锁后原生保存、关闭重开，再更新最终验收说明、再次保存并关闭重开。
+- 最终SHA256 `74d0405e34bb1c5bbbe19139a817ac45ede43610987d4f41e638f70fe1710dfa`。窗口没有Edited；保存状态、版本说明、当前版本1.8.2/构建11均回读一致。
+- 85个有效根画板、1个隐藏历史容器、4个可复用组件/12个有效引用；重叠0、placeholder0、可见文字裁切0。创建关键状态及原有模块保留。
+- 地图是可编辑示意；未变页面继承已核验基线，本轮没有逐页重跑。部分metadata旧版/in-progress为导入记录，已在说明画板注明，不作为当前版本状态。
+- 既有历史/未来设计文件逐字节对照HEAD未变；临时incomplete稿已移入备份。
+
+验收/回滚：`docs/testing/v1.8.2-optional-trip-dates.md`。
+详细历史：`.scratch/v1.8.2-optional-trip-dates/verification.md`。
+原始验证与最终回读：同任务目录 `evidence/verification-summary.json`、`design-final-readback.json`、`final-checks.json`。
+备份：`before/`、`before/finalize/`、`before/unlocked-final/`。不使用reset/clean/force，不覆盖其他工作树。
+
+---
+
+## 之前的任务记录
+
 # v1.8.0 正式发布
 
 状态：DONE（2026-10-06，正式发布与公开产物回下载验证完成）

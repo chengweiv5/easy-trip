@@ -20,8 +20,12 @@ class CreateTripValidatorTest {
         )
     }
 
-    @Test fun missingCompleteRange_returnsDateError() {
-        assertEquals("请选择开始和结束日期", validateCreateTrip(CreateTripUiState(name = "东京")).dateError)
+    @Test fun omittedDates_createOneUndatedDayWithoutInventingADepartureDate() {
+        val result = validateCreateTrip(CreateTripUiState(name = " 东京 "))
+
+        assertNull(result.dateError)
+        assertEquals(CreateTrip("东京", 1, TravelMode.FLEXIBLE, null), result.valid?.command)
+        assertNull(result.valid?.startDate)
     }
 
     @Test fun reversedRange_returnsDateError() {
@@ -35,6 +39,25 @@ class CreateTripValidatorTest {
                 ),
             ).dateError,
         )
+    }
+
+    @Test fun partiallySelectedRangeIsStillRejected() {
+        val date = LocalDate.of(2026, 10, 1)
+        for (state in listOf(
+            CreateTripUiState(name = "东京", startDate = date),
+            CreateTripUiState(name = "东京", endDate = date),
+        )) {
+            assertEquals("请选择开始和结束日期", validateCreateTrip(state).dateError)
+            assertNull(createTripCommand(state))
+        }
+    }
+
+    @Test fun blankNameWithoutDatesOnlyReturnsNameError() {
+        val result = validateCreateTrip(CreateTripUiState(name = "  "))
+        assertEquals("请输入旅行名称", result.nameError)
+        assertNull(result.dateError)
+        assertNull(result.valid)
+        assertNull(createTripCommand(CreateTripUiState()))
     }
 
     @Test fun rangeLongerThanThirtyDays_returnsMaximumErrorAndNoCommand() {

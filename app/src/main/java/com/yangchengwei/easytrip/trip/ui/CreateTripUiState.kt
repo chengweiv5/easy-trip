@@ -33,6 +33,7 @@ sealed interface CreateTripAction {
     data object Back : CreateTripAction
     data class NameChanged(val value: String) : CreateTripAction
     data class DateRangeChanged(val startDate: LocalDate, val endDate: LocalDate) : CreateTripAction
+    data object ClearDateRange : CreateTripAction
     data class TravelModeChanged(val value: TravelMode) : CreateTripAction
     data object Submit : CreateTripAction
 }

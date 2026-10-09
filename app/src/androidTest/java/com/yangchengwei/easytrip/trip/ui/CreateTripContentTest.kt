@@ -53,6 +53,8 @@ class CreateTripContentTest {
         compose.onNodeWithTag("create-submit").assertIsDisplayed().assertHeightIsEqualTo(48.dp)
         compose.onNodeWithTag("create-name").assertHeightIsEqualTo(48.dp)
         compose.onNodeWithTag("create-date-control").assertHeightIsEqualTo(56.dp).assertHasClickAction()
+        compose.onNodeWithText("出行日期（可选）").assertIsDisplayed()
+        compose.onNodeWithText("日期未定").assertIsDisplayed()
         org.junit.Assert.assertTrue(compose.onAllNodesWithText("旅行天数").fetchSemanticsNodes().isEmpty())
         org.junit.Assert.assertTrue(compose.onAllNodesWithTag("create-time-DRAFT").fetchSemanticsNodes().isEmpty())
         org.junit.Assert.assertTrue(compose.onAllNodesWithTag("create-time-DATED").fetchSemanticsNodes().isEmpty())
@@ -108,7 +110,7 @@ class CreateTripContentTest {
         compose.onNodeWithText("至 2027-01-13 · 3天2晚").assertIsDisplayed()
     }
 
-    @Test fun validationShowsRangeErrorThenSuccessfulRangeCreatesTrip() {
+    @Test fun blankNameShowsErrorThenNameOnlyCreatesUndatedTrip() {
         val repository = RecordingTripRepository()
         val viewModel = CreateTripViewModel(TripService(repository), SavedStateHandle()) { "trip-1" }
         compose.setContent {
@@ -122,23 +124,91 @@ class CreateTripContentTest {
             }
         }
 
-        compose.onNodeWithTag("create-name").performTextInput("东京")
         compose.onNodeWithTag("create-submit").performClick()
-        compose.onNodeWithTag("create-date-error").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithText("请输入旅行名称").assertIsDisplayed()
+        compose.onNodeWithTag("create-date-error").assertDoesNotExist()
+        compose.onNodeWithTag("create-name").performTextInput("东京")
+        pressBack()
+        compose.onNodeWithTag("create-submit").performScrollTo().performClick()
+        compose.waitUntil(5_000) { repository.commands.size == 1 }
+        assertEquals(1, repository.commands.single().dayCount)
+        assertEquals(null, repository.commands.single().startDate)
+    }
+
+    @Test fun selectedDatesCanBeClearedBeforeCreatingUndatedTrip() {
+        val repository = RecordingTripRepository()
+        val viewModel = CreateTripViewModel(TripService(repository), SavedStateHandle()) { "trip-1" }
+        compose.setContent {
+            val state by viewModel.state.collectAsState()
+            EasyTripTheme {
+                CreateTripContent(
+                    state,
+                    viewModel::onAction,
+                    initialDateMillis = LocalDate.parse("2026-09-01").atStartOfDay(java.time.ZoneOffset.UTC).toInstant().toEpochMilli(),
+                )
+            }
+        }
+        compose.onNodeWithTag("create-name").performTextInput("东京")
+        pressBack()
         compose.onNodeWithTag("create-date-control").performClick()
         compose.onNodeWithTag("trip-date-2026-09-01").performClick()
         compose.onNodeWithTag("trip-date-2026-09-03").performClick()
         compose.onNodeWithTag("trip-date-range-confirm").performClick()
-        compose.onNodeWithTag("create-submit").performClick()
-        compose.waitUntil { repository.commands.size == 1 }
+        compose.onNodeWithText("至 2026-09-03 · 3天2晚").assertIsDisplayed()
+        compose.onNodeWithTag("create-clear-dates").performClick()
+        compose.onNodeWithText("日期未定").assertIsDisplayed()
+        compose.onNodeWithTag("create-clear-dates").assertDoesNotExist()
+        compose.onNodeWithTag("create-submit").performScrollTo().performClick()
+        compose.waitUntil(5_000) { repository.commands.size == 1 }
+        assertEquals(1, repository.commands.single().dayCount)
+        assertEquals(null, repository.commands.single().startDate)
+    }
+
+    @Test fun submittingLocksRangeAndSubmit() {
+        compose.setContent { EasyTripTheme { CreateTripContent(CreateTripUiState(
+            startDate = LocalDate.of(2026, 10, 1),
+            endDate = LocalDate.of(2026, 10, 3),
+            isSubmitting = true,
+        ), {}) } }
+        listOf("create-back", "create-name", "create-date-control", "create-clear-dates", "create-mode-FLEXIBLE", "create-mode-SELF_DRIVE", "create-submit")
+            .forEach { compose.onNodeWithTag(it).assertIsNotEnabled() }
+    }
+
+    @Test fun datedSubmissionStillCreatesInclusiveRange() {
+        val repository = RecordingTripRepository()
+        val viewModel = CreateTripViewModel(TripService(repository), SavedStateHandle()) { "dated-trip" }
+        compose.setContent {
+            val state by viewModel.state.collectAsState()
+            EasyTripTheme { CreateTripContent(state, viewModel::onAction) }
+        }
+        compose.runOnIdle {
+            viewModel.onAction(CreateTripAction.NameChanged("东京"))
+            viewModel.onAction(CreateTripAction.DateRangeChanged(LocalDate.of(2026, 9, 1), LocalDate.of(2026, 9, 3)))
+        }
+        compose.onNodeWithTag("create-submit").performScrollTo().performClick()
+        compose.waitUntil(5_000) { repository.commands.size == 1 }
         assertEquals(3, repository.commands.single().dayCount)
         assertEquals(LocalDate.of(2026, 9, 1), repository.commands.single().startDate)
     }
 
-    @Test fun submittingLocksRangeAndSubmit() {
-        compose.setContent { EasyTripTheme { CreateTripContent(CreateTripUiState(isSubmitting = true), {}) } }
-        listOf("create-back", "create-name", "create-date-control", "create-mode-FLEXIBLE", "create-mode-SELF_DRIVE", "create-submit")
-            .forEach { compose.onNodeWithTag(it).assertIsNotEnabled() }
+    @Test fun clearDatesIsReachableAtLargeFontWithoutOpeningPicker() {
+        val actions = mutableListOf<CreateTripAction>()
+        compose.setContent {
+            CompositionLocalProvider(LocalDensity provides Density(2f, 2f)) {
+                EasyTripTheme {
+                    Box(Modifier.width(280.dp).height(500.dp)) {
+                        CreateTripContent(CreateTripUiState(
+                            name = "长字体旅行",
+                            startDate = LocalDate.of(2026, 10, 1),
+                            endDate = LocalDate.of(2026, 10, 3),
+                        ), actions::add)
+                    }
+                }
+            }
+        }
+        compose.onNodeWithTag("create-clear-dates").performScrollTo().assertIsDisplayed().performClick()
+        assertEquals(listOf(CreateTripAction.ClearDateRange), actions)
+        compose.onNodeWithTag("trip-date-range-sheet").assertDoesNotExist()
     }
 
     @Test fun rangeControlAndSubmitRemainReachableAtLargeFont() {

@@ -267,7 +267,7 @@ class TripDateRangePickerSheetTest {
             )
         }
 
-        compose.onNodeWithTag("trip-date-range-error").assertIsDisplayed()
+        compose.onNodeWithTag("trip-date-range-error").performScrollTo().assertIsDisplayed()
         compose.onNodeWithTag("trip-date-range-confirm").assertIsNotEnabled()
     }
 
