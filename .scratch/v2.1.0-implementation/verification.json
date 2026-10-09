@@ -21,7 +21,6 @@
   "systemFont320dp2xTests": 4,
   "systemFontFailures": 0,
   "phoneTouched": false,
-  "pushed": false,
   "published": false,
   "independentReview": "unavailable: all subagent review attempts response.failed stream disconnected",
   "blocker": null,
@@ -47,5 +46,7 @@
     "nativeMcpExpenseClipping": 0,
     "sha256": "04a6c47322c1956c4e9ceb7b4e6f51ce142c859067b936cdb676df3785c873e9",
     "knownInheritedUiGaps": "8 legacy UI and 22 timeline assertions not re-certified"
-  }
+  },
+  "deliveryEvidence": ".scratch/v2.1.0-implementation/delivery.json",
+  "commitHook": "design commit host hardcoding scanner timed out; targeted added-lines scan had zero findings"
 }
