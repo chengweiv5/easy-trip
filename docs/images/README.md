@@ -1,5 +1,39 @@
 # README 图片来源
 
+## 当前介绍：v2.0.0
+
+README 当前引用的所有界面与分享长图于 **2026-10-09** 从 **v2.0.0 / versionCode 14 / Release** 采集，集中保存在 `v2.0.0/`。旧图片保留在原路径作历史材料，README 不再引用旧界面。
+
+- 源码提交：`ebce69e95c494e6840dae3451f7035bdfabac6a0`；APK 内 `SOURCE_STATE=CLEAN`、`DEBUG=false`。
+- APK SHA256：`44ec9300610a2a72caa7a5486847f01af3b70225eb010472cd1db3e36e2c2660`。与已完成手机覆盖升级验证的正式包相同，没有为截图改写 App 或加入测试入口。
+- 设备：本次新建的专用 Android 12 / API 31 ARM64 模拟器，1080 × 2340、420 dpi、字体比例 1.0。通过正式应用导航打开各页。
+- 数据：独立生成的 Room schema9 示例库；杭州三天行程用于地图、日历、地点费用和分享。厦门、成都、大理样例覆盖 2024–2026 年，另有苏州待出行与未定日期旅行。
+- **没有读取或公开用户手机数据**。地图是真实高德底图；示例地点名称、坐标、路线连线、交通时长、日期和金额仅用于展示功能，不是真实报价或路线建议。
+- 除山岚暮紫对比图外使用湖畔晴空。主题通过正式「设置 → 主题配色」选择并应用；地点编辑只打开与取消，没有为截图保存费用改动。
+
+| 图片（`v2.0.0/` 下） | 内容 |
+| --- | --- |
+| `expense-years.jpg` | 历年花费，2024–2026 年示例合计 ¥15,495 / 32 笔 |
+| `expense-year.jpg` | 2026 年 ¥4,115 / 20 笔，按月回顾 |
+| `expense-month.jpg` | 2026 年 10 月 ¥1,421 / 14 笔与分类入口（补充图） |
+| `expense-categories.jpg` | 10 月六类金额、笔数、占比与旅行贡献 |
+| `place-expense-inline.jpg` | 编辑地点原位单笔输入；零元景点费用也可明确记录 |
+| `place-expenses-multiple.jpg` | 同一酒店住宿 ¥680、早餐 ¥128，合计 ¥808 |
+| `my-trips.jpg` | 当前首页、旅行／花费导航、待定日期旅行 |
+| `place-pool.jpg` | 杭州地图与六个收藏地点 |
+| `map-itinerary.jpg` | 地图、当日费用、地点多笔摘要与路段费用 |
+| `itinerary-calendar-day.jpg` / `itinerary-calendar-whole.jpg` | 单日日历与全程分页日历 |
+| `theme-picker.jpg` / `theme-workspace-violet.jpg` | 当前主题入口及山岚暮紫实际应用 |
+| `settings.jpg` | 当前设置页，版本 v2.0.0（补充图） |
+| `share-preview.jpg` | 正式全程长图预览，包含备注 |
+| `share-long-image-detail.jpg` | 长图摘要与完整第 1 天 |
+| `share-long-image.png` | 应用实际生成的完整三天 PNG，1080 × 5304，未裁切或重绘 |
+
+屏幕 JPEG 从原始 1080 × 2340 等比缩小到 591 × 1280，quality 92；未覆盖文字、拼接界面或拉伸。长图细节仅截取原始上部 1080 × 2380（第 2 天标题前的留白），再等比缩小为 581 × 1280；完整原图同时保留。原始 XML、PNG、样例生成脚本、逐图 SHA256、OCR、布局检查和备份位于仓库外本机证据目录：`/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-release-20261009/`。
+
+## 历史材料：v1.6.0（不代表当前界面）
+
+
 本目录 16 张图片于 **2026-09-23** 从已发布的 [v1.6.0 正式 APK](https://github.com/chengweiv5/easy-trip/releases/tag/v1.6.0) 重新采集或导出：替换原有 10 张，新增主题选择页及五套主题工作台共 6 张。没有沿用旧版截图，也没有修改应用界面后再采集。
 
 运行版本为 **1.6.0 / versionCode 8 / Release**，源码标签 `v1.6.0` 指向 [`a7eddbfbed9afde107f00152403f086b70817e18`](https://github.com/chengweiv5/easy-trip/commit/a7eddbfbed9afde107f00152403f086b70817e18)。模拟器安装包 SHA256 与公开发布包一致：`f65d055d91a982f4bb2c365db3880e63dab84e3fe74f202fbbd03aa22e6a264e`。

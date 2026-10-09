@@ -2,158 +2,138 @@
 
 # Easy Trip
 
-### 在找一个顺手好用的行程规划 App？
+### 把旅行安排好，也把每一笔花费记清楚
 
-把每天去哪、几点到、怎么走，放在一张行程里。
+每天去哪、几点到、怎么走，放在一张行程里；这次花了多少、往年旅行花在哪，也能回头看看。
 
-**Easy Trip 只帮你做好旅行规划，不干别的。**
+**Easy Trip · 行程规划与旅行记账**
 
 [查看 / 下载最新正式版](https://github.com/chengweiv5/easy-trip/releases/latest) · [看看能做什么](#features) · [从源码构建](#development)
 
-**Android 8.0+ · 五套浅色主题 · 无需账号 · 旅行数据保存在本机**
+**Android 8.0+ · 六类花费 · 年月回顾 · 五套主题 · 无需账号 · 本机保存**
 
 </div>
 
-### 同一家酒店，可以是当天的第一站，也是最后一站
+> 当前正式版为 **[v2.0.0](https://github.com/chengweiv5/easy-trip/releases/tag/v2.0.0)**。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v2.0.0/easy-trip-v2.0.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v2.0.0/easy-trip-v2.0.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v2.0.0-release.md)。下方全部界面截图来自 v2.0.0 正式安装包，使用独立示例数据，可点击放大。
 
-有的 App 不让重复添加地点。可早上从酒店出发，晚上还要回酒店，我就是想把这两段都排进行程，时间和路线才算完整。
+## v2.0：旅行花费，不只看这一趟
+
+底部新增独立的 **「花费」** 入口。不必先打开某一次旅行，就能回顾过去几年的旅行开销，再按年份、月份、类别和旅行逐层查看。
+
+<div align="center">
+  <a href="docs/images/v2.0.0/expense-years.jpg"><img src="docs/images/v2.0.0/expense-years.jpg" width="240" alt="历年花费：对比 2024、2025、2026 年的示例旅行花费和记录笔数"></a>
+  <a href="docs/images/v2.0.0/expense-year.jpg"><img src="docs/images/v2.0.0/expense-year.jpg" width="240" alt="年度花费：2026 年已记录 4115 元，按月查看两次示例旅行"></a>
+  <a href="docs/images/v2.0.0/expense-categories.jpg"><img src="docs/images/v2.0.0/expense-categories.jpg" width="240" alt="月度分类统计：住宿、交通、景点、吃饭、购物、其它，以及贡献花费的旅行"></a>
+</div>
+
+**看历年** · 每年旅游花了多少。 **看月份** · 哪个月记了多少。 **看类别** · 住宿、交通、景点、吃饭、购物、其它分别占多少。
+
+- **统计能追到每一笔**：查看具体旅行与费用明细，单笔独立编辑或删除；返回时保留浏览范围。
+- **按旅行日归属年月**：不是按录入时间，也不区分预付或支付状态。尚未确定日期的费用单独列出，不硬塞进某个月。
+- **改日期先看影响**：费用会跨月、跨年或进入／离开未定日期时，先展示影响，再由你确认；取消不修改。
+- **只统计已记录花费**：没填不等于零消费；零元可以明确记录。
+
+### 大多只记一笔？就在编辑地点时顺手填
+
+不用跳到另一页。打开行程地点的「编辑」，直接填金额、选类别；到达时间、停留时长、地点备注和费用一起保存或取消。
+
+同一地点发生多笔消费也不用拆地点。例如住在酒店，又在酒店吃早餐：分别记一笔**住宿**和一笔**吃饭**即可；同一类别也能重复记。
+
+<div align="center">
+  <a href="docs/images/v2.0.0/place-expense-inline.jpg"><img src="docs/images/v2.0.0/place-expense-inline.jpg" width="280" alt="编辑地点内直接填写第一笔费用：金额、六类选择、费用备注与整页保存取消"></a>
+  <a href="docs/images/v2.0.0/place-expenses-multiple.jpg"><img src="docs/images/v2.0.0/place-expenses-multiple.jpg" width="280" alt="同一酒店的多笔费用：住宿 680 元与早餐 128 元，合计 808 元，可以再记一笔"></a>
+</div>
+
+**单笔直接填** · 常用操作不多一跳。 **多笔按需加** · 每笔有自己的类别和备注，移除后可在保存前撤销。
+
+> 从旧版升级：原地点金额保留为「待分类 · 旧费用」，不会猜测成住宿或吃饭，也不会重复统计；原路段金额归为交通。再次安排同一个收藏地点不会复制上一次的费用。请使用同签名覆盖升级，**不要卸载或清空数据**；本地数据暂不支持导出或云端恢复，升级后不要直接降级旧版。
+
+## 同一家酒店，可以是当天的第一站，也是最后一站
+
+早上从酒店出发，晚上还要回酒店，这两段都排进行程，时间和路线才算完整。
 
 Easy Trip 支持**同一地点重复加入行程**。酒店、餐厅、景点，想再去一次，就再排一站；每次到访都可以单独设置到达时间和停留时长。
 
 > 酒店 → 西湖 → 餐厅 → 酒店
 
-从出门到回酒店，把当天每一站和往返交通都规划进去。收藏地点、调整顺序、查看路线，专心把自己的旅行安排好。
-
-> 当前正式版为 **[v1.8.3](https://github.com/chengweiv5/easy-trip/releases/tag/v1.8.3)**。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v1.8.3/easy-trip-v1.8.3-release.apk) · [发布验证](docs/testing/v1.8.3-release.md)。下方截图仍采集自 v1.6.0 正式安装包，未将旧截图标为新版；图片可点击放大。
-
-## v1.8.0：当天行程与搜索地图更清楚
-
-- 进入行程时，今天在行程日期内就默认选中当天，否则选中第一天；浏览过程中保留手动选择。
-- 明确点击搜索后回到地图，标记结果地点并收起抽屉；展开抽屉只覆盖地图，不改变地图视角。
-- 移除行程日期栏重复的分隔竖线，让日期与内容更简洁。
-- 搜索结果显示距我的直线距离，自动使用米或公里；没有有效定位或坐标时不显示。
-- 同城搜索地图突出显示蓝色定位点和“我的位置”，首次展示同时纳入结果地点与当前位置。
-
-本版未调整搜索结果排序。
-
-## v1.7.0：花费、日程和地点搜索更顺手
-
-- 记录地点与交通花费，查看单日和全程汇总；涉及费用的调整可确认或取消。
-- 新增、移动或排序地点后估算行程时间，保留手动设置，跨越当天时明确提示。
-- 已授权时冷启动定位一次，搜索与不同旅行复用；当前城市仅作搜索参考，输入“登封西施猪蹄”或“登封市西施猪蹄”也能搜索异地门店。
-- 首页「设置」集中管理主题配色、地图授权与版本检查；更新包校验来源、摘要和签名。
-
-## 五套主题，选一个喜欢的颜色出发
-
-清爽的**湖畔晴空**、自然的**松林晨光**、温暖的**落日陶土**、柔和的**山岚暮紫**、轻盈的**玫瑰沙丘**，五套浅色主题随时切换，默认使用湖畔晴空。
-
-自 v1.7.0 起，从首页右上角「设置 → 主题配色」进入。点选后直接预览整页颜色，点击「应用」即可用于所有旅行，重启后仍会记住；返回则放弃这次预览。下方 v1.6.0 截图中的旧入口仅用于展示历史界面。
-
-<div align="center">
-  <a href="docs/images/theme-picker.jpg"><img src="docs/images/theme-picker.jpg" width="280" alt="v1.6.0 主题配色页：五套浅色主题、当前使用状态与返回放弃预览说明"></a>
-  <a href="docs/images/theme-workspace-violet.jpg"><img src="docs/images/theme-workspace-violet.jpg" width="280" alt="应用山岚暮紫后的真实行程工作台：浅紫背景、紫色日期选项，地图与路线仍清晰可辨"></a>
-</div>
-
-**选择配色** · 直接比较五套选项。 **应用到旅行** · 首页、工作台、按钮和浮层一起换色，地图底图、日期路线色及分享长图保持原有配色。
-
-<details>
-<summary>查看五套主题在同一行程中的实际效果</summary>
-
-<div align="center">
-  <a href="docs/images/theme-workspace-lake.jpg"><img src="docs/images/theme-workspace-lake.jpg" width="220" alt="湖畔晴空：默认主题的杭州行程工作台"></a>
-  <a href="docs/images/theme-workspace-forest.jpg"><img src="docs/images/theme-workspace-forest.jpg" width="220" alt="松林晨光：绿色主题的杭州行程工作台"></a>
-  <a href="docs/images/theme-workspace-terracotta.jpg"><img src="docs/images/theme-workspace-terracotta.jpg" width="220" alt="落日陶土：暖橙棕色主题的杭州行程工作台"></a>
-  <a href="docs/images/theme-workspace-violet.jpg"><img src="docs/images/theme-workspace-violet.jpg" width="220" alt="山岚暮紫：紫色主题的杭州行程工作台"></a>
-  <a href="docs/images/theme-workspace-rose.jpg"><img src="docs/images/theme-workspace-rose.jpg" width="220" alt="玫瑰沙丘：玫瑰粉色主题的杭州行程工作台"></a>
-</div>
-
-顺序为湖畔晴空、松林晨光、落日陶土、山岚暮紫、玫瑰沙丘；均来自同一份示例行程的实际主题切换。
-
-</details>
-
 ## 旅行计划，不用在清单和地图之间来回切换
 
-先把景点、餐厅和酒店收藏起来，再按天安排。地点顺序、到达时间、停留时长和交通信息放在一起，边看地图，边调整下一站。
+先把景点、餐厅和酒店收藏起来，再按天安排。地点顺序、到达时间、停留时长、备注和交通信息放在一起，边看地图，边调整下一站。
 
 <div align="center">
-  <a href="docs/images/my-trips.jpg"><img src="docs/images/my-trips.jpg" width="240" alt="我的旅行：以杭州、苏州为例，查看待出行旅行、行程准备度并创建新旅行"></a>
-  <a href="docs/images/place-pool.jpg"><img src="docs/images/place-pool.jpg" width="240" alt="地点池：在杭州地图上查看收藏地点，按城市筛选，再批量加入行程"></a>
-  <a href="docs/images/map-itinerary.jpg"><img src="docs/images/map-itinerary.jpg" width="240" alt="地图与每日行程同屏：地点序号对应，路线段显示交通方式、距离与预计耗时"></a>
+  <a href="docs/images/v2.0.0/my-trips.jpg"><img src="docs/images/v2.0.0/my-trips.jpg" width="240" alt="我的旅行：苏州周末散步与待定日期旅行，底部可切换旅行和花费"></a>
+  <a href="docs/images/v2.0.0/place-pool.jpg"><img src="docs/images/v2.0.0/place-pool.jpg" width="240" alt="地点池：在杭州地图上查看收藏地点，按城市筛选，再批量加入行程"></a>
+  <a href="docs/images/v2.0.0/map-itinerary.jpg"><img src="docs/images/v2.0.0/map-itinerary.jpg" width="240" alt="地图与每日行程同屏：地点与交通花费、当日汇总、备注及地图序号对应"></a>
 </div>
 
-**我的旅行** · 管理下一次出发，也保留已经走过的旅程。
+**我的旅行** · 管理下一次出发，也保留已经走过的旅程。 **地点池** · 先收藏想去的地方。 **地图行程** · 上方看地图，下方排日程。
 
-**地点池** · 先收藏想去的地方，按城市整理，再加入每天的行程。
-
-**地图行程工作台** · 上方看地图，下方排日程，序号对应每个地点。
-
-*全部截图来自 v1.6.0 正式包在专用模拟器中的同一次采集：首页为杭州、苏州，其余为同一份杭州三天示例行程。除主题对比外均使用默认湖畔晴空。地图为真实高德底图，地点坐标、路线连线和交通时长为示例数据。版本与采集方式见[图片来源](docs/images/README.md)。*
+*全部截图来自 v2.0.0 正式包和独立示例旅行，不含用户手机数据。工作台为同一份杭州三天行程，除主题对比外均使用湖畔晴空。高德底图真实，示例地点、路线连线、时长和费用仅用于演示，不是出行建议或真实报价。[图片来源与处理说明](docs/images/README.md)。*
 
 ### 用行程日历，看清每天的节奏
 
 几点出发、在哪停留、两站之间留了多少时间，在时间轴上一眼就能看清。**单日视图**可长按移动地点、拖动上下沿调整开始或结束时间；**全程视图**把不同日期并排展示，方便比较每天的安排，并可翻页查看后续日期。
 
 <div align="center">
-  <a href="docs/images/itinerary-calendar-day.jpg"><img src="docs/images/itinerary-calendar-day.jpg" width="280" alt="单日行程日历：按时间轴展示西湖天地、柳浪闻莺、雷峰塔及站间步行安排"></a>
-  <a href="docs/images/itinerary-calendar-whole.jpg"><img src="docs/images/itinerary-calendar-whole.jpg" width="280" alt="全程行程日历：两天并列，对比杭州三天示例中的地点、停留时段和交通安排"></a>
+  <a href="docs/images/v2.0.0/itinerary-calendar-day.jpg"><img src="docs/images/v2.0.0/itinerary-calendar-day.jpg" width="280" alt="单日行程日历：酒店、西湖天地、餐厅与站间交通按时间排列"></a>
+  <a href="docs/images/v2.0.0/itinerary-calendar-whole.jpg"><img src="docs/images/v2.0.0/itinerary-calendar-whole.jpg" width="280" alt="全程行程日历：并列比较杭州示例的第 1、2 天，可翻页查看第 3 天"></a>
 </div>
 
-**单日时间轴** · 调整当天安排。 **全程日历** · 并排比较每天的节奏。
+**单日时间轴** · 调整当天安排。 **全程日历** · 只读对比每天的节奏。
 
-*v1.6.0 实际运行截图，使用示例行程；全程日历为只读视图。*
+新增、移动或排序地点后可估算时间，保留手动设置，跨越当天时明确提示。编辑地点时点击「到达」或「停留」打开时间选择器，再与备注、费用一起保存。
+
+### 五套主题，选一个喜欢的颜色出发
+
+清爽的**湖畔晴空**、自然的**松林晨光**、温暖的**落日陶土**、柔和的**山岚暮紫**、轻盈的**玫瑰沙丘**，五套浅色主题随时切换，默认使用湖畔晴空。
+
+从首页右上角「设置 → 主题配色」进入。点选后直接预览整页颜色，点击「应用」即可用于所有旅行，重启后仍会记住；返回则放弃这次预览。
+
+<div align="center">
+  <a href="docs/images/v2.0.0/theme-picker.jpg"><img src="docs/images/v2.0.0/theme-picker.jpg" width="280" alt="v2.0.0 主题配色页：五套浅色主题、当前使用状态与返回放弃预览说明"></a>
+  <a href="docs/images/v2.0.0/theme-workspace-violet.jpg"><img src="docs/images/v2.0.0/theme-workspace-violet.jpg" width="280" alt="v2.0.0 应用山岚暮紫后的行程工作台：地图、日期、地点与费用摘要"></a>
+</div>
 
 ### 把完整行程，变成一张可以分享的长图
 
-从「⋯ → 分享行程长图」进入预览，选择**全程或单日**，按需保留备注，再保存图片或调用系统分享。长图按天展示路线地图、地点、到达时间、停留时长、交通和备注，同行的人打开一张图就能查看安排。
+从工作台「⋯ → 分享行程长图」进入预览，选择**全程或单日**，按需保留备注，再保存图片或调用系统分享。长图按天展示路线地图、地点、到达时间、停留时长、交通和备注，同行的人打开一张图就能查看安排。
 
 <div align="center">
-  <a href="docs/images/share-preview.jpg"><img src="docs/images/share-preview.jpg" width="280" alt="行程长图分享界面：选择全程或一天、切换备注，并预览、保存或分享图片"></a>
-  <a href="docs/images/share-long-image.png"><img src="docs/images/share-long-image-detail.jpg" width="240" alt="实际分享长图的开头与第 1 天：旅行摘要、杭州路线地图、三站行程、交通与完整备注"></a>
+  <a href="docs/images/v2.0.0/share-preview.jpg"><img src="docs/images/v2.0.0/share-preview.jpg" width="280" alt="行程长图分享界面：选择全程或一天、切换备注，并预览、保存或分享图片"></a>
+  <a href="docs/images/v2.0.0/share-long-image.png"><img src="docs/images/v2.0.0/share-long-image-detail.jpg" width="240" alt="v2.0.0 实际生成长图的旅行摘要、第 1 天地图、三站行程、交通与备注"></a>
 </div>
 
-**分享预览** · 先确认内容，再保存或分享。 **长图效果** · 右图展示摘要与第 1 天，[点击查看完整三天长图](docs/images/share-long-image.png)。
+**分享预览** · 先确认内容，再保存或分享。 **长图效果** · 右图展示摘要与第 1 天，[点击查看完整三天长图](docs/images/v2.0.0/share-long-image.png)。
 
-*v1.6.0 正式包实际生成的长图，使用真实高德底图及示例行程；路线连线和交通时长为示例数据。完整 PNG 保留全部三天内容。*
+*v2.0.0 正式包实际生成，完整 PNG 保留全部三天内容。长图用于分享行程安排，不是费用账单。*
 
 <a id="features"></a>
 
 ## 能帮你做什么
 
-| 规划时的小麻烦 | Easy Trip 的做法 |
+| 旅行中的小麻烦 | Easy Trip 的做法 |
 | --- | --- |
-| 想让旅行界面换一种喜欢的颜色 | 五套浅色主题可预览后应用，所有旅行统一生效，重启保留选择；返回可放弃预览。 |
+| 想回顾过去每年、每月的旅行花费 | 独立花费入口，按旅行日汇总到年、月，再查看类别和旅行明细；未定日期单独列出。 |
+| 一家酒店既有住宿，又有吃饭消费 | 一个行程地点可记多笔，支持同类重复；第一笔原位填写，整页统一保存。 |
+| 还没确定出发时间，也想先规划 | 创建时可不填日期和天数，先收藏或安排；空旅行日保留，可以之后补日期、加天数。 |
 | 想去的地方很多，还没决定哪天去 | 搜索并收藏到地点池，按城市整理；加入行程时筛选已排入、未排入的地点，支持批量选择。 |
 | 看了清单，还是不知道地点在哪 | 地图与行程同屏，地点名称和序号对应；按日期区分颜色，可切换单日或全程。 |
-| 临时想换顺序，或给某一站多留点时间 | 拖动调整地点顺序，移到其他日期；紧凑滚轮支持上午／下午快捷切换，以半小时选择到达时间、以小时设置停留时长。 |
-| 想直观看出每天几点有安排、哪里时间紧张 | 日历按时间展示单日与全程；单日可长按移动地点、拖动上下沿调整起止时间，交通与地点同列显示。 |
-| 想把完整计划发给同行的人 | 生成包含旅行摘要、每日路线地图、地点、交通与备注的长图；支持全程或单日、备注开关，可保存相册或系统分享。 |
-| 不确定两站之间怎么走、要多久 | 高德提供路线信息，显示距离与预计耗时，支持步行、打车、驾车和公交方式。 |
-| 旅行日期过了，却不代表真的去过 | 待出行与已出行由你手动标记；多趟旅行分别管理。 |
-| 旅途中没网络，也想查看计划 | 已保存的旅行、地点和行程可离线查看、编辑；地图、搜索与新路线计算需要网络。 |
-
-### 重要的备注，抬眼就能看见
-
-门票预约、入园提醒、酒店入住安排，都可以留在对应地点旁。行程与地点池用暖棕色区分备注，默认显示一行，长内容可原位展开、收起。行程中的切换入口放在停留时长右侧，备注展开前后保持同宽；地点池的入口与备注同行，都不额外增加按钮行。全程合并连续重复地点时，也会保留各次到访的备注。
-
-<a href="docs/images/itinerary-note.jpg"><img src="docs/images/itinerary-note.jpg" width="520" alt="行程备注展开：在西湖天地条目下直接查看开放时间、饮水、日落和返程提醒"></a>
-
-*工作台中展开备注后的完整行程条目截图。*
-
-### 到达几点、停留多久，顺手调好
-
-编辑地点时，用上午／下午切换和滚轮设置到达时间、停留时长，也可以一起填写备注。同一地点想再去一次，直接再次安排即可。
-
-<a href="docs/images/itinerary-time-edit.jpg"><img src="docs/images/itinerary-time-edit.jpg" width="360" alt="行程时间编辑：上午下午切换、到达时间和停留时长滚轮、备注，以及再次安排同一地点的入口"></a>
-
-*工作台中打开时间编辑面板的完整运行截图。*
+| 临时换顺序，或给某一站多留点时间 | 拖动排序、移动到其他日期；编辑到达时间和停留时长。 |
+| 有门票预约、入住或返程提醒 | 地点旁记录备注，长内容可展开；同一地点每次到访可有不同备注。 |
+| 不确定两站之间怎么走、要多久 | 高德提供距离与预计耗时，支持步行、打车、驾车和公交方式；路线仅作参考。 |
+| 旅行日期过了，却不代表真的去过 | 待出行与已出行由你手动标记，多趟旅行分别管理。 |
+| 旅途中没网络，也想查看计划和账目 | 已保存的旅行、地点、行程与费用可离线查看、编辑；地图、搜索和新路线计算需要网络。 |
 
 ## 三步，安排一次出发
 
-1. **创建旅行**：起个名字，设置日期或天数，选择灵活出行或自驾。
+1. **创建旅行**：起个名字，日期、天数可以先不填，选择灵活出行或自驾。
 2. **收藏地点**：搜索想去的景点、餐厅、酒店，放进地点池，按城市整理。
 3. **排入每天**：选中地点加入行程，调整顺序、时间和交通方式，在地图上检查安排。
 
-路线规划提供地点之间的交通参考，行程顺序由你决定。若使用中遇到问题，欢迎[提交反馈](https://github.com/chengweiv5/easy-trip/issues)。
+旅途中，在行程地点或交通路段顺手记花费；回来后到「花费」里回顾。路线规划提供地点之间的交通参考，行程顺序由你决定。搜索支持异地门店；有有效定位时显示直线距离，选中结果后回到地图。
+
+若使用中遇到问题，欢迎[提交反馈](https://github.com/chengweiv5/easy-trip/issues)。
+
 
 <a id="development"></a>
 
@@ -241,7 +221,7 @@ apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-relea
 
 ## 数据与隐私
 
-- 旅行、地点、行程及路线缓存只保存在本机 Room 数据库。
+- 旅行、地点、行程、费用及路线缓存只保存在本机 Room 数据库。
 - 地图、POI 搜索和路线规划仅在用户同意高德隐私政策后启用。
 - 未授权或离线时仍可查看和编辑已保存的本地旅行内容。
 
@@ -252,7 +232,8 @@ apksigner verify --verbose --print-certs app/build/outputs/apk/release/app-relea
 - 自定义地图落点
 - 酒店、门票或餐厅预订
 - 实时导航
-- 费用管理
+- 预付／支付状态、AA 分账、多币种和费用报销
+- 数据导出、备份与跨设备恢复
 - iOS 或其他跨平台客户端
 - 自动优化地点顺序
 - 后台持续定位
