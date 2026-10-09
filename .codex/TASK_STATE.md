@@ -1,3 +1,19 @@
+# v1.8.3 设计补全复核
+
+状态：DONE（2026-10-09，解锁后的设计保存恢复与关闭重开验证）；**运行验收未通过，未声明完整版本UI全量验收完成**。
+
+- 当前6934正式源 `/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.8.3.pen` 已通过原生Save保存，关闭并重开精确路径；MCP与原生窗口URL一致，文件保持打开。
+- 回读131有效根+1隐藏历史根、9路由/49组状态索引、五主题、费用摘要与版本说明。0顶层重叠、0placeholder、0旧锁屏context；原生Layers选择与可编辑属性已检查，MCP文字写入/还原证据保留。
+- 最终保存时间13:15:24.761924（Asia/Shanghai），18,339,285字节，SHA256 `0cb8f48fb14932e8850b426e1f18412b94149a43f5798fb61cfd40f6f90f033a`。证据：审计目录`evidence/native-save-reopen.json`。
+- 之前构建成功、928单测通过、lint0错误；7取证通过、152回归147通过、11复核10通过、43模块36通过。窄屏大字体1项、全程6项、系统分享包名1项仍未通过。解锁收尾未重跑测试，未改应用源码或修复这些失败。
+- 未进入v1.9.0，未commit/push；AGENTS规则更新与历史版本文件保留。app/与发布代码bd370c4一致；相对修复开始备份仅目标pen和任务状态变更，审计文件另计。
+- 备份：`/var/folders/2w/1f00699j5n5f4jp09txy9n2c0000gn/T/easy-trip-v183-design-repair-20261009-7xgcsypp`；解锁状态更新前的可回滚快照在`unlocked-save-20261009/`。
+- 审计与回滚：`/Users/bytedance/.codex/worktrees/6934/easy-trip/.scratch/v1.8.3-design-completeness/README.md`；覆盖：`/Users/bytedance/.codex/worktrees/6934/easy-trip/.scratch/v1.8.3-design-completeness/coverage.md`。
+
+以下是已有发布记录，**不等于此次设计补全已全量验收**。
+
+---
+
 # v1.8.3 空行程保留旅行日及当天添加入口
 
 状态：DONE（2026-10-09；GitHub v1.8.3 已公开发布为 Latest，附件回下载验证完成）

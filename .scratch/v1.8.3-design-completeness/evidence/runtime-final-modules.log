@@ -1,0 +1,801 @@
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest:
+INSTRUMENTATION_STATUS: test=longestValidNewTagKeepsRemoveVisibleAndTouchableAtNarrowLargeText
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=longestValidNewTagKeepsRemoveVisibleAndTouchableAtNarrowLargeText
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=placePoolEditHidesDeleteButKeepsCancelAndSaveReachableAndCenteredAtNarrowWidthWithTwoTimesFontScale
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=placePoolEditHidesDeleteButKeepsCancelAndSaveReachableAndCenteredAtNarrowWidthWithTwoTimesFontScale
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=newTagInputAndAddButtonStayVerticallyCenteredAndReachableWithImeAtNarrowTwoTimesFontScale
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=newTagInputAndAddButtonStayVerticallyCenteredAndReachableWithImeAtNarrowTwoTimesFontScale
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=placePoolScheduledPlaceShowsDailyScheduleFilledBookmarkWithoutDuplicateAdd
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=placePoolScheduledPlaceShowsDailyScheduleFilledBookmarkWithoutDuplicateAdd
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=searchUnsavedShowsCollectionButNoEditDeleteOrAdd
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=searchUnsavedShowsCollectionButNoEditDeleteOrAdd
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=searchSavedShowsCollectionAndEditButNoAdd
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=searchSavedShowsCollectionAndEditButNoAdd
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=placePoolScheduledPlaceDoesNotExposeDuplicateAddAction
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=placePoolScheduledPlaceDoesNotExposeDuplicateAddAction
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=placePoolRowUsesTwoLineAddressAndFixedActionRailAtNarrowWidth
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=placePoolRowUsesTwoLineAddressAndFixedActionRailAtNarrowWidth
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=newTagInputKeepsUsableWidthAndVisibleTextWithoutImeAtNormalFontScale
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=newTagInputKeepsUsableWidthAndVisibleTextWithoutImeAtNormalFontScale
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=compatibilityWrapperForwardsDismissAndCancel
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=compatibilityWrapperForwardsDismissAndCancel
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=11
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=savingDisablesInputsSaveCancelAndDismiss
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=11
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=savingDisablesInputsSaveCancelAndDismiss
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=12
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=typingTagInputPreservesEveryCharacterAndComma
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=12
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=typingTagInputPreservesEveryCharacterAndComma
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=13
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=availableUnselectedPresetTagDispatchesAddSelection
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=13
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=availableUnselectedPresetTagDispatchesAddSelection
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=14
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=savingHostDialogIgnoresSystemBack
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=14
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=savingHostDialogIgnoresSystemBack
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=15
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=readOnlyShowsAddressNoteAndTagFallbacks
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=15
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=readOnlyShowsAddressNoteAndTagFallbacks
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=16
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=placePoolOnlyCollectedPlaceShowsHollowBookmarkWithoutScheduleBlockAndStartsAdd
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=16
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=placePoolOnlyCollectedPlaceShowsHollowBookmarkWithoutScheduleBlockAndStartsAdd
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=17
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=placePoolReadOnlyKeepsDeleteAction
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=17
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=placePoolReadOnlyKeepsDeleteAction
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=18
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=panelTitleHasHeadingSemantics
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=18
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=panelTitleHasHeadingSemantics
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=19
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=placePoolKnownUnscheduledPlaceShowsHollowBookmarkAndStartsAdd
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=19
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=placePoolKnownUnscheduledPlaceShowsHollowBookmarkAndStartsAdd
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=20
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=availablePresetTagsCanBeAddedAndSelectedTagsRemainRemovableAtLimit
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=20
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=availablePresetTagsCanBeAddedAndSelectedTagsRemainRemovableAtLimit
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=21
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=placePoolUnknownScheduleExplainsThatArrangementIsUnavailableWithoutAdd
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=21
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=placePoolUnknownScheduleExplainsThatArrangementIsUnavailableWithoutAdd
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=22
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=compatibilityWrapperHidesDeleteWhileEditingFromPlacePool
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.place.ui.PlaceDetailPanelTest
+INSTRUMENTATION_STATUS: current=22
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=compatibilityWrapperHidesDeleteWhileEditingFromPlacePool
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=23
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest:
+INSTRUMENTATION_STATUS: test=noTripDaysShowsIllustrationAndAddDayAction
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=23
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=noTripDaysShowsIllustrationAndAddDayAction
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=24
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=wholeTripLongFailureKeepsConnectorContinuousAndReadOnly
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=24
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=wholeTripLongFailureKeepsConnectorContinuousAndReadOnly
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=25
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=wholeTripAxisFollowsPlaceTextAndRouteTextKeepsTwentyFiveDpOffset
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=25
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to retrieve bounds of the node.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '步行' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:259)
+	at androidx.compose.ui.test.BoundsAssertionsKt.getUnclippedBoundsInRoot(BoundsAssertions.kt:150)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripAxisFollowsPlaceTextAndRouteTextKeepsTwentyFiveDpOffset(WholeTripItineraryContentTest.kt:283)
+
+INSTRUMENTATION_STATUS: stream=
+Error in wholeTripAxisFollowsPlaceTextAndRouteTextKeepsTwentyFiveDpOffset(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest):
+java.lang.AssertionError: Failed to retrieve bounds of the node.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '步行' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:259)
+	at androidx.compose.ui.test.BoundsAssertionsKt.getUnclippedBoundsInRoot(BoundsAssertions.kt:150)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripAxisFollowsPlaceTextAndRouteTextKeepsTwentyFiveDpOffset(WholeTripItineraryContentTest.kt:283)
+
+INSTRUMENTATION_STATUS: test=wholeTripAxisFollowsPlaceTextAndRouteTextKeepsTwentyFiveDpOffset
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=26
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=wholeTripFitsWorkspaceWidthAndRemainsReadOnly
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=26
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: expected:<340.0.dp> but was:<324.0.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripFitsWorkspaceWidthAndRemainsReadOnly(WholeTripItineraryContentTest.kt:339)
+
+INSTRUMENTATION_STATUS: stream=
+Error in wholeTripFitsWorkspaceWidthAndRemainsReadOnly(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest):
+java.lang.AssertionError: expected:<340.0.dp> but was:<324.0.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripFitsWorkspaceWidthAndRemainsReadOnly(WholeTripItineraryContentTest.kt:339)
+
+INSTRUMENTATION_STATUS: test=wholeTripFitsWorkspaceWidthAndRemainsReadOnly
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=27
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=longWholeTripScrollsLastDayAboveBottomPadding
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=27
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=longWholeTripScrollsLastDayAboveBottomPadding
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=28
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=singleEmptyDayKeepsScopeRailAndAddsFromCurrentDayInsteadOfWholeTripEmptyState
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=28
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=singleEmptyDayKeepsScopeRailAndAddsFromCurrentDayInsteadOfWholeTripEmptyState
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=29
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=usesChineseDayLabelsThroughTenAndNumericFallbackAfterwards
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=29
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=usesChineseDayLabelsThroughTenAndNumericFallbackAfterwards
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=30
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=daysRenderInOrderWithEmptyDayAndReadOnlyTimeline
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=30
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed to assert the following: (ContentDescription = [从早餐店到博物馆的路段])
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'route-leg-action-route')
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:262)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:254)
+	at androidx.compose.ui.test.AssertionsKt.assertContentDescriptionEquals(Assertions.kt:141)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.daysRenderInOrderWithEmptyDayAndReadOnlyTimeline(WholeTripItineraryContentTest.kt:187)
+
+INSTRUMENTATION_STATUS: stream=
+Error in daysRenderInOrderWithEmptyDayAndReadOnlyTimeline(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest):
+java.lang.AssertionError: Failed to assert the following: (ContentDescription = [从早餐店到博物馆的路段])
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'route-leg-action-route')
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:262)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:254)
+	at androidx.compose.ui.test.AssertionsKt.assertContentDescriptionEquals(Assertions.kt:141)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.daysRenderInOrderWithEmptyDayAndReadOnlyTimeline(WholeTripItineraryContentTest.kt:187)
+
+INSTRUMENTATION_STATUS: test=daysRenderInOrderWithEmptyDayAndReadOnlyTimeline
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=31
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=wholeTripHeaderSummarizesDaysAndStopsWhileDayGroupsShowContinuousDates
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=31
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Actual height is 44.0.dp, expected 36.0.dp (tolerance: 0.5.dp)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU(BoundsAssertions.kt:322)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU$default(BoundsAssertions.kt:319)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsEqualTo_3ABfNKs$lambda$1(BoundsAssertions.kt:54)
+	at androidx.compose.ui.test.BoundsAssertionsKt.$r8$lambda$44jm93jlosnSgZMu835efJhMZIU(Unknown Source:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt$$ExternalSyntheticLambda4.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:266)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsEqualTo-3ABfNKs(BoundsAssertions.kt:54)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripHeaderSummarizesDaysAndStopsWhileDayGroupsShowContinuousDates(WholeTripItineraryContentTest.kt:133)
+
+INSTRUMENTATION_STATUS: stream=
+Error in wholeTripHeaderSummarizesDaysAndStopsWhileDayGroupsShowContinuousDates(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest):
+java.lang.AssertionError: Actual height is 44.0.dp, expected 36.0.dp (tolerance: 0.5.dp)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU(BoundsAssertions.kt:322)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU$default(BoundsAssertions.kt:319)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsEqualTo_3ABfNKs$lambda$1(BoundsAssertions.kt:54)
+	at androidx.compose.ui.test.BoundsAssertionsKt.$r8$lambda$44jm93jlosnSgZMu835efJhMZIU(Unknown Source:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt$$ExternalSyntheticLambda4.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:266)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsEqualTo-3ABfNKs(BoundsAssertions.kt:54)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripHeaderSummarizesDaysAndStopsWhileDayGroupsShowContinuousDates(WholeTripItineraryContentTest.kt:133)
+
+INSTRUMENTATION_STATUS: test=wholeTripHeaderSummarizesDaysAndStopsWhileDayGroupsShowContinuousDates
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=32
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=mergedDayRetainsOutgoingRouteAndContinuousStopNumbers
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=32
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=mergedDayRetainsOutgoingRouteAndContinuousStopNumbers
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=33
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=wholeTripUsesEightDpGapBetweenAdjacentPlaceAndRouteBlocks
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=33
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: expected:<8.0.dp> but was:<0.0.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripUsesEightDpGapBetweenAdjacentPlaceAndRouteBlocks(WholeTripItineraryContentTest.kt:249)
+
+INSTRUMENTATION_STATUS: stream=
+Error in wholeTripUsesEightDpGapBetweenAdjacentPlaceAndRouteBlocks(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest):
+java.lang.AssertionError: expected:<8.0.dp> but was:<0.0.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripUsesEightDpGapBetweenAdjacentPlaceAndRouteBlocks(WholeTripItineraryContentTest.kt:249)
+
+INSTRUMENTATION_STATUS: test=wholeTripUsesEightDpGapBetweenAdjacentPlaceAndRouteBlocks
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=34
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=wholeTripTimingSummaryStaysOnOneLineAtNormalWidth
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest
+INSTRUMENTATION_STATUS: current=34
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '09:30 到达 · 停留 2 小时' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode$default(SemanticsNodeInteraction.kt:83)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripTimingSummaryStaysOnOneLineAtNormalWidth(WholeTripItineraryContentTest.kt:212)
+
+INSTRUMENTATION_STATUS: stream=
+Error in wholeTripTimingSummaryStaysOnOneLineAtNormalWidth(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest):
+java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '09:30 到达 · 停留 2 小时' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode$default(SemanticsNodeInteraction.kt:83)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripTimingSummaryStaysOnOneLineAtNormalWidth(WholeTripItineraryContentTest.kt:212)
+
+INSTRUMENTATION_STATUS: test=wholeTripTimingSummaryStaysOnOneLineAtNormalWidth
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=35
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.share.ItineraryShareScreenTest:
+INSTRUMENTATION_STATUS: test=defaultSingleDayNotesAndEnlargedPreviewUseCurrentOutput
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=35
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=defaultSingleDayNotesAndEnlargedPreviewUseCurrentOutput
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=36
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=fourteenDayTripCanPreviewAndShareFullTrip
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=36
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=fourteenDayTripCanPreviewAndShareFullTrip
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=37
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=shareOpensSystemChooserAndCancelReturnsToPreview
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=37
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stack=org.junit.ComparisonFailure: expected:<[com.android.intentresolver]> but was:<[android]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.share.ItineraryShareScreenTest.shareOpensSystemChooserAndCancelReturnsToPreview(ItineraryShareScreenTest.kt:83)
+
+INSTRUMENTATION_STATUS: stream=
+Error in shareOpensSystemChooserAndCancelReturnsToPreview(com.yangchengwei.easytrip.share.ItineraryShareScreenTest):
+org.junit.ComparisonFailure: expected:<[com.android.intentresolver]> but was:<[android]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.share.ItineraryShareScreenTest.shareOpensSystemChooserAndCancelReturnsToPreview(ItineraryShareScreenTest.kt:83)
+
+INSTRUMENTATION_STATUS: test=shareOpensSystemChooserAndCancelReturnsToPreview
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=38
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=emptyAndLoadFailureProvideRecovery
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=38
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=emptyAndLoadFailureProvideRecovery
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=39
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=changingOptionsDisablesExportDuringRegenerationAndKeepsLatestChoice
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ItineraryShareScreenTest
+INSTRUMENTATION_STATUS: current=39
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=changingOptionsDisablesExportDuringRegenerationAndKeepsLatestChoice
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ShareNavigationTest
+INSTRUMENTATION_STATUS: current=40
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.share.ShareNavigationTest:
+INSTRUMENTATION_STATUS: test=tripListToWorkspaceToShareAndBack
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.share.ShareNavigationTest
+INSTRUMENTATION_STATUS: current=40
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=tripListToWorkspaceToShareAndBack
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.calendar.CalendarResizeWorkspaceTest
+INSTRUMENTATION_STATUS: current=41
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.itinerary.calendar.CalendarResizeWorkspaceTest:
+INSTRUMENTATION_STATUS: test=fullWorkspaceTopHintReplacesSummaryOnly
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.calendar.CalendarResizeWorkspaceTest
+INSTRUMENTATION_STATUS: current=41
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=fullWorkspaceTopHintReplacesSummaryOnly
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.calendar.CalendarResizeWorkspaceTest
+INSTRUMENTATION_STATUS: current=42
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=narrowLargeFontUsesSheetWidthWithoutClippingTextOrMovingTimeline
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.calendar.CalendarResizeWorkspaceTest
+INSTRUMENTATION_STATUS: current=42
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=narrowLargeFontUsesSheetWidthWithoutClippingTextOrMovingTimeline
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.calendar.CalendarResizeWorkspaceTest
+INSTRUMENTATION_STATUS: current=43
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=fullWorkspaceFloatingHintKeepsFingerGapAndSummary
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.itinerary.calendar.CalendarResizeWorkspaceTest
+INSTRUMENTATION_STATUS: current=43
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=43
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=fullWorkspaceFloatingHintKeepsFingerGapAndSummary
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 63.067
+There were 7 failures:
+1) wholeTripAxisFollowsPlaceTextAndRouteTextKeepsTwentyFiveDpOffset(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest)
+java.lang.AssertionError: Failed to retrieve bounds of the node.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '步行' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:259)
+	at androidx.compose.ui.test.BoundsAssertionsKt.getUnclippedBoundsInRoot(BoundsAssertions.kt:150)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripAxisFollowsPlaceTextAndRouteTextKeepsTwentyFiveDpOffset(WholeTripItineraryContentTest.kt:283)
+2) wholeTripFitsWorkspaceWidthAndRemainsReadOnly(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest)
+java.lang.AssertionError: expected:<340.0.dp> but was:<324.0.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripFitsWorkspaceWidthAndRemainsReadOnly(WholeTripItineraryContentTest.kt:339)
+3) daysRenderInOrderWithEmptyDayAndReadOnlyTimeline(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest)
+java.lang.AssertionError: Failed to assert the following: (ContentDescription = [从早餐店到博物馆的路段])
+Reason: Expected exactly '1' node but could not find any node that satisfies: (TestTag = 'route-leg-action-route')
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.AssertionsKt.assert(Assertions.kt:262)
+	at androidx.compose.ui.test.AssertionsKt.assert$default(Assertions.kt:254)
+	at androidx.compose.ui.test.AssertionsKt.assertContentDescriptionEquals(Assertions.kt:141)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.daysRenderInOrderWithEmptyDayAndReadOnlyTimeline(WholeTripItineraryContentTest.kt:187)
+4) wholeTripHeaderSummarizesDaysAndStopsWhileDayGroupsShowContinuousDates(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest)
+java.lang.AssertionError: Actual height is 44.0.dp, expected 36.0.dp (tolerance: 0.5.dp)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU(BoundsAssertions.kt:322)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertIsEqualTo-cWfXhoU$default(BoundsAssertions.kt:319)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsEqualTo_3ABfNKs$lambda$1(BoundsAssertions.kt:54)
+	at androidx.compose.ui.test.BoundsAssertionsKt.$r8$lambda$44jm93jlosnSgZMu835efJhMZIU(Unknown Source:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt$$ExternalSyntheticLambda4.invoke(D8$$SyntheticClass:0)
+	at androidx.compose.ui.test.BoundsAssertionsKt.withUnclippedBoundsInRoot(BoundsAssertions.kt:266)
+	at androidx.compose.ui.test.BoundsAssertionsKt.assertHeightIsEqualTo-3ABfNKs(BoundsAssertions.kt:54)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripHeaderSummarizesDaysAndStopsWhileDayGroupsShowContinuousDates(WholeTripItineraryContentTest.kt:133)
+5) wholeTripUsesEightDpGapBetweenAdjacentPlaceAndRouteBlocks(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest)
+java.lang.AssertionError: expected:<8.0.dp> but was:<0.0.dp>
+	at org.junit.Assert.fail(Assert.java:89)
+	at org.junit.Assert.failNotEquals(Assert.java:835)
+	at org.junit.Assert.assertEquals(Assert.java:120)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripUsesEightDpGapBetweenAdjacentPlaceAndRouteBlocks(WholeTripItineraryContentTest.kt:249)
+6) wholeTripTimingSummaryStaysOnOneLineAtNormalWidth(com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest)
+java.lang.AssertionError: Failed: assertExists.
+Reason: Expected exactly '1' node but could not find any node that satisfies: (Text + InputText + EditableText contains '09:30 到达 · 停留 2 小时' (ignoreCase: false))
+
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow(SemanticsNodeInteraction.kt:178)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchOneOrThrow$default(SemanticsNodeInteraction.kt:150)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode(SemanticsNodeInteraction.kt:84)
+	at androidx.compose.ui.test.SemanticsNodeInteraction.fetchSemanticsNode$default(SemanticsNodeInteraction.kt:83)
+	at com.yangchengwei.easytrip.itinerary.ui.WholeTripItineraryContentTest.wholeTripTimingSummaryStaysOnOneLineAtNormalWidth(WholeTripItineraryContentTest.kt:212)
+7) shareOpensSystemChooserAndCancelReturnsToPreview(com.yangchengwei.easytrip.share.ItineraryShareScreenTest)
+org.junit.ComparisonFailure: expected:<[com.android.intentresolver]> but was:<[android]>
+	at org.junit.Assert.assertEquals(Assert.java:117)
+	at org.junit.Assert.assertEquals(Assert.java:146)
+	at com.yangchengwei.easytrip.share.ItineraryShareScreenTest.shareOpensSystemChooserAndCancelReturnsToPreview(ItineraryShareScreenTest.kt:83)
+
+FAILURES!!!
+Tests run: 43,  Failures: 7
+
+
+INSTRUMENTATION_CODE: -1

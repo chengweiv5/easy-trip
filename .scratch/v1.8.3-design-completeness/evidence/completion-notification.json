@@ -1,0 +1,10 @@
+{
+  "message_id": "om_x100b63b3da4e88a4de7eecf882469d8",
+  "chat_id": "oc_b5dc30707aff7eb5628922703c9b3814",
+  "sender_app_id": "cli_aaa104e4de399cca",
+  "send_ok": true,
+  "readback_ok": true,
+  "exact_content_match": true,
+  "content": "Easy Trip v1.8.3：解锁后的设计保存恢复已完成。当前6934工作树同一正式Pencil文件已原生保存、关闭重开并由MCP回读确认：131个有效画板、49组状态、五主题；无顶层重叠和待完成占位标记。旧锁屏说明已清理。最终文件SHA256前12位：0cb8f48fb149。审计与覆盖矩阵已更新。窄屏大字体1项、全程6项、系统分享包名1项运行断言仍未通过，不声明UI全量验收通过。本次没有修改应用源码、提交或推送，未开始v1.9。",
+  "readback_time": "2026-10-09 13:19"
+}

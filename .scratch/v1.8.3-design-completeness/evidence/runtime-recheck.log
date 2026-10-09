@@ -1,0 +1,182 @@
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.TripListContentTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.trip.ui.TripListContentTest:
+INSTRUMENTATION_STATUS: test=scrollingOtherTripsKeepsHeaderPrimaryAndCreateBoundsFixed
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.TripListContentTest
+INSTRUMENTATION_STATUS: current=1
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=scrollingOtherTripsKeepsHeaderPrimaryAndCreateBoundsFixed
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.TripListContentTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=contentCreateActionIsA132By48RightAlignedFixedButton
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.TripListContentTest
+INSTRUMENTATION_STATUS: current=2
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=contentCreateActionIsA132By48RightAlignedFixedButton
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.TripListContentTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=longNamesAtNarrowWidthAndLargeFontKeepActionsReachable
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.TripListContentTest
+INSTRUMENTATION_STATUS: current=3
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stack=java.lang.AssertionError: Assert failed: The component with TestTag = 'other-trip-trip-other' is not displayed!
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+	at com.yangchengwei.easytrip.trip.ui.TripListContentTest.longNamesAtNarrowWidthAndLargeFontKeepActionsReachable(TripListContentTest.kt:464)
+
+INSTRUMENTATION_STATUS: stream=
+Error in longNamesAtNarrowWidthAndLargeFontKeepActionsReachable(com.yangchengwei.easytrip.trip.ui.TripListContentTest):
+java.lang.AssertionError: Assert failed: The component with TestTag = 'other-trip-trip-other' is not displayed!
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+	at com.yangchengwei.easytrip.trip.ui.TripListContentTest.longNamesAtNarrowWidthAndLargeFontKeepActionsReachable(TripListContentTest.kt:464)
+
+INSTRUMENTATION_STATUS: test=longNamesAtNarrowWidthAndLargeFontKeepActionsReachable
+INSTRUMENTATION_STATUS_CODE: -2
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.TripListContentTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=otherTripMenuIsBoundToStableTripId
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.TripListContentTest
+INSTRUMENTATION_STATUS: current=4
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=otherTripMenuIsBoundToStableTripId
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.CreateTripContentTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.trip.ui.CreateTripContentTest:
+INSTRUMENTATION_STATUS: test=clearDatesIsReachableAtLargeFontWithoutOpeningPicker
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.trip.ui.CreateTripContentTest
+INSTRUMENTATION_STATUS: current=5
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=clearDatesIsReachableAtLargeFontWithoutOpeningPicker
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.workspace.TripWorkspaceContentTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.workspace.TripWorkspaceContentTest:
+INSTRUMENTATION_STATUS: test=allEmptyItineraryKeepsThreeDaysAndAddsFromEachSelectedDay
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.workspace.TripWorkspaceContentTest
+INSTRUMENTATION_STATUS: current=6
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=allEmptyItineraryKeepsThreeDaysAndAddsFromEachSelectedDay
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.workspace.TripWorkspaceContentTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=halfSheetEmptyDayKeepsGuidanceAndAddActionFullyVisibleWithoutSavedPlaces
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.workspace.TripWorkspaceContentTest
+INSTRUMENTATION_STATUS: current=7
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=halfSheetEmptyDayKeepsGuidanceAndAddActionFullyVisibleWithoutSavedPlaces
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.V2AcceptanceTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.V2AcceptanceTest:
+INSTRUMENTATION_STATUS: test=undatedEmptyTripOpensAndCancelsDayPickerWithoutCreatingData
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.V2AcceptanceTest
+INSTRUMENTATION_STATUS: current=8
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=undatedEmptyTripOpensAndCancelsDayPickerWithoutCreatingData
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.V2AcceptanceTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=emptyThreeDayTripAddsToSelectedDayWithoutReturningToPool
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.V2AcceptanceTest
+INSTRUMENTATION_STATUS: current=9
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=emptyThreeDayTripAddsToSelectedDayWithoutReturningToPool
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.core.ui.theme.ThemePaletteTest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+com.yangchengwei.easytrip.core.ui.theme.ThemePaletteTest:
+INSTRUMENTATION_STATUS: test=nativeMarkersUseCurrentThemeAndKeepDayBadgeSegments
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.core.ui.theme.ThemePaletteTest
+INSTRUMENTATION_STATUS: current=10
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=nativeMarkersUseCurrentThemeAndKeepDayBadgeSegments
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.core.ui.theme.ThemePaletteTest
+INSTRUMENTATION_STATUS: current=11
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=
+INSTRUMENTATION_STATUS: test=palettesMeetContrastAndKeepSemanticColors
+INSTRUMENTATION_STATUS_CODE: 1
+INSTRUMENTATION_STATUS: class=com.yangchengwei.easytrip.core.ui.theme.ThemePaletteTest
+INSTRUMENTATION_STATUS: current=11
+INSTRUMENTATION_STATUS: id=AndroidJUnitRunner
+INSTRUMENTATION_STATUS: numtests=11
+INSTRUMENTATION_STATUS: stream=.
+INSTRUMENTATION_STATUS: test=palettesMeetContrastAndKeepSemanticColors
+INSTRUMENTATION_STATUS_CODE: 0
+INSTRUMENTATION_RESULT: stream=
+
+Time: 16.734
+There was 1 failure:
+1) longNamesAtNarrowWidthAndLargeFontKeepActionsReachable(com.yangchengwei.easytrip.trip.ui.TripListContentTest)
+java.lang.AssertionError: Assert failed: The component with TestTag = 'other-trip-trip-other' is not displayed!
+	at androidx.compose.ui.test.AssertionsKt.assertIsDisplayed(Assertions.kt:34)
+	at com.yangchengwei.easytrip.trip.ui.TripListContentTest.longNamesAtNarrowWidthAndLargeFontKeepActionsReachable(TripListContentTest.kt:464)
+
+FAILURES!!!
+Tests run: 11,  Failures: 1
+
+
+INSTRUMENTATION_CODE: -1

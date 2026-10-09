@@ -1,0 +1,1233 @@
+{
+  "version": "1.8.3",
+  "version_code": 13,
+  "date": "2026-10-09",
+  "workspace": "/Users/bytedance/.codex/worktrees/6934/easy-trip",
+  "source_commit": "bd370c4f44df8369bfb993bbea881a6396c2a0f5",
+  "design_file": "/Users/bytedance/.codex/worktrees/6934/easy-trip/design/easy-trip-v1.8.3.pen",
+  "status": "SAVED_REOPENED_VERIFIED_RUNTIME_ACCEPTANCE_OPEN",
+  "live_enabled_roots": 131,
+  "hidden_historical_roots": 1,
+  "contract_boards": [
+    "IQMCC",
+    "FpRZH",
+    "OUIyx"
+  ],
+  "groups": [
+    {
+      "id": "N01",
+      "title": "我的旅行",
+      "states": [
+        "加载",
+        "无旅行",
+        "待出行/已出行筛选及筛选为空",
+        "主旅行与其他旅行",
+        "加载失败重试",
+        "准备度及已记花费"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt"
+      ],
+      "frames": [
+        "K9h3r",
+        "D03lK",
+        "zIbEu",
+        "rd2Iu",
+        "LoQrS",
+        "yq8pE",
+        "oYNJg"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "N02",
+      "title": "创建旅行",
+      "states": [
+        "空表单",
+        "名称校验",
+        "日期范围未完整/超出30天",
+        "灵活/自驾",
+        "提交中",
+        "提交失败保留输入",
+        "成功进入工作台"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/CreateTripUiState.kt"
+      ],
+      "frames": [
+        "PnhPb",
+        "SKABj",
+        "dzhkC",
+        "QDPQR",
+        "YYo6U",
+        "yIGiQ",
+        "mpGO8",
+        "AC91v",
+        "PtwjB",
+        "WWA8d"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "N03",
+      "title": "旅行工作台外壳",
+      "states": [
+        "加载",
+        "旅行不存在",
+        "读取失败重试",
+        "就绪",
+        "地图未授权/加载/失败/就绪",
+        "抽屉收起/半屏/展开",
+        "返回与遮罩层顺序",
+        "地图平移缩放、定位与恢复正北；控件选中与避让；服务商署名"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceUiModels.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/MapControls.kt"
+      ],
+      "frames": [
+        "A9EKX",
+        "LFmzR",
+        "BrYVA",
+        "GoxB6",
+        "U8R5i",
+        "SwjuL",
+        "i3yxsc",
+        "RC3d3"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "N04",
+      "title": "地点搜索",
+      "states": [
+        "初始输入及键盘",
+        "地图服务未授权",
+        "加载",
+        "结果",
+        "无结果",
+        "网络失败",
+        "定位权限不足",
+        "定位失败",
+        "有/无距我的距离",
+        "收藏忙碌/失败"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchReducer.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchRoute.kt"
+      ],
+      "frames": [
+        "ofdn5",
+        "ny0pT",
+        "s1OvvX",
+        "S0psO",
+        "GJo79",
+        "RK5rH",
+        "sT8u9",
+        "EBQcJ"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "N05",
+      "title": "分享行程长图",
+      "states": [
+        "加载行程",
+        "空行程",
+        "加载失败",
+        "全程/选一天",
+        "包含/不含备注",
+        "生成地图和长图",
+        "地图缺失降级",
+        "生成失败/过长",
+        "保存/分享中及失败"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt"
+      ],
+      "frames": [
+        "OSDtB",
+        "g2NJ9Q",
+        "vdAvS",
+        "ZaTMA",
+        "Pu1Sx",
+        "bSyPn"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "N06",
+      "title": "旅行设置",
+      "states": [
+        "无权威旅行数据/读取失败",
+        "名称",
+        "出行日期",
+        "灵活/自驾",
+        "旅行日列表",
+        "添加/排序/删除旅行日",
+        "写入中互斥",
+        "删除旅行入口"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsViewModel.kt"
+      ],
+      "frames": [
+        "U06l7P",
+        "zlRxO",
+        "hJBDC",
+        "K2LnC"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "N07",
+      "title": "App 设置",
+      "states": [
+        "当前主题",
+        "地图授权状态",
+        "已安装版本离线显示",
+        "存在可更新版本提示",
+        "进入主题/授权/更新"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/settings/AppSettingsContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt"
+      ],
+      "frames": [
+        "DUpeg"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "N08",
+      "title": "地图授权管理",
+      "states": [
+        "未授权",
+        "已授权",
+        "阅读政策/已读勾选",
+        "展示报告失败重试",
+        "允许处理中/失败",
+        "撤回入口",
+        "不自动申请定位"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/settings/MapConsentContent.kt"
+      ],
+      "frames": [
+        "t7QLVZ",
+        "ogpD5",
+        "muIJJ",
+        "YjnJq"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "N09",
+      "title": "版本更新",
+      "states": [
+        "Idle",
+        "Checking",
+        "Current",
+        "Ahead",
+        "Available",
+        "Downloading",
+        "Ready",
+        "Failed",
+        "取消下载",
+        "稍后安装",
+        "系统返回后的提示",
+        "重新下载/检查"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/settings/AppSettingsContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/settings/UpdateController.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/settings/UpdateRoute.kt"
+      ],
+      "frames": [
+        "Bl8pI",
+        "au8lI",
+        "Tftvp",
+        "nSd8w",
+        "TxcuJ",
+        "O8f2w",
+        "rg5j1",
+        "f0TO9",
+        "S2mZg"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "T01",
+      "title": "日期范围选择",
+      "states": [
+        "初始月",
+        "开始/结束日期",
+        "跨月/跨年",
+        "30天限制",
+        "固定天数改起始日",
+        "取消",
+        "确认受校验限制"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripDateRangePickerSheet.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt"
+      ],
+      "frames": [
+        "YYo6U",
+        "IKTv5",
+        "L7z4R"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "T02",
+      "title": "旅行卡片更多菜单",
+      "states": [
+        "标记已出行/待出行",
+        "设置",
+        "删除",
+        "菜单关闭"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListCards.kt"
+      ],
+      "frames": [
+        "oYNJg"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "T03",
+      "title": "删除旅行确认",
+      "states": [
+        "Idle不展示",
+        "LoadingImpact",
+        "ImpactFailure",
+        "影响清单确认",
+        "删除中",
+        "失败",
+        "同步失败重试",
+        "取消"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripDeletionDialog.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt"
+      ],
+      "frames": [
+        "oW9mK",
+        "Vl15d",
+        "APvJ3"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "T04",
+      "title": "重命名旅行",
+      "states": [
+        "当前名称",
+        "编辑",
+        "确认",
+        "取消恢复",
+        "其他写入锁定"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt"
+      ],
+      "frames": [
+        "os9Ln"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "T05",
+      "title": "旅行日期变更及影响确认",
+      "states": [
+        "Idle",
+        "Previewing",
+        "AwaitingConfirmation",
+        "Applying",
+        "AwaitingRoom",
+        "SyncFailed",
+        "移除旅行日影响",
+        "取消/重试"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/DateRangeChangeRequest.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt"
+      ],
+      "frames": [
+        "IKTv5",
+        "yT6kr",
+        "Z9abQQ"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "T06",
+      "title": "旅行日管理",
+      "states": [
+        "添加一天",
+        "拖拽排序",
+        "删除候选",
+        "忙碌禁用",
+        "影响计算/失败",
+        "保存失败",
+        "长列表滚动"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsViewModel.kt"
+      ],
+      "frames": [
+        "U06l7P",
+        "K2LnC",
+        "zvO9Z",
+        "J7PZ7u"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "W01",
+      "title": "地点池",
+      "states": [
+        "加载",
+        "空池",
+        "城市分组及切换",
+        "本地关键词",
+        "标签",
+        "全部/未排入/已排入",
+        "无筛选结果",
+        "收藏卡片",
+        "备注展开",
+        "批量安排入口"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlacePoolSheet.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlacePoolViewModel.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceCityGroups.kt"
+      ],
+      "frames": [
+        "A9EKX",
+        "lsr1I",
+        "JCOPS"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "W02",
+      "title": "单日行程清单",
+      "states": [
+        "默认设备当天（范围外第一天）",
+        "手选与返回恢复",
+        "加载/空/有行程",
+        "行程与相邻交通",
+        "拖拽排序",
+        "备注展开",
+        "当日费用及未填数",
+        "增删当天/日历按钮"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/DayItinerarySheet.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceNavigation.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryDayActions.kt"
+      ],
+      "frames": [
+        "LFmzR",
+        "Bcf6A",
+        "ge7BC",
+        "WWA8d"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "W03",
+      "title": "全程行程清单",
+      "states": [
+        "全空",
+        "分日清单",
+        "连续重复地点合并",
+        "无行程日",
+        "相邻/跨日展示交通",
+        "各日已记费用",
+        "备注展开"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/WholeTripItineraryContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryUiModels.kt"
+      ],
+      "frames": [
+        "FTIOF",
+        "kuta1"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "W04",
+      "title": "单日时间日历",
+      "states": [
+        "空日",
+        "未设时间待安排",
+        "时间轴地点与交通",
+        "重叠",
+        "短卡",
+        "拖入/移动/调时",
+        "保存/撤销/失败",
+        "跨午夜信息"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarTraffic.kt"
+      ],
+      "frames": [
+        "W4SNt6",
+        "T7sn5p",
+        "LhMcy"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "W05",
+      "title": "全程时间日历",
+      "states": [
+        "多日列",
+        "日期分页首尾",
+        "30天浏览",
+        "无日期",
+        "待安排计数",
+        "单日聚焦",
+        "跨日/重叠及交通"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt"
+      ],
+      "frames": [
+        "Klkfn"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "W06",
+      "title": "搜索结果返回地图",
+      "states": [
+        "搜索标记",
+        "可定位/总结果数量",
+        "收起/半屏/展开",
+        "保留地点池/行程标签",
+        "关键词/列表返回",
+        "清除",
+        "同城我的位置",
+        "无位置/坐标不可用"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceSearchSummary.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceSearchResults.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt"
+      ],
+      "frames": [
+        "aKaPs",
+        "PchBt",
+        "QrBb8"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "W07",
+      "title": "地图图层与工作台更多",
+      "states": [
+        "标准/卫星/卫星路网",
+        "菜单空间不足回退",
+        "旅行设置",
+        "分享行程长图",
+        "返回我的旅行",
+        "关闭菜单"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/MapControls.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/WorkspaceMoreMenu.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceContent.kt"
+      ],
+      "frames": [
+        "ijpZD",
+        "shoPV"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "W08",
+      "title": "地图 POI 与收藏标记详情",
+      "states": [
+        "名称/地址缺失",
+        "可收藏/不可收藏",
+        "收藏/取消收藏中及失败",
+        "同地点多次行程",
+        "关闭"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt"
+      ],
+      "frames": [
+        "p4G1tS",
+        "XsGon",
+        "cmlqS",
+        "SkMyH"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "P01",
+      "title": "收藏地点详情与编辑",
+      "states": [
+        "只读详情",
+        "未安排/按天重复安排/安排信息未知",
+        "收藏状态",
+        "备注和标签编辑",
+        "预设/新标签/校验",
+        "保存中/失败",
+        "取消",
+        "加入行程",
+        "删除"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceDetailPanel.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/WorkspacePlaceDetailSheet.kt"
+      ],
+      "frames": [
+        "p4G1tS",
+        "XsGon",
+        "n2oJu"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "P02",
+      "title": "搜索结果地图详情与编辑",
+      "states": [
+        "地图加载/失败",
+        "未收藏/已收藏",
+        "收藏切换",
+        "地址及安排信息",
+        "已收藏地点备注/标签编辑",
+        "返回结果列表"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchViewModel.kt"
+      ],
+      "frames": [
+        "cmlqS",
+        "SkMyH",
+        "n2oJu"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "P03",
+      "title": "删除收藏/取消收藏影响确认",
+      "states": [
+        "受影响行程/路线清单",
+        "计算中/失败",
+        "确认",
+        "处理中",
+        "失败保留",
+        "取消"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/place/ui/PlaceSearchRoute.kt"
+      ],
+      "frames": [
+        "pfaVY",
+        "yXOEq"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I01",
+      "title": "从地点池选地点",
+      "states": [
+        "无候选",
+        "未选/多选",
+        "关键词/城市筛选",
+        "选择计数",
+        "固定目标日失效",
+        "继续/取消"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/SelectPlacesContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt"
+      ],
+      "frames": [
+        "Pqdkf",
+        "xwaRW",
+        "zDqcV",
+        "JCOPS"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I02",
+      "title": "选择安排日期",
+      "states": [
+        "多日选择",
+        "已有安排次数",
+        "无旅行日",
+        "添加一天入口",
+        "提交中",
+        "日期失效",
+        "取消"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/SelectTargetDayContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/AddToItineraryUiState.kt"
+      ],
+      "frames": [
+        "xQfD0",
+        "cRdBn",
+        "p7U8B",
+        "D3XZi"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I03",
+      "title": "安排异常结果与恢复",
+      "states": [
+        "部分成功",
+        "失败地点重试",
+        "目标日失效重选",
+        "撤销中/失败",
+        "已撤销查看地点池",
+        "成功自动收起而不弹成功对话框"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/AddToItineraryResultContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt"
+      ],
+      "frames": [
+        "mGhKO",
+        "KPBBb",
+        "D3XZi"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I04",
+      "title": "添加旅行日",
+      "states": [
+        "追加末尾说明",
+        "确认",
+        "添加中",
+        "失败重试",
+        "取消"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/AddTripDayContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt"
+      ],
+      "frames": [
+        "zvO9Z"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I05",
+      "title": "删除旅行日",
+      "states": [
+        "影响数量",
+        "保留收藏说明",
+        "忙碌",
+        "错误",
+        "取消",
+        "确认删除",
+        "后续日期/范围变化"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/WorkspaceDayDeletionDialog.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripSettingsContent.kt"
+      ],
+      "frames": [
+        "J7PZ7u"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I06",
+      "title": "编辑单次行程",
+      "states": [
+        "到达时间滚轮及分时段",
+        "停留时长",
+        "未设时间",
+        "备注",
+        "花费空/0/小数/无效/溢出",
+        "再次安排",
+        "保存中",
+        "取消保留原值"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/EditItineraryItemContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryTimingPickers.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditDraft.kt"
+      ],
+      "frames": [
+        "K336N",
+        "c0vRa"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I07",
+      "title": "编辑交通路段",
+      "states": [
+        "起终点/距离",
+        "步行/打车/驾车/公交",
+        "恢复推荐",
+        "覆盖/恢复用时",
+        "备注",
+        "金额及无效输入",
+        "保存中/失败",
+        "取消"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/EditRouteLegContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditDraft.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt"
+      ],
+      "frames": [
+        "T7aESo",
+        "c0vRa",
+        "OOEsk"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I08",
+      "title": "行程项菜单与跨日移动",
+      "states": [
+        "编辑",
+        "再次安排",
+        "移动到其他日期",
+        "删除",
+        "目标日期列表排除当天",
+        "移动中/失败",
+        "取消"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryItemMenu.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt"
+      ],
+      "frames": [
+        "btWFB",
+        "dGRLD"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I09",
+      "title": "移出单次行程确认",
+      "states": [
+        "仅移除本次安排",
+        "收藏保留",
+        "相邻路线重算",
+        "确认/取消",
+        "删除中/失败"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryEditDraft.kt"
+      ],
+      "frames": [
+        "l2xCsM"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "I10",
+      "title": "编辑保存失败恢复",
+      "states": [
+        "原因",
+        "继续编辑",
+        "重试保存",
+        "关闭错误后回草稿"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItinerarySaveFailureContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt"
+      ],
+      "frames": [
+        "OOEsk"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "C01",
+      "title": "日历详情与交叠列表",
+      "states": [
+        "交叠成员列表",
+        "单次日程日期/次序/到达/结束/停留",
+        "长备注",
+        "时间冲突",
+        "交通来不及",
+        "入站/出站交通",
+        "转编辑",
+        "条目已删除"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarDetail.kt"
+      ],
+      "frames": [
+        "qsgyR",
+        "Z1PFU"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "C02",
+      "title": "日历拖动与调时反馈",
+      "states": [
+        "未触发/长按门槛",
+        "拖动草稿",
+        "调时提示避手指",
+        "大字体/顶部边界",
+        "保存中",
+        "成功撤销",
+        "失败重试",
+        "撤销失败"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarResizeHint.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarTimingController.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/calendar/CalendarContent.kt"
+      ],
+      "frames": [
+        "LhMcy",
+        "IIQHg",
+        "dpJ4s",
+        "EF8ik",
+        "aBMG6"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "F01",
+      "title": "现有费用录入与总额展示",
+      "states": [
+        "未记金额与0元区分",
+        "两位小数",
+        "已记总额",
+        "未填项数量",
+        "非法输入",
+        "合计溢出拒绝",
+        "编辑保存后刷新"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/expense/Expense.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/expense/ExpenseField.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/trip/ui/TripListUiModels.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/itinerary/ui/ItineraryUiModels.kt"
+      ],
+      "frames": [
+        "K9h3r",
+        "LFmzR",
+        "FTIOF",
+        "K336N",
+        "T7aESo",
+        "c0vRa"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "F02",
+      "title": "已记费用丢失二次确认",
+      "states": [
+        "受影响笔数/金额",
+        "交通会重新生成且费用不转移",
+        "删除花费并继续",
+        "取消调整无错误提示"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/expense/ExpenseRemovalDialog.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt"
+      ],
+      "frames": [
+        "AnBuD"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "A01",
+      "title": "主题选择与预览",
+      "states": [
+        "湖畔晴空",
+        "松林晨光",
+        "落日陶土",
+        "山岚暮紫",
+        "玫瑰沙丘",
+        "当前项禁用应用",
+        "本页预览",
+        "应用中/失败",
+        "返回放弃",
+        "成功 Toast"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemeHost.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemePickerScreen.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemePalette.kt"
+      ],
+      "frames": [
+        "WBSL0",
+        "PDyHG",
+        "iNBUq"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "A02",
+      "title": "首次地图服务授权",
+      "states": [
+        "政策入口",
+        "已读勾选",
+        "展示报告失败重试",
+        "允许/暂不允许",
+        "忙碌/失败",
+        "拒绝仍可用离线内容"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/AppNavigation.kt"
+      ],
+      "frames": [
+        "tymNg",
+        "ogpD5",
+        "muIJJ"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "A03",
+      "title": "撤回地图授权确认",
+      "states": [
+        "暂停在线地图搜索路线",
+        "保留已有旅行收藏",
+        "确认/取消",
+        "撤回中/失败"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/settings/MapConsentContent.kt"
+      ],
+      "frames": [
+        "YjnJq",
+        "t7QLVZ"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "A04",
+      "title": "工作台定位权限",
+      "states": [
+        "用途解释",
+        "允许/取消",
+        "系统请求中",
+        "永久拒绝转设置",
+        "打开设置失败",
+        "返回后重新读取权限"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/permission/PermissionExplanationContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/permission/LocationPermissionSettingsContent.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/workspace/TripWorkspaceScreen.kt"
+      ],
+      "frames": [
+        "JFhZ7",
+        "HYCsZ"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "A05",
+      "title": "搜索定位权限",
+      "states": [
+        "用途包含当前城市/距我/我的位置",
+        "允许定位/暂不",
+        "永久拒绝打开设置",
+        "忙碌/错误",
+        "恢复搜索"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/SearchLocationPermission.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/SearchLocationPermission.kt"
+      ],
+      "frames": [
+        "y3Gew",
+        "KyU0S",
+        "RK5rH",
+        "sT8u9"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "H01",
+      "title": "分享选择日期与放大预览",
+      "states": [
+        "旅行日选择/关闭",
+        "当前日期",
+        "放大长图滚动",
+        "返回分享页",
+        "图片读取失败"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt"
+      ],
+      "frames": [
+        "L1ww5",
+        "ryMk5",
+        "Pu1Sx"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "H02",
+      "title": "每日地图行程长图",
+      "states": [
+        "全程/单日",
+        "旅行摘要",
+        "每日地图/地图不可用",
+        "地点/交通/备注",
+        "长备注",
+        "重复地点",
+        "空日",
+        "过长失败"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/share/ShareImageRenderer.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareModels.kt"
+      ],
+      "frames": [
+        "fSrZV",
+        "OSDtB",
+        "g2NJ9Q",
+        "bSyPn",
+        "GUKFC"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "G01",
+      "title": "共用组件、主题与全局反馈",
+      "states": [
+        "默认五主题色值",
+        "标题/正文/金额",
+        "主次危险按钮",
+        "禁用/加载",
+        "输入错误",
+        "空态",
+        "网络/同步失败",
+        "可展开备注",
+        "Toast/Snackbar",
+        "键盘/系统栏/大字体"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/core/ui/theme/ThemePalette.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/ConfirmationDialog.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/FeedbackState.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/core/ui/component/ExpandableNote.kt"
+      ],
+      "frames": [
+        "f7rS8",
+        "iNBUq",
+        "vdAvS"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    },
+    {
+      "id": "X01",
+      "title": "Android / 外部界面交接",
+      "states": [
+        "系统定位授权与应用设置",
+        "浏览器隐私政策",
+        "Android 8–9 相册权限",
+        "系统分享选择器及返回",
+        "未知来源授权",
+        "安装确认及返回"
+      ],
+      "source_paths": [
+        "app/src/main/java/com/yangchengwei/easytrip/SearchLocationPermission.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/share/ItineraryShareScreen.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/settings/ApkInstaller.kt",
+        "app/src/main/java/com/yangchengwei/easytrip/settings/UpdateRoute.kt"
+      ],
+      "frames": [
+        "JFhZ7",
+        "HYCsZ",
+        "y3Gew",
+        "KyU0S",
+        "rg5j1",
+        "OSDtB"
+      ],
+      "design_status": "represented-in-saved-pencil-and-reopened-verified",
+      "evidence_boundary": "State contracts cover transient busy/error/back behavior; not every state has a separate phone frame. No claim of per-state runtime acceptance."
+    }
+  ],
+  "design_sha256": "0cb8f48fb14932e8850b426e1f18412b94149a43f5798fb61cfd40f6f90f033a",
+  "native_save_reopen_evidence": "evidence/native-save-reopen.json",
+  "runtime_acceptance": "NOT_PASSED"
+}
