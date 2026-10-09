@@ -2126,7 +2126,7 @@
       "x": 1660,
       "y": 0,
       "name": "v2.1.0 · 00 版本基线与覆盖清单",
-      "context": "v2.1.0 累积快照；继承已发布 v2.0.0 及批准分区稿，当前代码7e31c68 / build15 / schema9。功能规则与原有交互保留；费用专项955 JVM、37费用设备、71日期事务及320dp 2倍字号4项通过。其它页面继承，不声明旧8项UI和22项时间轴问题已修复。详见 docs/testing/v2.1.0-implementation.md。",
+      "context": "v2.1.0 累积快照；继承已发布 v2.0.0 及批准分区稿，当前进度修复代码72d5156 / build16 / schema9。花费与旅行共用连续进度条，955 Release单测及13定向UI通过，实机已覆盖安装；分区原验证和旧UI缺口保留。详见 docs/testing/v2.1.0-implementation.md。",
       "theme": {
         "Palette": "lake"
       },
@@ -2155,7 +2155,7 @@
           "fill": "$primary-dark",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "正式源：954e 工作树 design/easy-trip-v2.1.0.pen。继承已发布 v2.0.0 完整源（186根）与已确认的分区评审稿；保留未改业务模块，25主页面替代旧状态，15费用边界状态原位更新。代码7e31c68，2.1.0/build15，Room schema9。",
+          "content": "正式源：954e 工作树 design/easy-trip-v2.1.0.pen。继承已发布 v2.0.0 完整源（186根）与已确认的分区评审稿；25主页面替代旧状态，15费用边界原位更新。进度修复代码72d5156，2.1.0/build16，Room schema9。",
           "fontFamily": "Inter",
           "fontSize": 18,
           "fontWeight": "normal"
@@ -2203,7 +2203,7 @@
           "fill": "$primary-dark",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "验证：955 JVM、37费用设备、71日期事务、320dp系统2倍字号4项通过；构建通过，lint无错误。主要运行截图已检查，18张OCR。未做个人手机安装、未发布Release；原8项UI与22项时间轴基线缺口仍保留。独立审查服务断流，未声称独立审查通过。",
+          "content": "分区原验证：955 JVM、37费用设备、71日期事务、320dp 2倍字号4项。进度修复：955 Release单测、13定向UI通过，五主题比例边界与RTL通过；华为实机build16覆盖安装，摘要一致。未发布Release；旧8项UI与22项时间轴缺口保留。",
           "fontFamily": "Inter",
           "fontSize": 18,
           "fontWeight": "normal"
@@ -434002,6 +434002,7 @@
           "type": "frame",
           "id": "bUkIu",
           "name": "Expense Summary Row",
+          "context": "v2.1.0 进度条修正：复用旅行准备度的连续轨道样式。高度5；外轮廓圆角，内部填充端直边贴合；不留间隙，无末端圆点。花费按真实比例填充，0%无高亮，100%填满。",
           "reusable": true,
           "width": 354,
           "height": 62,
@@ -434049,20 +434050,20 @@
             {
               "type": "frame",
               "id": "v1Vkqm",
-              "name": "占比轨道",
+              "name": "占比轨道 / 连续圆角外轮廓",
+              "clip": true,
               "width": "fill_container",
               "height": 5,
               "fill": "$surface-soft",
-              "cornerRadius": 3,
+              "cornerRadius": 2.5,
               "layout": "none",
               "children": [
                 {
                   "type": "rectangle",
-                  "cornerRadius": 3,
                   "id": "G2YmTU",
                   "x": 0,
                   "y": 0,
-                  "name": "占比值",
+                  "name": "占比填充 / 内部直边无间隙",
                   "fill": "$primary",
                   "width": 132,
                   "height": 5
@@ -469533,9 +469534,10 @@
       "id": "bHNTv",
       "x": 10860,
       "y": 0,
-      "name": "v2.1.0 · UI Kit / 时间导航与模块标题",
-      "context": "v2.1.0 累积快照；继承已发布 v2.0.0 及批准分区稿，当前代码7e31c68 / build15 / schema9。功能规则与原有交互保留；费用专项955 JVM、37费用设备、71日期事务及320dp 2倍字号4项通过。其它页面继承，不声明旧8项UI和22项时间轴问题已修复。详见 docs/testing/v2.1.0-implementation.md。",
+      "name": "v2.1.0 · UI Kit / 时间导航与模块标题及连续进度",
+      "context": "v2.1.0 连续进度条补丁；代码72d5156 / build16 / schema9。共用条与旅行准备度统一，五主题比例边界和RTL已测试，实机已安装检查；原生保存与重开验收见 docs/testing/v2.1.0-implementation.md。",
       "width": 920,
+      "height": 410,
       "fill": "#FFFFFF",
       "cornerRadius": 20,
       "layout": "vertical",
@@ -469734,6 +469736,19 @@
           "lineHeight": 1.5,
           "fontFamily": "Inter",
           "fontSize": 14,
+          "fontWeight": "normal"
+        },
+        {
+          "type": "text",
+          "id": "UbyVd",
+          "name": "连续进度条规范",
+          "fill": "$muted",
+          "textGrowth": "fixed-width",
+          "width": "fill_container",
+          "content": "占比条沿用旅行准备度：5px 连续细轨道，圆角仅在外轮廓；填充与底轨直边贴合，无断口、无末端圆点。花费保留主题色，0% 不绘制高亮，100% 完整填满；比例与读屏数值一致。",
+          "lineHeight": 1.4,
+          "fontFamily": "Inter",
+          "fontSize": 13,
           "fontWeight": "normal"
         }
       ]
