@@ -1,0 +1,153 @@
+{
+  "date": "2026-10-09",
+  "scope": "Task1 pure expense domain only, not database or UI",
+  "baseline": "c3e43ce11cfb8fec9ec11dc68ca03d3302919dac",
+  "tests": {
+    "tests": 941,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "new_public_behavior_tests": 13,
+  "build_tasks": [
+    "assembleDebug",
+    "testDebugUnitTest",
+    "lintDebug",
+    "assembleDebugAndroidTest"
+  ],
+  "build_result": "BUILD SUCCESSFUL",
+  "lint_errors": 0,
+  "lint_warnings": 54,
+  "lint_hints": 1,
+  "new_files_lint_issues": 0,
+  "device_tests_run": false,
+  "database_changed": false,
+  "app_version_changed": false,
+  "review": {
+    "standards": "2 findings fixed and regression tests passed",
+    "spec_independent": "3 stream-disconnected failures; no independent result",
+    "spec_self_review": "Task1 requirements checked; Task2-6 explicitly pending"
+  },
+  "logs": [
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/01-date-green.log",
+      "sha256": "40f868eb5d7b1755aec9a9d9c0b940b181d1571445669bc04cc96124deeb5adf"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/01-date-red.log",
+      "sha256": "8ae044e3136c73775f62b234cf929e416166b8099cc17048fe5fc0a6a948926d"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/02-records-green.log",
+      "sha256": "c445f97f498846957f1e2252b8c95db4ddec8d57d22051d4a829a5d3c98f639b"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/02-records-red.log",
+      "sha256": "a92738afea6ea596f039613a790f77d16d4faf4e919fc5783eb069174f2098b3"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/03-period-green.log",
+      "sha256": "8be6ef0c81ea560703ef82392bd8ae7919c421ba898ec2497c66ff3dc0e5eef7"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/03-period-red.log",
+      "sha256": "ec3339a7c710f8f407348d61fa1901343fa202fea71d852f2e6c737949437d9c"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/04-identity-green.log",
+      "sha256": "c5e122ebaad0fa093e281abc21165b4ca33b6a071d7a8719252cf5ae4de70897"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/04-identity-red.log",
+      "sha256": "f5b3c8cb56393f33b5d6daef27da06e138bb9ee8c83fd1c4eac2a6c9cbb7969f"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/05-integrity-green.log",
+      "sha256": "6581e04761239ddf1e8f9785b4334ce113b46ff3e3a58364c284fe59857a6eb0"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/05-integrity-red.log",
+      "sha256": "41b7331919c12412a368cebcbf2ed437d9015e8906a1b835c0238ef4a6986edd"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/06-categories-green.log",
+      "sha256": "8be6ef0c81ea560703ef82392bd8ae7919c421ba898ec2497c66ff3dc0e5eef7"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/06-categories-red.log",
+      "sha256": "7173cc72b796bd732accc01b745f105b0c293b2085f392c35d919dc0669d30cd"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/07-blank-zero-green.log",
+      "sha256": "c445f97f498846957f1e2252b8c95db4ddec8d57d22051d4a829a5d3c98f639b"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/07-blank-zero-red.log",
+      "sha256": "c1d3c9889773daeceda39bce68f52a84528f16b40c2ffde4c4da90c961c36940"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/08-validation-green.log",
+      "sha256": "8be6ef0c81ea560703ef82392bd8ae7919c421ba898ec2497c66ff3dc0e5eef7"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/08-validation-red.log",
+      "sha256": "b0d35a80c8bf46484f8ab813d28385161005a43cf0d9d33a5e775e8cd10cecbb"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/09-legacy-green.log",
+      "sha256": "8be6ef0c81ea560703ef82392bd8ae7919c421ba898ec2497c66ff3dc0e5eef7"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/09-legacy-red.log",
+      "sha256": "10fda8e69391d60f9ae78fca98e1de59b516e786cd10203368bcb440c8557df1"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/10-draft-identity-green.log",
+      "sha256": "8be6ef0c81ea560703ef82392bd8ae7919c421ba898ec2497c66ff3dc0e5eef7"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/10-draft-identity-red.log",
+      "sha256": "3170fa5a2b69ef70059c1a7d663e94ab6e437db00244f7441680134e8fba68df"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/11-draft-overflow-green.log",
+      "sha256": "c70a83996a0046e9dec46f5be446734c1148a2e8ebf2504dd24480bb202b70ba"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/11-draft-overflow-red.log",
+      "sha256": "121af41247e257fbc7a99826fbb66132838175f4b562da9f72efde292ed608e3"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/12-undo-green.log",
+      "sha256": "c445f97f498846957f1e2252b8c95db4ddec8d57d22051d4a829a5d3c98f639b"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/12-undo-red.log",
+      "sha256": "f0699c8740f8df51b8691b9094ee16ed36bea09ca9277f64f5755a1d8de153d1"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/13-approved-fixture.log",
+      "sha256": "28af38dffe95a5f1d48a6830cb57065f146a3261454e58c087eac57b800b46d2"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/14-full-gates.log",
+      "sha256": "f8ead25c6f53a60188171e759eba7bbfff76065f3216fc72650fbc644b958287"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/15-graph-update.log",
+      "sha256": "dc6b91067361bc5d9ba1d8cbd4b3d2beba9344470c96326f999f545662dab533"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/16-review-red.log",
+      "sha256": "f65842400026a93e477f0993441db3269b6008afa7a658fff41e701e7892c1ed"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/17-final-gates.log",
+      "sha256": "69d39ebfeb908409b7033065ec47213c8c298d78c247849f8b961462e2ca49de"
+    },
+    {
+      "path": "/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/logs/18-final-graph-update.log",
+      "sha256": "971e80eb6fb095315749198a4e9f81cf9a4ed238bfdce4bf6d734520328d5dc9"
+    }
+  ]
+}

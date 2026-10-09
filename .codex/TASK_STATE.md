@@ -1,3 +1,34 @@
+# v2.0.0 开发 Task1 完成，进入数据迁移与原子保存
+
+状态：**IN_PROGRESS — 用户已确认串行开发及三个公共测试边界；Task1完成，Task2–6待实现。**（2026-10-09）
+
+- 已实现六类费用、稳定来源身份、旅行日日期、年月与分类汇总、旧待分类/零元/溢出保护、整页费用草稿校验及移除撤销。
+- 13项新增行为测试、65笔批准样例；全部941项单元测试通过，assembleDebug、lintDebug、assembleDebugAndroidTest通过。lint为54 warning/1 hint，新增文件无lint问题。
+- 本批仅纯领域能力；数据库仍schema8，App仍v1.8.3/build13，UI尚未接入。原8项运行断言仍开放。
+- 代码图按项目规则更新，6个既有文件解析警告单列保留；Kotlin编译通过。
+- Standards独立审查两项问题已修正；Spec独立审查服务3次断流，只有本批自查结果，不误报为独立通过。
+- 证据：`.scratch/v2.0.0-implementation/task1-verification.json`；备份 `/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-task1-20261009-172635/before/`。
+- 接下来Task2：旧地点金额迁移为按行程项归属的独立记录，原子保存地点与费用，统一金额/笔数/删除影响的数据来源。
+
+---
+
+# v2.0.0 设计已推送，实施计划待执行方式确认
+
+状态：**设计提交与推送完成，开发计划和基线验证完成；按 writing-plans/TDD 门禁等待用户确认执行方式及公共测试边界，尚未修改功能代码。**（2026-10-09）
+
+- 用户解锁后，Pencil 原生重开当前6934工作树的 `design/easy-trip-v2.0.0.pen`；MCP确认185有效根、1停用根，版本根名、布局、可见文字与组件引用检查无异常。
+- 设计提交：`c3e43ce11cfb8fec9ec11dc68ca03d3302919dac`，提交说明“design: 确认 v2.0.0 花费回顾与地点内联费用完整设计”。
+- fetch后确认 `origin/main` 是HEAD祖先，已执行 `git push origin HEAD:main`；`git ls-remote origin refs/heads/main` 与上述本地完整SHA一致。未force，未创建MR。
+- 提交hook的硬编码扫描报告超过2秒超时，不将该hook报告为通过；本轮设计文件没有应用代码改动，另行执行暂存文件敏感凭据模式检查和 `git diff --cached --check` 通过。
+- 开发计划：`/Users/bytedance/.codex/worktrees/6934/easy-trip/docs/superpowers/plans/2026-10-09-v2.0.0-expenses.md`。六批覆盖领域、迁移/事务、内联编辑、年月回顾、日期/删除一致性、整体验收；已自查规格覆盖、接口名称、异常输入与无占位项。
+- 基线运行 `./gradlew :app:testDebugUnitTest`：81套、928项测试，失败0、错误0、跳过0；BUILD SUCCESSFUL。日志 `/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-development-20261009/baseline-unit-tests.log`。
+- 当前 adb 没有连接设备；未运行新功能UI验收，旧8项运行断言未关闭，应用版本仍v1.8.3/build13。
+- 推荐Native串行实现；待确认公共测试边界：费用领域函数、Room-backed Repository、ViewModel/Compose用户动作。确认后从Task 1开始红绿实现，不重复询问是否开发。
+- 设计推送和基线证据：`/Users/bytedance/.codex/artifacts/easy-trip/v2.0.0-development-20261009/design-push-and-baseline.json`。
+- punk-12已通知设计推送完成与实施门禁，并逐字回读验证；message_id `om_x100b63bf5404a4acde76d0d3ae8353f`。
+
+---
+
 # v2.0.0 花费大改设计版本调整
 
 状态：**设计验收完成 — v2.0.0 已原生保存、关闭重开并通过 MCP 回读；按用户授权准备提交和推送，随后开发。尚未实现。**（2026-10-09）
