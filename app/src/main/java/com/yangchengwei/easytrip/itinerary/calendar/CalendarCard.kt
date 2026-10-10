@@ -12,6 +12,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -65,6 +66,8 @@ internal fun CalendarCard(
     compact: Boolean = false,
     accent: Color? = null,
     contentTopPadding: androidx.compose.ui.unit.Dp? = null,
+    category: com.yangchengwei.easytrip.place.domain.PlaceCategory? = null,
+    placeId: String? = null,
     onClick: () -> Unit,
     onStart: (CalendarDragMode, Offset, Float) -> Unit = { _, _, _ -> },
     onMove: (Offset) -> Unit = {},
@@ -84,6 +87,7 @@ internal fun CalendarCard(
     val border = when { conflict -> Color(0xFFBA5B37); dashed -> MaterialTheme.colorScheme.onSurfaceVariant; else -> (accent ?: MaterialTheme.colorScheme.primary).copy(alpha = .7f) }
     val surface = if (dashed) MaterialTheme.colorScheme.surfaceContainerHigh else (accent ?: MaterialTheme.colorScheme.primary).copy(alpha = if (selected) .16f else .09f)
     var keyboardActive by remember { mutableStateOf(false) }
+    var cardFocused by remember { mutableStateOf(false) }
     Box(modifier.onGloballyPositioned { origin = it.positionInRoot() }
         .clip(RoundedCornerShape(6.dp)).background(surface)
         .semantics(mergeDescendants = true) {
@@ -104,7 +108,7 @@ internal fun CalendarCard(
             }
         }
         .onPreviewKeyEvent { event ->
-            if (event.type != KeyEventType.KeyDown) false else when (event.key) {
+            if (!cardFocused || event.type != KeyEventType.KeyDown) false else when (event.key) {
                 Key.Spacebar -> { if (editable) { keyboardActive = true; onKeyboardStart() } else latestClick(); true }
                 Key.DirectionUp -> if (keyboardActive) { onKeyboardStep(-30); true } else false
                 Key.DirectionDown -> if (keyboardActive) { onKeyboardStep(30); true } else false
@@ -112,12 +116,12 @@ internal fun CalendarCard(
                 Key.Escape -> if (keyboardActive) { onKeyboardEnd(true); keyboardActive = false; true } else false
                 else -> false
             }
-        }.focusable()
+        }.onFocusChanged { cardFocused = it.isFocused }.focusable()
         .pointerInput(editable, edges, pending) {
             val slop = with(density) { 8.dp.toPx() }
             val edgeMax = with(density) { 12.dp.toPx() }
             awaitEachGesture {
-                val down = awaitFirstDown(requireUnconsumed = false)
+                val down = awaitFirstDown(requireUnconsumed = true)
                 val edge = min(edgeMax, size.height * .25f)
                 val mode = when {
                     !editable -> null
@@ -170,7 +174,7 @@ internal fun CalendarCard(
                 pathEffect = if (dashed) PathEffect.dashPathEffect(floatArrayOf(5.dp.toPx(), 3.dp.toPx())) else null,
             ))
         }
-        CalendarCardText(title, subtitle, conflict, compact, contentTopPadding)
+        CalendarCardText(title, subtitle, conflict, compact, contentTopPadding, category, placeId)
 
     }
 }
@@ -180,12 +184,21 @@ internal fun CalendarCard(
 internal fun CalendarCardText(
     title: String, subtitle: String, conflict: Boolean, compact: Boolean,
     contentTopPadding: androidx.compose.ui.unit.Dp? = null,
+    category: com.yangchengwei.easytrip.place.domain.PlaceCategory? = null,
+    placeId: String? = null,
 ) {
+    val editCategory = com.yangchengwei.easytrip.place.ui.LocalPlaceCategoryEdit.current
     val titleStyle = TextStyle(fontSize = 12.sp, lineHeight = 15.sp, platformStyle = PlatformTextStyle(includeFontPadding = false))
     Column(Modifier.fillMaxWidth().padding(start = 7.dp, end = 7.dp,
         top = contentTopPadding ?: if (compact) 2.dp else 6.dp,
         bottom = if (compact) 2.dp else 6.dp)) {
-        Text(title, color = MaterialTheme.colorScheme.onSurface, style = titleStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            category?.let { category ->
+                com.yangchengwei.easytrip.place.ui.PlaceCategoryButton(category, title, "calendar-${placeId ?: title}",
+                    placeId?.let { id -> editCategory?.let { { it(id) } } }, size = 18.dp)
+            }
+            Text(title, modifier = Modifier.weight(1f), color = MaterialTheme.colorScheme.onSurface, style = titleStyle, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        }
         if (!compact) Text(subtitle, color = if (conflict) Color(0xFF9F4527) else MaterialTheme.colorScheme.onSurfaceVariant,
             style = trafficTextStyle, maxLines = 2, overflow = TextOverflow.Ellipsis)
     }

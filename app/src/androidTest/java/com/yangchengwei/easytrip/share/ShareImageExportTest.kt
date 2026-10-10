@@ -17,6 +17,25 @@ class ShareImageExportTest {
     private val context get() = InstrumentationRegistry.getInstrumentation().targetContext
     private fun file(name:String) = File(context.getExternalFilesDir(null),name)
 
+    @Test fun exportedPlaceTitleUsesItsCategoryGlyphAndColor() = runBlocking {
+        val source = shareFixture()
+        val day = source.days.first { it.stops.isNotEmpty() }
+        suspend fun render(category: com.yangchengwei.easytrip.place.domain.PlaceCategory): Bitmap {
+            val trip = source.copy(days = listOf(day.copy(stops = listOf(day.stops.first().copy(category = category)))))
+            val image = ShareImageRenderer(context).render(trip, ShareOptions(), emptyMap(), file("category-${category.storageKey}.png"))
+            return BitmapFactory.decodeFile(image.file.absolutePath)
+        }
+        val food = render(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD)
+        val lodging = render(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING)
+        fun hasColor(bitmap: Bitmap, color: Int): Boolean =
+            (0 until bitmap.height).any { y -> (293..342).any { x -> bitmap.getPixel(x, y) == color } }
+        try {
+            assertTrue("food glyph before title", hasColor(food, Color.rgb(168, 83, 34)))
+            assertFalse("food does not use lodging glyph", hasColor(food, Color.rgb(118, 82, 163)))
+            assertTrue("lodging glyph before title", hasColor(lodging, Color.rgb(118, 82, 163)))
+        } finally { food.recycle(); lodging.recycle() }
+    }
+
     @Test fun rendersFullLongNotesMapsAndFooterWithoutClipping() = runBlocking {
         val fixture=shareFixture()
         val map=file("share-fixture-map.png")
@@ -24,7 +43,7 @@ class ShareImageExportTest {
         Canvas(bitmap).drawColor(Color.rgb(200,225,215))
         map.outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG,100,it) };bitmap.recycle()
         val maps=fixture.days.associate { it.id to ShareDayMap(map) }
-        val renderer=ShareImageRenderer()
+        val renderer=ShareImageRenderer(context)
         val full=renderer.render(fixture,ShareOptions(),maps,file("share-full.png"))
         val hidden=renderer.render(fixture,ShareOptions(includeNotes=false),maps,file("share-hidden.png"))
         val day=renderer.render(fixture,ShareOptions("d1"),maps,file("share-day.png"))
@@ -49,14 +68,14 @@ class ShareImageExportTest {
     @Test fun rejectsOversizeBeforeWritingPartialImage() = runBlocking {
         val output=file("share-too-long.png")
         try {
-            ShareImageRenderer(maxOutputHeight = 10).render(shareFixture(),ShareOptions(),emptyMap(),output)
+            ShareImageRenderer(context, maxOutputHeight = 10).render(shareFixture(),ShareOptions(),emptyMap(),output)
             fail("expected size limit")
         } catch(_:ShareImageTooLongException) { assertFalse(output.exists()) }
     }
 
     @Test fun providerAndGalleryContainExactlyThePreviewPng() = runBlocking {
         val output=ShareImageStorage.newOutput(context)
-        val image=ShareImageRenderer().render(multiDayShareFixture(14),ShareOptions(),emptyMap(),output)
+        val image=ShareImageRenderer(context).render(multiDayShareFixture(14),ShareOptions(),emptyMap(),output)
         val send=ShareImageStorage.shareIntent(context,image)
         assertEquals(Intent.ACTION_SEND,send.action)
         assertEquals("image/png",send.type)

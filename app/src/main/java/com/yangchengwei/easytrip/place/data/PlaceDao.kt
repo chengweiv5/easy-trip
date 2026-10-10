@@ -28,6 +28,8 @@ data class PlaceSnapshotRow(
 
 @Dao
 interface PlaceDao {
+    @Query("UPDATE saved_places SET category=:category WHERE id=:placeId")
+    suspend fun updateCategory(placeId: String, category: String): Int
     @Query("""
         SELECT p.id AS placeId, p.tripId, p.amapPoiId, p.name AS placeName,
                p.address, p.latitude, p.longitude, p.note, p.cityName, p.cityAdCode, p.cityCode, p.cityMetadataVersion, p.category,

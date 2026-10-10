@@ -24,7 +24,10 @@ data class ShareImage(val file: File, val width: Int, val height: Int)
 data class ShareDayMap(val file: File? = null, val message: String? = null)
 
 /** The preview and both export actions consume this same PNG; no UI screenshot is involved. */
-class ShareImageRenderer(private val maxOutputHeight: Int = 200_000) {
+class ShareImageRenderer(
+    private val context: android.content.Context,
+    private val maxOutputHeight: Int = 200_000,
+) {
     private val scale = 1080f / 390f
     private val ink = Color.rgb(32,52,59)
     private val muted = Color.rgb(83,103,109)
@@ -119,7 +122,19 @@ class ShareImageRenderer(private val maxOutputHeight: Int = 200_000) {
                     val top=y
                     val timeHeight=drawText(stop.arrival?.format(DateTimeFormatter.ofPattern("HH:mm")) ?: "时间\n待定",24f,y+3,47f,11f,day.color)
                     badge(stop.number.toString(),78f,y+2,day.color)
-                    y+=drawText(stop.name,106f,y,260f,15f,ink,true)+5
+                    val categoryStyle = com.yangchengwei.easytrip.place.ui.placeCategoryStyle(stop.category)
+                    val glyph = requireNotNull(context.getDrawable(categoryStyle.iconRes)).mutate().apply {
+                        setTint(categoryStyle.foregroundArgb.toInt())
+                        setBounds(0, 0, 16, 16)
+                    }
+                    val glyphTop = y + 2
+                    ops += DrawOp(glyphTop - 1, glyphTop + 17) { canvas ->
+                        canvas.save()
+                        canvas.translate(106f, glyphTop)
+                        glyph.draw(canvas)
+                        canvas.restore()
+                    }
+                    y+=maxOf(18f, drawText(stop.name,128f,y,238f,15f,ink,true))+5
                     stop.stayMinutes?.let { y+=drawText("停留 ${formatStay(it)}",106f,y,260f,11f,muted)+6 }
                     fun note(value:String) {
                         val before=ops.size; val noteTop=y+4

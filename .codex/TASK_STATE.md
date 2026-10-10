@@ -1,3 +1,45 @@
+# v2.2.0 提交、推送与正式发布
+
+状态：**IN_PROGRESS — 用户授权提交、推送、发布v2.2；正在准备build19正式版。**（2026-10-10）
+
+- 功能分支 `codex/v2.2-category-shortcuts`，开始时HEAD与origin/main均为 `f595f3c`，待合并PR为空，远端不存在v2.2.0标签或Release。
+- 发布版本2.2.0/build19/schema10；体验版build18已安装，本轮不再次安装手机。
+- 只精确提交本轮相关源码、测试、正式设计与验证文档；保留无关scratch、未跟踪证据和stash。快进推送origin/main，禁止force push。
+- Pencil阻塞已解除：原生保存并关闭后按776a绝对路径重开，MCP回读198根/40607唯一节点，无断引用或placeholder，快捷分类原生属性可编辑。
+- 证据／备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.2.0-release-20261010/`。
+- 剩余：提交→干净提交构建／验证→快进推送并回读→不可变v2.2.0标签→Release草稿资产校验→公开及匿名下载回读→发布状态记录与通知。
+
+---
+
+# v2.2 分类快捷修改：手机安装
+
+状态：**DONE — 同签名Release已覆盖安装手机，安装包回读、启动和可见数据验证通过，完成通知已回读。**（2026-10-10）
+
+- 使用当前 `codex/v2.2-category-shortcuts` 工作区代码，基线 `f595f3c`；只安装，不提交、不推送、不发布、不修改版本号。
+- 手机连接已验证，现有版本2.2.0/build18/schema10；必须核对证书一致，禁止卸载、清空数据或签名不匹配时强行回退。
+- 独立备份／证据：`/Users/bytedance/.codex/artifacts/easy-trip/v2.2-category-shortcuts-install-20261010/`。
+- 上轮Pencil最终保存／重开缺口仍独立保留，不能将本轮安装成功冒充设计门禁通过。
+- 安装时间2026-10-10 21:30:24；981项Release JVM通过，Release lint 0错误/53警告/1提示；517项应用／构建输入hash保持一致。
+- 手机APK回读SHA256 `a55d6db3ce7b1e7d7c62d676f4de83e7a83180bb2cddf2f867336e037b31ca1a` 与构建包相同；UID及首次安装时间未变，冷启动正常，24项可见文本与安装前完全一致。未卸载、未清空数据。
+- punk-12完成通知 `om_x100b6397ab6c08a0df9a1027637c4c6` 已回读app_id和全文一致。完整记录见 `docs/testing/v2.2.0-category-shortcuts-install.md`；未提交、未推送、未发布。
+
+---
+
+# v2.2 分类图标精简与快捷修改
+
+状态：**BLOCKED — 四项代码开发及专项验收已完成；仅Pencil最终原生保存／关闭重开等待Mac解锁。**（2026-10-10）
+
+- 基线 `f595f3cbfecff2aaa3c8b0349d7da86cde17e136`，功能分支 `codex/v2.2-category-shortcuts`；origin/main一致，待合并PR为空。
+- 去掉地点池名称上方重复分类；行程清单、日历及长图名称前加分类图标；其他改灰色空心图钉；点击地点池/行程分类图标弹出五分类面板，选择即保存，失败保留重试。
+- 只改分类，保留备注/标签/历史费用；日期色与序号保留，分享图片需重新生成。验证边界为收藏持久化/状态、真实UI交互和长图输出。
+- 正式设计仅用Pencil修改当前工作树 `design/easy-trip-v2.2.0.pen`；不改历史版本源。
+- 证据/备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.2-category-shortcut-20261010/`；仅使用专用模拟器5588，不安装用户手机、不提交推送、不发布、不改版本号。
+- 最终981项JVM、89项设备专项及系统字体2倍测试通过；Debug构建通过，lint 0错误/55警告/1提示。扩展145项中26失败在精确f595f3c基线全部复现，1项搜索流程失败位置不同，仍保留验收缺口。详见 `docs/testing/v2.2.0-category-shortcuts.md`。
+- 正式设计视觉修改已原生保存（198根、40607唯一节点，SHA256 `5b7f4e46c99e15f3b03edda4cf073d4ab0960374253c534a206391d4da0d69af`）；最后4个实现状态context留在Pencil内尚未保存。两次原生UI重试均返回Mac锁屏，不能关闭丢弃或直接改.pen绕过。
+- punk-12解锁提醒 `om_x100b6394acccb8a8c4f7929f545c464` 已回读app_id及全文一致。待用户解锁的是Mac，不是手机。后续仅保存、关闭重开、MCP回读、更新文档/终态/完成通知，不重复开发或推送。
+
+---
+
 # v2.2 地点分类：安装、提交、推送
 
 状态：**DONE — 真实手机安装、功能提交、快进推送及完成通知回读已完成。**（2026-10-10）

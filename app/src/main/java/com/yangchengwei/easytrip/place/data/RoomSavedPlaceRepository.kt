@@ -25,6 +25,10 @@ class RoomSavedPlaceRepository(
 ) : SavedPlaceRepository {
     private val dao = database.savedPlaceDao()
 
+    override suspend fun updateCategory(placeId: String, category: com.yangchengwei.easytrip.place.domain.PlaceCategory) {
+        require(dao.updateCategory(placeId, category.storageKey) == 1) { "收藏地点已不存在" }
+    }
+
     override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> =
         dao.observeSnapshot(tripId).map { rows ->
             rows.groupBy(PlaceSnapshotRow::placeId).values.mapNotNull { group ->

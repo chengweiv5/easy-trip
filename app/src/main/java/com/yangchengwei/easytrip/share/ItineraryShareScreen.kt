@@ -86,7 +86,7 @@ fun ItineraryShareScreen(
             val days=currentTrip.selected(options)
             if(days.none { it.stops.isNotEmpty() })return@LaunchedEffect
             ShareImageStorage.pruneCache(context)
-            val renderer=ShareImageRenderer()
+            val renderer=ShareImageRenderer(context)
             // Budget the full map height before loading any SDK views.
             renderer.render(currentTrip,options,days.associate { it.id to ShareDayMap(output) },output,measureOnly=true)
             val capture=ShareMapCapture(host,consent)

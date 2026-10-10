@@ -24,6 +24,7 @@ data class ShareDay(val id: String, val index: Int, val date: LocalDate?, val st
 data class ShareStop(
     val id: String, val number: Int, val name: String, val point: GeoPoint?,
     val arrival: LocalTime?, val stayMinutes: Int?, val note: String?, val leg: ShareLeg?,
+    val category: com.yangchengwei.easytrip.place.domain.PlaceCategory = com.yangchengwei.easytrip.place.domain.PlaceCategory.OTHER,
 )
 data class ShareLeg(
     val label: String, val note: String?, val points: List<GeoPoint>, val schematic: Boolean,
@@ -60,7 +61,7 @@ fun buildShareTrip(trip: TripWithDays, snapshots: List<DayMapSnapshot>): ShareTr
                 )
             }
             ShareStop(item.id, index + 1, item.place.name, point, item.arrivalTime,
-                item.stayMinutes, item.note?.takeIf(String::isNotBlank), leg)
+                item.stayMinutes, item.note?.takeIf(String::isNotBlank), leg, item.place.category)
         })
     },
 )

@@ -143,6 +143,9 @@ private fun WorkspaceReadyContent(
     var calendarBusy by remember { mutableStateOf(false) }
     var calendarWideHint by remember { mutableStateOf(false) }
     var calendarWideArea by remember { mutableStateOf(Rect.Zero) }
+    androidx.compose.runtime.CompositionLocalProvider(
+        com.yangchengwei.easytrip.place.ui.LocalPlaceCategoryEdit provides { id: String -> onPlaceAction(PlacePoolAction.OpenCategoryPicker(id)) },
+    ) {
     WorkspaceScaffold(
         sheetLevel = state.sheetLevel,
         sheetGesturesEnabled = !calendarBusy,
@@ -463,6 +466,13 @@ private fun WorkspaceReadyContent(
             }
         },
     )
+    placeState.categoryPicker?.let { picker ->
+        com.yangchengwei.easytrip.place.ui.PlaceCategoryQuickDialog(picker,
+            { onPlaceAction(PlacePoolAction.SaveQuickCategory(it)) },
+            { onPlaceAction(PlacePoolAction.DismissCategoryPicker) })
+    }
+    }
+
 }
 
 @Composable

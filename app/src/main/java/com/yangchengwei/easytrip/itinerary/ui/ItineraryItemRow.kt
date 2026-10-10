@@ -219,6 +219,7 @@ internal fun ItineraryPlaceContent(
             ) {
                 leadingAction?.invoke()
                 ItineraryOrderBadge(displayOrder, item.id, orderColor)
+                ItineraryCategoryButton(item)
                 Text(
                     text = item.name,
                     style = MaterialTheme.typography.bodyLarge,
@@ -283,6 +284,7 @@ private fun CompactItineraryStop(
                 Box(Modifier.width(42.dp), contentAlignment = Alignment.Center) {
                     ItineraryOrderBadge(displayOrder, item.id, orderColor)
                 }
+                ItineraryCategoryButton(item)
                 Text(item.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f).testTag("itinerary-place-name-${item.id}"))
             }
@@ -333,4 +335,11 @@ private fun ItineraryOrderBadge(order: Int, itemId: String, color: Color) {
         Text(order.toString(), Modifier.testTag("itinerary-order-$itemId"), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp, lineHeight = 14.sp),
             color = Color.White, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
     }
+}
+
+@Composable
+private fun ItineraryCategoryButton(item: ItineraryItemUi) {
+    val edit = com.yangchengwei.easytrip.place.ui.LocalPlaceCategoryEdit.current
+    com.yangchengwei.easytrip.place.ui.PlaceCategoryButton(item.placeCategory, item.name, "itinerary-${item.id}",
+        item.placeId?.let { id -> edit?.let { { it(id) } } })
 }

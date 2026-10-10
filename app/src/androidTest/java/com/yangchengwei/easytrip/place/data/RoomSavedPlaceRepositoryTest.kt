@@ -45,6 +45,30 @@ class RoomSavedPlaceRepositoryTest {
     }
     @After fun tearDown() = database.close()
 
+    @Test fun quickCategoryUpdatePreservesDetailsAndIsVisibleToItinerary() = runTest {
+        val trip = trips.createTrip(CreateTrip("分类修改", 1))
+        val saved = places.save(trip, candidate("quick-category")) as SavePlaceResult.Saved
+        places.updateDetails(saved.id, "保留备注", setOf("亲子"),
+            com.yangchengwei.easytrip.place.domain.PlaceCategory.OTHER)
+        val day = trips.observeTrip(trip).first()!!.days.single()
+        val itinerary = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao())
+        val first = itinerary.addItem(day.id, saved.id, 0)
+        itinerary.addItem(day.id, saved.id, 1)
+        itinerary.saveDetailsWithExpenses(first, null, 60, "保留行程备注", emptyList(),
+            listOf(com.yangchengwei.easytrip.expense.PlaceExpenseInput(null, 12000,
+                com.yangchengwei.easytrip.expense.ExpenseCategory.LODGING, "历史住宿费用")))
+        val before = itinerary.observeDay(day.id).first().items
+        places.updateCategory(saved.id, com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD)
+        val result = places.observePlaces(trip, emptySet()).first().single()
+        assertEquals("保留备注", result.note)
+        assertEquals(listOf("亲子"), result.tags.map { it.name })
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD, result.category)
+        val after = itinerary.observeDay(day.id).first().items
+        assertEquals(listOf(result.category, result.category), after.map { it.place.category })
+        assertEquals(before.map { it.note }, after.map { it.note })
+        assertEquals(before.map { it.expenses }, after.map { it.expenses })
+    }
+
     @Test fun categoryUpdatesAreAtomicAndAppearInItineraryWithoutChangingItsNote() = runTest {
         val trip = trips.createTrip(CreateTrip("Trip", 1))
         val day = trips.observeTrip(trip).first()!!.days.single()

@@ -45,6 +45,7 @@ fun SavedPlaceRow(
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     modifier: Modifier = Modifier,
+    onEditCategory: (() -> Unit)? = null,
 ) {
     var menuExpanded by remember(place.id) { mutableStateOf(false) }
     Surface(
@@ -58,16 +59,8 @@ fun SavedPlaceRow(
             horizontalArrangement = Arrangement.spacedBy(12.dp),
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            Surface(
-                modifier = Modifier.size(40.dp),
-                shape = RoundedCornerShape(8.dp),
-                color = Color(placeCategoryStyle(place.place.category).backgroundArgb),
-                contentColor = Color(placeCategoryStyle(place.place.category).foregroundArgb),
-            ) {
-                Box(contentAlignment = Alignment.Center) {
-                    androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(placeCategoryStyle(place.place.category).iconRes), null, Modifier.size(22.dp))
-                }
-            }
+            PlaceCategoryButton(place.place.category, place.name, place.id, onEditCategory,
+                size = 40.dp, tintedBackground = true)
             Column(
                 Modifier
                     .weight(1f)
@@ -77,7 +70,6 @@ fun SavedPlaceRow(
                     .clickable(onClick = onOpenDetail),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
-                PlaceCategoryBadge(place.place.category)
                 Text(
                     place.name,
                     style = MaterialTheme.typography.labelMedium,

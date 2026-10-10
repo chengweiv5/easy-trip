@@ -50,7 +50,16 @@ data class PlaceDetailDraft(
 
 fun placePoolCollectionTotal(state: PlacePoolUiState): Int = state.savedPoiIds.size
 
+data class PlaceCategoryPickerState(
+    val placeId: String,
+    val name: String,
+    val category: PlaceCategory,
+    val saving: Boolean = false,
+    val error: String? = null,
+)
+
 data class PlacePoolUiState(
+    val categoryPicker: PlaceCategoryPickerState? = null,
     val search: PlaceSearchState = PlaceSearchState(),
     val placesReady: Boolean = true,
     val rows: List<SavedPlaceRowUi> = emptyList(),
@@ -84,6 +93,43 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     val state: StateFlow<PlacePoolUiState> = mutableState.asStateFlow()
     private val cityEnricher = PlaceCityEnricher(viewModelScope, repository, searchSource)
     private var allUsageCounts: Map<String, Int> = emptyMap()
+    private var categoryPickerGeneration = 0L
+
+    fun openCategoryPicker(placeId: String) {
+        if (mutableState.value.categoryPicker?.saving == true || mutableState.value.detailDraft != null) return
+        val place = allSavedPlaces.firstOrNull { it.id == placeId } ?: return
+        categoryPickerGeneration++
+        mutableState.update { it.copy(categoryPicker = PlaceCategoryPickerState(place.id, place.name, place.category)) }
+    }
+
+    fun dismissCategoryPicker() {
+        if (mutableState.value.categoryPicker?.saving == true) return
+        categoryPickerGeneration++
+        mutableState.update { it.copy(categoryPicker = null) }
+    }
+
+    fun saveQuickCategory(category: PlaceCategory) {
+        val picker = mutableState.value.categoryPicker ?: return
+        if (picker.saving) return
+        if (picker.category == category && picker.error == null) {
+            dismissCategoryPicker()
+            return
+        }
+        val generation = categoryPickerGeneration
+        mutableState.update { it.copy(categoryPicker = picker.copy(saving = true, error = null)) }
+        viewModelScope.launch {
+            try {
+                repository.updateCategory(picker.placeId, category)
+                if (generation == categoryPickerGeneration) mutableState.update { it.copy(categoryPicker = null) }
+            } catch (cancelled: CancellationException) {
+                throw cancelled
+            } catch (_: Exception) {
+                if (generation == categoryPickerGeneration) mutableState.update {
+                    it.copy(categoryPicker = picker.copy(error = "保存失败，请重新选择分类重试"))
+                }
+            }
+        }
+    }
 
     init {
         viewModelScope.launch { reducer.state.collect { search -> mutableState.update { it.copy(search = search) } } }
@@ -404,6 +450,9 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
     }
     fun dispatch(action: PlacePoolAction) {
         when (action) {
+            is PlacePoolAction.OpenCategoryPicker -> openCategoryPicker(action.placeId)
+            is PlacePoolAction.SaveQuickCategory -> saveQuickCategory(action.category)
+            PlacePoolAction.DismissCategoryPicker -> dismissCategoryPicker()
             is PlacePoolAction.SetLocalQuery -> setLocalQuery(action.value)
             is PlacePoolAction.SetQuery -> setQuery(action.value)
             is PlacePoolAction.ToggleTag -> toggleTag(action.id)

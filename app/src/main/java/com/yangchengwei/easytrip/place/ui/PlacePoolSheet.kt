@@ -55,6 +55,9 @@ fun PlacePoolSheet(
         onSelectCity = viewModel::selectCity,
         onSelectSchedule = viewModel::selectSchedule,
         onEdit = viewModel::edit,
+        onOpenCategoryPicker = viewModel::openCategoryPicker,
+        onSaveQuickCategory = viewModel::saveQuickCategory,
+        onDismissCategoryPicker = viewModel::dismissCategoryPicker,
         onDelete = viewModel::requestDelete,
         onToggleCollection = viewModel::toggleCollection,
         onDismissEdit = { viewModel.dismissEdit() },
@@ -76,6 +79,9 @@ fun PlacePoolSheet(
 }
 
 sealed interface PlacePoolAction {
+    data class OpenCategoryPicker(val placeId: String) : PlacePoolAction
+    data class SaveQuickCategory(val category: com.yangchengwei.easytrip.place.domain.PlaceCategory) : PlacePoolAction
+    data object DismissCategoryPicker : PlacePoolAction
     data class SetLocalQuery(val value: String) : PlacePoolAction
     data class SetQuery(val value: String) : PlacePoolAction
     data class ToggleTag(val id: String) : PlacePoolAction
@@ -125,6 +131,9 @@ fun PlacePoolContent(
         onSelectCity = { onAction(PlacePoolAction.SelectCity(it)) },
         onSelectSchedule = { onAction(PlacePoolAction.SelectSchedule(it)) },
         onEdit = { onAction(PlacePoolAction.Edit(it)) },
+        onOpenCategoryPicker = { onAction(PlacePoolAction.OpenCategoryPicker(it)) },
+        onSaveQuickCategory = { onAction(PlacePoolAction.SaveQuickCategory(it)) },
+        onDismissCategoryPicker = { onAction(PlacePoolAction.DismissCategoryPicker) },
         onDelete = { onAction(PlacePoolAction.Delete(it)) },
         onToggleCollection = { onAction(PlacePoolAction.ToggleCollection(it)) },
         onDismissEdit = { onAction(PlacePoolAction.DismissDialogs) },
@@ -162,6 +171,9 @@ fun PlacePoolContent(
     onSelectCity: (String?) -> Unit = {},
     onSelectSchedule: (PlaceScheduleFilter) -> Unit = {},
     onEdit: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
+    onOpenCategoryPicker: ((String) -> Unit)? = null,
+    onSaveQuickCategory: (com.yangchengwei.easytrip.place.domain.PlaceCategory) -> Unit = {},
+    onDismissCategoryPicker: () -> Unit = {},
     onDelete: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
     onToggleCollection: (com.yangchengwei.easytrip.place.amap.PlaceCandidate) -> Unit,
     onDismissEdit: () -> Unit,
@@ -183,6 +195,7 @@ fun PlacePoolContent(
     showDialogs: Boolean = true,
     contentPadding: PaddingValues = PaddingValues(horizontal = 16.dp),
 ) {
+    if (showDialogs) state.categoryPicker?.let { PlaceCategoryQuickDialog(it, onSaveQuickCategory, onDismissCategoryPicker) }
     val cityRows = state.allRows ?: state.rows
     val cities = remember(cityRows) { placeCityGroups(cityRows) }
     val activeCity = activePlacePoolCity(state)
@@ -278,6 +291,7 @@ fun PlacePoolContent(
                                 onQuickAdd = onStartAddSingle?.let { callback -> { callback(row.place.id) } },
                                 onOpenDetail = { onOpenDetail(row.place.id) },
                                 onEdit = { onEdit(row.place) },
+                                onEditCategory = onOpenCategoryPicker?.let { { it(row.id) } },
                                 onDelete = { onDelete(row.place) },
                             )
                         }

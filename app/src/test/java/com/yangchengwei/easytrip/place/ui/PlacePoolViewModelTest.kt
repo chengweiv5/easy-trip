@@ -34,6 +34,46 @@ class PlacePoolViewModelTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun shortcutSavesOnlyCategoryAndClosesAfterSuccess() = runTest(dispatcher) {
+        val original = place("quick").copy(note = "不能覆盖")
+        val repo = PoolRepository(listOf(original), emptyMap())
+        val model = PlacePoolViewModel("trip", repo, null)
+        advanceUntilIdle()
+        model.openCategoryPicker(original.id)
+        assertEquals(original.category, model.state.value.categoryPicker?.category)
+        model.saveQuickCategory(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD)
+        assertTrue(model.state.value.categoryPicker!!.saving)
+        model.saveQuickCategory(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING)
+        model.openCategoryPicker(original.id)
+        model.dismissCategoryPicker()
+        assertTrue(model.state.value.categoryPicker!!.saving)
+        advanceUntilIdle()
+        assertNull(model.state.value.categoryPicker)
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD, model.state.value.rows.single().place.category)
+        assertEquals("不能覆盖", model.state.value.rows.single().note)
+        assertEquals(0, repo.updateCalls)
+        assertEquals(1, repo.categoryUpdateCalls)
+    }
+
+    @Test fun shortcutFailureKeepsCurrentCategoryAndAllowsRetryOrDismiss() = runTest(dispatcher) {
+        val original = place("quick")
+        val repo = PoolRepository(listOf(original), emptyMap(), updateFailure = IllegalStateException("failed"))
+        val model = PlacePoolViewModel("trip", repo, null)
+        advanceUntilIdle()
+        model.openCategoryPicker(original.id)
+        model.saveQuickCategory(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD)
+        advanceUntilIdle()
+        assertEquals(original.category, model.state.value.categoryPicker?.category)
+        assertFalse(model.state.value.categoryPicker!!.saving)
+        assertTrue(model.state.value.categoryPicker!!.error != null)
+        repo.updateFailure = null
+        model.saveQuickCategory(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD)
+        advanceUntilIdle()
+        assertNull(model.state.value.categoryPicker)
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD, model.state.value.rows.single().place.category)
+        assertEquals(2, repo.categoryUpdateCalls)
+    }
+
     @Test fun localSearchMatchesMetadataWithoutChangingRemoteSearchOrCity() = runTest(dispatcher) {
         val a = place("a").copy(name = "West LAKE", note = "赏月", cityAdCode = "330100", cityName = "杭州市")
         val b = place("b").copy(address = "湖滨路")
@@ -626,12 +666,13 @@ class PlacePoolViewModelTest {
     private class PoolRepository(
         places: List<SavedPlace>,
         usageCounts: Map<String, Int>,
-        private val updateFailure: Throwable? = null,
+        var updateFailure: Throwable? = null,
         private val impact: PlaceDeletionImpact? = null,
         private val impactFailure: Throwable? = null,
         private val deleteFailure: Throwable? = null,
     ) : SavedPlaceRepository {
         var updateCalls = 0
+        var categoryUpdateCalls = 0
         val deleted = mutableListOf<String>()
         private val places = MutableStateFlow(places)
         private val usageCounts = MutableStateFlow(
@@ -643,6 +684,11 @@ class PlacePoolViewModelTest {
         }
         fun setPlaces(value: List<SavedPlace>) {
             places.value = value
+        }
+        override suspend fun updateCategory(placeId: String, category: com.yangchengwei.easytrip.place.domain.PlaceCategory) {
+            categoryUpdateCalls++
+            updateFailure?.let { throw it }
+            places.value = places.value.map { if (it.id == placeId) it.copy(category = category) else it }
         }
         override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = places
         override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()

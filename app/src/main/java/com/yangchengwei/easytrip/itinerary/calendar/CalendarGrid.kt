@@ -97,6 +97,7 @@ internal fun CalendarGrid(
                             accent = Color(com.yangchengwei.easytrip.workspace.routeColorForDay(event.sourceDayNumber - 1)),
                             editable = dragEnabled, edges = event.canDrag && !event.point, compact = compact,
                             selected = focusId == event.item.id,
+                            category = event.item.placeCategory, placeId = event.item.placeId,
                             onClick = { onOpen(event.sourceDayId, event.item.id) },
                             onStart = { mode, point, grab -> onStart(event.sourceDayId, event.item, mode, point, grab) },
                             onMove = onMove, onEnd = onEnd,
@@ -122,7 +123,7 @@ internal fun CalendarGrid(
                         border = BorderStroke(2.dp, if (conflict) Color(0xFFBA5B37) else MaterialTheme.colorScheme.primary),
                         shape = androidx.compose.foundation.shape.RoundedCornerShape(6.dp)) {
                         CalendarCardText(draftItem.name, "${calendarTime(start)}–${calendarTime(start+duration)}$conflictLabel",
-                            conflict, duration < 45)
+                            conflict, duration < 45, category = draftItem.placeCategory)
                     }
                     if (resizingStart || resizingEnd) {
                         val edgeY = if (resizingStart) startY else startY + draftHeight

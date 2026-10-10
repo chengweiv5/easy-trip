@@ -37,7 +37,7 @@ class FullTripExportTest {
                 stops = source.stops.map { it.copy(id = "$index-${it.id}") })
         })
         val file = File(context.cacheDir, "share-original-fourteen-days.png")
-        val renderer = ShareImageRenderer()
+        val renderer = ShareImageRenderer(context)
         val measured = renderer.render(trip, ShareOptions(), emptyMap(), file, measureOnly = true)
         val image = renderer.render(trip, ShareOptions(), emptyMap(), file)
         assertEquals(measured.height, image.height)
@@ -49,7 +49,7 @@ class FullTripExportTest {
         val file = File(context.cacheDir, "share-failed.png")
         val missing = File(context.cacheDir, "missing-map-${java.util.UUID.randomUUID()}.png")
         try {
-            ShareImageRenderer().render(shareFixture(), ShareOptions(), mapOf("d0" to ShareDayMap(missing)), file)
+            ShareImageRenderer(context).render(shareFixture(), ShareOptions(), mapOf("d0" to ShareDayMap(missing)), file)
             fail("expected missing map failure")
         } catch (_: IllegalStateException) {
             assertFalse("failed output must be removed", file.exists())
@@ -70,7 +70,7 @@ class FullTripExportTest {
         }
         val maps = trip.days.associate { it.id to ShareDayMap(map) }
         val file = File(context.getExternalFilesDir(null), "share-$days-days.png")
-        val renderer = ShareImageRenderer()
+        val renderer = ShareImageRenderer(context)
         val measured = renderer.render(trip, ShareOptions(), maps, file, measureOnly = true)
         assertTrue("fixture must exceed old 30000px ceiling", measured.height > 30_000)
         val image = renderer.render(trip, ShareOptions(), maps, file)
@@ -112,7 +112,7 @@ class FullTripExportTest {
     @Test fun cancellationRemovesPartiallyWrittenPng(): Unit = runBlocking {
         val file = File(context.cacheDir, "share-cancelled.png")
         file.delete()
-        val job = launch { ShareImageRenderer().render(multiDayShareFixture(30), ShareOptions(), emptyMap(), file) }
+        val job = launch { ShareImageRenderer(context).render(multiDayShareFixture(30), ShareOptions(), emptyMap(), file) }
         withTimeout(20_000) { while (file.length() < 4096) delay(5) }
         assertTrue("cancel during generation", job.isActive)
         job.cancelAndJoin()

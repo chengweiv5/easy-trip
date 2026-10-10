@@ -30,6 +30,10 @@ interface SavedPlaceRepository {
     suspend fun updateCityMetadata(placeId: String, city: PlaceCity) = updateCityIfMissing(placeId, city)
     suspend fun updateCityIfMissing(placeId: String, city: PlaceCity) = Unit
     suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: PlaceCategory? = null)
+    /** Only changes category; must not rewrite notes, tags, itinerary entries or expenses. */
+    suspend fun updateCategory(placeId: String, category: PlaceCategory) {
+        throw UnsupportedOperationException("分类快捷修改暂不可用")
+    }
     suspend fun usageCount(placeId: String): Int
     suspend fun deletionImpact(placeId: String): PlaceDeletionImpact
     suspend fun deletePlaceAndReferences(placeId: String)

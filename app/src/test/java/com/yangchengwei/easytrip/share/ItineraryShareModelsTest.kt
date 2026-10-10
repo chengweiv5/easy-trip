@@ -11,6 +11,18 @@ import java.time.Instant
 import java.time.LocalDate
 
 class ItineraryShareModelsTest {
+    @Test fun carriesSavedPlaceCategoryIntoEveryVisitWithoutChangingOrderOrNotes() {
+        val visit = item("a").let {
+            it.copy(place = it.place.copy(category = com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD))
+        }
+        val result = buildShareTrip(trip(), listOf(DayMapSnapshot(
+            DayItinerary("d1", "t", listOf(visit, visit.copy(id = "b"))), emptyList(),
+        ))).days.first().stops
+        assertEquals(listOf(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD,
+            com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD), result.map { it.category })
+        assertEquals(listOf(1, 2), result.map { it.number })
+        assertEquals("完整备注\n第二行", result.first().note)
+    }
     private val point = GeoPoint(30.25, 120.15)
     private fun item(id: String, location: GeoPoint = point) = ItineraryItem(id, ItineraryPlace("same", "西湖", "", location), null, null, "完整备注\n第二行")
     private fun trip() = TripWithDays("t", "杭州", LocalDate.of(2026,4,12), TravelMode.FLEXIBLE, listOf(TripDay("d2",1),TripDay("d1",0)))

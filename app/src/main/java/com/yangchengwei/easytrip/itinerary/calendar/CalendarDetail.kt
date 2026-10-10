@@ -19,7 +19,12 @@ internal fun CalendarDetail(day: CalendarDay, item: ItineraryItemUi, startDate: 
         Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(20.dp).testTag("calendar-detail"), verticalArrangement = Arrangement.spacedBy(12.dp)) {
             Text("日程详情", style = MaterialTheme.typography.titleLarge)
             Text("第 ${day.number} 天 · ${wholeTripDayDate(day.number, startDate) ?: "日期待定"} · 第 ${day.sourceItems.indexOfFirst { it.id == item.id } + 1} 站", style = MaterialTheme.typography.bodySmall)
-            Text(item.name, style = MaterialTheme.typography.titleMedium)
+            Row(verticalAlignment = androidx.compose.ui.Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                val editCategory = com.yangchengwei.easytrip.place.ui.LocalPlaceCategoryEdit.current
+                com.yangchengwei.easytrip.place.ui.PlaceCategoryButton(item.placeCategory, item.name, "detail-${item.id}",
+                    item.placeId?.let { id -> editCategory?.let { { onDismiss(); it(id) } } })
+                Text(item.name, style = MaterialTheme.typography.titleMedium)
+            }
             if (item.address.isNotBlank()) Text(item.address, style = MaterialTheme.typography.bodySmall)
             Text("到达：${item.arrivalTime ?: "待设置"}")
             Text("结束：${calendarEndLabel(item) ?: "待设置"}")

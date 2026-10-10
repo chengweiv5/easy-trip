@@ -286,7 +286,8 @@ fun CalendarContent(
                             items(selectedDay?.pending.orEmpty(), key = { it.id }) { item ->
                                 val editable = !saveState.saving && (item.stayMinutes == null || item.stayMinutes in 1..1440)
                                 CalendarCard(item.name, "到达待设 · ${item.stayMinutes?.let { "停留 $it 分钟" } ?: "停留待设"}",
-                                    Modifier.width(190.dp).height(52.dp).testTag("calendar-pending-${item.id}"), dashed = true, pending = true, editable = editable,
+                                    modifier = Modifier.width(190.dp).height(52.dp).testTag("calendar-pending-${item.id}"), dashed = true,
+                                    category = item.placeCategory, placeId = item.placeId, pending = true, editable = editable,
                                     onClick = { open(single, item.id) },
                                     onStart = { mode, point, grab -> start(single, item, mode, point, grab) }, onMove = { move(it) }, onEnd = { finish(it) },
                                     onKeyboardStart = { keyStart(single, item) }, onKeyboardStep = { keyStep(it) }, onKeyboardEnd = { finish(it) })
@@ -296,6 +297,7 @@ fun CalendarContent(
                         shown.forEach { day ->
                             Column(Modifier.weight(1f).heightIn(max = 112.dp).verticalScroll(rememberScrollState())) {
                                 day.pending.forEach { item -> CalendarCard(item.name, "到达待设", Modifier.fillMaxWidth().height(52.dp).padding(horizontal = 2.dp).testTag("calendar-pending-${item.id}"), dashed = true,
+                                    category = item.placeCategory, placeId = item.placeId,
                                     onClick = { open(day.dayId, item.id) }) }
                             }
                         }
