@@ -7,7 +7,7 @@
 - **历史版本**：已发布 v2.1.0/build17 包含花费分区、年月控件、连续进度条与编辑地点三区块；正式源 `design/easy-trip-v2.1.0.pen` 保持冻结，发布证据见 `docs/testing/v2.1.0-release.md`。v2.2继承未变页面及历史验收缺口，不将本轮专项通过等同于全应用重新验收。原 v1.9.0、v2.0 探索和按特性命名的辅助稿均不作为当前开发入口。
 - **v2.2 同版地点分类（已确认并实现）**：776a工作树基于 `773387f` 完成收藏五分类与新增费用默认类别，schema9→10只加列；地点只有景点、住宿、餐饮、交通、其他，旧收藏／未设置分类归其他，无独立未分类。分类图标颜色、三模块编辑、保存失败留稿／退出确认、费用“餐饮／其他”文案及首次预选已实现；行程地图日期颜色和序号保留。正式源 `design/easy-trip-v2.2.0.pen` 已回写、保存、关闭重开与MCP回读，195根保持。实现及准确测试边界见 `docs/testing/v2.2.0-place-category-implementation.md`，规格见 `design/explorations/v2.2.0-place-category-review.md`。本批未安装手机、未提交推送、未发布，不将此前build18安装结果当作分类已交付。
 
-- **地点分类后续交付（2026-10-10）**：用户另行授权“安装，提交，推送”后，同签名Release已覆盖安装真实手机，978项Release JVM及0错误Release lint通过，手机APK回读与构建包hash一致。Git交付与回滚见 `docs/testing/v2.2.0-place-category-delivery.md`。上一条“本批未安装／未提交推送”只记载原实现阶段；本轮不发布Release或标签，不改版本号，正式设计不因Git收尾重复改写。
+- **地点分类后续交付（2026-10-10）**：用户另行授权“安装，提交，推送”后，同签名Release已覆盖安装真实手机，978项Release JVM及0错误Release lint通过，手机APK回读与构建包hash一致。功能提交 `fed43b7` 已快进推送origin/main并独立回读，完成通知已验证；交付与回滚见 `docs/testing/v2.2.0-place-category-delivery.md`。上一条“本批未安装／未提交推送”只记载原实现阶段；本轮不发布Release或标签，不改版本号，正式设计不因Git收尾重复改写。
 
 ### Pencil 错误恢复
 
