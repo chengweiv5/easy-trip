@@ -26,7 +26,7 @@ import java.util.concurrent.CopyOnWriteArrayList
 class NewTripCityNavigationTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun creatingTripFitsCityButReopeningDoesNotRequestAnotherInitialFit() {
+    @Test fun creatingAndReopeningEmptyTripBothFitItsCity() {
         val consentStore = AmapConsentStore(
             persistence = object : AmapConsentPersistence {
                 override fun readDecision(): Boolean? = null
@@ -106,8 +106,8 @@ class NewTripCityNavigationTest {
         requests.clear()
         compose.onNodeWithTag("primary-trip-${trip.id}").performClick()
         compose.waitUntil(5000) { compose.onAllNodesWithTag("workspace-search-launcher").fetchSemanticsNodes().isNotEmpty() }
-        compose.waitForIdle()
-        assertTrue(requests.none { it.reason == ViewportReason.INITIAL_CITY })
+        compose.waitUntil(20_000) { requests.any { it.reason == ViewportReason.INITIAL_CITY } }
+        assertEquals(initial.points, requests.first { it.reason == ViewportReason.INITIAL_CITY }.points)
         compose.runOnUiThread { compose.activity.onBackPressedDispatcher.onBackPressed() }
         compose.waitForIdle()
         db.close()

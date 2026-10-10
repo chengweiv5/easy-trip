@@ -53,6 +53,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Before
 import org.junit.Test
 
@@ -63,27 +64,27 @@ class TripWorkspaceContentStateTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
-    @Test fun newEmptyTripUsesCityOnceAndLateResultCannotOverrideGesture() = runTest(dispatcher) {
+    @Test fun emptyTripUsesCityOncePerEntryAndLateResultCannotOverrideGesture() = runTest(dispatcher) {
         val trips = Trips()
         val model = model(trips)
         trips.value.value = tripWithTwoDays()
         advanceUntilIdle()
         val city = TripCity("330100", "杭州市", GeoPoint(30.27, 120.15))
-        model.locateNewTripCity { city }
+        model.locateEmptyTripCity { city }
         advanceUntilIdle()
         assertEquals(listOf(city.center), model.state.value.map.viewportRequest?.points)
         assertEquals(11f, model.state.value.map.viewportRequest?.singlePointZoom)
         assertTrue(model.state.value.map.markers.isEmpty())
         model.onMapGesture()
         model.updateCurrentPosition(null)
-        model.locateNewTripCity { error("must not query twice") }
+        model.locateEmptyTripCity { error("must not query twice") }
         advanceUntilIdle()
         assertNull(model.state.value.map.viewportRequest)
 
         val other = model(trips)
         advanceUntilIdle()
         val delayed = kotlinx.coroutines.CompletableDeferred<TripCity?>()
-        val job = launch { other.locateNewTripCity { delayed.await() } }
+        val job = launch { other.locateEmptyTripCity { delayed.await() } }
         runCurrent()
         other.onMapGesture()
         delayed.complete(city)
@@ -98,13 +99,39 @@ class TripWorkspaceContentStateTest {
         trips.value.value = tripWithTwoDays()
         advanceUntilIdle()
         val before = withPlaces.state.value.map.viewportRequest
-        withPlaces.locateNewTripCity { error("should not query with saved places") }
+        var queriedWithSavedPlaces = false
+        withPlaces.locateEmptyTripCity {
+            queriedWithSavedPlaces = true
+            TripCity("330100", "杭州市", GeoPoint(30.27, 120.15))
+        }
+        assertFalse(queriedWithSavedPlaces)
         assertEquals(before, withPlaces.state.value.map.viewportRequest)
         val empty = model(trips)
         advanceUntilIdle()
-        empty.locateNewTripCity { throw IllegalStateException("offline") }
+        empty.locateEmptyTripCity { throw IllegalStateException("offline") }
         assertNull(empty.state.value.map.viewportRequest)
         assertTrue(empty.pageState.value is TripWorkspacePageState.Ready)
+    }
+
+    @Test fun restoredEmptyWorkspaceDoesNotInheritACompletedEntriesCitySuppression() = runTest(dispatcher) {
+        val trips = Trips()
+        trips.value.value = tripWithTwoDays()
+        val handle = SavedStateHandle(mapOf(
+            "initial-city-attempted" to true,
+            "initial-city-suppressed" to true,
+        ))
+        val restored = TripWorkspaceViewModel("trip", trips, Places(), Itineraries(), Legs(), handle)
+        advanceUntilIdle()
+        val city = TripCity("370300", "淄博市", GeoPoint(36.81, 118.05))
+        restored.locateEmptyTripCity { city }
+        advanceUntilIdle()
+        assertEquals(ViewportReason.INITIAL_CITY, restored.state.value.map.viewportRequest?.reason)
+        assertEquals(listOf(city.center), restored.state.value.map.viewportRequest?.points)
+        restored.onMapGesture()
+        var queriedTwice = false
+        restored.locateEmptyTripCity { queriedTwice = true; city }
+        assertFalse(queriedTwice)
+        assertNull(restored.state.value.map.viewportRequest)
     }
 
     @Test fun savedPlaceArrivingDuringCityLookupWinsOverLateCity() = runTest(dispatcher) {
@@ -114,7 +141,7 @@ class TripWorkspaceContentStateTest {
         trips.value.value = tripWithTwoDays()
         advanceUntilIdle()
         val delayed = kotlinx.coroutines.CompletableDeferred<TripCity?>()
-        val job = launch { model.locateNewTripCity { delayed.await() } }
+        val job = launch { model.locateEmptyTripCity { delayed.await() } }
         runCurrent()
         places.value.value = listOf(savedPlace())
         runCurrent()
@@ -131,7 +158,7 @@ class TripWorkspaceContentStateTest {
         trips.value.value = tripWithTwoDays()
         advanceUntilIdle()
         val delayed = kotlinx.coroutines.CompletableDeferred<TripCity?>()
-        val job = launch { model.locateNewTripCity { delayed.await() } }
+        val job = launch { model.locateEmptyTripCity { delayed.await() } }
         runCurrent()
         model.showSearchResults(WorkspaceSearchResults("景点", listOf(
             PlaceCandidate("poi-a", "断桥", "", GeoPoint(30.258, 120.149), "0571", "杭州市", "330100", 1),
@@ -149,12 +176,12 @@ class TripWorkspaceContentStateTest {
         val model = model(trips)
         trips.value.value = tripWithTwoDays()
         advanceUntilIdle()
-        val job = launch { model.locateNewTripCity { kotlinx.coroutines.awaitCancellation() } }
+        val job = launch { model.locateEmptyTripCity { kotlinx.coroutines.awaitCancellation() } }
         advanceUntilIdle()
         job.join()
         assertNull(model.state.value.map.viewportRequest)
         assertTrue(model.pageState.value is TripWorkspacePageState.Ready)
-        model.locateNewTripCity { error("timed-out lookup must not retry") }
+        model.locateEmptyTripCity { error("timed-out lookup must not retry") }
     }
     @Test fun sameCityLocationIsSeparateFromSearchPinsAndDrawerDoesNotRefitIt() = runTest(dispatcher) {
         val trips = Trips()

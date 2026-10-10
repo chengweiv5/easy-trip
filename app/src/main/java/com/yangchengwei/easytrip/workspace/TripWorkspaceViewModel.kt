@@ -136,13 +136,16 @@ class TripWorkspaceViewModel(
     val selectedDayId: StateFlow<String?> = mutableSelectedDayId
     private var observationJob: Job? = null
     private var hasSavedPlaces = false
+    // Suppression belongs to this live workspace, not a later restored ViewModel.
+    private var initialCityAttempted = false
+    private var initialCitySuppressed = false
 
-    /** Only the newly-created navigation entry calls this; normal/reopened trips never auto-locate. */
-    suspend fun locateNewTripCity(resolve: suspend (String) -> TripCity?) {
+    /** Each workspace entry initializes an empty trip; recomposition must not undo manual browsing. */
+    suspend fun locateEmptyTripCity(resolve: suspend (String) -> TripCity?) {
         val ready = pageState.first { it !is TripWorkspacePageState.Loading } as? TripWorkspacePageState.Ready ?: return
-        if (savedState.get<Boolean>("initial-city-attempted") == true) return
-        savedState["initial-city-attempted"] = true
-        if (hasSavedPlaces || savedState.get<Boolean>("initial-city-suppressed") == true) return
+        if (initialCityAttempted) return
+        initialCityAttempted = true
+        if (hasSavedPlaces || initialCitySuppressed) return
         val name = ready.content.tripName
         val city = try {
             kotlinx.coroutines.withTimeoutOrNull(12_000) { resolve(name) }
@@ -152,7 +155,7 @@ class TripWorkspaceViewModel(
             null
         } ?: return
         if (hasSavedPlaces || mutable.value.tripName != name ||
-            savedState.get<Boolean>("initial-city-suppressed") == true ||
+            initialCitySuppressed ||
             mutablePageState.value !is TripWorkspacePageState.Ready
         ) return
         val request = viewportController.showInitialCity(city) ?: return
@@ -339,7 +342,7 @@ class TripWorkspaceViewModel(
     }
 
     fun onMapGesture() {
-        savedState["initial-city-suppressed"] = true
+        initialCitySuppressed = true
         viewportController.onUserGesture()
         mutable.value = mutable.value.copy(
             map = mutable.value.map.copy(viewportRequest = viewportController.currentRequest),
@@ -363,19 +366,19 @@ class TripWorkspaceViewModel(
 
     fun selectSection(value: WorkspaceSection) {
         if (section.value == value) return
-        savedState["initial-city-suppressed"] = true
+        initialCitySuppressed = true
         savedState[SECTION] = value.name
         section.value = value
     }
     fun selectItineraryScope(value: ItineraryScope) {
         if (value is ItineraryScope.Day && mutable.value.days.none { it.id == value.dayId }) return
         if (itineraryScope.value == value) return
-        savedState["initial-city-suppressed"] = true
+        initialCitySuppressed = true
         savedState[ITINERARY_SCOPE] = encodeItineraryScope(value)
         itineraryScope.value = value
     }
     fun showSearchResults(results: WorkspaceSearchResults) {
-        savedState["initial-city-suppressed"] = true
+        initialCitySuppressed = true
         clearSearchFocus()
         closeOverlay()
         viewportController.showSearchResults(results.viewportPoints(currentPosition.value))
