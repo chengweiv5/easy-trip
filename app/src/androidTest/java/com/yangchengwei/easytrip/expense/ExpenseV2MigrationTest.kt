@@ -36,10 +36,10 @@ class ExpenseV2MigrationTest {
             execSQL("INSERT INTO route_legs (id,tripDayId,fromItemId,toItemId,recommendedMode,status,version,updatedAt,expenseCents) VALUES ('leg','day','zero','hotel','WALK','SUCCESS',1,0,5850)")
             close()
         }
-        helper.runMigrationsAndValidate(name, 9, true, EasyTripDatabase.MIGRATION_8_9).close()
+        helper.runMigrationsAndValidate(name, 9, true, EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10).close()
         repeat(2) {
             val db = Room.databaseBuilder(context, EasyTripDatabase::class.java, name)
-                .addMigrations(EasyTripDatabase.MIGRATION_8_9).build()
+                .addMigrations(EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10).build()
             try {
                 val records = RoomExpenseRepository(db).observeRecords().first()
                 assertEquals(3, records.size)

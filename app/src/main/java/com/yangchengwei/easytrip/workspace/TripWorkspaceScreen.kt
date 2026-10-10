@@ -466,15 +466,14 @@ private fun WorkspaceOverlayContent(
                                 when (action) {
                                     PlaceDetailPanelAction.Dismiss,
                                     PlaceDetailPanelAction.CancelEdit -> if (!placeState.detailSaving) {
-                                        onPlaceAction(
-                                            if (placeState.editing != null) PlacePoolAction.DismissDialogs
-                                            else PlacePoolAction.DismissDetail,
-                                        )
                                         onClose()
                                     }
                                     PlaceDetailPanelAction.StartEdit -> onPlaceAction(PlacePoolAction.Edit(place))
                                     PlaceDetailPanelAction.StartAddToItinerary -> onPlaceAction(PlacePoolAction.StartAddSingle(place.id))
                                     PlaceDetailPanelAction.Delete -> onPlaceAction(PlacePoolAction.Delete(place))
+                                    is PlaceDetailPanelAction.CategoryChanged -> onPlaceAction(PlacePoolAction.UpdateCategory(action.value))
+                                    PlaceDetailPanelAction.ConfirmDiscardEdit -> onPlaceAction(PlacePoolAction.ConfirmDiscardEdit)
+                                    PlaceDetailPanelAction.ContinueEditing -> onPlaceAction(PlacePoolAction.ContinueEditing)
                                     is PlaceDetailPanelAction.NoteChanged -> draft?.let {
                                         onPlaceAction(PlacePoolAction.UpdateDraft(action.value, it.tags))
                                     }

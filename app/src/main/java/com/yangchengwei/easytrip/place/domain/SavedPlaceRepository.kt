@@ -7,7 +7,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 
 data class PlaceTag(val id: String, val name: String)
-data class SavedPlace(val id: String, val tripId: String, val amapPoiId: String, val name: String, val address: String, val point: GeoPoint, val note: String, val tags: List<PlaceTag>, val cityName: String? = null, val cityAdCode: String? = null, val cityCode: String? = null, val cityMetadataVersion: Int = 0)
+data class SavedPlace(val id: String, val tripId: String, val amapPoiId: String, val name: String, val address: String, val point: GeoPoint, val note: String, val tags: List<PlaceTag>, val cityName: String? = null, val cityAdCode: String? = null, val cityCode: String? = null, val cityMetadataVersion: Int = 0, val category: PlaceCategory = PlaceCategory.OTHER)
 data class PlaceDeletionImpact(val itineraryItemCount: Int, val routeLegCount: Int)
 sealed interface SavePlaceResult {
     data class Saved(val id: String) : SavePlaceResult
@@ -29,7 +29,7 @@ interface SavedPlaceRepository {
     suspend fun save(tripId: String, candidate: PlaceCandidate): SavePlaceResult
     suspend fun updateCityMetadata(placeId: String, city: PlaceCity) = updateCityIfMissing(placeId, city)
     suspend fun updateCityIfMissing(placeId: String, city: PlaceCity) = Unit
-    suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>)
+    suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: PlaceCategory? = null)
     suspend fun usageCount(placeId: String): Int
     suspend fun deletionImpact(placeId: String): PlaceDeletionImpact
     suspend fun deletePlaceAndReferences(placeId: String)

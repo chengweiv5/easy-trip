@@ -71,7 +71,7 @@ class RoomItineraryRepository(
                 val values = expensesByItem[item.id].orEmpty()
                     .sortedWith(compareBy<PlaceExpenseEntity> { it.position }.thenBy { it.id }).map { it.input() }
                 ItineraryItem(item.id,
-                    ItineraryPlace(place.id, place.name, place.address, GeoPoint(place.latitude, place.longitude)),
+                    ItineraryPlace(place.id, place.name, place.address, GeoPoint(place.latitude, place.longitude), com.yangchengwei.easytrip.place.domain.PlaceCategory.fromStorageKey(place.category)),
                     item.arrivalTime, item.stayDurationMinutes, item.note, item.idempotencyKey,
                     values.takeIf { it.isNotEmpty() }?.fold(0L) { total, value -> Math.addExact(total, value.cents) },
                     item.timingWarning, values)

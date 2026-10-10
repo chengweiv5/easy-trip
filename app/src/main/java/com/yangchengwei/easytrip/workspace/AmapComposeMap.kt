@@ -360,6 +360,9 @@ internal data class MapMarkerRendering(
     val solid: Boolean,
     val badgeBackgroundColor: Int = 0x00000000,
     val badgeForegroundColor: Int = 0xFFFFFFFF.toInt(),
+    val categoryIconRes: Int? = null,
+    val showScheduledCheck: Boolean = false,
+    val showCategoryAccessory: Boolean = false,
 )
 
 private const val DEFAULT_MARKER_Z_INDEX = 0f
@@ -380,7 +383,15 @@ internal fun mapMarkerRendering(marker: MapMarkerUi, palette: ThemePalette = The
             borderWidth = if (marker.isFocused) 6 else 3,
             solid = true,
         )
-        MapMarkerKind.SAVED_PLACE_POOL, MapMarkerKind.SAVED_ITINERARY -> MapMarkerRendering(
+        MapMarkerKind.SAVED_PLACE_POOL -> {
+            val style = com.yangchengwei.easytrip.place.ui.placeCategoryStyle(
+                marker.category ?: com.yangchengwei.easytrip.place.domain.PlaceCategory.OTHER)
+            MapMarkerRendering(glyph = "", foregroundColor = style.foregroundArgb.toInt(),
+                backgroundColor = style.backgroundArgb.toInt(), borderColor = if (marker.isFocused) focusedBorder else style.foregroundArgb.toInt(),
+                borderWidth = if (marker.isFocused) 3 else 1, solid = false,
+                categoryIconRes = style.iconRes, showScheduledCheck = marker.scheduled)
+        }
+        MapMarkerKind.SAVED_ITINERARY -> MapMarkerRendering(
             glyph = if (marker.scheduled) marker.badgeText.orEmpty() else "",
             geometry = if (marker.scheduled) emptyList() else BookmarkGeometry,
             foregroundColor = if (marker.scheduled) 0xFFFFFFFF.toInt() else primary,
@@ -388,6 +399,8 @@ internal fun mapMarkerRendering(marker: MapMarkerUi, palette: ThemePalette = The
             borderColor = if (marker.isFocused) focusedBorder else primary,
             borderWidth = if (marker.isFocused) 3 else if (marker.scheduled) 0 else 2,
             solid = marker.scheduled,
+            categoryIconRes = marker.category?.let { com.yangchengwei.easytrip.place.ui.placeCategoryStyle(it).iconRes },
+            showCategoryAccessory = marker.category != null,
         )
 
     }
@@ -405,6 +418,7 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
         MapMarkerKind.SEARCH_RESULT -> 32f
         else -> 28f
     }
+    private val accessoryHeight = if (rendering.showCategoryAccessory) 18f else 0f
     private val textSizePx = 15f * density
     private val segments = marker.badgeSegments.takeIf {
         marker.kind == MapMarkerKind.SAVED_ITINERARY && marker.scheduled
@@ -424,7 +438,16 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
             maxOf(diameter * density, paint.measureText(rendering.glyph) + 12f * density)
         } else segmentWidths.sum()
         val nameWidth = name?.let { paint.measureText(it) + 8f * density } ?: 0f
-        layoutParams = android.view.ViewGroup.LayoutParams(kotlin.math.ceil(maxOf(badgeWidth, nameWidth)).toInt(), ((diameter + if (name != null) 24f else 0f) * density).toInt())
+        layoutParams = android.view.ViewGroup.LayoutParams(kotlin.math.ceil(maxOf(badgeWidth, nameWidth)).toInt(), ((diameter + accessoryHeight + if (name != null) 24f else 0f) * density).toInt())
+    }
+
+    private fun drawCategoryIcon(canvas: AndroidCanvas, cx: Float, cy: Float, size: Float, color: Int) {
+        val res = rendering.categoryIconRes ?: return
+        val drawable = androidx.core.content.ContextCompat.getDrawable(context, res)?.mutate() ?: return
+        androidx.core.graphics.drawable.DrawableCompat.setTint(drawable, color)
+        drawable.setBounds((cx - size / 2).toInt(), (cy - size / 2).toInt(),
+            (cx + size / 2).toInt(), (cy + size / 2).toInt())
+        drawable.draw(canvas)
     }
 
     override fun onMeasure(widthMeasureSpec: Int, heightMeasureSpec: Int) = setMeasuredDimension(layoutParams.width, layoutParams.height)
@@ -464,6 +487,8 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
             canvas.drawCircle(cx - 1.5f * density, cy - 1.5f * density, 5f * density, paint)
             canvas.drawLine(cx + 2f * density, cy + 2f * density, cx + 7f * density, cy + 7f * density, paint)
             paint.strokeCap = Paint.Cap.BUTT
+        } else if (rendering.categoryIconRes != null && !rendering.showCategoryAccessory) {
+            drawCategoryIcon(canvas, cx, cy, 18f * density, rendering.foregroundColor)
         } else if (rendering.geometry.isEmpty()) {
             paint.style = Paint.Style.FILL
             paint.textSize = textSizePx
@@ -492,12 +517,29 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
             paint.strokeWidth = 2f * density
             canvas.drawPath(path, paint)
         }
+        if (rendering.showScheduledCheck) {
+            val x = cx + 8f * density
+            val y = cy + 8f * density
+            paint.style = Paint.Style.FILL
+            paint.color = rendering.foregroundColor
+            canvas.drawCircle(x, y, 5f * density, paint)
+            paint.color = android.graphics.Color.WHITE
+            paint.style = Paint.Style.STROKE
+            paint.strokeWidth = 1.3f * density
+            canvas.drawLine(x - 2.5f * density, y, x - .5f * density, y + 2f * density, paint)
+            canvas.drawLine(x - .5f * density, y + 2f * density, x + 3f * density, y - 2f * density, paint)
+        }
+        if (rendering.showCategoryAccessory) {
+            val style = com.yangchengwei.easytrip.place.ui.placeCategoryStyle(requireNotNull(marker.category))
+            drawCategoryIcon(canvas, cx, diameter * density + accessoryHeight * density / 2,
+                14f * density, style.foregroundArgb.toInt())
+        }
         name?.let {
             val label = it
             paint.textSize = textSizePx
             paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
             paint.textAlign = Paint.Align.CENTER
-            val baseline = diameter * density + 18f * density
+            val baseline = (diameter + accessoryHeight) * density + 18f * density
             paint.style = Paint.Style.STROKE
             paint.strokeWidth = 3f * density
             paint.color = android.graphics.Color.WHITE

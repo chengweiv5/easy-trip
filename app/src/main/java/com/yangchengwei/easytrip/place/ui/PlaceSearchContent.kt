@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.place.ui
 
+import androidx.compose.foundation.layout.imePadding
+
 import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -155,9 +157,9 @@ private fun SearchMapDetail(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
             .windowInsetsPadding(WindowInsets.safeDrawing)
-            .navigationBarsPadding(),
+            .navigationBarsPadding().then(if (editState != null) Modifier.imePadding() else Modifier),
     ) {
-        val model = searchDetailMapModel(candidate, requestId)
+        val model = searchDetailMapModel(candidate, requestId, savedPlace)
         val mapAttempt = remember(candidate.poiId) { mutableIntStateOf(0) }
         var mapError by remember(candidate.poiId, mapAttempt.intValue) { mutableStateOf<Throwable?>(null) }
         val mapScope = rememberCoroutineScope()
@@ -223,7 +225,7 @@ private fun SearchMapDetail(
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
-                .fillMaxSize(0.48f)
+                .fillMaxSize(if (editState == null) 0.48f else 0.92f)
                 .align(Alignment.BottomCenter)
                 .testTag("place-search-detail-panel"),
             color = MaterialTheme.colorScheme.surface,
@@ -246,6 +248,9 @@ private fun SearchMapDetail(
                             PlaceDetailPanelAction.Dismiss -> onAction(PlaceSearchAction.Back)
                             PlaceDetailPanelAction.ToggleCollection -> onAction(PlaceSearchAction.ToggleCollection(candidate.poiId))
                             PlaceDetailPanelAction.StartEdit -> savedPlace?.let { onAction(PlaceSearchAction.StartEdit(it.id)) }
+                            is PlaceDetailPanelAction.CategoryChanged -> onAction(PlaceSearchAction.UpdateEditCategory(action.value))
+                            PlaceDetailPanelAction.ConfirmDiscardEdit -> onAction(PlaceSearchAction.ConfirmDiscardEdit)
+                            PlaceDetailPanelAction.ContinueEditing -> onAction(PlaceSearchAction.ContinueEditing)
                             is PlaceDetailPanelAction.NoteChanged -> onAction(PlaceSearchAction.UpdateEditNote(action.value))
                             is PlaceDetailPanelAction.NewTagInputChanged -> onAction(PlaceSearchAction.UpdateNewTagInput(action.value))
                             PlaceDetailPanelAction.AddTag -> onAction(PlaceSearchAction.AddNewTag)

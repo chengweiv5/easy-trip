@@ -2,12 +2,23 @@
 
 ## 当前目标：v2.2.0
 
-2026-10-10 已确认并实现数字千分位、空旅行首城市定位与旅行列表统一滚动；地点池编辑行为不改。正式累积源 `easy-trip-v2.2.0.pen`：187有效根+1历史根，继承v2.1.0所有根及未变能力，新增旅行列表下滑状态。实现2.2.0/build18/schema9，已提交并快进推送main，同签名Release已覆盖安装到用户手机；未发布Release或标签。965 Debug JVM、40项专项设备测试及965 Release JVM通过，旧全应用UI验收缺口保留。
+2026-10-10 已确认并实现数字千分位、空旅行首城市定位与旅行列表统一滚动。实现2.2.0/build18/schema9，已提交并快进推送main，同签名Release已覆盖安装到用户手机；未发布Release或标签。965 Debug JVM、40项专项设备测试及965 Release JVM通过，旧全应用UI验收缺口保留。
+
+**同版地点分类已实现并安装手机**：776a 工作树基于 `773387f` 完成收藏五分类、统一图标颜色、三模块编辑与新增费用预选。旧收藏／未设置分类统一为“其他”，没有独立未分类；历史费用不追改。前三项能力及空旅行修复保留，版本仍2.2.0/build18，数据库增量升级为schema10。用户另行授权后已于2026-10-10完成同签名Release覆盖安装；978项Release JVM通过，Release lint为0错误/52警告/1提示。Git交付状态见下方记录，未发布Release或标签。
+
+**正式设计已回写并验证保存**：`easy-trip-v2.2.0.pen` 保留195根（194有效、1历史）、40,158唯一节点。本次只更新190个实现状态字段；Pencil原生保存、关闭重开及MCP回读通过，SHA256 `ab37e3271a536da556b621d311caf9ba6701ebbbc75de5ea5274b0fe6eb5a39c`。978 JVM与最终68项设备专项通过，lint 0错误/54警告/1提示；全应用历史失败单列，不称全绿。
+
+- [地点分类与费用联动评审说明](explorations/v2.2.0-place-category-review.md)
+- [三屏概览](previews/v2.2.0-place-category/overview.jpeg)
+- [本批实现验证与回滚](../docs/testing/v2.2.0-place-category-implementation.md)
+- [本批手机安装与Git交付](../docs/testing/v2.2.0-place-category-delivery.md)
+- [设计确认阶段历史验证](../docs/testing/v2.2.0-place-category-design.md)
+- [实现计划](../docs/superpowers/plans/2026-10-10-v2.2.0-place-categories.md)
 
 - 批准的列表效果稿：`explorations/v2.2.0-trip-list-review.pen`（辅助材料）
 - 本轮范围、验收证据及回滚：`../docs/testing/v2.2.0-implementation.md`
-- 提交、推送、安装结果见`../docs/testing/v2.2.0-delivery.md`；设计源内的开发验收阶段说明保留为历史节点，本次交付未再改写设计文件。
-- 正式设计已在954e工作树由Pencil保存、关闭重开并回读；不能从其它工作树的同名文件开发。
+- 既有提交、推送、安装结果见`../docs/testing/v2.2.0-delivery.md`；属于前三项实现，不是分类功能的开发证据。
+- 本批正式源仅操作776a工作树，通过Pencil修改、保存、关闭重开及回读；不能从其它工作树的同名文件开发。
 
 ## 历史记录：v2.1.0
 

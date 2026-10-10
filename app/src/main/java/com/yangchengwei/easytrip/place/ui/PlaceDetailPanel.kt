@@ -17,7 +17,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -45,6 +44,9 @@ sealed interface PlaceDetailPanelAction {
     data object ToggleCollection : PlaceDetailPanelAction
     data object StartEdit : PlaceDetailPanelAction
     data object Delete : PlaceDetailPanelAction
+    data class CategoryChanged(val value: com.yangchengwei.easytrip.place.domain.PlaceCategory) : PlaceDetailPanelAction
+    data object ConfirmDiscardEdit : PlaceDetailPanelAction
+    data object ContinueEditing : PlaceDetailPanelAction
     data class NoteChanged(val value: String) : PlaceDetailPanelAction
     data class NewTagInputChanged(val value: String) : PlaceDetailPanelAction
     data object AddTag : PlaceDetailPanelAction
@@ -69,7 +71,10 @@ fun PlaceDetailPanel(
     schedule: PlaceScheduleSummaryUi = PlaceScheduleSummaryUi(isKnown = false),
     canStartAddToItinerary: Boolean = true,
 ) {
-    val saving = editState?.isSaving == true
+    if (editState != null) {
+        PlaceDetailEditor(candidate, editState, availableTagNames, onAction, modifier)
+        return
+    }
     val canShowAddToItinerary = source == PlaceDetailSource.PlacePool &&
         canStartAddToItinerary && schedule.isKnown && schedule.totalOccurrences == 0
     Column(
@@ -89,7 +94,6 @@ fun PlaceDetailPanel(
             )
             IconButton(
                 onClick = { onAction(PlaceDetailPanelAction.Dismiss) },
-                enabled = !saving,
                 modifier = Modifier.testTag("place-detail-dismiss"),
             ) {
                 Text("关闭", modifier = Modifier.semantics { role = Role.Button })
@@ -103,124 +107,49 @@ fun PlaceDetailPanel(
         if (source == PlaceDetailSource.PlacePool) {
             PlaceDetailSchedule(schedule)
         }
-        if (editState == null) {
-            Text(savedPlace?.note?.takeIf(String::isNotBlank) ?: "暂无备注")
-            Text(savedPlace?.tags?.map { it.name }?.takeIf(List<String>::isNotEmpty)?.joinToString("、") ?: "暂无标签")
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                when (source) {
-                    PlaceDetailSource.Search -> {
-                        EasyTripPrimaryButton(
-                            onClick = { onAction(PlaceDetailPanelAction.ToggleCollection) },
-                            enabled = !collectionBusy,
-                            modifier = Modifier.weight(1f).semantics {
-                                contentDescription = if (savedPlace == null) {
-                                    "收藏${candidate.name}"
-                                } else {
-                                    "取消收藏${candidate.name}"
-                                }
-                            },
-                        ) { Text(if (savedPlace == null) "收藏" else "取消收藏") }
-                        if (savedPlace != null) {
-                            EasyTripSecondaryButton(
-                                onClick = { onAction(PlaceDetailPanelAction.StartEdit) },
-                                modifier = Modifier.weight(1f),
-                            ) { Text("编辑") }
-                        }
-                    }
-                    PlaceDetailSource.PlacePool -> {
-                        if (canShowAddToItinerary) {
-                            EasyTripPrimaryButton(
-                                onClick = { onAction(PlaceDetailPanelAction.StartAddToItinerary) },
-                                modifier = Modifier.weight(1f).testTag("place-detail-start-add"),
-                            ) { Text("加入行程") }
-                        }
+        savedPlace?.let { PlaceCategoryBadge(it.category) }
+        Text(savedPlace?.note?.takeIf(String::isNotBlank) ?: "暂无备注")
+        Text(savedPlace?.tags?.map { it.name }?.takeIf(List<String>::isNotEmpty)?.joinToString("、") ?: "暂无标签")
+        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+            when (source) {
+                PlaceDetailSource.Search -> {
+                    EasyTripPrimaryButton(
+                        onClick = { onAction(PlaceDetailPanelAction.ToggleCollection) },
+                        enabled = !collectionBusy,
+                        modifier = Modifier.weight(1f).semantics {
+                            contentDescription = if (savedPlace == null) {
+                                "收藏${candidate.name}"
+                            } else {
+                                "取消收藏${candidate.name}"
+                            }
+                        },
+                    ) { Text(if (savedPlace == null) "收藏" else "取消收藏") }
+                    if (savedPlace != null) {
                         EasyTripSecondaryButton(
                             onClick = { onAction(PlaceDetailPanelAction.StartEdit) },
                             modifier = Modifier.weight(1f),
                         ) { Text("编辑") }
-                        EasyTripSecondaryButton(
-                            onClick = { onAction(PlaceDetailPanelAction.Delete) },
-                            modifier = Modifier.weight(1f),
-                        ) { Text("删除") }
                     }
                 }
-            }
-            collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-        } else {
-            if (source == PlaceDetailSource.Search) {
-                EasyTripSecondaryButton(
-                    onClick = { onAction(PlaceDetailPanelAction.ToggleCollection) },
-                    enabled = !saving && !collectionBusy,
-                    modifier = Modifier.fillMaxWidth().semantics {
-                        contentDescription = "取消收藏${candidate.name}"
-                    },
-                ) { Text("取消收藏") }
-            }
-            OutlinedTextField(
-                value = editState.note,
-                onValueChange = { onAction(PlaceDetailPanelAction.NoteChanged(it)) },
-                enabled = !saving,
-                label = { Text("备注") },
-                modifier = Modifier.fillMaxWidth().testTag("place-detail-note-input"),
-            )
-            availableTagNames.distinct().forEach { tag ->
-                val selected = tag in editState.selectedTagNames
-                EasyTripSecondaryButton(
-                    onClick = {
-                        onAction(
-                            if (selected) PlaceDetailPanelAction.RemoveTag(tag)
-                            else PlaceDetailPanelAction.AddPresetTag(tag),
-                        )
-                    },
-                    enabled = !saving && (selected || editState.selectedTagNames.size < 8),
-                    modifier = Modifier.fillMaxWidth().testTag("place-detail-preset-tag-$tag"),
-                ) { Text(if (selected) "$tag · 移除" else tag) }
-            }
-            editState.selectedTagNames.filterNot { it in availableTagNames }.forEach { tag ->
-                Row(
-                    Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-                ) {
-                    Text(tag, modifier = Modifier.weight(1f))
+                PlaceDetailSource.PlacePool -> {
+                    if (canShowAddToItinerary) {
+                        EasyTripPrimaryButton(
+                            onClick = { onAction(PlaceDetailPanelAction.StartAddToItinerary) },
+                            modifier = Modifier.weight(1f).testTag("place-detail-start-add"),
+                        ) { Text("加入行程") }
+                    }
                     EasyTripSecondaryButton(
-                        onClick = { onAction(PlaceDetailPanelAction.RemoveTag(tag)) },
-                        enabled = !saving,
-                    ) { Text("移除") }
+                        onClick = { onAction(PlaceDetailPanelAction.StartEdit) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("编辑") }
+                    EasyTripSecondaryButton(
+                        onClick = { onAction(PlaceDetailPanelAction.Delete) },
+                        modifier = Modifier.weight(1f),
+                    ) { Text("删除") }
                 }
             }
-            Row(
-                Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
-            ) {
-                OutlinedTextField(
-                    value = editState.newTagInput,
-                    onValueChange = { onAction(PlaceDetailPanelAction.NewTagInputChanged(it)) },
-                    enabled = !saving,
-                    label = { Text("新标签") },
-                    modifier = Modifier.weight(1f).testTag("place-detail-tags-input"),
-                )
-                EasyTripSecondaryButton(
-                    onClick = { onAction(PlaceDetailPanelAction.AddTag) },
-                    enabled = !saving,
-                    modifier = Modifier.testTag("place-detail-add-tag"),
-                ) { Text("添加") }
-            }
-            editState.errorMessage?.let { Text(it, color = MaterialTheme.colorScheme.error) }
-            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-                EasyTripSecondaryButton(
-                    onClick = { onAction(PlaceDetailPanelAction.CancelEdit) },
-                    enabled = !saving,
-                    modifier = Modifier.weight(1f).testTag("place-detail-cancel"),
-                ) { Text("取消") }
-                EasyTripPrimaryButton(
-                    onClick = { onAction(PlaceDetailPanelAction.SaveEdit) },
-                    enabled = !saving,
-                    modifier = Modifier.weight(1f).testTag("place-detail-save"),
-                ) { Text(if (saving) "保存中" else "保存") }
-            }
         }
+        collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) }
     }
 }
 

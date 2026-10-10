@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.place.ui
 import com.yangchengwei.easytrip.expense.expenseMutationErrorOrNull
 
 import androidx.lifecycle.ViewModel
+import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
@@ -40,7 +41,12 @@ data class PlaceDetailDraft(
     val tags: Set<String>,
     val placeId: String,
     val newTagInput: String = "",
-)
+    val category: PlaceCategory = PlaceCategory.OTHER,
+    val original: PlaceDetailValues = PlaceDetailValues(category, note, tags),
+    val showDiscardConfirmation: Boolean = false,
+) {
+    val isDirty get() = hasPlaceDetailChanges(PlaceDetailValues(category, note, tags), original, newTagInput)
+}
 
 fun placePoolCollectionTotal(state: PlacePoolUiState): Int = state.savedPoiIds.size
 
@@ -200,7 +206,7 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         clearSelectedDetail()
         mutableState.value = mutableState.value.copy(
             editing = value,
-            detailDraft = PlaceDetailDraft(value.note, value.tags.mapTo(mutableSetOf(), PlaceTag::name), value.id),
+            detailDraft = PlaceDetailDraft(value.note, value.tags.mapTo(mutableSetOf(), PlaceTag::name), value.id, category = value.category),
             detailSaveError = null,
         )
     }
@@ -242,7 +248,32 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             detailSaveError = null,
         )
     }
-    fun dismissEdit() {
+    fun updateCategory(value: PlaceCategory) {
+        val draft = mutableState.value.detailDraft ?: return
+        if (mutableState.value.detailSaving) return
+        mutableState.value = mutableState.value.copy(detailDraft = draft.copy(category = value), detailSaveError = null)
+    }
+    fun dismissEdit(): Boolean {
+        val current = mutableState.value
+        val draft = current.detailDraft ?: return true
+        return when (placeDetailCloseDecision(current.detailSaving, draft.isDirty)) {
+            PlaceDetailCloseDecision.IGNORE -> false
+            PlaceDetailCloseDecision.CLOSE -> { clearEdit(); true }
+            PlaceDetailCloseDecision.CONFIRM_DISCARD -> {
+                mutableState.value = current.copy(detailDraft = draft.copy(showDiscardConfirmation = true))
+                false
+            }
+        }
+    }
+    fun continueEditing() {
+        val draft = mutableState.value.detailDraft ?: return
+        if (!mutableState.value.detailSaving) mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(showDiscardConfirmation = false))
+    }
+    fun confirmDiscardEdit() {
+        if (!mutableState.value.detailSaving && mutableState.value.detailDraft?.showDiscardConfirmation == true) clearEdit()
+    }
+    private fun clearEdit() {
         detailEditGeneration++
         mutableState.value = mutableState.value.copy(editing = null, detailDraft = null, detailSaving = false, detailSaveError = null)
     }
@@ -257,8 +288,8 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
         mutableState.value = mutableState.value.copy(detailSaving = true, detailSaveError = null)
         viewModelScope.launch {
             try {
-                repository.updateDetails(draft.placeId, draft.note, draft.tags)
-                if (isCurrentDetailEdit(draft.placeId, generation)) dismissEdit()
+                repository.updateDetails(draft.placeId, draft.note, draft.tags, draft.category)
+                if (isCurrentDetailEdit(draft.placeId, generation)) clearEdit()
             } catch (error: CancellationException) {
                 throw error
             } catch (error: Throwable) {
@@ -383,6 +414,9 @@ class PlacePoolViewModel(private val tripId: String, private val repository: Sav
             is PlacePoolAction.Edit -> edit(action.place)
             is PlacePoolAction.Delete -> requestDelete(action.place)
             is PlacePoolAction.ToggleCollection -> toggleCollection(action.candidate)
+            is PlacePoolAction.UpdateCategory -> updateCategory(action.value)
+            PlacePoolAction.ContinueEditing -> continueEditing()
+            PlacePoolAction.ConfirmDiscardEdit -> confirmDiscardEdit()
             is PlacePoolAction.UpdateDraft -> updateDetailDraft(action.note, action.tags)
             is PlacePoolAction.UpdateNewTagInput -> updateNewTagInput(action.value)
             PlacePoolAction.AddTag -> addNewTag()

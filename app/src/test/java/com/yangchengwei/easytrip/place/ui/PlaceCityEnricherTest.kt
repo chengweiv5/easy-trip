@@ -84,7 +84,7 @@ class PlaceCityEnricherTest {
         override fun observeSavedPoiIds(tripId: String) = flowOf(emptySet<String>())
         override suspend fun save(tripId: String, candidate: PlaceCandidate): SavePlaceResult = error("unused")
         override suspend fun updateCityIfMissing(placeId: String, city: PlaceCity) { writes += placeId }
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = PlaceDeletionImpact(0, 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit

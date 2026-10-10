@@ -433,9 +433,10 @@ class DayItineraryViewModel(
     }
 
     fun requestTiming(itemId: String): Boolean {
+        if (mutable.value.editDraft?.itemId == itemId) return true
         val item = state.value.items.firstOrNull { it.id == itemId } ?: return false
         val rows = item.expenses.map { ExpenseDraftRow(requireNotNull(it.id), it.id, expenseInput(it.cents), it.category, it.note.orEmpty()) }
-            .ifEmpty { listOf(ExpenseDraftRow("first")) }
+            .ifEmpty { listOf(newPlaceExpenseDraft("first", item.placeCategory)) }
         mutable.value = mutable.value.copy(
             editDraft = ItineraryEditDraft(
                 itemId = itemId,
@@ -465,15 +466,19 @@ class DayItineraryViewModel(
         val old = draft.expenses.singleOrNull { it.key == key } ?: return
         if (draft.isSaving) return
         require(row.key == key && row.savedId == old.savedId)
+        val updated = row.copy(categoryIsAutomatic = old.categoryIsAutomatic &&
+            row.categoryIsAutomatic && row.category == old.category)
         mutable.value = mutable.value.copy(editDraft = draft.copy(
-            expenses = draft.expenses.map { if (it.key == key) row else it }, saveError = null,
+            expenses = draft.expenses.map { if (it.key == key) updated else it }, saveError = null,
         ))
     }
 
     fun addExpense() {
         val draft = mutable.value.editDraft ?: return
         if (draft.isSaving) return
-        val row = ExpenseDraftRow("new-${draft.nextExpenseNumber}")
+        if (draft.sourceMissing) return
+        val item = state.value.items.firstOrNull { it.id == draft.itemId } ?: return
+        val row = newPlaceExpenseDraft("new-${draft.nextExpenseNumber}", item.placeCategory)
         mutable.value = mutable.value.copy(editDraft = draft.copy(
             expenses = draft.expenses + row, expandedExpenseKey = row.key, showAllExpenses = true,
             nextExpenseNumber = draft.nextExpenseNumber + 1, saveError = null,
@@ -516,16 +521,19 @@ class DayItineraryViewModel(
     }
     fun updateArrivalTime(value: String) {
         val draft = mutable.value.editDraft ?: return
+        if (draft.isSaving) return
         mutable.value = mutable.value.copy(editDraft = draft.copy(arrivalTimeText = value, saveError = null))
     }
 
     fun updateStayMinutes(value: String) {
         val draft = mutable.value.editDraft ?: return
+        if (draft.isSaving) return
         mutable.value = mutable.value.copy(editDraft = draft.copy(stayMinutesText = value.filter(Char::isDigit), saveError = null))
     }
 
     fun updateNote(value: String) {
         val draft = mutable.value.editDraft ?: return
+        if (draft.isSaving) return
         mutable.value = mutable.value.copy(editDraft = draft.copy(noteText = value, saveError = null))
     }
 

@@ -20,6 +20,8 @@ import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Before
@@ -352,6 +354,38 @@ class PlacePoolViewModelTest {
         assertEquals(false, model.state.value.rows.single().scheduled)
     }
 
+    @Test fun categoryOnlyEditRequiresConfirmationAndCanContinueOrDiscard() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), emptyMap())
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.edit(place("a"))
+        model.dispatch(PlacePoolAction.UpdateCategory(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING))
+        assertFalse(model.dismissEdit())
+        assertTrue(model.state.value.detailDraft!!.showDiscardConfirmation)
+        model.dispatch(PlacePoolAction.ContinueEditing)
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING, model.state.value.detailDraft!!.category)
+        model.dismissEdit()
+        model.dispatch(PlacePoolAction.ConfirmDiscardEdit)
+        assertNull(model.state.value.detailDraft)
+        assertEquals(0, repository.updateCalls)
+    }
+
+    @Test fun failedCategorySaveKeepsTheWholeDraft() = runTest(dispatcher) {
+        val repository = PoolRepository(listOf(place("a")), emptyMap(), updateFailure = IllegalStateException("保存失败"))
+        val model = PlacePoolViewModel("trip", repository, null)
+        advanceUntilIdle()
+        model.edit(place("a"))
+        model.dispatch(PlacePoolAction.UpdateCategory(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD))
+        model.updateNewTagInput("尚未添加")
+        model.updateDetails("收藏备注", setOf("亲子"))
+        advanceUntilIdle()
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD, model.state.value.detailDraft!!.category)
+        assertEquals("尚未添加", model.state.value.detailDraft!!.newTagInput)
+        assertEquals("收藏备注", model.state.value.detailDraft!!.note)
+        assertFalse(model.state.value.detailSaving)
+        assertEquals("保存失败", model.state.value.detailSaveError)
+    }
+
     @Test fun editingSavedPlaceCreatesDraftBoundToPlaceId() = runTest(dispatcher) {
         val repository = PoolRepository(listOf(place("a")), emptyMap())
         val model = PlacePoolViewModel("trip", repository, null)
@@ -583,7 +617,7 @@ class PlacePoolViewModelTest {
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
         override fun observeUsageCounts(tripId: String): Flow<Map<String, Int>> = emptyFlow()
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = PlaceDeletionImpact(0, 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
@@ -615,7 +649,7 @@ class PlacePoolViewModelTest {
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
         override fun observeUsageCounts(tripId: String): Flow<Map<String, Int>> = usageCounts
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) {
             updateCalls += 1
             updateFailure?.let { throw it }
         }
@@ -638,7 +672,7 @@ class PlacePoolViewModelTest {
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
         override fun observeUsageCounts(tripId: String): Flow<Map<String, Int>> = MutableStateFlow(initialPlaces.associate { it.id to 0 })
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) {
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
                 completions.getOrPut(placeId) { CompletableDeferred() }.await()
             }
@@ -665,7 +699,7 @@ class PlacePoolViewModelTest {
             usageCounts.collect { counts -> if (counts != null) emit(counts) }
         }
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = usageCounts.value?.get(placeId) ?: 0
         override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact =
             error("Test must configure deletion impact for $placeId")
@@ -683,7 +717,7 @@ class PlacePoolViewModelTest {
         override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) =
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
@@ -708,7 +742,7 @@ class PlacePoolViewModelTest {
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> =
             MutableStateFlow(places.value.mapTo(mutableSetOf(), SavedPlace::amapPoiId))
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) =
             kotlinx.coroutines.withContext(kotlinx.coroutines.NonCancellable) {
@@ -734,7 +768,7 @@ class PlacePoolViewModelTest {
         override fun observeTags(tripId: String): Flow<List<PlaceTag>> = emptyFlow()
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = emptyFlow()
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = impacts.getOrPut(placeId) { CompletableDeferred() }.await()
         override suspend fun deletePlaceAndReferences(placeId: String) =

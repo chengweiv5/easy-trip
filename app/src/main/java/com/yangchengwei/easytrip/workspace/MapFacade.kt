@@ -37,6 +37,7 @@ data class MapMarkerUi(
     val savedPlaceId: String? = null,
     val scheduled: Boolean = false,
     val badgeSegments: List<MapMarkerBadgeSegment> = emptyList(),
+    val category: com.yangchengwei.easytrip.place.domain.PlaceCategory? = null,
 )
 
 fun formatOccurrenceBadge(orders: List<Int>): String = when {
@@ -199,6 +200,7 @@ object MapUiModelMapper {
                         kind = if (scope == MapScope.PLACE_POOL) MapMarkerKind.SAVED_PLACE_POOL else MapMarkerKind.SAVED_ITINERARY,
                         isFocused = true,
                         savedPlaceId = saved.id,
+                        category = saved.category,
                         scheduled = baseMarkers.any { it.savedPlaceId == saved.id && it.scheduled },
                     )
                     markerIndexByPoint[marker.point] = markers.size
@@ -248,6 +250,7 @@ object MapUiModelMapper {
                     occurrences = emptyList(),
                     kind = MapMarkerKind.SAVED_PLACE_POOL,
                     savedPlaceId = it.id,
+                    category = it.category,
                     scheduled = it.id in ordersByPlace,
                     badgeText = ordersByPlace[it.id]?.let(::formatOccurrenceBadge),
                 )
@@ -291,6 +294,7 @@ object MapUiModelMapper {
                     )
                 }
         }
+        val categoryByItemId = snapshots.flatMap { it.itinerary.items }.associate { it.id to it.place.category }
         val markers = occurrences.groupBy(Pair<GeoPoint, OccurrenceUi>::first).map { (point, entries) ->
             val values = entries.map(Pair<GeoPoint, OccurrenceUi>::second)
             val orders = when (scope) {
@@ -309,6 +313,10 @@ object MapUiModelMapper {
                 badgeText = formatOccurrenceBadge(orders),
                 badgeSegments = segmentsByPoint[point].orEmpty(),
                 savedPlaceId = saved?.id,
+                category = values.map { occurrence ->
+                    savedById[occurrence.savedPlaceId]?.category ?: categoryByItemId[occurrence.itemId]
+                        ?: com.yangchengwei.easytrip.place.domain.PlaceCategory.OTHER
+                }.distinct().singleOrNull() ?: com.yangchengwei.easytrip.place.domain.PlaceCategory.OTHER,
                 scheduled = true,
             )
         }

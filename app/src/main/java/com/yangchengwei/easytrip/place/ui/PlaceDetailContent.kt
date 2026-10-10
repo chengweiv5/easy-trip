@@ -1,8 +1,10 @@
 package com.yangchengwei.easytrip.place.ui
 
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.material3.AlertDialog
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.window.DialogProperties
 import com.yangchengwei.easytrip.place.domain.SavedPlace
 
 @Composable
@@ -22,18 +24,24 @@ fun PlaceDetailContent(
     source: PlaceDetailSource = PlaceDetailSource.Search,
     onDismiss: () -> Unit = {},
     onDelete: () -> Unit = {},
+    onCategoryChange: (com.yangchengwei.easytrip.place.domain.PlaceCategory) -> Unit = {},
+    onConfirmDiscardEdit: () -> Unit = {},
+    onContinueEditing: () -> Unit = {},
 ) {
     PlaceDetailPanel(
         candidate = place.toCandidate(),
         savedPlace = place,
         editState = draft?.let {
-            PlaceDetailEditState(place.id, it.note, it.tags, it.newTagInput, isSaving = saving, errorMessage = error)
+            PlaceDetailEditState(place.id, it.note, it.tags, it.newTagInput, isSaving = saving, errorMessage = error, category = it.category, original = it.original, showDiscardConfirmation = it.showDiscardConfirmation)
         },
         source = source,
         collectionBusy = false,
         collectionError = null,
         onAction = { action ->
             when (action) {
+                is PlaceDetailPanelAction.CategoryChanged -> onCategoryChange(action.value)
+                PlaceDetailPanelAction.ConfirmDiscardEdit -> onConfirmDiscardEdit()
+                PlaceDetailPanelAction.ContinueEditing -> onContinueEditing()
                 is PlaceDetailPanelAction.NoteChanged -> onNoteChange(action.value)
                 is PlaceDetailPanelAction.NewTagInputChanged -> onNewTagInputChange(action.value)
                 PlaceDetailPanelAction.AddTag -> onAddTag()
@@ -67,9 +75,14 @@ fun PlaceDetailDialog(
     onNewTagInputChange: (String) -> Unit = {},
     onAddTag: () -> Unit = {},
     onRemoveTag: (String) -> Unit = {},
+    onCategoryChange: (com.yangchengwei.easytrip.place.domain.PlaceCategory) -> Unit = {},
+    onConfirmDiscardEdit: () -> Unit = {},
+    onContinueEditing: () -> Unit = {},
 ) {
     AlertDialog(
         onDismissRequest = { if (!saving) onDismiss() },
+        modifier = Modifier.imePadding(),
+        properties = DialogProperties(decorFitsSystemWindows = false),
         confirmButton = {},
         text = {
             PlaceDetailContent(
@@ -80,6 +93,9 @@ fun PlaceDetailDialog(
                 source = source,
                 onNoteChange = onNoteChange,
                 onTagsChange = onTagsChange,
+                onCategoryChange = onCategoryChange,
+                onConfirmDiscardEdit = onConfirmDiscardEdit,
+                onContinueEditing = onContinueEditing,
                 onNewTagInputChange = onNewTagInputChange,
                 onAddTag = onAddTag,
                 onRemoveTag = onRemoveTag,

@@ -136,7 +136,7 @@ internal fun InlineExpenseRow(
         }
     }
     var showNote by remember(row.key) { mutableStateOf(row.note.isNotEmpty()) }
-    val isPartial = row.amount.isNotBlank() || row.category != null || row.note.isNotBlank()
+    val isPartial = !row.isEmptyNewExpense
     Surface(shape = MaterialTheme.shapes.small, tonalElevation = if (flat) 0.dp else 1.dp) {
         Column(Modifier.padding(if (flat) 0.dp else 8.dp),
             verticalArrangement = Arrangement.spacedBy(if (flat) 8.dp else 4.dp)) {
@@ -158,7 +158,7 @@ internal fun InlineExpenseRow(
                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                             categories.forEach { category ->
                                 FilterChip(
-                                    selected = row.category == category, onClick = { onChange(row.copy(category = category)) },
+                                    selected = row.category == category, onClick = { onChange(row.selectCategory(category)) },
                                     label = { Text(category.label) }, enabled = enabled,
                                     leadingIcon = if (row.category == category) ({ Text("✓") }) else null,
                                     modifier = Modifier.weight(1f).heightIn(min = 44.dp)

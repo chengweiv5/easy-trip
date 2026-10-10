@@ -18,6 +18,7 @@ data class ExpenseDraftRow(
     val amount: String = "",
     val category: ExpenseCategory? = null,
     val note: String = "",
+    val categoryIsAutomatic: Boolean = false,
 ) {
     init {
         require(key.isNotBlank()) { "草稿标识不能为空" }
@@ -49,7 +50,7 @@ fun validateExpenseDraft(
         if (!keys.add(row.key) || row.savedId?.let { !savedIds.add(it) || it !in originals } == true) {
             return ExpenseDraftValidation.Invalid(row.key, ExpenseDraftField.IDENTITY, "费用记录已变更，请重新读取")
         }
-        if (row.savedId == null && row.amount.isBlank() && row.category == null && row.note.isBlank()) continue
+        if (row.isEmptyNewExpense) continue
         val amount = parseExpense(row.amount)
             ?: return ExpenseDraftValidation.Invalid(row.key, ExpenseDraftField.AMOUNT, "请输入有效金额，最多两位小数")
         val note = row.note.trim().ifEmpty { null }

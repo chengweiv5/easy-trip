@@ -269,6 +269,24 @@ class PlaceSearchViewModelTest {
         assertEquals(7, model.state.value.detailDraft?.selectedTagNames?.size)
     }
 
+    @Test fun categoryEditBackKeepsDraftUntilExplicitDiscard() = runTest(dispatcher) {
+        val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
+        val repository = FakeSavedPlaces(listOf(saved))
+        val model = PlaceSearchViewModel("trip", repository, ImmediateSearchSource(listOf(candidate("poi-1"))), SavedStateHandle())
+        advanceUntilIdle()
+        model.dispatch(PlaceSearchAction.StartEdit("saved-1"))
+        model.dispatch(PlaceSearchAction.UpdateEditCategory(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD))
+        model.dispatch(PlaceSearchAction.Back)
+        assertTrue(model.state.value.detailDraft!!.showDiscardConfirmation)
+        model.dispatch(PlaceSearchAction.Back)
+        assertFalse(model.state.value.detailDraft!!.showDiscardConfirmation)
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD, model.state.value.detailDraft!!.category)
+        model.dispatch(PlaceSearchAction.CancelEdit)
+        model.dispatch(PlaceSearchAction.ConfirmDiscardEdit)
+        assertNull(model.state.value.detailDraft)
+        assertEquals(0, repository.updateCalls)
+    }
+
     @Test fun failedSavePreservesNoteTagsAndNewInput() = runTest(dispatcher) {
         val saved = SavedPlace("saved-1", "trip", "poi-1", "地点", "地址", GeoPoint(39.9, 116.4), "", emptyList())
         val repository = FakeSavedPlaces(listOf(saved), updateFailure = IllegalStateException("保存失败"))
@@ -278,6 +296,7 @@ class PlaceSearchViewModelTest {
         model.dispatch(PlaceSearchAction.UpdateEditNote("备注"))
         model.dispatch(PlaceSearchAction.UpdateEditTags(setOf("已有")))
         model.dispatch(PlaceSearchAction.UpdateNewTagInput("未添加"))
+        model.dispatch(PlaceSearchAction.UpdateEditCategory(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING))
 
         model.dispatch(PlaceSearchAction.SaveEdit)
         advanceUntilIdle()
@@ -285,6 +304,7 @@ class PlaceSearchViewModelTest {
         assertEquals("备注", model.state.value.detailDraft?.note)
         assertEquals(setOf("已有"), model.state.value.detailDraft?.selectedTagNames)
         assertEquals("未添加", model.state.value.detailDraft?.newTagInput)
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING, model.state.value.detailDraft?.category)
         assertEquals("保存失败", model.state.value.detailDraft?.errorMessage)
     }
 
@@ -875,7 +895,7 @@ class PlaceSearchViewModelTest {
         override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = savedIds
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.AlreadySaved(candidate.poiId)
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = withContext(NonCancellable) {
             impacts.getOrPut(placeId) { CompletableDeferred() }.await()
@@ -898,7 +918,7 @@ class PlaceSearchViewModelTest {
             savedIds.value += candidate.poiId
             return SavePlaceResult.Saved(candidate.poiId)
         }
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 1
         override suspend fun deletionImpact(placeId: String) = withContext(NonCancellable) { impact.await() }
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
@@ -920,7 +940,7 @@ class PlaceSearchViewModelTest {
             saveGate.await()
             return SavePlaceResult.Saved(candidate.poiId)
         }
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) =
             requireNotNull(deletionImpact) { "Test must configure deletion impact for $placeId" }
@@ -942,7 +962,7 @@ class PlaceSearchViewModelTest {
         override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = savedIds
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.AlreadySaved(places.value.single().id)
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 1
         override suspend fun deletionImpact(placeId: String) = deletionImpact
         override suspend fun deletePlaceAndReferences(placeId: String) {
@@ -962,7 +982,7 @@ class PlaceSearchViewModelTest {
             requireNotNull(candidate.point) { "无法收藏缺少坐标的地点" }
             error("unreachable")
         }
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact =
             error("Test must configure deletion impact for $placeId")
@@ -976,7 +996,7 @@ class PlaceSearchViewModelTest {
         override fun observeTags(tripId: String): Flow<List<PlaceTag>> = MutableStateFlow(emptyList())
         override fun observeSavedPoiIds(tripId: String): Flow<Set<String>> = MutableStateFlow(initialPlaces.mapTo(mutableSetOf(), SavedPlace::amapPoiId))
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved(candidate.poiId)
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) {
             withContext(NonCancellable) { completions.getOrPut(placeId) { CompletableDeferred() }.await() }
         }
         fun complete(placeId: String) = completions.getValue(placeId).complete(Unit)
@@ -1006,7 +1026,7 @@ class PlaceSearchViewModelTest {
             savedIds.value += candidate.poiId
             return SavePlaceResult.Saved(candidate.poiId)
         }
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) {
             updateCalls += 1
             updateFailure?.let { throw it }
         }

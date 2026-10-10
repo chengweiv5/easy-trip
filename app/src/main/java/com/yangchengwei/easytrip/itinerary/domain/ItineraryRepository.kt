@@ -5,7 +5,7 @@ import java.time.LocalTime
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 
-data class ItineraryPlace(val id: String, val name: String, val address: String, val point: GeoPoint)
+data class ItineraryPlace(val id: String, val name: String, val address: String, val point: GeoPoint, val category: com.yangchengwei.easytrip.place.domain.PlaceCategory = com.yangchengwei.easytrip.place.domain.PlaceCategory.OTHER)
 data class ItineraryItem(
     val id: String,
     val place: ItineraryPlace,

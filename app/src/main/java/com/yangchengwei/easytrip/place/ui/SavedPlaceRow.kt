@@ -61,11 +61,11 @@ fun SavedPlaceRow(
             Surface(
                 modifier = Modifier.size(40.dp),
                 shape = RoundedCornerShape(8.dp),
-                color = MaterialTheme.colorScheme.secondaryContainer,
-                contentColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                color = Color(placeCategoryStyle(place.place.category).backgroundArgb),
+                contentColor = Color(placeCategoryStyle(place.place.category).foregroundArgb),
             ) {
                 Box(contentAlignment = Alignment.Center) {
-                    PlaceIcon(Modifier.size(22.dp))
+                    androidx.compose.material3.Icon(androidx.compose.ui.res.painterResource(placeCategoryStyle(place.place.category).iconRes), null, Modifier.size(22.dp))
                 }
             }
             Column(
@@ -77,6 +77,7 @@ fun SavedPlaceRow(
                     .clickable(onClick = onOpenDetail),
                 verticalArrangement = Arrangement.spacedBy(4.dp),
             ) {
+                PlaceCategoryBadge(place.place.category)
                 Text(
                     place.name,
                     style = MaterialTheme.typography.labelMedium,

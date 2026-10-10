@@ -4,6 +4,7 @@ import com.yangchengwei.easytrip.expense.expenseMutationErrorOrNull
 
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
+import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import androidx.lifecycle.ViewModelProvider
 import androidx.lifecycle.viewModelScope
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
@@ -38,7 +39,12 @@ data class PlaceDetailEditState(
     val newTagInput: String = "",
     val isSaving: Boolean = false,
     val errorMessage: String? = null,
-)
+    val category: PlaceCategory = PlaceCategory.OTHER,
+    val original: PlaceDetailValues = PlaceDetailValues(category, note, selectedTagNames),
+    val showDiscardConfirmation: Boolean = false,
+) {
+    val isDirty get() = hasPlaceDetailChanges(PlaceDetailValues(category, note, selectedTagNames), original, newTagInput)
+}
 
 sealed interface PlaceSearchBackDecision {
     data object Ignore : PlaceSearchBackDecision
@@ -64,6 +70,9 @@ sealed interface PlaceSearchAction {
     data object RecenterDetail : PlaceSearchAction
     data class ToggleCollection(val poiId: String) : PlaceSearchAction
     data class StartEdit(val placeId: String) : PlaceSearchAction
+    data class UpdateEditCategory(val value: PlaceCategory) : PlaceSearchAction
+    data object ConfirmDiscardEdit : PlaceSearchAction
+    data object ContinueEditing : PlaceSearchAction
     data class UpdateEditNote(val value: String) : PlaceSearchAction
     data class UpdateEditTags(val value: Set<String>) : PlaceSearchAction
     data class UpdateNewTagInput(val value: String) : PlaceSearchAction
@@ -110,7 +119,14 @@ internal fun reducePlaceSearchBack(state: PlaceSearchUiState): PlaceSearchUiStat
             collectionError = null,
             collectionErrorPoiId = null,
         )
-        PlaceSearchBackDecision.CancelEdit -> state.copy(detailDraft = null)
+        PlaceSearchBackDecision.CancelEdit -> {
+            val draft = requireNotNull(state.detailDraft)
+            when {
+                draft.showDiscardConfirmation -> state.copy(detailDraft = draft.copy(showDiscardConfirmation = false))
+                draft.isDirty -> state.copy(detailDraft = draft.copy(showDiscardConfirmation = true))
+                else -> state.copy(detailDraft = null)
+            }
+        }
         PlaceSearchBackDecision.ShowResults -> state.copy(displayMode = SearchDisplayMode.Results)
         PlaceSearchBackDecision.ExitDestination -> state
     }
@@ -192,6 +208,9 @@ class PlaceSearchViewModel(
             PlaceSearchAction.RecenterDetail -> recenterDetail()
             is PlaceSearchAction.ToggleCollection -> toggleCollection(action.poiId)
             is PlaceSearchAction.StartEdit -> startEdit(action.placeId)
+            is PlaceSearchAction.UpdateEditCategory -> updateCategory(action.value)
+            PlaceSearchAction.ConfirmDiscardEdit -> confirmDiscardEdit()
+            PlaceSearchAction.ContinueEditing -> continueEditing()
             is PlaceSearchAction.UpdateEditNote -> updateEdit(note = action.value)
             is PlaceSearchAction.UpdateEditTags -> updateEdit(tags = action.value)
             is PlaceSearchAction.UpdateNewTagInput -> updateNewTagInput(action.value)
@@ -285,6 +304,7 @@ class PlaceSearchViewModel(
                 placeId = place.id,
                 note = place.note,
                 selectedTagNames = place.tags.mapTo(mutableSetOf()) { it.name },
+                category = place.category,
             ),
         )
     }
@@ -349,8 +369,30 @@ class PlaceSearchViewModel(
         )
     }
 
+    private fun updateCategory(value: PlaceCategory) {
+        val draft = mutableState.value.detailDraft ?: return
+        if (!draft.isSaving) mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(category = value, errorMessage = null))
+    }
     private fun cancelEdit() {
-        if (mutableState.value.detailDraft?.isSaving == true) return
+        val draft = mutableState.value.detailDraft ?: return
+        when (placeDetailCloseDecision(draft.isSaving, draft.isDirty)) {
+            PlaceDetailCloseDecision.IGNORE -> Unit
+            PlaceDetailCloseDecision.CLOSE -> clearEdit()
+            PlaceDetailCloseDecision.CONFIRM_DISCARD -> mutableState.value = mutableState.value.copy(
+                detailDraft = draft.copy(showDiscardConfirmation = true))
+        }
+    }
+    private fun continueEditing() {
+        val draft = mutableState.value.detailDraft ?: return
+        if (!draft.isSaving) mutableState.value = mutableState.value.copy(
+            detailDraft = draft.copy(showDiscardConfirmation = false))
+    }
+    private fun confirmDiscardEdit() {
+        val draft = mutableState.value.detailDraft ?: return
+        if (!draft.isSaving && draft.showDiscardConfirmation) clearEdit()
+    }
+    private fun clearEdit() {
         detailEditGeneration++
         mutableState.value = mutableState.value.copy(detailDraft = null)
     }
@@ -362,7 +404,7 @@ class PlaceSearchViewModel(
         mutableState.value = mutableState.value.copy(detailDraft = draft.copy(isSaving = true, errorMessage = null))
         viewModelScope.launch {
             try {
-                repository.updateDetails(draft.placeId, draft.note, draft.selectedTagNames)
+                repository.updateDetails(draft.placeId, draft.note, draft.selectedTagNames, draft.category)
                 if (isCurrentDetailEdit(draft.placeId, generation)) {
                     mutableState.value = mutableState.value.copy(detailDraft = null)
                 }

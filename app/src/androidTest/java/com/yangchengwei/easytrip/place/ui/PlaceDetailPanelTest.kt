@@ -47,6 +47,27 @@ import org.junit.Rule
 import org.junit.Test
 
 class PlaceDetailPanelTest {
+    @Test fun categorySelectorDefaultsToOtherAndDispatchesSingleSelection() {
+        val actions = mutableListOf<PlaceDetailPanelAction>()
+        compose.setContent {
+            EasyTripTheme {
+                PlaceDetailPanel(
+                    candidate = savedPlace().toCandidate(), savedPlace = savedPlace(),
+                    editState = PlaceDetailEditState("saved-1", "", emptySet()),
+                    source = PlaceDetailSource.PlacePool, collectionBusy = false, collectionError = null,
+                    onAction = actions::add,
+                )
+            }
+        }
+        compose.onNodeWithTag("place-category-other").performScrollTo().assert(
+            SemanticsMatcher.expectValue(SemanticsProperties.Selected, true))
+        compose.onNodeWithTag("place-category-food").performScrollTo().performClick()
+        assertEquals(PlaceDetailPanelAction.CategoryChanged(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD), actions.last())
+        compose.onAllNodesWithText("未分类").assertCountEquals(0)
+        compose.onNodeWithTag("place-detail-save").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-cancel").assertIsDisplayed()
+    }
+
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
     @Test fun searchUnsavedShowsCollectionButNoEditDeleteOrAdd() {
@@ -194,7 +215,7 @@ class PlaceDetailPanelTest {
         )
 
         compose.onNodeWithTag("place-detail-preset-tag-咖啡").assertIsNotEnabled()
-        compose.onNodeWithTag("place-detail-preset-tag-已选1").performClick()
+        compose.onNodeWithTag("place-detail-preset-tag-已选1").performScrollTo().performClick()
 
         compose.runOnIdle { assertEquals(PlaceDetailPanelAction.RemoveTag("已选1"), actions.single()) }
     }
@@ -209,7 +230,7 @@ class PlaceDetailPanelTest {
             onAction = actions::add,
         )
 
-        compose.onNodeWithTag("place-detail-preset-tag-咖啡").performClick()
+        compose.onNodeWithTag("place-detail-preset-tag-咖啡").performScrollTo().performClick()
 
         compose.runOnIdle { assertEquals(PlaceDetailPanelAction.AddPresetTag("咖啡"), actions.single()) }
     }
@@ -361,7 +382,6 @@ class PlaceDetailPanelTest {
             "place-detail-save" to "保存",
         ).forEach { (tag, label) ->
             val action = compose.onNodeWithTag(tag)
-                .performScrollTo()
                 .assertIsDisplayed()
                 .assertHasClickAction()
                 .assertHeightIsAtLeast(48.dp)
@@ -392,6 +412,7 @@ class PlaceDetailPanelTest {
         }
 
         val inputBounds = compose.onNodeWithTag("place-detail-tags-input")
+            .performScrollTo()
             .assertTextEquals("自然", "新标签")
             .assertWidthIsAtLeast(100.dp)
             .getUnclippedBoundsInRoot()

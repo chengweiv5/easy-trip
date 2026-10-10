@@ -23,13 +23,14 @@ data class PlaceSnapshotRow(
     val cityAdCode: String?,
     val cityCode: String?,
     val cityMetadataVersion: Int,
+    val category: String,
 )
 
 @Dao
 interface PlaceDao {
     @Query("""
         SELECT p.id AS placeId, p.tripId, p.amapPoiId, p.name AS placeName,
-               p.address, p.latitude, p.longitude, p.note, p.cityName, p.cityAdCode, p.cityCode, p.cityMetadataVersion,
+               p.address, p.latitude, p.longitude, p.note, p.cityName, p.cityAdCode, p.cityCode, p.cityMetadataVersion, p.category,
                t.id AS tagId, t.name AS tagName
         FROM saved_places p
         LEFT JOIN saved_place_tags r ON r.savedPlaceId = p.id AND r.tripId = p.tripId
@@ -49,7 +50,10 @@ interface PlaceDao {
     @Query("SELECT * FROM saved_places WHERE id=:id") suspend fun place(id: String): SavedPlaceEntity?
     @Query("SELECT id FROM saved_places WHERE tripId=:tripId AND amapPoiId=:poiId") suspend fun placeId(tripId: String, poiId: String): String?
     @Insert(onConflict=OnConflictStrategy.IGNORE) suspend fun insertPlace(value: SavedPlaceEntity): Long
-    @Query("UPDATE saved_places SET note=:note WHERE id=:placeId") suspend fun updateNote(placeId: String, note: String): Int
+    @Query("UPDATE saved_places SET note=:note, category=:category WHERE id=:placeId")
+    suspend fun updateDetails(placeId: String, note: String, category: String): Int
+    @Query("UPDATE saved_places SET note=:note WHERE id=:placeId")
+    suspend fun updateNote(placeId: String, note: String): Int
     @Query("UPDATE saved_places SET cityName=:name, cityAdCode=:adCode WHERE id=:placeId AND (cityName IS NULL OR TRIM(cityName) = '')")
     suspend fun updateCityIfMissing(placeId: String, name: String, adCode: String?): Int
     @Query("UPDATE saved_places SET cityName=:name, cityAdCode=:adCode, cityCode=COALESCE(NULLIF(:routeCityCode, ''), cityCode), cityMetadataVersion=1 WHERE id=:placeId AND cityMetadataVersion < 1")

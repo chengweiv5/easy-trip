@@ -20,6 +20,7 @@ data class ItineraryItemUi(
     val expenseCents: Long? = null,
     val timingWarning: String? = null,
     val expenses: List<com.yangchengwei.easytrip.expense.PlaceExpenseInput> = emptyList(),
+    val placeCategory: com.yangchengwei.easytrip.place.domain.PlaceCategory = com.yangchengwei.easytrip.place.domain.PlaceCategory.OTHER,
 )
 
 sealed interface RouteLegUiState {
@@ -146,6 +147,7 @@ internal fun ItineraryItem.toItineraryItemUi() = ItineraryItemUi(
     expenseCents = expenseCents,
     timingWarning = timingWarning,
     expenses = expenses,
+    placeCategory = place.category,
 )
 
 internal fun RouteLegEntity.toRouteLegUi() = RouteLegUi(

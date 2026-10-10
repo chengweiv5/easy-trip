@@ -5,26 +5,28 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MapMarkerRenderingPolicyTest {
-    @Test fun `scheduled place pool marker uses number without bookmark`() {
+    @Test fun `scheduled place pool marker keeps category and adds separate check`() {
         val rendering = mapMarkerRendering(
             MapMarkerUi("place-1", point(), "地点", emptyList(), MapMarkerKind.SAVED_PLACE_POOL, scheduled = true),
         )
 
-        assertEquals(0xFF086F76.toInt(), rendering.backgroundColor)
-        assertEquals(0xFFFFFFFF.toInt(), rendering.foregroundColor)
+        assertEquals(0xFFF0F3F4.toInt(), rendering.backgroundColor)
+        assertEquals(0xFF596A70.toInt(), rendering.foregroundColor)
         assertEquals(emptyList<NormalizedPoint>(), rendering.geometry)
-        assertTrue(rendering.solid)
+        assertTrue(rendering.showScheduledCheck)
+        assertEquals("", rendering.glyph)
     }
 
-    @Test fun `saved only place pool marker uses white surface with primary bookmark and border`() {
+    @Test fun `saved only place pool marker uses category color and icon`() {
         val rendering = mapMarkerRendering(
             MapMarkerUi("place-1", point(), "地点", emptyList(), MapMarkerKind.SAVED_PLACE_POOL),
         )
 
-        assertEquals(0xFFFFFFFF.toInt(), rendering.backgroundColor)
-        assertEquals(0xFF086F76.toInt(), rendering.foregroundColor)
-        assertEquals(0xFF086F76.toInt(), rendering.borderColor)
-        assertEquals(BookmarkGeometry, rendering.geometry)
+        assertEquals(0xFFF0F3F4.toInt(), rendering.backgroundColor)
+        assertEquals(0xFF596A70.toInt(), rendering.foregroundColor)
+        assertEquals(0xFF596A70.toInt(), rendering.borderColor)
+        assertEquals(emptyList<NormalizedPoint>(), rendering.geometry)
+        assertEquals(com.yangchengwei.easytrip.R.drawable.ic_place_other, rendering.categoryIconRes)
         assertTrue(!rendering.solid)
     }
 

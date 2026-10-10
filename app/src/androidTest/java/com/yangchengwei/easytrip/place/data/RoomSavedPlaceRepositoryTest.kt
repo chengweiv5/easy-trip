@@ -45,6 +45,33 @@ class RoomSavedPlaceRepositoryTest {
     }
     @After fun tearDown() = database.close()
 
+    @Test fun categoryUpdatesAreAtomicAndAppearInItineraryWithoutChangingItsNote() = runTest {
+        val trip = trips.createTrip(CreateTrip("Trip", 1))
+        val day = trips.observeTrip(trip).first()!!.days.single()
+        val saved = places.save(trip, candidate("category")) as SavePlaceResult.Saved
+        val itinerary = RoomItineraryRepository(database, database.itineraryEditingDao(), database.routeLegDao())
+        val item = itinerary.addItem(day.id, saved.id, 0)
+        itinerary.updateDetails(item, null, null, "行程备注")
+        places.updateDetails(saved.id, "收藏备注", setOf("亲子"),
+            com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING)
+        places.updateDetails(saved.id, "新的收藏备注", setOf("亲子"))
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING,
+            places.observePlaces(trip, emptySet()).first().single().category)
+        assertThrows(IllegalArgumentException::class.java) {
+            kotlinx.coroutines.runBlocking {
+                places.updateDetails(saved.id, "不应保存", setOf(""),
+                    com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD)
+            }
+        }
+        val place = places.observePlaces(trip, emptySet()).first().single()
+        assertEquals("新的收藏备注", place.note)
+        assertEquals(listOf("亲子"), place.tags.map { it.name })
+        val entry = itinerary.observeDay(day.id).first().items.single()
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING, entry.place.category)
+        assertEquals("行程备注", entry.note)
+        assertEquals(emptyList<com.yangchengwei.easytrip.expense.PlaceExpenseInput>(), entry.expenses)
+    }
+
     @Test fun duplicatePoiInOneTripReturnsExistingIdButDifferentTripsCanSave() = runTest {
         val firstTrip = trips.createTrip(CreateTrip("First", 1))
         val secondTrip = trips.createTrip(CreateTrip("Second", 1))

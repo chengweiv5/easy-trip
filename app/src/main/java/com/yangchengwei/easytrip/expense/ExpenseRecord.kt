@@ -6,9 +6,9 @@ enum class ExpenseCategory(val storageKey: String, val label: String) {
     LODGING("lodging", "住宿"),
     TRANSPORT("transport", "交通"),
     ATTRACTION("attraction", "景点"),
-    FOOD("food", "吃饭"),
+    FOOD("food", "餐饮"),
     SHOPPING("shopping", "购物"),
-    OTHER("other", "其它"),
+    OTHER("other", "其他"),
     ;
 
     companion object {

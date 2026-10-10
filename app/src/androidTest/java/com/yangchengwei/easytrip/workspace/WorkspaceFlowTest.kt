@@ -1622,6 +1622,38 @@ class WorkspaceFlowTest {
         }
     }
 
+    @Test fun dirtyPlaceEditorEveryExitConfirmsOnceAndKeepsTheDraft() {
+        val repository = DelayedUpdatePlaces()
+        val workspace = TripWorkspaceViewModel("trip", Trips(), repository, Itineraries(), Legs(), SavedStateHandle())
+        val placeModel = com.yangchengwei.easytrip.place.ui.PlacePoolViewModel("trip", repository, null)
+        compose.setContent {
+            TripWorkspaceRoute(
+                viewModel = workspace, consent = consentToken(), onBack = {}, onSettings = {},
+                locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) },
+                onWorkspaceEffect = {}, placeViewModel = placeModel, mapHostFactory = ::TestMapHost,
+            )
+        }
+        compose.waitUntil(5_000) { placeModel.state.value.rows.isNotEmpty() }
+        compose.onNodeWithTag("open-place-detail-saved").performClick()
+        compose.onNodeWithText("编辑").performClick()
+        compose.onNodeWithTag("place-category-food").performScrollTo().performClick()
+        for (exit in listOf("place-detail-cancel", "place-detail-dismiss", "workspace-back")) {
+            if (exit == "place-detail-dismiss") compose.onNodeWithTag(exit).performScrollTo()
+            compose.onNodeWithTag(exit).performClick()
+            compose.onNodeWithTag("place-detail-discard-confirm").assertIsDisplayed()
+            compose.onNodeWithTag("place-detail-continue-editing").performClick()
+            compose.runOnIdle {
+                assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD, placeModel.state.value.detailDraft?.category)
+                assertTrue(workspace.state.value.overlay is WorkspaceOverlay.PlaceDetail)
+            }
+        }
+        pressBack()
+        compose.onNodeWithTag("place-detail-discard-confirm").assertIsDisplayed().performClick()
+        compose.waitUntil(5_000) { placeModel.state.value.editing == null && workspace.state.value.overlay == WorkspaceOverlay.None }
+        assertEquals(0, repository.updateCalls)
+    }
+
     @Test fun editingStaysInTheSameSheetAndSavingBlocksBackUntilCompletion() {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val repository = DelayedUpdatePlaces()
@@ -2155,7 +2187,7 @@ class WorkspaceFlowTest {
             )
         }
         compose.waitUntil(5_000) { workspace.pageState.value is TripWorkspacePageState.Ready }
-        compose.onNodeWithTag("quick-add-place-p").performClick()
+        compose.onNodeWithTag("quick-add-place-p").performScrollTo().performClick()
         compose.waitUntil(5_000) { workspace.state.value.overlay == WorkspaceOverlay.SelectAddTargetDay }
 
         compose.onAllNodesWithText("地点")[0].assertIsDisplayed()
@@ -3335,7 +3367,7 @@ class WorkspaceFlowTest {
         override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
         override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("saved-poi"))
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) {
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) {
             updateCalls++
             updateGate.await()
         }
@@ -3350,7 +3382,7 @@ class WorkspaceFlowTest {
         override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
         override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("saved-poi"))
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
@@ -3365,7 +3397,7 @@ class WorkspaceFlowTest {
         override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("poi"))
         override fun observeUsageCounts(tripId: String) = flowOf(mapOf("saved" to 0))
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String): PlaceDeletionImpact {
             impactCalls++
@@ -3385,7 +3417,7 @@ class WorkspaceFlowTest {
         override fun observeSavedPoiIds(tripId: String) = flowOf(setOf("poi"))
         override fun observeUsageCounts(tripId: String) = flowOf(mapOf("saved" to 0))
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("saved")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = usage.await()
         override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) {
@@ -3598,7 +3630,7 @@ class WorkspaceFlowTest {
         override fun observeTags(tripId: String) = kotlinx.coroutines.flow.emptyFlow<List<PlaceTag>>()
         override fun observeSavedPoiIds(tripId: String) = kotlinx.coroutines.flow.emptyFlow<Set<String>>()
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("p")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = PlaceDeletionImpact(0, 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit
@@ -3751,7 +3783,7 @@ class WorkspaceFlowTest {
         override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
         override fun observeSavedPoiIds(tripId: String) = flowOf(emptySet<String>())
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("p")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit

@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.safeDrawing
 import androidx.compose.foundation.layout.windowInsetsPadding
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -35,12 +36,15 @@ fun WorkspacePlaceDetailSheet(
             newTagInput = draft.newTagInput,
             isSaving = state.detailSaving,
             errorMessage = state.detailSaveError,
+            category = draft.category, original = draft.original,
+            showDiscardConfirmation = draft.showDiscardConfirmation,
         )
     }
     BoxWithConstraints(
         modifier = modifier
             .fillMaxSize()
             .windowInsetsPadding(WindowInsets.safeDrawing)
+            .imePadding()
             .testTag("place-detail-overlay-host"),
     ) {
         Surface(

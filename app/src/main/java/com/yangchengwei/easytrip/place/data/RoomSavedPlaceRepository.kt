@@ -31,7 +31,7 @@ class RoomSavedPlaceRepository(
                 val first = group.first()
                 val tags = group.mapNotNull { row -> row.tagId?.let { PlaceTag(it, requireNotNull(row.tagName)) } }
                 if (!tagIds.all { selected -> tags.any { it.id == selected } }) return@mapNotNull null
-                SavedPlace(first.placeId, first.tripId, first.amapPoiId, first.placeName, first.address, GeoPoint(first.latitude, first.longitude), first.note.orEmpty(), tags, first.cityName, first.cityAdCode, first.cityCode, first.cityMetadataVersion)
+                SavedPlace(first.placeId, first.tripId, first.amapPoiId, first.placeName, first.address, GeoPoint(first.latitude, first.longitude), first.note.orEmpty(), tags, first.cityName, first.cityAdCode, first.cityCode, first.cityMetadataVersion, com.yangchengwei.easytrip.place.domain.PlaceCategory.fromStorageKey(first.category))
             }
         }
 
@@ -62,7 +62,7 @@ class RoomSavedPlaceRepository(
         dao.updateCityIfMissing(placeId, city.name, city.adCode)
     }
 
-    override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = database.withTransaction {
+    override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = database.withTransaction {
         val place = requireNotNull(dao.place(placeId)) { "Unknown place: $placeId" }
         val unique = linkedMapOf<String, String>()
         tagNames.forEach { raw ->
@@ -72,7 +72,7 @@ class RoomSavedPlaceRepository(
             unique.putIfAbsent(normalize(display), display)
         }
         require(unique.size <= 8) { "最多选择 8 个标签" }
-        require(dao.updateNote(placeId, note.trim()) == 1)
+        require(dao.updateDetails(placeId, note.trim(), category?.storageKey ?: place.category) == 1)
         val tags = unique.map { (normalized, display) ->
             dao.tag(place.tripId, normalized) ?: run {
                 val created = TagEntity(idFactory(), place.tripId, display, normalized)

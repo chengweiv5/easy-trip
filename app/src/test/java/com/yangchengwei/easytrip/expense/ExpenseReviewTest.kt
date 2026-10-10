@@ -75,7 +75,7 @@ class ExpenseReviewTest {
             listOf("lodging", "transport", "attraction", "food", "shopping", "other"),
             ExpenseCategory.entries.map { it.storageKey },
         )
-        assertEquals(listOf("住宿", "交通", "景点", "吃饭", "购物", "其它"), ExpenseCategory.entries.map { it.label })
+        assertEquals(listOf("住宿", "交通", "景点", "餐饮", "购物", "其他"), ExpenseCategory.entries.map { it.label })
         ExpenseCategory.entries.forEach { assertEquals(it, ExpenseCategory.fromStorageKey(it.storageKey)) }
         assertNull(ExpenseCategory.fromStorageKey(null))
         assertThrows(IllegalArgumentException::class.java) { ExpenseCategory.fromStorageKey("unknown") }

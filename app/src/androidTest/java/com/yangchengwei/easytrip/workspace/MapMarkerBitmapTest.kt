@@ -29,7 +29,7 @@ class MapMarkerBitmapTest {
                 assertEquals(0, Color.alpha(bitmap.getPixel(0, 0)))
                 assertTrue(Color.alpha(bitmap.getPixel(bitmap.width / 2, 0)) > 0)
                 val interiorX = bitmap.width / 2 - (8 * density).roundToInt()
-                val expected = if (scheduled) 0xFF086F76.toInt() else Color.WHITE
+                val expected = 0xFFF0F3F4.toInt()
                 assertEquals("scheduled=$scheduled focused=$focused", expected, bitmap.getPixel(interiorX, diameter / 2))
                 bitmap.recycle()
             }
@@ -69,17 +69,44 @@ class MapMarkerBitmapTest {
         }
     }
 
-    @Test fun scheduledPlacePoolAndItineraryHaveIdenticalBoldNameBitmaps() {
+    @Test fun scheduledPlacePoolAndItineraryKeepBoldNamesButHaveDifferentCategoryAndOrdinalBadges() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         for (focused in listOf(false, true)) {
             val marker = MapMarkerUi("place", GeoPoint(30.25, 120.15), "西湖天地", emptyList(),
                 MapMarkerKind.SAVED_PLACE_POOL, badgeText = "1", scheduled = true, isFocused = focused)
             val pool = render(MarkerIconView(context, marker))
             val itinerary = render(MarkerIconView(context, marker.copy(kind = MapMarkerKind.SAVED_ITINERARY)))
-            assertTrue("Both tabs must use the same bold name rendering", pool.sameAs(itinerary))
+            assertTrue("Pool category must not be replaced by the itinerary ordinal", !pool.sameAs(itinerary))
+            assertEquals(pool.height, itinerary.height)
             pool.recycle()
             itinerary.recycle()
         }
+    }
+
+    @Test fun allCategoriesRenderDistinctIconsAndItineraryAccessoryPreservesDateSegments() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val poolBitmaps = com.yangchengwei.easytrip.place.domain.PlaceCategory.entries.map { category ->
+            render(MarkerIconView(context, MapMarkerUi(
+                "place", GeoPoint(30.25, 120.15), "分类地点", emptyList(), MapMarkerKind.SAVED_PLACE_POOL,
+                scheduled = true, isFocused = true, category = category)))
+        }
+        poolBitmaps.forEachIndexed { i, bitmap ->
+            poolBitmaps.drop(i + 1).forEach { assertTrue(!bitmap.sameAs(it)) }
+            assertEquals(0, Color.alpha(bitmap.getPixel(0, 0)))
+        }
+        val marker = MapMarkerUi("day", GeoPoint(30.25, 120.15), "酒店", emptyList(),
+            MapMarkerKind.SAVED_ITINERARY, badgeText = "1", scheduled = true,
+            category = com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING,
+            badgeSegments = listOf(MapMarkerBadgeSegment("1", 0xFF2766AA), MapMarkerBadgeSegment("2", 0xFFAD5C2D)))
+        val view = MarkerIconView(context, marker)
+        val bitmap = render(view)
+        val density = context.resources.displayMetrics.density
+        assertEquals((70 * density).toInt(), bitmap.height)
+        assertEquals(14 * density, view.anchorY * bitmap.height, 1f)
+        assertEquals("1", mapMarkerRendering(marker).glyph)
+        assertTrue(mapMarkerRendering(marker).showCategoryAccessory)
+        bitmap.recycle()
+        poolBitmaps.forEach { it.recycle() }
     }
 
     @Test fun dateSegmentsRenderActualRouteColorsWhiteNumbersAndFocusOutline() {

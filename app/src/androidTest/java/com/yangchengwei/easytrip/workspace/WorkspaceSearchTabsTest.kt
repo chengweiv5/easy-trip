@@ -94,7 +94,7 @@ class WorkspaceSearchTabsTest {
         override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
         override fun observeSavedPoiIds(tripId: String) = flowOf(emptySet<String>())
         override suspend fun save(tripId: String, candidate: PlaceCandidate) = SavePlaceResult.Saved("p")
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit

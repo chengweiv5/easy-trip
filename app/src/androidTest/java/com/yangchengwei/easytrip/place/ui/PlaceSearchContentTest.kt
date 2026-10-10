@@ -364,7 +364,7 @@ class PlaceSearchContentTest {
         assertEquals(listOf(PlaceSearchAction.ToggleCollection(candidate.poiId)), actions)
     }
 
-    @Test fun longEditingDetailKeepsOverlayProportionsAndBottomActionsReachable() {
+    @Test fun longEditingDetailUsesExpandedEditorAndFixedBottomActions() {
         val candidate = PlaceCandidate(
             "poi-long",
             "这是一个非常长的地点名称用于验证固定详情面板在狭短视口内仍然保持可滚动和可操作",
@@ -395,10 +395,10 @@ class PlaceSearchContentTest {
         val mapRatio = (mapBounds.bottom - mapBounds.top).value / rootHeight
         val panelRatio = (panelBounds.bottom - panelBounds.top).value / rootHeight
         assertTrue(mapRatio in 0.50f..0.66f)
-        assertTrue(panelRatio in 0.40f..0.56f)
+        assertTrue(panelRatio in 0.80f..0.98f)
         assertTrue(panelBounds.top < mapBounds.bottom)
-        compose.onNodeWithTag("place-detail-save").performScrollTo().assertIsDisplayed()
-        compose.onNodeWithTag("place-detail-cancel").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-save").assertIsDisplayed()
+        compose.onNodeWithTag("place-detail-cancel").assertIsDisplayed()
     }
 
     @Test fun missingConsentDetailShowsAuthorizeActionInsteadOfSpacer() {
@@ -926,7 +926,7 @@ class PlaceSearchContentTest {
             ids.value += candidate.poiId
             return SavePlaceResult.Saved(place.id)
         }
-        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>) = Unit
+        override suspend fun updateDetails(placeId: String, note: String, tagNames: Set<String>, category: com.yangchengwei.easytrip.place.domain.PlaceCategory?) = Unit
         override suspend fun usageCount(placeId: String) = 0
         override suspend fun deletionImpact(placeId: String) = com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact(usageCount(placeId), 0)
         override suspend fun deletePlaceAndReferences(placeId: String) = Unit

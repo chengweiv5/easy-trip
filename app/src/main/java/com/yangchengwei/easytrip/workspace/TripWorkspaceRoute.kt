@@ -325,6 +325,13 @@ fun TripWorkspaceRoute(
             dispatchItinerary(DayItineraryAction.DismissDialogs)
             return
         }
+        if (currentPlaces.editing != null) {
+            if (currentPlaces.detailDraft?.showDiscardConfirmation == true) {
+                placeViewModel?.continueEditing()
+                return
+            }
+            if (placeViewModel?.dismissEdit() != true) return
+        }
         placeViewModel?.dismissDetail()
         dismissPendingDialogs()
         if (overlay.isAddToItineraryOverlay() ||

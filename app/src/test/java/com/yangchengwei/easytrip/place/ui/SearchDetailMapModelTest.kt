@@ -2,6 +2,8 @@ package com.yangchengwei.easytrip.place.ui
 
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.place.domain.PlaceCategory
+import com.yangchengwei.easytrip.place.domain.SavedPlace
 import com.yangchengwei.easytrip.workspace.MapMarkerKind
 import com.yangchengwei.easytrip.workspace.SEARCH_FOCUS_ZOOM
 import com.yangchengwei.easytrip.workspace.ViewportReason
@@ -46,5 +48,19 @@ class SearchDetailMapModelTest {
         assertEquals(ViewportReason.SEARCH_FOCUS, request?.reason)
         assertEquals(listOf(candidate.point), request?.points)
         assertEquals(SEARCH_FOCUS_ZOOM, request?.singlePointZoom)
+    }
+
+    @Test fun savedSearchDetailUsesCategoryWithoutChangingCameraRequest() {
+        val saved = SavedPlace("saved-1", "trip-1", candidate.poiId, candidate.name,
+            candidate.address, requireNotNull(candidate.point), "", emptyList(),
+            category = PlaceCategory.ATTRACTION)
+        val model = requireNotNull(searchDetailMapModel(candidate, 7L, saved))
+        assertEquals(MapMarkerKind.SAVED_PLACE_POOL, model.markers.single().kind)
+        assertEquals(PlaceCategory.ATTRACTION, model.markers.single().category)
+        assertEquals(
+            model.viewportRequest,
+            searchDetailMapModel(candidate, 7L, saved.copy(category = PlaceCategory.LODGING))?.viewportRequest,
+        )
+        assertEquals("search-poi-1", model.markers.single().key)
     }
 }

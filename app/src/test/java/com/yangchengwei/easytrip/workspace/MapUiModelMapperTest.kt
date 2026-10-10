@@ -16,6 +16,18 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class MapUiModelMapperTest {
+    @Test fun categoryFlowsToPoolAndItineraryWithoutChangingDayBadges() {
+        val place = saved("hotel", "酒店", shared).copy(category = com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING)
+        val snaps = listOf(snapshot("day-1", listOf(item("a", hotel))))
+        val pool = MapUiModelMapper.map(MapScope.PLACE_POOL, listOf(place), days, snaps)
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING, pool.markers.single().category)
+        assertTrue(pool.markers.single().scheduled)
+        val whole = MapUiModelMapper.map(MapScope.WHOLE_TRIP, listOf(place), days, snaps)
+        assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING, whole.markers.single().category)
+        assertEquals("1", whole.markers.single().badgeText)
+        assertEquals(listOf(MapMarkerBadgeSegment("1", 0xFF2766AA)), whole.markers.single().badgeSegments)
+    }
+
     @Test fun cityFilterLimitsPoolMarkersAndViewportButNeverFiltersItinerary() {
         val bj = saved("hotel", "酒店", shared).copy(cityName = "北京市", cityAdCode = "110000", cityMetadataVersion = 1)
         val sh = saved("museum", "博物馆", other).copy(cityName = "上海市", cityAdCode = "310000", cityMetadataVersion = 1)

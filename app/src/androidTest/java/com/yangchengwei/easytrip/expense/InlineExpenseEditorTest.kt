@@ -65,7 +65,7 @@ class InlineExpenseEditorTest {
         val trip = runBlocking {
             val trip = trips.createTrip(CreateTrip("费用测试", 1))
             val day = trips.observeTrip(trip).first()!!.days.single().id
-            db.savedPlaceDao().insertPlace(SavedPlaceEntity("hotel", trip, "hotel", "湖畔酒店", "地址", 30.0, 120.0))
+            db.savedPlaceDao().insertPlace(SavedPlaceEntity("hotel", trip, "hotel", "湖畔酒店", "地址", 30.0, 120.0, category = "lodging"))
             item = items.addItem(day, "hotel", 0)
             trip
         }
@@ -108,6 +108,20 @@ class InlineExpenseEditorTest {
         compose.runOnIdle { model.requestTiming(item) }
     }
 
+    @Test fun automaticallySelectedCategoryDoesNotPreventSavingOnlyAnItineraryNote() {
+        open()
+        compose.runOnIdle {
+            assertEquals(ExpenseCategory.LODGING, model.state.value.editDraft!!.expenses.single().category)
+            assertTrue(model.state.value.editDraft!!.isValid)
+        }
+        compose.onNodeWithTag("itinerary-note-input").performScrollTo().performTextInput("仅行程备注")
+        compose.onNodeWithTag("itinerary-save").performClick()
+        compose.waitUntil(5_000) { model.state.value.editDraft == null }
+        assertTrue(runBlocking { RoomExpenseRepository(db).observeRecords().first().isEmpty() })
+        assertEquals("仅行程备注", runBlocking { db.itineraryEditingDao().item(item)!!.note })
+        captureEditor("default-category-empty-saved")
+    }
+
     @Test fun firstExpenseIsInlineAndAddingAnotherDoesNotPersistUntilSave() {
         open()
         compose.onNodeWithTag("expense-amount-first").performTextInput("600")
@@ -119,7 +133,8 @@ class InlineExpenseEditorTest {
         compose.runOnIdle { model.requestTiming(item) }
         compose.onNodeWithTag("expense-add").performScrollTo().performClick()
         compose.onNodeWithTag("expense-amount-new-1").performScrollTo().performTextInput("120")
-        compose.onNodeWithTag("expense-category-new-1-food").performClick()
+        compose.onNodeWithTag("expense-category-new-1-food").performScrollTo().performClick()
+        compose.runOnIdle { assertEquals(ExpenseCategory.FOOD, model.state.value.editDraft!!.expenses.last().category) }
         assertEquals(1, runBlocking { RoomExpenseRepository(db).observeRecords().first().size })
         compose.onNodeWithTag("itinerary-save").performClick()
         compose.waitUntil(10_000) { model.state.value.editDraft == null }
@@ -298,10 +313,10 @@ class InlineExpenseEditorTest {
 
     @Test fun collapsedIncompleteExpenseExplainsErrorAndCanBeOpenedForCorrection() {
         open()
-        compose.onNodeWithTag("expense-amount-first").performTextInput("600")
+        compose.onNodeWithTag("expense-amount-first").performTextInput("600.001")
         compose.onNodeWithTag("expense-add").performScrollTo().performClick()
         compose.onNodeWithTag("expense-error-first").performScrollTo().assertIsDisplayed().performClick()
-        compose.onNodeWithTag("expense-category-first-lodging").performScrollTo().performClick()
+        compose.onNodeWithTag("expense-amount-first").performScrollTo().performTextReplacement("600")
         compose.onNodeWithTag("itinerary-save").assertIsEnabled()
     }
 }

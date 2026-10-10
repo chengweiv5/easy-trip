@@ -57,7 +57,10 @@ fun PlacePoolSheet(
         onEdit = viewModel::edit,
         onDelete = viewModel::requestDelete,
         onToggleCollection = viewModel::toggleCollection,
-        onDismissEdit = viewModel::dismissEdit,
+        onDismissEdit = { viewModel.dismissEdit() },
+        onUpdateCategory = viewModel::updateCategory,
+        onConfirmDiscardEdit = viewModel::confirmDiscardEdit,
+        onContinueEditing = viewModel::continueEditing,
         onUpdateDraft = viewModel::updateDetailDraft,
         onUpdateNewTagInput = viewModel::updateNewTagInput,
         onAddTag = viewModel::addNewTag,
@@ -83,6 +86,9 @@ sealed interface PlacePoolAction {
     data class Edit(val place: com.yangchengwei.easytrip.place.domain.SavedPlace) : PlacePoolAction
     data class Delete(val place: com.yangchengwei.easytrip.place.domain.SavedPlace) : PlacePoolAction
     data class ToggleCollection(val candidate: com.yangchengwei.easytrip.place.amap.PlaceCandidate) : PlacePoolAction
+    data class UpdateCategory(val value: com.yangchengwei.easytrip.place.domain.PlaceCategory) : PlacePoolAction
+    data object ConfirmDiscardEdit : PlacePoolAction
+    data object ContinueEditing : PlacePoolAction
     data class UpdateDraft(val note: String, val tags: Set<String>) : PlacePoolAction
     data class UpdateNewTagInput(val value: String) : PlacePoolAction
     data object AddTag : PlacePoolAction
@@ -122,6 +128,9 @@ fun PlacePoolContent(
         onDelete = { onAction(PlacePoolAction.Delete(it)) },
         onToggleCollection = { onAction(PlacePoolAction.ToggleCollection(it)) },
         onDismissEdit = { onAction(PlacePoolAction.DismissDialogs) },
+        onUpdateCategory = { onAction(PlacePoolAction.UpdateCategory(it)) },
+        onConfirmDiscardEdit = { onAction(PlacePoolAction.ConfirmDiscardEdit) },
+        onContinueEditing = { onAction(PlacePoolAction.ContinueEditing) },
         onUpdateDraft = { note, tags -> onAction(PlacePoolAction.UpdateDraft(note, tags)) },
         onUpdateNewTagInput = { onAction(PlacePoolAction.UpdateNewTagInput(it)) },
         onAddTag = { onAction(PlacePoolAction.AddTag) },
@@ -156,6 +165,9 @@ fun PlacePoolContent(
     onDelete: (com.yangchengwei.easytrip.place.domain.SavedPlace) -> Unit,
     onToggleCollection: (com.yangchengwei.easytrip.place.amap.PlaceCandidate) -> Unit,
     onDismissEdit: () -> Unit,
+    onUpdateCategory: (com.yangchengwei.easytrip.place.domain.PlaceCategory) -> Unit = {},
+    onConfirmDiscardEdit: () -> Unit = {},
+    onContinueEditing: () -> Unit = {},
     onUpdateDraft: (String, Set<String>) -> Unit,
     onUpdateNewTagInput: (String) -> Unit = {},
     onAddTag: () -> Unit = {},
@@ -335,6 +347,8 @@ fun PlacePoolContent(
                             newTagInput = draft.newTagInput,
                             isSaving = state.detailSaving,
                             errorMessage = state.detailSaveError,
+                            category = draft.category, original = draft.original,
+                            showDiscardConfirmation = draft.showDiscardConfirmation,
                         ),
                         source = PlaceDetailSource.PlacePool,
                         collectionBusy = false,
@@ -344,6 +358,9 @@ fun PlacePoolContent(
                             when (action) {
                                 PlaceDetailPanelAction.Dismiss,
                                 PlaceDetailPanelAction.CancelEdit -> onDismissEdit()
+                                is PlaceDetailPanelAction.CategoryChanged -> onUpdateCategory(action.value)
+                                PlaceDetailPanelAction.ConfirmDiscardEdit -> onConfirmDiscardEdit()
+                                PlaceDetailPanelAction.ContinueEditing -> onContinueEditing()
                                 is PlaceDetailPanelAction.NoteChanged -> onUpdateDraft(action.value, draft.tags)
                                 is PlaceDetailPanelAction.NewTagInputChanged -> onUpdateNewTagInput(action.value)
                                 PlaceDetailPanelAction.AddTag -> onAddTag()

@@ -22,7 +22,7 @@ class RoomManualTripStatusTest {
         EasyTripDatabase::class.java, emptyList(), FrameworkSQLiteOpenHelperFactory())
     @After fun cleanup() { context.deleteDatabase(name) }
     private fun open() = Room.databaseBuilder(context, EasyTripDatabase::class.java, name)
-        .addMigrations(EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9).build()
+        .addMigrations(EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10).build()
 
     @Test fun oldDatesStayPendingAndManualStatusSurvivesReopenAndDateEdits() = runBlocking {
         helper.createDatabase(name, 5).apply {

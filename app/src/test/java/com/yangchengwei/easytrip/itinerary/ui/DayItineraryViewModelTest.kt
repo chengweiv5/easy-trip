@@ -94,10 +94,14 @@ class DayItineraryViewModelTest {
 
         val draft = model.state.value.editDraft!!
         assertEquals("item-alpha", draft.itemId)
-        assertEquals("08:45", draft.arrivalTimeText)
-        assertEquals("105", draft.stayMinutesText)
+        assertEquals("08:30", draft.arrivalTimeText)
+        assertEquals("90", draft.stayMinutesText)
         assertEquals("保存失败", draft.saveError)
         assertFalse(draft.isSaving)
+        model.updateArrivalTime("08:45")
+        model.updateStayMinutes("105")
+        assertEquals("08:45", model.state.value.editDraft?.arrivalTimeText)
+        assertEquals("105", model.state.value.editDraft?.stayMinutesText)
     }
 
     @Test fun `save failure keeps the complete draft and clear failure keeps it open without another repository call`() = runTest(dispatcher) {
@@ -174,7 +178,7 @@ class DayItineraryViewModelTest {
         assertNull(model.state.value.deleteConfirmation)
     }
 
-    @Test fun `stale save completion cannot clear newer editor for same item`() = runTest(dispatcher) {
+    @Test fun `opening same item while saving keeps existing draft and cannot bypass saving guard`() = runTest(dispatcher) {
         val repository = Itineraries()
         val gate = CompletableDeferred<Unit>()
         repository.timingGate = gate
@@ -182,17 +186,23 @@ class DayItineraryViewModelTest {
         advanceUntilIdle()
         model.requestTiming("item-alpha")
         model.updateArrivalTime("08:30")
+        model.updateStayMinutes("90")
+        model.updateNote("保存前备注")
         model.saveTiming()
         dispatcher.scheduler.runCurrent()
 
         assertTrue(model.requestTiming("item-alpha"))
         model.updateArrivalTime("10:15")
+        model.updateStayMinutes("120")
+        model.updateNote("保存中不应改写")
+        assertEquals("08:30", model.state.value.editDraft?.arrivalTimeText)
+        assertEquals("90", model.state.value.editDraft?.stayMinutesText)
+        assertEquals("保存前备注", model.state.value.editDraft?.noteText)
+        assertTrue(model.state.value.editDraft!!.isSaving)
         gate.complete(Unit)
         advanceUntilIdle()
 
-        assertEquals("item-alpha", model.state.value.editDraft?.itemId)
-        assertEquals("10:15", model.state.value.editDraft?.arrivalTimeText)
-        assertFalse(model.state.value.editDraft!!.isSaving)
+        assertNull(model.state.value.editDraft)
     }
 
     @Test fun `stale delete failure cannot modify newer confirmation`() = runTest(dispatcher) {
@@ -1312,7 +1322,7 @@ class DayItineraryViewModelTest {
         assertNull(model.state.value.editDraft)
         model.requestTiming("item-alpha")
         model.updateExpense("0")
-        assertFalse(model.state.value.editDraft!!.isValid)
+        assertTrue(model.state.value.editDraft!!.isValid)
         model.dismissDialogs()
         assertTrue(model.state.value.editDraft!!.showDiscardConfirmation)
         model.keepEditing()
@@ -1322,6 +1332,29 @@ class DayItineraryViewModelTest {
         model.discardEdit()
         assertNull(model.state.value.editDraft)
         assertTrue(repository.detailCalls.isEmpty())
+    }
+
+    @Test fun newExpensesUsePlaceCategoryOnceWithoutOverwritingManualDrafts() = runTest(dispatcher) {
+        val repository = Itineraries()
+        repository.emitPlaceCategory("item-alpha", com.yangchengwei.easytrip.place.domain.PlaceCategory.LODGING)
+        val model = model(repository)
+        advanceUntilIdle()
+        model.requestTiming("item-alpha")
+        val first = model.state.value.editDraft!!.expenses.single()
+        assertEquals(com.yangchengwei.easytrip.expense.ExpenseCategory.LODGING, first.category)
+        assertTrue(model.state.value.editDraft!!.isValid)
+        assertFalse(model.state.value.editDraft!!.isDirty)
+        val manual = first.copy(amount = "88", category = com.yangchengwei.easytrip.expense.ExpenseCategory.FOOD,
+            categoryIsAutomatic = false, note = "晚餐")
+        model.updateExpenseRow(first.key, manual)
+        repository.emitPlaceCategory("item-alpha", com.yangchengwei.easytrip.place.domain.PlaceCategory.TRANSPORT)
+        advanceUntilIdle()
+        model.requestTiming("item-alpha")
+        assertEquals(manual, model.state.value.editDraft!!.expenses.single())
+        model.addExpense()
+        assertEquals(com.yangchengwei.easytrip.expense.ExpenseCategory.TRANSPORT,
+            model.state.value.editDraft!!.expenses.last().category)
+        assertEquals(manual, model.state.value.editDraft!!.expenses.first())
     }
 
     private fun model(
@@ -1345,6 +1378,12 @@ class DayItineraryViewModelTest {
     }
 
     private class Itineraries : ItineraryRepository {
+        fun emitPlaceCategory(itemId: String, category: com.yangchengwei.easytrip.place.domain.PlaceCategory) {
+            val flow = days.values.first { it.value.items.any { item -> item.id == itemId } }
+            flow.value = flow.value.copy(items = flow.value.items.map {
+                if (it.id == itemId) it.copy(place = it.place.copy(category = category)) else it
+            })
+        }
         var timingGate: CompletableDeferred<Unit>? = null
         var timingFailure: Throwable? = null
         var deleteGate: CompletableDeferred<Unit>? = null
