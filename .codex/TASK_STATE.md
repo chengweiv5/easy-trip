@@ -1,3 +1,18 @@
+# v3.0 Agent 技术架构评审草案
+
+状态：**DONE — 架构稿与组件图已生成并完成文档/视觉验证；等待用户评审，未开始实现。**（2026-10-10）
+
+- 当前工作树 `/Users/bytedance/.codex/worktrees/5ac3/easy-trip`，功能分支 `codex/v3-agent-place-intake`；源码核对基线 `8512c537b23ee80f625a1017751d60d6c785ee51`。
+- 入口为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-architecture-design.md`，从已有统一规划链接；不新建版本主线。
+- 推荐手机 Runtime、云端推理网关、类型化工具、共享 PlaceQuery/PlaceImport、同一 Room 事实库；结构化确认、选中批次原子提交和受限撤销均为待评审建议。
+- Archify 可编辑 JSON 与 HTML 位于 `docs/superpowers/specs/assets/easy-trip-v3-agent/`。11 个组件通过 schema、坐标/连线、SVG XML 检查；重新生成 HTML 字节一致。明暗主题最终预览已目视检查，无节点/标签重叠或边缘截断；OCR 覆盖主要标签，中文误识别与源文字人工对照。
+- 只读核对当前源码/ADR；外部 Android 文档实读 HTTP 200。没有修改 App/Gradle/schema/.pen/冻结 v4 源图；未跑 App 测试，未连接模型，不作功能验收结论。
+- 备份、源文档快照、验证报告、视觉检查图及通知回执目录：`/Users/bytedance/.codex/backups/easy-trip/v3-agent-architecture-20261010-214549`。仅撤销本次文件/区段，不覆盖其他历史记录。
+- 本轮仅本地提交供评审，不推送、不发布、不安装；后续获准推送仍只到对应 v3 远程分支，禁止 main。
+- 本地设计提交 `9aea8f38b12cbc969998e8ddc25d4e4d4804e5de`；punk-12 通知 `om_x100b6390007bdca8df914ab5cfc8780` 已回读验证发送者、全文与未删除状态。
+
+---
+
 # v2.2.1 开发、提交推送与发布
 
 状态：**DONE — v2.2.1/build20/schema10已公开发布，干净提交构建、快进推送、标签/下载/Latest及设计回读通过。**（2026-10-11）
