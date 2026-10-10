@@ -36,9 +36,10 @@
 
 ## Git 推送
 
-- 在功能分支开发和提交；本项目始终推送到 `origin/main`，使用 `git push origin HEAD:main`。
-- 推送前获取远端最新 `main`，确认 `origin/main` 是当前 `HEAD` 的祖先；仅允许快进推送，禁止强制推送。
-- 推送后回读远端 `refs/heads/main`，确认提交哈希与本地 `HEAD` 一致。
+- **v3.0 分支专用约束（2026-10-10 用户明确确认）**：当前本地分支 `codex/v3-agent-place-intake` 只允许推送到 `origin/codex/v3-agent-place-intake`。禁止推送到 `origin/main`、`origin/master` 或其他远程分支；本条覆盖此前“始终推送到 origin/main”的项目默认规则，未经用户另行明确授权不得改变目标。
+- **必须显式指定目标 refspec**：使用 `git push origin HEAD:refs/heads/codex/v3-agent-place-intake`；首次获准推送时可加 `-u` 建立同名 upstream。禁止裸 `git push` 或 `git push origin`：仓库共享配置仍有 `remote.origin.push = HEAD:refs/heads/main`，设置 upstream 也不能替代显式 refspec。不要为当前分支修改其他工作树共用的推送配置。
+- 推送前确认当前分支及远端目标；目标已存在时获取其最新提交，必要时在当前功能分支 rebase，并确认远端目标是当前 `HEAD` 的祖先。仅允许快进推送，禁止强制推送、`+` refspec、`--all` 和 `--mirror`。
+- 推送后回读远端 `refs/heads/codex/v3-agent-place-intake`，确认提交哈希与本地 `HEAD` 一致。此规则只限定目的地，不自动授权每轮推送；是否推送以当次用户要求为准。
 
 ## 飞书文档
 
