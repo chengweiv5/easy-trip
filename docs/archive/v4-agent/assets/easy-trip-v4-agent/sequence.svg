@@ -1,0 +1,178 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1640" height="2070" viewBox="0 0 1640 2070">
+<defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="9" refY="4" orient="auto-start-reverse" markerUnits="strokeWidth"><path d="M0 0 L10 4 L0 8 z" fill="#0055A4"/></marker></defs>
+<rect x="0" y="0" width="1640" height="2070" fill="#FFFFFF"/>
+<text x="70" y="88" font-size="44" font-weight="700" text-anchor="start" fill="#0055A4">
+<tspan x="70" dy="0">从自然语言调整到可靠保存</tspan>
+</text>
+<text x="70" y="137" font-size="26" text-anchor="start" fill="#0055A4">
+<tspan x="70" dy="0">模型提出候选调用，手机端校验并执行；完成状态来自本地数据与执行凭证</tspan>
+</text>
+<rect x="25" y="195" width="260" height="94" rx="6" fill="#DCF4A2"/>
+<text x="155" y="251" font-size="24" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="155" dy="0">用户 / 工作台</tspan>
+</text>
+<line x1="155" y1="289" x2="155" y2="1810" stroke="#0055A4" stroke-width="2" stroke-dasharray="7 13"/>
+<rect x="355" y="195" width="260" height="94" rx="6" fill="#DCF4A2"/>
+<text x="485" y="232" font-size="24" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="485" dy="0">手机端</tspan>
+<tspan x="485" dy="32">Agent Runtime</tspan>
+</text>
+<line x1="485" y1="289" x2="485" y2="1810" stroke="#0055A4" stroke-width="2" stroke-dasharray="7 13"/>
+<rect x="685" y="195" width="260" height="94" rx="6" fill="#DCF4A2"/>
+<text x="815" y="232" font-size="24" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="815" dy="0">云端模型网关</tspan>
+<tspan x="815" dy="32">+ LLM</tspan>
+</text>
+<line x1="815" y1="289" x2="815" y2="1810" stroke="#0055A4" stroke-width="2" stroke-dasharray="7 13"/>
+<rect x="1015" y="195" width="260" height="94" rx="6" fill="#DCF4A2"/>
+<text x="1145" y="232" font-size="24" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="1145" dy="0">手机能力层</tspan>
+<tspan x="1145" dy="32">+ ChangeSet 执行器</tspan>
+</text>
+<line x1="1145" y1="289" x2="1145" y2="1810" stroke="#0055A4" stroke-width="2" stroke-dasharray="7 13"/>
+<rect x="1345" y="195" width="260" height="94" rx="6" fill="#DCF4A2"/>
+<text x="1475" y="251" font-size="24" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="1475" dy="0">本地 Room</tspan>
+</text>
+<line x1="1475" y1="289" x2="1475" y2="1810" stroke="#0055A4" stroke-width="2" stroke-dasharray="7 13"/>
+<rect x="227" y="297" width="186" height="72" rx="6" fill="#FFFFFF"/>
+<text x="247" y="323" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="247" dy="0">明天轻松一点</tspan>
+<tspan x="247" dy="32">保留雷峰塔</tspan>
+</text>
+<line x1="155" y1="382" x2="485" y2="382" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="361" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="390" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">1</tspan>
+</text>
+<rect x="483" y="432" width="663" height="40" rx="6" fill="#FFFFFF"/>
+<text x="503" y="458" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="503" dy="0">读取当前旅行 / 日期 / 行程，取得 baseEditRevision</tspan>
+</text>
+<line x1="485" y1="485" x2="1145" y2="485" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)" marker-start="url(#arrow)"/>
+<rect x="38" y="464" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="493" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">2</tspan>
+</text>
+<rect x="510" y="508" width="280" height="72" rx="6" fill="#FFFFFF"/>
+<text x="530" y="534" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="530" dy="0">发送最小上下文</tspan>
+<tspan x="530" dy="32">与允许的工具 schema</tspan>
+</text>
+<line x1="485" y1="593" x2="815" y2="593" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="572" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="601" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">3</tspan>
+</text>
+<rect x="533" y="638" width="234" height="40" rx="6" fill="#FFFFFF"/>
+<text x="553" y="664" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="553" dy="0">返回候选工具调用</tspan>
+</text>
+<line x1="815" y1="691" x2="485" y2="691" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="670" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="699" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">4</tspan>
+</text>
+<rect x="575" y="714" width="480" height="72" rx="6" fill="#FFFFFF"/>
+<text x="595" y="740" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="595" dy="0">校验候选调用 → 查询路线 → 生成草稿</tspan>
+<tspan x="595" dy="32">可多轮调用工具；commit 不向模型开放</tspan>
+</text>
+<line x1="485" y1="799" x2="1145" y2="799" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="778" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="807" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">5</tspan>
+</text>
+<rect x="1150" y="822" width="320" height="72" rx="6" fill="#FFFFFF"/>
+<text x="1170" y="848" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="1170" dy="0">校验并持久化 ChangeSet</tspan>
+<tspan x="1170" dy="32">保存版本与内容 digest</tspan>
+</text>
+<line x1="1145" y1="907" x2="1475" y2="907" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="886" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="915" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">6</tspan>
+</text>
+<rect x="389" y="952" width="522" height="40" rx="6" fill="#FFFFFF"/>
+<text x="409" y="978" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="409" dy="0">读取已存草稿，显示修改前后差异与未确定项</tspan>
+</text>
+<line x1="1145" y1="1005" x2="155" y2="1005" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="984" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="1013" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">7</tspan>
+</text>
+<rect x="215" y="1028" width="210" height="72" rx="6" fill="#FFFFFF"/>
+<text x="235" y="1054" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="235" dy="0">用户调整方案</tspan>
+<tspan x="235" dy="32">并确认当前版本</tspan>
+</text>
+<line x1="155" y1="1113" x2="485" y2="1113" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="1092" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="1121" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">8</tspan>
+</text>
+<rect x="524" y="1136" width="582" height="72" rx="6" fill="#FFFFFF"/>
+<text x="544" y="1162" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="544" dy="0">提交 changeSetId + planRevision + digest</tspan>
+<tspan x="544" dy="32">执行器检查授权、确认摘要与 baseEditRevision</tspan>
+</text>
+<line x1="485" y1="1221" x2="1145" y2="1221" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="1200" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="1229" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">9</tspan>
+</text>
+<rect x="1080" y="1260" width="460" height="72" rx="6" fill="#FFFFFF"/>
+<text x="1100" y="1286" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="1100" dy="0">单事务：业务修改、editRevision +1</tspan>
+<tspan x="1100" dy="32">receipt 与 route pending</tspan>
+</text>
+<line x1="1145" y1="1345" x2="1475" y2="1345" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="1324" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="1353" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">10</tspan>
+</text>
+<rect x="1143" y="1390" width="334" height="40" rx="6" fill="#FFFFFF"/>
+<text x="1163" y="1416" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="1163" dy="0">回读 receipt + 当前状态</tspan>
+</text>
+<line x1="1475" y1="1443" x2="1145" y2="1443" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="1422" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="1451" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">11</tspan>
+</text>
+<rect x="437" y="1488" width="426" height="40" rx="6" fill="#FFFFFF"/>
+<text x="457" y="1514" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="457" dy="0">界面显示：行程已保存，路线计算中</tspan>
+</text>
+<line x1="1145" y1="1541" x2="155" y2="1541" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="1520" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="1549" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">12</tspan>
+</text>
+<rect x="1145" y="1580" width="330" height="72" rx="6" fill="#FFFFFF"/>
+<text x="1165" y="1606" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="1165" dy="0">异步路线结果按版本写回</tspan>
+<tspan x="1165" dy="32">过期结果不得覆盖当前行程</tspan>
+</text>
+<line x1="1145" y1="1665" x2="1475" y2="1665" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="1644" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="1673" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">13</tspan>
+</text>
+<rect x="578" y="1710" width="474" height="40" rx="6" fill="#FFFFFF"/>
+<text x="598" y="1736" font-size="24" text-anchor="start" fill="#0055A4">
+<tspan x="598" dy="0">界面订阅数据变更，更新路线与交通时间</tspan>
+</text>
+<line x1="1475" y1="1763" x2="155" y2="1763" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<rect x="38" y="1742" width="48" height="40" rx="6" fill="#DCF4A2"/>
+<text x="62" y="1771" font-size="22" font-weight="700" text-anchor="middle" fill="#0055A4">
+<tspan x="62" dy="0">14</tspan>
+</text>
+<rect x="70" y="1850" width="1500" height="148" rx="6" fill="#DCF4A2"/>
+<text x="94" y="1891" font-size="25" text-anchor="start" fill="#0055A4">
+<tspan x="94" dy="0">版本冲突：用户已手动修改 → VERSION_CONFLICT → 重新生成方案并再次预览。</tspan>
+<tspan x="94" dy="32">请求重试：同一 operationId 返回已有 receipt；不重复写入行程。</tspan>
+<tspan x="94" dy="32">聊天记录用于解释，Room 与 receipt 决定业务状态及执行结果。</tspan>
+</text>
+</svg>

@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="1000" viewBox="0 0 1700 1000"><defs><marker id="arrow" markerWidth="12" markerHeight="12" refX="10" refY="4" orient="auto" markerUnits="strokeWidth"><path d="M0 0 L10 4 L0 8 z"/></marker></defs>
+<rect x="0" y="0" width="1700" height="1000" rx="0" fill="#FFFFFF" stroke="#FFFFFF" stroke-width="2"/>
+<text x="60" y="90" fill="#0055A4" font-size="44" font-weight="700">ChangeSet：从草稿到正式行程</text>
+<text x="60" y="145" fill="#0055A4" font-size="26" font-weight="400">方案版本绑定用户确认 · 行程版本保护手动编辑</text>
+<polyline points="320,310 380,310" fill="none" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<polyline points="640,310 700,310" fill="none" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<polyline points="960,310 1020,310" fill="none" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<polyline points="1280,310 1340,310" fill="none" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<polyline points="830,385 830,455 190,455 190,385" fill="none" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="300" y="437" fill="#0055A4" font-size="24" font-weight="400">继续修改 · planRevision + 1</text>
+<polyline points="1150,385 1150,585" fill="none" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="1170" y="480" fill="#0055A4" font-size="22" font-weight="400">行程版本已变化</text>
+<polyline points="1470,385 1470,585" fill="none" stroke="#0055A4" stroke-width="3" marker-end="url(#arrow)"/>
+<text x="1490" y="480" fill="#0055A4" font-size="22" font-weight="400">反向操作成功</text>
+<rect x="60" y="240" width="260" height="145" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+<text x="78" y="278" fill="#0055A4" font-size="20" font-weight="700">DRAFT</text>
+<text x="78" y="322" fill="#0055A4" font-size="28" font-weight="700">编辑草稿</text>
+<text x="78" y="359" fill="#0055A4" font-size="22" font-weight="400">正式行程不变</text>
+<rect x="380" y="240" width="260" height="145" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+<text x="398" y="278" fill="#0055A4" font-size="20" font-weight="700">VALIDATED</text>
+<text x="398" y="322" fill="#0055A4" font-size="28" font-weight="700">校验通过</text>
+<text x="398" y="359" fill="#0055A4" font-size="22" font-weight="400">硬约束 / 证据</text>
+<rect x="700" y="240" width="260" height="145" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+<text x="718" y="278" fill="#0055A4" font-size="16" font-weight="700">AWAITING_APPROVAL</text>
+<text x="718" y="322" fill="#0055A4" font-size="28" font-weight="700">等待应用</text>
+<text x="718" y="359" fill="#0055A4" font-size="22" font-weight="400">展示精确差异</text>
+<rect x="1020" y="240" width="260" height="145" rx="8" fill="#DCF4A2" stroke="#0055A4" stroke-width="2"/>
+<text x="1038" y="278" fill="#0055A4" font-size="20" font-weight="700">READY</text>
+<text x="1038" y="322" fill="#0055A4" font-size="28" font-weight="700">授权已绑定</text>
+<text x="1038" y="359" fill="#0055A4" font-size="22" font-weight="400">版本 + digest</text>
+<rect x="1340" y="240" width="260" height="145" rx="8" fill="#DCF4A2" stroke="#0055A4" stroke-width="2"/>
+<text x="1358" y="278" fill="#0055A4" font-size="20" font-weight="700">APPLIED</text>
+<text x="1358" y="322" fill="#0055A4" font-size="28" font-weight="700">原子提交成功</text>
+<text x="1358" y="359" fill="#0055A4" font-size="22" font-weight="400">业务 + 回执</text>
+<rect x="1020" y="585" width="260" height="142" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+<text x="1040" y="626" fill="#0055A4" font-size="24" font-weight="700">CONFLICT</text>
+<text x="1040" y="668" fill="#0055A4" font-size="24" font-weight="400">重新读取与预览</text>
+<text x="1040" y="706" fill="#0055A4" font-size="22" font-weight="400">旧授权失效</text>
+<rect x="1340" y="585" width="260" height="142" rx="8" fill="#DCF4A2" stroke="#0055A4" stroke-width="2"/>
+<text x="1360" y="626" fill="#0055A4" font-size="24" font-weight="700">UNDONE</text>
+<text x="1360" y="668" fill="#0055A4" font-size="23" font-weight="400">已撤销本次变更</text>
+<text x="1360" y="706" fill="#0055A4" font-size="22" font-weight="400">不覆盖后续编辑</text>
+<text x="60" y="550" fill="#0055A4" font-size="28" font-weight="700">未提交阶段的其他终态</text>
+<rect x="60" y="585" width="390" height="142" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+<text x="85" y="626" fill="#0055A4" font-size="24" font-weight="700">EXPIRED</text>
+<text x="85" y="668" fill="#0055A4" font-size="25" font-weight="400">方案到期</text>
+<text x="85" y="706" fill="#0055A4" font-size="22" font-weight="400">重新校验后形成新方案</text>
+<rect x="510" y="585" width="390" height="142" rx="8" fill="#FFFFFF" stroke="#0055A4" stroke-width="2"/>
+<text x="535" y="626" fill="#0055A4" font-size="24" font-weight="700">DISCARDED</text>
+<text x="535" y="668" fill="#0055A4" font-size="25" font-weight="400">用户放弃</text>
+<text x="535" y="706" fill="#0055A4" font-size="22" font-weight="400">正式行程保持原状</text>
+<rect x="60" y="800" width="1540" height="135" rx="8" fill="#DCF4A2" stroke="#DCF4A2" stroke-width="2"/>
+<text x="88" y="849" fill="#0055A4" font-size="28" font-weight="700">提交权在手机：模型仅生成候选调用和方案</text>
+<text x="88" y="895" fill="#0055A4" font-size="24" font-weight="400">同 operationId 重试返回已有回执；路线计算独立进行；取消运行不自动撤销已提交结果。</text>
+</svg>
