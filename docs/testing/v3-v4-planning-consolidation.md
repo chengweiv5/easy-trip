@@ -46,6 +46,16 @@
 - 旧对话摘要存在“不往 origin/main 推送”的约束；正文读取工具出现游标参数异常，未取得正文作进一步确认。本次保守地只在本地功能分支提交，不推送任何远端，不将规划合并等同 Git 主线合并。
 - 完整飞书写入响应、前后回读与对比报告保存在上述备份目录；通知回执在发送后保存同一目录。
 
+## 追加确认：v3.0 推送约束
+
+2026-10-10 用户明确确认：当前分支继续禁止直接推送 `origin/main`，只能推送对应的 v3.0 远程分支。此确认取代上文对旧对话约束的保守推断。
+
+- 本地分支：`codex/v3-agent-place-intake`；唯一允许的远程目标：`origin/codex/v3-agent-place-intake`。
+- 本次 `git ls-remote --heads origin refs/heads/codex/v3-agent-place-intake` 查询成功且无匹配，目标尚未创建，当前分支尚无 upstream。本轮未推送、未创建远程分支，也未设置不存在目标的 upstream。
+- 仓库共享配置仍有 `remote.origin.push = HEAD:refs/heads/main`，因此规则要求每次显式使用 `HEAD:refs/heads/codex/v3-agent-place-intake`，禁止裸推送；未改动共享 Git 配置或其他工作树。
+- 本次仅更新项目规则与本文，不修改 App。修改前备份位于 `/Users/bytedance/.codex/backups/easy-trip/push-policy-20261010-172427/`。
+- 撤销本次文件修改可单独反向提交此次规则更新；撤销文件不代表用户已授权恢复向 main 推送，变更推送目标仍须用户另行明确授权。
+
 ## 回滚
 
 - 本次源码无功能变化。需要撤销规划整合时，从整合提交按文件恢复本轮新增文档，并恢复备份的 AGENTS；主线已追加其他提交时使用反向提交，不重置或强推。
