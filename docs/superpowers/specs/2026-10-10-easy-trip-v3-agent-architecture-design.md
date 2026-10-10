@@ -11,7 +11,7 @@
 - **Runtime**：Kotlin + Coroutines + Flow/StateFlow，Room 持久化；OkHttp 负责 HTTPS/SSE，kotlinx.serialization 负责 JSON。首期自建有界工具循环，不在手机部署 Python/Node，也不引入重型 Agent 框架。
 - **模型**：通过 `ModelPort → ProviderAdapter` 直连；首个适配器选 DeepSeek Chat Completions，模型 ID `deepseek-flash`。只需配置 provider、Base URL、用户自己的 API key 和 model；**不要求用户提供或我们先搭建云端网关**。
 - **网关**：未来需要统一密钥、账号、额度或审计时再接入，作为可选 Provider 路由，不进入首期必需链路。
-- **图片**：官方文档确认 DeepSeek Flash 支持图片理解和工具调用；首期设计允许截图直接输入，OCR 只作可选降级。用户账号、具体 endpoint、准确率与完整工具循环尚未实测。详见[能力调研](../../analysis/2026-10-10-deepseek-flash-capabilities.md)。
+- **图片**：官方文档确认 DeepSeek Flash 支持图片理解和工具调用；首期设计允许截图直接输入，OCR 只作可选降级。2026-10-10 已用用户配置的官方 endpoint/key 实测文本和合成截图各一条工具闭环（4 次请求、thinking 关闭、非流式）；准确率、真实 SSE 和 Android 接入仍未验收。详见[能力调研](../../analysis/2026-10-10-deepseek-flash-capabilities.md)。
 
 Agent 是 App 的第二个操作入口，不是一个通过屏幕点击 App 的机器人，也不是一套独立的旅行数据库。它接收素材、理解指令、请求查询、整理候选和解释结果；正式操作由手机上的受信任业务代码执行。
 
@@ -76,7 +76,13 @@ Agent 是 App 的第二个操作入口，不是一个通过屏幕点击 App 的�
 
 上下文构建器仅选择当前旅行、相关收藏和必要素材，不默认发送全部旅行、费用或聊天历史。为模型轮次、工具调用数、总耗时、图片大小和输出长度设置可配置上限；达到上限就保留草稿并返回可解释状态，不无限重试。
 
-流式文本只用于展示。不得在工具参数流尚未结束时执行操作；重复流事件用 `runId + modelTurnId + toolCallId` 去重。模型调用可能重发、重复计费，不把业务幂等误称为云端恰好调用一次。
+流式文本只用于展示。不得在工具参数流尚未结束时执行操作。**原始 SSE 分片不能按 `toolCallId` 或 completion `id` 去重**：同一调用的参数分布在多个分片，首片建立 id/name，后续参数按 `tool_calls[index]` 累加；completion id 也可能在同一响应中重复。
+
+先由 ProviderAdapter 按当前 `attemptId + choiceIndex + toolIndex` 拼接，检查成功终止语义、完整 JSON 和 schema，再产生 `ToolCallComplete`。本版保守要求收到合法成功 `finish_reason` 和 `[DONE]` 才允许工具调度；单有 `[DONE]` 不代表成功，`length / content_filter / insufficient_system_resource / aborted` 或流断开均不可执行半成品。usage-only 事件可没有 choices，不能被误判为工具或错误。工具参数不同但调用 ID 相同应拒绝，不能静默复用旧结果。
+
+只有**已完成且通过校验的工具请求**在 Runtime 内按 `runId + modelTurnId + attemptId + toolCallId` 去重并比较规范化参数摘要。网络重试创建新 attempt；不将新旧响应分片拼接，不假定模型会复用 toolCallId，不自动续传无序号的 SSE。模型调用可能重发、重复计费，这层去重不代替 `operationId` 业务幂等，也不代表云端恰好调用一次。
+
+2026-10-10 离线协议探针已复现错误去重会截断参数，并验证上述拼接/终止处理；这是合成协议测试，不是 Kotlin 适配器或真实 DeepSeek 联调。详见[协议验证记录](../../testing/v3.0-agent-provider-protocol-validation.md)。
 
 ### 4.3 工具适配与授权层
 
@@ -174,7 +180,7 @@ Android App
 
 厂商续接字段是**不透明的敏感协议状态**，不能变成授权依据、业务字段或用户可见的“解释”。运行内保留，确需恢复时加密保存最小字段并执行清理策略；无法安全恢复完整协议时从已验证草稿开启新模型会话，不重放写操作、不伪造推理字段。日志只记录关联 ID、状态、耗时和脱敏错误。
 
-官方文档支持图片和工具，不代表此 App 已接通。实施前的显式协议 smoke 应覆盖“文本 → tool_calls → Fake 工具结果 → 最终输出”和“截图 + tools”组合；再分别测 thinking 开/关、SSE 中断、无效 JSON、鉴权/限流/超时和取消。只有实际账号/endpoint 的结果才能证明可用性与延迟/费用。供应商留存、地域和服务条款仍需核对；“本地不留正文”不代表供应商不留存。
+官方文档支持不等于 App 已接通。2026-10-10 23:13（Asia/Shanghai）已完成独立探针的真实基础 smoke：“文本 → tool_calls → Fake 工具结果 → 最终输出”和“截图 + tools”各一条，4/4 HTTP 200；严格检查工具参数、tool_call_id、工具独有随机码及尚未收藏状态。使用官方 endpoint、`deepseek-flash`、thinking disabled、非流式；无真实地图/Room 写入，详见[协议验证记录](../../testing/v3.0-agent-provider-protocol-validation.md)。这支持首期 Provider 直连选型，但不证明普遍准确率或手机接入。thinking 开启、真实 SSE/中断、无效 JSON、鉴权/限流/超时和取消仍需后续验证；费用未查询账单，耗时只代表本轮样本。供应商留存、地域和服务条款仍需核对；“本地不留正文”不代表供应商不留存。
 
 ## 5. 一次“把这些地方收藏起来”的完整调用
 
@@ -238,14 +244,14 @@ place/data/
 
 业务测试至少覆盖：确认后草稿被改、同名跨城、无坐标、重复地点、重复请求不同参数、并发收藏、地点/元数据/回执事务回滚、提交后响应丢失、已撤销请求重放、后续编辑/关联导致撤销拒绝。已有数据迁移与触屏回归均通过后才能宣称接入完成。
 
-当前仅评审技术方案。产品入口、确认卡片、素材留存及真实 provider 协议验证仍需后续专项评审；不创建实施计划或开始开发，直到本架构稿获批。
+当前仅评审技术方案。基础 Provider smoke 已通过；产品入口、确认卡片、素材留存及其余协议/Android 门禁仍需后续专项评审；不创建实施计划或开始开发，直到本架构稿获批。
 
 ## 9. 本次设计验证、依据与回滚
 
 - 已查询当前知识图谱定位模块，再回读当前源码核实；图谱中包含历史和测试节点，不把其“Agent skills”节点当作已实现 Agent。
 - 当前 GitHub 待合并 PR 查询为空；没有现成 PR 可直接采用。
 - 图源通过 Archify schema、坐标/连线与 SVG 检查；明暗主题和文字可读性另见本工作树 `.codex/TASK_STATE.md` 的本次验证记录。结构源可编辑；HTML 不是可拖拽的 Pencil UI 稿。
-- 未改 App 代码、数据库、Gradle、正式 `.pen` 或冻结 v4 源图；本轮不运行 App 测试，不代表模型接通或功能验收。
+- 未改 App 代码、数据库、Gradle、正式 `.pen` 或冻结 v4 源图；不运行 App 测试；独立 Provider smoke 通过不代表 App 接通或功能验收。
 - 参考的官方资料已实际读取：Android [数据层与单一事实来源](https://developer.android.com/topic/architecture/data-layer)、[Room 异步查询](https://developer.android.com/training/data-storage/room/async-queries)、[后台任务调度](https://developer.android.com/develop/background-work/background-tasks/persistent)。外部资料解释机制，不证明本方案已实现；本地源码是现状依据。
 - 写入前备份：`/Users/bytedance/.codex/backups/easy-trip/v3-agent-architecture-20261010-214549/`。需要撤销本次文档设计时，单独反向提交架构稿/图源及统一规划链接修改；不恢复整个仓库，不改旧 v4 原件。`.codex/TASK_STATE.md` 仅撤销本次新增区段，保留历史记录。
 - 本轮用户已要求提交、rebase 最新 `origin/main` 并推送；交付状态以[本版记录](../../testing/v3.0-agent-architecture-delivery.md)为准。目标仅为 `origin/codex/v3-agent-place-intake`，禁止向 main 推送。用户随后明确“允许这一次 force push”；本次仅使用绑定已核对旧 SHA 的精确 `--force-with-lease`，不解除日后禁强推约束，不能将本地成功说成远端交付。
