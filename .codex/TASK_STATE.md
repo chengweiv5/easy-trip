@@ -1,12 +1,13 @@
 # v3.0.0 正式签名构建、安装、提交、推送（当前）
 
-状态：**IN_PROGRESS — 用户已授权，Release安装前验证通过；准确提交构建/安装/远端回读尚未完成。** 2026-10-11。
+状态：**IN_PROGRESS — 正式Release构建、手机覆盖安装、功能提交及v3远端回读已完成；正在收尾交付记录和完成通知。** 2026-10-11。
 
 - 只在5ac3/`codex/v3-agent-place-intake`；唯一推送目标同名origin分支，禁止main/裸push/force。新fetch的origin/main与远程v3均为HEAD祖先，待合并PR为空。
 - 原签名配置`/Users/bytedance/Code/easy-trip/release-signing.properties`、密钥`/Users/bytedance/.android/easy-trip-release.jks`已只读验证，证书与手机旧正式包一致；构建只通过子进程环境注入，不复制配置/不改原件。
-- 首次Release构建/993测试/lint0错误通过。534项构建输入前后一致；59项候选已知密钥扫描0匹配，两轴复审无新增阻断。
-- 手机ALN-AL00已连接，安装前2.2/build18/UID10477，旧APK/签名/可见摘要已备份，尚未安装3.0。
-- 交付记录`docs/testing/v3.0-agent-delivery.md`；证据根`/Users/bytedance/.codex/artifacts/easy-trip/v3-release-delivery-20261011-073641/`。后续从干净准确提交重建同签名包，再覆盖安装、验证并快进推送；状态/通知最后回读。
+- 干净功能提交`39932f8e447d22646632decc07062f2c0e3c9c95`正式构建成功，993项Release JVM通过，lint0错误/33警告/1提示；534项输入hash不变，两轴复审无新增阻断。签名原件未改；APK子串扫描的4条依赖正则误报已与旧包逐条核验，未发现独立密码字符串或Provider Key。
+- 07:44手机ALN-AL00同签名覆盖升级3.0.0/build20/schema11；APK回读SHA256`9c0191df8857fb4a8a7d657769413dd22d590e5e6f389782ea8aedb24c8b3d15`一致。UID10477/首次安装时间未变，冷启动正常，24项可见旅行列表文本一致；无卸载/清数据，不宣称全库验证。全局「助手设置」入口已只读确认。
+- 07:48功能提交已快进推送同名origin分支，远端SHA回读一致；origin/main仍为`bbdcb1f57a47eac8ae13c8a7423fab97632699bb`。推送前fetch/rebase返回已最新，未force，未发布Release/标签。
+- 交付记录`docs/testing/v3.0-agent-delivery.md`；证据根`/Users/bytedance/.codex/artifacts/easy-trip/v3-release-delivery-20261011-073641/`。仅剩文档收尾提交/推送、完成通知与最终回读；APK始终对应上述功能提交，后续文档提交不改变应用输入。
 
 ---
 
