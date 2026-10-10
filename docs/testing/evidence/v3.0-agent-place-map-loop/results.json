@@ -1,0 +1,236 @@
+{
+  "date": "2026-10-11",
+  "source_evidence": "/Users/bytedance/.codex/artifacts/easy-trip/v3-map-loop-20261010-234245",
+  "code_baseline": "2dcf90e05a699fd4a946cc3e54789e84d55b1bed",
+  "probe_only": true,
+  "runs": {
+    "fixed": {
+      "query": {
+        "stage": "query",
+        "probe_id": "v3-fixed-20261010T155056Z-16428-17411",
+        "pid": 2141,
+        "started_at": 1791647490708,
+        "query": "雷峰塔",
+        "city": "杭州",
+        "passed": true,
+        "source": "AmapPlaceDataSource / live SDK",
+        "candidate_count": 20,
+        "saved_count": 0
+      },
+      "confirm": {
+        "stage": "confirm",
+        "probe_id": "v3-fixed-20261010T155056Z-16428-17411",
+        "pid": 2276,
+        "started_at": 1791647559705,
+        "query": "雷峰塔",
+        "city": "杭州",
+        "passed": true,
+        "preview_saved_count": 0,
+        "cancel_saved_count": 0,
+        "duplicate_count": 1,
+        "missing_coordinate_rejected": true,
+        "saved_count": 1,
+        "saved_id": "7114b730-1684-4b54-8d04-77e9473a4d98",
+        "poi": {
+          "poi_id": "B0FFGOWPEV",
+          "name": "雷峰塔景区雷峰塔",
+          "address": "南山路15号",
+          "latitude": 30.231612,
+          "longitude": 120.149715,
+          "city_code": "",
+          "city_name": "杭州市",
+          "city_adcode": null,
+          "city_metadata_version": 0
+        },
+        "native_marker": {
+          "key": "place-7114b730-1684-4b54-8d04-77e9473a4d98",
+          "title": "雷峰塔景区雷峰塔",
+          "lat": 30.231612,
+          "lng": 120.149715
+        },
+        "search_overlay_cleared": true,
+        "database": "v3-fixed-20261010T155056Z-16428-17411.db",
+        "category": "OTHER",
+        "confirmation": "existing UI click by authorized test user",
+        "finished_at": 1791647567738
+      },
+      "restart": {
+        "stage": "restart",
+        "probe_id": "v3-fixed-20261010T155056Z-16428-17411",
+        "pid": 2488,
+        "started_at": 1791647570844,
+        "query": "雷峰塔",
+        "city": "杭州",
+        "passed": true,
+        "saved_count": 1,
+        "saved_id": "7114b730-1684-4b54-8d04-77e9473a4d98",
+        "poi": {
+          "poi_id": "B0FFGOWPEV",
+          "name": "雷峰塔景区雷峰塔",
+          "address": "南山路15号",
+          "latitude": 30.231612,
+          "longitude": 120.149715,
+          "city_code": "",
+          "city_name": "杭州市",
+          "city_adcode": null,
+          "city_metadata_version": 0
+        },
+        "native_marker": {
+          "key": "place-7114b730-1684-4b54-8d04-77e9473a4d98",
+          "title": "雷峰塔景区雷峰塔",
+          "lat": 30.231612,
+          "lng": 120.149715
+        },
+        "search_overlay_cleared": true,
+        "database": "v3-fixed-20261010T155056Z-16428-17411.db",
+        "category": "OTHER",
+        "confirmation": "no new confirmation or write",
+        "finished_at": 1791647572274
+      }
+    },
+    "agent": {
+      "query": {
+        "stage": "query",
+        "probe_id": "v3-agent-20261010T155056Z-16428-17411",
+        "pid": 2830,
+        "started_at": 1791647720012,
+        "query": "雷峰塔",
+        "city": "杭州",
+        "passed": true,
+        "model_tool_call_id": "call_00_ccd6ZQ9h3GdY26pVY8c43893",
+        "source": "AmapPlaceDataSource / live SDK",
+        "candidate_count": 20,
+        "saved_count": 0
+      },
+      "confirm": {
+        "stage": "confirm",
+        "probe_id": "v3-agent-20261010T155056Z-16428-17411",
+        "pid": 2927,
+        "started_at": 1791647726232,
+        "query": "雷峰塔",
+        "city": "杭州",
+        "passed": true,
+        "model_tool_call_id": "call_00_ccd6ZQ9h3GdY26pVY8c43893",
+        "preview_saved_count": 0,
+        "cancel_saved_count": 0,
+        "duplicate_count": 1,
+        "missing_coordinate_rejected": true,
+        "saved_count": 1,
+        "saved_id": "761ae397-76a7-41e2-ad1b-d8999dbf5ad3",
+        "poi": {
+          "poi_id": "B0FFGOWPEV",
+          "name": "雷峰塔景区雷峰塔",
+          "address": "南山路15号",
+          "latitude": 30.231612,
+          "longitude": 120.149715,
+          "city_code": "",
+          "city_name": "杭州市",
+          "city_adcode": null,
+          "city_metadata_version": 0
+        },
+        "native_marker": {
+          "key": "place-761ae397-76a7-41e2-ad1b-d8999dbf5ad3",
+          "title": "雷峰塔景区雷峰塔",
+          "lat": 30.231612,
+          "lng": 120.149715
+        },
+        "search_overlay_cleared": true,
+        "database": "v3-agent-20261010T155056Z-16428-17411.db",
+        "category": "OTHER",
+        "confirmation": "existing UI click by authorized test user",
+        "finished_at": 1791647744380
+      },
+      "restart": {
+        "stage": "restart",
+        "probe_id": "v3-agent-20261010T155056Z-16428-17411",
+        "pid": 3114,
+        "started_at": 1791647747066,
+        "query": "雷峰塔",
+        "city": "杭州",
+        "passed": true,
+        "model_tool_call_id": "call_00_ccd6ZQ9h3GdY26pVY8c43893",
+        "saved_count": 1,
+        "saved_id": "761ae397-76a7-41e2-ad1b-d8999dbf5ad3",
+        "poi": {
+          "poi_id": "B0FFGOWPEV",
+          "name": "雷峰塔景区雷峰塔",
+          "address": "南山路15号",
+          "latitude": 30.231612,
+          "longitude": 120.149715,
+          "city_code": "",
+          "city_name": "杭州市",
+          "city_adcode": null,
+          "city_metadata_version": 0
+        },
+        "native_marker": {
+          "key": "place-761ae397-76a7-41e2-ad1b-d8999dbf5ad3",
+          "title": "雷峰塔景区雷峰塔",
+          "lat": 30.231612,
+          "lng": 120.149715
+        },
+        "search_overlay_cleared": true,
+        "database": "v3-agent-20261010T155056Z-16428-17411.db",
+        "category": "OTHER",
+        "confirmation": "no new confirmation or write",
+        "finished_at": 1791647753233
+      }
+    }
+  },
+  "model": {
+    "passed": true,
+    "tool_call_id": "call_00_ccd6ZQ9h3GdY26pVY8c43893",
+    "real_poi_count": 20,
+    "nonce_verified": true,
+    "final": "已为你找到杭州“雷峰塔”的多个候选地点（如“雷峰塔景区”“雷峰塔景区雷峰塔”等），目前**仅作为候选标记，尚未收藏**。\n\n请确认你要标记的具体地点，确认后我再处理。本次核验码：`map-38f6ccdb7c`",
+    "scope": "Host transport -> Android probe dispatcher -> real POI result -> model; production Kotlin runtime still not implemented"
+  },
+  "budget": {
+    "limit": 2,
+    "requests": [
+      {
+        "label": "model-01-proposal",
+        "started_at": "2026-10-10T23:55:16.670838+08:00",
+        "state": "success",
+        "http_status": 200,
+        "usage": {
+          "prompt_tokens": 376,
+          "completion_tokens": 56,
+          "total_tokens": 432,
+          "prompt_tokens_details": {
+            "cached_tokens": 0
+          },
+          "prompt_cache_hit_tokens": 0,
+          "prompt_cache_miss_tokens": 376
+        },
+        "seconds": 0.783
+      },
+      {
+        "label": "model-02-final",
+        "started_at": "2026-10-10T23:55:23.086055+08:00",
+        "state": "success",
+        "http_status": 200,
+        "usage": {
+          "prompt_tokens": 2241,
+          "completion_tokens": 70,
+          "total_tokens": 2311,
+          "prompt_tokens_details": {
+            "cached_tokens": 384
+          },
+          "prompt_cache_hit_tokens": 384,
+          "prompt_cache_miss_tokens": 1857
+        },
+        "seconds": 1.062
+      }
+    ],
+    "retries": 0,
+    "scope": "text -> real AMap Android query -> final; no model save"
+  },
+  "boundaries": [
+    "Host Python provider transport; not Kotlin production Runtime",
+    "Isolated test DB; not application user database",
+    "Cached actual SDK query injected into UI; no fabricated POI",
+    "Test supplies city context; no actual GPS verification",
+    "Default saved category OTHER; design example category 景点 not tested",
+    "Fixed phase visual reread after five-second native rendering wait required"
+  ]
+}

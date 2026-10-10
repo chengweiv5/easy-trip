@@ -1,0 +1,35 @@
+{
+  "version": "3.0.0",
+  "versionCode": 20,
+  "schema": 11,
+  "jvm": {
+    "tests": 993,
+    "failures": 0,
+    "errors": 0,
+    "skipped": 0
+  },
+  "lint": {
+    "Warning": 35,
+    "Hint": 1
+  },
+  "apk": "/Users/bytedance/.codex/worktrees/5ac3/easy-trip/build/outputs/v3.0.0-review/easy-trip-v3.0.0-build20-review-debug.apk",
+  "sha256": "d66621f7712fd09191d469fd5d14250e8e61144a1b14dcfa9cbf9894e8cce486",
+  "bytes": 68959681,
+  "signed": "Android debug certificate; not production-signature compatible",
+  "head": "2dcf90e05a699fd4a946cc3e54789e84d55b1bed",
+  "sourceState": "uncommitted working tree",
+  "realModelCalls": 2,
+  "realPoiQueries": 6,
+  "newRealRetries": 0,
+  "device": "emulator-5598; trail_map_api36 read-only",
+  "physicalPhoneInstalled": false,
+  "pushed": false,
+  "released": false,
+  "instrumentedFinal": {
+    "passed": 18,
+    "skipped": 1,
+    "failed": 0,
+    "skippedReason": "real-provider test is opt-in; run separately twice and passed both"
+  },
+  "releaseBuild": "not produced: this worktree has no production signing configuration"
+}

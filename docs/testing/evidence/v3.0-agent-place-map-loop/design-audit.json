@@ -1,0 +1,186 @@
+{
+  "target": "3.0.0",
+  "code": "2dcf90e05a699fd4a946cc3e54789e84d55b1bed",
+  "roots": 234,
+  "active_roots": 233,
+  "inherited_roots": 198,
+  "new_roots": 36,
+  "unique_nodes": 42395,
+  "duplicate_ids": [],
+  "broken_refs": [],
+  "placeholders": [],
+  "missing_inherited_root_ids": [],
+  "missing_inherited_node_ids": [],
+  "v22_sha256": "c01e3b26e6eb5bcd5ca6fad96eb347cc3cce7f558977a9a3e68c054755801a44",
+  "v3_sha256": "6e73a4b84e627821d0c7d63aad4b9ea44f6519af45b35bbb2c958b0151c84105",
+  "previous_v3_sha256": "0238ac40a65374d4b60cab6773d2e6e614cec8f2f0b9383874553670ec59a432",
+  "new_screens": [
+    {
+      "id": "kIRND",
+      "name": "v3.0.0 · 14 地点助手 / UI Kit 与状态规则"
+    },
+    {
+      "id": "RHlP0",
+      "name": "v3.0.0 · 14 地点助手 / A01 输入地点"
+    },
+    {
+      "id": "XUWx4",
+      "name": "v3.0.0 · 14 地点助手 / A02 正在匹配 · 可取消"
+    },
+    {
+      "id": "WI7Bs",
+      "name": "v3.0.0 · 14 地点助手 / A03 同名候选 · 选择后预览"
+    },
+    {
+      "id": "FnqlV",
+      "name": "v3.0.0 · 14 地点助手 / A04 单项确认 · 本批中收藏一个"
+    },
+    {
+      "id": "XE1my",
+      "name": "v3.0.0 · 14 地点助手 / A05 单项收藏回执 · 返回本批"
+    },
+    {
+      "id": "u6h3y",
+      "name": "v3.0.0 · 14 地点助手 / A06 已收藏地点 · 不重复写入"
+    },
+    {
+      "id": "G6Pn1C",
+      "name": "v3.0.0 · 14 地点助手 / A07 未匹配 · 保留原文"
+    },
+    {
+      "id": "a5dLd",
+      "name": "v3.0.0 · 14 地点助手 / A08 Provider失败 · 可重试"
+    },
+    {
+      "id": "F5gqBg",
+      "name": "v3.0.0 · 14 地点助手 / A09 批量输入 · 缺城市澄清"
+    },
+    {
+      "id": "nopZU",
+      "name": "v3.0.0 · 14 地点助手 / A10 首次发送 · 数据说明"
+    },
+    {
+      "id": "l7Kxko",
+      "name": "v3.0.0 · 14 地点助手 / A11 助手设置 · 模型服务"
+    },
+    {
+      "id": "s0e3g",
+      "name": "v3.0.0 · 14 地点助手 / A12 连接结果 · 鉴权失败"
+    },
+    {
+      "id": "kedr0",
+      "name": "v3.0.0 · 14 地点助手 / A13 批量保存中 · 原子提交"
+    },
+    {
+      "id": "vSC65",
+      "name": "v3.0.0 · 14 地点助手 / A14 批量保存失败 · 本次不新增"
+    },
+    {
+      "id": "YCJPu",
+      "name": "v3.0.0 · 14 地点助手 / A15 清空草稿 · 明确确认"
+    },
+    {
+      "id": "ZluJE",
+      "name": "v3.0.0 · 14 地点助手 / A16 地图不可用 · 不假装标记"
+    },
+    {
+      "id": "d7Fq6",
+      "name": "v3.0.0 · 14 地点助手 / A17 键盘展开 · 输入优先"
+    },
+    {
+      "id": "ITMaY",
+      "name": "v3.0.0 · 14 地点助手 / A18 收起面板 · 保留待确认候选"
+    },
+    {
+      "id": "OOJGw",
+      "name": "v3.0.0 · 14 地点助手 / A19 模型连接成功 · 工具可用"
+    },
+    {
+      "id": "jAqhM",
+      "name": "v3.0.0 · 14 地点助手 / A20 选择搜索城市"
+    },
+    {
+      "id": "RLhxt",
+      "name": "v3.0.0 · 14 地点助手 / A21 目标失效 · 阻止跨旅行误存"
+    },
+    {
+      "id": "UXDt5",
+      "name": "v3.0.0 · 14 地点助手 / A22 尚未配置模型 · 手动功能不受影响"
+    },
+    {
+      "id": "CpGB7",
+      "name": "v3.0.0 · 14 地点助手 / A23 320dp窄屏 · 输入"
+    },
+    {
+      "id": "l9BEY",
+      "name": "v3.0.0 · 14 地点助手 / A24 320dp双倍文字 · 确认全内容"
+    },
+    {
+      "id": "rEKgJ",
+      "name": "v3.0.0 · 14 地点助手 / A25 查询已取消 · 可继续"
+    },
+    {
+      "id": "A8nR5Z",
+      "name": "v3.0.0 · 14 地点助手 / A26 全部标记 · 尚未选择"
+    },
+    {
+      "id": "DwUW5",
+      "name": "v3.0.0 · 14 地点助手 / A27 部分匹配 · 其余项独立处理"
+    },
+    {
+      "id": "ZPyAR",
+      "name": "v3.0.0 · 14 地点助手 / A28 勾选候选 · 未发生收藏"
+    },
+    {
+      "id": "Q8N1Wf",
+      "name": "v3.0.0 · 14 地点助手 / A29 批量确认 · 仅保存所选"
+    },
+    {
+      "id": "Rm1En",
+      "name": "v3.0.0 · 14 地点助手 / A30 批量回执 · 剩余继续处理"
+    },
+    {
+      "id": "t01M8J",
+      "name": "v3.0.0 · 14 地点助手 / A31 部分查询失败 · 仅重试失败项"
+    },
+    {
+      "id": "SKMRn",
+      "name": "v3.0.0 · 14 地点助手 / A32 无可收藏项 · 已有与待处理"
+    },
+    {
+      "id": "d7Mj9",
+      "name": "v3.0.0 · 14 地点助手 / A33 超出单批上限 · 不静默截断"
+    },
+    {
+      "id": "WPYC3",
+      "name": "v3.0.0 · 14 地点助手 / A00 入口与交互总览"
+    },
+    {
+      "id": "O2Pb9",
+      "name": "v3.0.0 · 14 地点助手 / A34 320dp大字批量确认 · 可滚动内容"
+    }
+  ],
+  "pencil_live_checks": {
+    "active_file": "/Users/bytedance/.codex/worktrees/5ac3/easy-trip/design/easy-trip-v3.0.0.pen",
+    "new_text_clips": 0,
+    "new_marker_clips": 0,
+    "active_root_overlaps": 0,
+    "excluded_disabled_historical_root": "DRICS",
+    "intentional_map_viewport_clips": 29,
+    "modified_map_entry_states": 17,
+    "native_save_reopen": true,
+    "native_editable_A29_fields": true,
+    "ocr_images": 14,
+    "historical_metadata_note": "Root names and leading context define target version; historical metadata is not current status."
+  },
+  "last_design_change": {
+    "date": "2026-10-11",
+    "scope": "批量标记与确认收藏、入口、App全局助手设置",
+    "added_roots_this_turn": 10,
+    "removed_nodes_this_turn": [
+      "iCCjt"
+    ],
+    "evidence": "/Users/bytedance/.codex/artifacts/easy-trip/v3-batch-design-20261011-011723"
+  },
+  "acceptance": "Design discussion update only; batch protocol and production UI not implemented or device tested"
+}

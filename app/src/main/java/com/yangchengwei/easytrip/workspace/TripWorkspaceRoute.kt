@@ -2,6 +2,11 @@ package com.yangchengwei.easytrip.workspace
 
 import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.activity.compose.BackHandler
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import com.yangchengwei.easytrip.assistant.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -265,6 +270,8 @@ fun TripWorkspaceRoute(
     locationPermissionSnapshot: () -> LocationPermissionSnapshot,
     onWorkspaceEffect: (WorkspaceEffect) -> Unit,
     mapSession: WorkspaceMapSession? = null,
+    assistantViewModel: PlaceAssistantViewModel? = null,
+    onAssistantSettings: () -> Unit = {},
 ) {
     val page = viewModel.pageState.collectAsStateWithLifecycle().value
     val places = placeViewModel?.state?.collectAsStateWithLifecycle()?.value ?: placeState
@@ -278,6 +285,19 @@ fun TripWorkspaceRoute(
     var locateRequest by remember { mutableIntStateOf(0) }
     var wasEditingPlace by remember { mutableStateOf(false) }
 
+    val assistantState = assistantViewModel?.controller?.state?.collectAsStateWithLifecycle()?.value
+    val assistantOpen = assistantViewModel?.open?.collectAsStateWithLifecycle()?.value ?: false
+    val assistantFocus = assistantViewModel?.focus?.collectAsStateWithLifecycle()?.value
+    var confirmAssistantLeave by remember { mutableStateOf(false) }
+    fun leaveWorkspace() {
+        if (assistantState?.saving == true) return
+        if (assistantState?.input?.isNotBlank() == true || assistantState?.items?.isNotEmpty() == true) {
+            confirmAssistantLeave = true
+        } else onBack()
+    }
+    LaunchedEffect(page, assistantViewModel) {
+        if (page is TripWorkspacePageState.NotFound) assistantViewModel?.controller?.invalidateTrip()
+    }
     val activePoolCity = com.yangchengwei.easytrip.place.ui.activePlacePoolCity(places)
     LaunchedEffect(viewModel, activePoolCity, places.selectedTagIds) {
         viewModel.setPlacePoolFilter(PlacePoolMapFilter(activePoolCity, places.selectedTagIds))
@@ -349,6 +369,12 @@ fun TripWorkspaceRoute(
         viewModel.closeOverlay()
     }
     fun leaveOrCloseOverlay() {
+        if (assistantState?.saving == true) return
+        if (assistantOpen) {
+            if (assistantState?.confirmation != null) assistantViewModel?.controller?.backFromReview()
+            else assistantViewModel?.hide()
+            return
+        }
         val currentPlaces = placeViewModel?.state?.value ?: places
         when (
             workspaceBackDecision(
@@ -365,7 +391,7 @@ fun TripWorkspaceRoute(
             WorkspaceBackDecision.LeaveWorkspace -> {
                 if (!viewModel.handleBack()) {
                     dismissPendingDialogs()
-                    onBack()
+                    leaveWorkspace()
                 }
             }
         }
@@ -504,6 +530,30 @@ fun TripWorkspaceRoute(
     }
 
     BackHandler(onBack = ::leaveOrCloseOverlay)
+    val assistantHost = if (assistantViewModel != null && assistantState != null) AssistantWorkspace(
+        assistantViewModel, assistantState, assistantOpen, assistantFocus, ready?.tripName.orEmpty(),
+        onAssistantSettings, onPrivacySettings,
+        onOpen = {
+            dismissPendingDialogs()
+            viewModel.closeOverlay()
+            viewModel.clearSearchResults()
+            viewModel.dismissPlaceCard()
+            viewModel.dismissMarker()
+            if (!assistantState.hasDraft && assistantState.city.isBlank()) {
+                com.yangchengwei.easytrip.place.ui.placeCityGroups(places.allRows ?: places.rows)
+                    .firstOrNull { it.key == activePoolCity && it.key != com.yangchengwei.easytrip.place.ui.UNKNOWN_CITY_KEY }
+                    ?.let { assistantViewModel.controller.editCity(it.name) }
+            }
+            assistantViewModel.show()
+            viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
+        },
+        onViewPool = {
+            assistantViewModel.hide()
+            viewModel.selectSection(WorkspaceSection.PLACE_POOL)
+            viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
+        },
+    ) else null
+    CompositionLocalProvider(LocalAssistantWorkspace provides assistantHost) {
     TripWorkspaceScreen(
         onDeleteDay = daySettingsViewModel?.let { model -> {
             val selected = (viewModel.state.value.itineraryScope as? ItineraryScope.Day)?.dayId
@@ -524,11 +574,11 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.RetryCalendar -> viewModel.retryCalendar()
                 TripWorkspaceAction.DismissCalendarMessage -> viewModel.dismissCalendarMessage()
                 TripWorkspaceAction.Back -> leaveOrCloseOverlay()
-                TripWorkspaceAction.LeaveWorkspace -> onBack()
+                TripWorkspaceAction.LeaveWorkspace -> leaveWorkspace()
                 TripWorkspaceAction.ShareItinerary -> onShareItinerary()
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
-                TripWorkspaceAction.OpenSearch -> { viewModel.onMapGesture(); onOpenSearch() }
+                TripWorkspaceAction.OpenSearch -> { assistantViewModel?.hide(); viewModel.onMapGesture(); onOpenSearch() }
                 TripWorkspaceAction.ClearSearchResults -> viewModel.clearSearchResults()
                 TripWorkspaceAction.ZoomIn,
                 TripWorkspaceAction.ZoomOut,
@@ -554,11 +604,16 @@ fun TripWorkspaceRoute(
             }
         },
         onMarkerClick = { key ->
+            if (key.startsWith("assistant:")) {
+                assistantViewModel?.focus(key.split(':').getOrNull(1))
+                viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
+            } else {
             val marker = ready?.map?.markers?.firstOrNull { it.key == key }
             if (marker?.kind == MapMarkerKind.SAVED_PLACE_POOL && marker.savedPlaceId != null) {
                 dispatchPlace(PlacePoolAction.OpenDetail(marker.savedPlaceId))
             } else {
                 viewModel.selectMarker(key)
+            }
             }
         },
         onMapPoiClick = viewModel::selectMapPoi,
@@ -696,6 +751,18 @@ fun TripWorkspaceRoute(
         mapHostFactory = mapHostFactory,
         locateRequest = locateRequest,
         searchReturn = searchReturn,
+    )
+    }
+    if (confirmAssistantLeave) AlertDialog(
+        onDismissRequest = { confirmAssistantLeave = false },
+        title = { Text("离开当前旅行？") },
+        text = { Text("未收藏的助手草稿和临时标记将清除。已经收藏的地点不受影响。") },
+        confirmButton = { TextButton({
+            assistantViewModel?.controller?.clear()
+            confirmAssistantLeave = false
+            onBack()
+        }) { Text("清除并离开") } },
+        dismissButton = { TextButton({ confirmAssistantLeave = false }) { Text("继续查看") } },
     )
     if (daySettingsViewModel != null && daySettings != null) {
         com.yangchengwei.easytrip.trip.ui.WorkspaceDayDeletionDialog(

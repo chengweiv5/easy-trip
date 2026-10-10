@@ -39,7 +39,7 @@ class ExpenseV2MigrationTest {
         helper.runMigrationsAndValidate(name, 9, true, EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10).close()
         repeat(2) {
             val db = Room.databaseBuilder(context, EasyTripDatabase::class.java, name)
-                .addMigrations(EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10).build()
+                .addMigrations(EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10, EasyTripDatabase.MIGRATION_10_11).build()
             try {
                 val records = RoomExpenseRepository(db).observeRecords().first()
                 assertEquals(3, records.size)

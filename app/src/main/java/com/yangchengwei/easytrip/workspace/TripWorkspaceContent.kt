@@ -26,6 +26,8 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Snackbar
 import androidx.compose.material3.Surface
+import androidx.compose.material3.TextButton
+import com.yangchengwei.easytrip.assistant.*
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -148,17 +150,25 @@ private fun WorkspaceReadyContent(
     ) {
     WorkspaceScaffold(
         sheetLevel = state.sheetLevel,
+        sheetHeaderHeight = if (LocalAssistantWorkspace.current?.open == true) {
+            if (LocalDensity.current.fontScale > 1.3f) 132.dp else 80.dp
+        } else WorkspaceSheetHeaderHeight,
         sheetGesturesEnabled = !calendarBusy,
         onSheetLevelChange = { if (!calendarBusy) onAction(TripWorkspaceAction.SetSheetLevel(it)) },
         modifier = modifier,
         sheetHeader = { metrics ->
+            val assistant = LocalAssistantWorkspace.current
             Column(Modifier.fillMaxWidth()) {
                 WorkspaceSheetHandle()
-                Row(Modifier.fillMaxWidth()
+                if (assistant?.open == true) AssistantPanelHeader(assistant)
+                else Row(Modifier.fillMaxWidth()
                     .onGloballyPositioned { calendarWideArea = it.boundsInRoot() }
                     .drawWithContent { if (!calendarWideHint) drawContent() }
                     .then(if (calendarWideHint) Modifier.clearAndSetSemantics {} else Modifier),
                     verticalAlignment = Alignment.CenterVertically) {
+                    if (assistant != null && mapState !is WorkspaceMapState.Ready) {
+                        TextButton(assistant.onOpen, Modifier.testTag("assistant-entry-fallback")) { Text("✦ 助手") }
+                    }
                     WorkspaceTabs(
                         selected = state.section,
                         onSelect = { if (!calendarBusy) onAction(TripWorkspaceAction.SelectSection(it)) },
@@ -187,14 +197,18 @@ private fun WorkspaceReadyContent(
             sheetContentHorizontalPadding = if (state.section == WorkspaceSection.ITINERARY) 0.dp else 16.dp,
         collapsedContentHorizontalPadding = 16.dp,
         collapsedContent = {
-                WorkspaceCollapsedSummary(
+            val assistant = LocalAssistantWorkspace.current
+            if (assistant?.open == true) Text("${assistant.state.items.size} 个候选 · 尚未收藏", Modifier.testTag("assistant-collapsed"))
+            else WorkspaceCollapsedSummary(
                     state = state,
                     placeState = placeState,
                     itineraryState = itineraryState,
                 )
             },
         sheetContent = { metrics ->
-            Column(Modifier.fillMaxSize()) {
+            val assistant = LocalAssistantWorkspace.current
+            if (assistant?.open == true) PlaceAssistantPanel(assistant)
+            else Column(Modifier.fillMaxSize()) {
                 if (state.sheetLevel == WorkspaceSheetLevel.EXPANDED && !workspaceMapOverlaysFit(metrics)) {
                     when (mapState) {
                         is WorkspaceMapState.Failed -> MapRecoveryAction(
@@ -439,6 +453,10 @@ private fun WorkspaceReadyContent(
                             end = 12.dp,
                         ),
                 )
+                if (state.searchResults == null && LocalAssistantWorkspace.current != null && metrics.sheetTop > 230.dp) {
+                    MapLegend(modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 112.dp),
+                        scheduledColor = MaterialTheme.colorScheme.primary)
+                }
                 if (state.searchResults == null) Row(
                     Modifier.align(Alignment.TopStart)
                         .padding(start = 12.dp, end = 12.dp, top = workspaceLegendTop(metrics))
@@ -446,13 +464,16 @@ private fun WorkspaceReadyContent(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    MapLegend(scheduledColor = if (state.section == WorkspaceSection.ITINERARY) {
+                    if (LocalAssistantWorkspace.current == null) MapLegend(scheduledColor = if (state.section == WorkspaceSection.ITINERARY) {
                         val selected = (state.itineraryScope as? ItineraryScope.Day)?.dayId
                         Color(routeColorForDay(state.days.firstOrNull { it.id == selected }?.index ?: 0))
                     } else MaterialTheme.colorScheme.primary)
-                    WorkspaceSearchBar(
-                        onClick = { onAction(TripWorkspaceAction.OpenSearch) },
-                    )
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        LocalAssistantWorkspace.current?.let { assistant ->
+                            TextButton(assistant.onOpen, Modifier.heightIn(min = 48.dp).testTag("assistant-entry")) { Text("✦ 助手") }
+                        }
+                        WorkspaceSearchBar(onClick = { onAction(TripWorkspaceAction.OpenSearch) })
+                    }
                 }
             }
             state.searchResults?.let { results ->

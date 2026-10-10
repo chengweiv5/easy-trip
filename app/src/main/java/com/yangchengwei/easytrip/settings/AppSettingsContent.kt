@@ -45,6 +45,7 @@ internal fun SettingsPage(title: String, tag: String, onBack: () -> Unit, conten
 fun AppSettingsContent(
     theme: String, consentGranted: Boolean, version: String, hasUpdate: Boolean,
     onBack: () -> Unit, onTheme: () -> Unit, onConsent: () -> Unit, onUpdate: () -> Unit,
+    onAssistant: (() -> Unit)? = null,
 ) {
     SettingsPage("设置", "app-settings", onBack) {
         Hint("管理整个 App 的偏好与服务")
@@ -53,6 +54,10 @@ fun AppSettingsContent(
         SectionLabel("权限与服务")
         SettingRow("地图授权", if (consentGranted) "已授权" else "未授权", "app-settings-map", onConsent) { Icon(Icons.Rounded.Lock, null) }
         Hint("地图服务授权应用于所有旅行。")
+        if (onAssistant != null) {
+            SettingRow("助手设置", "模型服务", "app-settings-assistant", onAssistant) { Text("✦") }
+            Hint("模型配置由所有旅行共用。")
+        }
         SectionLabel("关于应用")
         Surface(shape = RoundedCornerShape(12.dp), color = MaterialTheme.colorScheme.surface) {
             Column {

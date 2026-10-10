@@ -11,6 +11,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.amap.api.maps.AMap
 import com.amap.api.maps.MapView
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
@@ -37,6 +38,14 @@ class AmapMapViewAttachSmokeTest {
         persistStatus()
         val info = context.packageManager.getApplicationInfo(context.packageName, PackageManager.GET_META_DATA)
         check(info.metaData?.getString("com.amap.api.v2.apikey").orEmpty().isNotBlank()) { "AMAP_API_KEY is required" }
+        // This dedicated instrumentation run represents an explicitly consenting test user.
+        // TestConsentGate alone only changes our token; it does not notify the real SDK.
+        runBlocking {
+            AmapPrivacyGate.create(context).apply {
+                reportShown()
+                reportDecision(true)
+            }
+        }
         TestConsentGate().apply {
             show()
             assertNotNull(decide(true))
