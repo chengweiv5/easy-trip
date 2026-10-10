@@ -1,3 +1,15 @@
+# v3.0 Agent 架构补全与交付（当前）
+
+状态：**IN_PROGRESS — 本版文档和图验证完成；提交、rebase 与推送进行中，未开始实现。**（2026-10-10）
+
+- 仍为 5ac3 工作树 / `codex/v3-agent-place-intake`；本版架构明确 Kotlin Coroutines/Flow + Room + OkHttp/serialization，直连 DeepSeek Provider，网关可选；图片理解与工具协议边界纳入设计。
+- 最新核对 main `bbdcb1f57a47eac8ae13c8a7423fab97632699bb`，schema 10 与分类编辑/撤销保护已补齐；不改 App 或正式 `.pen`。
+- 同一架构 JSON/HTML 更新为 12 组件，schema/布局/SVG/双主题/OCR/重新生成一致性检查通过；统一规划与 9 个本地链接一致。下方旧“必须网关”草案为历史，不代表本版决策。
+- 用户要求本版提交并 rebase 最新 main 后推送，随后明确“允许这一次 force push”；仅对 `origin/codex/v3-agent-place-intake` 使用准确旧 SHA 的 force-with-lease，禁止 main，日后禁强推约束不变。
+- 备份与证据：`/Users/bytedance/.codex/backups/easy-trip/v3-provider-design-20261010-223722/`；记录：`docs/testing/v3.0-agent-architecture-delivery.md`。远端回读完成前不宣称交付。
+
+---
+
 # v3.0 Agent 技术架构评审草案
 
 状态：**DONE — 架构稿与组件图已生成并完成文档/视觉验证；等待用户评审，未开始实现。**（2026-10-10）
