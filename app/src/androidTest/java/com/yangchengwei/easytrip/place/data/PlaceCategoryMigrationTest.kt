@@ -55,7 +55,7 @@ class PlaceCategoryMigrationTest {
         }
         repeat(2) {
             val db = Room.databaseBuilder(context, EasyTripDatabase::class.java, name)
-                .addMigrations(EasyTripDatabase.MIGRATION_9_10).build()
+                .addMigrations(EasyTripDatabase.MIGRATION_9_10, EasyTripDatabase.MIGRATION_10_11).build()
             try {
                 val places = RoomSavedPlaceRepository(db)
                 assertTrue(places.observePlaces("trip", emptySet()).first().all { it.category == PlaceCategory.OTHER })

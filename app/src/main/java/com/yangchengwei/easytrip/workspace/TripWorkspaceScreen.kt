@@ -14,6 +14,7 @@ import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import com.yangchengwei.easytrip.assistant.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -193,7 +194,25 @@ fun TripWorkspaceScreen(
         consentFact = consentFact,
         mapHostState = mapHostState,
     )
+    val assistant = LocalAssistantWorkspace.current
+    val configRevision = assistant?.model?.config?.revision?.collectAsStateWithLifecycle()?.value
+    LaunchedEffect(assistant?.model, configRevision, consent, mapState) {
+        assistant?.controller?.environment(
+            configured = assistant.model.config.read() != null,
+            consent = consent?.isActive() == true,
+            mapReady = mapState is WorkspaceMapState.Ready,
+        )
+    }
+    val transientMarkers = assistant?.let { assistantMarkers(it.state, it.focused) }.orEmpty()
+    val assistantPoints = assistant?.let { assistantViewportPoints(it.state, it.focused) }.orEmpty()
+    val assistantViewport = remember(assistantPoints, assistant?.focused, assistant?.open) {
+        assistantPoints.takeIf { it.isNotEmpty() && assistant?.open == true }?.let {
+            MapViewportRequest(System.nanoTime(), ViewportReason.SEARCH_RESULTS, it, singlePointZoom = 15f)
+        }
+    }
 
+    val viewportOwner = remember { AssistantViewportOwner() }
+    val effectiveViewport = viewportOwner.resolve(ready?.map?.viewportRequest, assistantViewport)
     Box(Modifier.fillMaxSize().testTag("workspace-screen-root")) {
         workspaceRootLayers(hasReadyOverlay = ready != null).forEach { layer ->
             when (layer) {
@@ -262,7 +281,8 @@ fun TripWorkspaceScreen(
                                 onCameraChanged = { mapSession?.onCameraChanged(it) },
                                 onLocated = { mapSession?.onLocated(it) },
                                 model = ready.map.copy(
-                                    viewportRequest = ready.map.viewportRequest?.copy(safeInsets = mapLayout.fitInsets),
+                                    markers = ready.map.markers + transientMarkers,
+                                    viewportRequest = effectiveViewport?.copy(safeInsets = mapLayout.fitInsets),
                                 ),
                                 visibleInsets = mapLayout.visibleInsets,
                                 onMarkerClick = onMarkerClick,

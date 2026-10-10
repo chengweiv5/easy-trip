@@ -90,7 +90,7 @@ internal fun clampWorkspaceSheetDragOffsetPx(
     currentHeightPx - collapsedHeightPx,
 )
 
-private val WorkspaceSheetHeaderHeight = 48.dp
+internal val WorkspaceSheetHeaderHeight = 48.dp
 private val CompactWorkspaceSheetHeaderHeight = 48.dp
 private val MinimumWorkspaceSheetContentHeight = 48.dp
 private val MinimumCollapsedSummaryHeight = 18.dp
@@ -109,6 +109,7 @@ internal fun WorkspaceBottomSheet(
     contentHorizontalPadding: Dp = 16.dp,
     collapsedContentHorizontalPadding: Dp = contentHorizontalPadding,
     gesturesEnabled: Boolean = true,
+    preferredHeaderHeight: Dp = WorkspaceSheetHeaderHeight,
 ) {
     val targetHeight = anchors[value]
     val density = LocalDensity.current
@@ -119,11 +120,11 @@ internal fun WorkspaceBottomSheet(
     val visibleHeight = with(density) { (currentHeightPx - dragOffsetPx).toDp() }
         .coerceIn(anchors.collapsed, anchors.expanded)
     val sheetHeaderHeight = when {
-        value == WorkspaceSheetLevel.COLLAPSED && visibleHeight < WorkspaceSheetHeaderHeight + MinimumCollapsedSummaryHeight ->
+        value == WorkspaceSheetLevel.COLLAPSED && visibleHeight < preferredHeaderHeight + MinimumCollapsedSummaryHeight ->
             CompactWorkspaceSheetHeaderHeight
         value != WorkspaceSheetLevel.COLLAPSED ->
-            minOf(WorkspaceSheetHeaderHeight, (visibleHeight - MinimumWorkspaceSheetContentHeight).coerceAtLeast(0.dp))
-        else -> WorkspaceSheetHeaderHeight
+            minOf(preferredHeaderHeight, (visibleHeight - MinimumWorkspaceSheetContentHeight).coerceAtLeast(0.dp))
+        else -> preferredHeaderHeight
     }
     val expandedBottomPadding = if (visibleHeight >= WorkspaceSheetHeaderHeight + 16.dp + MinimumWorkspaceSheetContentHeight) {
         if (value == WorkspaceSheetLevel.EXPANDED) 16.dp else 12.dp

@@ -1,0 +1,10 @@
+{
+  "passed": true,
+  "modelCalls": 1,
+  "poiCalls": 4,
+  "saved": 2,
+  "preConfirmationWrites": 0,
+  "elapsedMs": 10379,
+  "realProvider": false,
+  "smallDoubleFont": true
+}

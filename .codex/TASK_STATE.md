@@ -1,4 +1,82 @@
-# v3.0 Agent 下一步：Provider 协议验证（当前）
+# v3.0.0 正式签名构建、安装、提交、推送（当前）
+
+状态：**IN_PROGRESS — 用户已授权，Release安装前验证通过；准确提交构建/安装/远端回读尚未完成。** 2026-10-11。
+
+- 只在5ac3/`codex/v3-agent-place-intake`；唯一推送目标同名origin分支，禁止main/裸push/force。新fetch的origin/main与远程v3均为HEAD祖先，待合并PR为空。
+- 原签名配置`/Users/bytedance/Code/easy-trip/release-signing.properties`、密钥`/Users/bytedance/.android/easy-trip-release.jks`已只读验证，证书与手机旧正式包一致；构建只通过子进程环境注入，不复制配置/不改原件。
+- 首次Release构建/993测试/lint0错误通过。534项构建输入前后一致；59项候选已知密钥扫描0匹配，两轴复审无新增阻断。
+- 手机ALN-AL00已连接，安装前2.2/build18/UID10477，旧APK/签名/可见摘要已备份，尚未安装3.0。
+- 交付记录`docs/testing/v3.0-agent-delivery.md`；证据根`/Users/bytedance/.codex/artifacts/easy-trip/v3-release-delivery-20261011-073641/`。后续从干净准确提交重建同签名包，再覆盖安装、验证并快进推送；状态/通知最后回读。
+
+---
+
+# v3.0.0 地点助手首版开发（历史）
+
+状态：**DONE — 首版开发与Debug专项验证完成，待用户体验微调；未发布。** 2026-10-11 02:24（Asia/Shanghai）。
+
+- 用户已明确授权设计后直接开发、无需等待；不再使用下文“未授权实施”的历史门禁。当前5ac3/`codex/v3-agent-place-intake`，HEAD仍 `2dcf90e05a699fd4a946cc3e54789e84d55b1bed`；本轮未提交、未推送、未安装手机、未发布，不向main或裸push。
+- v3.0.0/build20/schema11：Kotlin+OkHttp DeepSeek一次只读批量提取→真实高德→临时字母标记→本地明确确认→Room原子收藏/分类/回执。App全局助手设置、密文Key、endpoint改动清空编辑Key、隐私/地图门禁、城市冲突/歧义/失败重试/重复处理/草稿离开确认已接入。
+- 全量Debug JVM **993/993**，Debug lint **0错误/35警告/1提示**；assembleDebug/AndroidTest成功。最终设备专项 **18通过/0失败/1真实用例门禁跳过**，该真实用例另启用两次均通过。地图UI/设置/Room/旧迁移/10→11专项已过，不是全量connected。
+- 真实生产路径新增2次DeepSeek+6次高德查询，无自动重试；各自确认前0写、确认后3地点与原生图钉/回执。真实结果为灵隐寺、河坊街、雷峰塔景区；不能复用旧单点探针值。约12.15/17.16秒为含UI等待的样本，不是通用性能承诺。
+- 双轴审查修复并回读关闭：相机被助手占用、模型query/city未绑定原文、城市冲突、迟到重复夺选择、地点聚焦、收藏删除后不恢复、首次设置无清除入口。12项助手JVM通过。头部裁剪/大字操作行已修并截图检查。
+- 本地试用包 `build/outputs/v3.0.0-review/easy-trip-v3.0.0-build20-review-debug.apk`，SHA256 `d66621f7712fd09191d469fd5d14250e8e61144a1b14dcfa9cbf9894e8cce486`，68959681字节；Debug签名/16KiB对齐通过。**无正式签名配置，Release构建门禁失败；Debug不能覆盖手机正式版，不卸载正式版来试装。**
+- 实施/微调/证据/回滚：`docs/testing/v3.0-agent-implementation.md`；机器摘要/截图 `docs/testing/evidence/v3.0-agent-implementation/`。20项压力、多城市、TalkBack、真机及全应用UI/精确杀进程事务窗口未验收；Release JVM/lint未完成。
+- 设计仍是上一轮完整234根Pencil评审源与14页PDF，本轮未编辑.pen/PDF；v3 hash `6e73a4b84e627821d0c7d63aad4b9ea44f6519af45b35bbb2c958b0151c84105`、冻结v2.2 hash `c01e3b26e6eb5bcd5ca6fad96eb347cc3cce7f558977a9a3e68c054755801a44`均不变。内部待评审状态是刻意保留，不称全量验收。
+- 证据与修改前备份：`/Users/bytedance/.codex/artifacts/easy-trip/v3-implementation-20261011-014035/`。本次变更源及APK known-provider-key扫描0匹配；只读模拟器5598已停止、锁释放、临时凭据清除。不回滚先前未提交设计/探针。
+- punk-12完成通知 `om_x100b639c63eb38a0ddaaba5bcef9587` 已新鲜回读验证全文、bot/app、chat和未删除状态；记录见 `completion-verified.json`。实现报告打开返回queued。
+- 下一步由用户体验后提出微调；需要手机覆盖包时先配置原正式签名并另行授权安装。没有待执行的自动提交/推送/发布。
+
+---
+
+# v3.0 讨论回写：批量标记与确认（历史）
+
+状态：**DONE — 前述讨论已更新到同一 Pencil 累积源与规格；UI待评审，生产未实现。** 2026-10-11。
+
+- 输入多个地点后「全部标记到地图」；明确项先呈现，同名/未找到/失败项独立处理。可以单项确认收藏，也可勾选或全选后核对并明确确认；标记、勾选都不是正式写入。
+- 当前旅行地图入口与普通搜索并列；App全局设置 → 助手设置 → 模型服务，所有旅行共用。A00新增入口与交互总览；A26–A34补批量结果、选择、确认、回执、失败重试、无可收藏项、超限和大字布局；相关旧状态原位更新。
+- `design/easy-trip-v3.0.0.pen`：234根（233有效、1历史），42,395唯一节点，保留v2.2全部198根和原节点。原生Save、关闭重开5ac3精确路径、MCP读回、A29原生可编辑属性通过。Agent文本和标记裁剪0、有效根重叠0、引用/ID/placeholder/缺失继承节点问题0；29处底图viewport裁剪为有意设计，停用DRICS不参与有效布局。
+- 当前v3 SHA256 `6e73a4b84e627821d0c7d63aad4b9ea44f6519af45b35bbb2c958b0151c84105`；冻结v2.2 SHA256仍为 `c01e3b26e6eb5bcd5ca6fad96eb347cc3cce7f558977a9a3e68c054755801a44`。
+- 14页PDF已导出、独立渲染逐页检查及14图OCR；包含真实设计中的地图/设置入口。A34为320dp/主要正文1.6倍滚动内容展开图，非设备结果。Codex打开预览返回queued，不声称用户已看到。
+- 首版规格、统一规划、架构补充、设计索引和审计同步。批量协议建议为一次 `search_place_batch` 解析后有界分派真实查询；所选新地点/分类/回执原子保存。参数和批量均未实测，不把既有单地点探针证据外推。
+- 本轮不改生产App或测试代码，不增加模型/设备调用，不提交推送。已有Android探针等上一轮未提交成果保留，HEAD仍 `2dcf90e05a699fd4a946cc3e54789e84d55b1bed`。
+- 证据及修改前备份：`/Users/bytedance/.codex/artifacts/easy-trip/v3-batch-design-20261011-011723/`。仅恢复该目录本次备份/逐项差异即可回滚，不能删除上一轮v3源或重置工作树。详见 `docs/testing/v3.0-agent-place-map-loop-validation.md` 第9节。
+- punk-12完成通知 `om_x100b6393309e38a0deb16126c16dd3c` 已新鲜回读：bot、sender app、目标chat、全文及未删除状态一致。
+- 下一门禁：用户评审首版UI和工程参数；批准后再编写/评审实施计划及验证批量，不自动进入生产开发。
+
+---
+
+# v3.0 设置命名澄清（历史）
+
+状态：**DONE — 用户确认命名「助手设置」，设计与文档已同步。** 2026-10-11。
+
+- App全局设置 → 助手设置；「模型服务」作为当前页内分区，所有旅行共用，非旅行设置。统一相关错误/未配置引导，不预建其他设置项。
+- Pencil修改同一`design/easy-trip-v3.0.0.pen`，原生Save菜单保存、关闭、重开5ac3路径、MCP及OCR读回通过；224根/41,801节点及所有ID保持，0文本裁剪，历史v2.2未改。六页PDF与首版规格、设计索引及审计同步。
+- 当前v3 SHA256 `0238ac40a65374d4b60cab6773d2e6e614cec8f2f0b9383874553670ec59a432`；修改前备份/验证：`/Users/bytedance/.codex/artifacts/easy-trip/v3-assistant-settings-20261011-011050/`。回滚仅恢复该目录本轮备份，不撤销此前未提交成果。
+- 本轮只改设置命名与归属，未新增生产功能，未调用模型/运行设备测试，未提交或推送。上轮功能/UI草案仍待整体评审，批量标记讨论尚未在本轮实现。
+
+---
+
+# v3.0 最小地图闭环验证与首版功能/UI（历史）
+
+状态：**DONE（本轮验证与设计交付）；首版范围/UI待用户评审，生产Agent未开始。** 2026-10-11。
+
+- 5ac3 / `codex/v3-agent-place-intake`，HEAD仍`2dcf90e05a699fd4a946cc3e54789e84d55b1bed`；本轮未提交、未推送，禁止main和裸push的约束不变。
+- 用户授权后正常停止旧`easy_trip_v22_categories_776a`，无wipe。专用`trail_map_api36`运行真实查询/现有UI确认/Room/原生地图；结束后设备和锁释放，没有触及真实手机。
+- 固定阶段和DeepSeek工具阶段均返回20个真实雷峰塔POI；预览/取消0收藏，测试用户确认1收藏，重复不新增，缺坐标拒绝，清除搜索层后同一收藏图钉在，独立进程重启恢复。城市adcode缺失保持null，不编造。
+- DeepSeek恰好2次新请求、2/2 HTTP200、0重试/重定向、2743 tokens。宿主transport与临时Android dispatcher不是生产Kotlin Runtime；默认分类OTHER，未验证首版用户分类原子写入。
+- 基础地图测试初次因未向真实SDK报告隐私同意而失败，补测试门控后通过；早期灰色native surface截图不算视觉证据，5秒等待后的独立重启截图已验证。8次成功设备执行仅涉及2个测试方法，非全套设备验收。
+- 收尾`:app:compileDebugAndroidTestKotlin`成功，`:app:testDebugUnitTest --offline`981/981通过。探针缺dedicated参数时assumption跳过；guard仅编译验证，没有追加设备或模型请求。未跑lint/Release/全量connected。
+- 正式v3累积源`design/easy-trip-v3.0.0.pen`继承v2.2的198根/全部原节点，加UI Kit+A01–A25，共224根、41801唯一节点；17个地图入口和设置入口同步。Pencil修改、原生保存/关闭/按5ac3绝对路径重开、MCP读回、可编辑属性、文本边界/入口几何/视觉/OCR通过。旧metadata仅历史来源，根context已明确当前归属。
+- v3 SHA256 `b83e931283a5981715b972fb55e28924fdec1c054ec86878497e503a21027bed`；v2.2 SHA256仍`c01e3b26e6eb5bcd5ca6fad96eb347cc3cce7f558977a9a3e68c054755801a44`。0重复ID/断引用/placeholder/缺失继承节点。历史全应用验收缺口保留，新UI非设备实现。
+- 首版评审稿：`docs/superpowers/specs/2026-10-11-easy-trip-v3-first-agent-design.md`；提案文字单地点连续录入、地图候选、用户确认，图片/分享/批量/撤销/其它操作后续，不冒充用户已批准这些取舍。
+- 验证记录：`docs/testing/v3.0-agent-place-map-loop-validation.md`；机器证据与两张真实截图在`docs/testing/evidence/v3.0-agent-place-map-loop/`；六页Pencil导出PDF在`design/previews/v3.0.0-agent/export.pdf`。Codex预览打开工具返回queued，不声称用户已看到。
+- 完整证据和修改前备份：`/Users/bytedance/.codex/artifacts/easy-trip/v3-map-loop-20261010-234245/`。Key扫描和相对链接检查通过；生产App/Gradle/schema/冻结v4未改，只有androidTest修补和设计/文档。
+- punk-12完成通知`om_x100b6392c579e0a0deb34c1da4ff3e7`已回读，机器人、chat、全文和未删除状态均一致。
+- 下一门禁：用户评审首版范围及UI后，才编写并评审实施计划；不是自动进入开发。
+
+---
+
+# v3.0 Agent 下一步：Provider 协议验证（历史）
 
 状态：**DONE（本次基础协议 smoke）— 离线 40/40、真实文本/合成截图两条工具闭环通过；4/4 HTTP 200。**（2026-10-10）
 

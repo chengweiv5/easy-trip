@@ -97,6 +97,7 @@ const val TRIP_SHARE_ROUTE = "trips/{tripId}/share"
 const val TRIP_SETTINGS_ROUTE = "trips/{tripId}/settings"
 const val TRIP_SEARCH_ROUTE = "trips/{tripId}/search"
 const val APP_SETTINGS_ROUTE = "settings"
+const val ASSISTANT_SETTINGS_ROUTE = "settings/assistant"
 const val APP_MAP_CONSENT_ROUTE = "settings/map"
 const val APP_UPDATE_ROUTE = "settings/update"
 internal const val WORKSPACE_SEARCH_RETURN_KEY = "searchReturnPoiIds"
@@ -471,7 +472,13 @@ fun AppNavigation(
                 update is com.yangchengwei.easytrip.settings.UpdateState.Available || update is com.yangchengwei.easytrip.settings.UpdateState.Downloading || update is com.yangchengwei.easytrip.settings.UpdateState.Ready,
                 { navController.popBackStack() }, openTheme, { navigate(APP_MAP_CONSENT_ROUTE) },
                 { navigate(APP_UPDATE_ROUTE); if (update == com.yangchengwei.easytrip.settings.UpdateState.Idle) updateModel.controller.check() },
+                onAssistant = application?.let { { navigate(ASSISTANT_SETTINGS_ROUTE) } },
             )
+        }
+        composable(ASSISTANT_SETTINGS_ROUTE) {
+            application?.container?.assistantConfig?.let { store ->
+                com.yangchengwei.easytrip.assistant.AssistantSettings(store) { navController.popBackStack() }
+            }
         }
         composable(APP_MAP_CONSENT_ROUTE) {
             effectiveDependencies?.consentStore?.let { store ->
@@ -539,6 +546,14 @@ fun AppNavigation(
                 val token = runtime.token
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
+                val assistantModel = application?.container?.let { container ->
+                    viewModel<com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel>(
+                        viewModelStoreOwner = entry,
+                        factory = com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel.Factory(
+                            id, container.assistantConfig, container.placeImport, workspaceDependencies.savedPlaceRepository),
+                    )
+                }
+                LaunchedEffect(assistantModel, source) { assistantModel?.controller?.updateSource(source) }
                 val currentPosition = com.yangchengwei.easytrip.place.ui.rememberLocatedPosition(runtime.locationSession)
                 LaunchedEffect(workspaceModel, currentPosition) { workspaceModel.updateCurrentPosition(currentPosition) }
                 val workspaceSearchReturnState: WorkspaceSearchReturnViewModel = viewModel(viewModelStoreOwner = entry)
@@ -635,6 +650,8 @@ fun AppNavigation(
                 CompositionLocalProvider(LocalExpenseReviewOpener provides { dayId: String? -> navigate("trip-expenses/${Uri.encode(id)}" + (dayId?.let { "?dayId=${Uri.encode(it)}" } ?: "")) }) {
                 TripWorkspaceRoute(
                     viewModel = workspaceModel,
+                    assistantViewModel = assistantModel,
+                    onAssistantSettings = { navigate(ASSISTANT_SETTINGS_ROUTE) },
                     mapSession = workspaceMapSession,
                     consent = token,
                     consentFact = consentFact,

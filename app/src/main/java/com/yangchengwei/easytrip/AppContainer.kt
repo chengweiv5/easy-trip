@@ -92,7 +92,7 @@ class AppContainer(
     applicationScope: CoroutineScope,
     databaseFactory: (Context) -> EasyTripDatabase = {
         Room.databaseBuilder(it, EasyTripDatabase::class.java, "easy-trip.db")
-            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10)
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10, EasyTripDatabase.MIGRATION_10_11)
             .addCallback(FlexibleRouteDefaultsUpdate)
             .build()
     },
@@ -100,6 +100,8 @@ class AppContainer(
 ) {
     private val context = context.applicationContext
     val database = databaseFactory(this.context)
+    val assistantConfig = com.yangchengwei.easytrip.assistant.AssistantConfigStore(this.context)
+    val placeImport = com.yangchengwei.easytrip.assistant.data.RoomPlaceImport(database)
     val networkMonitor = networkFactory(this.context, applicationScope)
     val mapPreferences = SharedPreferencesMapPreferences(this.context.getSharedPreferences("map", Context.MODE_PRIVATE))
     val locationPermissionRequestStore = SharedPreferencesLocationPermissionRequestStore(

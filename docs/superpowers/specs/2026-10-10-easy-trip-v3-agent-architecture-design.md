@@ -1,6 +1,13 @@
 # Easy Trip v3.0 Agent 技术架构
 
+> **当前进展（2026-10-11）**：用户已授权设计后直接开发。文字批量标记、候选确认收藏、全局助手设置的 Kotlin 首版已实现并通过专项验证，见 [实施记录](../../testing/v3.0-agent-implementation.md)。以下“未批准/未实现”属于当时设计历史；完整扩展架构并未全部实现。架构组件图和Pencil源仍为评审参考，未将草稿存储/图片/撤销等未来能力冒充已交付。
+
+
 状态：**本版架构设计已收敛，待评审；未批准实施，未实现。** 2026-10-10 更新 Runtime 选型、Provider 直连和 DeepSeek 图片/工具协议；本版替代同日早先的“必须自建网关”草案。
+
+**2026-10-11 首版讨论回写**：[功能/UI评审稿](2026-10-11-easy-trip-v3-first-agent-design.md)现包含非流式文字多地点、全部标记、单项或勾选后确认收藏。建议 Runtime 校验一次 `search_place_batch(items[], overflow)` 后，有界分派既有 `PlaceQuery`，而非每个地点再调用模型或放开无界工具循环；仅失败项重试、未完成项取消，完成结果保留。所选新地点/逐项分类/批量回执同事务，本地确认绑定目标旅行及所选项快照。详细参数和状态以新稿第4节为准，均未实现、批量未实测。入口是当前旅行地图；配置是 **App 全局设置 → 助手设置 → 模型服务**，所有旅行共用。本文与组件图保留可扩展架构；图片、通用草稿工具、任务原文持久化和 Agent 撤销不是首版必做项。
+
+**实测进展**：[地图闭环验证](../../testing/v3.0-agent-place-map-loop-validation.md)已通过单地点的真实高德/Room/原生图钉预览、取消、用户确认、去重和进程重启；DeepSeek工具接真实查询2/2 HTTP200。使用临时宿主 transport/Android dispatcher，生产 Kotlin Runtime、批量协议、下述通用任务持久化及 UI 尚未实现。
 
 本稿是 [v3.0 统一规划](2026-10-10-easy-trip-v3-agent-place-intake-design.md)的技术细化，不是第二条版本规划。代码核对基线：`bbdcb1f57a47eac8ae13c8a7423fab97632699bb`（本轮获取的最新 `origin/main`，v2.2.0 / schema 10），当前工作树 `/Users/bytedance/.codex/worktrees/5ac3/easy-trip`。本稿确定这一版的技术设计取舍，供用户评审；设计完成不代表实现获批或能力已接通。输入/确认 UI 和实施计划仍需各自评审。
 
@@ -11,7 +18,7 @@
 - **Runtime**：Kotlin + Coroutines + Flow/StateFlow，Room 持久化；OkHttp 负责 HTTPS/SSE，kotlinx.serialization 负责 JSON。首期自建有界工具循环，不在手机部署 Python/Node，也不引入重型 Agent 框架。
 - **模型**：通过 `ModelPort → ProviderAdapter` 直连；首个适配器选 DeepSeek Chat Completions，模型 ID `deepseek-flash`。只需配置 provider、Base URL、用户自己的 API key 和 model；**不要求用户提供或我们先搭建云端网关**。
 - **网关**：未来需要统一密钥、账号、额度或审计时再接入，作为可选 Provider 路由，不进入首期必需链路。
-- **图片**：官方文档确认 DeepSeek Flash 支持图片理解和工具调用；首期设计允许截图直接输入，OCR 只作可选降级。2026-10-10 已用用户配置的官方 endpoint/key 实测文本和合成截图各一条工具闭环（4 次请求、thinking 关闭、非流式）；准确率、真实 SSE 和 Android 接入仍未验收。详见[能力调研](../../analysis/2026-10-10-deepseek-flash-capabilities.md)。
+- **图片扩展**：官方文档确认 DeepSeek Flash 支持图片理解和工具调用；完整架构允许截图直接输入，OCR 只作可选降级，首版文字优先提案将图片后置。2026-10-10 已用用户配置的官方 endpoint/key 实测文本和合成截图各一条工具闭环（4 次请求、thinking 关闭、非流式）；准确率、真实 SSE 和生产 Kotlin Android 接入仍未验收。详见[能力调研](../../analysis/2026-10-10-deepseek-flash-capabilities.md)。
 
 Agent 是 App 的第二个操作入口，不是一个通过屏幕点击 App 的机器人，也不是一套独立的旅行数据库。它接收素材、理解指令、请求查询、整理候选和解释结果；正式操作由手机上的受信任业务代码执行。
 

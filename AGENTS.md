@@ -2,12 +2,13 @@
 
 ## 后续版本规划
 
-- **v3.0 Agent 统一规划**：2026-10-10 用户确认将“智能录入地点”与原 v4.0 Agent 方案合并。当前入口为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-place-intake-design.md`；用户自行发现和决定收藏，Agent 整理、匹配地图地点并受控录入。独立 v4.0 规划废弃，原文与源图冻结在 `docs/archive/v4-agent/`，后续行程调整等能力在统一规划中保留。技术细化为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-architecture-design.md`：Kotlin Runtime + DeepSeek Provider 直连，网关可选；架构本版设计已收敛，尚未实现，UI/实施计划待评审，不替代以下 v2.2 已交付设计基线。
+- **v3.0 Agent 统一规划**：2026-10-10 用户确认将“智能录入地点”与原 v4.0 Agent 方案合并。当前入口为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-place-intake-design.md`；用户自行发现和决定收藏，Agent 整理、匹配地图地点并受控录入。独立 v4.0 规划废弃，原文与源图冻结在 `docs/archive/v4-agent/`，后续行程调整等能力在统一规划中保留。技术细化为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-architecture-design.md`：Kotlin Runtime + DeepSeek Provider 直连，网关可选；架构本版设计已收敛，文字批量标记与确认收藏的首版已按2026-10-11授权实现；扩展工具仍为规划，不替代以下v2.2已发布基线。
 
 ## UI 设计
 
 - **当前正式版（2026-10-11）**：v2.2.1/build20/schema10已发布，标签固定 `556f811423def8e9888f53f6489030e860776850`；单日与全程每日标题两行、日期小字号垂直居中，新收藏默认景点。981 Release JVM、33项设备专项、0错误Release lint、原签名/16KB/公开下载与Latest回读通过。正式源 `design/easy-trip-v2.2.1.pen` 已回写并原生保存、关闭重开/MCP回读，199根/40,699节点保持。全程6项旧测试在精确基线同名失败，未安装真实手机。详情及回滚见 `docs/testing/v2.2.1-release.md`；以下“当前v2.2.0/待发布”等为历史记录。
 - UI 设计与设计修改必须使用 Pencil MCP，不得因报错自动改用其他设计工具或直接修改 `.pen` 文件来绕过 Pencil。
+- **当前 v3 实施与评审目标（2026-10-11，5ac3）**：`design/easy-trip-v3.0.0.pen` 为首版累积草案，继承v2.2全部198根，UI Kit + A00–A34共36新增根，合计234根（233有效、1历史）。后续设计/实施先读 `docs/superpowers/specs/2026-10-11-easy-trip-v3-first-agent-design.md`：文字多地点全部标记，待核对项独立处理，单项或勾选后确认收藏；地图入口与普通搜索并列，App全局「助手设置」共用。用户已授权直接开发；v3.0.0/build20/schema11首版已实现，Debug专项通过，仍待体验微调。实施/验证/回滚见 `docs/testing/v3.0-agent-implementation.md`；Pencil源与PDF本轮保持评审基线，不声称所有UI状态已设备验收。验证与本次回滚见 `docs/testing/v3.0-agent-place-map-loop-validation.md`；冻结v2.2不改。
 - **当前正式版（2026-10-10）**：v2.2.0/build19/schema10已发布，标签固定于 `3c59ed1f4343a40da33a2ab4e87e21363a92b568`，公开APK与Latest回读通过。正式源 `design/easy-trip-v2.2.0.pen` 已回写发布状态；原生保存、776a路径关闭重开、MCP回读及可编辑属性检查通过，198根/40,607节点保持。后续7处设计元数据随文档收尾提交，标签和安装包不变。准确发布证据、设计hash、已知限制及回滚见 `docs/testing/v2.2.0-release.md`。下文为各阶段历史，“待Mac解锁／未提交／未发布”不代表当前状态；手机仍为此前build18，本轮未重装。
 - **前三项开发历史**：2026-10-10 用户确认 **v2.2.0 数字显示、空旅行城市定位与旅行列表连续滚动** 后完成开发。正式累积源 `design/easy-trip-v2.2.0.pen`，继承已发布 v2.1.0 的全部根，新增列表下滑状态，共188根（187有效、1历史）。第4点地点池编辑行为不改。实现2.2.0/build18；开发范围、验证与回滚见 `docs/testing/v2.2.0-implementation.md`，后续已获授权的提交、推送与安装结果见 `docs/testing/v2.2.0-delivery.md`，未要求发布Release。辅助列表评审源 `design/explorations/v2.2.0-trip-list-review.pen` 不作为第二份正式源。
 - **历史版本**：已发布 v2.1.0/build17 包含花费分区、年月控件、连续进度条与编辑地点三区块；正式源 `design/easy-trip-v2.1.0.pen` 保持冻结，发布证据见 `docs/testing/v2.1.0-release.md`。v2.2继承未变页面及历史验收缺口，不将本轮专项通过等同于全应用重新验收。原 v1.9.0、v2.0 探索和按特性命名的辅助稿均不作为当前开发入口。

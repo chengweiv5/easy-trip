@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "modelCalls": 1,
+  "poiCalls": 3,
+  "saved": 3,
+  "preConfirmationWrites": 0,
+  "elapsedMs": 17160,
+  "realProvider": true,
+  "smallDoubleFont": false,
+  "places": [
+    {
+      "poiId": "B0FFGQ772L",
+      "name": "河坊街",
+      "address": "上城区",
+      "city": "杭州市",
+      "latitude": 30.2401,
+      "longitude": 120.16863,
+      "category": "OTHER"
+    },
+    {
+      "poiId": "B023B02842",
+      "name": "灵隐寺",
+      "address": "法云弄1号",
+      "city": "杭州市",
+      "latitude": 30.240826,
+      "longitude": 120.101406,
+      "category": "OTHER"
+    },
+    {
+      "poiId": "B023B09LKR",
+      "name": "雷峰塔景区",
+      "address": "南山路15号",
+      "city": "杭州市",
+      "latitude": 30.230934,
+      "longitude": 120.148849,
+      "category": "OTHER"
+    }
+  ]
+}

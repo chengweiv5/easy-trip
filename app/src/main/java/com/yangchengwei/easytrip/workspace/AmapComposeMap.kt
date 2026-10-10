@@ -376,7 +376,7 @@ internal fun mapMarkerRendering(marker: MapMarkerUi, palette: ThemePalette = The
     val focusedBorder = palette.colors.tertiary.toArgb()
     return when (marker.kind) {
         MapMarkerKind.UNSAVED_SEARCH, MapMarkerKind.SEARCH_RESULT -> MapMarkerRendering(
-            glyph = "●",
+            glyph = marker.badgeText ?: "●",
             foregroundColor = 0xFFFFFFFF.toInt(),
             backgroundColor = palette.colors.tertiary.toArgb(),
             borderColor = if (marker.isFocused) focusedBorder else 0xFFFFFFFF.toInt(),
