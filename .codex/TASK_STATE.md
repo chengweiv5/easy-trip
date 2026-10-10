@@ -1,13 +1,14 @@
 # v3.0.0 正式签名构建、安装、提交、推送（当前）
 
-状态：**IN_PROGRESS — 正式Release构建、手机覆盖安装、功能提交及v3远端回读已完成；正在收尾交付记录和完成通知。** 2026-10-11。
+状态：**DONE — 正式Release构建、手机同签名覆盖安装、提交、仅v3快进推送及完成通知均已验证；待用户体验微调，未公开发布。** 2026-10-11。
 
 - 只在5ac3/`codex/v3-agent-place-intake`；唯一推送目标同名origin分支，禁止main/裸push/force。新fetch的origin/main与远程v3均为HEAD祖先，待合并PR为空。
 - 原签名配置`/Users/bytedance/Code/easy-trip/release-signing.properties`、密钥`/Users/bytedance/.android/easy-trip-release.jks`已只读验证，证书与手机旧正式包一致；构建只通过子进程环境注入，不复制配置/不改原件。
 - 干净功能提交`39932f8e447d22646632decc07062f2c0e3c9c95`正式构建成功，993项Release JVM通过，lint0错误/33警告/1提示；534项输入hash不变，两轴复审无新增阻断。签名原件未改；APK子串扫描的4条依赖正则误报已与旧包逐条核验，未发现独立密码字符串或Provider Key。
 - 07:44手机ALN-AL00同签名覆盖升级3.0.0/build20/schema11；APK回读SHA256`9c0191df8857fb4a8a7d657769413dd22d590e5e6f389782ea8aedb24c8b3d15`一致。UID10477/首次安装时间未变，冷启动正常，24项可见旅行列表文本一致；无卸载/清数据，不宣称全库验证。全局「助手设置」入口已只读确认。
 - 07:48功能提交已快进推送同名origin分支，远端SHA回读一致；origin/main仍为`bbdcb1f57a47eac8ae13c8a7423fab97632699bb`。推送前fetch/rebase返回已最新，未force，未发布Release/标签。
-- 交付记录`docs/testing/v3.0-agent-delivery.md`；证据根`/Users/bytedance/.codex/artifacts/easy-trip/v3-release-delivery-20261011-073641/`。仅剩文档收尾提交/推送、完成通知与最终回读；APK始终对应上述功能提交，后续文档提交不改变应用输入。
+- 交付文档提交`fa7365fedb90cd749194029631eb37264bfef25d`已推送且回读一致；punk-12完成通知`om_x100b6398b81da0a4c246d4cd03631e1`已回读接收chat、app_id及全文，未删除。
+- 交付记录`docs/testing/v3.0-agent-delivery.md`；证据根`/Users/bytedance/.codex/artifacts/easy-trip/v3-release-delivery-20261011-073641/`。本状态随仅文档收尾提交，最终HEAD/远端/干净状态回读在`final-delivery.json`；APK始终对应上述功能提交，后续文档提交不改变应用输入。已知验收缺口及向前修复回滚边界见交付记录。
 
 ---
 
