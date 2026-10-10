@@ -2,7 +2,7 @@
 
 ## 后续版本规划
 
-- **v3.0 Agent 统一规划**：2026-10-10 用户确认将“智能录入地点”与原 v4.0 Agent 方案合并。当前入口为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-place-intake-design.md`；用户自行发现和决定收藏，Agent 整理、匹配地图地点并受控录入。独立 v4.0 规划废弃，原文与源图冻结在 `docs/archive/v4-agent/`，后续行程调整等能力在统一规划中保留。该规划尚未实现，详细设计/实施计划待评审，不替代以下 v2.2 已交付设计基线。
+- **v3.0 Agent 统一规划**：2026-10-10 用户确认将“智能录入地点”与原 v4.0 Agent 方案合并。当前入口为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-place-intake-design.md`；用户自行发现和决定收藏，Agent 整理、匹配地图地点并受控录入。独立 v4.0 规划废弃，原文与源图冻结在 `docs/archive/v4-agent/`，后续行程调整等能力在统一规划中保留。技术细化为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-architecture-design.md`：Kotlin Runtime + DeepSeek Provider 直连，网关可选；架构本版设计已收敛，尚未实现，UI/实施计划待评审，不替代以下 v2.2 已交付设计基线。
 
 ## UI 设计
 

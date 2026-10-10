@@ -527,12 +527,12 @@
         <div class="pulse-dot"></div>
         <h1>Easy Trip v3.0 · Agent 技术架构</h1>
       </div>
-      <p class="subtitle">评审草案 · 手机编排与执行 / 云端推理 · 现有界面与 Agent 共用一份正式数据</p>
+      <p class="subtitle">技术设计 · Kotlin Runtime / Provider 直连 / 网关可选 · 待实现，未接通模型</p>
     </div>
 
     <!-- Main Diagram -->
     <div class="diagram-container">
-      <svg viewBox="0 0 1340 970" role="img" aria-label="Easy Trip v3.0 · Agent 技术架构 — 评审草案 · 手机编排与执行 / 云端推理 · 现有界面与 Agent 共用一份正式数据 (architecture diagram)">
+      <svg viewBox="0 0 1200 880" role="img" aria-label="Easy Trip v3.0 · Agent 技术架构 — 技术设计 · Kotlin Runtime / Provider 直连 / 网关可选 · 待实现，未接通模型 (architecture diagram)">
         <!-- Definitions -->
         <defs>
           <marker id="arrowhead" markerWidth="10" markerHeight="7" refX="9" refY="3.5" orient="auto">
@@ -556,110 +556,122 @@
         <rect width="100%" height="100%" fill="url(#grid)" />
 
         <!-- Boundaries (behind everything) -->
-        <rect x="45" y="95" width="625" height="730" rx="12" class="c-region" stroke-width="1"/>
-        <text x="53" y="113" class="t-cloud" font-size="9" font-weight="600">Android App · 现有 :app 模块内增量扩展</text>
+        <rect x="36" y="92" width="852" height="672" rx="12" class="c-region" stroke-width="1"/>
+        <text x="44" y="110" class="t-cloud" font-size="9" font-weight="600">Android App · Kotlin 原生运行时 / 本地业务与凭据</text>
 
-        <rect x="835" y="95" width="300" height="330" rx="8" class="c-security-group" stroke-width="1"/>
-        <text x="843" y="113" class="t-security" font-size="9" font-weight="600">云端推理链路 · 无手机数据库写入权</text>
+        <rect x="936" y="96" width="240" height="280" rx="8" class="c-security-group" stroke-width="1"/>
+        <text x="944" y="114" class="t-security" font-size="9" font-weight="600">云端 · 无本地写入权</text>
 
         <!-- Connection paths (before components for correct z-order) -->
-        <path d="M 295 170 L 390 170" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 635 170 L 870 170" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 985 210 L 985 325" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path d="M 512.5 210 L 512.5 325" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
-        <path d="M 390 170 L 353 170 Q 345 170 345 178 L 345 357 Q 345 365 337 365 L 295 365" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
-        <path d="M 512.5 405 L 512.5 520" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
-        <path d="M 295 560 L 390 560" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path d="M 635 560 L 1050 560" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path d="M 512.5 600 L 512.5 725" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
-        <path d="M 390 765 L 295 765" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 240 156 L 324 156" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 428 120 L 428 116 Q 428 112 432 112 L 748 112 Q 752 112 752 116 L 752 120" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 860 156 L 960 156" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 752 192 L 752 312 Q 752 320 760 320 L 960 320" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path d="M 1056 284 L 1056 192" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path d="M 532 156 L 580 156 Q 588 156 588 164 L 588 312 Q 588 320 580 320 L 532 320" class="a-emphasis" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+        <path d="M 428 192 L 428 216 Q 428 224 420 224 L 160 224 Q 152 224 152 232 L 152 284" class="a-dashed" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        <path d="M 428 356 L 428 480" class="a-security" stroke-width="1.5" marker-end="url(#arrowhead-security)"/>
+        <path d="M 240 516 L 324 516" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 532 516 L 960 516" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 428 552 L 428 672" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        <path d="M 324 708 L 240 708" class="a-default" stroke-width="1.5" marker-end="url(#arrowhead)"/>
 
         <!-- Components -->
-        <rect x="80" y="130" width="215" height="80" rx="6" class="c-mask"/>
-        <rect x="80" y="130" width="215" height="80" rx="6" class="c-frontend" stroke-width="1.5"/>
-        <text x="187.5" y="168" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">素材与指令入口</text>
-        <text x="187.5" y="184" class="t-muted" font-size="9" text-anchor="middle">新增 · 文字 / 截图 / 分享</text>
+        <rect x="64" y="120" width="176" height="72" rx="6" class="c-mask"/>
+        <rect x="64" y="120" width="176" height="72" rx="6" class="c-frontend" stroke-width="1.5"/>
+        <text x="152" y="154" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">素材与指令入口</text>
+        <text x="152" y="170" class="t-muted" font-size="9" text-anchor="middle">新增 · 文字 / 截图；分享后续</text>
 
-        <rect x="390" y="130" width="245" height="80" rx="6" class="c-mask"/>
-        <rect x="390" y="130" width="245" height="80" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="512.5" y="168" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Agent Runtime</text>
-        <text x="512.5" y="184" class="t-muted" font-size="9" text-anchor="middle">新增 · 上下文 / 循环 / 预算</text>
+        <rect x="324" y="120" width="208" height="72" rx="6" class="c-mask"/>
+        <rect x="324" y="120" width="208" height="72" rx="6" class="c-backend" stroke-width="1.5"/>
+        <text x="428" y="154" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Kotlin Agent Runtime</text>
+        <text x="428" y="170" class="t-muted" font-size="9" text-anchor="middle">Coroutines / Flow · 有界循环</text>
 
-        <rect x="870" y="130" width="230" height="80" rx="6" class="c-mask"/>
-        <rect x="870" y="130" width="230" height="80" rx="6" class="c-security" stroke-width="1.5"/>
-        <text x="985" y="168" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">模型网关</text>
-        <text x="985" y="184" class="t-muted" font-size="9" text-anchor="middle">新增 · 鉴权 / 限流 / 密钥</text>
+        <rect x="644" y="120" width="216" height="72" rx="6" class="c-mask"/>
+        <rect x="644" y="120" width="216" height="72" rx="6" class="c-backend" stroke-width="1.5"/>
+        <text x="752" y="154" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ProviderAdapter</text>
+        <text x="752" y="170" class="t-muted" font-size="9" text-anchor="middle">新增 · OkHttp / JSON / SSE</text>
 
-        <rect x="870" y="325" width="230" height="80" rx="6" class="c-mask"/>
-        <rect x="870" y="325" width="230" height="80" rx="6" class="c-cloud" stroke-width="1.5"/>
-        <text x="985" y="363" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">多模态模型</text>
-        <text x="985" y="379" class="t-muted" font-size="9" text-anchor="middle">理解素材 · 提议工具调用</text>
+        <rect x="960" y="120" width="192" height="72" rx="6" class="c-mask"/>
+        <rect x="960" y="120" width="192" height="72" rx="6" class="c-cloud" stroke-width="1.5"/>
+        <text x="1056" y="154" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">DeepSeek Flash</text>
+        <text x="1056" y="170" class="t-muted" font-size="9" text-anchor="middle">图片理解 + 工具提议</text>
 
-        <rect x="80" y="325" width="215" height="80" rx="6" class="c-mask"/>
-        <rect x="80" y="325" width="215" height="80" rx="6" class="c-database" stroke-width="1.5"/>
-        <text x="187.5" y="363" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">任务、草稿、回执</text>
-        <text x="187.5" y="379" class="t-muted" font-size="9" text-anchor="middle">新增 · Room 内的辅助记录</text>
+        <rect x="960" y="284" width="192" height="72" rx="6" class="c-mask"/>
+        <rect x="960" y="284" width="192" height="72" rx="6" class="c-security" stroke-width="1.5"/>
+        <text x="1056" y="318" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">可选模型网关</text>
+        <text x="1056" y="334" class="t-muted" font-size="9" text-anchor="middle">未来 · 统一凭据 / 额度治理</text>
 
-        <rect x="390" y="325" width="245" height="80" rx="6" class="c-mask"/>
-        <rect x="390" y="325" width="245" height="80" rx="6" class="c-security" stroke-width="1.5"/>
-        <text x="512.5" y="363" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工具适配与授权</text>
-        <text x="512.5" y="379" class="t-muted" font-size="9" text-anchor="middle">新增 · 只读 / 草稿 / 审批</text>
+        <rect x="64" y="284" width="176" height="72" rx="6" class="c-mask"/>
+        <rect x="64" y="284" width="176" height="72" rx="6" class="c-database" stroke-width="1.5"/>
+        <text x="152" y="318" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">任务、草稿、回执</text>
+        <text x="152" y="334" class="t-muted" font-size="9" text-anchor="middle">新增 · 同一 Room 内辅助记录</text>
 
-        <rect x="80" y="520" width="215" height="80" rx="6" class="c-mask"/>
-        <rect x="80" y="520" width="215" height="80" rx="6" class="c-frontend" stroke-width="1.5"/>
-        <text x="187.5" y="558" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">现有触屏操作</text>
-        <text x="187.5" y="574" class="t-muted" font-size="9" text-anchor="middle">保留 · 收藏 / 编辑地点</text>
+        <rect x="324" y="284" width="208" height="72" rx="6" class="c-mask"/>
+        <rect x="324" y="284" width="208" height="72" rx="6" class="c-security" stroke-width="1.5"/>
+        <text x="428" y="318" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">工具适配与授权</text>
+        <text x="428" y="334" class="t-muted" font-size="9" text-anchor="middle">schema 校验 / 本地确认</text>
 
-        <rect x="390" y="520" width="245" height="80" rx="6" class="c-mask"/>
-        <rect x="390" y="520" width="245" height="80" rx="6" class="c-backend" stroke-width="1.5"/>
-        <text x="512.5" y="558" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">共享业务能力</text>
-        <text x="512.5" y="574" class="t-muted" font-size="9" text-anchor="middle">抽取 / 新增 · 校验与事务</text>
+        <rect x="64" y="480" width="176" height="72" rx="6" class="c-mask"/>
+        <rect x="64" y="480" width="176" height="72" rx="6" class="c-frontend" stroke-width="1.5"/>
+        <text x="152" y="514" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">现有触屏操作</text>
+        <text x="152" y="530" class="t-muted" font-size="9" text-anchor="middle">保留 · 收藏 / 编辑 / 分类</text>
 
-        <rect x="1050" y="520" width="230" height="80" rx="6" class="c-mask"/>
-        <rect x="1050" y="520" width="230" height="80" rx="6" class="c-external" stroke-width="1.5"/>
-        <text x="1165" y="558" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">高德 SDK / 服务</text>
-        <text x="1165" y="574" class="t-muted" font-size="9" text-anchor="middle">保留 · 隐私门控 / POI</text>
+        <rect x="324" y="480" width="208" height="72" rx="6" class="c-mask"/>
+        <rect x="324" y="480" width="208" height="72" rx="6" class="c-backend" stroke-width="1.5"/>
+        <text x="428" y="514" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">共享业务能力</text>
+        <text x="428" y="530" class="t-muted" font-size="9" text-anchor="middle">PlaceQuery / PlaceImport</text>
 
-        <rect x="390" y="725" width="245" height="80" rx="6" class="c-mask"/>
-        <rect x="390" y="725" width="245" height="80" rx="6" class="c-database" stroke-width="1.5"/>
-        <text x="512.5" y="763" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Repository + Room</text>
-        <text x="512.5" y="779" class="t-muted" font-size="9" text-anchor="middle">保留 · 唯一正式旅行数据</text>
+        <rect x="960" y="480" width="192" height="72" rx="6" class="c-mask"/>
+        <rect x="960" y="480" width="192" height="72" rx="6" class="c-external" stroke-width="1.5"/>
+        <text x="1056" y="514" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">高德 SDK / 服务</text>
+        <text x="1056" y="530" class="t-muted" font-size="9" text-anchor="middle">保留 · 隐私门控 / POI</text>
 
-        <rect x="80" y="725" width="215" height="80" rx="6" class="c-mask"/>
-        <rect x="80" y="725" width="215" height="80" rx="6" class="c-frontend" stroke-width="1.5"/>
-        <text x="187.5" y="763" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">地点池 / 地图 / 行程</text>
-        <text x="187.5" y="779" class="t-muted" font-size="9" text-anchor="middle">保留 · 订阅 Flow 展示结果</text>
+        <rect x="324" y="672" width="208" height="72" rx="6" class="c-mask"/>
+        <rect x="324" y="672" width="208" height="72" rx="6" class="c-database" stroke-width="1.5"/>
+        <text x="428" y="706" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">Repository + Room</text>
+        <text x="428" y="722" class="t-muted" font-size="9" text-anchor="middle">正式数据 · 新地点含分类</text>
+
+        <rect x="64" y="672" width="176" height="72" rx="6" class="c-mask"/>
+        <rect x="64" y="672" width="176" height="72" rx="6" class="c-frontend" stroke-width="1.5"/>
+        <text x="152" y="706" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">地点池 / 地图 / 行程</text>
+        <text x="152" y="722" class="t-muted" font-size="9" text-anchor="middle">保留 · 订阅 Flow 展示结果</text>
 
         <!-- Connection labels -->
 
-        <rect x="706.7" y="150" width="91.6" height="14" rx="3" class="c-mask"/>
-        <text x="752.5" y="160" class="t-backend" font-size="8" text-anchor="middle">ModelPort / HTTPS</text>
+        <rect x="563" y="95.6" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+        <text x="589.6" y="105.6" class="t-backend" font-size="8" text-anchor="middle">ModelPort</text>
+        <rect x="881" y="136" width="58" height="14" rx="3" class="c-mask"/>
+        <text x="910" y="146" class="t-backend" font-size="8" text-anchor="middle">HTTPS 直连</text>
+        <rect x="831.8" y="294.8" width="48.4" height="14" rx="3" class="c-mask"/>
+        <text x="856" y="304.8" class="t-messagebus" font-size="8" text-anchor="middle">可选路由</text>
 
 
 
+        <rect x="455" y="410" width="58" height="14" rx="3" class="c-mask"/>
+        <text x="484" y="420" class="t-security" font-size="8" text-anchor="middle">确认后提交</text>
 
-
-        <rect x="791.9" y="540" width="101.2" height="14" rx="3" class="c-mask"/>
-        <text x="842.5" y="550" class="t-muted" font-size="8" text-anchor="middle">地点搜索 / 有效 POI</text>
-        <rect x="583.4" y="647" width="77.2" height="14" rx="3" class="c-mask"/>
-        <text x="622" y="657" class="t-muted" font-size="8" text-anchor="middle">校验后事务提交</text>
-        <rect x="327.5" y="745" width="30" height="14" rx="3" class="c-mask"/>
-        <text x="342.5" y="755" class="t-muted" font-size="8" text-anchor="middle">Flow</text>
+        <rect x="695.4" y="496" width="101.2" height="14" rx="3" class="c-mask"/>
+        <text x="746" y="506" class="t-muted" font-size="8" text-anchor="middle">地点搜索 / 可信 POI</text>
+        <rect x="471" y="606.8" width="82" height="14" rx="3" class="c-mask"/>
+        <text x="512" y="616.8" class="t-muted" font-size="8" text-anchor="middle">校验 / 原子事务</text>
+        <rect x="267" y="688" width="30" height="14" rx="3" class="c-mask"/>
+        <text x="282" y="698" class="t-muted" font-size="8" text-anchor="middle">Flow</text>
 
         <!-- Legend -->
-        <text x="40" y="941" class="t-primary" font-size="9" font-weight="600">Legend</text>
-        <rect x="40" y="946" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
-        <text x="60" y="954" class="t-muted" font-size="8">Frontend</text>
-        <rect x="138" y="946" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-        <text x="158" y="954" class="t-muted" font-size="8">Backend</text>
-        <rect x="231" y="946" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
-        <text x="251" y="954" class="t-muted" font-size="8">Security</text>
-        <rect x="329" y="946" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
-        <text x="349" y="954" class="t-muted" font-size="8">Cloud</text>
-        <rect x="412" y="946" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-        <text x="432" y="954" class="t-muted" font-size="8">Database</text>
-        <rect x="510" y="946" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-        <text x="530" y="954" class="t-muted" font-size="8">External</text>
+        <text x="40" y="851" class="t-primary" font-size="9" font-weight="600">Legend</text>
+        <rect x="40" y="856" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
+        <text x="60" y="864" class="t-muted" font-size="8">Frontend</text>
+        <rect x="138" y="856" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
+        <text x="158" y="864" class="t-muted" font-size="8">Backend</text>
+        <rect x="231" y="856" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
+        <text x="251" y="864" class="t-muted" font-size="8">Cloud</text>
+        <rect x="314" y="856" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
+        <text x="334" y="864" class="t-muted" font-size="8">Security</text>
+        <rect x="412" y="856" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+        <text x="432" y="864" class="t-muted" font-size="8">Database</text>
+        <rect x="510" y="856" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
+        <text x="530" y="864" class="t-muted" font-size="8">External</text>
       </svg>
     </div>
 
@@ -668,33 +680,44 @@
       <div class="card">
         <div class="card-header">
           <div class="card-dot cyan"></div>
-          <h3>Agent 是第二个操作入口</h3>
+          <h3>原生 Runtime，不模拟点击</h3>
         </div>
         <ul>
-          <li>&bull; 触屏与 Agent 复用业务能力，不模拟点击。</li>
-          <li>&bull; 逻辑模块先放在现有 :app，不先拆一套微服务。</li>
+          <li>&bull; Kotlin + Coroutines/Flow；Room 保存恢复点。</li>
+          <li>&bull; 手机内执行工具；模型只提议，触屏功能独立可用。</li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-header">
+          <div class="card-dot violet"></div>
+          <h3>默认直连，网关非必需</h3>
+        </div>
+        <ul>
+          <li>&bull; 填写 provider / endpoint / key / model 即可。</li>
+          <li>&bull; 个人 key 由 Keystore 支持的加密存储保护，不内置 APK。</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
           <div class="card-dot rose"></div>
-          <h3>模型提议，不拥有写入权</h3>
+          <h3>确认、事务与唯一事实</h3>
         </div>
         <ul>
-          <li>&bull; 正式收藏由本地用户确认绑定草稿版本。</li>
-          <li>&bull; 来自素材的指令不能授权；不暴露 SQL、任意 URL 或脚本。</li>
+          <li>&bull; 地点、分类、来源、回执在同一 Room 事务提交。</li>
+          <li>&bull; 紫虚线：持久化或可选路由；红虚线：本地确认门控。</li>
         </ul>
       </div>
 
       <div class="card">
         <div class="card-header">
-          <div class="card-dot emerald"></div>
-          <h3>一份事实，可靠恢复</h3>
+          <div class="card-dot amber"></div>
+          <h3>DeepSeek 协议边界</h3>
         </div>
         <ul>
-          <li>&bull; 地点 + 元数据 + 逐项回执在同一 Room 事务提交。</li>
-          <li>&bull; 图中虚线为任务持久化；工具结果与模型响应原路返回。</li>
+          <li>&bull; 图片直传，OCR 可选；初始显式关闭 thinking。</li>
+          <li>&bull; 文档支持不等于账号实测；开启 thinking 须保留续接字段。</li>
         </ul>
       </div>
     </div>
