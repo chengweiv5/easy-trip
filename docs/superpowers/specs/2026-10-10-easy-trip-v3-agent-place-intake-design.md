@@ -65,7 +65,7 @@ Agent 不自主推荐、排序取舍、安排日期，也不顺便收藏图中�
 
 本版采用“手机执行、云端推理”：原生 Kotlin + Coroutines/Flow 的轻量 Runtime，Room 保存状态；OkHttp + kotlinx.serialization 实现模型协议。`ModelPort → ProviderAdapter` 首期直连 DeepSeek Chat Completions（`deepseek-flash`）；用户配置 provider、Base URL、API key、model 即可，不要求另备网关。个人 key 由设备 Keystore 支持的加密存储保护，不能嵌入 APK。网关仅为未来共享凭据、账号与额度治理的可选扩展。首期不建设外部 Agent/MCP 入口，能力接口保留可复用边界。
 
-DeepSeek 官方文档已确认图片和工具调用；设计优先截图直接输入，OCR 不是前置条件。默认显式关闭 thinking 做简单录入；以后开启时必须保留 reasoning_content 等续接字段。账号权限、具体 endpoint、“图片 + tools”组合和运行成本尚未实测，不能将文档能力当作接通。详细协议与凭据边界以技术架构为准。
+DeepSeek 官方文档已确认图片和工具调用；设计优先截图直接输入，OCR 不是前置条件。默认显式关闭 thinking 做简单录入；以后开启时必须保留 reasoning_content 等续接字段。2026-10-10 已用用户配置的官方账号/endpoint 实测文本、合成截图各一条工具闭环，4/4 请求成功（thinking disabled、非流式、Fake 搜索）。基础组合可行；真实 SSE、复杂样本准确率、Android 适配和运行成本账单仍未验证，不能等同于 App 已接通。详细协议与凭据边界以技术架构为准。
 
 以下只是待评审契约，不代表已有可调用 API：
 
@@ -114,7 +114,8 @@ DeepSeek 官方文档已确认图片和工具调用；设计优先截图直接�
 | --- | --- | --- |
 | 当前：规划合并 | 唯一 v3 入口，保留 v4 独有架构，停止独立 v4 规划 | 本文记录 |
 | 当前：架构设计 | Kotlin Runtime、直连 Provider、工具门控、幂等回执、受限撤销 | 本版设计已收敛，待评审；未实现 |
-| 下一步：交互与协议验证 | Pencil 输入/确认 UI、真实 DeepSeek endpoint 的图片/工具组合 | 待评审及安全配置凭据后验证 |
+| 基础协议验证 | 真实 DeepSeek 文本/合成截图 → 工具 → 结果闭环 | 4/4 HTTP 200；非流式、关闭 thinking，Fake 搜索；非 App 实现 |
+| 下一步：交互与剩余门禁 | Pencil 输入/确认 UI、真实 SSE/thinking、复杂样本与 Android 适配 | 待评审和后续专项验证 |
 | 智能录入实现 | 交付一个可验证的“素材 → 地点池 → 地图”闭环 | 未开始 |
 | 行程调整与创建/检查 | 复用 Agent 能力层扩展原 v4 场景 | 保留规划，版本及排期未定 |
 

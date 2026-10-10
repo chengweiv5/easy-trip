@@ -1,3 +1,19 @@
+# v3.0 Agent 下一步：Provider 协议验证（当前）
+
+状态：**DONE（本次基础协议 smoke）— 离线 40/40、真实文本/合成截图两条工具闭环通过；4/4 HTTP 200。**（2026-10-10）
+
+- 基线仍为 `e33150292d411fd7e0ef98a5affe282aade7feff`，5ac3 / `codex/v3-agent-place-intake`；验证阶段未提交；用户随后授权将本节与验证记录一并本地提交，未推送，未再使用上轮一次性强推授权。
+- 用户回复“已配置”后读取专用 `0600` 本地配置；2026-10-10 23:13（Asia/Shanghai）直连官方 DeepSeek，模型 `deepseek-flash`，thinking disabled、非流式、单次 max_tokens 512；恰好 4 次请求，无重试或重定向，预算已用完。
+- 文本/截图都返回 `search_places(query=西湖, city=杭州)`，未查询排除项；图片会话文字不含城市/地点名、未前置 OCR。两条最终输出均回显工具专属随机码并说明“尚未收藏”。工具仍为 Fake；真实高德请求、数据库写入均为 0。
+- usage 合计输入 3497、输出 195、总计 3692 tokens；本轮两次网络闭环约 4.50 秒/2.77 秒，仅样本观测，不代表稳定性能/费用或普遍准确率。
+- 前一阶段离线 40/40 与 SSE 去重修正保留。真实 SSE、thinking 开启、异常恢复、复杂素材和 Android/Room/地图适配仍未验收；不把独立探针当作 App 实现。
+- 架构/统一规划/能力调研已同步真实结果；同一图仅更新状态，12 组件几何不变，schema/重新生成/实际明暗主题/主题按钮/OCR/12 本地链接检查通过。App、Gradle、Room/schema、正式 Pencil、冻结 v4 均未改。
+- 记录：`docs/testing/v3.0-agent-provider-protocol-validation.md`；本轮实测、响应回读与文件修改前备份：`/Users/bytedance/.codex/artifacts/easy-trip/v3-provider-smoke-20261010-225823/live-20261010-231147/`。凭据文件未复制到证据或 Git，key 未输出；日志/待交付文档敏感串扫描通过。
+
+- punk-12 完成通知 `om_x100b6391331c6ca0deec83a791562b7` 已回读确认机器人身份、全文与未删除状态；通知未包含 key。
+
+---
+
 # v3.0 Agent 架构补全与交付（当前）
 
 状态：**DONE — 本版文档和图验证完成，已 rebase 最新 main 并推送 v3，远端 SHA 回读一致；未开始实现。**（2026-10-10）

@@ -2,6 +2,14 @@
 
 核验日期：2026-10-10。范围：用户指定的 DeepSeek 官方中文 API 文档。只读取公开文档，未使用用户 API key、未发起模型计费请求、未上传图片、未改变 App 或架构方案。
 
+## 后续真实验证（2026-10-10 23:13，Asia/Shanghai）
+
+用户配置官方 endpoint/key 后，独立探针已完成 **4 次真实请求（全部 HTTP 200）**：文本与合成截图各一条“工具提议 → Fake 搜索结果 → 最终输出”闭环。请求和响应模型均为 `deepseek-flash`，thinking 显式关闭，非流式。
+
+截图用例的文本上下文不含目标城市和名称，未前置 OCR；模型从图片正确提取杭州/西湖、未查询排除项。两条最终输出都回显只在工具结果中出现的随机校验码，并明确尚未收藏。这是当前凭据对选定组合的实际证据，不是普遍准确率、真实地图查询或 Android 接通证据。详细记录见[Provider 协议验证](../testing/v3.0-agent-provider-protocol-validation.md)。
+
+**以下为本次 live smoke 之前的公开文档调研原记录**；其中“未实测/未使用 key”等表述仅属于当时阶段，不覆盖上述最新验证。
+
 ## 结论
 
 **deepseek-flash 同时支持图片理解与 Tool Calls。** 当前模型能力表将其映射到 DeepSeek-V4.1-Flash，并分别标记两项能力为支持。旧别名 deepseek-v4-flash 和 deepseek-v4-flash-vision-exp 仍被接受，但由新 Flash 模型承接；新接入使用 deepseek-flash。[S1]
