@@ -1,11 +1,13 @@
 # v2.2 空旅行城市定位修复提交与推送
 
-状态：**IN_PROGRESS**（2026-10-10）。用户已要求提交并推送；本轮不重新安装，不发布Release或标签。
+状态：**DONE — 修复已提交并快进推送main，完整SHA回读一致。**（2026-10-10）。本轮未重新安装，未发布Release或标签。
 
 - 当前954e功能分支`codex/v2.2.0-empty-trip-city-fix`；获取origin/main后仍为`2b45968430fd66391a449f53d848f9eebe9e6c19`，待合并PR为空。
 - 5项源码/回归测试文件与修复验收SHA一致，496项应用/构建输入与已安装修复包输入完全一致；仅追加任务状态及修复/安装记录，共7项交付文件。
 - 966 Debug JVM、966 Release JVM与7项定位专项设备测试此前通过；旧地图31项中相同28项失败的基线对比仍保留，不将其说成全应用全绿。
-- 证据及本轮修改前备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.2.0-empty-city-push-20261010/`。推送后回读origin/main完整SHA。
+- 修复提交`4ec90df2fa893d882e17413f8a30ff4aca665750`，2026-10-10 13:36（Asia/Shanghai）已快进推送origin/main并回读一致。提交钩子正常完成，另检查选定文件未包含已知签名密码或AMap Key。
+- 后续仅补齐交付文档，不改变已安装修复包对应的应用源码；最终文档提交与main回读、punk-12通知证据存于本轮私有目录。
+- 证据及本轮修改前备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.2.0-empty-city-push-20261010/`。
 - 下方开发/安装阶段的“未提交/未推送”为阶段历史记录，最终Git状态以本节及修复说明的后续提交记录为准。
 
 ---
