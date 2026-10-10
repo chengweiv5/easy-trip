@@ -1,13 +1,13 @@
 # v3.0 Agent 架构补全与交付（当前）
 
-状态：**IN_PROGRESS — 本版文档和图验证完成；本地提交/rebase 完成，远端推送进行中，未开始实现。**（2026-10-10）
+状态：**DONE — 本版文档和图验证完成，已 rebase 最新 main 并推送 v3，远端 SHA 回读一致；未开始实现。**（2026-10-10）
 
 - 仍为 5ac3 工作树 / `codex/v3-agent-place-intake`；本版架构明确 Kotlin Coroutines/Flow + Room + OkHttp/serialization，直连 DeepSeek Provider，网关可选；图片理解与工具协议边界纳入设计。
 - 最新核对 main `bbdcb1f57a47eac8ae13c8a7423fab97632699bb`，schema 10 与分类编辑/撤销保护已补齐；不改 App 或正式 `.pen`。
 - 同一架构 JSON/HTML 更新为 12 组件，schema/布局/SVG/双主题/OCR/重新生成一致性检查通过；统一规划与 9 个本地链接一致。下方旧“必须网关”草案为历史，不代表本版决策。
-- 用户要求本版提交并 rebase 最新 main 后推送，随后明确“允许这一次 force push”；仅对 `origin/codex/v3-agent-place-intake` 使用准确旧 SHA 的 force-with-lease，禁止 main，日后禁强推约束不变。
+- 用户要求本版提交并 rebase 最新 main 后推送，随后明确“允许这一次 force push”；已仅对 `origin/codex/v3-agent-place-intake` 执行一次准确旧 SHA 的 force-with-lease，授权已使用，禁止 main，日后禁强推约束不变。
 - 已重放 6 个提交到最新 main；设计提交 `959a5ad9dc4dd101c5119f9eae7cd08c4fec9037`。唯一任务记录头部冲突已按双边意图解决，主线历史完整保留；App/Gradle/design 与 main 相同，冻结 v4 未改。
-- 备份与证据：`/Users/bytedance/.codex/backups/easy-trip/v3-provider-design-20261010-223722/`；记录：`docs/testing/v3.0-agent-architecture-delivery.md`。远端回读完成前不宣称交付。
+- 备份与证据：`/Users/bytedance/.codex/backups/easy-trip/v3-provider-design-20261010-223722/`；记录：`docs/testing/v3.0-agent-architecture-delivery.md`。首轮远端 v3 回读 `1380d55c2d92aaa5749fd9da9dd43d91ece514b8` 与 HEAD 一致，main 保持 `bbdcb1f`；后续仅记录收尾普通快进提交与通知回读见私有 `final-delivery.json`。
 
 ---
 
