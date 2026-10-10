@@ -14,7 +14,14 @@
 
 </div>
 
-> 当前正式版为 **[v2.0.0](https://github.com/chengweiv5/easy-trip/releases/tag/v2.0.0)**。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v2.0.0/easy-trip-v2.0.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v2.0.0/easy-trip-v2.0.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v2.0.0-release.md)。下方全部界面截图来自 v2.0.0 正式安装包，使用独立示例数据，可点击放大。
+> 当前正式版为 **[v2.1.0](https://github.com/chengweiv5/easy-trip/releases/tag/v2.1.0)**（build17）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v2.1.0/easy-trip-v2.1.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v2.1.0/easy-trip-v2.1.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v2.1.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v2.1.0 新样式截图。
+
+## v2.1：花费和编辑地点，区块更清楚
+
+- 花费总览、历年、年度、月份和分类统计强化卡片、标题与间距，顶部年月切换更简洁。
+- 花费占比与旅行设置统一为连续圆角进度条。
+- 编辑地点分为 **时间安排／本次安排花费／地点备注**；多笔费用层级更清楚，键盘弹出时保存／取消仍可操作。
+- 沿用正式签名，Room schema9 不变。请覆盖升级，不卸载或清空数据；已提前安装 2.1.0/build16 的用户需手动下载 build17，应用内不提示同名构建更新。
 
 ## v2.0：旅行花费，不只看这一趟
 

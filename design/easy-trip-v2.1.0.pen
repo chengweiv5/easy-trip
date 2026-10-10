@@ -2126,7 +2126,7 @@
       "x": 1660,
       "y": 0,
       "name": "v2.1.0 · 00 版本基线与覆盖清单",
-      "context": "v2.1.0累积快照，共187根。本版花费分区、连续进度及编辑地点12状态已实现；其它能力保留。发布候选2.1.0 / build17 / schema9；待干净提交构建及GitHub发布验证。准确构建提交由v2.1.0标签关联，见docs/testing/v2.1.0-release.md。",
+      "context": "v2.1.0已于2026-10-10正式发布，Latest；2.1.0 / build17 / schema9。构建及标签提交d5cace95205b34de0699ec9109aca480efa34432，APK内嵌CLEAN；发布校验见docs/testing/v2.1.0-release.md。累积187根；本次仅同步发布元数据，不改变页面和组件。本轮不操作手机，旧UI缺口保留。",
       "theme": {
         "Palette": "lake"
       },
@@ -2155,7 +2155,7 @@
           "fill": "$primary-dark",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "正式源：954e工作树 design/easy-trip-v2.1.0.pen。继承已发布v2.0.0完整源、已确认花费分区和连续进度设计。编辑地点基于42e58ae完成；发布候选2.1.0 build17 / Room schema9。准确构建提交以v2.1.0标签及发布验证记录为准。",
+          "content": "正式源：954e工作树 design/easy-trip-v2.1.0.pen。继承已发布v2.0.0完整源；花费分区、连续进度与编辑地点三区块已实现。2026-10-10发布v2.1.0 / build17 / schema9；构建与标签提交d5cace9，完整SHA见发布验证。",
           "fontFamily": "Inter",
           "fontSize": 18,
           "fontWeight": "normal"
@@ -2203,7 +2203,7 @@
           "fill": "$primary-dark",
           "textGrowth": "fixed-width",
           "width": "fill_container",
-          "content": "开发验证：955 JVM、42费用设备、16分区及时间UI、71日期事务通过；5主题、320dp 2倍字号及真实IME边界通过。Release构建与公开发布待验证；本次不操作手机。旧8项UI、22项时间轴及旅行列表大字号缺口保留，详见发布验证。",
+          "content": "Release：955单测通过，lint 0错误；正式签名、CLEAN来源、16KB对齐与公开下载回拉通过。开发：42费用、16分区/时间、71日期事务设备测试，5主题、320dp 2倍字号及真实IME边界通过。本次未安装手机；旧8项UI、22项时间轴及旅行列表大字号缺口保留。",
           "fontFamily": "Inter",
           "fontSize": 18,
           "fontWeight": "normal"
@@ -483827,5 +483827,5 @@
       "value": "#79521E"
     }
   },
-  "fileToken": "5eca284d-223d-43ef-a37f-d3ce0d493263"
+  "fileToken": "6eab1091-34d6-4f3d-be9a-31e65dd465f6"
 }

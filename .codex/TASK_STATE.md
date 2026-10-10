@@ -1,8 +1,14 @@
-# v2.1.0 提交与发布
+# v2.1.0 提交、推送与正式发布
 
-状态：**IN_PROGRESS**（2026-10-10）
+状态：**DONE — 正式发布与公开下载校验通过。**（2026-10-10）
 
-用户已授权提交、推送、发布；使用既有功能分支，目标 origin/main。正式版本 2.1.0 / versionCode17 / Room schema9，构建号递增以支持 build16 同签名覆盖升级。发布前先做干净提交构建与签名、来源、测试校验，再草稿上传、公开下载回读；不操作手机，不覆盖旧标签或附件。最终证据见 `docs/testing/v2.1.0-release.md`。
+- 954e工作树，功能分支 `codex/edit-place-section-design`。实现与build17提交 `d5cace95205b34de0699ec9109aca480efa34432` 已快进到origin/main并回读；annotated `v2.1.0` 指向同一源码提交。本文所在后续提交仅同步README、设计发布元数据与验收记录，不改APK或标签。
+- Release于2026-10-10 08:46:33（Asia/Shanghai）公开并设Latest：https://github.com/chengweiv5/easy-trip/releases/tag/v2.1.0 。版本2.1.0/build17/schema9。
+- 955 Release单测通过，lint 0错误/52警告/1提示；正式签名与v2.0.0一致，APK内嵌CLEAN、非调试属性及16KB对齐已验证。认证与匿名回拉两资产逐字节一致，Latest与更新资产契约已核验。
+- 正式设计187根/38136原生节点保持，发布元数据已在Pencil保存、关闭、准确路径重开回读。一次保存的I20外框异常已由完整备份经Pencil恢复，未提交异常文件；仅三处元数据与原生fileToken变化。
+- 本轮未操作用户手机。旧全应用UI验收缺口继续保留。已装2.1.0/build16须手动下载覆盖升级，应用内不提示同名构建。
+- 结果、边界及回滚见 `docs/testing/v2.1.0-release.md`。构建恢复、产物/签名/公开下载、Git回读与punk-12通知证据统一位于 `/Users/bytedance/.codex/artifacts/easy-trip/v2.1.0-release-20261010/`。
+
 
 ---
 

@@ -4,7 +4,7 @@
 
 - UI 设计与设计修改必须使用 Pencil MCP，不得因报错自动改用其他设计工具或直接修改 `.pen` 文件来绕过 Pencil。
 - **当前设计目标**：2026-10-09 用户确认 **v2.1.0 花费分区与年月控件** 并完成开发。正式源 `design/easy-trip-v2.1.0.pen`，规格 `design/explorations/v2.1.0-expense-sections-review.md`，验证 `docs/testing/v2.1.0-implementation.md`。继承已发布 `design/easy-trip-v2.0.0.pen`，历史源保持冻结；原 v1.9.0 与 v2.0 探索不作为当前入口。运行实现以实际代码版本为准，旧UI验收缺口见验证文档。
-- **同版补充**：2026-10-10 用户确认编辑地点分区后完成开发，已回写同一正式源的 I11–I20 及保存失败状态；时间、花费、地点备注三区块与键盘上方纵向保存操作同步。辅助评审源 `design/explorations/edit-place-sections-review.pen` 保留评审历史，不作为第二份正式源。本批 UI 使用模拟器验收，未安装手机；v2.1.0 发布与推送结果以 `docs/testing/v2.1.0-release.md` 为准。
+- **同版补充**：2026-10-10 用户确认编辑地点分区后完成开发，并正式发布 v2.1.0/build17，已回写同一正式源的 I11–I20 及保存失败状态；时间、花费、地点备注三区块与键盘上方纵向保存操作同步。辅助评审源 `design/explorations/edit-place-sections-review.pen` 保留评审历史，不作为第二份正式源。本批 UI 使用模拟器验收，未安装手机；v2.1.0 发布与推送结果以 `docs/testing/v2.1.0-release.md` 为准。
 
 ### Pencil 错误恢复
 
