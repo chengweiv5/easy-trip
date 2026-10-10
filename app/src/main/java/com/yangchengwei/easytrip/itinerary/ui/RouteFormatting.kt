@@ -10,7 +10,7 @@ fun formatDistance(meters: Int): String {
         .divide(BigDecimal.valueOf(1_000L), 1, RoundingMode.HALF_UP)
         .stripTrailingZeros()
         .toPlainString()
-    return "$kilometers 公里"
+    return "${com.yangchengwei.easytrip.core.ui.groupDecimalDigits(kilometers)} 公里"
 }
 
 fun formatDuration(seconds: Int): String {

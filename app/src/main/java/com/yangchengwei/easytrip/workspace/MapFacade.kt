@@ -41,7 +41,7 @@ data class MapMarkerUi(
 
 fun formatOccurrenceBadge(orders: List<Int>): String = when {
     orders.size <= 3 -> orders.joinToString("·")
-    else -> "${orders.first()} +${orders.size - 1}"
+    else -> "${orders.first()} +${com.yangchengwei.easytrip.core.ui.formatCount(orders.size - 1)}"
 }
 
 data class MapPolylineUi(
@@ -60,7 +60,7 @@ data class MapRouteLabelUi(
 
 data class CorruptRoute(val legId: String, val version: Long)
 
-enum class ViewportReason { INITIAL, PLACE_SET_CHANGED, SCOPE_CHANGED, VISIBLE_SET_CHANGED, SEARCH_FOCUS, SEARCH_RESULTS }
+enum class ViewportReason { INITIAL, PLACE_SET_CHANGED, SCOPE_CHANGED, VISIBLE_SET_CHANGED, SEARCH_FOCUS, SEARCH_RESULTS, INITIAL_CITY }
 
 data class MapViewportInsets(
     val leftPx: Int = 0,

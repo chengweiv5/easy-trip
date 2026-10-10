@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.place.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -494,7 +495,7 @@ private fun SearchResults(
                     .padding(horizontal = 10.dp),
                 contentAlignment = Alignment.Center,
             ) {
-                Text("${state.search.results.size} 个", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
+                Text("${formatCount(state.search.results.size)} 个", color = MaterialTheme.colorScheme.onSurface, style = MaterialTheme.typography.labelSmall)
             }
         }
         LazyColumn(Modifier.fillMaxSize(), state = resultsListState) {

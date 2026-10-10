@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.itinerary.calendar
 
+import com.yangchengwei.easytrip.core.ui.formatCount
+
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.*
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
@@ -216,7 +218,7 @@ fun CalendarContent(
                 .testTag("calendar-summary")
                 .drawWithContent { if (!hideSummary) drawContent() }
                 .then(if (hideSummary) Modifier.clearAndSetSemantics {} else Modifier),
-            text = if (single == null) "全程 · ${days.size} 天" else "第 ${selectedDay?.number ?: 1} 天 · ${selectedDay?.sourceItems?.size ?: 0} 站",
+            text = if (single == null) "全程 · ${formatCount(days.size)} 天" else "第 ${selectedDay?.number ?: 1} 天 · ${formatCount(selectedDay?.sourceItems?.size ?: 0)} 站",
             date = selectedDay?.let { wholeTripDayDate(it.number, startDate) },
             expenseLabel = rawDays.filter { single == null || it.dayId == single }.let { visible ->
                 com.yangchengwei.easytrip.expense.expenseSummary(visible.flatMap { day ->
@@ -254,7 +256,7 @@ fun CalendarContent(
                 if (single == null) {
                     Row(Modifier.fillMaxWidth().padding(start = CALENDAR_TIME_GUTTER_DP.dp).testTag("calendar-date-pager"), verticalAlignment = Alignment.CenterVertically) {
                         TextButton({ page = (currentPage - columns).coerceAtLeast(0) }, enabled = currentPage > 0 && !busy, contentPadding = PaddingValues.Zero, modifier = Modifier.width(48.dp)) { Text("‹") }
-                        Text("${shown.firstOrNull()?.number ?: 0}–${shown.lastOrNull()?.number ?: 0} / ${days.size} 天", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
+                        Text("${shown.firstOrNull()?.number ?: 0}–${shown.lastOrNull()?.number ?: 0} / ${formatCount(days.size)} 天", Modifier.weight(1f), style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center)
                         TextButton({ page = (currentPage + columns).coerceAtMost(lastPage) }, enabled = currentPage < lastPage && !busy, contentPadding = PaddingValues.Zero, modifier = Modifier.width(48.dp)) { Text("›") }
                     }
                     Row(Modifier.fillMaxWidth().padding(start = CALENDAR_TIME_GUTTER_DP.dp)) {
@@ -278,7 +280,7 @@ fun CalendarContent(
                 }
                 val previewDays = shown.map { day -> day.copy(transfers = trafficDays.firstOrNull { it.dayId == day.dayId }?.transfers.orEmpty()) }
                 if (shown.any { it.pending.isNotEmpty() }) {
-                    Text("待安排 · ${shown.sumOf { it.pending.size }}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(vertical = 4.dp))
+                    Text("待安排 · ${formatCount(shown.sumOf { it.pending.size })}", style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(vertical = 4.dp))
                     if (single != null) {
                         LazyRow(Modifier.fillMaxWidth().height(56.dp).testTag("calendar-pending"), horizontalArrangement = Arrangement.spacedBy(6.dp), userScrollEnabled = !busy) {
                             items(selectedDay?.pending.orEmpty(), key = { it.id }) { item ->
@@ -345,7 +347,7 @@ fun CalendarContent(
         val members = selectedDay?.events?.filter { it.group == group }.orEmpty()
         if (members.isNotEmpty()) ModalBottomSheet(onDismissRequest = { expandedGroup = null }) {
             Column(Modifier.fillMaxWidth().verticalScroll(rememberScrollState()).padding(16.dp)) {
-                Text("${members.size} 项交叠日程", style = MaterialTheme.typography.titleMedium)
+                Text("${formatCount(members.size)} 项交叠日程", style = MaterialTheme.typography.titleMedium)
                 members.forEach { event ->
                     TextButton({ expandedGroup = null; open(event.sourceDayId, event.item.id) }, Modifier.fillMaxWidth().heightIn(min = 48.dp)) {
                         Text("${event.order}. ${event.item.name} · ${calendarTime(event.start)}–${calendarTime(event.end)}")

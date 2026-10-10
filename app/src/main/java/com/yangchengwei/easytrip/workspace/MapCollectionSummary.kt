@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.workspace
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.Arrangement
@@ -58,7 +59,7 @@ internal fun MapCollectionSummary(count: Int, modifier: Modifier = Modifier) {
                 drawPath(front, iconColor, style = stroke)
             }
             Text(
-                "$count 个收藏地点",
+                "${formatCount(count)} 个收藏地点",
                 style = MaterialTheme.typography.bodySmall.copy(
                     fontSize = 11.sp,
                     lineHeight = 16.sp,

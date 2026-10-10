@@ -493,6 +493,7 @@ fun AppNavigation(
                     navController.navigate("trips/$id") {
                         popUpTo(CREATE_TRIP_ROUTE) { inclusive = true }
                     }
+                    navController.currentBackStackEntry?.savedStateHandle?.set("locate-new-trip-city", true)
                 },
                 viewModel = model,
                 initialDateMillis = initialDateMillis,
@@ -546,6 +547,15 @@ fun AppNavigation(
                     WorkspaceMapSession(entry.savedStateHandle) { runtime.locationSession?.updateLocation(it) }
                 }
                 val context = androidx.compose.ui.platform.LocalContext.current
+                val locateNewTripCity by entry.savedStateHandle.getStateFlow("locate-new-trip-city", false).collectAsStateWithLifecycle()
+                LaunchedEffect(workspaceModel, token, locateNewTripCity) {
+                    if (locateNewTripCity && token != null) {
+                        workspaceModel.locateNewTripCity { title ->
+                            com.yangchengwei.easytrip.amap.lookupTripCity(context, token, title)
+                        }
+                        entry.savedStateHandle["locate-new-trip-city"] = false
+                    }
+                }
                 val activity = context as? Activity
                 val locationCoordinator = remember(entry) {
                     LocationPermissionCoordinator(workspaceDependencies.locationPermissionRequestStore)

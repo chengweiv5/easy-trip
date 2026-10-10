@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.expense.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
@@ -37,7 +39,7 @@ fun InlineExpenseEditor(draft: ItineraryEditDraft, onAction: (DayItineraryAction
         summary = when {
             total == null -> "请完善费用"
             total.expenses.isEmpty() -> "未记录"
-            else -> "${total.expenses.size}笔 · ${formatExpense(total.totalCents)}"
+            else -> "${formatCount(total.expenses.size)}笔 · ${formatExpense(total.totalCents)}"
         },
     ) {
         val rows = if (draft.showAllExpenses) draft.expenses else draft.expenses.take(3)
@@ -96,7 +98,7 @@ fun InlineExpenseEditor(draft: ItineraryEditDraft, onAction: (DayItineraryAction
         if (draft.expenses.size > 3) TextButton(
             onClick = { onAction(DayItineraryAction.ShowAllExpenses) }, enabled = !draft.isSaving,
             modifier = Modifier.fillMaxWidth().testTag("expense-show-all"),
-        ) { Text(if (draft.showAllExpenses) "收起" else "查看全部 ${draft.expenses.size} 笔") }
+        ) { Text(if (draft.showAllExpenses) "收起" else "查看全部 ${formatCount(draft.expenses.size)} 笔") }
         draft.expenseRemoval?.let {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                 Text("已移除本笔，保存后生效", Modifier.weight(1f), style = MaterialTheme.typography.bodySmall)

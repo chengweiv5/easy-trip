@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.workspace
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.activity.compose.BackHandler
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
@@ -418,7 +419,7 @@ fun TripWorkspaceRoute(
                 WorkspaceOverlay.Confirmation(
                     confirmation(
                         title = "取消收藏 ${pending.place.name}？",
-                        message = "将同时删除 ${pending.impact.itineraryItemCount} 次行程安排和 ${pending.impact.routeLegCount} 段路线。",
+                        message = "将同时删除 ${formatCount(pending.impact.itineraryItemCount)} 次行程安排和 ${formatCount(pending.impact.routeLegCount)} 段路线。",
                         confirmLabel = "确认取消收藏",
                     ),
                 ),
@@ -448,7 +449,7 @@ fun TripWorkspaceRoute(
                     confirmation(
                         title = "删除 ${place.name}？",
                         message = places.deletionImpact?.let { impact ->
-                            "将同时删除 ${impact.itineraryItemCount} 次行程安排和 ${impact.routeLegCount} 段路线。"
+                            "将同时删除 ${formatCount(impact.itineraryItemCount)} 次行程安排和 ${formatCount(impact.routeLegCount)} 段路线。"
                         }.orEmpty(),
                         confirmLabel = "确认删除地点",
                     ),
@@ -520,12 +521,15 @@ fun TripWorkspaceRoute(
                 TripWorkspaceAction.ShareItinerary -> onShareItinerary()
                 TripWorkspaceAction.OpenSettings -> onSettings()
                 TripWorkspaceAction.OpenPrivacySettings -> onPrivacySettings()
-                TripWorkspaceAction.OpenSearch -> onOpenSearch()
+                TripWorkspaceAction.OpenSearch -> { viewModel.onMapGesture(); onOpenSearch() }
                 TripWorkspaceAction.ClearSearchResults -> viewModel.clearSearchResults()
                 TripWorkspaceAction.ZoomIn,
                 TripWorkspaceAction.ZoomOut,
-                TripWorkspaceAction.ResetNorth -> Unit
-                TripWorkspaceAction.Locate -> locationPermissionCoordinator.onLocateClick(locationPermissionSnapshot())
+                TripWorkspaceAction.ResetNorth -> viewModel.onMapGesture()
+                TripWorkspaceAction.Locate -> {
+                    viewModel.onMapGesture()
+                    locationPermissionCoordinator.onLocateClick(locationPermissionSnapshot())
+                }
                 TripWorkspaceAction.MapGesture -> viewModel.onMapGesture()
                 TripWorkspaceAction.Retry -> viewModel.retry()
                 is TripWorkspaceAction.SelectSection -> {

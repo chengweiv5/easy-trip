@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.expense.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -117,7 +118,7 @@ internal fun ExpenseSummary(total: ExpenseTotal, period: ExpensePeriod) {
             Text(if (total.records == 0) "—" else expenseMoney(total.cents),
                 fontSize = 36.sp, lineHeight = 44.sp, fontWeight = FontWeight.SemiBold,
                 modifier = Modifier.testTag("expense-total"))
-            Text(if (total.records == 0) "尚无费用记录" else "${total.records}笔费用 · ${total.trips}次有记录旅行",
+            Text(if (total.records == 0) "尚无费用记录" else "${formatCount(total.records)}笔费用 · ${formatCount(total.trips)}次有记录旅行",
                 style = MaterialTheme.typography.bodySmall)
         }
     }
@@ -140,7 +141,7 @@ internal fun ReviewRow(
             Text(amount, fontWeight = FontWeight.SemiBold, color = if (total.records == 0) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current)
             Text("›", color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        if (total.records > 0) Text("${total.records}笔 · ${total.trips}次旅行" +
+        if (total.records > 0) Text("${formatCount(total.records)}笔 · ${formatCount(total.trips)}次旅行" +
             (fraction?.let { " · ${String.format(Locale.CHINA, "%.1f%%", it * 100)}" } ?: ""),
             style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         if (fraction != null) com.yangchengwei.easytrip.core.ui.component.ContinuousProgressBar(
@@ -173,7 +174,7 @@ internal fun ExpenseMonthChart(scope: ExpenseScope, all: List<ExpenseRecord>, ye
                                 .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(3.dp)))
                         }
                         Text("${month.monthValue}月", style = MaterialTheme.typography.bodySmall)
-                        Text(if (total.records == 0) "—" else BigDecimal.valueOf(total.cents, 2).stripTrailingZeros().toPlainString(),
+                        Text(if (total.records == 0) "—" else com.yangchengwei.easytrip.core.ui.groupDecimalDigits(BigDecimal.valueOf(total.cents, 2).stripTrailingZeros().toPlainString()),
                             style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                 }

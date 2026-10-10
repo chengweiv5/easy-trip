@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.expense.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
@@ -70,7 +71,7 @@ internal fun ExpenseReviewContent(
                 val whole = reviewExpenses(all.filter { it.tripId == id }, ExpensePeriod.All)
                 val part = reviewExpenses(group, ExpensePeriod.All)
                 ReviewRow(group.first().tripName.ifBlank { "旅行" }, part, "review-trip-$id",
-                    detail = "${when (scope.period) { is ExpensePeriod.Year -> "本年部分"; is ExpensePeriod.Month -> "本月部分"; else -> "当前范围" }} ${expenseMoney(part.cents)} · 全程 ${expenseMoney(whole.cents)} · ${whole.records}笔") { model.selectTrip(id) }
+                    detail = "${when (scope.period) { is ExpensePeriod.Year -> "本年部分"; is ExpensePeriod.Month -> "本月部分"; else -> "当前范围" }} ${expenseMoney(part.cents)} · 全程 ${expenseMoney(whole.cents)} · ${formatCount(whole.records)}笔") { model.selectTrip(id) }
             }
         }
     }
@@ -79,7 +80,7 @@ internal fun ExpenseReviewContent(
             if (records.isEmpty()) EmptySectionText("当前范围尚无费用明细")
             records.groupBy { it.tripId }.entries.sortedByDescending { (_, group) -> group.maxOfOrNull { it.date ?: LocalDate.MIN } }
                 .forEach { (_, group) ->
-                    Text("${group.first().tripName.ifBlank { "旅行" }} · ${expenseMoney(reviewExpenses(group, ExpensePeriod.All).cents)} · ${group.size}笔",
+                    Text("${group.first().tripName.ifBlank { "旅行" }} · ${expenseMoney(reviewExpenses(group, ExpensePeriod.All).cents)} · ${formatCount(group.size)}笔",
                         Modifier.padding(top = 16.dp, bottom = 8.dp), style = MaterialTheme.typography.titleSmall)
                     group.sortedWith(compareByDescending<ExpenseRecord> { it.date }.thenBy { it.key.id }).forEach { record ->
                         HorizontalDivider(color = expenseBorderColor)

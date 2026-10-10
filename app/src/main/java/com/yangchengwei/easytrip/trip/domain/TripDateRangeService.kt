@@ -51,7 +51,7 @@ class TripDateRangeService(private val repository: TripRepository) {
         }
         val dayCount = validateAndCount(request.targetStartDate, request.targetEndDate)
         require(request.baselineStartDate != null || dayCount == trip.days.size) {
-            "为未定日期旅行设置日期时必须保留现有 ${trip.days.size} 天行程"
+            "为未定日期旅行设置日期时必须保留现有 ${com.yangchengwei.easytrip.core.ui.formatCount(trip.days.size)} 天行程"
         }
         val retained = trip.days.take(dayCount).map(TripDay::id)
         val deleted = trip.days.drop(dayCount).map(TripDay::id)

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
@@ -117,7 +118,7 @@ internal fun CreateTripFormFields(
                         )
                         Text(
                             state.endDate?.let { endDate ->
-                                val duration = state.dayCount?.let { days -> "${days}天${days - 1}晚" } ?: "范围无效"
+                                val duration = state.dayCount?.let { days -> "${formatCount(days)}天${formatCount(days - 1)}晚" } ?: "范围无效"
                                 "至 $endDate · $duration"
                             } ?: "可稍后设置日期和天数",
                             style = MaterialTheme.typography.bodySmall,

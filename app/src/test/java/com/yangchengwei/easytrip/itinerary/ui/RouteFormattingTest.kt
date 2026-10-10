@@ -16,6 +16,7 @@ class RouteFormattingTest {
         assertEquals("1 公里", formatDistance(1_000))
         assertEquals("1.1 公里", formatDistance(1_050))
         assertEquals("10 公里", formatDistance(10_000))
+        assertEquals("1,234.6 公里", formatDistance(1_234_560))
     }
 
     @Test

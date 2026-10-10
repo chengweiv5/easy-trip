@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.runtime.Immutable
 import com.yangchengwei.easytrip.core.model.TravelMode
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationUiModel
@@ -14,11 +15,11 @@ fun TripDeleteImpact.toConfirmationUiModel(tripName: String): ConfirmationUiMode
     title = "删除$tripName？",
     message = "此操作将永久删除旅行及其中的所有内容，无法撤销。",
     deletedItems = listOf(
-        "$days 个旅行日",
-        "$places 个收藏地点",
-        "$tags 个标签",
-        "$itineraryItems 个行程项",
-        "$routeLegs 个路线段",
+        "${formatCount(days)} 个旅行日",
+        "${formatCount(places)} 个收藏地点",
+        "${formatCount(tags)} 个标签",
+        "${formatCount(itineraryItems)} 个行程项",
+        "${formatCount(routeLegs)} 个路线段",
     ),
     retainedItems = listOf("其他旅行及其内容"),
     confirmLabel = "确认删除旅行",
@@ -99,14 +100,14 @@ fun TripSummary.toTripCardUiModel(): TripCardUiModel {
     return TripCardUiModel(
         id = id,
         name = name,
-        dayCountLabel = "${dayCount}天${(dayCount - 1).coerceAtLeast(0)}晚",
+        dayCountLabel = "${formatCount(dayCount)}天${formatCount((dayCount - 1).coerceAtLeast(0))}晚",
         dateLabel = tripDateLabel(startDate, endDate),
         hasTraveled = hasTraveled,
         expenseLabel = if (recordedExpenseCount == 0) "尚未记录花费" else "已记花费 ${com.yangchengwei.easytrip.expense.formatExpense(expenseCents)}",
         placeCount = placeCount,
         scheduledDayCount = scheduledDayCount,
-        placeCountLabel = "$placeCount 个地点",
-        tripDayCountLabel = "$dayCount 天行程",
+        placeCountLabel = "${formatCount(placeCount)} 个地点",
+        tripDayCountLabel = "${formatCount(dayCount)} 天行程",
         readinessPercent = readinessPercent,
         readinessLabel = "$readinessPercent%",
         travelModeLabel = when (travelMode) {

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.expense
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
@@ -21,11 +22,11 @@ fun ExpensePeriodDialog(prompter: ExpensePeriodPrompter) {
         AlertDialog(onDismissRequest = { prompter.answer(pending, false) }, title = { Text("花费年月归属将变化") }, text = {
             Column(Modifier.verticalScroll(rememberScrollState()), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Text(preview.before.firstOrNull { it.tripId == preview.changes.first().tripId }?.tripName.orEmpty())
-                Text("以下${preview.changes.size}笔费用将随行程日期调整；不会复制费用或改变其金额。")
+                Text("以下${formatCount(preview.changes.size)}笔费用将随行程日期调整；不会复制费用或改变其金额。")
                 Surface(color = Color(0xFFFFF6E6), contentColor = Color(0xFF79521E), shape = MaterialTheme.shapes.medium) {
                     Column(Modifier.fillMaxWidth().padding(12.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         preview.changes.groupBy { it.beforeDate?.let(YearMonth::from) to it.afterDate?.let(YearMonth::from) }.forEach { (periods, group) ->
-                            Text("${periods.first ?: "未确定日期"} → ${periods.second ?: "未确定日期"}\n${group.size}笔 · ${expenseMoney(group.fold(0L) { sum, row -> Math.addExact(sum, row.cents) })}")
+                            Text("${periods.first ?: "未确定日期"} → ${periods.second ?: "未确定日期"}\n${formatCount(group.size)}笔 · ${expenseMoney(group.fold(0L) { sum, row -> Math.addExact(sum, row.cents) })}")
                         }
                     }
                 }

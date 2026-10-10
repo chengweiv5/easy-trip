@@ -46,6 +46,7 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.test.StandardTestDispatcher
+import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.runTest
@@ -62,6 +63,99 @@ class TripWorkspaceContentStateTest {
     @Before fun setUp() = Dispatchers.setMain(dispatcher)
     @After fun tearDown() = Dispatchers.resetMain()
 
+    @Test fun newEmptyTripUsesCityOnceAndLateResultCannotOverrideGesture() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips)
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+        val city = TripCity("330100", "杭州市", GeoPoint(30.27, 120.15))
+        model.locateNewTripCity { city }
+        advanceUntilIdle()
+        assertEquals(listOf(city.center), model.state.value.map.viewportRequest?.points)
+        assertEquals(11f, model.state.value.map.viewportRequest?.singlePointZoom)
+        assertTrue(model.state.value.map.markers.isEmpty())
+        model.onMapGesture()
+        model.updateCurrentPosition(null)
+        model.locateNewTripCity { error("must not query twice") }
+        advanceUntilIdle()
+        assertNull(model.state.value.map.viewportRequest)
+
+        val other = model(trips)
+        advanceUntilIdle()
+        val delayed = kotlinx.coroutines.CompletableDeferred<TripCity?>()
+        val job = launch { other.locateNewTripCity { delayed.await() } }
+        runCurrent()
+        other.onMapGesture()
+        delayed.complete(city)
+        job.join()
+        advanceUntilIdle()
+        assertNull(other.state.value.map.viewportRequest)
+    }
+
+    @Test fun savedPlacesAndFailedCityLookupRetainExistingViewport() = runTest(dispatcher) {
+        val trips = Trips()
+        val withPlaces = model(trips, Places(listOf(savedPlace())))
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+        val before = withPlaces.state.value.map.viewportRequest
+        withPlaces.locateNewTripCity { error("should not query with saved places") }
+        assertEquals(before, withPlaces.state.value.map.viewportRequest)
+        val empty = model(trips)
+        advanceUntilIdle()
+        empty.locateNewTripCity { throw IllegalStateException("offline") }
+        assertNull(empty.state.value.map.viewportRequest)
+        assertTrue(empty.pageState.value is TripWorkspacePageState.Ready)
+    }
+
+    @Test fun savedPlaceArrivingDuringCityLookupWinsOverLateCity() = runTest(dispatcher) {
+        val trips = Trips()
+        val places = Places()
+        val model = model(trips, places)
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+        val delayed = kotlinx.coroutines.CompletableDeferred<TripCity?>()
+        val job = launch { model.locateNewTripCity { delayed.await() } }
+        runCurrent()
+        places.value.value = listOf(savedPlace())
+        runCurrent()
+        val savedViewport = model.state.value.map.viewportRequest
+        assertEquals(ViewportReason.INITIAL, savedViewport?.reason)
+        delayed.complete(TripCity("330100", "杭州市", GeoPoint(30.27, 120.15)))
+        job.join()
+        assertEquals(savedViewport, model.state.value.map.viewportRequest)
+    }
+
+    @Test fun searchDuringCityLookupKeepsSearchViewport() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips)
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+        val delayed = kotlinx.coroutines.CompletableDeferred<TripCity?>()
+        val job = launch { model.locateNewTripCity { delayed.await() } }
+        runCurrent()
+        model.showSearchResults(WorkspaceSearchResults("景点", listOf(
+            PlaceCandidate("poi-a", "断桥", "", GeoPoint(30.258, 120.149), "0571", "杭州市", "330100", 1),
+        )))
+        runCurrent()
+        val searchViewport = model.state.value.map.viewportRequest
+        assertEquals(ViewportReason.SEARCH_RESULTS, searchViewport?.reason)
+        delayed.complete(TripCity("330100", "杭州市", GeoPoint(30.27, 120.15)))
+        job.join()
+        assertEquals(searchViewport, model.state.value.map.viewportRequest)
+    }
+
+    @Test fun cityLookupTimeoutLeavesDefaultMapAndDoesNotRetry() = runTest(dispatcher) {
+        val trips = Trips()
+        val model = model(trips)
+        trips.value.value = tripWithTwoDays()
+        advanceUntilIdle()
+        val job = launch { model.locateNewTripCity { kotlinx.coroutines.awaitCancellation() } }
+        advanceUntilIdle()
+        job.join()
+        assertNull(model.state.value.map.viewportRequest)
+        assertTrue(model.pageState.value is TripWorkspacePageState.Ready)
+        model.locateNewTripCity { error("timed-out lookup must not retry") }
+    }
     @Test fun sameCityLocationIsSeparateFromSearchPinsAndDrawerDoesNotRefitIt() = runTest(dispatcher) {
         val trips = Trips()
         val model = model(trips)
@@ -697,10 +791,11 @@ class TripWorkspaceContentStateTest {
         override suspend fun deleteDay(command: com.yangchengwei.easytrip.trip.domain.DayDeletion) = Unit
         override suspend fun deleteTrip(tripId: String) = Unit
     }
-    private class Places(private val saved: List<SavedPlace> = emptyList()) : SavedPlaceRepository {
+    private class Places(saved: List<SavedPlace> = emptyList()) : SavedPlaceRepository {
+        val value = MutableStateFlow(saved)
         val fail = MutableStateFlow(false)
         override fun observePlaces(tripId: String, tagIds: Set<String>): Flow<List<SavedPlace>> = fail.flatMapLatest { broken ->
-            if (broken) flow { throw IllegalStateException("places") } else flowOf(saved)
+            if (broken) flow { throw IllegalStateException("places") } else value
         }
         override fun observeTags(tripId: String) = flowOf(emptyList<PlaceTag>())
         override fun observeSavedPoiIds(tripId: String) = flowOf(emptySet<String>())

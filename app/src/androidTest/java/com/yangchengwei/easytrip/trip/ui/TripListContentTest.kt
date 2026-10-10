@@ -46,6 +46,8 @@ import androidx.compose.ui.test.performScrollToNode
 import androidx.compose.ui.test.assertContentDescriptionEquals
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripHighlight
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import org.junit.Assert.assertEquals
@@ -56,6 +58,48 @@ import org.junit.Test
 
 class TripListContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun longListInAllThemesKeepsActionsAndFilterSwitchReturnsToTop() {
+        var theme by androidx.compose.runtime.mutableStateOf(com.yangchengwei.easytrip.core.ui.theme.ThemePalette.LAKE)
+        val actions = mutableListOf<TripListAction>()
+        compose.setContent {
+            EasyTripTheme(theme) {
+                TripListContent(
+                    TripListUiState(page = TripListPageState.Content(
+                        primaryTrip = trip("primary", "杭州·苏州五日游").copy(expenseLabel = "已记花费 ¥12,345.60"),
+                        otherTrips = (1..30).map { trip("long-$it", "旅行 $it") } +
+                            trip("past", "青岛海边周末").copy(hasTraveled = true),
+                    )),
+                    onAction = actions::add,
+                )
+            }
+        }
+        com.yangchengwei.easytrip.core.ui.theme.ThemePalette.entries.forEach { palette ->
+            compose.runOnIdle { theme = palette }
+            compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("primary-trip-primary"))
+            compose.onNodeWithTag("trip-expense-primary", useUnmergedTree = true).assertIsDisplayed()
+            captureV22("trips-${palette.name}-top")
+            compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-long-4"))
+            captureV22("trips-${palette.name}-scroll")
+            compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-long-30"))
+            compose.onNodeWithTag("other-trip-long-30").assertIsDisplayed()
+            compose.onNodeWithTag("create-trip").assertIsDisplayed()
+            compose.onNodeWithTag("trip-filter-traveled").performClick()
+            compose.onNodeWithTag("primary-trip-past").assertIsDisplayed()
+            compose.onNodeWithTag("trip-filter-pending").performClick()
+            compose.onNodeWithTag("primary-trip-primary").assertIsDisplayed()
+        }
+        compose.onNodeWithTag("create-trip").performClick()
+        assertEquals(listOf(TripListAction.CreateTrip), actions)
+    }
+
+    private fun captureV22(name: String) {
+        compose.waitForIdle()
+        val bitmap = compose.onRoot().captureToImage().asAndroidBitmap()
+        java.io.File(compose.activity.getExternalFilesDir(null), "v220-$name.png").outputStream().use {
+            bitmap.compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)
+        }
+    }
 
     @Test fun settingsEntryIsAvailableInEmptyStateWithAccessibleTouchTarget() {
         setContent(TripListPageState.Empty)
@@ -185,7 +229,7 @@ class TripListContentTest {
         compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-12"))
         compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
         assertEquals(headerBounds, compose.onNodeWithTag("trip-list-title").getUnclippedBoundsInRoot())
-        assertEquals(primaryBounds, compose.onNodeWithTag("primary-trip-trip-primary").getUnclippedBoundsInRoot())
+        compose.onNodeWithTag("primary-trip-trip-primary").assertDoesNotExist()
         assertEquals(createBounds, compose.onNodeWithTag("create-trip").getUnclippedBoundsInRoot())
     }
 
@@ -267,7 +311,7 @@ class TripListContentTest {
         compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed()
     }
 
-    @Test fun scrollingOtherTripsKeepsHeaderPrimaryAndCreateBoundsFixed() {
+    @Test fun scrollingTripsMovesPrimaryAwayButKeepsHeaderFiltersAndCreateFixed() {
         compose.setContent {
             EasyTripTheme {
                 Box(Modifier.requiredWidth(320.dp).height(700.dp)) {
@@ -285,6 +329,7 @@ class TripListContentTest {
         }
 
         val headerBounds = compose.onNodeWithTag("trip-list-title").assertIsDisplayed().getUnclippedBoundsInRoot()
+        val filterBounds = compose.onNodeWithTag("trip-filter-pending").getUnclippedBoundsInRoot()
         val primaryBounds = compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed().getUnclippedBoundsInRoot()
         check(headerBounds.bottom <= primaryBounds.top)
         val createBounds = compose.onNodeWithTag("create-trip")
@@ -297,8 +342,11 @@ class TripListContentTest {
         compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
 
         assertEquals(headerBounds, compose.onNodeWithTag("trip-list-title").getUnclippedBoundsInRoot())
-        assertEquals(primaryBounds, compose.onNodeWithTag("primary-trip-trip-primary").getUnclippedBoundsInRoot())
+        compose.onNodeWithTag("primary-trip-trip-primary").assertDoesNotExist()
+        assertEquals(filterBounds, compose.onNodeWithTag("trip-filter-pending").getUnclippedBoundsInRoot())
         assertEquals(createBounds, compose.onNodeWithTag("create-trip").getUnclippedBoundsInRoot())
+        compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("primary-trip-trip-primary"))
+        compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed()
     }
 
     @Test fun splitScreenLargeFontKeepsCreateAndAllTripsReachable() {
@@ -461,12 +509,11 @@ class TripListContentTest {
 
         compose.onNodeWithTag("primary-trip-trip-long").assert(hasClickAction()).assertIsDisplayed()
         compose.onNodeWithTag("trip-menu-trip-long").assertIsDisplayed()
+        compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-other"))
         compose.onNodeWithTag("other-trip-trip-other").assertIsDisplayed()
         compose.onNodeWithTag("trip-menu-trip-other").assertIsDisplayed()
         compose.onNodeWithTag("create-trip").assertIsDisplayed()
         listOf(
-            "primary-trip-name-trip-long",
-            "trip-menu-trip-long",
             "other-trip-name-trip-other",
             "trip-menu-trip-other",
         ).forEach { tag ->

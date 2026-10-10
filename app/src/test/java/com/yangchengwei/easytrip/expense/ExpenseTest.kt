@@ -4,6 +4,13 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class ExpenseTest {
+    @Test fun displayGroupsThousandsWithoutChangingExactAmountOrEditableInput() {
+        assertEquals("¥1,234", formatExpense(123400))
+        assertEquals("¥12,345.60", formatExpense(1234560))
+        assertEquals("¥92,233,720,368,547,758.07", formatExpense(Long.MAX_VALUE))
+        assertEquals("12345.6", expenseInput(1234560))
+        assertEquals(1234560L, parseExpense(expenseInput(1234560)))
+    }
     @Test fun aggregateValidationRejectsOverflowWithoutRounding() {
         requireSummableExpense(listOf(Long.MAX_VALUE - 1), 1)
         requireSummableExpense(listOf(1), null)

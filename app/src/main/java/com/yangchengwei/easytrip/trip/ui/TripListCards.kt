@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.background
 import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.Canvas
@@ -125,7 +126,7 @@ internal fun PrimaryTripCard(
                 }
                 ContinuousReadinessProgress(
                     progress = trip.readinessPercent / 100f,
-                    contentDescription = "已有行程内容 ${trip.scheduledDayCount}/${trip.tripDayCountLabel.substringBefore(' ')} 个旅行日",
+                    contentDescription = "已有行程内容 ${formatCount(trip.scheduledDayCount)}/${trip.tripDayCountLabel.substringBefore(' ')} 个旅行日",
                     modifier = Modifier.fillMaxWidth()
                         .height(5.dp)
                         .semantics { }

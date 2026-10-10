@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.SpanStyle
@@ -251,7 +252,7 @@ internal fun ItineraryPlaceContent(
                         item.expenseCents?.let {
                             if (length > 0) append(" · ")
                             append(com.yangchengwei.easytrip.expense.formatExpense(it))
-                            if (item.expenses.size > 1) append(" · ${item.expenses.size}笔")
+                            if (item.expenses.size > 1) append(" · ${formatCount(item.expenses.size)}笔")
                         }
                     },
                     style = MaterialTheme.typography.bodySmall,
@@ -301,7 +302,7 @@ private fun CompactItineraryStop(
                 Text(
                     (item.stayMinutes?.let { "停留 ${formatStayHours(it)}" } ?: "待安排停留时长") +
                         item.expenseCents?.let { " · " + com.yangchengwei.easytrip.expense.formatExpense(it) +
-                            if (item.expenses.size > 1) " · ${item.expenses.size}笔" else "" }.orEmpty(),
+                            if (item.expenses.size > 1) " · ${formatCount(item.expenses.size)}笔" else "" }.orEmpty(),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.weight(1f).alignByBaseline().testTag("itinerary-place-timing-${item.id}"),
@@ -316,7 +317,7 @@ private fun CompactItineraryStop(
 }
 
 private fun Modifier.semanticsActions(name: String, index: Int, count: Int, onCommit: (Int) -> Unit) = semantics(mergeDescendants = true) {
-    contentDescription = "$name，第 ${index + 1} 项，共 $count 项"
+    contentDescription = "$name，第 ${index + 1} 项，共 ${formatCount(count)} 项"
     customActions = listOfNotNull(
         (index > 0).takeIf { it }?.let { CustomAccessibilityAction("上移") { onCommit(index - 1); true } },
         (index < count - 1).takeIf { it }?.let { CustomAccessibilityAction("下移") { onCommit(index + 1); true } },

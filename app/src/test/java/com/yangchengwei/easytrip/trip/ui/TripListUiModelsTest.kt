@@ -10,6 +10,11 @@ import org.junit.Assert.assertNull
 import org.junit.Test
 
 class TripListUiModelsTest {
+    @Test fun largeCountsAreGroupedButDatesKeepTheirOriginalFormat() {
+        val result = trip(startDate = LocalDate.of(2026, 12, 31), dayCount = 1, placeCount = 1234).toTripCardUiModel()
+        assertEquals("1,234 个地点", result.placeCountLabel)
+        assertEquals("2026年12月31日", result.dateLabel)
+    }
     @Test fun mapsUndatedTripWithZeroReadiness() {
         val result = trip(startDate = null, dayCount = 3, placeCount = 0, scheduledDayCount = 0)
             .toTripCardUiModel()

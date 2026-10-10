@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
@@ -48,7 +49,7 @@ fun SelectTargetDayContent(
             when {
                 state.editingTarget is ForPlace && selectedPlaceName != null -> selectedPlaceName
                 state.editingTarget is ForPlace -> "选择要加入的旅行日"
-                else -> "已选 ${state.selectedPlaceIds.size} 个地点"
+                else -> "已选 ${formatCount(state.selectedPlaceIds.size)} 个地点"
             },
             style = MaterialTheme.typography.bodyMedium,
         )
@@ -131,7 +132,7 @@ fun SelectTargetDayContent(
                         1 -> days.firstOrNull { it.id == selectedDays.single() }
                             ?.let { "加入第 ${it.index + 1} 天" }
                             ?: "加入行程"
-                        else -> "加入 ${selectedDays.size} 天"
+                        else -> "加入 ${formatCount(selectedDays.size)} 天"
                     },
                 )
             }

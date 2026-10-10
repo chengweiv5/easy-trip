@@ -22,6 +22,19 @@ class ExpenseSectionsUiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
     private val clock = Clock.fixed(Instant.parse("2025-12-01T00:00:00Z"), ZoneOffset.UTC)
 
+    @Test fun thousandsAppearInTotalsAndMonthlyBarsWithoutChangingYear() {
+        val store = Store()
+        store.records.value = listOf(store.records.value!!.first().copy(cents = 1234560))
+        val model = ExpenseReviewViewModel(store, clock)
+        compose.setContent { EasyTripTheme { ExpenseReviewScreen(model, {}, {}) } }
+        compose.waitUntil(5000) { compose.onAllNodesWithTag("expense-total").fetchSemanticsNodes().isNotEmpty() }
+        compose.onNodeWithTag("expense-total").assertTextEquals("¥12,345.60")
+        compose.onNodeWithTag("expense-choose-year").assertTextContains("2025年", substring = true)
+        capture("v220-thousands")
+        compose.onNodeWithText("12,345.6").performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("review-month-12").performScrollTo().performClick()
+        compose.onNodeWithTag("expense-total").assertTextEquals("¥12,345.60")
+    }
     @Test fun monthNavigationAndSelectedPickerKeepParentYear() {
         val model = ExpenseReviewViewModel(Store(), clock)
         compose.setContent { EasyTripTheme { ExpenseReviewScreen(model, {}, {}) } }

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -222,7 +223,7 @@ private fun DateRangeSummary(selection: DateRangeSelection, modifier: Modifier =
             DateSummaryItem("结束日期", selection.endDate, Modifier.weight(1f))
         }
         selection.dayCount?.let { days ->
-            Text("${selection.startDate} 至 ${selection.endDate} · ${days}天${days - 1}晚", style = MaterialTheme.typography.bodySmall)
+            Text("${selection.startDate} 至 ${selection.endDate} · ${formatCount(days)}天${formatCount(days - 1)}晚", style = MaterialTheme.typography.bodySmall)
         }
     }
 }

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.place.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import android.content.Context
 import androidx.activity.compose.BackHandler
 
@@ -87,7 +88,7 @@ fun PlaceSearchRoute(
                 if (!busy) viewModel.dispatch(PlaceSearchAction.DismissRemovalConfirmation)
             },
             title = { Text("取消收藏 ${pending.place.name}？") },
-            text = { Text("将同时删除 ${pending.impact.itineraryItemCount} 次行程安排和 ${pending.impact.routeLegCount} 段路线。") },
+            text = { Text("将同时删除 ${formatCount(pending.impact.itineraryItemCount)} 次行程安排和 ${formatCount(pending.impact.routeLegCount)} 段路线。") },
             confirmButton = {
                 TextButton(
                     onClick = { viewModel.dispatch(PlaceSearchAction.ConfirmRemoval) },

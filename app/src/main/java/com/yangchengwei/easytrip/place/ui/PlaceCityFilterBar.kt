@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.place.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -42,16 +43,16 @@ internal fun PlaceCityFilterBar(
 private fun CityPill(key: String?, name: String, count: Int, selected: Boolean, enabled: Boolean, unselectedColor: Color, onSelect: (String?) -> Unit) {
     Surface(
         Modifier.heightIn(min = 32.dp).testTag("place-city-${key ?: "all"}")
-            .semantics { this.selected = selected; contentDescription = "$name，$count 个地点" }
+            .semantics { this.selected = selected; contentDescription = "$name，${formatCount(count)} 个地点" }
             .clickable(enabled = enabled, role = Role.Tab) { onSelect(key) },
         shape = RoundedCornerShape(8.dp),
         color = if (selected) MaterialTheme.colorScheme.primary else unselectedColor,
     ) {
-        Text("$name $count", Modifier.padding(horizontal = 10.dp, vertical = 7.dp), style = MaterialTheme.typography.labelSmall, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
+        Text("$name ${formatCount(count)}", Modifier.padding(horizontal = 10.dp, vertical = 7.dp), style = MaterialTheme.typography.labelSmall, color = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
     }
 }
 
 @Composable
 internal fun PlaceCityGroupHeading(group: PlaceCityGroup) {
-    Text("${group.name} · ${group.rows.size}", Modifier.padding(start = 2.dp, top = 6.dp, bottom = 2.dp).testTag("place-city-heading-${group.key}"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+    Text("${group.name} · ${formatCount(group.rows.size)}", Modifier.padding(start = 2.dp, top = 6.dp, bottom = 2.dp).testTag("place-city-heading-${group.key}"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
 }

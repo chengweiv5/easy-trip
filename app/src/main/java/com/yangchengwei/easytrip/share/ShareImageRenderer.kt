@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.share
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
@@ -70,7 +71,7 @@ class ShareImageRenderer(private val maxOutputHeight: Int = 200_000) {
         val dates = if(days.first().date==null) "日期待定" else if(days.size==1) "${days.first().date} · 第 ${days.first().index+1} 天" else "${days.first().date} — ${days.last().date}"
         y += drawText(dates,24f,y,342f,12f,Color.rgb(217,235,237)) + 19
         drawRect(24f,y,342f,1f,0x55FFFFFF);y+=14
-        y += drawText("${days.size} 天    ${days.sumOf { it.stops.size }} 站安排    ${if(options.includeNotes) "含交通与备注" else "含交通 · 不含备注"}",24f,y,342f,12f,Color.WHITE)+22
+        y += drawText("${formatCount(days.size)} 天    ${formatCount(days.sumOf { it.stops.size })} 站安排    ${if(options.includeNotes) "含交通与备注" else "含交通 · 不含备注"}",24f,y,342f,12f,Color.WHITE)+22
         val coverHeight=y
         ops.add(coverOpsStart,DrawOp(0f, coverHeight) { it.drawRect(0f,0f,390f,coverHeight,Paint().apply { color=primary }) })
         for(day in days) {
@@ -80,7 +81,7 @@ class ShareImageRenderer(private val maxOutputHeight: Int = 200_000) {
             drawText((day.index+1).toString().padStart(2,'0'),30f,y+6,29f,16f,Color.WHITE,true)
             drawText("第 ${day.index+1} 天",70f,y,238f,16f,ink,true)
             drawText(day.date?.format(DateTimeFormatter.ofPattern("M月d日 · EEEE",Locale.CHINA)) ?: "日期待定",70f,y+23,250f,11f,muted)
-            drawText("${day.stops.size} 站",330f,y+10,40f,11f,muted)
+            drawText("${formatCount(day.stops.size)} 站",330f,y+10,40f,11f,muted)
             y+=52
             if(day.stops.isEmpty()) {
                 y += drawText("当天尚未安排行程",70f,y,290f,12f,muted)+24
@@ -89,7 +90,7 @@ class ShareImageRenderer(private val maxOutputHeight: Int = 200_000) {
                 val mapTop=y
                 drawRect(24f,y,342f,29f,Color.WHITE)
                 drawText("当天路线",35f,y+7,150f,11f,day.color,true)
-                drawText("${day.stops.size} 站 · 按编号游览",241f,y+7,119f,10f,muted)
+                drawText("${formatCount(day.stops.size)} 站 · 按编号游览",241f,y+7,119f,10f,muted)
                 y+=29
                 if(map?.file!=null) {
                     val mapY=y; val mapFile=map.file

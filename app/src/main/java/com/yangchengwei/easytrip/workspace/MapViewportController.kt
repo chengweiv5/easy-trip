@@ -64,7 +64,7 @@ class MapViewportController {
             userMovedViewport = true
             return null
         }
-        if (visiblePoints.isEmpty() && currentRequest?.reason != ViewportReason.SEARCH_FOCUS) {
+        if (visiblePoints.isEmpty() && currentRequest?.reason !in setOf(ViewportReason.SEARCH_FOCUS, ViewportReason.INITIAL_CITY)) {
             currentRequest = null
         }
         return emit(reason, visiblePoints, scope = scope, selectedDayId = selectedDayId)
@@ -73,6 +73,11 @@ class MapViewportController {
     fun onUserGesture() {
         userMovedViewport = true
         currentRequest = null
+    }
+
+    fun showInitialCity(city: TripCity): MapViewportRequest? {
+        if (observedNonemptyPlaces || userMovedViewport || currentRequest != null || cameraRetained) return null
+        return emit(ViewportReason.INITIAL_CITY, city.bounds.ifEmpty { listOf(city.center) }, 11f)
     }
 
     /** Reconcile changes made under the search layer without moving the camera on dismissal. */

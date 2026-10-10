@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.expense.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -85,7 +86,7 @@ internal fun ExpensePeriodPicker(scope: ExpenseScope, all: List<ExpenseRecord>?,
                                     Column(Modifier.padding(8.dp).heightIn(min = 56.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
                                         Text("${month}月${if (selected) " ✓" else ""}", fontWeight = FontWeight.SemiBold)
                                         Text(when { total == null -> "统计待加载"; total.records == 0 -> "尚无记录"; else -> expenseMoney(total.cents) }, style = MaterialTheme.typography.labelSmall)
-                                        if (total != null && total.records > 0) Text("${total.records}笔", style = MaterialTheme.typography.labelSmall)
+                                        if (total != null && total.records > 0) Text("${formatCount(total.records)}笔", style = MaterialTheme.typography.labelSmall)
                                     }
                                 }
                             }
@@ -100,7 +101,7 @@ internal fun ExpensePeriodPicker(scope: ExpenseScope, all: List<ExpenseRecord>?,
                             .selectable(selected, role = Role.RadioButton) { onSelect(ExpensePeriod.Year(year)) }
                             .testTag("picker-year-$year").padding(14.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                             Text("${year}年${if (selected) " ✓ 已选择" else ""}", fontWeight = FontWeight.SemiBold)
-                            Text(when { total == null -> "统计待加载"; total.records == 0 -> "尚无记录"; else -> "${expenseMoney(total.cents)} · ${total.records}笔" },
+                            Text(when { total == null -> "统计待加载"; total.records == 0 -> "尚无记录"; else -> "${expenseMoney(total.cents)} · ${formatCount(total.records)}笔" },
                                 style = MaterialTheme.typography.bodySmall)
                         }
                     }

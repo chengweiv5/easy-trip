@@ -33,6 +33,7 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.flow.first
 
 enum class WorkspaceTab { PLACES, ITINERARY }
 
@@ -134,6 +135,30 @@ class TripWorkspaceViewModel(
     private val mutableSelectedDayId = MutableStateFlow<String?>(null)
     val selectedDayId: StateFlow<String?> = mutableSelectedDayId
     private var observationJob: Job? = null
+    private var hasSavedPlaces = false
+
+    /** Only the newly-created navigation entry calls this; normal/reopened trips never auto-locate. */
+    suspend fun locateNewTripCity(resolve: suspend (String) -> TripCity?) {
+        val ready = pageState.first { it !is TripWorkspacePageState.Loading } as? TripWorkspacePageState.Ready ?: return
+        if (savedState.get<Boolean>("initial-city-attempted") == true) return
+        savedState["initial-city-attempted"] = true
+        if (hasSavedPlaces || savedState.get<Boolean>("initial-city-suppressed") == true) return
+        val name = ready.content.tripName
+        val city = try {
+            kotlinx.coroutines.withTimeoutOrNull(12_000) { resolve(name) }
+        } catch (error: kotlinx.coroutines.CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            null
+        } ?: return
+        if (hasSavedPlaces || mutable.value.tripName != name ||
+            savedState.get<Boolean>("initial-city-suppressed") == true ||
+            mutablePageState.value !is TripWorkspacePageState.Ready
+        ) return
+        val request = viewportController.showInitialCity(city) ?: return
+        mutable.value = mutable.value.copy(map = mutable.value.map.copy(viewportRequest = request))
+        mutablePageState.value = TripWorkspacePageState.Ready(mutable.value.toReadyState())
+    }
 
     init {
         savedState[SECTION] = section.value.name
@@ -197,6 +222,7 @@ class TripWorkspaceViewModel(
     private fun mapWorkspaceState(values: Array<Any?>): TripWorkspaceUiState? {
         val currentTrip = values[0] as com.yangchengwei.easytrip.trip.domain.TripWithDays? ?: return null
         @Suppress("UNCHECKED_CAST") val currentPlaces = values[1] as List<SavedPlace>
+        hasSavedPlaces = currentPlaces.isNotEmpty()
         @Suppress("UNCHECKED_CAST") val emittedSnapshots = values[2] as List<DayMapSnapshot>
         val currentDayIds = currentTrip.days.mapTo(mutableSetOf(), TripDay::id)
         val currentSnapshots = emittedSnapshots.filter { it.itinerary.dayId in currentDayIds }
@@ -313,6 +339,7 @@ class TripWorkspaceViewModel(
     }
 
     fun onMapGesture() {
+        savedState["initial-city-suppressed"] = true
         viewportController.onUserGesture()
         mutable.value = mutable.value.copy(
             map = mutable.value.map.copy(viewportRequest = viewportController.currentRequest),
@@ -336,16 +363,19 @@ class TripWorkspaceViewModel(
 
     fun selectSection(value: WorkspaceSection) {
         if (section.value == value) return
+        savedState["initial-city-suppressed"] = true
         savedState[SECTION] = value.name
         section.value = value
     }
     fun selectItineraryScope(value: ItineraryScope) {
         if (value is ItineraryScope.Day && mutable.value.days.none { it.id == value.dayId }) return
         if (itineraryScope.value == value) return
+        savedState["initial-city-suppressed"] = true
         savedState[ITINERARY_SCOPE] = encodeItineraryScope(value)
         itineraryScope.value = value
     }
     fun showSearchResults(results: WorkspaceSearchResults) {
+        savedState["initial-city-suppressed"] = true
         clearSearchFocus()
         closeOverlay()
         viewportController.showSearchResults(results.viewportPoints(currentPosition.value))

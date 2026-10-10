@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.workspace
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
@@ -523,18 +524,18 @@ private fun WorkspaceCollapsedSummary(
             val count = placeState.savedPoiIds.size.takeIf { it > 0 } ?: placeState.rows.size
             when (count) {
                 0 -> "还没有收藏地点"
-                else -> "已收藏 $count 个地点"
+                else -> "已收藏 ${formatCount(count)} 个地点"
             }
         }
         WorkspaceSection.ITINERARY -> when (val scope = state.itineraryScope) {
-            ItineraryScope.WholeTrip -> "全程 · ${state.wholeTripDays.sumOf { it.items.size }} 个地点"
+            ItineraryScope.WholeTrip -> "全程 · ${formatCount(state.wholeTripDays.sumOf { it.items.size })} 个地点"
             is ItineraryScope.Day -> {
                 val dayNumber = state.days.indexOfFirst { it.id == scope.dayId }.takeIf { it >= 0 }?.plus(1)
                 val placeCount = if (itineraryState.selectedDayId == scope.dayId) itineraryState.items.size else {
                     state.wholeTripDays.firstOrNull { it.dayId == scope.dayId }
                         ?.let { it.items.size + it.collapsedItemCount } ?: 0
                 }
-                if (dayNumber == null) "$placeCount 个地点" else "第 $dayNumber 天 · $placeCount 个地点"
+                if (dayNumber == null) "${formatCount(placeCount)} 个地点" else "第 $dayNumber 天 · ${formatCount(placeCount)} 个地点"
             }
         }
     }

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.place.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -364,7 +365,7 @@ fun PlacePoolContent(
             AlertDialog(
                 onDismissRequest = { if (!busy) onDismissCollectionRemoval() },
                 title = { Text("取消收藏 ${pending.place.name}？") },
-                text = { Text("将同时删除 ${pending.impact.itineraryItemCount} 次行程安排和 ${pending.impact.routeLegCount} 段路线。") },
+                text = { Text("将同时删除 ${formatCount(pending.impact.itineraryItemCount)} 次行程安排和 ${formatCount(pending.impact.routeLegCount)} 段路线。") },
                 confirmButton = { TextButton(onConfirmCollectionRemoval, enabled = !busy) { Text(if (busy) "取消中…" else "确认取消收藏") } },
                 dismissButton = { TextButton(onDismissCollectionRemoval, enabled = !busy) { Text("取消") } },
             )
@@ -376,7 +377,7 @@ fun PlacePoolContent(
                 text = {
                     Column {
                         state.deletionImpact?.let { impact ->
-                            Text("将同时删除 ${impact.itineraryItemCount} 次行程安排和 ${impact.routeLegCount} 段路线。")
+                            Text("将同时删除 ${formatCount(impact.itineraryItemCount)} 次行程安排和 ${formatCount(impact.routeLegCount)} 段路线。")
                         }
                         state.deletionError?.let { Text(it) }
                     }

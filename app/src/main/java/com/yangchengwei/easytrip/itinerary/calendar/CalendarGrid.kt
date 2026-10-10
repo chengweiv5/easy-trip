@@ -1,5 +1,7 @@
 package com.yangchengwei.easytrip.itinerary.calendar
 
+import com.yangchengwei.easytrip.core.ui.formatCount
+
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -76,7 +78,7 @@ internal fun CalendarGrid(
                     if (aggregate) {
                         val top = events.minOf { it.start }
                         val end = events.maxOf { it.end }
-                        CalendarCard("${events.size} 项日程", "时间交叠 · 点击展开",
+                        CalendarCard("${formatCount(events.size)} 项日程", "时间交叠 · 点击展开",
                             Modifier.offset(x = groupLeft + 3.dp, y = (top * CALENDAR_MINUTE_DP).dp).width((groupWidth-6.dp).coerceAtLeast(1.dp)).height(((end-top)*CALENDAR_MINUTE_DP).dp.coerceAtLeast(24.dp)).testTag("calendar-overlap-${day.dayId}-$group"),
                             conflict = events.any { it.conflicts.isNotEmpty() }, onClick = {
                                 if (single == null) onOpenGroup(events.first().sourceDayId, events.first().item.id) else onExpand(group)

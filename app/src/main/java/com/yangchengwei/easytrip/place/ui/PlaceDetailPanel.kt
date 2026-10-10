@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.place.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
@@ -240,7 +241,7 @@ private fun PlaceDetailSchedule(schedule: PlaceScheduleSummaryUi) {
                 Text("已加入行程", style = MaterialTheme.typography.titleSmall)
             }
             schedule.days.forEach { day ->
-                Text("第 ${day.dayIndex + 1} 天 · ${day.occurrences} 次")
+                Text("第 ${day.dayIndex + 1} 天 · ${formatCount(day.occurrences)} 次")
             }
         }
         else -> Box(modifier = Modifier.testTag("place-detail-bookmark")) {

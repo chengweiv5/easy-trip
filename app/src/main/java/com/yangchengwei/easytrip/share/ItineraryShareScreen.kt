@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.share
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -92,7 +93,7 @@ fun ItineraryShareScreen(
             val maps=mutableMapOf<String,ShareDayMap>()
             for((i,day)in days.withIndex()) {
                 ensureActive()
-                generation=ShareGeneration.Working(options,"正在整理第 ${i+1} / ${days.size} 天的地图…")
+                generation=ShareGeneration.Working(options,"正在整理第 ${i+1} / ${formatCount(days.size)} 天的地图…")
                 if(day.stops.isNotEmpty())maps[day.id]=capture.capture(day)
             }
             generation=ShareGeneration.Working(options,"正在生成长图…")
@@ -161,7 +162,7 @@ fun ItineraryShareScreen(
                         FilterChip(selected=selectedDay!=null,onClick={trip?.days?.firstOrNull()?.let { picker=true }},label={Text("选一天")},modifier=Modifier.weight(1f).heightIn(min=48.dp).testTag("share-single"))
                     }
                     Row(verticalAlignment=Alignment.CenterVertically) {
-                        Text(if(selectedDay==null)"${trip?.days?.size ?: 0} 天行程" else "第 ${(selected.firstOrNull()?.index ?: 0)+1} 天",modifier=Modifier.weight(1f),style=MaterialTheme.typography.bodySmall)
+                        Text(if(selectedDay==null)"${formatCount(trip?.days?.size ?: 0)} 天行程" else "第 ${(selected.firstOrNull()?.index ?: 0)+1} 天",modifier=Modifier.weight(1f),style=MaterialTheme.typography.bodySmall)
                         Text("包含备注",style=MaterialTheme.typography.bodyMedium)
                         Switch(checked=includeNotes,onCheckedChange={includeNotes=it},modifier=Modifier.testTag("share-notes"))
                     }
@@ -191,7 +192,7 @@ fun ItineraryShareScreen(
         }
     }
     if(picker) AlertDialog(onDismissRequest={picker=false},title={Text("选择旅行日")},text={LazyColumn {
-        items(trip?.days.orEmpty(),key={it.id}) { day -> TextButton(onClick={selectedDay=day.id;picker=false},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("share-day-${day.index}")){Text("第 ${day.index+1} 天 · ${day.date ?: "日期待定"} · ${day.stops.size} 站")} }
+        items(trip?.days.orEmpty(),key={it.id}) { day -> TextButton(onClick={selectedDay=day.id;picker=false},modifier=Modifier.fillMaxWidth().heightIn(min=48.dp).testTag("share-day-${day.index}")){Text("第 ${day.index+1} 天 · ${day.date ?: "日期待定"} · ${formatCount(day.stops.size)} 站")} }
     }},confirmButton={TextButton(onClick={picker=false}){Text("关闭")}})
 }
 

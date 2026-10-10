@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.place.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.ui.text.AnnotatedString
@@ -155,7 +156,7 @@ private fun placeAuxiliaryInfo(place: SavedPlaceRowUi, scheduledColor: androidx.
     when {
         place.recentlyCollected -> append("刚刚收藏 · 待安排行程")
         place.scheduled -> withStyle(SpanStyle(color = scheduledColor)) {
-            append("已排入 ${place.itineraryOccurrenceCount} 次")
+            append("已排入 ${formatCount(place.itineraryOccurrenceCount)} 次")
         }
         else -> append("仅收藏")
     }

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.itinerary.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -169,13 +170,13 @@ private fun SelectablePlaceRow(row: SavedPlaceRowUi, selection: Int?, enabled: B
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                 Text(row.name, style = MaterialTheme.typography.labelMedium, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 if (row.address.isNotBlank()) Text(row.address, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
-                if (row.scheduled && LocalDensity.current.fontScale > 1.3f) Text("已排 ${row.itineraryOccurrenceCount} 次 · 可重复添加", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
+                if (row.scheduled && LocalDensity.current.fontScale > 1.3f) Text("已排 ${formatCount(row.itineraryOccurrenceCount)} 次 · 可重复添加", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
             }
             if (row.scheduled && LocalDensity.current.fontScale <= 1.3f) Surface(
-                modifier = Modifier.semantics { contentDescription = "已安排 ${row.itineraryOccurrenceCount} 次，可重复添加" },
+                modifier = Modifier.semantics { contentDescription = "已安排 ${formatCount(row.itineraryOccurrenceCount)} 次，可重复添加" },
                 shape = RoundedCornerShape(4.dp), color = MaterialTheme.colorScheme.primaryContainer,
             ) {
-                Text("已排 ${row.itineraryOccurrenceCount} 次", Modifier.padding(horizontal = 6.dp, vertical = 3.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
+                Text("已排 ${formatCount(row.itineraryOccurrenceCount)} 次", Modifier.padding(horizontal = 6.dp, vertical = 3.dp), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.primary)
             }
         }
     }
@@ -185,7 +186,7 @@ private fun SelectablePlaceRow(row: SavedPlaceRowUi, selection: Int?, enabled: B
 private fun PlacePickerFooter(count: Int, label: String, enabled: Boolean, onContinue: () -> Unit) {
     val stacked = LocalDensity.current.fontScale > 1.3f
     val countText: @Composable () -> Unit = {
-        Text(if (count == 0) "请选择地点" else "已选 $count 个地点", style = MaterialTheme.typography.labelMedium, color = if (count == 0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
+        Text(if (count == 0) "请选择地点" else "已选 ${formatCount(count)} 个地点", style = MaterialTheme.typography.labelMedium, color = if (count == 0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary)
     }
     val button: @Composable (Modifier) -> Unit = { modifier ->
         Surface(

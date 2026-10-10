@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -189,7 +190,7 @@ fun TripSettingsContent(
                             SettingsRow(
                                 icon = { Icon(Icons.Rounded.DateRange, null) },
                                 label = "整体出行日期",
-                                value = "${state.dateRange.startDate} — ${state.dateRange.endDate} · ${state.days.size}天${state.days.size - 1}晚",
+                                value = "${state.dateRange.startDate} — ${state.dateRange.endDate} · ${formatCount(state.days.size)}天${formatCount(state.days.size - 1)}晚",
                                 enabled = !settingsWriteLocked,
                                 onClick = { editingDates = true },
                                 modifier = Modifier.testTag("settings-date-row"),
@@ -304,7 +305,7 @@ fun TripSettingsContent(
     dateImpact?.let { impact ->
         editingDates = false
         ConfirmationDialog(
-            model = ConfirmationUiModel("确认修改日期范围？", "缩短日期会删除超出范围的旅行内容。", listOf("${impact.deletedDayIds.size} 个尾部旅行日", "${impact.deletedItineraryItems} 个行程项", "${impact.deletedRouteLegs} 个路线段"), listOf("${impact.retainedSavedPlaces} 个收藏地点"), "确认修改", "取消", true, false),
+            model = ConfirmationUiModel("确认修改日期范围？", "缩短日期会删除超出范围的旅行内容。", listOf("${formatCount(impact.deletedDayIds.size)} 个尾部旅行日", "${formatCount(impact.deletedItineraryItems)} 个行程项", "${formatCount(impact.deletedRouteLegs)} 个路线段"), listOf("${formatCount(impact.retainedSavedPlaces)} 个收藏地点"), "确认修改", "取消", true, false),
             onConfirm = onConfirmDateRange, onDismiss = onCancelDateRange, busy = dateBusy, errorMessage = state.dateRange.error,
             deletedItemTags = listOf("settings-date-impact-days", "settings-date-impact-items", "settings-date-impact-legs"), retainedItemTags = listOf("settings-date-impact-saved-places"),
         )

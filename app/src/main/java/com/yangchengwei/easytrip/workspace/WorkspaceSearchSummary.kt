@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.workspace
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -65,8 +66,8 @@ internal fun WorkspaceSearchSummary(
                         style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
                     val missing = results.places.size - results.mappedPlaces.size
                     Text(
-                        if (missing == 0) "${results.places.size} 个搜索结果"
-                        else "${results.places.size} 个结果 · ${results.mappedPlaces.size} 个可定位",
+                        if (missing == 0) "${formatCount(results.places.size)} 个搜索结果"
+                        else "${formatCount(results.places.size)} 个结果 · ${formatCount(results.mappedPlaces.size)} 个可定位",
                         maxLines = 1, overflow = TextOverflow.Ellipsis,
                         style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )

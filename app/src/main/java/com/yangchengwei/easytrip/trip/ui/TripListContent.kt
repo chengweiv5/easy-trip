@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.trip.ui
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import androidx.compose.material.icons.rounded.Settings
 
 import androidx.compose.foundation.selection.selectable
@@ -9,7 +10,6 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -28,13 +28,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.key
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
@@ -95,54 +95,16 @@ fun TripListContent(
                         }
                     } else {
                         val page = TripListPageState.Content(visibleTrips)
-                        BoxWithConstraints(Modifier.fillMaxSize()) {
-                            val fontScale = LocalDensity.current.fontScale
-                            val compactHeight = maxHeight < 500.dp ||
-                                (fontScale >= 1.5f && maxWidth <= 320.dp && maxHeight <= 700.dp)
-                            val singleTripScrollable = page.otherTrips.isEmpty() &&
-                                (maxHeight < 620.dp || fontScale >= 1.5f)
-                            Box(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
-                                val contentModifier = Modifier
-                                    .fillMaxSize()
-                                    .padding(bottom = 72.dp)
-                                if (compactHeight || singleTripScrollable) {
-                                    LazyColumn(
-                                        modifier = contentModifier.testTag("other-trips-list"),
-                                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                                    ) {
-                                        item(key = "primary-${page.primaryTrip.id}") {
-                                            PrimaryTripCard(
-                                                trip = page.primaryTrip,
-                                                statusUpdating = page.primaryTrip.id in state.updatingTripIds,
-                                                menuExpanded = expandedMenuTripId == page.primaryTrip.id,
-                                                onMenuExpandedChange = { expanded ->
-                                                    expandedMenuTripId = page.primaryTrip.id.takeIf { expanded }
-                                                },
-                                                onAction = onAction,
-                                            )
-                                        }
-                                        if (page.otherTrips.isNotEmpty()) {
-                                            item(key = "other-trips-heading") {
-                                                Text("其他旅行", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                            }
-                                            items(page.otherTrips, key = TripCardUiModel::id) { trip ->
-                                                OtherTripRow(
-                                                    trip = trip,
-                                                    statusUpdating = trip.id in state.updatingTripIds,
-                                                    menuExpanded = expandedMenuTripId == trip.id,
-                                                    onMenuExpandedChange = { expanded ->
-                                                        expandedMenuTripId = trip.id.takeIf { expanded }
-                                                    },
-                                                    onAction = onAction,
-                                                )
-                                            }
-                                        }
-                                    }
-                                } else {
-                                    Column(
-                                        modifier = contentModifier.testTag("trip-content-list"),
-                                        verticalArrangement = Arrangement.spacedBy(16.dp),
-                                    ) {
+                        Box(Modifier.fillMaxSize().padding(start = 16.dp, end = 16.dp, bottom = 20.dp)) {
+                            val contentModifier = Modifier
+                                .fillMaxSize()
+                                .padding(bottom = 72.dp)
+                            key(showTraveled) {
+                                LazyColumn(
+                                    modifier = contentModifier.testTag("other-trips-list"),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp),
+                                ) {
+                                    item(key = "primary-${page.primaryTrip.id}") {
                                         PrimaryTripCard(
                                             trip = page.primaryTrip,
                                             statusUpdating = page.primaryTrip.id in state.updatingTripIds,
@@ -152,34 +114,29 @@ fun TripListContent(
                                             },
                                             onAction = onAction,
                                         )
-                                        if (page.otherTrips.isNotEmpty()) {
+                                    }
+                                    if (page.otherTrips.isNotEmpty()) {
+                                        item(key = "other-trips-heading") {
                                             Text("其他旅行", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
-                                            LazyColumn(
-                                                modifier = Modifier.weight(1f).testTag("other-trips-list"),
-                                                verticalArrangement = Arrangement.spacedBy(16.dp),
-                                            ) {
-                                                items(page.otherTrips, key = TripCardUiModel::id) { trip ->
-                                                    OtherTripRow(
-                                                        trip = trip,
-                                                        statusUpdating = trip.id in state.updatingTripIds,
-                                                        menuExpanded = expandedMenuTripId == trip.id,
-                                                        onMenuExpandedChange = { expanded ->
-                                                            expandedMenuTripId = trip.id.takeIf { expanded }
-                                                        },
-                                                        onAction = onAction,
-                                                    )
-                                                }
-                                            }
-                                        } else {
-                                            Spacer(Modifier.weight(1f))
+                                        }
+                                        items(page.otherTrips, key = TripCardUiModel::id) { trip ->
+                                            OtherTripRow(
+                                                trip = trip,
+                                                statusUpdating = trip.id in state.updatingTripIds,
+                                                menuExpanded = expandedMenuTripId == trip.id,
+                                                onMenuExpandedChange = { expanded ->
+                                                    expandedMenuTripId = trip.id.takeIf { expanded }
+                                                },
+                                                onAction = onAction,
+                                            )
                                         }
                                     }
                                 }
-                                EasyTripPrimaryButton(
-                                    onClick = { onAction(TripListAction.CreateTrip) },
-                                    modifier = Modifier.align(Alignment.BottomEnd).width(132.dp).height(48.dp).testTag("create-trip"),
-                                ) { Text("＋ 创建新旅行") }
                             }
+                            EasyTripPrimaryButton(
+                                onClick = { onAction(TripListAction.CreateTrip) },
+                                modifier = Modifier.align(Alignment.BottomEnd).width(132.dp).height(48.dp).testTag("create-trip"),
+                            ) { Text("＋ 创建新旅行") }
                         }
                     }
                 }
@@ -227,7 +184,7 @@ private fun TripStatusFilters(
                 contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
             ) {
                 Box(Modifier.padding(horizontal = 8.dp, vertical = 8.dp), contentAlignment = Alignment.Center) {
-                    Text("${if (traveled) "已出行" else "待出行"} ${trips.count { it.hasTraveled == traveled }}",
+                    Text("${if (traveled) "已出行" else "待出行"} ${formatCount(trips.count { it.hasTraveled == traveled })}",
                         style = MaterialTheme.typography.labelLarge, fontFamily = FontFamily.SansSerif, fontWeight = FontWeight.Bold)
                 }
             }

@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.expense
 
+import com.yangchengwei.easytrip.core.ui.formatCount
 import java.math.BigDecimal
 
 private val amountPattern = Regex("[0-9]+(?:\\.[0-9]{1,2})?")
@@ -8,9 +9,11 @@ fun parseExpense(text: String): Long? = text.trim().takeIf { amountPattern.match
 }
 fun validExpense(text: String): Boolean = text.isBlank() || parseExpense(text) != null
 fun expenseInput(cents: Long?): String = cents?.let { BigDecimal.valueOf(it, 2).stripTrailingZeros().toPlainString() }.orEmpty()
-fun formatExpense(cents: Long): String = "¥" + if (cents % 100L == 0L) (cents / 100L).toString() else BigDecimal.valueOf(cents, 2).toPlainString()
+fun formatExpense(cents: Long): String = "¥" + com.yangchengwei.easytrip.core.ui.groupDecimalDigits(
+    if (cents % 100L == 0L) (cents / 100L).toString() else BigDecimal.valueOf(cents, 2).toPlainString(),
+)
 data class ExpenseSummary(val cents: Long = 0, val recorded: Int = 0, val missing: Int = 0) {
-    fun label(prefix: String): String = "$prefix ${formatExpense(cents)}" + if (missing > 0) " · ${missing}项未填" else ""
+    fun label(prefix: String): String = "$prefix ${formatExpense(cents)}" + if (missing > 0) " · ${formatCount(missing)}项未填" else ""
 }
 fun expenseSummary(amounts: List<Long?>): ExpenseSummary = ExpenseSummary(
     cents = amounts.filterNotNull().fold(0L, Math::addExact),
