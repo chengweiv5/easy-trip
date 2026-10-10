@@ -4,6 +4,7 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -37,6 +38,7 @@ import com.yangchengwei.easytrip.permission.LocationPermissionUiState
 import com.yangchengwei.easytrip.core.ui.component.CompactPrimaryButton
 import com.yangchengwei.easytrip.core.ui.component.CompactSecondaryButton
 import com.yangchengwei.easytrip.core.ui.component.ConfirmationDialog
+import com.yangchengwei.easytrip.core.ui.component.editorPageColor
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryResultContent
 import com.yangchengwei.easytrip.itinerary.ui.AddToItineraryUiState
 import com.yangchengwei.easytrip.itinerary.ui.AddTripDayContent
@@ -497,6 +499,9 @@ private fun WorkspaceOverlayContent(
         }
         is WorkspaceOverlay.EditItineraryItem -> itineraryState.editDraft?.let { draft ->
             WorkspaceEditorSheet(
+                containerColor = if (draft.saveError == null) editorPageColor else MaterialTheme.colorScheme.surface,
+                contentPadding = if (draft.saveError == null) PaddingValues(top = 8.dp)
+                    else PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
                 onDismissRequest = {
                     when {
                         draft.isSaving -> Unit

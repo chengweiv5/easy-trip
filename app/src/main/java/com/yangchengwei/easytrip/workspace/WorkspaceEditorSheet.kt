@@ -6,6 +6,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -21,6 +22,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 
@@ -30,6 +32,8 @@ internal fun WorkspaceEditorSheet(
     onDismissRequest: () -> Unit,
     text: @Composable () -> Unit,
     confirmButton: @Composable () -> Unit = {},
+    containerColor: Color = MaterialTheme.colorScheme.surface,
+    contentPadding: PaddingValues = PaddingValues(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp),
 ) {
     BackHandler(onBack = onDismissRequest)
     BoxWithConstraints(Modifier.fillMaxSize().windowInsetsPadding(WindowInsets.safeDrawing).imePadding()) {
@@ -42,10 +46,10 @@ internal fun WorkspaceEditorSheet(
             modifier = Modifier.align(Alignment.BottomCenter).fillMaxWidth()
                 .heightIn(max = (maxHeight - 48.dp).coerceAtLeast(0.dp)).testTag("workspace-editor-sheet"),
             shape = RoundedCornerShape(topStart = 20.dp, topEnd = 20.dp),
-            color = MaterialTheme.colorScheme.surface,
+            color = containerColor,
             shadowElevation = 4.dp,
         ) {
-            Column(Modifier.padding(start = 16.dp, top = 8.dp, end = 16.dp, bottom = 16.dp)) {
+            Column(Modifier.padding(contentPadding)) {
                 WorkspaceSheetHandle()
                 text()
                 confirmButton()

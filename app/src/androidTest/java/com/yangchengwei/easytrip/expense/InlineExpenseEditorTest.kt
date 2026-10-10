@@ -55,6 +55,11 @@ class InlineExpenseEditorTest {
     @After fun close() { compose.runOnIdle { store.clear() }; db.close() }
 
     private fun open(fontScale: Float = 1f, inWorkspace: Boolean = false) {
+        compose.runOnUiThread {
+            val mainActivity = android.content.ComponentName(compose.activity, com.yangchengwei.easytrip.MainActivity::class.java)
+            val mode = compose.activity.packageManager.getActivityInfo(mainActivity, 0).softInputMode
+            compose.activity.window.setSoftInputMode(mode)
+        }
         val trips = RoomTripRepository(db.tripDao(), database = db)
         val items = RoomItineraryRepository(db, db.itineraryEditingDao(), db.routeLegDao())
         val trip = runBlocking {
@@ -143,9 +148,17 @@ class InlineExpenseEditorTest {
     }
 
     @Test fun saveFailureRetainsEveryFieldAndRetryCommitsTogether() {
-        open()
-        compose.onNodeWithTag("expense-amount-first").performTextInput("600")
-        compose.onNodeWithTag("expense-category-first-lodging").performClick()
+        verifySaveFailure(inWorkspace = false)
+    }
+
+    @Test fun workspaceSaveFailureRetainsEveryFieldAndRetryCommitsTogether() {
+        verifySaveFailure(inWorkspace = true)
+    }
+
+    private fun verifySaveFailure(inWorkspace: Boolean) {
+        open(inWorkspace = inWorkspace)
+        compose.onNodeWithTag("expense-amount-first").performScrollTo().performTextInput("600")
+        compose.onNodeWithTag("expense-category-first-lodging").performScrollTo().performClick()
         compose.onNodeWithTag("itinerary-note-input").performScrollTo().performTextInput("保留整页")
         compose.runOnIdle {
             model.updateArrivalTime("09:30")
@@ -153,13 +166,15 @@ class InlineExpenseEditorTest {
             failSave = true
             saveGate = CompletableDeferred()
         }
-        compose.onNodeWithTag("itinerary-save").performClick()
+        compose.onNodeWithTag("itinerary-save").assertIsEnabled().performClick()
         compose.onNodeWithText("保存中…").assertIsNotEnabled()
         compose.onNodeWithTag("itinerary-cancel").assertIsNotEnabled()
         assertTrue(runBlocking { RoomExpenseRepository(db).observeRecords().first().isEmpty() })
         compose.runOnIdle { saveGate!!.complete(Unit) }
         compose.onNodeWithText("修改尚未保存").assertIsDisplayed()
+        if (inWorkspace) captureEditor("workspace-save-failure")
         compose.onNodeWithText("继续编辑").performClick()
+        if (inWorkspace) captureEditor("workspace-retained-draft")
         compose.runOnIdle {
             val draft = model.state.value.editDraft!!
             assertEquals("09:30", draft.arrivalTimeText)
@@ -175,6 +190,45 @@ class InlineExpenseEditorTest {
         assertEquals(LocalTime.of(9, 30), saved.arrivalTime)
         assertEquals(120, saved.stayMinutes)
         assertEquals("保留整页", saved.note)
+    }
+
+    @Test fun workspaceKeyboardKeepsSaveAndCancelAboveImeWithoutPrematureSave() {
+        open(fontScale = 2f, inWorkspace = true)
+        compose.onNodeWithTag("expense-amount-first").performScrollTo().performClick().performTextInput("600")
+        compose.waitUntil(5_000) {
+            androidx.core.view.ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
+                ?.isVisible(androidx.core.view.WindowInsetsCompat.Type.ime()) == true
+        }
+        compose.waitUntil(5_000) {
+            val visibleFrame = android.graphics.Rect()
+            val location = IntArray(2)
+            compose.activity.window.decorView.getWindowVisibleDisplayFrame(visibleFrame)
+            compose.activity.window.decorView.getLocationOnScreen(location)
+            listOf("itinerary-save", "itinerary-cancel").all {
+                val bounds = compose.onNodeWithTag(it).fetchSemanticsNode().boundsInWindow
+                bounds.height > 0 && bounds.bottom + location[1] <= visibleFrame.bottom
+            }
+        }
+        compose.onNodeWithTag("itinerary-save").assertIsDisplayed()
+        compose.onNodeWithTag("itinerary-cancel").assertIsDisplayed()
+        captureEditor("workspace-keyboard-double-font")
+        assertTrue(runBlocking { RoomExpenseRepository(db).observeRecords().first().isEmpty() })
+        compose.onNodeWithTag("expense-amount-first").performImeAction()
+        compose.onNodeWithTag("expense-category-first-lodging").performScrollTo().performClick()
+        compose.onNodeWithTag("itinerary-save").assertIsEnabled().performClick()
+        compose.waitUntil(10_000) { model.state.value.editDraft == null }
+        assertEquals(60000L, runBlocking { RoomExpenseRepository(db).observeRecords().first().single().cents })
+    }
+
+    private fun captureEditor(name: String) {
+        compose.waitForIdle()
+        compose.mainClock.advanceTimeBy(500)
+        val instrumentation = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation()
+        instrumentation.waitForIdleSync()
+        android.os.SystemClock.sleep(350)
+        val bitmap = instrumentation.uiAutomation.takeScreenshot()
+        val directory = java.io.File(compose.activity.getExternalFilesDir(null), "edit-place-sections").apply { mkdirs() }
+        java.io.File(directory, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
     }
 
     @Test fun largeFontKeyboardDoneDoesNotSaveAndAllCategoriesRemainReachable() {
@@ -193,8 +247,8 @@ class InlineExpenseEditorTest {
     @Test fun productionWorkspaceBackKeepsDirtyEditorUntilExplicitDiscard() {
         open(inWorkspace = true)
         compose.onNodeWithTag("workspace-editor-sheet").assertIsDisplayed()
-        compose.onNodeWithTag("expense-amount-first").performTextInput("600")
-        compose.onNodeWithTag("expense-category-first-lodging").performClick()
+        compose.onNodeWithTag("expense-amount-first").performScrollTo().performTextInput("600")
+        compose.onNodeWithTag("expense-category-first-lodging").performScrollTo().performClick()
         compose.onNodeWithTag("expense-amount-first").performImeAction()
         compose.waitUntil(5_000) {
             androidx.core.view.ViewCompat.getRootWindowInsets(compose.activity.window.decorView)
