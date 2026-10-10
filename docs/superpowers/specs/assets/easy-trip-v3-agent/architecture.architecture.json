@@ -1,0 +1,298 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Easy Trip v3.0 · Agent 技术架构",
+    "subtitle": "评审草案 · 手机编排与执行 / 云端推理 · 现有界面与 Agent 共用一份正式数据",
+    "viewBox": [
+      1340,
+      970
+    ]
+  },
+  "components": [
+    {
+      "id": "intake",
+      "type": "frontend",
+      "label": "素材与指令入口",
+      "sublabel": "新增 · 文字 / 截图 / 分享",
+      "pos": [
+        80,
+        130
+      ],
+      "size": [
+        215,
+        80
+      ]
+    },
+    {
+      "id": "runtime",
+      "type": "backend",
+      "label": "Agent Runtime",
+      "sublabel": "新增 · 上下文 / 循环 / 预算",
+      "pos": [
+        390,
+        130
+      ],
+      "size": [
+        245,
+        80
+      ]
+    },
+    {
+      "id": "gateway",
+      "type": "security",
+      "label": "模型网关",
+      "sublabel": "新增 · 鉴权 / 限流 / 密钥",
+      "pos": [
+        870,
+        130
+      ],
+      "size": [
+        230,
+        80
+      ]
+    },
+    {
+      "id": "model",
+      "type": "cloud",
+      "label": "多模态模型",
+      "sublabel": "理解素材 · 提议工具调用",
+      "pos": [
+        870,
+        325
+      ],
+      "size": [
+        230,
+        80
+      ]
+    },
+    {
+      "id": "runstore",
+      "type": "database",
+      "label": "任务、草稿、回执",
+      "sublabel": "新增 · Room 内的辅助记录",
+      "pos": [
+        80,
+        325
+      ],
+      "size": [
+        215,
+        80
+      ]
+    },
+    {
+      "id": "policy",
+      "type": "security",
+      "label": "工具适配与授权",
+      "sublabel": "新增 · 只读 / 草稿 / 审批",
+      "pos": [
+        390,
+        325
+      ],
+      "size": [
+        245,
+        80
+      ]
+    },
+    {
+      "id": "manual",
+      "type": "frontend",
+      "label": "现有触屏操作",
+      "sublabel": "保留 · 收藏 / 编辑地点",
+      "pos": [
+        80,
+        520
+      ],
+      "size": [
+        215,
+        80
+      ]
+    },
+    {
+      "id": "capabilities",
+      "type": "backend",
+      "label": "共享业务能力",
+      "sublabel": "抽取 / 新增 · 校验与事务",
+      "pos": [
+        390,
+        520
+      ],
+      "size": [
+        245,
+        80
+      ]
+    },
+    {
+      "id": "maps",
+      "type": "external",
+      "label": "高德 SDK / 服务",
+      "sublabel": "保留 · 隐私门控 / POI",
+      "pos": [
+        1050,
+        520
+      ],
+      "size": [
+        230,
+        80
+      ]
+    },
+    {
+      "id": "data",
+      "type": "database",
+      "label": "Repository + Room",
+      "sublabel": "保留 · 唯一正式旅行数据",
+      "pos": [
+        390,
+        725
+      ],
+      "size": [
+        245,
+        80
+      ]
+    },
+    {
+      "id": "mapui",
+      "type": "frontend",
+      "label": "地点池 / 地图 / 行程",
+      "sublabel": "保留 · 订阅 Flow 展示结果",
+      "pos": [
+        80,
+        725
+      ],
+      "size": [
+        215,
+        80
+      ]
+    }
+  ],
+  "boundaries": [
+    {
+      "kind": "region",
+      "label": "Android App · 现有 :app 模块内增量扩展",
+      "wraps": [
+        "intake",
+        "runtime",
+        "runstore",
+        "policy",
+        "manual",
+        "capabilities",
+        "data",
+        "mapui"
+      ],
+      "pad": 35
+    },
+    {
+      "kind": "security-group",
+      "label": "云端推理链路 · 无手机数据库写入权",
+      "wraps": [
+        "gateway",
+        "model"
+      ],
+      "pad": 35
+    }
+  ],
+  "connections": [
+    {
+      "from": "intake",
+      "to": "runtime",
+      "variant": "emphasis"
+    },
+    {
+      "from": "runtime",
+      "to": "gateway",
+      "label": "ModelPort / HTTPS",
+      "variant": "emphasis"
+    },
+    {
+      "from": "gateway",
+      "to": "model",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "from": "runtime",
+      "to": "policy",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "variant": "emphasis"
+    },
+    {
+      "from": "runtime",
+      "to": "runstore",
+      "fromSide": "left",
+      "toSide": "right",
+      "via": [
+        [
+          345,
+          170
+        ],
+        [
+          345,
+          365
+        ]
+      ],
+      "variant": "dashed"
+    },
+    {
+      "from": "policy",
+      "to": "capabilities",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "variant": "security"
+    },
+    {
+      "from": "manual",
+      "to": "capabilities"
+    },
+    {
+      "from": "capabilities",
+      "to": "maps",
+      "label": "地点搜索 / 有效 POI",
+      "variant": "default"
+    },
+    {
+      "from": "capabilities",
+      "to": "data",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "label": "校验后事务提交",
+      "labelAt": [
+        622,
+        657
+      ]
+    },
+    {
+      "from": "data",
+      "to": "mapui",
+      "fromSide": "left",
+      "toSide": "right",
+      "label": "Flow"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Agent 是第二个操作入口",
+      "items": [
+        "触屏与 Agent 复用业务能力，不模拟点击。",
+        "逻辑模块先放在现有 :app，不先拆一套微服务。"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "模型提议，不拥有写入权",
+      "items": [
+        "正式收藏由本地用户确认绑定草稿版本。",
+        "来自素材的指令不能授权；不暴露 SQL、任意 URL 或脚本。"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "一份事实，可靠恢复",
+      "items": [
+        "地点 + 元数据 + 逐项回执在同一 Room 事务提交。",
+        "图中虚线为任务持久化；工具结果与模型响应原路返回。"
+      ]
+    }
+  ]
+}
