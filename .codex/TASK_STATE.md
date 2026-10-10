@@ -1,13 +1,16 @@
 # v2.2.0 提交、推送与正式发布
 
-状态：**IN_PROGRESS — 用户授权提交、推送、发布v2.2；正在准备build19正式版。**（2026-10-10）
+状态：**DONE — 功能已提交并快进推送，v2.2.0/build19已公开发布，下载校验及完成通知回读通过。**（2026-10-10）
 
-- 功能分支 `codex/v2.2-category-shortcuts`，开始时HEAD与origin/main均为 `f595f3c`，待合并PR为空，远端不存在v2.2.0标签或Release。
-- 发布版本2.2.0/build19/schema10；体验版build18已安装，本轮不再次安装手机。
-- 只精确提交本轮相关源码、测试、正式设计与验证文档；保留无关scratch、未跟踪证据和stash。快进推送origin/main，禁止force push。
-- Pencil阻塞已解除：原生保存并关闭后按776a绝对路径重开，MCP回读198根/40607唯一节点，无断引用或placeholder，快捷分类原生属性可编辑。
+- 功能分支 `codex/v2.2-category-shortcuts`；发布提交 `3c59ed1f4343a40da33a2ab4e87e21363a92b568` 已快进推送origin/main并完整SHA回读。标签v2.2.0固定于此提交，后续文档／设计元数据收尾不移动标签、不替换资产。
+- 发布版本2.2.0/build19/schema10；2026-10-10 21:49:10公开，Release ID `408979707`，Latest的认证API、匿名API和网页重定向一致。发布页：`https://github.com/chengweiv5/easy-trip/releases/tag/v2.2.0`。
+- 干净隔离源码构建，981项Release JVM通过，Release lint 0错误/53警告/1提示；517项应用／构建输入逐项一致。APK签名、版本、非调试、内嵌SHA/CLEAN及16KB对齐通过。
+- 认证和匿名完整下载APK／校验文件一致。APK SHA256 `11cc8236034d3e6d7f75a125c55dd7726e5ee379d4ee0d1cdf7fec56316c10e1`；未将历史全应用UI验收缺口声明为全绿。
+- Pencil阻塞已解除：发布状态原生保存并关闭后按776a绝对路径重开，MCP回读198根/40607唯一节点，无断引用或placeholder，快捷分类原生属性可编辑。最终hash `c01e3b26e6eb5bcd5ca6fad96eb347cc3cce7f558977a9a3e68c054755801a44`；相对发布提交仅7处元数据变化。
+- punk-12完成通知 `om_x100b63900923d8a4c4542eba05285fe` 已回读机器人app_id和完整正文一致。
+- 手机仍为此前安装的build18，本轮未再次安装build19；可手动下载同签名覆盖升级。无关scratch、未跟踪证据和3项stash均保留。
 - 证据／备份：`/Users/bytedance/.codex/artifacts/easy-trip/v2.2.0-release-20261010/`。
-- 剩余：提交→干净提交构建／验证→快进推送并回读→不可变v2.2.0标签→Release草稿资产校验→公开及匿名下载回读→发布状态记录与通知。
+- 本记录随仅文档／设计状态收尾提交；最终HEAD、远端main及标签回读存于证据根 `final-delivery.json`，避免自引用提交。完整验证与回滚见 `docs/testing/v2.2.0-release.md`。下方为各阶段历史记录，不代表仍被Mac锁屏阻塞或尚未发布。
 
 ---
 

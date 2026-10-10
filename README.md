@@ -14,7 +14,15 @@
 
 </div>
 
-> 当前正式版为 **[v2.1.0](https://github.com/chengweiv5/easy-trip/releases/tag/v2.1.0)**（build17）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v2.1.0/easy-trip-v2.1.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v2.1.0/easy-trip-v2.1.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v2.1.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v2.1.0 新样式截图。
+> 当前正式版为 **[v2.2.0](https://github.com/chengweiv5/easy-trip/releases/tag/v2.2.0)**（build19）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.0/easy-trip-v2.2.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.0/easy-trip-v2.2.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v2.2.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v2.2.0 新样式截图。
+
+## v2.2：地点分类更直观，旅行浏览更顺手
+
+- 收藏地点分为 **景点／住宿／餐饮／交通／其他**，用图标和颜色区分；旧地点统一归“其他”，不另设“未分类”。
+- 地点池移除重复分类标签；行程、日历及新生成的分享长图在地点名称前显示分类图标。点击 App 中的分类图标即可快捷修改，失败可重试。
+- 费用类别统一为“餐饮／其他”，添加费用时按地点分类预选；仍可手动调整，不追改历史费用。
+- 金额、数量按千位加逗号；空旅行按名称中的首个城市定位地图；我的旅行使用连续列表，方便浏览更多旅行。
+- 同签名覆盖升级，Room schema10 保留增量迁移。请勿卸载、清空数据或降级旧数据库版本；已安装 2.2.0/build18 体验版的用户需手动下载 build19，应用内不提示同名构建更新。
 
 ## v2.1：花费和编辑地点，区块更清楚
 
