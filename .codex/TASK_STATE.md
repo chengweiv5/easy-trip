@@ -1,12 +1,15 @@
 # v3 地图入口修正实施（当前）
 
-状态：**IN_PROGRESS — 用户已确认，布局实现及Release验证通过；正在完成专项回归、正式构建、同签名覆盖安装和仅v3分支提交推送。** 2026-10-11。
+状态：**DONE — 已确认地图UI修正实现、正式构建、同签名覆盖安装、功能提交仅v3快进推送和通知回读均完成。已知极小窗口旧缺口单列，不宣称全量测试全绿。** 2026-10-11。
 
 - 当前分支`codex/v3-agent-place-intake`，唯一推送目标为同名origin分支，禁止main/裸push/force。初始HEAD`ce47672`。本轮不混入main另行前进的默认分类改动。
 - 已实现左下124×32实心「助手」/右下160×32搜索、至少48dp点击目标、大字号等高、去除地图图例、顶部动态日程摘要与图层中心对齐、统一「助手」标题；行程业务/模型/DB/schema11/地图相机未改。build21。
 - 已确认设计与预览一起提交；Pencil源hash`2acef28aa0c77e2374cb9532b0a5f353b1bc0062004b113c239d2ded84db46b3`不再修改，冻结v2.2保持。
 - Release993单元测试通过、lint0错误/55警告/1提示；两轴审查0阻断。模拟器已确认两项极小窗口旧问题在基线复现，保留失败测试，不扩大本次范围。
-- 当前证据`/Users/bytedance/.codex/artifacts/easy-trip/v3-map-ui-implementation-20261011-090842/`。准确实现、测试缺口、交付与回滚见`docs/testing/v3.0-map-entry-ui-implementation.md`，不得把本条进行中状态视作已经安装/推送。
+- 当前证据`/Users/bytedance/.codex/artifacts/easy-trip/v3-map-ui-implementation-20261011-090842/`。准确实现、测试缺口、交付与回滚见`docs/testing/v3.0-map-entry-ui-implementation.md`。
+- 功能提交`05c9d3383c5da7d864e33119a3d0855497d8d038`已从干净源码构建并安装手机，v3远端同SHA已独立回读；main仍`8f6d86252b7d191652d0b357deba2b09035c4fa5`未动。APK hash`cbfdb0bd91e3c71ff44ee86b18d7baedf0f2abc4865080e9d4c87962e24b8f19`与手机回读一致。
+- Android回归80项：77通过、2项已在旧基线复现的极小窗口失败、1项真实模型按原开关跳过。手机紫色主题/卫星地图、左右等高、顶部摘要、助手展开收起及可见旅行数据检查通过；未发送模型内容或新增收藏。541项应用/构建输入不变，模拟器与设备锁已清理。
+- punk-12完成通知`om_x100b639acf1dbcacdee0872de9a6b74`回读确认全文/接收chat/app_id及未删除。文档收尾不改APK输入；最终提交及远端SHA、干净工作树核验见证据目录`final-delivery.json`。
 
 ---
 
