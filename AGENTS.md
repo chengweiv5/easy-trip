@@ -2,12 +2,13 @@
 
 ## 后续版本规划
 
+- **v3进入主线（2026-10-11用户明确授权）**：当前功能分支已将v3的16笔提交rebase到`origin/main`的v2.2.1基线，保留新收藏默认景点及两行每日标题，应用为3.0.0/build21/schema11。主线集成验证与交付见`docs/testing/v3.0-main-integration.md`。本次仅代码进入main，不创建Release或安装手机；历史v3专用推送限制以下方Git规则替代。v3 Pencil仍为原234根草案，未因rebase自动同步v2.2.1两行标题设计；下一次修改相关UI时先在同源Pencil补齐，不把本次集成声明为完整设计验收。
 - **v3.0 Agent 统一规划**：2026-10-10 用户确认将“智能录入地点”与原 v4.0 Agent 方案合并。当前入口为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-place-intake-design.md`；用户自行发现和决定收藏，Agent 整理、匹配地图地点并受控录入。独立 v4.0 规划废弃，原文与源图冻结在 `docs/archive/v4-agent/`，后续行程调整等能力在统一规划中保留。技术细化为 `docs/superpowers/specs/2026-10-10-easy-trip-v3-agent-architecture-design.md`：Kotlin Runtime + DeepSeek Provider 直连，网关可选；架构本版设计已收敛，文字批量标记与确认收藏的首版已按2026-10-11授权实现；扩展工具仍为规划，不替代以下v2.2已发布基线。
 
 ## UI 设计
 
 - **当前正式版（2026-10-11）**：v2.2.1/build20/schema10已发布，标签固定 `556f811423def8e9888f53f6489030e860776850`；单日与全程每日标题两行、日期小字号垂直居中，新收藏默认景点。981 Release JVM、33项设备专项、0错误Release lint、原签名/16KB/公开下载与Latest回读通过。正式源 `design/easy-trip-v2.2.1.pen` 已回写并原生保存、关闭重开/MCP回读，199根/40,699节点保持。全程6项旧测试在精确基线同名失败，未安装真实手机。详情及回滚见 `docs/testing/v2.2.1-release.md`；以下“当前v2.2.0/待发布”等为历史记录。
-- **v3地图入口本轮实施（2026-10-11）**：5ac3工作树按用户确认修正左下实心「助手」/右下搜索同排、删除地图图例、顶部动态日程摘要与图层对齐及名称统一，build21/schema11。不得据本轮修改行程业务、模型、数据库或地图相机。已确认的Pencil与预览随代码交付；准确验证、已知两项极小窗口旧缺口及构建安装/提交推送状态见`docs/testing/v3.0-map-entry-ui-implementation.md`。本轮只推送`origin/codex/v3-agent-place-intake`，不推main、不force、不发布Release。
+- **v3地图入口实施历史（2026-10-11）**：5ac3工作树按用户确认修正左下实心「助手」/右下搜索同排、删除地图图例、顶部动态日程摘要与图层对齐及名称统一，build21/schema11。该轮未修改行程业务、模型、数据库或地图相机；已确认的Pencil与预览随代码交付。准确验证、已知两项极小窗口旧缺口及构建安装/提交推送状态见`docs/testing/v3.0-map-entry-ui-implementation.md`；当时仅推送v3分支，现行主线交付以下方Git规则为准。
 
 - UI 设计与设计修改必须使用 Pencil MCP，不得因报错自动改用其他设计工具或直接修改 `.pen` 文件来绕过 Pencil。
 - **当前 v3 实施与评审目标（2026-10-11，5ac3）**：`design/easy-trip-v3.0.0.pen` 为首版累积草案，继承v2.2全部198根，UI Kit + A00–A34共36新增根，合计234根（233有效、1历史）。后续设计/实施先读 `docs/superpowers/specs/2026-10-11-easy-trip-v3-first-agent-design.md`：文字多地点全部标记，待核对项独立处理，单项或勾选后确认收藏；地图入口与普通搜索并列，App全局「助手设置」共用。用户已授权直接开发；v3.0.0/build20/schema11首版已实现，Debug与Release专项通过，正式签名包已覆盖安装手机，功能提交已推送v3分支，仍待体验微调，未公开发布。实施/验证/回滚见 `docs/testing/v3.0-agent-implementation.md`，准确构建/安装/分支交付见 `docs/testing/v3.0-agent-delivery.md`；Pencil源与PDF本轮保持评审基线，不声称所有UI状态已设备验收。验证与本次回滚见 `docs/testing/v3.0-agent-place-map-loop-validation.md`；冻结v2.2不改。
@@ -39,10 +40,10 @@
 
 ## Git 推送
 
-- **v3.0 分支专用约束（2026-10-10 用户明确确认）**：当前本地分支 `codex/v3-agent-place-intake` 只允许推送到 `origin/codex/v3-agent-place-intake`。禁止推送到 `origin/main`、`origin/master` 或其他远程分支；本条覆盖此前“始终推送到 origin/main”的项目默认规则，未经用户另行明确授权不得改变目标。
-- **必须显式指定目标 refspec**：使用 `git push origin HEAD:refs/heads/codex/v3-agent-place-intake`；首次获准推送时可加 `-u` 建立同名 upstream。禁止裸 `git push` 或 `git push origin`：仓库共享配置仍有 `remote.origin.push = HEAD:refs/heads/main`，设置 upstream 也不能替代显式 refspec。不要为当前分支修改其他工作树共用的推送配置。
-- 推送前确认当前分支及远端目标；目标已存在时获取其最新提交，必要时在当前功能分支 rebase，并确认远端目标是当前 `HEAD` 的祖先。仅允许快进推送，禁止强制推送、`+` refspec、`--all` 和 `--mirror`。
-- 推送后回读远端 `refs/heads/codex/v3-agent-place-intake`，确认提交哈希与本地 `HEAD` 一致。此规则只限定目的地，不自动授权每轮推送；是否推送以当次用户要求为准。
+- **当前目标为origin/main**：2026-10-11用户明确要求“v3正式进入origin/main分支，rebase并且推送”，替代此前仅推送v3分支的阶段性限制。仍在功能分支开发和提交，不直接修改本地main/master。
+- **显式快进推送**：获准交付时使用`git push origin HEAD:refs/heads/main`，不用裸push；不修改其他工作树共用的推送配置。推送前获取最新main，必要时rebase，并确认`origin/main`是HEAD祖先。
+- **禁止改写远端历史**：不使用force、`+` refspec、`--all`或`--mirror`；远端前进时重新fetch/rebase/验证，不覆盖他人提交。rebase前的远端v3分支保留，不为同步新SHA而强推或删除。
+- 推送后独立回读`refs/heads/main`，确认SHA与本地HEAD一致。该规则不自动授权每轮推送，仍以当次用户请求为准。
 
 ## 飞书文档
 

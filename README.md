@@ -16,6 +16,13 @@
 
 > 当前正式版为 **[v2.2.1](https://github.com/chengweiv5/easy-trip/releases/tag/v2.2.1)**（build20）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.1/easy-trip-v2.2.1-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.1/easy-trip-v2.2.1-release.apk.sha256) · [发布验证与已知限制](docs/testing/v2.2.1-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v2.2.1 新样式截图。
 
+## v3 主线开发版：助手标记地点，自己确认收藏
+
+- 主线源码为 **3.0.0/build21/schema11**，包含v2.2.1的两行行程标题与新收藏默认景点；代码进入main不等于公开Release已升级。
+- 从旅行地图打开「助手」，输入城市和多个地点，统一标记地图候选，再逐项或勾选后确认收藏；助手不替你决定去哪里。
+- 模型配置位于 **App设置 → 助手设置**，可配置Provider；普通搜索继续保留。地图入口、正文左右16dp留白及确认前不写入地点池已完成专项验证。
+- [第一版设计](docs/superpowers/specs/2026-10-11-easy-trip-v3-first-agent-design.md) · [主线集成验证与边界](docs/testing/v3.0-main-integration.md)。本次不发布新APK，也不自动升级手机。
+
 ## v2.2.1：行程标题更紧凑
 
 - 单日和全程中**每天的标题都为两行**：第一行天标题与小日期垂直居中，第二行费用摘要；日期不再单独占第三行。
