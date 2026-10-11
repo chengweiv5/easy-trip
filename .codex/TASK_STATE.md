@@ -1,3 +1,18 @@
+# 新收藏地点默认景点
+
+状态：**DONE — 当前工作树实现与专项验证完成；未安装手机、未提交、未推送、未发布。**（2026-10-11）
+
+- 用户确认仅新收藏默认“景点”；已有分类和schema10不变。功能分支 `codex/default-place-category-attraction`，基线 `bbdcb1f`，修改前已确认与origin/main一致且无待合并PR。
+- `RoomSavedPlaceRepository.save` 只为新增收藏显式写入景点；重复收藏保留已有分类、备注和标签。数据库默认值、迁移、未知分类兼容、历史费用与应用版本不改。
+- 默认值测试先红后绿；981项Debug JVM、17项模拟器仓库/迁移测试全通过，Debug lint 0错误/55警告/1提示，Debug及测试APK构建通过。
+- Pencil正式源 `design/easy-trip-v2.2.0.pen` 同步10个说明字段，明确本次为未发布修订；原生保存、关闭重开及MCP回读通过。198根/40,607节点与视觉属性保持，原生图层属性可编辑。
+- 只使用临时只读模拟器 `emulator-5590`，测试后已关闭；未操作真实手机，未执行Release或全应用UI回归，历史验收缺口保留。
+- 备份与证据：`/Users/bytedance/.codex/artifacts/easy-trip/default-place-category-20261011-6321/`。完整范围、验证和回滚见 `docs/testing/default-place-category-attraction.md`。
+- punk-12完成通知 `om_x100b6399ef26a8a4c3ec4e767c0cdd6` 已独立回读，发送者与正文一致。
+- 下方发布记录仅描述既有正式版，不表示本次修改已安装、提交或发布。
+
+---
+
 # v2.2.0 提交、推送与正式发布
 
 状态：**DONE — 功能已提交并快进推送，v2.2.0/build19已公开发布，下载校验及完成通知回读通过。**（2026-10-10）

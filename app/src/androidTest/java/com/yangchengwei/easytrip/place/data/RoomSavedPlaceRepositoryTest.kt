@@ -12,6 +12,7 @@ import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.itinerary.data.ItineraryItemEntity
 import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
 import com.yangchengwei.easytrip.route.data.RouteLegEntity
+import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
@@ -44,6 +45,31 @@ class RoomSavedPlaceRepositoryTest {
         places = RoomSavedPlaceRepository(database, idFactory = { "id-${id++}" })
     }
     @After fun tearDown() = database.close()
+
+    @Test fun newlySavedPlaceDefaultsToAttraction() = runTest {
+        val trip = trips.createTrip(CreateTrip("默认景点", 1))
+
+        places.save(trip, candidate("new-place"))
+
+        assertEquals(PlaceCategory.ATTRACTION,
+            places.observePlaces(trip, emptySet()).first().single().category)
+    }
+
+    @Test fun savingExistingPlacePreservesEveryCategoryAndItsDetails() = runTest {
+        val trip = trips.createTrip(CreateTrip("已有分类不变", 1))
+        PlaceCategory.entries.forEach { category ->
+            val candidate = candidate(category.storageKey)
+            val saved = places.save(trip, candidate) as SavePlaceResult.Saved
+            places.updateDetails(saved.id, "保留备注", setOf("亲子"), category)
+            val before = places.observePlaces(trip, emptySet()).first().single { it.id == saved.id }
+
+            val duplicate = places.save(trip, candidate) as SavePlaceResult.AlreadySaved
+
+            assertEquals(saved.id, duplicate.existingId)
+            assertEquals(before,
+                places.observePlaces(trip, emptySet()).first().single { it.id == saved.id })
+        }
+    }
 
     @Test fun quickCategoryUpdatePreservesDetailsAndIsVisibleToItinerary() = runTest {
         val trip = trips.createTrip(CreateTrip("分类修改", 1))
@@ -104,6 +130,8 @@ class RoomSavedPlaceRepositoryTest {
         val other = places.save(secondTrip, candidate("poi")) as SavePlaceResult.Saved
         assertEquals(first.id, duplicate.existingId)
         assertNotEquals(first.id, other.id)
+        assertEquals(PlaceCategory.ATTRACTION,
+            places.observePlaces(secondTrip, emptySet()).first().single().category)
     }
 
     @Test fun tagsAreTrimmedUnicodeNormalizedAndCaseFoldedWhileDisplayKeepsTrimmedText() = runTest {

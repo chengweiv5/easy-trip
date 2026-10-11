@@ -6,6 +6,7 @@ import androidx.room.withTransaction
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import com.yangchengwei.easytrip.place.domain.PlaceDeletionImpact
 import com.yangchengwei.easytrip.place.domain.PlaceTag
 import com.yangchengwei.easytrip.place.domain.SavePlaceResult
@@ -53,7 +54,8 @@ class RoomSavedPlaceRepository(
         dao.placeId(tripId, candidate.poiId)?.let { return@withTransaction SavePlaceResult.AlreadySaved(it) }
         val point = requireNotNull(candidate.point) { "无法收藏缺少坐标的地点" }
         val id = idFactory()
-        val inserted = dao.insertPlace(SavedPlaceEntity(id, tripId, candidate.poiId, candidate.name, candidate.address, point.latitude, point.longitude, cityCode = candidate.cityCode, cityName = candidate.cityName, cityAdCode = candidate.cityAdCode, cityMetadataVersion = candidate.cityMetadataVersion))
+        // Default only new saves; existing rows and legacy schema defaults stay unchanged.
+        val inserted = dao.insertPlace(SavedPlaceEntity(id, tripId, candidate.poiId, candidate.name, candidate.address, point.latitude, point.longitude, cityCode = candidate.cityCode, cityName = candidate.cityName, cityAdCode = candidate.cityAdCode, cityMetadataVersion = candidate.cityMetadataVersion, category = PlaceCategory.ATTRACTION.storageKey))
         if (inserted != -1L) SavePlaceResult.Saved(id)
         else SavePlaceResult.AlreadySaved(requireNotNull(dao.placeId(tripId, candidate.poiId)))
     }
