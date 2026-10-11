@@ -2,6 +2,8 @@
 
 ## 当前设计目标
 
+- **v3.2.0请求节流修复已推送（2026-10-12）**：功能提交`1eb3d16`已rebase到最新主线`008ad1c`，保留统一默认城市规则，快进推送origin/main且独立SHA回读一致。集成后Debug/Release各1079 JVM、12项相关模拟器UI及真实SDK青州8地点首次查询通过，实际最小间隔702ms，lint0错误。额外整组44项UI中2项为历史基线失败，未扩大修复范围；准确边界见`docs/testing/v3.2.0-assistant-search-pacing-git-delivery.md`。punk-12通知已回读；本轮未安装手机、未发布、未修改Pencil，以下“未交付”为开发阶段历史。
+
 - **v3.2.0请求节流修复（2026-10-11，已开发未交付）**：f445分支`codex/v3.2-assistant-search-pacing`新增AppContainer共用700ms发起节流与并发2门控，首次/单项重试/跨批次/跨旅行复用，排队可取消且校验过期项；无自动重试或UI变更。Debug/Release各1056 JVM、0错误Release lint、4轮真实SDK共32项及最终10项UI+青州4地点专项通过。手机未安装、未提交推送、未发布；先读`docs/testing/v3.2.0-assistant-search-pacing-fix.md`，保留配额未知、助手外请求与真实手机未验收边界。下条“未修复”为历史诊断阶段。
 
 - **v3.2.0频率故障诊断（2026-10-11，未修复）**：用户安装后仍失败，手机8项455ms发起、后5项SDK1800且均已加城市。f445分支`codex/v3.2-assistant-search-pacing`独立模拟器21组162次SDK调用，3次突发失败捕获原始`CUQPS_HAS_EXCEEDED_THE_LIMIT`；700ms间隔的控制器40项及同步SDK24项均成功。手机原始错误名称缺失，归因高度吻合而非逐项直接证明；控制器原样5组未复现，不把同步SDK突发探针冒充产品端到端。先读`docs/testing/v3.2.0-assistant-search-pacing-diagnosis.md`；本轮只新增opt-in诊断测试，无产品修复、手机操作、提交推送或发布。

@@ -1,4 +1,19 @@
-# 当前任务：v3.2.0 首次搜索请求节流修复
+# 当前任务：v3.2.0 请求节流修复提交与推送
+
+状态：**DONE（2026-10-12，功能推送、集成验证及通知已核验）**。状态收尾提交的最终远端SHA以本机`final-push-verification.json`为准，回合在该核验完成后结束。
+
+- 用户授权“提交并推送”；只推送origin/main，不安装手机、不发布Release或标签，不操作codebase远端。
+- 功能分支`codex/v3.2-assistant-search-pacing`，先提交`062b3fd`，rebase到最新主线`008ad1c`后为`1eb3d16b862c8f0c5b015b023752e20ade0bf2a6`。应用补丁patch-id一致，设计与城市解析等6个上游文件保持原内容，状态冲突保留双方历史；开放PR为空。
+- 集成后Debug/Release各1079 JVM、0错误lint、三种APK构建通过；最终12项相关UI通过，真实高德SDK青州8地点首次READY、0错误、最小发起间隔702ms。
+- 初轮UI遇System UI无响应弹窗抢焦点，恢复自有模拟器后相关项通过；另一次命令包名错误已纠正。额外44项整组UI中42通过，2项与历史基线失败一致，相关产品/测试源码与上游相同，不宣称全应用通过。
+- 07:50:58功能提交已快进推送origin/main并独立SHA回读一致，工作区当时干净。
+- punk-12通知`om_x100b63f641cc80a8c4cea67a8dfcedd`已回读chat/sender/完整正文/deleted=false，状态最后写回。
+- 归档Release为功能提交的CLEAN构建、同原签名，未安装/发布。自有模拟器PID30270正常退出、临时锁已核验清理；本轮未操作物理手机。
+- 731个构建/源码输入hash在验证后保持一致，收尾只增加交付文档与状态。报告`docs/testing/v3.2.0-assistant-search-pacing-git-delivery.md`；证据与备份`/Users/bytedance/.codex/artifacts/easy-trip/f445-search-pacing-git-20261012/`。
+
+---
+
+# 历史任务：v3.2.0 首次搜索请求节流修复
 
 状态：**DONE（2026-10-11，修复、验证和通知完成；未安装手机、未提交推送、未发布）**。
 
