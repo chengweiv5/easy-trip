@@ -50,17 +50,21 @@ internal fun AssistantSelectionBar(
         else -> ToggleableState.Indeterminate
     }
     val large = LocalDensity.current.fontScale > 1.3f
-    Surface(modifier.fillMaxWidth().testTag("assistant-selection-bar"),
-        color = MaterialTheme.colorScheme.surface) {
+    Box(modifier.fillMaxWidth().testTag("assistant-selection-bar")) {
         Row(Modifier.fillMaxWidth().padding(vertical = 8.dp),
             verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                AssistantSelectionBox(toggle, !state.saving && state.eligible.isNotEmpty(),
-                    "全选可收藏地点", "assistant-select-all", onSelectAll)
-                Text("全选", fontSize = if (large) 12.sp else 14.sp,
-                    modifier = Modifier.clickable(
-                        enabled = !state.saving && state.eligible.isNotEmpty(), onClick = onSelectAll))
+            horizontalArrangement = Arrangement.spacedBy(16.dp)) {
+            val canSelect = !state.saving && state.eligible.isNotEmpty()
+            Row(Modifier.sizeIn(minWidth = 86.dp, minHeight = 48.dp)
+                .testTag("assistant-select-all")
+                .semantics { contentDescription = "全选可收藏地点" }
+                .triStateToggleable(toggle, enabled = canSelect, role = Role.Checkbox, onClick = onSelectAll),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                TriStateCheckbox(toggle, onClick = null, enabled = canSelect,
+                    modifier = Modifier.size(20.dp).testTag("assistant-select-all-box"))
+                Text("全选", fontSize = if (large) 12.sp else 15.sp,
+                    color = MaterialTheme.colorScheme.onSurface)
             }
             Button(onSave, enabled = selected > 0 && !state.saving && state.mapReady && state.consent,
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 12.dp),

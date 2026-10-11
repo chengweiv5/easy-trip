@@ -1,4 +1,19 @@
-# 当前任务：v3.2.0 请求节流修复提交与推送
+# 当前任务：助手收藏底栏对齐与地点行间距检查
+
+状态：**DONE（2026-10-11，开发、测试、设计保存、范围检查、临时模拟器清理和完成通知均已核验；未提交或部署）**。
+
+- 分支`codex/assistant-footer-alignment`，HEAD保持`008ad1ce3b852b6670af0575b26149f06c9805c4`，版本仍3.2.0/build25/schema11。
+- 已移除底栏独立白底，全选框与文案8dp、组间16dp，共享至少48dp高点击区域。地点行38dp/10dp间距已检查，代码和设计均未改动。
+- 最终Debug/Release各1069 JVM、17项模拟器UI、0错误lint通过；同批地图UI在硬件渲染EGL失败后以软件渲染通过，保留环境边界。
+- Pencil仅四处context更新，265根/43,295节点，原生保存重开与绝对路径MCP回读通过，冻结v3.1源不变。
+- 未提交、推送、发布或安装手机；仅使用本任务只读`emulator-5582`，不操作其他任务模拟器或真实手机。
+- 报告：`docs/testing/assistant-footer-alignment.md`；证据：`/Users/bytedance/.codex/artifacts/easy-trip/assistant-footer-e9e3-20261011/`。
+- 范围检查仅7个预期文件，结果行与HEAD完全一致，`git diff --check`及本轮凭据模式检查通过；仅本任务`emulator-5582`已关闭并从设备清单消失。
+- punk-12消息`om_x100b638ea5c634a0c3789ffaf6b5b46`已独立核验目标chat、机器人身份、完整正文与`deleted=false`。本状态在通知验证之后写回。
+
+---
+
+# 上游交付记录：v3.2.0 请求节流修复提交与推送
 
 状态：**DONE（2026-10-12，功能推送、集成验证及通知已核验）**。状态收尾提交的最终远端SHA以本机`final-push-verification.json`为准，回合在该核验完成后结束。
 

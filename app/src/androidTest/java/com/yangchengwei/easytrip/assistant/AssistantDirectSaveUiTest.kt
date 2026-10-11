@@ -138,7 +138,8 @@ class AssistantDirectSaveUiTest {
             assertEquals(1, queries.count { it == "杭州甲" })
             assertEquals(1, queries.count { it == "杭州乙" })
             assertEquals(1, model.controller.state.value.selected.size)
-            compose.onNodeWithTag("assistant-select-all").performClick().assertIsOn()
+            compose.onNodeWithText("全选", useUnmergedTree = true).performTouchInput { click() }
+            compose.onNodeWithTag("assistant-select-all").assertIsOn()
             compose.onNodeWithTag("assistant-select-all").performClick().assertIsOff()
             compose.onNodeWithTag("assistant-select-A").performScrollTo().performClick()
             compose.onNodeWithTag("assistant-save").assertIsDisplayed().performClick()
