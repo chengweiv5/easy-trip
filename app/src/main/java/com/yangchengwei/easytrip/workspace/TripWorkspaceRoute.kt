@@ -290,6 +290,7 @@ fun TripWorkspaceRoute(
     val assistantState = assistantViewModel?.controller?.state?.collectAsStateWithLifecycle()?.value
     val assistantOpen = assistantViewModel?.open?.collectAsStateWithLifecycle()?.value ?: false
     val assistantFocus = assistantViewModel?.focus?.collectAsStateWithLifecycle()?.value
+    val assistantDetail = assistantViewModel?.detail?.collectAsStateWithLifecycle()?.value
     var confirmAssistantLeave by remember { mutableStateOf(false) }
     fun leaveWorkspace() {
         if (assistantState?.saving == true) return
@@ -383,8 +384,7 @@ fun TripWorkspaceRoute(
     fun leaveOrCloseOverlay() {
         if (assistantState?.saving == true) return
         if (assistantOpen) {
-            if (assistantState?.confirmation != null) assistantViewModel?.controller?.backFromReview()
-            else assistantViewModel?.hide()
+            assistantViewModel?.hide()
             return
         }
         val currentPlaces = placeViewModel?.state?.value ?: places
@@ -559,6 +559,7 @@ fun TripWorkspaceRoute(
             viewModel.selectSection(WorkspaceSection.PLACE_POOL)
             viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
         },
+        detail = assistantDetail,
     ) else null
     CompositionLocalProvider(LocalAssistantWorkspace provides assistantHost) {
     TripWorkspaceScreen(

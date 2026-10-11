@@ -9,7 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.sync.Semaphore
 import kotlinx.coroutines.sync.withPermit
 
-/** One controller per trip back-stack entry. Model text can never call confirm(). */
+/** One controller per trip back-stack entry. Only a user save action may write places. */
 class PlaceAssistantController(
     private val tripId: String,
     private val scope: CoroutineScope,
@@ -27,6 +27,7 @@ class PlaceAssistantController(
     private var run = 0L
     private var work: Job? = null
     private var savedIds: Set<String> = emptySet()
+    private var pendingSave: ImportConfirmation? = null
     private var active = true
     private var cityRevision = 0L
     private var cityEdited = false
@@ -56,12 +57,11 @@ class PlaceAssistantController(
         val old = mutable.value
         if (old.consent && !consent) {
             cancel()
-            mutable.value = mutable.value.copy(items = emptyList(), selected = emptySet(), confirmation = null,
+            mutable.value = mutable.value.copy(items = emptyList(), selected = emptySet(),
                 error = "地图授权已撤回，请重新授权后查询。")
         }
-        if (old.configured && !configured) { cancel(); mutable.value = mutable.value.copy(confirmation = null) }
-        mutable.value = mutable.value.copy(configured = configured, consent = consent, mapReady = mapReady,
-            confirmation = if (!mapReady) null else mutable.value.confirmation)
+        if (old.configured && !configured) cancel()
+        mutable.value = mutable.value.copy(configured = configured, consent = consent, mapReady = mapReady)
     }
     fun updateSource(value: PlaceSearchDataSource?) { source = value }
     fun updateCityResolver(value: suspend () -> String?) { resolveDefaultCity = value }
@@ -91,10 +91,10 @@ class PlaceAssistantController(
     } catch (_: Exception) {
         ""
     }
-    fun configurationChanged() { cancel(); inputRevision++; mutable.value = mutable.value.copy(confirmation = null) }
+    fun configurationChanged() { cancel(); inputRevision++ }
     fun invalidateTrip() {
         cancel(); inputRevision++; active = false
-        mutable.value = mutable.value.copy(items = emptyList(), selected = emptySet(), confirmation = null, error = "目标旅行已失效，请返回旅行列表。")
+        mutable.value = mutable.value.copy(items = emptyList(), selected = emptySet(), error = "目标旅行已失效，请返回旅行列表。")
     }
     fun updateSaved(ids: Set<String>) { savedIds = ids; reconcile() }
     fun editInput(value: String) {
@@ -113,7 +113,7 @@ class PlaceAssistantController(
         cancel()
         inputRevision++
         val affected = mutable.value.items.filter { it.intent.usesDefaultCity || it.intent.city.isBlank() }.map { it.id }.toSet()
-        mutable.value = mutable.value.copy(city = next, confirmation = null,
+        mutable.value = mutable.value.copy(city = next,
             selected = mutable.value.selected - affected,
             items = mutable.value.items.map {
                 if (it.id in affected) it.copy(intent = it.intent.copy(city = next, usesDefaultCity = true),
@@ -126,6 +126,7 @@ class PlaceAssistantController(
         cancel()
         inputRevision++
         parsedSources = emptyList()
+        pendingSave = null
         val old = mutable.value
         mutable.value = PlaceAssistantState(city = old.city, configured = old.configured,
             consent = old.consent, mapReady = old.mapReady)
@@ -136,7 +137,7 @@ class PlaceAssistantController(
         if (s.busy || s.saving || city.isBlank() || city.length > 50 || city.any(Char::isISOControl) || !canQuery()) return
         val missing = s.items.filter { it.status == IntakeStatus.NEED_CITY && it.intent.city.isBlank() }.map { it.id }.toSet()
         if (missing.isEmpty()) return
-        mutable.value = s.copy(city = s.city.ifBlank { city }, confirmation = null,
+        mutable.value = s.copy(city = s.city.ifBlank { city },
             items = s.items.map {
                 if (it.id in missing) it.copy(intent = it.intent.copy(city = city, usesDefaultCity = true),
                     generation = it.generation + 1, status = IntakeStatus.CANCELLED, detail = null, cityConflict = false)
@@ -330,7 +331,7 @@ class PlaceAssistantController(
     }
     fun editItem(id: String, query: String, city: String) {
         if (mutable.value.saving || query.isBlank() || query.length > 100 || city.length > 50) return
-        mutable.value = mutable.value.copy(confirmation = null, selected = mutable.value.selected - id)
+        mutable.value = mutable.value.copy(selected = mutable.value.selected - id)
         changeItem(id) { it.copy(intent = it.intent.copy(query = query.trim(), city = city.trim(), needsReview = false),
             generation = it.generation + 1, status = IntakeStatus.CANCELLED, candidates = emptyList(), poi = null, detail = null, cityConflict = false) }
     }
@@ -344,50 +345,47 @@ class PlaceAssistantController(
         if (mutable.value.saving) return
         val item = mutable.value.items.find { it.id == id } ?: return
         val poi = item.candidates.find { it.poiId == poiId && it.validPosition() } ?: return
-        mutable.value = mutable.value.copy(confirmation = null, selected = mutable.value.selected - id)
+        mutable.value = mutable.value.copy(selected = mutable.value.selected - id)
         changeItem(id) { it.copy(poi = poi, status = IntakeStatus.READY, generation = it.generation + 1, detail = null) }
         reconcile()
     }
     fun category(id: String, category: PlaceCategory) {
         if (mutable.value.saving) return
         changeItem(id) { it.copy(category = category) }
-        mutable.value = mutable.value.copy(confirmation = null)
     }
     fun toggle(id: String) {
         if (mutable.value.saving || mutable.value.eligible.none { it.id == id }) return
         val selected = mutable.value.selected
-        mutable.value = mutable.value.copy(selected = if (id in selected) selected - id else selected + id, confirmation = null)
+        mutable.value = mutable.value.copy(selected = if (id in selected) selected - id else selected + id)
     }
     fun selectAll() {
         if (mutable.value.saving) return
         val eligible = mutable.value.eligible.map { it.id }.toSet()
-        mutable.value = mutable.value.copy(selected = if (mutable.value.selected == eligible) emptySet() else eligible, confirmation = null)
+        mutable.value = mutable.value.copy(selected = if (mutable.value.selected == eligible) emptySet() else eligible)
     }
-    fun review(ids: Set<String> = mutable.value.selected) {
+    /** A click captures immutable content; retrying that content reuses its operation ID. */
+    fun saveSelected() {
         if (!canSave() || mutable.value.saving) return
-        val selected = mutable.value.eligible.filter { it.id in ids }
-        if (selected.isEmpty() || selected.size != ids.size) return
+        val selected = mutable.value.eligible.filter { it.id in mutable.value.selected }
+        if (selected.isEmpty() || selected.size != mutable.value.selected.size) return
         val items = selected.map { ImportItem(it.id, it.generation, requireNotNull(it.poi), it.category) }
-        mutable.value = mutable.value.copy(selected = ids, confirmation = ImportConfirmation.create(tripId, items), error = null)
-    }
-    fun backFromReview() { if (!mutable.value.saving) mutable.value = mutable.value.copy(confirmation = null) }
-    fun confirm() {
-        val snapshot = mutable.value.confirmation ?: return
-        if (!canSave() || mutable.value.saving) return
-        val current = mutable.value.eligible.filter { it.id in mutable.value.selected }
-            .map { ImportItem(it.id, it.generation, requireNotNull(it.poi), it.category) }
-        if (current.isEmpty() || ImportConfirmation.create(tripId, current).digest != snapshot.digest) {
-            mutable.value = mutable.value.copy(confirmation = null); fail("所选地点已变化，请重新核对。"); return
-        }
-        mutable.value = mutable.value.copy(saving = true, error = null)
+        val next = ImportConfirmation.create(tripId, items)
+        val snapshot = pendingSave?.takeIf { it.digest == next.digest } ?: next
+        val generation = run
+        pendingSave = snapshot
+        mutable.value = mutable.value.copy(saving = true, error = null, receipt = null)
         scope.launch {
             try {
+                // Recheck after dispatch: a trip or map authorization can disappear before execution.
+                if (!canSave() || generation != run) return@launch
                 val receipt = importer.commit(snapshot)
+                pendingSave = null
+                if (!active) return@launch
                 savedIds = savedIds + receipt.results.map { it.poiId }
-                mutable.value = mutable.value.copy(receipt = receipt, confirmation = null, selected = emptySet())
+                mutable.value = mutable.value.copy(receipt = receipt, selected = emptySet())
                 reconcile()
             } catch (e: CancellationException) { throw e }
-            catch (_: Exception) { fail("本次未能完成保存，请重试；同一确认会先回读，不重复收藏。") }
+            catch (_: Exception) { if (active) fail("收藏失败，已保留选择，请重试。") }
             finally { mutable.value = mutable.value.copy(saving = false) }
         }
     }
@@ -436,8 +434,7 @@ class PlaceAssistantController(
             reconciled.copy(sources = allSources[poi.poiId].orEmpty())
         }
         val selected = mutable.value.selected.intersect(items.filter { it.status == IntakeStatus.READY }.map { it.id }.toSet())
-        mutable.value = mutable.value.copy(items = items, selected = selected,
-            confirmation = if (selected != mutable.value.selected && !mutable.value.saving) null else mutable.value.confirmation)
+        mutable.value = mutable.value.copy(items = items, selected = selected)
     }
     private fun stopPending(message: String?) {
         mutable.value = mutable.value.copy(items = mutable.value.items.map {

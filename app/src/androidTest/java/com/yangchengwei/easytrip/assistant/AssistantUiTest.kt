@@ -48,14 +48,15 @@ import org.junit.Test
 class AssistantUiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun markingAndSelectionDoNotSaveUntilFinalConfirmation() = exercise(real = false, small = false)
-    @Test fun narrowDoubleFontCanReachFinalConfirmation() = exercise(real = false, small = true)
+    @Test fun markingAndSelectionDoNotSaveUntilSaveClick() = exercise(real = false, small = false)
+    @Test fun narrowDoubleFontKeepsDirectSaveVisible() = exercise(real = false, small = true)
+    @Test fun systemViewportKeepsDirectSaveVisible() = exercise(real = false, small = true, useSystemViewport = true)
     @Test fun realProviderToRealAmapAndNativeMarkers() {
         assumeTrue(InstrumentationRegistry.getArguments().getString("runV3Real") == "true")
         exercise(real = true, small = false)
     }
 
-    private fun exercise(real: Boolean, small: Boolean) {
+    private fun exercise(real: Boolean, small: Boolean, useSystemViewport: Boolean = false) {
         val context = compose.activity.applicationContext
         val folder = File(context.filesDir, "v3-implementation-evidence").apply { mkdirs() }
         val config = AssistantConfigStore(context)
@@ -64,7 +65,7 @@ class AssistantUiTest {
         val modelCalls = AtomicInteger()
         val poiCalls = AtomicInteger()
         val started = System.currentTimeMillis()
-        val prefix = if (real) "real" else if (small) "small" else "ui"
+        val prefix = if (real) "real" else if (useSystemViewport) "system" else if (small) "small" else "ui"
         val db = Room.inMemoryDatabaseBuilder(context, EasyTripDatabase::class.java).build()
         val stores = ViewModelStore()
         val tripRepository = RoomTripRepository(db.tripDao())
@@ -121,8 +122,9 @@ class AssistantUiTest {
             val permission = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore())
             compose.setContent { EasyTripTheme {
                 val density = LocalDensity.current.density
-                CompositionLocalProvider(LocalDensity provides Density(density, if (small) 2f else 1f)) {
-                    Box(if (small) Modifier.requiredSize(320.dp, 568.dp) else Modifier) {
+                val fontScale = if (useSystemViewport) LocalDensity.current.fontScale else if (small) 2f else 1f
+                CompositionLocalProvider(LocalDensity provides Density(density, fontScale)) {
+                    Box(if (small && !useSystemViewport) Modifier.requiredSize(320.dp, 568.dp) else Modifier) {
                         TripWorkspaceRoute(workspace, token, onBack = {}, onSettings = {},
                             assistantViewModel = assistant, placeViewModel = pool,
                             locationPermissionCoordinator = permission,
@@ -195,16 +197,21 @@ class AssistantUiTest {
                 assertEquals(1, assistant.controller.state.value.items.count { it.status == IntakeStatus.FAILED })
                 assertEquals("雷峰塔景区", assistant.controller.state.value.items.first { it.intent.query == "雷峰塔" }.poi?.name)
             }
-            compose.onNodeWithTag("assistant-select-all").performScrollTo().performClick()
+            compose.onNodeWithTag("assistant-save").assertIsDisplayed().assertIsNotEnabled()
+            compose.onNodeWithTag("assistant-select-${assistant.controller.state.value.items.first().label}").performScrollTo()
+            val rowBox = compose.onNodeWithTag("assistant-select-${assistant.controller.state.value.items.first().label}-box", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            val allBox = compose.onNodeWithTag("assistant-select-all-box", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            assertEquals("selection column", rowBox.left.value, allBox.left.value, .5f)
+            compose.onNodeWithTag("assistant-select-all").assertIsDisplayed().assertHeightIsAtLeast(48.dp).performClick()
             assertTrue(saved().isEmpty())
             val count = assistant.controller.state.value.selected.size
-            compose.onNodeWithTag("assistant-review").performScrollTo().performClick()
-            assertTrue(saved().isEmpty())
-            compose.onNodeWithText("收藏到：", substring = true).assertExists()
-            compose.onNodeWithTag("assistant-confirm").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
-            assertAssistantGutters("assistant-confirm")
-            image("confirmation-zero-writes")
-            compose.onNodeWithTag("assistant-confirm").performClick()
+            compose.onNodeWithTag("assistant-review").assertDoesNotExist()
+            compose.onNodeWithTag("assistant-confirm").assertDoesNotExist()
+            compose.onNodeWithTag("assistant-save").assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+            assertAssistantGutters("assistant-selection-bar")
+            compose.onNodeWithText("找到 ${assistant.controller.state.value.items.size} 个地点").performScrollTo()
+            image("selection-zero-writes")
+            compose.onNodeWithTag("assistant-save").performClick()
             compose.waitUntil(15_000) { assistant.controller.state.value.receipt != null }
             assertEquals(count, saved().size)
             assertEquals(count, assistant.controller.state.value.receipt!!.addedCount)
@@ -230,7 +237,7 @@ class AssistantUiTest {
             assertAssistantGutters()
             image("receipt")
             File(folder, "$prefix-result.json").writeText(JSONObject().put("passed", true).put("modelCalls", modelCalls.get())
-                .put("poiCalls", poiCalls.get()).put("saved", count).put("preConfirmationWrites", 0)
+                .put("poiCalls", poiCalls.get()).put("saved", count).put("preSaveWrites", 0)
                 .put("elapsedMs", System.currentTimeMillis() - started).put("realProvider", real).put("smallDoubleFont", small)
                 .put("places", JSONArray().also { array -> saved().forEach { place -> array.put(JSONObject()
                     .put("poiId", place.amapPoiId).put("name", place.name).put("address", place.address)

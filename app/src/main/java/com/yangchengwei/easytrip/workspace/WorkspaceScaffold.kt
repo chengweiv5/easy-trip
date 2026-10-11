@@ -149,6 +149,7 @@ internal fun WorkspaceScaffold(
     collapsedContentHorizontalPadding: Dp = sheetContentHorizontalPadding,
     sheetGesturesEnabled: Boolean = true,
     sheetHeaderHeight: Dp = WorkspaceSheetHeaderHeight,
+    minimumHalfSheetHeight: Dp = 0.dp,
 ) {
     BoxWithConstraints(
         modifier
@@ -156,7 +157,10 @@ internal fun WorkspaceScaffold(
             .windowInsetsPadding(WindowInsets.safeDrawing)
             .imePadding(),
     ) {
-        val anchors = workspaceSheetAnchors(maxHeight)
+        val baseAnchors = workspaceSheetAnchors(maxHeight)
+        val anchors = baseAnchors.copy(
+            half = maxOf(baseAnchors.half, minimumHalfSheetHeight.coerceAtMost(baseAnchors.expanded)),
+        )
         val density = LocalDensity.current
         var dragOffsetPx by remember(sheetLevel, anchors, density) { mutableFloatStateOf(0f) }
         val visibleSheetHeight = with(density) { anchors[sheetLevel].toPx() - dragOffsetPx }.let { heightPx ->

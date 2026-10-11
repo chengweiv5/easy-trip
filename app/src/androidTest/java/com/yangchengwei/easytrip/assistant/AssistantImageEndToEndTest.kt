@@ -115,12 +115,14 @@ class AssistantImageEndToEndTest {
             compose.waitUntil(10_000) { !model.controller.state.value.busy && model.controller.state.value.eligible.size == 1 }
             assertEquals(1, modelCalls.get())
             assertTrue(runBlocking { repo.observePlaces(trip, emptySet()).first() }.isEmpty())
-            compose.onNodeWithTag("assistant-select-all").performScrollTo().performClick()
-            compose.onNodeWithTag("assistant-review").performScrollTo().performClick()
+            compose.onNodeWithTag("assistant-save").assertIsDisplayed().assertIsNotEnabled()
+            compose.onNodeWithTag("assistant-select-all").assertIsDisplayed().performClick()
             assertTrue(runBlocking { repo.observePlaces(trip, emptySet()).first() }.isEmpty())
-            compose.onNodeWithTag("assistant-confirm").performScrollTo().assertIsDisplayed()
-            screenshot("confirm")
-            compose.onNodeWithTag("assistant-confirm").performClick()
+            compose.onNodeWithTag("assistant-review").assertDoesNotExist()
+            compose.onNodeWithTag("assistant-confirm").assertDoesNotExist()
+            compose.onNodeWithTag("assistant-save").assertIsDisplayed()
+            screenshot("selection")
+            compose.onNodeWithTag("assistant-save").performClick()
             compose.waitUntil(10_000) { model.controller.state.value.receipt != null }
             assertEquals(1, runBlocking { repo.observePlaces(trip, emptySet()).first() }.size)
             compose.runOnIdle { model.clearDraft() }

@@ -3,6 +3,8 @@ package com.yangchengwei.easytrip.assistant
 import androidx.compose.runtime.staticCompositionLocalOf
 import com.yangchengwei.easytrip.workspace.*
 
+enum class AssistantDetail { CATEGORY, CANDIDATES }
+
 data class AssistantWorkspace(
     val model: PlaceAssistantViewModel,
     val state: PlaceAssistantState,
@@ -13,6 +15,7 @@ data class AssistantWorkspace(
     val onConsent: () -> Unit,
     val onOpen: () -> Unit,
     val onViewPool: () -> Unit,
+    val detail: AssistantDetail? = null,
 ) {
     val controller get() = model.controller
 }

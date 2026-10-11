@@ -161,12 +161,23 @@ class AssistantCityUiTest {
                 val lake = assistant.controller.state.value.items.first()
                 assertEquals("云龙湖-first", lake.poi?.poiId)
                 compose.onNodeWithText("云龙湖风景区").performScrollTo().performClick()
-                compose.onNodeWithTag("assistant-change-A").performScrollTo().performClick()
+                if (small) {
+                    compose.onNodeWithTag("assistant-change-A").performScrollTo().performClick()
+                } else {
+                    compose.runOnIdle { workspace.setSheetLevel(WorkspaceSheetLevel.HALF) }
+                    compose.onNodeWithTag("assistant-map-card-name").assertIsDisplayed().assertTextContains("云龙湖风景区")
+                    compose.onNodeWithTag("assistant-map-category").performScrollTo().performClick()
+                    compose.onNodeWithTag("assistant-category-A-food").performScrollTo().performClick()
+                    assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD,
+                        assistant.controller.state.value.items.first().category)
+                    compose.onNodeWithTag("assistant-map-change").performScrollTo().performClick()
+                    compose.onNodeWithTag("assistant-option-A-0").assertExists()
+                    compose.runOnIdle { workspace.setSheetLevel(WorkspaceSheetLevel.EXPANDED) }
+                }
                 compose.onNodeWithTag("assistant-option-A-0").performScrollTo().assertTextContains("已采用", substring = true)
                 compose.onNodeWithTag("assistant-option-A-1").performScrollTo().performClick()
                 compose.waitUntil(5_000) { assistant.controller.state.value.items.first().poi?.poiId == "云龙湖-second" }
                 compose.onNodeWithTag("assistant-option-A-1").assertTextContains("已采用", substring = true)
-                assertNull(assistant.controller.state.value.confirmation)
                 assertTrue(assistant.controller.state.value.selected.isEmpty())
             }
             compose.onAllNodesWithText("请补充搜索城市。").assertCountEquals(0)

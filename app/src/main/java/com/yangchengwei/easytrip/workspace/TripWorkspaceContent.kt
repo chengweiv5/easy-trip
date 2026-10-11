@@ -151,9 +151,9 @@ private fun WorkspaceReadyContent(
     ) {
     WorkspaceScaffold(
         sheetLevel = state.sheetLevel,
-        sheetHeaderHeight = if (LocalAssistantWorkspace.current?.open == true) {
-            if (LocalDensity.current.fontScale > 1.3f) 132.dp else 80.dp
-        } else WorkspaceSheetHeaderHeight,
+        sheetHeaderHeight = if (LocalAssistantWorkspace.current?.open == true) 80.dp else WorkspaceSheetHeaderHeight,
+        minimumHalfSheetHeight = if (LocalAssistantWorkspace.current?.open == true &&
+            LocalDensity.current.fontScale > 1.3f) 360.dp else 0.dp,
         sheetGesturesEnabled = !calendarBusy,
         onSheetLevelChange = { if (!calendarBusy) onAction(TripWorkspaceAction.SetSheetLevel(it)) },
         modifier = modifier,
@@ -407,6 +407,9 @@ private fun WorkspaceReadyContent(
         },
         topOverlay = { liveMetrics ->
             val metrics = if (state.searchResults != null) workspaceSearchMapMetrics(liveMetrics) else liveMetrics
+            val assistant = LocalAssistantWorkspace.current
+            val focusedAssistantPlace = assistant?.takeIf { it.open }?.state?.items
+                ?.find { it.id == assistant.focused && it.poi != null }
             layerFailureMessage?.let { message ->
                 WorkspaceLayerFailureFeedback(
                     message = message,
@@ -437,13 +440,13 @@ private fun WorkspaceReadyContent(
                 modifier = Modifier.padding(start = 12.dp, top = 10.dp, end = 12.dp),
             )
             if (mapOverlaysFit && mapState == WorkspaceMapState.Ready) {
-                if (state.searchResults == null && state.section == WorkspaceSection.PLACE_POOL && placeState.placesReady) {
+                if (assistant?.open != true && state.searchResults == null && state.section == WorkspaceSection.PLACE_POOL && placeState.placesReady) {
                     MapCollectionSummary(
                         count = com.yangchengwei.easytrip.place.ui.placePoolCollectionTotal(placeState),
                         modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 70.dp),
                     )
                 }
-                MapControls(
+                if (focusedAssistantPlace == null || metrics.sheetTop < 180.dp) MapControls(
                     active = state.overlay == WorkspaceOverlay.LayerMenu,
                     onOpenLayerMenu = { onAction(TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu)) },
                     onLocate = { onAction(TripWorkspaceAction.Locate) },
@@ -456,7 +459,6 @@ private fun WorkspaceReadyContent(
                             end = 12.dp,
                         ),
                 )
-                val assistant = LocalAssistantWorkspace.current
                 if (state.searchResults == null && state.section == WorkspaceSection.ITINERARY &&
                     state.overlay == WorkspaceOverlay.None && assistant?.open != true
                 ) {
@@ -469,7 +471,7 @@ private fun WorkspaceReadyContent(
                 }
                 val entryHeight = workspaceMapEntryHeight()
                 val entryTouchHeight = maxOf(48.dp, entryHeight)
-                if (state.searchResults == null && state.overlay == WorkspaceOverlay.None) Row(
+                if (assistant?.open != true && state.searchResults == null && state.overlay == WorkspaceOverlay.None) Row(
                     Modifier.align(Alignment.TopStart)
                         .padding(start = 12.dp, end = 12.dp,
                             top = (metrics.sheetTop - 12.dp - entryHeight -
@@ -483,6 +485,14 @@ private fun WorkspaceReadyContent(
                     Spacer(Modifier.weight(1f))
                     WorkspaceSearchBar(onClick = { onAction(TripWorkspaceAction.OpenSearch) })
                 }
+            }
+            if (assistant?.open == true && focusedAssistantPlace != null &&
+                state.overlay == WorkspaceOverlay.None && mapState == WorkspaceMapState.Ready &&
+                metrics.sheetTop >= 180.dp
+            ) {
+                AssistantFocusedPlaceCard(assistant, Modifier.align(Alignment.TopCenter)
+                    .padding(start = 12.dp, end = 12.dp, top = 70.dp).fillMaxWidth()
+                    .heightIn(max = metrics.sheetTop - 82.dp))
             }
             state.searchResults?.let { results ->
                 WorkspaceSearchSummary(

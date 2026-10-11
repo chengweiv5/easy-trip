@@ -1,5 +1,13 @@
 # easy-trip 项目约定
 
+## 当前设计目标
+
+- **v3.2.0 Git交付（2026-10-11，进行中）**：用户已授权“提交，推送”；首次fetch确认origin/main仍为`c1e0a7f`，开放PR为空，29个实施输入／设计／预览hash复核一致。本轮在功能分支提交后显式快进推送origin/main，不发布Release／标签、不重新安装手机。准确交付状态见`docs/testing/v3.2.0-assistant-simplify-git-delivery.md`；下方“未提交／未推送”为开发和安装阶段历史。
+
+- **v3.2.0后续安装（2026-10-11）**：用户单独授权“安装”后，21:15:46同签名3.2.0/build25/schema11开发包已覆盖安装华为ALN-AL00，手机APK回读hash与已验证归档包一致，UID／首次安装时间／数据目录不变；没有卸载或清数据。手机前台为飞书，未打断用户，未进行本轮真机界面或全库核验。准确证据与回滚见`docs/testing/v3.2.0-assistant-simplify-install.md`。未提交、推送、发布；下条“未安装”只记载开发阶段，Pencil不因单独安装重写。
+
+- **v3.2.0助手交互精简（2026-10-11，已确认并实施）**：功能分支`codex/v3.2-assistant-simplify`基于`c1e0a7f`，应用3.2.0/build25/schema11。地图结果页左侧选择／全选并直接收藏，删除核对、二次确认及回执中转；保存中锁定，失败保留选择和幂等操作，候选／分类／单项修正在当前面板展开。唯一累积源`design/easy-trip-v3.2.0.pen`保持265根/43,295节点，已回写实施状态、原生保存关闭重开及MCP回读。Debug/Release各1035 JVM、0错误lint及助手专项通过；未提交、推送、发布或安装真实手机。后续先读`docs/testing/v3.2.0-assistant-simplify-implementation.md`，特别保留既有280dp极小窗口测试缺口与真实模型／相册／TalkBack未验收边界。已发布v3.1.0源冻结不改。
+
 ## 当前正式版
 
 - **v3.1.0/build24/schema11已正式发布（2026-10-11）**：基于发布前最新main `f7c31a82a8f0ff36057d93c8e11f3bfae67e1422` 的CLEAN构建，标签固定同一SHA，认证/匿名完整下载与Latest回读通过。本轮Debug/Release各1029 JVM、29项模拟器专项及系统320dp/2倍字体复测通过，Release lint 0错误；未安装真实手机，未实测真实图片模型或系统相册。后续开发、安装或发布前读取`docs/testing/v3.1.0-release.md`，遵守其验证边界与schema11前向修复要求。

@@ -33,7 +33,6 @@ class PlaceAssistantControllerTest {
         advanceUntilIdle()
         assertEquals(IntakeStatus.READY, c.state.value.items.single().status)
         assertEquals(0, importer.calls)
-        assertNull(c.state.value.confirmation)
     }
 
     @Test fun firstValidCityCandidateIsUsedBeforeLaterExactMatchWithoutSaving() = runTest {
@@ -56,15 +55,14 @@ class PlaceAssistantControllerTest {
         assertEquals("first", item.poi?.poiId)
         assertTrue(c.state.value.selected.isEmpty())
         assertEquals(0, importer.calls)
-        c.review(setOf(item.id))
+        c.toggle(item.id)
         c.choosePoi(item.id, "exact")
         assertEquals("exact", c.state.value.items.single().poi?.poiId)
-        assertNull(c.state.value.confirmation)
-        c.confirm(); advanceUntilIdle()
+        c.saveSelected(); advanceUntilIdle()
         assertEquals(0, importer.calls)
     }
 
-    @Test fun matchedItemsCanBeSelectedAndOnlyExplicitConfirmationWrites() = runTest {
+    @Test fun matchedItemsCanBeSelectedAndOnlySaveClickWrites() = runTest {
         val importer = Importer()
         val names = listOf("灵隐寺", "河坊街", "失败", "雷峰塔")
         val controller = PlaceAssistantController("trip", this,
@@ -82,13 +80,12 @@ class PlaceAssistantControllerTest {
         assertEquals(listOf(IntakeStatus.READY, IntakeStatus.READY, IntakeStatus.FAILED, IntakeStatus.READY),
             controller.state.value.items.map { it.status })
         controller.selectAll()
-        controller.review()
         assertEquals(0, importer.calls)
-        assertEquals(3, controller.state.value.confirmation!!.items.size)
-        controller.confirm(); advanceUntilIdle()
+        assertEquals(3, controller.state.value.selected.size)
+        controller.saveSelected(); advanceUntilIdle()
         assertEquals(1, importer.calls)
         assertEquals(3, controller.state.value.receipt!!.addedCount)
-        controller.confirm(); advanceUntilIdle()
+        controller.saveSelected(); advanceUntilIdle()
         assertEquals(1, importer.calls)
     }
 
@@ -107,7 +104,7 @@ class PlaceAssistantControllerTest {
         assertEquals(IntakeStatus.CANCELLED, controller.state.value.items[1].status)
         assertEquals(1, controller.state.value.selected.size)
     }
-    @Test fun duplicatePoiAndChangedConfirmationNeverWriteImplicitly() = runTest {
+    @Test fun duplicatePoiAndCategoryChangeNeverWriteImplicitly() = runTest {
         val importer = Importer()
         val c = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> listOf("灵隐寺", "灵隐寺").map { PlaceIntent(it, "杭州", it) } },
@@ -115,10 +112,10 @@ class PlaceAssistantControllerTest {
         c.environment(true, true, true); c.editInput("灵隐寺、灵隐寺"); c.submit(); advanceUntilIdle()
         assertEquals(listOf(IntakeStatus.READY, IntakeStatus.DUPLICATE), c.state.value.items.map { it.status })
         assertTrue(c.state.value.selected.isEmpty()); assertEquals(0, importer.calls)
-        c.selectAll(); c.review()
+        c.selectAll()
         c.category(c.state.value.items.first().id, com.yangchengwei.easytrip.place.domain.PlaceCategory.FOOD)
-        c.confirm(); advanceUntilIdle(); assertEquals(0, importer.calls)
-        c.review(); c.environment(true, true, false); c.confirm(); advanceUntilIdle(); assertEquals(0, importer.calls)
+        assertEquals(0, importer.calls)
+        c.environment(true, true, false); c.saveSelected(); advanceUntilIdle(); assertEquals(0, importer.calls)
     }
 
     @Test fun retryOnlyFailedAndForeignCityNeedsExplicitChoice() = runTest {
@@ -147,10 +144,9 @@ class PlaceAssistantControllerTest {
                 if (keyword == "慢") slow.await() else listOf(poi("快", "same")) }, Importer())
         c.environment(true, true, true); c.editInput("慢、快"); c.submit(); runCurrent()
         val fast = c.state.value.items[1].id
-        c.toggle(fast); c.review(); val confirmation = c.state.value.confirmation
+        c.toggle(fast)
         slow.complete(listOf(poi("慢", "same"))); advanceUntilIdle()
         assertEquals(setOf(fast), c.state.value.selected)
-        assertEquals(confirmation, c.state.value.confirmation)
         assertEquals(IntakeStatus.DUPLICATE, c.state.value.items[0].status)
         c.updateSaved(setOf("same")); assertTrue(c.state.value.eligible.isEmpty())
         c.updateSaved(emptySet()); assertEquals(1, c.state.value.eligible.size)

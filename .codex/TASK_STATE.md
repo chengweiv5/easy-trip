@@ -1,4 +1,73 @@
-# 当前交付：基于最新origin/main发布v3.1.0
+# 当前任务：v3.2.0 提交与推送
+
+状态：**IN_PROGRESS（2026-10-11）**。
+
+- 用户明确授权“提交，推送”，本轮不发布Release／标签，不重新构建或安装手机。
+- 功能分支`codex/v3.2-assistant-simplify`；首次fetch确认HEAD与origin/main均为`c1e0a7faddf8e542f380a67699515399a0139fc5`，开放PR为空，无需rebase。
+- 29个应用／设计／预览文件hash与已验证清单一致，Debug/Release各1035 JVM及38项设备专项和额外320dp双倍字体复测日志已回读；冻结v3.1源不变。
+- 已备份全部未提交成果，待功能提交、再次fetch／祖先检查、快进推送、独立远端SHA核验、完成通知及最终状态写回。
+- Git交付记录：`docs/testing/v3.2.0-assistant-simplify-git-delivery.md`；证据目录：`/Users/bytedance/.codex/artifacts/easy-trip/v3.2.0-git-delivery-f445-20261011-212108/`。
+
+---
+
+## 历史任务记录
+
+# v3.2.0 真实手机安装
+
+状态：**DONE（2026-10-11，用户单独授权安装）**。
+
+- 21:15:46同签名覆盖安装华为ALN-AL00（FMR0224725012307），由3.1.0/build24升级到3.2.0/build25/schema11；adb install -r 返回Success。
+- 手机安装后APK独立拉回SHA256 `60e36880f53d3e6b48995d1f5cd30f0dfb2a11420825f50a53996d1c2c5dab85`，与已验证归档包一致。当前16个改动应用输入与构建清单一致，安装未重新构建或修改代码／设计。
+- UID10477、firstInstallTime 2026-09-21 08:33:25和dataDir不变；未卸载／清数据。原v3.1APK已备份，不是用户数据备份；没有独立审计全库内容。
+- 手机前台为飞书，未启动App或切换前台打断；本轮未做真实手机界面、真实模型、相册或TalkBack验收，开发阶段测试边界继续保留。
+- 自有设备锁按token核验并释放，手机保持连接。punk-12通知`om_x100b638c89a838a4c4f4fffd75a001c`已发送并独立回读正文／chat／sender／deleted=false。
+- 分支codex/v3.2-assistant-simplify，HEAD仍c1e0a7faddf8e542f380a67699515399a0139fc5；未提交、未推送、未发布。
+- 安装与回滚文档：`docs/testing/v3.2.0-assistant-simplify-install.md`。
+- 证据与备份：`/Users/bytedance/.codex/artifacts/easy-trip/f445-v32-install-20261011-211502/`。
+
+---
+
+## 历史任务记录（下文未安装说明为开发阶段历史）
+
+# 当前任务：v3.2.0 助手直接收藏开发
+
+状态：**DONE（2026-10-11，开发及本批验证完成）**。用户已确认左侧选择列设计并授权开发。本轮未提交、未推送、未发布、未安装真实手机。
+
+- 工作树 `/Users/bytedance/.codex/worktrees/f445/easy-trip`，分支 `codex/v3.2-assistant-simplify`；HEAD保持`c1e0a7faddf8e542f380a67699515399a0139fc5`，工作区未提交。应用3.2.0/build25/schema11。
+- 左侧复选框与全选同列，地图结果中选择后直接收藏；删除核对、二次确认及回执中转。固定底栏、零选禁用、保存中锁定、失败保留选择与同内容幂等重试、成功留在本批已实现。分类／候选／来源／单项修正原位展开。
+- 最终Debug/Release各1035 JVM全通过；两种lint均0错误（62/59警告保留）；Debug/AndroidTest/Release构建成功。27助手+11地图／工作区=38项模拟器专项通过，最终系统320dp/2倍字体复测1项通过。
+- 既有280dp极小窗口测试缺口单列：8项滚到索引8越界；临时按节点修补未完成，已撤回，不算通过。未对精确基线设备包复验，不宣称该窗口产品行为已修复；真实模型／系统相册／TalkBack与全应用全页未重新验收。
+- 唯一Pencil源 `design/easy-trip-v3.2.0.pen`，265根/43,295唯一节点；实施元数据及设置图标已同步，原生Save、关闭重开精确路径、MCP数量/状态/组件回读与原生可编辑属性检查通过。28结果面板无裁切，有效根无重叠；地图示意底图既有视窗裁切保留。旧v3.1冻结源不改。
+- v3.2源SHA256 `3d2e98e4e82ad7586f4790f0bfe9c71da15b685ff055740f402ce91752c2d075`；最终DIRTY Release APK SHA256 `60e36880f53d3e6b48995d1f5cd30f0dfb2a11420825f50a53996d1c2c5dab85`，签名及16KB zipalign检查通过，不是公开Release。
+- 独立规格复核通过（字母聚焦问题已修复）；独立标准审查因空Payload未完成，主任务自审及保存中辅助按钮TDD修复已记录，不冒称双代理审查通过。
+- 自有emulator-5598/PID92241及token锁已验证归属、退出并清理；系统尺寸/字号已恢复，真实手机未操作。
+- punk-12完成通知`om_x100b638cfa90b4a4c4747949b241fd7`已发送并独立回读正文/chat/sender/deleted=false。
+- 详细实施、证据及仅撤销本轮的回滚：`docs/testing/v3.2.0-assistant-simplify-implementation.md`；设计说明`design/v3.2.0-assistant-simplify-review.md`。
+- 证据/备份：`/Users/bytedance/.codex/artifacts/easy-trip/v3.2.0-implementation-f445-20261011-202639/`。状态最后写入；后续交付需当轮明确授权并同步最新origin/main。
+
+---
+
+## 历史任务记录（下文状态不代表当前任务）
+
+# 当前任务：v3.2.0 助手交互精简UI设计
+
+状态：**DONE（设计交付，含左侧选择列微调，待用户评审）**。2026-10-11。用户明确本版为v3.2；仅出UI稿，未开发、未提交推送、未安装手机。
+
+- 分支`codex/v3.2-assistant-simplify-design`，代码基线`c1e0a7faddf8e542f380a67699515399a0139fc5`。应用仍为3.1.0/build24/schema11。
+- 唯一累积源`design/easy-trip-v3.2.0.pen`，继承已发布v3.1.0全部262原根；265根/43,295唯一节点，230个原根子树未变，32个根原位更新，新增3个根。历史版本文件hash均保持。
+- 主流程：地图与地址就地查看 → checkbox选择/全选 → 收藏（N）直接保存。移除独立核对、收藏确认和回执中转页；底部全选为轻量复选框，不再有“全选可收藏的N个”大按钮。收藏零选禁用、保存中锁定、失败保留选择、成功就地标记；清空/离开保护保留。
+- 候选切换、单项名称/城市修正及分类修改轻量展开；图片来源可查看并关闭回到同一选择集。默认城市、首个同城候选及图文输入保留。
+- 追加微调：单项复选框移到最左侧，与底部“全选”同列，24个原位页面的可见选择框左边缘均x=16；保留48×48dp热区、地图字母及地点信息。26个相关根及展开后的选择组件无裁切，四状态镜像各自对齐，320dp大字OCR复核通过。
+- 保存前发现f445旧v3.1窗口缓存253根而磁盘262根，未保存旧窗口；从已核验磁盘源派生独立v3.2文件。Pencil原生Save、关闭重开、精确路径MCP回读及原生可编辑属性检查通过。
+- 31个重点根无裁切、有效根无重叠；旧冗余收藏文案命中0，主状态/全选/320dp大字OCR通过。仅静态UI验证，历史全应用与设备验收缺口保留。
+- 设计源SHA256 `c6b00e5409a1312017fbdcd8cc8930113e456f43d1a62f790a607dd11d4da9a0`。追加微调已原生保存、关闭重开精确路径，MCP确认左侧顺序与x=16对齐；预览/PDF位于`design/previews/v3.2.0-assistant-simplify/`，七张PNG及七页PDF已重导出。原生窗口被用户切换后不再争抢焦点。
+- 说明与回滚`design/v3.2.0-assistant-simplify-review.md`；备份/验证证据`/Users/bytedance/.codex/artifacts/easy-trip/v3.2.0-design-f445-20261011-192834/`。
+- punk-12设计完成通知`om_x100b638323b580a0c11b7a6b40cf205`已回读正文、目标chat、机器人app_id与未删除状态。下一步等待用户评审，不自行开始实施。
+- 左侧选择列独立备份/证据`/Users/bytedance/.codex/artifacts/easy-trip/v3.2.0-left-checkbox-f445-20261011-201405/`，修改前源hash为`cad5d47af32d9869434196d84369697a0c0515b4ee58c08a76cb81a0f47992ea`。追加完成通知`om_x100b6383a5e960a4c32d42f16dfcf2f`已回读全文、目标chat、机器人app_id及未删除状态。节点无增删，历史设计及应用代码保持不变。
+
+---
+
+# 历史交付：基于最新origin/main发布v3.1.0
 
 状态：**DONE — v3.1.0/build24/schema11已公开发布并设为Latest，认证/匿名完整下载与SHA256、远端标签、发布文档主线推送及完成通知均已回读。** 2026-10-11 19:17:19（Asia/Shanghai）发布。本次仅发布，不安装真实手机。
 

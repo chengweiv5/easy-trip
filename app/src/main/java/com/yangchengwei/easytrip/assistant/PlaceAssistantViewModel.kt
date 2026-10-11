@@ -49,9 +49,22 @@ class PlaceAssistantViewModel(
     val open = mutableOpen.asStateFlow()
     private val mutableFocus = MutableStateFlow<String?>(null)
     val focus = mutableFocus.asStateFlow()
+    private val mutableDetail = MutableStateFlow<AssistantDetail?>(null)
+    val detail = mutableDetail.asStateFlow()
     fun show() { mutableOpen.value = true }
     fun hide() { if (!controller.state.value.saving) mutableOpen.value = false }
-    fun focus(id: String?) { mutableFocus.value = id; if (id != null) show() }
+    fun focus(id: String?) {
+        if (controller.state.value.saving) return
+        if (id != mutableFocus.value) mutableDetail.value = null
+        mutableFocus.value = id
+        if (id != null) show()
+    }
+    fun showDetail(id: String, detail: AssistantDetail) {
+        if (controller.state.value.saving) return
+        focus(id)
+        mutableDetail.value = detail
+    }
+    fun consumeDetail() { mutableDetail.value = null }
     fun selectImages(uris: List<Uri>) {
         val store = images ?: return
         val s = controller.state.value
@@ -96,6 +109,7 @@ class PlaceAssistantViewModel(
         controller.attachmentSelection(true)
         savedState["assistant-had-images"] = false
         mutableFocus.value = null
+        mutableDetail.value = null
         viewModelScope.launch {
             try {
                 images?.release(sessionId)

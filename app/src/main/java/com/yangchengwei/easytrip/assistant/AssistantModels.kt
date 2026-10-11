@@ -64,7 +64,6 @@ data class PlaceAssistantState(
     val mapReady: Boolean = false,
     val configured: Boolean = false,
     val consent: Boolean = false,
-    val confirmation: ImportConfirmation? = null,
     val receipt: ImportReceipt? = null,
     val error: String? = null,
 ) {
