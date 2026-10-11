@@ -17,6 +17,9 @@ class PlaceAssistantController(
     source: PlaceSearchDataSource?,
     private val importer: PlaceImport,
     private var resolveDefaultCity: suspend () -> String? = { null },
+    private val processor: (() -> AssistantInputProcessor)? = null,
+    private val sessionId: String = "",
+    private val imageAllowed: () -> Boolean = { true },
 ) {
     private val mutable = MutableStateFlow(PlaceAssistantState())
     val state = mutable.asStateFlow()
@@ -25,6 +28,27 @@ class PlaceAssistantController(
     private var work: Job? = null
     private var savedIds: Set<String> = emptySet()
     private var active = true
+    private var parsedSources = emptyList<ParsedSource>()
+    private var inputRevision = 0L
+    private var currentParsed = emptyList<ParsedSource>()
+    val draftRevision get() = inputRevision
+    fun attachmentSelection(busy: Boolean) { mutable.value = mutable.value.copy(attachmentSelectionBusy = busy) }
+    fun reportError(message: String) { fail(message) }
+    fun addImages(images: List<AssistantImage>) {
+        val s = mutable.value
+        if (!active || s.busy || s.saving || s.items.isNotEmpty()) return
+        if (s.images.size + images.size > 6 || (s.images + images).sumOf { it.byteCount } > AssistantImagePolicy.MAX_TOTAL_BYTES) {
+            fail("图片超过本批数量或大小上限。"); return
+        }
+        parsedSources = emptyList()
+        currentParsed = emptyList()
+        mutable.value = s.copy(images = s.images + images, sourceProgress = emptyList(), error = null)
+    }
+    fun removeImage(id: String) {
+        if (mutable.value.busy || mutable.value.saving || mutable.value.items.isNotEmpty()) return
+        parsedSources = emptyList()
+        mutable.value = mutable.value.copy(images = mutable.value.images.filterNot { it.id == id }, sourceProgress = emptyList())
+    }
 
     fun environment(configured: Boolean, consent: Boolean, mapReady: Boolean) {
         val old = mutable.value
@@ -33,28 +57,30 @@ class PlaceAssistantController(
             mutable.value = mutable.value.copy(items = emptyList(), selected = emptySet(), confirmation = null,
                 error = "地图授权已撤回，请重新授权后查询。")
         }
-        if (old.configured && !configured) { cancel(); mutable.value = mutable.value.copy(confirmation = null, sendConsent = false) }
+        if (old.configured && !configured) { cancel(); mutable.value = mutable.value.copy(confirmation = null) }
         mutable.value = mutable.value.copy(configured = configured, consent = consent, mapReady = mapReady,
             confirmation = if (!mapReady) null else mutable.value.confirmation)
     }
     fun updateSource(value: PlaceSearchDataSource?) { source = value }
     fun updateCityResolver(value: suspend () -> String?) { resolveDefaultCity = value }
-    fun configurationChanged() { cancel(); mutable.value = mutable.value.copy(sendConsent = false, confirmation = null) }
+    fun configurationChanged() { cancel(); inputRevision++; mutable.value = mutable.value.copy(confirmation = null) }
     fun invalidateTrip() {
-        cancel(); active = false
+        cancel(); inputRevision++; active = false
         mutable.value = mutable.value.copy(items = emptyList(), selected = emptySet(), confirmation = null, error = "目标旅行已失效，请返回旅行列表。")
     }
     fun updateSaved(ids: Set<String>) { savedIds = ids; reconcile() }
-    fun allowSend() { mutable.value = mutable.value.copy(sendConsent = true) }
     fun editInput(value: String) {
         if (mutable.value.saving || mutable.value.busy || mutable.value.items.isNotEmpty()) return
-        mutable.value = mutable.value.copy(input = value.take(2000), error = null)
+        if (value.length > 2000) { fail("文字最多 2000 字，请分批输入；原输入保留。"); return }
+        parsedSources = emptyList()
+        mutable.value = mutable.value.copy(input = value, sourceProgress = emptyList(), error = null)
     }
     fun editCity(value: String) {
         if (mutable.value.saving) return
         val next = value.take(50)
         if (next == mutable.value.city) return
         cancel()
+        inputRevision++
         val affected = mutable.value.items.filter { it.intent.usesDefaultCity || it.intent.city.isBlank() }.map { it.id }.toSet()
         mutable.value = mutable.value.copy(city = next, confirmation = null,
             selected = mutable.value.selected - affected,
@@ -67,9 +93,11 @@ class PlaceAssistantController(
     fun clear() {
         if (mutable.value.saving) return
         cancel()
+        inputRevision++
+        parsedSources = emptyList()
         val old = mutable.value
         mutable.value = PlaceAssistantState(city = old.city, configured = old.configured,
-            consent = old.consent, mapReady = old.mapReady, sendConsent = false)
+            consent = old.consent, mapReady = old.mapReady)
     }
     fun supplyMissingCity(value: String) {
         val city = value.trim()
@@ -96,8 +124,9 @@ class PlaceAssistantController(
 
     fun submit() {
         val s = mutable.value
-        if (!canQuery() || s.busy || s.items.isNotEmpty()) return
-        if (s.input.isBlank()) { fail("请先输入地点文字。"); return }
+        if (!canQuery() || s.busy || s.attachmentSelectionBusy || s.items.isNotEmpty()) return
+        if (s.input.isBlank() && s.images.isEmpty()) { fail("请先输入地点文字或选择图片。"); return }
+        if (s.images.isNotEmpty()) { processImages(null); return }
         val input = s.input
         val generation = ++run
         mutable.value = s.copy(busy = true, error = null, receipt = null)
@@ -135,11 +164,125 @@ class PlaceAssistantController(
             finally { if (isCurrent(generation)) mutable.value = mutable.value.copy(busy = false) }
         }
     }
+    fun retryImages(ids: Set<String> = mutable.value.sourceProgress.filter {
+        it.stage == SourceStage.FAILED || it.stage == SourceStage.CANCELLED
+    }.map { it.sourceId }.toSet()) {
+        if (!canQuery() || mutable.value.busy || mutable.value.attachmentSelectionBusy || ids.isEmpty()) return
+        val retryable = mutable.value.sourceProgress.filter { it.stage in setOf(SourceStage.FAILED, SourceStage.CANCELLED) }
+            .map { it.sourceId }.toSet()
+        val allowed = ids.intersect(retryable)
+        if (allowed.isNotEmpty()) processImages(allowed)
+    }
+    private fun processImages(retryIds: Set<String>?) {
+        val s = mutable.value
+        if (!imageAllowed()) { fail("当前模型的图片能力检查未通过，图片尚未发送。请在助手设置重新检查，素材已保留。"); return }
+        val runner = processor?.invoke() ?: run { fail("图片处理暂不可用，请重新打开助手。"); return }
+        val generation = ++run
+        val request = AssistantInputRequest(sessionId, s.input, s.city.trim(), s.images, retryIds)
+        val sourceIds = (if (s.input.isBlank()) emptyList() else listOf("text")) + s.images.map { it.id }
+        if (retryIds == null) parsedSources = emptyList()
+        currentParsed = emptyList()
+        mutable.value = s.copy(busy = true, error = null, receipt = null,
+            sourceProgress = sourceIds.map { id ->
+                if (retryIds == null || id in retryIds) SourceProgress(id, SourceStage.SELECTED)
+                else s.sourceProgress.find { it.sourceId == id } ?: SourceProgress(id, SourceStage.COMPLETE)
+            })
+        work = scope.launch {
+            try {
+                withTimeout(540_000) {
+                    val batch = runner.parse(request, onSource = { parsed ->
+                        if (isCurrent(generation)) currentParsed = currentParsed + parsed
+                    }) { progress ->
+                        // OkHttp's body callback is not on the controller dispatcher.
+                        scope.launch {
+                            if (isCurrent(generation)) {
+                                val old = mutable.value.sourceProgress.find { it.sourceId == progress.sourceId }
+                                if (old?.stage !in setOf(SourceStage.COMPLETE, SourceStage.FAILED, SourceStage.CANCELLED))
+                                    mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map {
+                                        if (it.sourceId == progress.sourceId) progress else it
+                                    })
+                            }
+                        }
+                    }
+                    if (!isCurrent(generation)) return@withTimeout
+                    val merged = parsedSources.filterNot { old -> batch.sources.any { it.sourceId == old.sourceId } } + batch.sources
+                    if (batch.overflow || merged.sumOf { it.intents.size } > 20) {
+                        fail("每批最多 20 个地点，请保留素材重新分批；没有查询或截断新增内容。")
+                        mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map {
+                            if (retryIds == null || it.sourceId in retryIds) it.copy(stage = SourceStage.FAILED, error = "地点数量超限，请分批") else it
+                        })
+                        return@withTimeout
+                    }
+                    parsedSources = merged
+                    currentParsed = emptyList()
+                    mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map { progress ->
+                        batch.sources.find { it.sourceId == progress.sourceId }?.let { parsed ->
+                            progress.copy(stage = if (parsed.failure == null) SourceStage.COMPLETE else SourceStage.FAILED,
+                                error = parsed.failure?.userMessage, sendEvidence = parsed.failure?.sendEvidence ?: SendEvidence.RESPONSE_RECEIVED)
+                        } ?: progress
+                    })
+                    val fresh = batch.sources.filter { it.failure == null }.flatMap { it.intents }
+                    val items = fresh.mapIndexed { index, intent ->
+                        val city = request.city
+                        IntakeItem(UUID.randomUUID().toString(), ('A' + s.items.size + index).toString(),
+                            intent.copy(city = intent.city.ifBlank { city }, usesDefaultCity = intent.city.isBlank() ||
+                                (sameCity(intent.city, city) && !intent.sourceSpan.contains(intent.city.removeSuffix("市")))),
+                            cityConflict = city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, city))
+                    }
+                    mutable.value = mutable.value.copy(items = mutable.value.items + items)
+                    if (mutable.value.items.isEmpty()) fail("未识别到明确地点，请换清晰图片或补充文字；素材已保留。")
+                    query(items.map { it.id }.toSet(), generation)
+                }
+            } catch (_: TimeoutCancellationException) {
+                if (isCurrent(generation)) { cancel(); fail("整批处理超时，已完成结果保留；已发送内容无法撤回。") }
+            }
+            catch (e: CancellationException) { throw e }
+            catch (e: Exception) { if (isCurrent(generation)) fail(e.safeMessage()) }
+            finally {
+                if (isCurrent(generation)) {
+                    stopPending(null)
+                    mutable.value = mutable.value.copy(busy = false, sourceProgress = mutable.value.sourceProgress.map {
+                        if (it.stage in setOf(SourceStage.SELECTED, SourceStage.PREPARING, SourceStage.SENDING, SourceStage.UNDERSTANDING))
+                            it.copy(stage = SourceStage.CANCELLED) else it
+                    })
+                }
+            }
+        }
+    }
     fun cancel() {
+        // A stopped batch must retain completed image extraction without querying an unchecked prefix.
+        if (currentParsed.isNotEmpty()) {
+            val merged = parsedSources.filterNot { old -> currentParsed.any { it.sourceId == old.sourceId } } + currentParsed
+            if (merged.none { it.failure?.code == AssistantFailureCode.OVERFLOW } && merged.sumOf { it.intents.size } <= 20) {
+                val represented = mutable.value.items.flatMap { it.intent.sources }.mapNotNull {
+                    when (it) { is IntakeSource.Image -> it.imageId; is IntakeSource.Text -> "text" }
+                }.toSet()
+                val fresh = currentParsed.filter { it.failure == null && it.sourceId !in represented }.flatMap { it.intents }
+                val s = mutable.value
+                mutable.value = s.copy(items = s.items + fresh.mapIndexed { index, intent ->
+                    IntakeItem(UUID.randomUUID().toString(), ('A' + s.items.size + index).toString(),
+                        intent.copy(city = intent.city.ifBlank { s.city }, usesDefaultCity = intent.city.isBlank() ||
+                            (sameCity(intent.city, s.city) && !intent.sourceSpan.contains(intent.city.removeSuffix("市")))),
+                        status = IntakeStatus.CANCELLED, detail = "已理解，地图查询尚未开始；可继续此项。",
+                        cityConflict = s.city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, s.city))
+                })
+                parsedSources = merged
+                mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map { progress ->
+                    currentParsed.find { it.sourceId == progress.sourceId }?.let { parsed ->
+                        progress.copy(stage = if (parsed.failure == null) SourceStage.COMPLETE else SourceStage.FAILED,
+                            error = parsed.failure?.userMessage, sendEvidence = parsed.failure?.sendEvidence ?: SendEvidence.RESPONSE_RECEIVED)
+                    } ?: progress
+                })
+            }
+            currentParsed = emptyList()
+        }
         run++
         work?.cancel(); work = null
         stopPending(null)
-        mutable.value = mutable.value.copy(busy = false)
+        mutable.value = mutable.value.copy(busy = false, sourceProgress = mutable.value.sourceProgress.map {
+            if (it.stage in setOf(SourceStage.SELECTED, SourceStage.PREPARING, SourceStage.SENDING, SourceStage.UNDERSTANDING))
+                it.copy(stage = SourceStage.CANCELLED) else it
+        })
     }
     fun retry(ids: Set<String> = mutable.value.items.filter {
         it.status in setOf(IntakeStatus.FAILED, IntakeStatus.CANCELLED)
@@ -158,11 +301,12 @@ class PlaceAssistantController(
     fun editItem(id: String, query: String, city: String) {
         if (mutable.value.saving || query.isBlank() || query.length > 100 || city.length > 50) return
         mutable.value = mutable.value.copy(confirmation = null, selected = mutable.value.selected - id)
-        changeItem(id) { it.copy(intent = PlaceIntent(query.trim(), city.trim(), it.intent.sourceSpan),
+        changeItem(id) { it.copy(intent = it.intent.copy(query = query.trim(), city = city.trim(), needsReview = false),
             generation = it.generation + 1, status = IntakeStatus.CANCELLED, candidates = emptyList(), poi = null, detail = null, cityConflict = false) }
     }
     fun confirmCity(id: String) {
         if (mutable.value.busy || mutable.value.saving) return
+        if (mutable.value.items.find { it.id == id }?.intent?.needsReview == true) return
         changeItem(id) { it.copy(cityConflict = false) }
         retry(setOf(id))
     }
@@ -223,6 +367,10 @@ class PlaceAssistantController(
             semaphore.withPermit {
                 val item = mutable.value.items.find { it.id == id } ?: return@withPermit
                 if (!isCurrent(generation)) return@withPermit
+                if (item.intent.needsReview) {
+                    changeItem(id) { it.copy(status = IntakeStatus.NEED_CITY, detail = "图片中的名称不够明确，请对照来源核对名称和城市。") }
+                    return@withPermit
+                }
                 if (item.cityConflict) {
                     changeItem(id) { it.copy(status = IntakeStatus.NEED_CITY, detail = "原文城市 ${item.intent.city} 与默认城市不同，请确认此项城市。") }
                     return@withPermit
@@ -246,13 +394,16 @@ class PlaceAssistantController(
         val preferred = mutable.value.items.filter { it.id in mutable.value.selected && it.poi != null }
             .associate { requireNotNull(it.poi).poiId to it.id }
         val seen = mutableSetOf<String>()
+        val allSources = mutable.value.items.filter { it.poi != null }.groupBy { it.poi!!.poiId }
+            .mapValues { (_, items) -> items.flatMap { it.intent.sources }.distinct() }
         val items = mutable.value.items.map { item ->
             val poi = item.poi ?: return@map item
-            when {
+            val reconciled = when {
                 poi.poiId in savedIds -> item.copy(status = IntakeStatus.ALREADY_SAVED, detail = "已在地点池，保留已有内容。")
                 (preferred[poi.poiId]?.let { it != item.id } == true) || !seen.add(poi.poiId) -> item.copy(status = IntakeStatus.DUPLICATE, detail = "与本批另一项为同一地点，不重复收藏。")
                 else -> item.copy(status = IntakeStatus.READY, detail = null)
             }
+            reconciled.copy(sources = allSources[poi.poiId].orEmpty())
         }
         val selected = mutable.value.selected.intersect(items.filter { it.status == IntakeStatus.READY }.map { it.id }.toSet())
         mutable.value = mutable.value.copy(items = items, selected = selected,
@@ -273,7 +424,6 @@ class PlaceAssistantController(
             s.saving -> return false
             !s.configured -> "请先在助手设置配置模型。"
             !s.consent -> "请先授权地图服务。"
-            !s.sendConsent -> "请先确认本次发送的数据范围。"
             else -> null
         }
         if (error != null) fail(error)

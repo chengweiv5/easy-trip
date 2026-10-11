@@ -4,7 +4,12 @@ import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
-class AssistantFailure(val userMessage: String) : Exception(userMessage)
+enum class SendEvidence { NOT_DISPATCHED, POSSIBLY_SENT, RESPONSE_RECEIVED }
+enum class AssistantFailureCode { UNKNOWN, NO_PLACES, OVERFLOW, UNSUPPORTED_IMAGE, AUTH, LIMIT, NETWORK, PROTOCOL }
+class AssistantFailure(val userMessage: String,
+    val code: AssistantFailureCode = AssistantFailureCode.UNKNOWN,
+    val sendEvidence: SendEvidence = SendEvidence.NOT_DISPATCHED,
+) : Exception(userMessage)
 
 class ProviderConfig(val baseUrl: String, val model: String, val apiKey: String) {
     val chatUrl: String get() = baseUrl.trimEnd('/') + "/chat/completions"
@@ -20,7 +25,12 @@ class ProviderConfig(val baseUrl: String, val model: String, val apiKey: String)
     override fun toString() = "ProviderConfig(credentials=redacted)"
 }
 
-data class PlaceIntent(val query: String, val city: String, val sourceSpan: String, val usesDefaultCity: Boolean = false)
+sealed interface IntakeSource {
+    data class Text(val span: String) : IntakeSource
+    data class Image(val imageId: String, val ordinal: Int, val excerpt: String) : IntakeSource
+}
+data class PlaceIntent(val query: String, val city: String, val sourceSpan: String,
+    val usesDefaultCity: Boolean = false, val sources: List<IntakeSource> = emptyList(), val needsReview: Boolean = false)
 fun interface PlaceIntentParser {
     suspend fun parse(input: String, defaultCity: String): List<PlaceIntent>
 }
@@ -37,10 +47,14 @@ data class IntakeItem(
     val category: PlaceCategory = PlaceCategory.OTHER,
     val detail: String? = null,
     val cityConflict: Boolean = false,
+    val sources: List<IntakeSource> = intent.sources,
 )
 
 data class PlaceAssistantState(
     val input: String = "",
+    val images: List<AssistantImage> = emptyList(),
+    val sourceProgress: List<SourceProgress> = emptyList(),
+    val attachmentSelectionBusy: Boolean = false,
     val city: String = "",
     val items: List<IntakeItem> = emptyList(),
     val selected: Set<String> = emptySet(),
@@ -49,11 +63,10 @@ data class PlaceAssistantState(
     val mapReady: Boolean = false,
     val configured: Boolean = false,
     val consent: Boolean = false,
-    val sendConsent: Boolean = false,
     val confirmation: ImportConfirmation? = null,
     val receipt: ImportReceipt? = null,
     val error: String? = null,
 ) {
     val eligible get() = items.filter { it.status == IntakeStatus.READY }
-    val hasDraft get() = input.isNotBlank() || items.isNotEmpty()
+    val hasDraft get() = input.isNotBlank() || items.isNotEmpty() || images.isNotEmpty() || attachmentSelectionBusy
 }

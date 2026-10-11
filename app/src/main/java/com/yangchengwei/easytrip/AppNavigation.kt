@@ -550,7 +550,8 @@ fun AppNavigation(
                     viewModel<com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel>(
                         viewModelStoreOwner = entry,
                         factory = com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel.Factory(
-                            id, container.assistantConfig, container.placeImport, workspaceDependencies.savedPlaceRepository),
+                            id, container.assistantConfig, container.placeImport, workspaceDependencies.savedPlaceRepository,
+                            container.assistantImages, entry.savedStateHandle),
                     )
                 }
                 LaunchedEffect(assistantModel, source) { assistantModel?.controller?.updateSource(source) }

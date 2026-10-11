@@ -175,7 +175,7 @@ class AssistantUiTest {
             compose.onNodeWithTag("assistant-input").performScrollTo().performTextInput(text)
             androidx.test.espresso.Espresso.closeSoftKeyboard()
             compose.onNodeWithTag("assistant-submit").performScrollTo().performClick()
-            compose.onNodeWithText("同意并发送本次内容").performClick()
+            compose.onNodeWithText("同意并发送本次内容").assertDoesNotExist()
             compose.waitUntil(100_000) { !assistant.controller.state.value.busy && assistant.controller.state.value.items.isNotEmpty() }
             assertEquals(1, modelCalls.get())
             assertTrue(saved().isEmpty())

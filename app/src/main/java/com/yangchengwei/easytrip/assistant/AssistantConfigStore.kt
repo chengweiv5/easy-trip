@@ -22,7 +22,7 @@ class AssistantConfigStore(context: Context) {
     val revision = changes.asStateFlow()
     private val alias = "easy-trip-assistant-provider-v1"
 
-    @Synchronized fun read(): ProviderConfig? = runCatching {
+    private fun readJson(): JsonObject? = runCatching {
         if (!file.baseFile.exists()) return null
         val data = ByteBuffer.wrap(file.readFully())
         val ivLength = data.get().toInt()
@@ -31,14 +31,36 @@ class AssistantConfigStore(context: Context) {
         val payload = ByteArray(data.remaining()).also(data::get)
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.DECRYPT_MODE, key(), GCMParameterSpec(128, iv))
-        val json = Json.parseToJsonElement(cipher.doFinal(payload).toString(Charsets.UTF_8)).jsonObject
+        Json.parseToJsonElement(cipher.doFinal(payload).toString(Charsets.UTF_8)).jsonObject
+    }.getOrNull()
+    @Synchronized fun read(): ProviderConfig? = runCatching {
+        val json = readJson() ?: return null
         ProviderConfig(json.getValue("url").jsonPrimitive.content, json.getValue("model").jsonPrimitive.content,
             json.getValue("key").jsonPrimitive.content).validated()
     }.getOrNull()
 
     @Synchronized fun save(config: ProviderConfig) {
         val value = config.validated()
+        if (value.sameAs(read())) return
         val json = buildJsonObject { put("url", value.baseUrl); put("model", value.model); put("key", value.apiKey) }
+        write(json)
+        changes.value++
+    }
+    @Synchronized fun imageCapability(): ImageCapabilityResult {
+        val json = readJson()
+        val value = runCatching { ImageCapability.valueOf(json?.get("imageCapability")?.jsonPrimitive?.content.orEmpty()) }
+            .getOrDefault(ImageCapability.UNKNOWN)
+        return ImageCapabilityResult(value, json?.get("imageCheckedAt")?.jsonPrimitive?.longOrNull)
+    }
+    @Synchronized fun saveImageCapability(expected: ProviderConfig, result: ImageCapabilityResult): Boolean {
+        if (!expected.sameAs(read())) return false
+        val json = readJson()?.toMutableMap() ?: return false
+        json["imageCapability"] = JsonPrimitive(result.capability.name)
+        result.checkedAt?.let { json["imageCheckedAt"] = JsonPrimitive(it) }
+        write(JsonObject(json))
+        return true
+    }
+    private fun write(json: JsonObject) {
         val cipher = Cipher.getInstance("AES/GCM/NoPadding")
         cipher.init(Cipher.ENCRYPT_MODE, key())
         val encrypted = cipher.doFinal(json.toString().toByteArray(Charsets.UTF_8))
@@ -47,7 +69,6 @@ class AssistantConfigStore(context: Context) {
             stream.write(byteArrayOf(cipher.iv.size.toByte())); stream.write(cipher.iv); stream.write(encrypted)
             file.finishWrite(stream)
         } catch (e: Exception) { file.failWrite(stream); throw AssistantFailure("无法安全保存配置，原配置未替换。") }
-        changes.value++
     }
 
     @Synchronized fun clear() { file.delete(); changes.value++ }

@@ -293,7 +293,7 @@ fun TripWorkspaceRoute(
     var confirmAssistantLeave by remember { mutableStateOf(false) }
     fun leaveWorkspace() {
         if (assistantState?.saving == true) return
-        if (assistantState?.input?.isNotBlank() == true || assistantState?.items?.isNotEmpty() == true) {
+        if (assistantState?.hasDraft == true) {
             confirmAssistantLeave = true
         } else onBack()
     }
@@ -767,7 +767,7 @@ fun TripWorkspaceRoute(
         title = { Text("离开当前旅行？") },
         text = { Text("未收藏的助手草稿和临时标记将清除。已经收藏的地点不受影响。") },
         confirmButton = { TextButton({
-            assistantViewModel?.controller?.clear()
+            assistantViewModel?.clearDraft()
             confirmAssistantLeave = false
             onBack()
         }) { Text("清除并离开") } },

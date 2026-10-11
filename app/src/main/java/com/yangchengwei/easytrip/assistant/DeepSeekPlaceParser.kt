@@ -7,6 +7,7 @@ import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.serialization.json.*
 import okhttp3.*
+import okhttp3.HttpUrl.Companion.toHttpUrl
 import okhttp3.MediaType.Companion.toMediaType
 import okhttp3.RequestBody.Companion.toRequestBody
 
@@ -26,9 +27,9 @@ object BatchToolProtocol {
         require(function["name"]?.jsonPrimitive?.content == "search_place_batch")
         val args = json.parseToJsonElement(function.getValue("arguments").jsonPrimitive.content).jsonObject
         require(args.keys == setOf("items", "overflow"))
-        if (args.getValue("overflow").jsonPrimitive.boolean) throw AssistantFailure("每批最多 20 个地点，请分批编辑；没有查询或截断原文。")
+        if (args.getValue("overflow").jsonPrimitive.boolean) throw AssistantFailure("每批最多 20 个地点，请分批编辑；没有查询或截断原文。", AssistantFailureCode.OVERFLOW, SendEvidence.RESPONSE_RECEIVED)
         val items = args.getValue("items").jsonArray
-        if (items.isEmpty()) throw AssistantFailure("未识别到地点，请提供地点名称；不会读取链接。")
+        if (items.isEmpty()) throw AssistantFailure("未识别到地点，请提供地点名称；不会读取链接。", AssistantFailureCode.NO_PLACES, SendEvidence.RESPONSE_RECEIVED)
         require(items.size <= 20)
         items.map { element ->
             val item = element.jsonObject
@@ -49,7 +50,7 @@ object BatchToolProtocol {
 
     fun request(config: ProviderConfig, input: String, city: String): String = buildJsonObject {
         put("model", config.model); put("stream", false); put("max_tokens", 4096)
-        putJsonObject("thinking") { put("type", "disabled") }
+        if (okhttp3.HttpUrl.Companion.run { config.baseUrl.toHttpUrl().host } == "api.deepseek.com") putJsonObject("thinking") { put("type", "disabled") }
         putJsonArray("messages") {
             addJsonObject {
                 put("role", "system")
@@ -89,45 +90,15 @@ object BatchToolProtocol {
 
 class DeepSeekPlaceParser(
     private val config: () -> ProviderConfig?,
-    private val client: OkHttpClient = OkHttpClient.Builder()
+    client: OkHttpClient = OkHttpClient.Builder()
         .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false)
         .callTimeout(45, TimeUnit.SECONDS).connectTimeout(15, TimeUnit.SECONDS).build(),
 ) : PlaceIntentParser {
+    private val transport = AssistantTransport(client)
     override suspend fun parse(input: String, defaultCity: String): List<PlaceIntent> {
         require(input.length in 1..2000 && defaultCity.length <= 50)
         val current = config()?.validated() ?: throw AssistantFailure("请先在助手设置配置模型服务。")
-        val request = Request.Builder().url(current.chatUrl).header("Authorization", "Bearer ${current.apiKey}")
-            .post(BatchToolProtocol.request(current, input, defaultCity).toRequestBody("application/json".toMediaType())).build()
-        val response = execute(client.newCall(request))
+        val response = transport.post(current, BatchToolProtocol.request(current, input, defaultCity))
         return BatchToolProtocol.decode(response, input, defaultCity)
-    }
-
-    private suspend fun execute(call: Call): String = suspendCancellableCoroutine { continuation ->
-        continuation.invokeOnCancellation { call.cancel() }
-        call.enqueue(object : Callback {
-            override fun onFailure(call: Call, e: IOException) {
-                if (continuation.isActive) continuation.resumeWithException(AssistantFailure("模型连接超时或网络不可用，输入已保留。"))
-            }
-            override fun onResponse(call: Call, response: Response) {
-                val result = runCatching {
-                    response.use {
-                        if (!it.isSuccessful) throw AssistantFailure(when (it.code) {
-                            401, 403 -> "鉴权失败，请检查助手设置中的 Key。"
-                            429 -> "模型服务限流或额度不足，请稍后重试。"
-                            in 300..399 -> "接口发生重定向，已阻止转发凭据，请检查 Base URL。"
-                            else -> "模型服务暂不可用（HTTP ${it.code}），请手动重试。"
-                        })
-                        val body = it.body ?: throw AssistantFailure("模型返回空响应。")
-                        val source = body.source()
-                        if (source.request(256 * 1024L + 1)) throw AssistantFailure("模型响应超过安全上限。")
-                        source.readUtf8()
-                    }
-                }
-                if (continuation.isActive) result.fold(
-                    onSuccess = { continuation.resume(it) },
-                    onFailure = { continuation.resumeWithException(it as? AssistantFailure ?: AssistantFailure("读取模型响应失败，请重试。")) },
-                )
-            }
-        })
     }
 }

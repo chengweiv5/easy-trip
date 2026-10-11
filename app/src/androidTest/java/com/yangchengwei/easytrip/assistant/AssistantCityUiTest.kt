@@ -113,7 +113,7 @@ class AssistantCityUiTest {
             compose.runOnIdle { workspace.setSheetLevel(WorkspaceSheetLevel.EXPANDED) }
             compose.onNodeWithTag("assistant-input").performScrollTo().performTextInput("云龙湖、云龙山")
             compose.onNodeWithTag("assistant-submit").performScrollTo().performClick()
-            compose.onNodeWithText("同意并发送本次内容").performClick()
+            compose.onNodeWithText("同意并发送本次内容").assertDoesNotExist()
             compose.waitUntil(10_000) { assistant.controller.state.value.items.size == 2 && !assistant.controller.state.value.busy }
             assertEquals(listOf(title), resolvedTitles.toList())
             if (!knownCity) {

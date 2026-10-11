@@ -7,12 +7,45 @@ import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.settings.AppSettingsContent
 import java.io.File
+import java.util.UUID
+import java.util.concurrent.atomic.AtomicBoolean
+import kotlinx.coroutines.awaitCancellation
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
 
 class AssistantSettingsTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+    @Test fun leavingDuringImageCheckCancelsItAndKeepsCapabilityUnknown() {
+        val directory = File(compose.activity.noBackupFilesDir, "image-check-${UUID.randomUUID()}")
+        val isolated = object : android.content.ContextWrapper(compose.activity) {
+            override fun getNoBackupFilesDir() = directory.apply { mkdirs() }
+        }
+        val store = AssistantConfigStore(isolated)
+        val page = androidx.compose.runtime.mutableStateOf(true)
+        val started = AtomicBoolean()
+        val cancelled = AtomicBoolean()
+        store.save(ProviderConfig("https://example.invalid", "test-vision", "test-key"))
+        try {
+            compose.setContent { EasyTripTheme {
+                if (page.value) AssistantSettings(store, imageCheck = {
+                    started.set(true)
+                    try { awaitCancellation() } finally { cancelled.set(true) }
+                }) { page.value = false }
+                else androidx.compose.material3.Text("已返回设置")
+            } }
+            compose.onNodeWithTag("assistant-image-capability-check").performScrollTo().performClick()
+            compose.waitUntil { started.get() }
+            compose.onNodeWithTag("assistant-settings-back").performClick()
+            compose.onNodeWithText("已返回设置").assertIsDisplayed()
+            compose.waitUntil { cancelled.get() }
+            assertEquals(ImageCapability.UNKNOWN, store.imageCapability().capability)
+        } finally {
+            compose.runOnIdle { page.value = false }
+            directory.deleteRecursively()
+        }
+    }
+
     @Test fun globalEntryAndEncryptedConfigCanBeClearedWithoutTouchingTrips() {
         var opened = 0
         val context = compose.activity

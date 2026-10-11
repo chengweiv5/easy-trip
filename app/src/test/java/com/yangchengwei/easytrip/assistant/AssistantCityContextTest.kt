@@ -37,7 +37,6 @@ class AssistantCityContextTest {
             }, Importer(),
             resolveDefaultCity = { "徐州市" })
         controller.environment(true, true, true)
-        controller.allowSend()
         controller.editInput("云龙湖、云龙山")
         controller.submit()
         advanceUntilIdle()
@@ -54,7 +53,7 @@ class AssistantCityContextTest {
         val controller = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, city -> parserCity = city; listOf(PlaceIntent("云龙湖", city, "云龙湖")) },
             null, Importer(), resolveDefaultCity = { lookups++; "徐州市" })
-        controller.environment(true, true, true); controller.allowSend()
+        controller.environment(true, true, true)
         controller.editCity("杭州"); controller.editInput("云龙湖"); controller.submit(); advanceUntilIdle()
         assertEquals(0, lookups)
         assertEquals("杭州", parserCity)
@@ -66,7 +65,7 @@ class AssistantCityContextTest {
         val controller = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> parses++; emptyList() }, null, Importer(),
             resolveDefaultCity = { lookup.await() })
-        controller.environment(true, true, true); controller.allowSend()
+        controller.environment(true, true, true)
         controller.editInput("云龙湖"); controller.submit(); runCurrent()
         controller.editCity("杭州")
         lookup.complete("徐州市"); advanceUntilIdle()
@@ -90,7 +89,7 @@ class AssistantCityContextTest {
                     return listOf(PlaceCandidate(keyword, keyword, "地址", GeoPoint(34.23, 117.17), null, city))
                 }
             }, Importer(), resolveDefaultCity = { null })
-        controller.environment(true, true, true); controller.allowSend()
+        controller.environment(true, true, true)
         controller.editInput("云龙湖、云龙山、北京的故宫"); controller.submit(); advanceUntilIdle()
         assertEquals(listOf(IntakeStatus.NEED_CITY, IntakeStatus.NEED_CITY, IntakeStatus.READY),
             controller.state.value.items.map { it.status })

@@ -1,3 +1,46 @@
+# v3.1 提交与主线推送（当前）
+
+状态：**IN_PROGRESS — 用户授权提交、推送；功能已提交，正在rebase整合v3.0.2与验证。** 2026-10-11。
+
+- 开发阶段记录及上游历史保留下文；当前尚未推送，不安装手机或发布。
+- 备份：`/Users/bytedance/.codex/backups/easy-trip/v3.1-commit-push-20261011-161130/`；rebase前保留分支`codex/v3.1-before-main-rebase-20261011`。
+
+---
+
+# v3.1 助手图片输入开发（当前）
+
+状态：**DONE — 本地首版实现及本轮自动化验证、实施文档、资源清理与完成通知已完成；不是全量产品验收或正式交付。** 2026-10-11 16:04（Asia/Shanghai）。
+
+- 用户已确认计划、五个测试边界和Native实施。图片附件、预览、元数据处理、严格工具协议、来源/停止/重试、独立图片能力检查及会话清理已实现。纯文字/纯图/图文直接发送，无发送确认；选图不上传，收藏/清空/离开确认保留。
+- f445 / `codex/v3.1-image-input-design`，HEAD `bebaf82ca0dba4188f09fe31dba2724c4d594cdc`，**3.1.0/build24/schema11**。未提交、未推送、未发布、未安装真实手机；只有Debug App/AndroidTest APK，没有正式签名Release APK。
+- 最后获取的`origin/main`为`cc5e50ad003ffa88c94cf5ff461d72d06a403094`（v3.0.2/build23），其中并行新增的城市上下文、地图编辑等代码尚未整合。正式交付前需要重新fetch/rebase/验证并核对版本号，不能把当前结果当作已覆盖主线。
+- **最终验证：Debug/Release各1009测试，0失败/错误/跳过；Release lint 0错误、59警告、1提示；18项设备专项全部通过。** 系统320dp、2倍字体另重复一项图片E2E通过；不重复累加为19个独立测试。模拟器APK回读版本和SHA与构建包一致。
+- 最终自审追加red/green修复：设置检查返回取消、停止后的城市冲突核对、模型实际21项但漏报overflow的整批阻断。独立安全审查3项已修复复查；Spec子任务payload异常未产出有效审查，不宣称双轴独立审查完成。
+- 实施/覆盖矩阵/回滚：`docs/testing/v3.1.0-image-input-implementation.md`；计划执行记录：`docs/superpowers/plans/2026-10-11-v3.1-image-input.md`。计划复合验收项未全部执行，不统一勾选。机器汇总与源输入清单在`.scratch/v3.1-image-input/evidence/`。
+- 未实测真实图片模型、真实Photo Picker、API26、全部EXIF方向/TalkBack/图片IME/全主题等矩阵。使用合成图片和fake模型/POI，不读取手机Key或真实相册；保留这些验收缺口。
+- 备份`/Users/bytedance/.codex/backups/easy-trip/v3.1-development-20261011-145948/`，仅按本轮diff定点回滚；不覆盖他人修改。v3.0.0、v3.1.0设计源均与开发前备份一致，未操作Pencil；v3.1源SHA保持`07710b15795492e474c6e4a5769a6e17d7ca902383980c556face58b9077bb63`。
+- 自有模拟器`emulator-5598`/PID22798已停止，显示参数恢复，专属锁释放；未停止其他模拟器或Gradle daemon。证据`cleanup-readback.json`。
+- punk-12完成通知`om_x100b63807e6fc4a4c3bc9d4012bbc31`已独立回读：正文、chat `oc_b5dc30707aff7eb5628922703c9b3814`、app `cli_aaa104e4de399cca`、`deleted=false`吻合。证据`completion-notification-send.json`及`completion-notification-readback.json`。此前计划通知不是本轮完成通知。
+
+---
+
+# v3.1 助手图片输入设计（历史）
+
+状态：**DONE — 发送确认设计修订完成，Pencil保存与重启已恢复；未实现。** 2026-10-11。
+
+- f445/`codex/v3.1-image-input-design`，代码基线`bebaf82`。未改产品代码/版本/DB，未提交推送、安装或发布。
+- 正式累积源`design/easy-trip-v3.1.0.pen`保留234旧根，新增18图片区根及1总览，共253根/43,299节点。
+- 图文共用输入区；点击「全部标记到地图」直接处理，首次/后续/切换模型均不弹发送确认，不增“始终允许”开关。选图不自动上传，收藏与清空草稿确认保留。A10/B04及总览已同步，非阻断数据/费用说明保留；参数为评审建议，不代表实现能力。
+- 同源v3已补齐20组两行每日标题及默认分类说明；冻结v2.2.1不改。
+- 修订源SHA`07710b15795492e474c6e4a5769a6e17d7ca902383980c556face58b9077bb63`。重启后精确f445路径、253根/43,299节点、零旧发送确认/placeholder回读通过；B04原生可编辑属性390×792、Hug Height。13变化根中12根无裁剪，A22原有地图示意裁剪保留。25页PDF全部渲染及关键页检查通过，不等于全应用或Android/模型验收。
+- 首看`V1hGez`；说明`design/v3.1.0-image-input-review.md`；证据和回滚`docs/testing/v3.1.0-image-input-design.md`。
+- 首稿备份：`/Users/bytedance/.codex/backups/easy-trip/v3.1-image-input-design-20261011-131106/`；本次发送确认修订前备份：`/Users/bytedance/.codex/backups/easy-trip/v3.1-direct-send-20261011-134237/`。
+- 用户报告2df7 v3.0.1无法保存：磁盘234根、内存242根；已保全原生自动备份，通过当前窗口关闭→Save写入242根/42,312节点，源SHA`cd789cbb6f8365f1548469bec0cd166edf4b3296320bd2b662060f999d33ee5a`，与原生备份逐字节一致。重启后相同清单哈希`7ed5d796`，无丢弃。仅恢复保存，不替2df7做业务验收。
+- 正常退出后Pencil自带更新器自动安装此前已下载的1.2.16；旧进程在所有文档关闭后残留，精确SIGTERM后更新/重启完成，未SIGKILL、清缓存或修改程序。恢复备份：`/Users/bytedance/.codex/backups/easy-trip/pencil-save-recovery-20261011-1410/`；原生回读与通知证据：`.scratch/v3.1-direct-send/`。
+- 本次punk-12完成通知`om_x100b6386ed7148a4c4c376526daa832`已回读全文、目标chat及机器人身份；首稿通知`om_x100b6385b61a14a0c3b92bdf52c95b9`保留为历史。
+
+---
+
 # v3.0.2 提交、推送与安装（当前）
 
 状态：**DONE — 已提交、快进推送main、原签名覆盖安装并回读；未发布Release。** 2026-10-11。

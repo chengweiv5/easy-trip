@@ -1,0 +1,192 @@
+{
+  "date": "2026-10-11",
+  "branch": "codex/v3.1-image-input-design",
+  "code_baseline": "bebaf82ca0dba4188f09fe31dba2724c4d594cdc",
+  "pencil_native_saved_and_reopened": true,
+  "pencil_target_verified": "/Users/bytedance/.codex/worktrees/f445/easy-trip/design/easy-trip-v3.1.0.pen",
+  "native_ui_property_check": {
+    "screen": "oJOi0",
+    "width": 390,
+    "height": 792,
+    "hug_height": true,
+    "editable_fields": [
+      "name",
+      "context",
+      "position",
+      "dimensions",
+      "fill",
+      "theme"
+    ],
+    "after_restart": true,
+    "evidence": ".scratch/v3.1-direct-send/native-final-readback.txt"
+  },
+  "v3_baseline": {
+    "roots": 234,
+    "changed_roots": 21,
+    "daily_header_groups": 20,
+    "hash": "e325d5a4ebb05085315e83a4cfe144ad71abe16404333004a984422dde2ed271"
+  },
+  "v31": {
+    "roots": 253,
+    "nodes": 43299,
+    "retained_prior_roots": 234,
+    "new_image_roots": 18,
+    "review_overview_roots": 1,
+    "node_types": {
+      "frame": 12831,
+      "text": 9051,
+      "rectangle": 1017,
+      "icon": 4350,
+      "ref": 614,
+      "path": 15085,
+      "ellipse": 351
+    },
+    "sha256": "07710b15795492e474c6e4a5769a6e17d7ca902383980c556face58b9077bb63",
+    "duplicate_ids": 0,
+    "broken_references": [],
+    "placeholders": 0,
+    "changed_roots_this_revision": 13
+  },
+  "mcp_layout_check": {
+    "focused_roots": 25,
+    "clipped_nodes": 0,
+    "assistant_and_image_root_overlaps": 0,
+    "scope": "new image states and directly changed assistant states; not whole-app acceptance",
+    "direct_send_revision": {
+      "focused_roots": 13,
+      "new_clipped_nodes": 0,
+      "inherited_clipped_nodes": [
+        {
+          "root": "UXDt5",
+          "id": "h1QpkL",
+          "name": "Illustrative Map",
+          "note": "pre-existing illustration clipped inside fixed map container; only notice text changed"
+        }
+      ],
+      "other_roots_without_clips": 12
+    }
+  },
+  "pdf": {
+    "pages": 25,
+    "all_pages_rendered": true,
+    "contact_sheet_reviewed": true,
+    "key_page_visual_review": [
+      3,
+      6,
+      20,
+      25
+    ],
+    "normalized_text_checked": true,
+    "legacy_send_consent_phrases": 0,
+    "sha256": "448ff2628828efbf2833929141c9e18b676135058fb38486536d8b81f53fa50a"
+  },
+  "frozen_v221_unchanged": true,
+  "product_source_changed": false,
+  "app_tests_run": false,
+  "installed": false,
+  "published": false,
+  "pushed": false,
+  "screens": [
+    {
+      "id": "oJKd6",
+      "name": "v3.1.0 · 15 图片输入 / B00 组件与交互规则"
+    },
+    {
+      "id": "g1tCv",
+      "name": "v3.1.0 · 15 图片输入 / B01 图片与文字 · 待发送"
+    },
+    {
+      "id": "c8hlOt",
+      "name": "v3.1.0 · 15 图片输入 / B02 系统选图 · 不读取整库"
+    },
+    {
+      "id": "R6nAYA",
+      "name": "v3.1.0 · 15 图片输入 / B03 图片预览 · 发送前检查"
+    },
+    {
+      "id": "oJOi0",
+      "name": "v3.1.0 · 15 图片输入 / B04 点击后直接发送"
+    },
+    {
+      "id": "Avyhy",
+      "name": "v3.1.0 · 15 图片输入 / B05 逐图进度 · 取消可继续编辑"
+    },
+    {
+      "id": "HCnC3",
+      "name": "v3.1.0 · 15 图片输入 / B06 图片结果 · 来源可追溯"
+    },
+    {
+      "id": "Ai7bx",
+      "name": "v3.1.0 · 15 图片输入 / B07 来源核对 · 不凭图片猜坐标"
+    },
+    {
+      "id": "N0n9YL",
+      "name": "v3.1.0 · 15 图片输入 / B08 部分图片失败 · 只重试失败项"
+    },
+    {
+      "id": "Jetp7",
+      "name": "v3.1.0 · 15 图片输入 / B09 未识别到地点 · 不生成虚构结果"
+    },
+    {
+      "id": "jX5wQ",
+      "name": "v3.1.0 · 15 图片输入 / B10 图片校验 · 局部失败不静默丢弃"
+    },
+    {
+      "id": "NUyOh",
+      "name": "v3.1.0 · 15 图片输入 / B11 模型不支持图片 · 文字可用"
+    },
+    {
+      "id": "cgqLe",
+      "name": "v3.1.0 · 15 图片输入 / B12 只上传图片 · 无需补充文字"
+    },
+    {
+      "id": "wYxin",
+      "name": "v3.1.0 · 15 图片输入 / B13 键盘展开 · 保留附件与提交入口"
+    },
+    {
+      "id": "qhyyH",
+      "name": "v3.1.0 · 15 图片输入 / B14 320dp · 大字号与纵向滚动"
+    },
+    {
+      "id": "ScTX8",
+      "name": "v3.1.0 · 15 图片输入 / B15 达到6张上限 · 全部图片可管理"
+    },
+    {
+      "id": "A16zgf",
+      "name": "v3.1.0 · 15 图片输入 / B16 清空图片草稿 · 需要确认"
+    },
+    {
+      "id": "YnD3F",
+      "name": "v3.1.0 · 15 图片输入 / B17 相册不可读与取消恢复"
+    }
+  ],
+  "status": "DONE_DESIGN_REVIEW_NOT_IMPLEMENTED",
+  "revision": "2026-10-11 direct-send revision",
+  "pencil_native_saved": true,
+  "native_restart": {
+    "requested_by_user": true,
+    "normal_quit_attempted": true,
+    "v31_disk_readback_passed": true,
+    "v301_disk_readback_passed": true,
+    "all_windows_closed_before_sigterm": true,
+    "sigkill_used": false,
+    "discard_used": false,
+    "automatic_pending_update": "1.2.15 to 1.2.16",
+    "old_process": 6974,
+    "restarted_process": 54216,
+    "v301_reopened": true,
+    "v31_reopened": true,
+    "v301_manifest_hash": "7ed5d796",
+    "v301_roots": 242,
+    "v301_nodes": 42312,
+    "v301_sha256": "cd789cbb6f8365f1548469bec0cd166edf4b3296320bd2b662060f999d33ee5a"
+  },
+  "direct_send_policy": {
+    "image_text_and_mixed": true,
+    "no_first_use_confirmation": true,
+    "no_provider_change_confirmation": true,
+    "no_always_allow_toggle": true,
+    "pick_does_not_upload": true,
+    "collection_confirmation_retained": true
+  }
+}

@@ -1,5 +1,9 @@
 package com.yangchengwei.easytrip.assistant
 
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.PickVisualMediaRequest
+import androidx.activity.result.contract.ActivityResultContracts
+
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
@@ -37,12 +41,16 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
     val s = host.state
     val controller = host.controller
     var clearPrompt by remember { mutableStateOf(false) }
-    var consentPrompt by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf<String?>(null) }
     var categoryId by remember { mutableStateOf<String?>(null) }
     var batchCityPrompt by remember { mutableStateOf(false) }
     var batchCity by remember { mutableStateOf("") }
     val missingCityCount = s.items.count { it.status == IntakeStatus.NEED_CITY && it.intent.city.isBlank() }
+    var previewId by remember { mutableStateOf<String?>(null) }
+    var pickerRevision by remember { mutableLongStateOf(-1L) }
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(6)) {
+        if (pickerRevision == controller.draftRevision) host.model.selectImages(it)
+    }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(bottom = 16.dp)
         .testTag("assistant-panel"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("当前旅行：${host.tripName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
@@ -63,19 +71,43 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                 enabled = !s.busy, supportingText = { Text("${s.input.length} / 2000 · 每批最多 20 个地点") },
                 modifier = Modifier.fillMaxWidth().testTag("assistant-input"))
             Text("先统一标记明确位置，再逐个或勾选确认收藏。", style = MaterialTheme.typography.bodySmall)
-            Button({
-                if (!s.sendConsent) consentPrompt = true else controller.submit()
-            }, enabled = s.configured && s.consent && !s.busy && s.input.isNotBlank(),
+            if (host.model.images != null) AssistantImageInput(s,
+                {
+                    pickerRevision = controller.draftRevision
+                    picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+                },
+                { previewId = it }, host.model::removeImage, host.model.images, host.model.sessionId)
+            Text("点击即发送至助手设置中的模型服务，仅发送本次所选图片、文字和必要城市。文字与图片分别处理，可能产生多次调用费用。", style = MaterialTheme.typography.bodySmall)
+            Button(controller::submit, enabled = s.configured && s.consent && !s.busy && !s.attachmentSelectionBusy &&
+                (s.input.isNotBlank() || s.images.isNotEmpty()),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("assistant-submit")) {
                 Text(if (s.busy) "正在理解地点…" else "全部标记到地图")
             }
         }
         s.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("assistant-error")) }
+        s.sourceProgress.forEach { progress ->
+            val name = if (progress.sourceId == "text") "文字" else "图 ${s.images.find { it.id == progress.sourceId }?.ordinal ?: "?"}"
+            Text("$name · ${when (progress.stage) {
+                SourceStage.SELECTED -> "等待处理"
+                SourceStage.PREPARING -> "正在本地准备"
+                SourceStage.SENDING -> "正在发送"
+                SourceStage.UNDERSTANDING -> "已发送，等待模型理解"
+                SourceStage.COMPLETE -> "理解完成"
+                SourceStage.FAILED -> progress.error ?: "处理失败"
+                SourceStage.CANCELLED -> "已停止，素材保留"
+            }}", style = MaterialTheme.typography.bodySmall)
+        }
+        if (!s.busy && s.sourceProgress.any { it.stage == SourceStage.FAILED || it.stage == SourceStage.CANCELLED }) {
+            OutlinedButton({ controller.retryImages() }, Modifier.fillMaxWidth().heightIn(min = 48.dp)
+                .testTag("assistant-retry-images")) { Text("仅重试失败 / 未完成素材") }
+            Text("成功素材不重复发送，重试可能产生费用。", style = MaterialTheme.typography.bodySmall)
+        }
         if (s.busy) {
             LinearProgressIndicator(Modifier.fillMaxWidth())
-            Text("已完成 ${s.items.count { it.status !in setOf(IntakeStatus.WAITING, IntakeStatus.QUERYING) }} / ${s.items.size} 项",
+            if (s.items.isNotEmpty()) Text("地图查询已完成 ${s.items.count { it.status !in setOf(IntakeStatus.WAITING, IntakeStatus.QUERYING) }} / ${s.items.size} 项",
                 style = MaterialTheme.typography.bodySmall)
-            OutlinedButton(controller::cancel, Modifier.fillMaxWidth().testTag("assistant-cancel")) { Text("停止剩余查询") }
+            OutlinedButton(controller::cancel, Modifier.fillMaxWidth().testTag("assistant-cancel")) { Text("停止剩余处理") }
+            Text("停止保留素材和已完成结果；已发送内容无法撤回。", style = MaterialTheme.typography.bodySmall)
         }
         if (!s.mapReady && s.items.isNotEmpty()) Text("地图尚未就绪，已找到的结果保留；恢复地图后才可确认收藏。", color = MaterialTheme.colorScheme.error)
         when {
@@ -125,6 +157,16 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                         color = if (item.id in s.selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
                         modifier = Modifier.fillMaxWidth().testTag("assistant-item-${item.label}")) {
                         Column(Modifier.padding(10.dp)) {
+                            item.sources.distinct().forEach { source ->
+                                when (source) {
+                                    is IntakeSource.Image -> TextButton({ previewId = source.imageId }, Modifier.heightIn(min = 44.dp)) {
+                                        Text("图 ${source.ordinal} · ${source.excerpt.take(60)} · 回看来源")
+                                    }
+                                    is IntakeSource.Text -> Text("原文：${source.span}", style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                            if (item.sources.any { it is IntakeSource.Image })
+                                Text("模型提取，需对照原图核对。", style = MaterialTheme.typography.bodySmall)
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(item.label, Modifier.padding(end = 10.dp), color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                                 Column(Modifier.weight(1f).clickable { host.model.focus(item.id) }) {
@@ -187,13 +229,9 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
         }
         if (s.hasDraft && !s.saving) TextButton({ clearPrompt = true }) { Text("清空本批，输入新的地点") }
     }
-    if (consentPrompt) AlertDialog(onDismissRequest = { consentPrompt = false }, title = { Text("发送前，了解数据去向") },
-        text = { Text("将本次地点文字和默认城市发送给助手设置中的模型服务，产生一次调用及费用。不发送完整旅行、已有费用、Cookie 或收藏授权。不会抓取其他 App 或链接。") },
-        confirmButton = { TextButton({ controller.allowSend(); consentPrompt = false; controller.submit() }) { Text("同意并发送本次内容") } },
-        dismissButton = { TextButton({ consentPrompt = false }) { Text("暂不发送") } })
     if (clearPrompt) AlertDialog(onDismissRequest = { clearPrompt = false }, title = { Text("清空这次输入和候选？") },
         text = { Text("未收藏候选将清除；已经收藏的地点不受影响。") },
-        confirmButton = { TextButton({ controller.clear(); host.model.focus(null); clearPrompt = false }) { Text("清空未收藏内容") } },
+        confirmButton = { TextButton({ host.model.clearDraft(); clearPrompt = false }) { Text("清空未收藏内容") } },
         dismissButton = { TextButton({ clearPrompt = false }) { Text("保留") } })
     if (batchCityPrompt) AlertDialog(
         onDismissRequest = { batchCityPrompt = false },
@@ -217,6 +255,9 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
         },
         dismissButton = { TextButton({ batchCityPrompt = false }) { Text("取消") } },
     )
+    s.images.find { it.id == previewId }?.let { image ->
+        host.model.images?.let { AssistantImagePreview(it, host.model.sessionId, image) { previewId = null } }
+    }
     s.items.find { it.id == editingId }?.let { item ->
         var query by remember(item.id) { mutableStateOf(item.intent.query) }
         var city by remember(item.id) { mutableStateOf(item.intent.city) }
