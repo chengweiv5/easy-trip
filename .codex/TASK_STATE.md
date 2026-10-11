@@ -1,11 +1,13 @@
 # 当前任务：统一默认城市提交与推送
 
-状态：**IN_PROGRESS（2026-10-11，用户已授权提交推送，正在rebase与集成验证）**。
+状态：**DONE（2026-10-11，功能推送、集成验证与完成通知均已核验）**。本状态收尾提交的最终远端SHA以本机`final-push-verification.json`为准，回合在该核验完成后结束。
 
-- 当前功能分支`codex/unified-search-city`；先以`5660adb`保存全部已验证成果，再rebase到最新`origin/main 1eaa409`。
-- 保留上游`2cad33f`助手城市前缀与脱敏诊断；源码自动合并，AGENTS和任务状态的冲突保留双方记录。
+- 当前功能分支`codex/unified-search-city`；先以`5660adb`保存全部已验证成果，再rebase到最新`origin/main 1eaa409`，形成`f51612ee30954f62899063cb072e86f933f14513`。
+- 保留上游`2cad33f`助手城市前缀与脱敏诊断；源码自动合并，AGENTS和任务状态的冲突保留双方记录。集成后Debug/Release各1069 JVM、12项模拟器UI、0错误lint通过，构建成功。
+- 23:20:22功能提交已快进推送origin/main并独立SHA回读一致，当时工作区干净。Pencil源未重新编辑，应用/设计输入由文档收尾前后哈希复核。
+- punk-12通知`om_x100b638edbdab4a0c27947760bf8bb4`已回读目标chat、机器人身份、完整正文及`deleted=false`，状态在通知验证后写回。
 - 本轮不发布Release／标签，不安装或操作真实手机；版本仍3.2.0/build25/schema11。
-- 证据：`/Users/bytedance/.codex/artifacts/easy-trip/city-context-git-e9e3-20261011/`。旧开发验证不能代替rebase后的集成验证。
+- 交付与回滚：`docs/testing/unified-search-city-git-delivery.md`；证据：`/Users/bytedance/.codex/artifacts/easy-trip/city-context-git-e9e3-20261011/`。旧开发验证不能代替rebase后的集成验证。
 
 ---
 

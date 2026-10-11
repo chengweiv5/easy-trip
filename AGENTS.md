@@ -2,6 +2,8 @@
 
 ## 当前设计目标
 
+- **统一默认城市已推送（2026-10-11，e9e3）**：功能提交`f51612e`已rebase至`origin/main 1eaa409`并快进推送、独立SHA回读一致；保留上游城市前缀与脱敏诊断。集成后Debug/Release各1069 JVM、12项模拟器UI、0错误lint通过；Pencil与版本/schema不变。punk-12通知已回读。本轮未发布或安装手机，手机不含本批默认城市规则。准确交付与回滚见`docs/testing/unified-search-city-git-delivery.md`，下条“未提交/推送”为开发阶段历史。
+
 - **搜索框与助手统一默认城市（2026-10-11，e9e3，开发完成未交付）**：功能分支`codex/unified-search-city`基于`4eb7052`；用户指定优先，旅行名单城固定、多城按定位命中或标题首城、无城市名定位兜底，定位不可用且无城市时提示指定；助手不再取地点池筛选，手动值与进行中批次不受自动刷新影响。地图规则不变。3.2.0/build25/schema11未变；Debug/Release各1058 JVM、9项模拟器城市UI、0错误lint通过；唯一v3.2累积设计265根/43,295节点已通过Pencil同步、原生保存重开与回读。未提交、推送、发布或安装真实手机。详见`docs/testing/unified-search-city.md`，保留真实模型/定位供应商/相册/TalkBack及280dp等未验收边界。
 
 - **v3.2.0城市限定修复已交付（2026-10-11）**：功能提交`2cad33f`已快进推送origin/main并独立回读；22:44:14同签名CLEAN构建覆盖安装华为ALN-AL00，APK哈希回读一致，启动及青州8地点摘要可见。版本仍3.2.0/build25/schema11；无卸载／清数据／Release。继续开发或发布前读取`docs/testing/v3.2.0-assistant-city-query-delivery.md`，保留SDK1800偶发错误与未全库／全应用验收边界；下方未交付说明为开发阶段历史。

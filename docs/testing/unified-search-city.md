@@ -1,6 +1,6 @@
 # 搜索框与助手统一默认城市
 
-日期：2026-10-11。实现与专项验证完成，**未提交、推送、发布或安装真实手机**。
+日期：2026-10-11。本文记录开发阶段的实现与验证；当时未提交、推送、发布或安装真实手机。后续已获授权并完成 rebase、集成复验及功能推送，最新状态见 `/Users/bytedance/.codex/worktrees/e9e3/easy-trip/docs/testing/unified-search-city-git-delivery.md`；仍未发布或安装本批修改到真实手机。
 
 ## 范围与基线
 
