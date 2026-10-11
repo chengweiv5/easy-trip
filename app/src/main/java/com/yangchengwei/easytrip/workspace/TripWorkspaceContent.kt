@@ -195,7 +195,9 @@ private fun WorkspaceReadyContent(
                 }
             }
         },
-            sheetContentHorizontalPadding = if (state.section == WorkspaceSection.ITINERARY) 0.dp else 16.dp,
+        sheetContentHorizontalPadding = if (
+            state.section == WorkspaceSection.ITINERARY && LocalAssistantWorkspace.current?.open != true
+        ) 0.dp else 16.dp,
         collapsedContentHorizontalPadding = 16.dp,
         collapsedContent = {
             val assistant = LocalAssistantWorkspace.current

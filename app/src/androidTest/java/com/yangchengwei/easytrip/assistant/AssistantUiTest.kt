@@ -78,6 +78,12 @@ class AssistantUiTest {
             val bitmap = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
             File(folder, "$prefix-$suffix.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
         }
+        fun assertAssistantGutters(tag: String = "assistant-panel") {
+            val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+            val content = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
+            assertEquals("$tag left gutter", 16f, (content.left - sheet.left).value, .5f)
+            assertEquals("$tag right gutter", 16f, (sheet.right - content.right).value, .5f)
+        }
         try {
             val provider = if (real) JSONObject(secret.readText()).let {
                 ProviderConfig(it.getString("base_url"), it.getString("model"), it.getString("api_key"))
@@ -150,7 +156,20 @@ class AssistantUiTest {
             val root = compose.onNodeWithTag("workspace-screen-root").getUnclippedBoundsInRoot()
             assertEquals("search stays 12dp from the right edge", 12f, (root.right - search.right).value, 1f)
             image("map-entry")
+            listOf("PLACE_POOL", "ITINERARY").forEach { section ->
+                compose.onNodeWithTag("section-$section").performClick()
+                compose.onNodeWithTag("assistant-entry").performClick()
+                assertAssistantGutters()
+                compose.onNodeWithTag("assistant-city").performScrollTo()
+                assertAssistantGutters("assistant-city")
+                val title = compose.onNodeWithText("✦ 助手").getUnclippedBoundsInRoot()
+                val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
+                assertEquals("header keeps a single inset", 16f, (title.left - sheet.left).value, .5f)
+                compose.onNodeWithTag("assistant-collapse").performClick()
+            }
             compose.onNodeWithTag("assistant-entry").performClick()
+            assertAssistantGutters()
+            image("input-gutters")
             compose.onNodeWithTag("assistant-city").performScrollTo().performTextInput("杭州")
             val text = if (real) "把杭州的灵隐寺、河坊街、雷峰塔标记出来" else "杭州的灵隐寺、河坊街、雷峰塔、失败项"
             compose.onNodeWithTag("assistant-input").performScrollTo().performTextInput(text)
@@ -160,6 +179,8 @@ class AssistantUiTest {
             compose.waitUntil(100_000) { !assistant.controller.state.value.busy && assistant.controller.state.value.items.isNotEmpty() }
             assertEquals(1, modelCalls.get())
             assertTrue(saved().isEmpty())
+            assertAssistantGutters()
+            assertAssistantGutters("assistant-item-${assistant.controller.state.value.items.first().label}")
             if (real) {
                 // Where the provider returns several real POIs, make an explicit test-user choice.
                 assistant.controller.state.value.items.filter { it.status == IntakeStatus.AMBIGUOUS }.forEach { item ->
@@ -180,12 +201,20 @@ class AssistantUiTest {
             compose.onNodeWithTag("assistant-review").performScrollTo().performClick()
             assertTrue(saved().isEmpty())
             compose.onNodeWithTag("assistant-confirm").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
+            assertAssistantGutters("assistant-confirm")
             image("confirmation-zero-writes")
             compose.onNodeWithTag("assistant-confirm").performClick()
             compose.waitUntil(15_000) { assistant.controller.state.value.receipt != null }
             assertEquals(count, saved().size)
             assertEquals(count, assistant.controller.state.value.receipt!!.addedCount)
             assertEquals(assistant.controller.state.value.receipt, runBlocking { importer.latestReceipt(trip) })
+            compose.onNodeWithTag("assistant-receipt").performScrollTo().assertIsDisplayed()
+            assertAssistantGutters()
+            image("itinerary-receipt-gutters")
+            compose.onNodeWithTag("assistant-collapse").performClick()
+            compose.onNodeWithTag("section-PLACE_POOL").performClick()
+            compose.onNodeWithTag("assistant-entry").performClick()
+            assertAssistantGutters()
             compose.waitUntil(15_000) { models.lastOrNull()?.markers?.count { it.kind == MapMarkerKind.SAVED_PLACE_POOL } == count }
             if (real) {
                 compose.waitUntil(15_000) {
@@ -197,6 +226,7 @@ class AssistantUiTest {
                 }
             }
             compose.onNodeWithTag("assistant-receipt").performScrollTo().assertIsDisplayed()
+            assertAssistantGutters()
             image("receipt")
             File(folder, "$prefix-result.json").writeText(JSONObject().put("passed", true).put("modelCalls", modelCalls.get())
                 .put("poiCalls", poiCalls.get()).put("saved", count).put("preConfirmationWrites", 0)
