@@ -1,5 +1,10 @@
 # easy-trip 项目约定
 
+## 当前正式版
+
+- **v3.1.0/build24/schema11已正式发布（2026-10-11）**：基于发布前最新main `f7c31a82a8f0ff36057d93c8e11f3bfae67e1422` 的CLEAN构建，标签固定同一SHA，认证/匿名完整下载与Latest回读通过。本轮Debug/Release各1029 JVM、29项模拟器专项及系统320dp/2倍字体复测通过，Release lint 0错误；未安装真实手机，未实测真实图片模型或系统相册。后续开发、安装或发布前读取`docs/testing/v3.1.0-release.md`，遵守其验证边界与schema11前向修复要求。
+- **设计边界**：唯一v3.1累积源`design/easy-trip-v3.1.0.pen`沿用上游已保存的262根/43,451节点，本轮只读校验hash/结构；Pencil多会话原生路径复核未完成，未改稿、未宣称全页重新验收。以下f254安装阻塞、v3.0当前发布基线及未发布说明均为阶段历史，不代表本轮发布状态。
+
 ## 当前工作树修复版本
 
 - **f254 rebase集成（2026-10-11）**：用户明确要求“肯定要rebase”，已将本批助手默认值/精简修复rebase到`origin/main 9cb2c99`，应用提交`ca74862`，自然继承v3.1.0/build24/schema11与图文直接发送。Debug/Release各1029 JVM、17项助手UI及0错误Release lint通过；本树v3.1累积设计已补齐为262根/43,451节点。代码/设计提交`c567979`已快进推送main并回读一致；仅安装阻塞：当前ADB未发现手机，尚未执行覆盖安装。准确进度见`.codex/TASK_STATE.md`与`docs/testing/v3.1.0-assistant-defaults-delivery.md`，不再等待版本授权。
