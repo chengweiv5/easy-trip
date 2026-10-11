@@ -1,12 +1,13 @@
 # v3正式进入origin/main（当前）
 
-状态：**集成与验证完成，按用户明确授权交付main；最终推送SHA与回读状态见证据目录final-delivery.json。** 2026-10-11。
+状态：**DONE — v3已rebase到最新主线并快进推送origin/main，远端完整SHA回读通过；993单测、35项设备专项通过，未强推、未发布Release、未安装手机。** 2026-10-11。
 
 - 当前5ac3/`codex/v3-agent-place-intake`；已将16笔v3提交从`8b2a09d`rebase到main的`52236ae`，代码基线`9f86841`。保留v2.2.1两行每日标题、新收藏默认景点及完整v3助手/地图/16dp留白；3.0.0/build21/schema11不变。
 - 手动处理任务历史、AGENTS说明和版本名称三处冲突，两侧历史均保留；87个v3独有路径、12个main独有路径逐内容一致。无产品或测试修补；原远端v3保留，不强推/删除，后续获准交付以AGENTS中的main快进规则为准。
 - Debug构建成功、993单元测试通过、lint0错误/58警告/1提示。35项设备专项最终全部通过，包含助手闭环/设置/导入/迁移、v2.2.1标题与默认分类。首轮模拟器System UI弹窗引发2项焦点失败，排除环境干扰后原样重跑35通过。
 - 本次不发布Release或安装手机；已关闭本任务只读模拟器并释放自有锁。v3 Pencil未改，v2.2.1两行标题尚待同步到v3同源设计，不声明全应用设计/运行验收；旧极小窗口及全程测试缺口保留。
 - 备份分支`codex/backup-v3-before-main-20261011`和Git bundle保留。验证、推送、通知及回滚见`docs/testing/v3.0-main-integration.md`与`/Users/bytedance/.codex/artifacts/easy-trip/v3-main-integration-20261011/`。
+- 集成提交`4716102f7bd3e4a5277459c71eb9455bc91d4d0d`已推送main并独立回读一致；旧v3远端保持`8b2a09d`，v2-stable保持`52236ae`。本条所在收尾提交仅记录交付结果，最终HEAD/main及通知回执见`final-delivery.json`，避免自身SHA循环引用。
 
 ---
 
