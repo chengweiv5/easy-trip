@@ -1,3 +1,16 @@
+# 新收藏默认景点：提交与推送
+
+状态：**DONE — 功能提交已快进推送origin/main，完整SHA独立回读一致；未安装手机、未发布。**（2026-10-11）
+
+- 用户另行授权“提交，推送”；功能分支 `codex/default-place-category-attraction`，功能提交 `5d8447bad6a4e7b61410901c5682d796443dc3e5`。
+- 两次获取远端最新main，无需rebase；祖先检查通过后使用 `git push origin HEAD:main`。08:40:25（Asia/Shanghai）独立回读远端main与功能提交一致。
+- 提交前重新运行981项Debug JVM及lint，全部测试通过，lint 0错误/55警告/1提示；17项设备专项沿用实现回合证据，本回合未操作手机或模拟器。
+- 不改设计、版本号或发布资产。设计中的“未提交”及下方实现记录为阶段历史，当前交付状态以本段为准。
+- 文档收尾提交的最终HEAD/远端回读及通知证据存于 `/Users/bytedance/.codex/artifacts/easy-trip/default-place-category-20261011-6321/git-delivery-083758/`。
+- 详细范围与回滚见 `docs/testing/default-place-category-attraction.md`；远端回滚只能使用逆向提交，不强制推送。
+
+---
+
 # 新收藏地点默认景点
 
 状态：**DONE — 当前工作树实现与专项验证完成；未安装手机、未提交、未推送、未发布。**（2026-10-11）
