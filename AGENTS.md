@@ -2,7 +2,7 @@
 
 ## 当前工作树修复版本
 
-- **f254 / v3.0.2（2026-10-11用户指定）**：`codex/v3.0.2-assistant-city` 已将助手搜索城市修复 rebase 到 `origin/main 7c04eeb`，保留 v3.0.1 地图地点卡与地址补全，3.0.2/build23/schema11。正式累积设计 `design/easy-trip-v3.0.2.pen` 已经 Pencil 合入上游全部变化，243根/42,324节点，冻结旧版不改。1005 Release JVM、9项城市/地图卡UI及6项窄屏大字地图卡通过，Release lint 0错误。用户已授权提交、推送和安装；准确交付及真实联网验证边界见 `docs/testing/v3.0.2-delivery.md`，原修复阶段记录见 `docs/testing/v3.0.2-assistant-city.md`。本轮不创建Release或标签。
+- **f254 / v3.0.2（2026-10-11用户指定，已交付）**：`codex/v3.0.2-assistant-city` 的应用/设计提交 `0bfd548` 已快进推送origin/main并回读一致，15:38:59同签名覆盖安装华为ALN-AL00，3.0.2/build23/schema11。保留v3.0.1地图卡与地址补全；正式累积设计243根/42,324节点已保存核验，冻结旧版不改。1005 Release JVM、9项城市/地图卡UI、6项窄屏大字及2项真实高德专项通过，Release lint 0错误。手机APK哈希、UID与首次安装时间回读通过；安装后手机切换其他应用，未继续打断，可见旅行数据/助手页复验未完成，不冒称全库核验。准确边界见 `docs/testing/v3.0.2-delivery.md`。没有创建Release或标签，公开正式版仍是v3.0.0。
 
 ## 当前发布基线
 
