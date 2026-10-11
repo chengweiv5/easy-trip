@@ -1,9 +1,12 @@
 # 当前任务：v3.2.0 城市限定修复提交、推送与安装
 
-状态：**IN_PROGRESS（2026-10-11）**。用户明确授权“提交推送安装”，不发布 Release／标签。
+状态：**DONE（2026-10-11，功能推送、手机安装与通知已核验）**。文档收尾提交的最终远端SHA以本轮证据目录`final-push-verification.json`为准，回合在该验证通过后结束。不发布 Release／标签。
 
-- 当前功能分支`codex/v3.2-assistant-city-query`，HEAD／origin/main均为`4eb7052`；开放PR为空，无需rebase。
-- 18个应用／测试输入与已验证源码清单一致，全部未提交成果已备份；后续先提交并从干净工作区构建复验，再快进推送与同签名覆盖安装手机。
+- 当前功能分支`codex/v3.2-assistant-city-query`，功能提交`2cad33f23cc07ee34ddc12f415270a8fb1606a38`已快进推送origin/main并独立回读一致；无需rebase。
+- 18个应用／测试输入与已验证清单一致；从功能提交干净构建，APK DEX确认GIT_SHA和SOURCE_STATE=CLEAN。Debug/Release各1046 JVM复验通过，Release lint0错误／59警告。
+- 22:44:14同签名3.2.0/build25/schema11覆盖安装华为ALN-AL00，手机APK拉回SHA256 `8ac66c399ec84fc981bd67ead6601089571c6e36f1422fab19aab8e1bc028a1a`与目标一致，UID／首次安装时间／dataDir不变。未卸载、清数据、降级或运行手机自动测试。
+- 安装前应用在前台，更新后已恢复启动，Status ok、进程与前台回读正常；首页可见青州8地点／3天行程、待出行4／已出行1。没有搜索、模型或收藏写入，不冒称全部用户数据独立审计。
+- 设备归属锁已核验释放；punk-12通知`om_x100b638e5f2fe8a4c0719f971fe5e75`已回读chat／sender／完整正文／deleted=false，状态最后写回。
 - 交付记录：`docs/testing/v3.2.0-assistant-city-query-delivery.md`。
 - 本轮证据：`/Users/bytedance/.codex/artifacts/easy-trip/f445-city-query-delivery-20261011-224037/`。
 
