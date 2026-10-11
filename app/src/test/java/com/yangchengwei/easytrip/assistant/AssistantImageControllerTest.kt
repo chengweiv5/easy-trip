@@ -105,14 +105,14 @@ class AssistantImageControllerTest {
         assertEquals(2, c.state.value.images.size)
         assertFalse(c.state.value.busy)
     }
-    @Test fun stoppedImageWithConflictingCityStillRequiresReviewBeforeQuery() = runTest {
+    @Test fun stoppedImageWithoutCityEvidenceStillRequiresReviewBeforeQuery() = runTest {
         val gate = CompletableDeferred<Unit>()
         var queries = 0
         val text = PlaceIntentParser { _, _ -> emptyList() }
         val processor = AssistantInputProcessor(text, ImageIntentParser { image, ordinal, _, _, _ ->
             if (image.id == "i2") withContext(NonCancellable) { gate.await() }
-            listOf(PlaceIntent("天坛", "北京", "北京 天坛",
-                sources = listOf(IntakeSource.Image(image.id, ordinal, "北京 天坛"))))
+            listOf(PlaceIntent("天坛", "北京", "天坛",
+                sources = listOf(IntakeSource.Image(image.id, ordinal, "天坛"))))
         }, Images())
         val controller = PlaceAssistantController("trip", this, text, object : PlaceSearchDataSource {
             override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
@@ -133,6 +133,52 @@ class AssistantImageControllerTest {
         assertEquals(0, queries)
         assertEquals(IntakeStatus.NEED_CITY, controller.state.value.items.single().status)
         assertEquals("北京", controller.state.value.items.single().intent.city)
+    }
+
+    @Test fun explicitCityInImageOverridesDefaultWithoutConfirmation() = runTest {
+        val requests = mutableListOf<String?>()
+        val text = PlaceIntentParser { _, _ -> emptyList() }
+        val processor = AssistantInputProcessor(text, ImageIntentParser { image, ordinal, _, _, _ ->
+            listOf(PlaceIntent("天坛", "北京", "北京 天坛",
+                sources = listOf(IntakeSource.Image(image.id, ordinal, "北京 天坛"))))
+        }, Images())
+        val controller = PlaceAssistantController("trip", this, text, object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                requests += city
+                return emptyList()
+            }
+        }, object : PlaceImport {
+            override suspend fun receipt(operationId: String): ImportReceipt? = null
+            override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt = error("no saves")
+        }, resolveDefaultCity = { "徐州市" }, processor = { processor }, sessionId = "session")
+        controller.environment(true, true, true)
+        controller.addImages(listOf(AssistantImage("i1", 1, "image/png", 100, 100, 100)))
+        controller.submit(); advanceUntilIdle()
+        assertEquals(listOf("北京"), requests)
+        assertEquals(IntakeStatus.NOT_FOUND, controller.state.value.items.single().status)
+    }
+
+    @Test fun retryImageKeepsOriginalBatchCityAfterLocationChanges() = runTest {
+        var city = "徐州市"
+        val cities = mutableListOf<String>()
+        val text = PlaceIntentParser { _, _ -> emptyList() }
+        val processor = AssistantInputProcessor(text, ImageIntentParser { image, _, _, default, _ ->
+            cities += default
+            if (image.id == "i2" && cities.size == 2) throw AssistantFailure("暂时失败")
+            listOf(PlaceIntent("博物馆", "", "博物馆"))
+        }, Images())
+        val controller = PlaceAssistantController("trip", this, text, object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?) = emptyList<PlaceCandidate>()
+        }, object : PlaceImport {
+            override suspend fun receipt(operationId: String): ImportReceipt? = null
+            override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt = error("no saves")
+        }, resolveDefaultCity = { city }, processor = { processor }, sessionId = "session")
+        controller.environment(true, true, true)
+        controller.addImages((1..2).map { AssistantImage("i$it", it, "image/png", 100, 100, 100) })
+        controller.submit(); advanceUntilIdle()
+        city = "苏州市"
+        controller.retryImages(); advanceUntilIdle()
+        assertEquals(listOf("徐州市", "徐州市", "徐州市"), cities)
     }
     @Test fun retrySendsOnlyFailedImageAndKeepsSelectionAndAllDuplicateSources() = runTest {
         val calls = mutableListOf<String>()

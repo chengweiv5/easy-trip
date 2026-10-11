@@ -36,6 +36,7 @@ import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performImeAction
 import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
+import androidx.compose.ui.test.performTextReplacement
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
 import com.yangchengwei.easytrip.amap.TestConsentGate
@@ -60,6 +61,39 @@ import org.junit.Test
 
 class PlaceSearchContentTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun cityNamedInSearchOverridesTripAndDoesNotRequireLocation() {
+        val requests = java.util.concurrent.CopyOnWriteArrayList<String?>()
+        val source = object : com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource {
+            override suspend fun cityCatalog() = listOf(
+                com.yangchengwei.easytrip.workspace.TripCity("320300", "徐州市", GeoPoint(34.26, 117.18)),
+                com.yangchengwei.easytrip.workspace.TripCity("320500", "苏州市", GeoPoint(31.30, 120.58)),
+            )
+            override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                requests += city
+                return listOf(PlaceCandidate("$city-museum", "$city 博物馆", "", null, null, city))
+            }
+        }
+        lateinit var model: PlaceSearchViewModel
+        compose.runOnIdle {
+            model = PlaceSearchViewModel("trip", TestSavedPlaces(),
+                com.yangchengwei.easytrip.place.amap.TripCitySearchSource(source,
+                    com.yangchengwei.easytrip.place.amap.tripSearchCityResolver(source, { "徐州周末游" }, null)),
+                SavedStateHandle())
+        }
+        try {
+            compose.setContent { EasyTripTheme { PlaceSearchRoute(model, onBack = {}) } }
+            compose.onNodeWithTag("place-search-field").performTextInput("博物馆")
+            compose.waitUntil(5_000) { requests.lastOrNull() == "徐州市" }
+            compose.onNodeWithTag("place-search-field").performTextReplacement("苏州 博物馆")
+            compose.waitUntil(5_000) { requests.lastOrNull() == "苏州市" }
+            compose.onNodeWithText("苏州市 博物馆").assertIsDisplayed()
+            compose.onNodeWithTag("place-search-field").performTextReplacement("博物馆")
+            compose.waitUntil(5_000) { requests.lastOrNull() == "徐州市" && requests.size >= 3 }
+        } finally {
+            compose.runOnIdle { androidx.lifecycle.ViewModelStore().apply { put("search", model); clear() } }
+        }
+    }
 
     @Test fun searchButtonRetriesFailedCurrentCity() = assertCurrentCityRecovery {
         compose.onNodeWithTag("place-search-submit").performClick()
@@ -99,7 +133,9 @@ class PlaceSearchContentTest {
             model = PlaceSearchViewModel(
                 "trip",
                 TestSavedPlaces(),
-                com.yangchengwei.easytrip.place.amap.LocatedCitySearchSource(source, null, session),
+                com.yangchengwei.easytrip.place.amap.TripCitySearchSource(source,
+                    com.yangchengwei.easytrip.place.amap.tripSearchCityResolver(source, { "周末出游" }, session),
+                    session::retry),
                 SavedStateHandle(),
             )
         }
@@ -109,7 +145,7 @@ class PlaceSearchContentTest {
             }
             compose.onNodeWithTag("place-search-field").performTextInput("西施猪蹄")
             compose.waitUntil(5_000) {
-                compose.onAllNodesWithText("无法获取当前城市").fetchSemanticsNodes().isNotEmpty()
+                compose.onAllNodesWithText("无法获取默认搜索城市").fetchSemanticsNodes().isNotEmpty()
             }
             assertEquals(1, fixes.get())
             assertTrue(searchedCities.isEmpty())
@@ -119,7 +155,7 @@ class PlaceSearchContentTest {
             compose.waitUntil(5_000) {
                 compose.onAllNodesWithText("恢复后的搜索结果").fetchSemanticsNodes().isNotEmpty()
             }
-            compose.onAllNodesWithText("无法获取当前城市").assertCountEquals(0)
+            compose.onAllNodesWithText("无法获取默认搜索城市").assertCountEquals(0)
             assertEquals(2, fixes.get())
             assertEquals(listOf("登封市"), searchedCities.toList())
         } finally {

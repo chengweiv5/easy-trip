@@ -274,6 +274,7 @@ fun TripWorkspaceRoute(
     assistantViewModel: PlaceAssistantViewModel? = null,
     onAssistantSettings: () -> Unit = {},
     resolveAssistantTripCity: suspend (String) -> String? = { null },
+    assistantCityContextKey: com.yangchengwei.easytrip.place.domain.LocatedPosition? = null,
 ) {
     val page = viewModel.pageState.collectAsStateWithLifecycle().value
     val places = placeViewModel?.state?.collectAsStateWithLifecycle()?.value ?: placeState
@@ -304,12 +305,10 @@ fun TripWorkspaceRoute(
     val activePoolCity = com.yangchengwei.easytrip.place.ui.activePlacePoolCity(places)
     SideEffect {
         assistantViewModel?.controller?.updateCityResolver {
-            com.yangchengwei.easytrip.place.ui.placeCityGroups(places.allRows ?: places.rows)
-                .firstOrNull { it.key == activePoolCity && it.key != com.yangchengwei.easytrip.place.ui.UNKNOWN_CITY_KEY }
-                ?.name ?: ready?.tripName?.let { resolveAssistantTripCity(it) }
+            ready?.tripName?.let { resolveAssistantTripCity(it) }
         }
     }
-    LaunchedEffect(assistantViewModel, assistantOpen, assistantState?.consent, ready?.tripName, activePoolCity) {
+    LaunchedEffect(assistantViewModel, assistantOpen, assistantState?.consent, ready?.tripName, assistantCityContextKey) {
         if (assistantOpen && ready != null) assistantViewModel?.controller?.prepareDefaultCity()
     }
     LaunchedEffect(viewModel, activePoolCity, places.selectedTagIds) {

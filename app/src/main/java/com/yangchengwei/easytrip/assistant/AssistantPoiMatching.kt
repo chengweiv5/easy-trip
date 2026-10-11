@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.assistant
 
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.place.domain.explicitlyNamesCity
 import java.text.Normalizer
 
 internal fun PlaceCandidate.validPosition(): Boolean = poiId.isNotBlank() && name.isNotBlank() &&
@@ -12,6 +13,9 @@ internal fun normalizedPlace(value: String): String =
 
 internal fun sameCity(first: String?, second: String): Boolean =
     !first.isNullOrBlank() && normalizedPlace(first).removeSuffix("市") == normalizedPlace(second).removeSuffix("市")
+
+internal fun PlaceIntent.hasExplicitCityIn(text: String): Boolean =
+    explicitlyNamesCity(text, city)
 
 internal fun matchItem(item: IntakeItem, results: List<PlaceCandidate>): IntakeItem {
     val valid = results.filter { it.validPosition() }.distinctBy { it.poiId }.take(20)

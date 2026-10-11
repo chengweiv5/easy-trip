@@ -31,4 +31,15 @@ class TripCityLocatorTest {
         assertNull(uniqueTripCity("周末出游", cities))
         assertNull(uniqueTripCity("徐州", cities + xuzhou.copy(code = "ambiguous")))
     }
+
+    @Test fun searchCityMatchingUsesLongestNamesAndRejectsAmbiguousAliases() {
+        val jilin = TripCity("220200", "吉林市", GeoPoint(43.8, 126.5))
+        assertEquals(listOf(suzhou, hangzhou), citiesInText("苏州市→杭州→苏州", catalog))
+        assertEquals(emptyList<TripCity>(), citiesInText("吉林省之旅", listOf(jilin)))
+        assertEquals(listOf(jilin), citiesInText("吉林省·吉林市", listOf(jilin)))
+        assertEquals(emptyList<TripCity>(), citiesInText("苏州", catalog + suzhou.copy(code = "ambiguous")))
+        val changchun = TripCity("220100", "长春市", GeoPoint(43.8, 125.3))
+        val yichang = TripCity("420500", "宜昌市", GeoPoint(30.7, 111.2))
+        assertEquals(listOf(yichang, changchun), citiesInText("宜昌长春", listOf(changchun, yichang)))
+    }
 }

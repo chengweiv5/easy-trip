@@ -56,10 +56,10 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             }
             if (s.items.isEmpty()) {
                 OutlinedTextField(s.city, controller::editCity, label = { Text("默认搜索城市") },
-                    placeholder = { Text(if (s.resolvingCity) "正在获取旅行城市…" else "请填写搜索城市") },
-                    supportingText = { Text(if (s.resolvingCity) "进入助手即获取旅行城市，无需先搜索。也可直接手动填写。"
-                        else if (s.city.isBlank()) "未能确认旅行城市，请手动填写；不会使用手机所在地。"
-                        else "按当前旅行填入，可手动修改；不会使用手机所在地。") },
+                    placeholder = { Text(if (s.resolvingCity) "正在获取默认城市…" else "请填写搜索城市") },
+                    supportingText = { Text(if (s.resolvingCity) "正在根据旅行名和定位选择城市，也可直接手动填写。"
+                        else if (s.city.isBlank()) "未能确认默认城市，请手动填写或在原文中指定城市。"
+                        else "默认按旅行名和定位选择；手动填写或原文指定的城市优先。") },
                     singleLine = true, enabled = !s.busy, modifier = Modifier.fillMaxWidth().testTag("assistant-city"))
                 OutlinedTextField(s.input, controller::editInput, label = { Text("把想去的地点一次告诉我") },
                     placeholder = { Text("例如：杭州的灵隐寺、河坊街、雷峰塔") }, minLines = 3, maxLines = 6,

@@ -15,6 +15,9 @@ import kotlinx.coroutines.suspendCancellableCoroutine
 import java.util.concurrent.atomic.AtomicBoolean
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
+import com.yangchengwei.easytrip.workspace.TripCity
 
 data class PlaceCandidate(
     val poiId: String,
@@ -29,6 +32,7 @@ data class PlaceCandidate(
 
 interface PlaceSearchDataSource {
     suspend fun search(keyword: String, city: String?): List<PlaceCandidate>
+    suspend fun cityCatalog(): List<TripCity> = emptyList()
     suspend fun details(poiId: String): PlaceCandidate? = null
     /** Explicit search only: discard a failed location attempt, not a usable fix or active request. */
     fun retryFailedLocation() = Unit
@@ -38,8 +42,15 @@ interface PlaceSearchDataSource {
 
 class AmapPlaceDataSource(context: Context, private val consent: AmapConsentToken) : PlaceSearchDataSource {
     private val context = context.applicationContext
+    private val catalogLock = Mutex()
+    private var cities: List<TripCity>? = null
 
     init { consent.validateActive() }
+
+    override suspend fun cityCatalog(): List<TripCity> = catalogLock.withLock {
+        consent.validateActive()
+        cities ?: com.yangchengwei.easytrip.amap.lookupCityCatalog(context, consent).also { cities = it }
+    }
 
     override suspend fun cityAt(point: GeoPoint) = com.yangchengwei.easytrip.amap.lookupCity(context, consent, point)
 

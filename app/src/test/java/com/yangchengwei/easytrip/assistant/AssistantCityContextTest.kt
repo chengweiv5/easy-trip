@@ -164,6 +164,68 @@ class AssistantCityContextTest {
         assertEquals("杭州", parserCity)
     }
 
+    @Test fun automaticCityRefreshesButManualCityStaysWhenContextChanges() = runTest {
+        var city = "徐州市"
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> error("Must not parse") }, null, Importer(),
+            resolveDefaultCity = { city })
+        controller.environment(false, true, false)
+        controller.prepareDefaultCity()
+        city = "苏州市"
+        controller.prepareDefaultCity()
+        assertEquals("苏州市", controller.state.value.city)
+        controller.editCity("上海")
+        city = "徐州市"
+        controller.prepareDefaultCity()
+        assertEquals("上海", controller.state.value.city)
+    }
+
+    @Test fun explicitCityInOriginalTextOverridesDefaultWithoutAnExtraConfirmation() = runTest {
+        val queries = mutableListOf<String?>()
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> listOf(PlaceIntent("故宫", "北京", "故宫")) },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                    queries += city
+                    return listOf(PlaceCandidate("palace", "故宫", "北京", GeoPoint(39.91, 116.40), null, "北京市"))
+                }
+            }, Importer(), resolveDefaultCity = { "徐州市" })
+        controller.environment(true, true, true)
+        controller.editInput("北京的故宫"); controller.submit(); advanceUntilIdle()
+        assertEquals(listOf("北京"), queries)
+        assertEquals(IntakeStatus.READY, controller.state.value.items.single().status)
+    }
+
+    @Test fun manuallySupplyingMissingCityRemainsAnOverrideForTheNextBatch() = runTest {
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> listOf(PlaceIntent("博物馆", "", "博物馆")) },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) = emptyList<PlaceCandidate>()
+            }, Importer(), resolveDefaultCity = { null })
+        controller.environment(true, true, true)
+        controller.editInput("博物馆"); controller.submit(); advanceUntilIdle()
+        controller.supplyMissingCity("苏州"); advanceUntilIdle()
+        controller.clear()
+        controller.updateCityResolver { "徐州市" }
+        controller.prepareDefaultCity()
+        assertEquals("苏州", controller.state.value.city)
+    }
+
+    @Test fun roadNameDoesNotAuthorizeAModelInventedForeignCity() = runTest {
+        val requests = mutableListOf<String?>()
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> listOf(PlaceIntent("南京路", "南京", "南京路")) },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                    requests += city; return emptyList()
+                }
+            }, Importer(), resolveDefaultCity = { "上海市" })
+        controller.environment(true, true, true)
+        controller.editInput("南京路"); controller.submit(); advanceUntilIdle()
+        assertTrue(requests.isEmpty())
+        assertEquals(IntakeStatus.NEED_CITY, controller.state.value.items.single().status)
+    }
+
     @Test fun cityEditCancelsPendingLookupAndDoesNotSendOldInput() = runTest {
         val lookup = CompletableDeferred<String?>()
         var parses = 0

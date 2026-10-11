@@ -69,11 +69,11 @@ class PlaceAssistantController(
     }
     fun updateSource(value: PlaceSearchDataSource?) { source = value }
     fun updateCityResolver(value: suspend () -> String?) { resolveDefaultCity = value }
-    /** Opening the panel resolves only trip context, never sends user input to the model. */
+    /** Refresh automatic context on opening/context changes, but never replace a user override or a batch. */
     suspend fun prepareDefaultCity() {
         val s = mutable.value
         if (!active || !s.consent || s.busy || s.saving || s.resolvingCity ||
-            s.city.isNotBlank() || cityEdited || s.items.isNotEmpty()) return
+            cityEdited || s.items.isNotEmpty()) return
         val revision = ++cityRevision
         mutable.value = s.copy(resolvingCity = true)
         try {
@@ -141,6 +141,10 @@ class PlaceAssistantController(
         if (s.busy || s.saving || city.isBlank() || city.length > 50 || city.any(Char::isISOControl) || !canQuery()) return
         val missing = s.items.filter { it.status == IntakeStatus.NEED_CITY && it.intent.city.isBlank() }.map { it.id }.toSet()
         if (missing.isEmpty()) return
+        if (s.city.isBlank()) {
+            cityEdited = true
+            cityRevision++
+        }
         mutable.value = s.copy(city = s.city.ifBlank { city },
             items = s.items.map {
                 if (it.id in missing) it.copy(intent = it.intent.copy(city = city, usesDefaultCity = true),
@@ -178,7 +182,8 @@ class PlaceAssistantController(
                     val items = intents.mapIndexed { index, intent ->
                         val default = intent.city.isBlank() || (city.isNotBlank() &&
                             sameCity(intent.city, city) && !input.contains(intent.city.removeSuffix("市")))
-                        val conflict = city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, city)
+                        val conflict = city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, city) &&
+                            !intent.hasExplicitCityIn(input)
                         IntakeItem(UUID.randomUUID().toString(), ('A' + index).toString(),
                             intent.copy(city = intent.city.ifBlank { city }, usesDefaultCity = default),
                             cityConflict = conflict)
@@ -218,7 +223,7 @@ class PlaceAssistantController(
         work = scope.launch {
             try {
                 withTimeout(540_000) {
-                    val request = input.copy(city = resolveSearchCity(input.city))
+                    val request = input.copy(city = if (retryIds != null) input.city else resolveSearchCity(input.city))
                     if (!isCurrent(generation)) return@withTimeout
                     mutable.value = mutable.value.copy(city = request.city)
                     val batch = runner.parse(request, onSource = { parsed ->
@@ -258,7 +263,8 @@ class PlaceAssistantController(
                         IntakeItem(UUID.randomUUID().toString(), ('A' + s.items.size + index).toString(),
                             intent.copy(city = intent.city.ifBlank { city }, usesDefaultCity = intent.city.isBlank() ||
                                 (sameCity(intent.city, city) && !intent.sourceSpan.contains(intent.city.removeSuffix("市")))),
-                            cityConflict = city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, city))
+                            cityConflict = city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, city) &&
+                                !intent.hasExplicitCityIn(intent.sourceSpan) && !intent.hasExplicitCityIn(request.text))
                     }
                     mutable.value = mutable.value.copy(items = mutable.value.items + items)
                     if (mutable.value.items.isEmpty()) fail("未识别到明确地点，请换清晰图片或补充文字；素材已保留。")
@@ -281,7 +287,7 @@ class PlaceAssistantController(
         }
     }
     private suspend fun resolveSearchCity(value: String): String =
-        value.trim().ifBlank { lookupDefaultCity() }.take(50)
+        (value.trim().takeIf { cityEdited && it.isNotBlank() } ?: lookupDefaultCity()).take(50)
 
     fun cancel() {
         // A stopped batch must retain completed image extraction without querying an unchecked prefix.
@@ -298,7 +304,8 @@ class PlaceAssistantController(
                         intent.copy(city = intent.city.ifBlank { s.city }, usesDefaultCity = intent.city.isBlank() ||
                             (sameCity(intent.city, s.city) && !intent.sourceSpan.contains(intent.city.removeSuffix("市")))),
                         status = IntakeStatus.CANCELLED, detail = "已理解，地图查询尚未开始；可继续此项。",
-                        cityConflict = s.city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, s.city))
+                        cityConflict = s.city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, s.city) &&
+                            !intent.hasExplicitCityIn(intent.sourceSpan) && !intent.hasExplicitCityIn(s.input))
                 })
                 parsedSources = merged
                 mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map { progress ->

@@ -62,6 +62,10 @@ class AssistantCityUiTest {
         val parserCities = CopyOnWriteArrayList<String>()
         val resolvedTitles = CopyOnWriteArrayList<String>()
         val source = object : PlaceSearchDataSource {
+            override suspend fun cityCatalog() = listOf(
+                TripCity("320300", "徐州市", GeoPoint(34.26, 117.18)),
+                TripCity("320500", "苏州市", GeoPoint(31.30, 120.58)),
+            )
             override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
                 queries += keyword to city
                 val name = keyword.removePrefix("徐州")
@@ -96,7 +100,7 @@ class AssistantCityUiTest {
                                 assistantViewModel = assistant, placeViewModel = pool,
                                 resolveAssistantTripCity = {
                                     resolvedTitles += it
-                                    if (knownCity) "徐州市" else null
+                                    tripSearchCityResolver(source, { it }, null).resolve()
                                 },
                                 locationPermissionCoordinator = permission,
                                 locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) },

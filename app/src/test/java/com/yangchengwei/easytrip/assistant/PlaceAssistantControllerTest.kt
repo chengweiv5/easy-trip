@@ -152,14 +152,14 @@ class PlaceAssistantControllerTest {
         c.updateSaved(emptySet()); assertEquals(1, c.state.value.eligible.size)
     }
 
-    @Test fun conflictingInputCityWaitsForExplicitConfirmation() = runTest {
+    @Test fun modelCityNotPresentInInputWaitsForExplicitConfirmation() = runTest {
         var queries = 0
         val c = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> listOf(PlaceIntent("故宫", "北京", "故宫")) },
             object : PlaceSearchDataSource { override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
                 queries++; return listOf(poi("故宫").copy(cityName = "北京"))
             } }, Importer())
-        c.environment(true, true, true); c.editCity("杭州"); c.editInput("北京的故宫"); c.submit(); advanceUntilIdle()
+        c.environment(true, true, true); c.editCity("杭州"); c.editInput("故宫"); c.submit(); advanceUntilIdle()
         assertEquals(0, queries); assertEquals(IntakeStatus.NEED_CITY, c.state.value.items.single().status)
         c.confirmCity(c.state.value.items.single().id); advanceUntilIdle()
         assertEquals(1, queries); assertEquals(IntakeStatus.READY, c.state.value.items.single().status)

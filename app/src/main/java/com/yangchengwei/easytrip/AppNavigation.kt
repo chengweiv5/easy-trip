@@ -44,7 +44,9 @@ import com.yangchengwei.easytrip.amap.AmapConsentFact
 import com.yangchengwei.easytrip.amap.AmapConsentStore
 import com.yangchengwei.easytrip.amap.AmapConsentToken
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
-import com.yangchengwei.easytrip.place.amap.LocatedCitySearchSource
+import com.yangchengwei.easytrip.place.amap.TripCitySearchSource
+import com.yangchengwei.easytrip.place.amap.tripSearchCityResolver
+import kotlinx.coroutines.flow.first
 import com.yangchengwei.easytrip.place.ui.PlacePoolSheet
 import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
 import com.yangchengwei.easytrip.place.ui.PlaceSearchRoute
@@ -653,10 +655,11 @@ fun AppNavigation(
                     viewModel = workspaceModel,
                     assistantViewModel = assistantModel,
                     resolveAssistantTripCity = { title ->
-                        token?.let {
-                            com.yangchengwei.easytrip.amap.lookupTripCity(context, it, title, requireSingleCity = true)?.name
+                        source?.let {
+                            tripSearchCityResolver(it, { title }, runtime.locationSession, workspaceMapSession.location).resolve()
                         }
                     },
+                    assistantCityContextKey = currentPosition,
                     onAssistantSettings = { navigate(ASSISTANT_SETTINGS_ROUTE) },
                     mapSession = workspaceMapSession,
                     consent = token,
@@ -801,9 +804,12 @@ fun AppNavigation(
                         WorkspaceMapSession(it).location
                     }
                 }
-                val citySearchSource = remember(runtime.placeSearchDataSource, searchLocation, runtime.locationSession) {
+                val citySearchSource = remember(id, repository, runtime.placeSearchDataSource, searchLocation, runtime.locationSession) {
                     runtime.placeSearchDataSource?.let {
-                        LocatedCitySearchSource(it, searchLocation, runtime.locationSession)
+                        TripCitySearchSource(it,
+                            tripSearchCityResolver(it, { repository.observeTrip(id).first()?.name.orEmpty() },
+                                runtime.locationSession, searchLocation),
+                            retryLocation = { runtime.locationSession?.retry() })
                     }
                 }
                 LaunchedEffect(remoteSearchGeneration, citySearchSource) {

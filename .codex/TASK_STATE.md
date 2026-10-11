@@ -1,4 +1,31 @@
-# 当前任务：v3.2.0 城市限定修复提交、推送与安装
+# 当前任务：统一默认城市提交与推送
+
+状态：**IN_PROGRESS（2026-10-11，用户已授权提交推送，正在rebase与集成验证）**。
+
+- 当前功能分支`codex/unified-search-city`；先以`5660adb`保存全部已验证成果，再rebase到最新`origin/main 1eaa409`。
+- 保留上游`2cad33f`助手城市前缀与脱敏诊断；源码自动合并，AGENTS和任务状态的冲突保留双方记录。
+- 本轮不发布Release／标签，不安装或操作真实手机；版本仍3.2.0/build25/schema11。
+- 证据：`/Users/bytedance/.codex/artifacts/easy-trip/city-context-git-e9e3-20261011/`。旧开发验证不能代替rebase后的集成验证。
+
+---
+
+# 开发记录：搜索框与助手统一默认城市
+
+状态：**DONE（2026-10-11，实现、专项验证、设计保存及完成通知均已核验；未提交或部署）**。
+
+- 工作树`/Users/bytedance/.codex/worktrees/e9e3/easy-trip`；功能分支`codex/unified-search-city`，基线`4eb70523d969af57a31b865ab4f8e31ee1d9c441`。
+- 规则：用户指定优先；单城取旅行城市；多城定位命中取定位城，否则取标题首城；无城市名取定位；无城市且定位不可用时提示，不全国搜索。
+- 搜索框与助手共用规则，助手移除地点池城市筛选来源；自动值可刷新，手动值和已开始批次不被覆盖。地图行为保持原样。
+- Debug/Release各1058 JVM、9项模拟器城市UI与0错误lint通过；最终完整构建成功。版本仍3.2.0/build25/schema11。
+- Pencil累积源保持265根/43,295节点，仅文字/context变更；已保存重开、绝对路径核验与MCP回读，v3.1冻结源不变。
+- 本轮仅运行并已关闭临时只读模拟器`emulator-5582`，没有操作真实手机。未提交、推送、发布、建标签或数据库迁移。
+- 验证/边界/回滚：`docs/testing/unified-search-city.md`；本机证据`/Users/bytedance/.codex/artifacts/easy-trip/city-context-e9e3-20261011/`。
+- punk-12完成通知`om_x100b638e3a2074a0c3bbc1190698893`已发送并独立核验收件chat、机器人身份、完整正文及`deleted=false`，本状态在核验后写回。
+
+
+---
+
+# 上游交付记录：v3.2.0 城市限定修复提交、推送与安装
 
 状态：**DONE（2026-10-11，功能推送、手机安装与通知已核验）**。文档收尾提交的最终远端SHA以本轮证据目录`final-push-verification.json`为准，回合在该验证通过后结束。不发布 Release／标签。
 

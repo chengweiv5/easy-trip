@@ -16,17 +16,25 @@ internal suspend fun lookupTripCity(
     context: Context, consent: AmapConsentToken, title: String, requireSingleCity: Boolean = false,
 ): TripCity? {
     if (title.isBlank()) return null
+    val cities = lookupCityCatalog(context, consent)
+    val city = (if (requireSingleCity) uniqueTripCity(title, cities) else firstTripCity(title, cities)) ?: return null
+    if (requireSingleCity) return city
+    return cityWithBounds(context, consent, city)
+}
+
+internal suspend fun lookupCityCatalog(context: Context, consent: AmapConsentToken): List<TripCity> {
     val country = searchDistrict(context, consent, "中国", children = 3)
     fun flatten(item: DistrictItem): List<DistrictItem> = listOf(item) + item.subDistrict.orEmpty().flatMap(::flatten)
-    val cities = country.flatMap(::flatten).filter {
+    return country.flatMap(::flatten).filter {
         it.name?.endsWith("市") == true || it.level == "city"
     }.mapNotNull { item ->
         val point = item.center ?: return@mapNotNull null
         val code = item.adcode?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
         TripCity(code, item.name ?: return@mapNotNull null, GeoPoint(point.latitude, point.longitude))
     }
-    val city = (if (requireSingleCity) uniqueTripCity(title, cities) else firstTripCity(title, cities)) ?: return null
-    if (requireSingleCity) return city
+}
+
+private suspend fun cityWithBounds(context: Context, consent: AmapConsentToken, city: TripCity): TripCity {
     val details = searchDistrict(context, consent, city.code, children = 0, boundary = true)
         .firstOrNull { it.adcode == city.code } ?: return city
     val points = details.districtBoundary().orEmpty().flatMap { polygon ->
