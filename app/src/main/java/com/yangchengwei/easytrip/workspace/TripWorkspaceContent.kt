@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -453,27 +454,32 @@ private fun WorkspaceReadyContent(
                             end = 12.dp,
                         ),
                 )
-                if (state.searchResults == null && LocalAssistantWorkspace.current != null && metrics.sheetTop > 230.dp) {
-                    MapLegend(modifier = Modifier.align(Alignment.TopStart).padding(start = 12.dp, top = 112.dp),
-                        scheduledColor = MaterialTheme.colorScheme.primary)
+                val assistant = LocalAssistantWorkspace.current
+                if (state.searchResults == null && state.section == WorkspaceSection.ITINERARY &&
+                    state.overlay == WorkspaceOverlay.None && assistant?.open != true
+                ) {
+                    MapItinerarySummary(
+                        text = workspaceItineraryMapSummary(state, itineraryState),
+                        modifier = Modifier.align(Alignment.TopStart).padding(
+                            start = 16.dp, top = 84.dp - workspaceMapSummaryHeight() / 2, end = 64.dp,
+                        ),
+                    )
                 }
-                if (state.searchResults == null) Row(
+                val entryHeight = workspaceMapEntryHeight()
+                val entryTouchHeight = maxOf(48.dp, entryHeight)
+                if (state.searchResults == null && state.overlay == WorkspaceOverlay.None) Row(
                     Modifier.align(Alignment.TopStart)
-                        .padding(start = 12.dp, end = 12.dp, top = workspaceLegendTop(metrics))
+                        .padding(start = 12.dp, end = 12.dp,
+                            top = (metrics.sheetTop - 12.dp - entryHeight -
+                                (entryTouchHeight - entryHeight) / 2).coerceAtLeast(0.dp))
                         .fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically,
                 ) {
-                    if (LocalAssistantWorkspace.current == null) MapLegend(scheduledColor = if (state.section == WorkspaceSection.ITINERARY) {
-                        val selected = (state.itineraryScope as? ItineraryScope.Day)?.dayId
-                        Color(routeColorForDay(state.days.firstOrNull { it.id == selected }?.index ?: 0))
-                    } else MaterialTheme.colorScheme.primary)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        LocalAssistantWorkspace.current?.let { assistant ->
-                            TextButton(assistant.onOpen, Modifier.heightIn(min = 48.dp).testTag("assistant-entry")) { Text("✦ 助手") }
-                        }
-                        WorkspaceSearchBar(onClick = { onAction(TripWorkspaceAction.OpenSearch) })
+                    if (assistant != null && !assistant.open) {
+                        MapAssistantEntry(assistant.onOpen)
                     }
+                    Spacer(Modifier.weight(1f))
+                    WorkspaceSearchBar(onClick = { onAction(TripWorkspaceAction.OpenSearch) })
                 }
             }
             state.searchResults?.let { results ->
@@ -591,7 +597,7 @@ private fun WorkspaceCollapsedSummary(
 }
 
 @Composable
-private fun WorkspaceSummaryIcon(section: WorkspaceSection, modifier: Modifier = Modifier) {
+internal fun WorkspaceSummaryIcon(section: WorkspaceSection, modifier: Modifier = Modifier) {
     val color = MaterialTheme.colorScheme.primary
     Canvas(modifier.size(18.dp)) {
         val stroke = Stroke(width = size.minDimension / 10f, cap = StrokeCap.Round)

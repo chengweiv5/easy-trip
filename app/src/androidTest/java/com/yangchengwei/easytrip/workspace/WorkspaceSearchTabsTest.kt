@@ -44,15 +44,24 @@ class WorkspaceSearchTabsTest {
 
     @Test fun workspaceHasTwoTabsAndReadOnlySearchLauncher() {
         var searchLaunches = 0
+        val token = com.yangchengwei.easytrip.amap.TestConsentGate().run { show(); requireNotNull(decide(true)) }
         compose.setContent {
             TripWorkspaceScreen(
                 viewModel = model(),
-                consent = null,
+                consent = token,
                 onBack = {},
                 onSettings = {},
                 onOpenSearch = { searchLaunches++ },
                 placeContent = { Text("地点内容") },
                 dayItineraryContent = { Text("行程内容") },
+                mapHostFactory = { context -> object : AmapMapHost {
+                    override val view = android.view.View(context)
+                    override fun setOnReadyListener(listener: (() -> Unit)?) { listener?.invoke() }
+                    override fun onCreate() = Unit
+                    override fun onResume() = Unit
+                    override fun onPause() = Unit
+                    override fun onDestroy() = Unit
+                } },
             )
         }
 

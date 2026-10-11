@@ -34,6 +34,9 @@ import androidx.compose.ui.test.onAllNodesWithTag
 import androidx.compose.ui.test.onAllNodesWithText
 import androidx.compose.ui.test.onNodeWithContentDescription
 import androidx.compose.ui.test.onNodeWithText
+import androidx.compose.ui.test.hasAnyAncestor
+import androidx.compose.ui.test.hasTestTag
+import androidx.compose.ui.test.hasText
 import androidx.compose.ui.test.performClick
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.itinerary.ui.WholeTripDayUi
@@ -78,7 +81,8 @@ class TripWorkspaceContentTest {
         compose.onNodeWithText("旅行还是空的").assertIsDisplayed()
         compose.onNodeWithText("还没有收藏地点，也没有安排任何行程。先搜索想去的地方，收藏后再加入旅行日。").assertIsDisplayed()
         compose.onNodeWithTag("workspace-place-list").assertDoesNotExist()
-        compose.onAllNodesWithText("搜索地点").assertCountEquals(0)
+        compose.onAllNodes(hasText("搜索地点") and hasAnyAncestor(hasTestTag("workspace-all-empty"))).assertCountEquals(0)
+        compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed()
     }
 
     @Test fun allEmptyItineraryKeepsThreeDaysAndAddsFromEachSelectedDay() {
@@ -203,7 +207,7 @@ class TripWorkspaceContentTest {
 
         compose.onNodeWithTag("workspace-all-empty").assertDoesNotExist()
         compose.onNodeWithText("还没有收藏地点").assertIsDisplayed()
-        compose.onNodeWithText("搜索地点").assertIsDisplayed()
+        compose.onNode(hasText("搜索地点") and hasAnyAncestor(hasTestTag("workspace-sheet"))).assertIsDisplayed()
     }
 
     @Test fun declinedConsentKeepsPlacePoolAndItineraryInteractive() {
@@ -397,12 +401,13 @@ class TripWorkspaceContentTest {
         assertTrue("launcher=$launcher sheet=$sheet", launcher.bottom <= sheet.top)
     }
 
-    @Test fun searchLegendAndMapControlsStayAboveCurrentSheet() {
+    @Test fun searchAndMapControlsStayAboveCurrentSheetWithoutLegend() {
         setContent(ready(), WorkspaceMapState.Ready)
         compose.waitForIdle()
 
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
-        listOf("workspace-search-launcher", "map-legend", "workspace-locate", "layer-menu").forEach { tag ->
+        compose.onNodeWithTag("map-legend").assertDoesNotExist()
+        listOf("workspace-search-launcher", "workspace-locate", "layer-menu").forEach { tag ->
             val overlay = compose.onNodeWithTag(tag).getUnclippedBoundsInRoot()
             assertTrue("tag=$tag overlay=$overlay sheet=$sheet", overlay.bottom <= sheet.top)
         }
@@ -703,7 +708,8 @@ class TripWorkspaceContentTest {
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
         assertTrue("topBar=$topBar panel=$panel", panel.top >= topBar.bottom)
         assertTrue("panel=$panel sheet=$sheet", panel.bottom <= sheet.top)
-        compose.onNodeWithTag("map-legend").assertIsDisplayed()
+        compose.onNodeWithTag("map-legend").assertDoesNotExist()
+        compose.onNodeWithTag("workspace-search-launcher").assertDoesNotExist()
     }
 
     @Test fun mapOverlaysHideAsOneGroupWhenLiveSheetTopCannotFitAllControls() {
@@ -1049,6 +1055,88 @@ class TripWorkspaceContentTest {
                 )
             }
         }
+    }
+
+    @Test fun itineraryMapBadgeTracksDayLoadingWholeTripAndEmptyDay() {
+        fun stops(count: Int) = List(count) { index ->
+            com.yangchengwei.easytrip.itinerary.ui.ItineraryItemUi("$index", "地点$index", "", null, null)
+        }
+        val workspace = mutableStateOf(TripWorkspaceUiState(
+            tripName = "北京",
+            days = List(12) { TripDay("day-${it + 1}", it) },
+            section = WorkspaceSection.ITINERARY,
+            itineraryScope = ItineraryScope.Day("day-1"),
+            selectedDayId = "day-1",
+            wholeTripDays = listOf(
+                WholeTripDayUi("day-1", 1, stops(3), emptyList()),
+                WholeTripDayUi("day-10", 10, stops(2), emptyList(), collapsedItemCount = 1),
+            ),
+        ))
+        val itinerary = mutableStateOf(com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(
+            selectedDayId = "day-1", items = stops(3),
+        ))
+        compose.setContent {
+            EasyTripTheme {
+                TripWorkspaceContent(
+                    pageState = TripWorkspacePageState.Ready(workspace.value.toReadyState()),
+                    mapState = WorkspaceMapState.Ready, onAction = {},
+                    placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(), onPlaceAction = {},
+                    itineraryState = itinerary.value, onItineraryAction = {},
+                    mapContent = { Text("地图就绪") }, dayItineraryContent = { Text("单日内容") },
+                    modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                )
+            }
+        }
+        compose.onNodeWithText("第 1 天 · 3 站").assertIsDisplayed()
+        val badge = compose.onNodeWithTag("map-itinerary-summary").getUnclippedBoundsInRoot()
+        val layer = compose.onNodeWithTag("layer-menu").getUnclippedBoundsInRoot()
+        assertEquals((layer.top + layer.bottom).value / 2, (badge.top + badge.bottom).value / 2, 1f)
+        compose.runOnIdle {
+            workspace.value = workspace.value.copy(itineraryScope = ItineraryScope.Day("day-10"), selectedDayId = "day-10")
+            itinerary.value = itinerary.value.copy(selectedDayId = "day-10", isDayLoaded = false, items = emptyList())
+        }
+        compose.onNodeWithText("第 10 天 · 3 站").assertIsDisplayed()
+        compose.runOnIdle { itinerary.value = itinerary.value.copy(isDayLoaded = true, items = stops(4)) }
+        compose.onNodeWithText("第 10 天 · 4 站").assertIsDisplayed()
+        compose.runOnIdle { workspace.value = workspace.value.copy(itineraryScope = ItineraryScope.WholeTrip) }
+        compose.onNodeWithText("全程 · 12 天 · 5 站").assertIsDisplayed()
+        compose.runOnIdle { workspace.value = workspace.value.copy(itineraryScope = ItineraryScope.Day("day-12")) }
+        compose.onNodeWithText("第 12 天 · 0 站").assertIsDisplayed()
+        compose.runOnIdle { workspace.value = workspace.value.copy(overlay = WorkspaceOverlay.LayerMenu) }
+        compose.onNodeWithTag("map-itinerary-summary").assertDoesNotExist()
+        compose.onNodeWithTag("workspace-search-launcher").assertDoesNotExist()
+        compose.runOnIdle { workspace.value = workspace.value.copy(overlay = WorkspaceOverlay.None, sheetLevel = WorkspaceSheetLevel.EXPANDED) }
+        compose.onNodeWithTag("map-itinerary-summary").assertDoesNotExist()
+    }
+
+    @Test fun doubleFontBadgeStaysAlignedWithLayerAndSearchStaysRightWithoutAssistant() {
+        compose.setContent {
+            androidx.compose.runtime.CompositionLocalProvider(
+                androidx.compose.ui.platform.LocalDensity provides androidx.compose.ui.unit.Density(1f, 2f),
+            ) {
+                EasyTripTheme {
+                    Box(Modifier.width(320.dp).height(700.dp)) {
+                        TripWorkspaceContent(
+                            pageState = itineraryReady(WorkspaceSheetLevel.COLLAPSED, ItineraryScope.Day("day-1")),
+                            mapState = WorkspaceMapState.Ready, onAction = {},
+                            placeState = com.yangchengwei.easytrip.place.ui.PlacePoolUiState(), onPlaceAction = {},
+                            itineraryState = com.yangchengwei.easytrip.itinerary.ui.DayItineraryUiState(), onItineraryAction = {},
+                            mapContent = { Text("地图就绪") }, dayItineraryContent = { Text("单日内容") },
+                            modifier = Modifier.fillMaxSize().testTag("workspace-root"),
+                        )
+                    }
+                }
+            }
+        }
+        val badge = compose.onNodeWithTag("map-itinerary-summary").getUnclippedBoundsInRoot()
+        val layer = compose.onNodeWithTag("layer-menu").getUnclippedBoundsInRoot()
+        assertEquals((layer.top + layer.bottom).value / 2, (badge.top + badge.bottom).value / 2, 1f)
+        assertTrue(badge.right < layer.left)
+        val search = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot()
+        val root = compose.onNodeWithTag("workspace-root").getUnclippedBoundsInRoot()
+        assertEquals(12f, (root.right - search.right).value, 1f)
+        compose.onNodeWithTag("assistant-entry").assertDoesNotExist()
+        compose.onNodeWithTag("map-legend").assertDoesNotExist()
     }
 
     private fun itineraryReady(level: WorkspaceSheetLevel, scope: ItineraryScope) = TripWorkspacePageState.Ready(

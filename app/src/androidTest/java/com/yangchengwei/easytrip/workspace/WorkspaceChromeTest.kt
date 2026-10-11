@@ -189,8 +189,8 @@ class WorkspaceChromeTest {
         val locate = compose.onNodeWithTag("workspace-locate").getUnclippedBoundsInRoot()
         val compass = compose.onNodeWithTag("workspace-compass").getUnclippedBoundsInRoot()
         compose.onNodeWithTag("workspace-search-control").assertDoesNotExist()
-        val search = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot()
-        val legend = compose.onNodeWithTag("map-legend").getUnclippedBoundsInRoot()
+        val search = compose.onNodeWithTag("workspace-search-launcher-surface", useUnmergedTree = true).getUnclippedBoundsInRoot()
+        compose.onNodeWithTag("map-legend").assertDoesNotExist()
         val sheet = compose.onNodeWithTag("workspace-sheet").getUnclippedBoundsInRoot()
 
         org.junit.Assert.assertEquals(12.dp, topBar.left - root.left)
@@ -207,11 +207,7 @@ class WorkspaceChromeTest {
         org.junit.Assert.assertTrue(compass.bottom < search.top)
         org.junit.Assert.assertEquals(160f, search.width.value, 0.5f)
         org.junit.Assert.assertEquals(32f, search.height.value, 0.5f)
-        org.junit.Assert.assertEquals(32f, legend.height.value, 0.5f)
-        org.junit.Assert.assertEquals(legend.top.value, search.top.value, 0.5f)
-        org.junit.Assert.assertEquals(legend.bottom.value, search.bottom.value, 0.5f)
         org.junit.Assert.assertEquals(12f, (sheet.top - search.bottom).value, 0.5f)
-        org.junit.Assert.assertTrue(legend.right < search.left)
     }
 
     @Test fun bottomSearchFieldDispatchesOpenSearch() {
@@ -692,8 +688,8 @@ class WorkspaceChromeTest {
             }
         }
 
+        compose.onNodeWithTag("workspace-search-launcher").assertDoesNotExist()
         listOf(
-            "workspace-search-launcher" to TripWorkspaceAction.OpenSearch,
             "workspace-locate" to TripWorkspaceAction.Locate,
             "workspace-compass" to TripWorkspaceAction.ResetNorth,
             "layer-menu" to TripWorkspaceAction.OpenOverlay(WorkspaceOverlay.LayerMenu),
