@@ -2,6 +2,12 @@
 
 状态：IN_PROGRESS。2026-10-11用户明确要求直接rebase，已解除此前版本确认门禁。保留v3.1图片/直接发送与本批默认城市/首候选/顶部精简；完成验证后快进推送main并同签名覆盖安装。下方均为阶段历史。
 
+- rebase已完成：`ca74862fac5f2defcbaf147fb7f378eac37509c1`基于main`9cb2c999c8cdf46aa79d51778a93f85ae7571e13`；版本3.1.0/build24/schema11。备份分支`codex/backup-assistant-defaults-pre-rebase-20261011`保留。
+- 集成Debug/Release各1029 JVM、17项助手UI通过，Release lint 0错误/58警告/1提示。正式签名APK通过证书、16KB对齐、非debuggable与DEX内CLEAN构建身份复核，564份应用构建源与应用提交一致。
+- 本树v3.1 Pencil已补齐为262根/43,451节点，保留19个图片区根，补地图卡/整批城市与56组两行标题；原生保存/重开及磁盘/MCP回读通过，旧版冻结。
+- 手机`FMR0224725012307`当前不在ADB列表，尚未安装；已向用户和punk-12通知重新连接USB，通知`om_x100b6380918c78a8de798c221084f00`正文与机器人身份已回读。不再等待版本授权。
+- 报告`docs/testing/v3.1.0-assistant-defaults-delivery.md`；证据`/Users/bytedance/.codex/artifacts/easy-trip/v3.1.0-defaults-delivery-20261011/`。本轮不创建Release或标签。
+
 ---
 
 # v3.1 提交与主线推送（当前）
