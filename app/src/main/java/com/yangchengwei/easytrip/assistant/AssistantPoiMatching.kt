@@ -19,7 +19,5 @@ internal fun matchItem(item: IntakeItem, results: List<PlaceCandidate>): IntakeI
     val sameCity = valid.filter { sameCity(it.cityName, item.intent.city) }
     if (sameCity.isEmpty()) return item.copy(status = IntakeStatus.NEED_CITY, candidates = valid,
         detail = "结果城市缺失或与输入不一致，请逐项核对城市和地址。")
-    val exact = sameCity.filter { normalizedPlace(it.name) == normalizedPlace(item.intent.query) }
-    return if (exact.size == 1) item.copy(status = IntakeStatus.READY, candidates = valid, poi = exact.single(), detail = null)
-    else item.copy(status = IntakeStatus.AMBIGUOUS, candidates = valid, detail = "请选择具体位置，不会默认采用第一条结果。")
+    return item.copy(status = IntakeStatus.READY, candidates = valid, poi = sameCity.first(), detail = null)
 }

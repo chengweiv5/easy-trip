@@ -308,6 +308,9 @@ fun TripWorkspaceRoute(
                 ?.name ?: ready?.tripName?.let { resolveAssistantTripCity(it) }
         }
     }
+    LaunchedEffect(assistantViewModel, assistantOpen, assistantState?.consent, ready?.tripName, activePoolCity) {
+        if (assistantOpen && ready != null) assistantViewModel?.controller?.prepareDefaultCity()
+    }
     LaunchedEffect(viewModel, activePoolCity, places.selectedTagIds) {
         viewModel.setPlacePoolFilter(PlacePoolMapFilter(activePoolCity, places.selectedTagIds))
     }
@@ -548,11 +551,6 @@ fun TripWorkspaceRoute(
             viewModel.clearSearchResults()
             viewModel.dismissPlaceCard()
             viewModel.dismissMarker()
-            if (!assistantState.hasDraft && assistantState.city.isBlank()) {
-                com.yangchengwei.easytrip.place.ui.placeCityGroups(places.allRows ?: places.rows)
-                    .firstOrNull { it.key == activePoolCity && it.key != com.yangchengwei.easytrip.place.ui.UNKNOWN_CITY_KEY }
-                    ?.let { assistantViewModel.controller.editCity(it.name) }
-            }
             assistantViewModel.show()
             viewModel.setSheetLevel(WorkspaceSheetLevel.HALF)
         },

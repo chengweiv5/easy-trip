@@ -191,15 +191,16 @@ class AssistantUiTest {
                 }
                 assertEquals(3, assistant.controller.state.value.eligible.size)
             } else {
-                assertEquals(2, assistant.controller.state.value.eligible.size)
+                assertEquals(3, assistant.controller.state.value.eligible.size)
                 assertEquals(1, assistant.controller.state.value.items.count { it.status == IntakeStatus.FAILED })
-                assertEquals(1, assistant.controller.state.value.items.count { it.status == IntakeStatus.AMBIGUOUS })
+                assertEquals("雷峰塔景区", assistant.controller.state.value.items.first { it.intent.query == "雷峰塔" }.poi?.name)
             }
             compose.onNodeWithTag("assistant-select-all").performScrollTo().performClick()
             assertTrue(saved().isEmpty())
             val count = assistant.controller.state.value.selected.size
             compose.onNodeWithTag("assistant-review").performScrollTo().performClick()
             assertTrue(saved().isEmpty())
+            compose.onNodeWithText("收藏到：", substring = true).assertExists()
             compose.onNodeWithTag("assistant-confirm").performScrollTo().assertIsDisplayed().assertHeightIsAtLeast(48.dp)
             assertAssistantGutters("assistant-confirm")
             image("confirmation-zero-writes")

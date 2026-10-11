@@ -28,6 +28,8 @@ class PlaceAssistantController(
     private var work: Job? = null
     private var savedIds: Set<String> = emptySet()
     private var active = true
+    private var cityRevision = 0L
+    private var cityEdited = false
     private var parsedSources = emptyList<ParsedSource>()
     private var inputRevision = 0L
     private var currentParsed = emptyList<ParsedSource>()
@@ -63,6 +65,32 @@ class PlaceAssistantController(
     }
     fun updateSource(value: PlaceSearchDataSource?) { source = value }
     fun updateCityResolver(value: suspend () -> String?) { resolveDefaultCity = value }
+    /** Opening the panel resolves only trip context, never sends user input to the model. */
+    suspend fun prepareDefaultCity() {
+        val s = mutable.value
+        if (!active || !s.consent || s.busy || s.saving || s.resolvingCity ||
+            s.city.isNotBlank() || cityEdited || s.items.isNotEmpty()) return
+        val revision = ++cityRevision
+        mutable.value = s.copy(resolvingCity = true)
+        try {
+            val city = lookupDefaultCity()
+            currentCoroutineContext().ensureActive()
+            if (revision == cityRevision && active && mutable.value.consent && !cityEdited) {
+                mutable.value = mutable.value.copy(city = city)
+            }
+        } finally {
+            if (revision == cityRevision) mutable.value = mutable.value.copy(resolvingCity = false)
+        }
+    }
+
+    private suspend fun lookupDefaultCity(): String = try {
+        withTimeoutOrNull(12_000) { resolveDefaultCity() }?.trim().orEmpty().take(50)
+            .takeUnless { it.any(Char::isISOControl) }.orEmpty()
+    } catch (error: CancellationException) {
+        throw error
+    } catch (_: Exception) {
+        ""
+    }
     fun configurationChanged() { cancel(); inputRevision++; mutable.value = mutable.value.copy(confirmation = null) }
     fun invalidateTrip() {
         cancel(); inputRevision++; active = false
@@ -77,6 +105,9 @@ class PlaceAssistantController(
     }
     fun editCity(value: String) {
         if (mutable.value.saving) return
+        cityEdited = true
+        cityRevision++
+        mutable.value = mutable.value.copy(resolvingCity = false)
         val next = value.take(50)
         if (next == mutable.value.city) return
         cancel()
@@ -124,7 +155,7 @@ class PlaceAssistantController(
 
     fun submit() {
         val s = mutable.value
-        if (!canQuery() || s.busy || s.attachmentSelectionBusy || s.items.isNotEmpty()) return
+        if (!canQuery() || s.busy || s.resolvingCity || s.attachmentSelectionBusy || s.items.isNotEmpty()) return
         if (s.input.isBlank() && s.images.isEmpty()) { fail("请先输入地点文字或选择图片。"); return }
         if (s.images.isNotEmpty()) { processImages(null); return }
         val input = s.input
@@ -244,15 +275,8 @@ class PlaceAssistantController(
             }
         }
     }
-    private suspend fun resolveSearchCity(value: String): String = value.trim().ifBlank {
-        try {
-            withTimeoutOrNull(12_000) { resolveDefaultCity() }?.trim().orEmpty()
-        } catch (error: CancellationException) {
-            throw error
-        } catch (_: Exception) {
-            ""
-        }
-    }.take(50)
+    private suspend fun resolveSearchCity(value: String): String =
+        value.trim().ifBlank { lookupDefaultCity() }.take(50)
 
     fun cancel() {
         // A stopped batch must retain completed image extraction without querying an unchecked prefix.
@@ -282,9 +306,10 @@ class PlaceAssistantController(
             currentParsed = emptyList()
         }
         run++
+        cityRevision++
         work?.cancel(); work = null
         stopPending(null)
-        mutable.value = mutable.value.copy(busy = false, sourceProgress = mutable.value.sourceProgress.map {
+        mutable.value = mutable.value.copy(busy = false, resolvingCity = false, sourceProgress = mutable.value.sourceProgress.map {
             if (it.stage in setOf(SourceStage.SELECTED, SourceStage.PREPARING, SourceStage.SENDING, SourceStage.UNDERSTANDING))
                 it.copy(stage = SourceStage.CANCELLED) else it
         })

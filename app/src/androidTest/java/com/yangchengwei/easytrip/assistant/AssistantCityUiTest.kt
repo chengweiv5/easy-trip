@@ -45,8 +45,10 @@ class AssistantCityUiTest {
     @Test fun xuzhouTitleFlowsThroughWorkspaceToBothSearchQueries() = exercise(knownCity = true, small = false)
     @Test fun missingCityIsSuppliedOnceForWholeBatch() = exercise(knownCity = false, small = false)
     @Test fun batchCityDialogWorksAtNarrowDoubleFont() = exercise(knownCity = false, small = true)
+    @Test fun firstCandidateCanBeChangedWithoutSaving() = exercise(knownCity = true, small = false, alternatives = true)
+    @Test fun initialCityAndCandidateSwitchWorkAtNarrowDoubleFont() = exercise(knownCity = true, small = true, alternatives = true)
 
-    private fun exercise(knownCity: Boolean, small: Boolean) {
+    private fun exercise(knownCity: Boolean, small: Boolean, alternatives: Boolean = false) {
         val context = compose.activity.applicationContext
         val config = AssistantConfigStore(context)
         val original = config.read()
@@ -62,8 +64,10 @@ class AssistantCityUiTest {
         val source = object : PlaceSearchDataSource {
             override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
                 queries += keyword to city
-                return listOf(PlaceCandidate(keyword, keyword, "徐州市测试地址",
-                    GeoPoint(34.23, 117.17), null, "徐州市"))
+                val first = PlaceCandidate("$keyword-first", if (alternatives) "${keyword}风景区" else keyword, "徐州市测试地址",
+                    GeoPoint(34.23, 117.17), null, "徐州市")
+                return if (alternatives) listOf(first, first.copy(poiId = "$keyword-second", name = keyword, address = "徐州市第二处地址"))
+                    else listOf(first)
             }
         }
         val parser = PlaceIntentParser { input, city ->
@@ -111,11 +115,36 @@ class AssistantCityUiTest {
             compose.waitUntil(10_000) { assistant.controller.state.value.configured }
             compose.onNodeWithTag("assistant-entry").performClick()
             compose.runOnIdle { workspace.setSheetLevel(WorkspaceSheetLevel.EXPANDED) }
+            compose.waitUntil(10_000) { resolvedTitles.isNotEmpty() && !assistant.controller.state.value.resolvingCity }
+            compose.onNodeWithText("当前旅行：$title").assertDoesNotExist()
+            compose.onNodeWithText(title).assertExists()
+            compose.onNodeWithTag("assistant-city").performScrollTo()
+            assertEquals(if (knownCity) "徐州市" else "", assistant.controller.state.value.city)
+            if (knownCity) compose.onNodeWithTag("assistant-city").assertTextContains("徐州市")
+            assertTrue("Opening must not send to the provider", parserCities.isEmpty())
+            assertTrue("Opening must not search POIs", queries.isEmpty())
+            if (knownCity) {
+                assertEquals("徐州市", assistant.controller.state.value.city)
+                val openingFolder = File(context.filesDir, "v3.0.2-city-evidence").apply { mkdirs() }
+                InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot().let { bitmap ->
+                    File(openingFolder, if (small) "initial-city-small.png" else "initial-city.png").outputStream()
+                        .use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+                }
+                compose.onNodeWithTag("assistant-city").performTextReplacement("南京")
+                androidx.test.espresso.Espresso.closeSoftKeyboard()
+                compose.onNodeWithTag("assistant-collapse").performClick()
+                compose.runOnIdle { workspace.setSheetLevel(WorkspaceSheetLevel.HALF) }
+                compose.onNodeWithTag("assistant-entry").performClick()
+                compose.runOnIdle { workspace.setSheetLevel(WorkspaceSheetLevel.EXPANDED) }
+                compose.onNodeWithTag("assistant-city").performScrollTo().assertTextContains("南京")
+                compose.onNodeWithTag("assistant-city").performTextReplacement("徐州市")
+            }
             compose.onNodeWithTag("assistant-input").performScrollTo().performTextInput("云龙湖、云龙山")
+            androidx.test.espresso.Espresso.closeSoftKeyboard()
             compose.onNodeWithTag("assistant-submit").performScrollTo().performClick()
             compose.onNodeWithText("同意并发送本次内容").assertDoesNotExist()
             compose.waitUntil(10_000) { assistant.controller.state.value.items.size == 2 && !assistant.controller.state.value.busy }
-            assertEquals(listOf(title), resolvedTitles.toList())
+            assertTrue(resolvedTitles.all { it == title })
             if (!knownCity) {
                 assertTrue(queries.isEmpty())
                 compose.onNodeWithTag("assistant-supply-city").performScrollTo().performClick()
@@ -127,11 +156,24 @@ class AssistantCityUiTest {
             assertEquals(listOf("云龙湖", "云龙山"), queries.map { it.first })
             assertTrue(queries.all { sameCity(it.second, "徐州") })
             assertEquals(2, assistant.controller.state.value.eligible.size)
+            assertTrue(assistant.controller.state.value.selected.isEmpty())
+            if (alternatives) {
+                val lake = assistant.controller.state.value.items.first()
+                assertEquals("云龙湖-first", lake.poi?.poiId)
+                compose.onNodeWithText("云龙湖风景区").performScrollTo().performClick()
+                compose.onNodeWithTag("assistant-change-A").performScrollTo().performClick()
+                compose.onNodeWithTag("assistant-option-A-0").performScrollTo().assertTextContains("已采用", substring = true)
+                compose.onNodeWithTag("assistant-option-A-1").performScrollTo().performClick()
+                compose.waitUntil(5_000) { assistant.controller.state.value.items.first().poi?.poiId == "云龙湖-second" }
+                compose.onNodeWithTag("assistant-option-A-1").assertTextContains("已采用", substring = true)
+                assertNull(assistant.controller.state.value.confirmation)
+                assertTrue(assistant.controller.state.value.selected.isEmpty())
+            }
             compose.onAllNodesWithText("请补充搜索城市。").assertCountEquals(0)
             assertTrue(runBlocking { places.observePlaces(trip, emptySet()).first() }.isEmpty())
             compose.onNodeWithTag("assistant-item-A").performScrollTo().assertIsDisplayed()
             val folder = File(context.filesDir, "v3.0.2-city-evidence").apply { mkdirs() }
-            val name = if (knownCity) "xuzhou" else if (small) "batch-small" else "batch"
+            val name = if (alternatives) if (small) "candidates-small" else "candidates" else if (knownCity) "xuzhou" else if (small) "batch-small" else "batch"
             InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot().let { bitmap ->
                 File(folder, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
             }

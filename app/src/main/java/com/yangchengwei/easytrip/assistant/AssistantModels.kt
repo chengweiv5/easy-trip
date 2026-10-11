@@ -56,6 +56,7 @@ data class PlaceAssistantState(
     val sourceProgress: List<SourceProgress> = emptyList(),
     val attachmentSelectionBusy: Boolean = false,
     val city: String = "",
+    val resolvingCity: Boolean = false,
     val items: List<IntakeItem> = emptyList(),
     val selected: Set<String> = emptySet(),
     val busy: Boolean = false,

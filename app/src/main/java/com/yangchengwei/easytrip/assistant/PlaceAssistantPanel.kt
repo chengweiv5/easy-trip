@@ -45,6 +45,7 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
     var categoryId by remember { mutableStateOf<String?>(null) }
     var batchCityPrompt by remember { mutableStateOf(false) }
     var batchCity by remember { mutableStateOf("") }
+    var choosingPoiId by remember { mutableStateOf<String?>(null) }
     val missingCityCount = s.items.count { it.status == IntakeStatus.NEED_CITY && it.intent.city.isBlank() }
     var previewId by remember { mutableStateOf<String?>(null) }
     var pickerRevision by remember { mutableLongStateOf(-1L) }
@@ -53,7 +54,6 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
     }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(bottom = 16.dp)
         .testTag("assistant-panel"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text("当前旅行：${host.tripName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
         if (!s.configured) {
             Text("先配置模型服务，再开始标记。普通搜索和已有地点不受影响。")
             Button(host.onSettings, Modifier.fillMaxWidth().testTag("assistant-open-settings")) { Text("前往助手设置") }
@@ -63,14 +63,17 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             Button(host.onConsent, Modifier.fillMaxWidth()) { Text("查看地图授权") }
         }
         if (s.items.isEmpty() && s.receipt == null) {
-            OutlinedTextField(s.city, controller::editCity, label = { Text("默认搜索城市") }, placeholder = { Text("留空时自动识别当前旅行城市") },
-                supportingText = { Text("优先使用地点池当前城市，否则识别旅行名称中的唯一城市。也可手动填写。") },
+            OutlinedTextField(s.city, controller::editCity, label = { Text("默认搜索城市") },
+                placeholder = { Text(if (s.resolvingCity) "正在获取旅行城市…" else "请填写搜索城市") },
+                supportingText = { Text(if (s.resolvingCity) "进入助手即获取旅行城市，无需先搜索。也可直接手动填写。"
+                    else if (s.city.isBlank()) "未能确认旅行城市，请手动填写；不会使用手机所在地。"
+                    else "按当前旅行填入，可手动修改；不会使用手机所在地。") },
                 singleLine = true, enabled = !s.busy, modifier = Modifier.fillMaxWidth().testTag("assistant-city"))
             OutlinedTextField(s.input, controller::editInput, label = { Text("把想去的地点一次告诉我") },
                 placeholder = { Text("例如：杭州的灵隐寺、河坊街、雷峰塔") }, minLines = 3, maxLines = 6,
                 enabled = !s.busy, supportingText = { Text("${s.input.length} / 2000 · 每批最多 20 个地点") },
                 modifier = Modifier.fillMaxWidth().testTag("assistant-input"))
-            Text("先统一标记明确位置，再逐个或勾选确认收藏。", style = MaterialTheme.typography.bodySmall)
+            Text("每个地点默认采用第一条有效结果，可更换；收藏仍需你确认。", style = MaterialTheme.typography.bodySmall)
             if (host.model.images != null) AssistantImageInput(s,
                 {
                     pickerRevision = controller.draftRevision
@@ -78,7 +81,7 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                 },
                 { previewId = it }, host.model::removeImage, host.model.images, host.model.sessionId)
             Text("点击即发送至助手设置中的模型服务，仅发送本次所选图片、文字和必要城市。文字与图片分别处理，可能产生多次调用费用。", style = MaterialTheme.typography.bodySmall)
-            Button(controller::submit, enabled = s.configured && s.consent && !s.busy && !s.attachmentSelectionBusy &&
+            Button(controller::submit, enabled = s.configured && s.consent && !s.busy && !s.resolvingCity && !s.attachmentSelectionBusy &&
                 (s.input.isNotBlank() || s.images.isNotEmpty()),
                 modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("assistant-submit")) {
                 Text(if (s.busy) "正在理解地点…" else "全部标记到地图")
@@ -188,12 +191,22 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                                         TextButton({ categoryId = item.id }) { Text("分类：${item.category.label}") }
                                         TextButton({ controller.review(setOf(item.id)) }, enabled = s.mapReady) { Text("收藏此地点") }
                                     }
-                                } else {
+                                }
+                                if (item.poi != null && item.candidates.size > 1) {
+                                    TextButton({
+                                        choosingPoiId = if (choosingPoiId == item.id) null else item.id
+                                    }, enabled = !s.saving,
+                                        modifier = Modifier.testTag("assistant-change-${item.label}")) {
+                                        Text(if (choosingPoiId == item.id) "收起候选" else "更换地点")
+                                    }
+                                }
+                                if (item.poi == null || choosingPoiId == item.id) {
                                     item.candidates.forEachIndexed { index, poi ->
                                         OutlinedButton({ controller.choosePoi(item.id, poi.poiId); host.model.focus(item.id) },
+                                            enabled = !s.saving,
                                             modifier = Modifier.fillMaxWidth().testTag("assistant-option-${item.label}-$index")) {
                                             Column(Modifier.fillMaxWidth()) {
-                                                Text("${item.label}${index + 1}  ${poi.name}")
+                                                Text("${item.label}${index + 1}  ${poi.name}${if (item.poi?.poiId == poi.poiId) " · 已采用" else ""}")
                                                 Text("${poi.cityName ?: "城市信息缺失"} · ${poi.address}", style = MaterialTheme.typography.bodySmall)
                                                 if (!sameCity(poi.cityName, item.intent.city)) Text("请确认这是你要找的城市/地址", style = MaterialTheme.typography.bodySmall)
                                             }

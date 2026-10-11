@@ -35,6 +35,35 @@ class PlaceAssistantControllerTest {
         assertEquals(0, importer.calls)
         assertNull(c.state.value.confirmation)
     }
+
+    @Test fun firstValidCityCandidateIsUsedBeforeLaterExactMatchWithoutSaving() = runTest {
+        val importer = Importer()
+        val c = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> listOf(PlaceIntent("雷峰塔", "杭州", "雷峰塔")) },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) = listOf(
+                    poi("无坐标").copy(point = null),
+                    poi("外地雷峰塔").copy(cityName = "北京市"),
+                    poi("雷峰塔景区", "first"),
+                    poi("雷峰塔", "exact"),
+                )
+            }, importer)
+        c.environment(true, true, true); c.editInput("雷峰塔")
+        c.submit(); advanceUntilIdle()
+
+        val item = c.state.value.items.single()
+        assertEquals(IntakeStatus.READY, item.status)
+        assertEquals("first", item.poi?.poiId)
+        assertTrue(c.state.value.selected.isEmpty())
+        assertEquals(0, importer.calls)
+        c.review(setOf(item.id))
+        c.choosePoi(item.id, "exact")
+        assertEquals("exact", c.state.value.items.single().poi?.poiId)
+        assertNull(c.state.value.confirmation)
+        c.confirm(); advanceUntilIdle()
+        assertEquals(0, importer.calls)
+    }
+
     @Test fun matchedItemsCanBeSelectedAndOnlyExplicitConfirmationWrites() = runTest {
         val importer = Importer()
         val names = listOf("灵隐寺", "河坊街", "失败", "雷峰塔")
@@ -50,15 +79,15 @@ class PlaceAssistantControllerTest {
         controller.environment(true, true, true)
         controller.editInput(names.joinToString("、"))
         controller.submit(); advanceUntilIdle()
-        assertEquals(listOf(IntakeStatus.READY, IntakeStatus.READY, IntakeStatus.FAILED, IntakeStatus.AMBIGUOUS),
+        assertEquals(listOf(IntakeStatus.READY, IntakeStatus.READY, IntakeStatus.FAILED, IntakeStatus.READY),
             controller.state.value.items.map { it.status })
         controller.selectAll()
         controller.review()
         assertEquals(0, importer.calls)
-        assertEquals(2, controller.state.value.confirmation!!.items.size)
+        assertEquals(3, controller.state.value.confirmation!!.items.size)
         controller.confirm(); advanceUntilIdle()
         assertEquals(1, importer.calls)
-        assertEquals(2, controller.state.value.receipt!!.addedCount)
+        assertEquals(3, controller.state.value.receipt!!.addedCount)
         controller.confirm(); advanceUntilIdle()
         assertEquals(1, importer.calls)
     }

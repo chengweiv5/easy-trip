@@ -5,6 +5,9 @@ import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.test.advanceTimeBy
 import kotlinx.coroutines.test.runCurrent
 import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.runTest
@@ -17,6 +20,108 @@ class AssistantCityContextTest {
         override suspend fun commit(confirmation: ImportConfirmation) = error("Must not save")
         override suspend fun latestReceipt(tripId: String): ImportReceipt? = null
         override suspend fun receipt(operationId: String): ImportReceipt? = null
+    }
+
+    @Test fun openingAssistantFillsTripCityBeforeAnyInputOrSearch() = runTest {
+        val controller = PlaceAssistantController("xuzhou-trip", this,
+            PlaceIntentParser { _, _ -> error("Opening must not call the model") },
+            null, Importer(), resolveDefaultCity = { "徐州市" })
+        controller.environment(configured = false, consent = true, mapReady = false)
+
+        controller.prepareDefaultCity()
+        advanceUntilIdle()
+
+        assertEquals("徐州市", controller.state.value.city)
+        assertEquals("", controller.state.value.input)
+        assertTrue(controller.state.value.items.isEmpty())
+        assertFalse(controller.state.value.busy)
+    }
+
+    @Test fun manualCityEnteredDuringOpeningLookupIsNeverOverwritten() = runTest {
+        val lookup = CompletableDeferred<String?>()
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> error("Must not parse") }, null, Importer(),
+            resolveDefaultCity = { lookup.await() })
+        controller.environment(false, true, false)
+        launch { controller.prepareDefaultCity() }
+        runCurrent()
+        assertTrue(controller.state.value.resolvingCity)
+        controller.editCity("杭州")
+        lookup.complete("徐州市")
+        advanceUntilIdle()
+        assertEquals("杭州", controller.state.value.city)
+        assertFalse(controller.state.value.resolvingCity)
+        controller.prepareDefaultCity()
+        assertEquals("杭州", controller.state.value.city)
+    }
+
+    @Test fun cancelledOpeningDoesNotFillLateAndCanRetryOnReopen() = runTest {
+        val lookup = CompletableDeferred<String?>()
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> error("Must not parse") }, null, Importer(),
+            resolveDefaultCity = { lookup.await() })
+        controller.environment(false, true, false)
+        val opening = launch { controller.prepareDefaultCity() }
+        runCurrent()
+        opening.cancel()
+        lookup.complete("徐州市")
+        advanceUntilIdle()
+        assertEquals("", controller.state.value.city)
+        assertFalse(controller.state.value.resolvingCity)
+        controller.prepareDefaultCity()
+        assertEquals("徐州市", controller.state.value.city)
+    }
+
+    @Test fun revokedConsentRejectsPendingCityAndNoConsentDoesNotQuery() = runTest {
+        val lookup = CompletableDeferred<String?>()
+        var lookups = 0
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> error("Must not parse") }, null, Importer(),
+            resolveDefaultCity = { lookups++; lookup.await() })
+        controller.prepareDefaultCity()
+        assertEquals(0, lookups)
+        controller.environment(false, true, false)
+        launch { controller.prepareDefaultCity() }
+        runCurrent()
+        controller.environment(false, false, false)
+        lookup.complete("徐州市"); advanceUntilIdle()
+        assertEquals("", controller.state.value.city)
+        assertFalse(controller.state.value.resolvingCity)
+    }
+
+    @Test fun openingTimeoutAndFailureKeepCityEditable() = runTest {
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> error("Must not parse") }, null, Importer(),
+            resolveDefaultCity = { awaitCancellation() })
+        controller.environment(false, true, false)
+        launch { controller.prepareDefaultCity() }
+        runCurrent()
+        advanceTimeBy(12_000); runCurrent()
+        assertEquals("", controller.state.value.city)
+        assertFalse(controller.state.value.resolvingCity)
+        controller.updateCityResolver { throw IllegalStateException("private SDK failure") }
+        controller.prepareDefaultCity()
+        assertEquals("", controller.state.value.city)
+        assertNull(controller.state.value.error)
+        controller.editCity("徐州")
+        assertEquals("徐州", controller.state.value.city)
+    }
+
+    @Test fun openingCityLookupDoesNotSubmitOrRunTwiceWhilePending() = runTest {
+        val lookup = CompletableDeferred<String?>()
+        var lookups = 0
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> error("Must not parse while city is pending") }, null, Importer(),
+            resolveDefaultCity = { lookups++; lookup.await() })
+        controller.environment(true, true, true); controller.editInput("云龙湖")
+        launch { controller.prepareDefaultCity() }; runCurrent()
+        controller.prepareDefaultCity()
+        controller.submit()
+        assertFalse(controller.state.value.busy)
+        assertTrue(controller.state.value.items.isEmpty())
+        assertEquals(1, lookups)
+        lookup.complete("徐州市"); advanceUntilIdle()
+        assertEquals("徐州市", controller.state.value.city)
     }
 
     @Test fun xuzhouTripSearchesBothNamesWithoutRequiringCityInInput() = runTest {
