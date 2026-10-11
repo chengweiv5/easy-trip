@@ -1,4 +1,19 @@
-# 当前交付：rebase v3.1.0并推送安装
+# 当前交付：基于最新origin/main发布v3.1.0
+
+状态：**DONE — v3.1.0/build24/schema11已公开发布并设为Latest，认证/匿名完整下载与SHA256、远端标签、发布文档主线推送及完成通知均已回读。** 2026-10-11 19:17:19（Asia/Shanghai）发布。本次仅发布，不安装真实手机。
+
+- 发布前再次fetch确认最新main为`f7c31a82a8f0ff36057d93c8e11f3bfae67e1422`，CLEAN构建与`v3.1.0`标签固定该SHA；保留图文直接发送、默认旅行城市/首候选、地图卡/地址补全/整批补城市和上游累积设计。
+- 本轮Debug/Release各1029 JVM、29项API36 arm64模拟器专项通过；系统320dp/2倍字体图片E2E重复1项通过，不重复计数。Release lint 0错误/59警告/1提示；正式签名、非debuggable、构建SHA、APK对齐与64位ELF对齐核验通过。
+- Release ID`409618416`，公开地址`https://github.com/chengweiv5/easy-trip/releases/tag/v3.1.0`；APK SHA256 `2b50c13745e692d88bc21ef298c1ea630ceafbb5f7cc4308bd61b0bef8f49007`。两份资产认证/匿名完整下载一致，Latest双身份回读通过。
+- 发布文档与README提交`bd490f780a729d0aab5de4d4d642cbf7cef2645b`已快进推送main且远端SHA一致；本提交仅状态收尾，最终SHA记录本机`push-readback.json`，不移动发布标签。
+- `design/easy-trip-v3.1.0.pen`沿用上游已保存的262根/43,451节点，hash/结构复核不变；本轮Pencil多会话原生路径复核未完成后停止设计操作，未改稿，不冒称全页重新验收。
+- 真实模型识图、系统相册选择、API26、所有EXIF方向、TalkBack/图片IME和完整多设备验收未执行；本轮未操作真实手机。下方f254手机未连接记录是先前任务状态，不构成本次发布阻塞。
+- 自有模拟器PID57094/serial5598已停止且专属锁释放；未触碰其他模拟器或共享daemon。punk-12完成通知`om_x100b63835eb6d8acc23c9a0b77c3a6e`已回读正文、目标chat、机器人app_id及未删除状态。
+- 报告`docs/testing/v3.1.0-release.md`；备份、测试XML、签名/DEX、公开下载和通知证据根`/Users/bytedance/.codex/artifacts/easy-trip/v3.1.0-release-f445-20261011-190705/`。APK/密钥/临时证据不提交；回滚采用同签名、保持schema11的前向修复，不清数据、不改写标签或资产。
+
+---
+
+# 历史交付：rebase v3.1.0并推送安装
 
 状态：**BLOCKED（仅手机安装）**。2026-10-11用户明确要求直接rebase，已完成rebase、验证、提交及快进推送；应用和设计提交`c56797909b5f2ae9f6aa5bd19457289b83489e23`已独立回读远端一致。真实手机ADB报`device not found`，需要用户重新连接USB后才能覆盖安装。下方均为阶段历史；本次文档收尾提交的最终SHA保存在本机`push-readback.json`，避免文档自引用。
 
