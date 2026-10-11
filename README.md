@@ -14,14 +14,15 @@
 
 </div>
 
-> 当前正式版为 **[v2.2.1](https://github.com/chengweiv5/easy-trip/releases/tag/v2.2.1)**（build20）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.1/easy-trip-v2.2.1-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.1/easy-trip-v2.2.1-release.apk.sha256) · [发布验证与已知限制](docs/testing/v2.2.1-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v2.2.1 新样式截图。
+> 当前正式版为 **[v3.0.0](https://github.com/chengweiv5/easy-trip/releases/tag/v3.0.0)**（build21）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v3.0.0/easy-trip-v3.0.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v3.0.0/easy-trip-v3.0.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v3.0.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v3.0 新样式截图。
 
-## v3 主线开发版：助手标记地点，自己确认收藏
+## v3.0：助手标记地点，自己确认收藏
 
-- 主线源码为 **3.0.0/build21/schema11**，包含v2.2.1的两行行程标题与新收藏默认景点；代码进入main不等于公开Release已升级。
-- 从旅行地图打开「助手」，输入城市和多个地点，统一标记地图候选，再逐项或勾选后确认收藏；助手不替你决定去哪里。
-- 模型配置位于 **App设置 → 助手设置**，可配置Provider；普通搜索继续保留。地图入口、正文左右16dp留白及确认前不写入地点池已完成专项验证。
-- [第一版设计](docs/superpowers/specs/2026-10-11-easy-trip-v3-first-agent-design.md) · [主线集成验证与边界](docs/testing/v3.0-main-integration.md)。本次不发布新APK，也不自动升级手机。
+- 从旅行地图左下打开「助手」，输入城市和多个地点，一次匹配并标记地图候选，再逐项或勾选后确认收藏；确认前不写入地点池，助手不替你决定去哪里。
+- 模型配置位于 **App设置 → 助手设置**，Provider直连，可配置Endpoint与API Key；无需自建网关。普通搜索保持右下，未配置助手时原有手动功能不受影响。
+- 助手正文统一左右16dp留白；保留v2.2.1两行每日标题与普通新收藏默认景点。首版仅支持文字输入，不包含图片或第三方平台抓取。
+- **3.0.0/build21/schema11**，正式签名覆盖升级，勿卸载、清数据或降级旧版。早期同名build21可能不提示应用内更新，可手动覆盖；本包与2026-10-11 13:08已安装的主线正式包完全一致。
+- [第一版设计](docs/superpowers/specs/2026-10-11-easy-trip-v3-first-agent-design.md) · [主线验证](docs/testing/v3.0-main-integration.md) · [正式发布记录](docs/testing/v3.0.0-release.md)。993项Release单测、35项集成设备专项通过；已知历史缺口单列，不宣称全应用全页验收。
 
 ## v2.2.1：行程标题更紧凑
 

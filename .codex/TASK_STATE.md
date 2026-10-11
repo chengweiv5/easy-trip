@@ -1,4 +1,30 @@
-# v3正式进入origin/main（当前）
+# v3.0.0 正式发布（当前）
+
+状态：**DONE — v3.0.0正式发布，Latest及认证/匿名完整下载验证通过。** 2026-10-11。
+
+- Release：https://github.com/chengweiv5/easy-trip/releases/tag/v3.0.0 ，ID409439933；北京时间13:30:13发布，非草稿、非预发布。
+- 3.0.0/build21/schema11，标签固定源码`bebaf82ca0dba4188f09fe31dba2724c4d594cdc`。APK SHA256`0fa3da8a9edbd3303314a6029f382015a79e2b6e6e20866038d4025a8e6045ed`，与同日13:08已安装手机包完全一致；本轮没有重装或操作手机。
+- 993项Release单测、0错误lint、正式签名和16KiB对齐；复用35项主线设备专项证据并保留既有缺口，不声称全应用全绿。发布时应用/构建输入hash均未变，未重新调用模型。
+- 唯一Pencil源`design/easy-trip-v3.0.0.pen`已通过MCP同步23处两行每日标题和发布状态；234根保持，原42,149节点全保留，新增23个标题行容器，共42,172节点。原生准确路径/可编辑属性/Save/磁盘hash/MCP回读验证通过，v2.2.0/v2.2.1源未改；未纳入v3.1。
+- 本发布收尾提交包含README、设计、规格、规则及上一轮安装记录；在功能分支提交，仅快进推送origin/main。最终远端SHA及干净工作树回读、完成通知独立回读保存本机证据，不移动发布标签。
+- 准确范围、验证与安全回滚见`docs/testing/v3.0.0-release.md`；旧PDF及下方阶段历史不代表当前状态。禁止清数据、降级schema10、强推或删除既有发布资源。
+- 证据：`/Users/bytedance/.codex/artifacts/easy-trip/v3.0.0-release-20261011-131741/`，`public-release-validation.json`、`design-final-validation.json`、`final-delivery.json`、完成通知回读。
+
+---
+
+# v3主线代码覆盖安装（历史）
+
+状态：**DONE — 已从干净主线提交bebaf82正式签名构建并覆盖安装华为手机，安装包与可见数据回读通过。** 2026-10-11。
+
+- 用户本轮仅要求“安装”。构建源码`bebaf82ca0dba4188f09fe31dba2724c4d594cdc`，3.0.0/build21/schema11、SOURCE_STATE=CLEAN；没有修改产品代码、Pencil或版本号，未提交/推送/发布Release。
+- Release993单元测试通过、lint0错误/55警告/1提示；正式签名及16KiB对齐验证通过。APK SHA256`0fa3da8a9edbd3303314a6029f382015a79e2b6e6e20866038d4025a8e6045ed`。
+- 13:08同签名覆盖安装ALN-AL00；手机APK回读哈希一致，UID10477和首次安装时间保持。未卸载、清空、降级或额外授权；安装前旧APK已备份，未声称已备份完整私有DB。
+- 安装前后旅行列表24项可见文本一致；青州8地点/3天/33%及淄博、安阳保持。核查两行日程标题、助手入口和两来源页留白，手机输入框左右52px=16dp；代理未调用模型或新增收藏。检查完成后不再操作手机。
+- 本机证据`/Users/bytedance/.codex/artifacts/easy-trip/v3-main-install-20261011-130525/`；详见`docs/testing/v3.0-main-install.md`。手机自有锁已释放；本地只更新本安装记录与任务状态，不扩展为全应用验收。
+
+---
+
+# v3正式进入origin/main（历史）
 
 状态：**DONE — v3已rebase到最新主线并快进推送origin/main，远端完整SHA回读通过；993单测、35项设备专项通过，未强推、未发布Release、未安装手机。** 2026-10-11。
 

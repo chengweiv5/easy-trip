@@ -1,5 +1,9 @@
 # easy-trip 项目约定
 
+## 当前发布基线
+
+- **v3.0.0/build21/schema11已正式发布（2026-10-11）**，标签固定`bebaf82ca0dba4188f09fe31dba2724c4d594cdc`。唯一正式累积源`design/easy-trip-v3.0.0.pen`，234根；已通过Pencil同步v2.2.1两行标题与发布状态。后续开发、安装或发布前读取`docs/testing/v3.0.0-release.md`，遵守其中的验证边界和schema11前向修复要求。下方“当前v2.2/草案/未发布/标题待同步”均为阶段历史，由本段及发布记录取代；旧PDF不代表最终源，历史全页验收缺口保留。
+
 ## 后续版本规划
 
 - **v3进入主线（2026-10-11用户明确授权）**：当前功能分支已将v3的16笔提交rebase到`origin/main`的v2.2.1基线，保留新收藏默认景点及两行每日标题，应用为3.0.0/build21/schema11。主线集成验证与交付见`docs/testing/v3.0-main-integration.md`。本次仅代码进入main，不创建Release或安装手机；历史v3专用推送限制以下方Git规则替代。v3 Pencil仍为原234根草案，未因rebase自动同步v2.2.1两行标题设计；下一次修改相关UI时先在同源Pencil补齐，不把本次集成声明为完整设计验收。
