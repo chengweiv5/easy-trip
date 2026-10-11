@@ -133,15 +133,7 @@ class PlaceAssistantController(
         work = scope.launch {
             try {
                 withTimeout(90_000) {
-                    val city = s.city.trim().ifBlank {
-                        try {
-                            withTimeoutOrNull(12_000) { resolveDefaultCity() }?.trim().orEmpty()
-                        } catch (error: CancellationException) {
-                            throw error
-                        } catch (_: Exception) {
-                            ""
-                        }
-                    }.take(50)
+                    val city = resolveSearchCity(s.city)
                     if (!isCurrent(generation)) return@withTimeout
                     mutable.value = mutable.value.copy(city = city)
                     val intents = parser.parse(input, city)
@@ -178,7 +170,7 @@ class PlaceAssistantController(
         if (!imageAllowed()) { fail("当前模型的图片能力检查未通过，图片尚未发送。请在助手设置重新检查，素材已保留。"); return }
         val runner = processor?.invoke() ?: run { fail("图片处理暂不可用，请重新打开助手。"); return }
         val generation = ++run
-        val request = AssistantInputRequest(sessionId, s.input, s.city.trim(), s.images, retryIds)
+        val input = AssistantInputRequest(sessionId, s.input, s.city.trim(), s.images, retryIds)
         val sourceIds = (if (s.input.isBlank()) emptyList() else listOf("text")) + s.images.map { it.id }
         if (retryIds == null) parsedSources = emptyList()
         currentParsed = emptyList()
@@ -190,6 +182,9 @@ class PlaceAssistantController(
         work = scope.launch {
             try {
                 withTimeout(540_000) {
+                    val request = input.copy(city = resolveSearchCity(input.city))
+                    if (!isCurrent(generation)) return@withTimeout
+                    mutable.value = mutable.value.copy(city = request.city)
                     val batch = runner.parse(request, onSource = { parsed ->
                         if (isCurrent(generation)) currentParsed = currentParsed + parsed
                     }) { progress ->
@@ -249,6 +244,16 @@ class PlaceAssistantController(
             }
         }
     }
+    private suspend fun resolveSearchCity(value: String): String = value.trim().ifBlank {
+        try {
+            withTimeoutOrNull(12_000) { resolveDefaultCity() }?.trim().orEmpty()
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Exception) {
+            ""
+        }
+    }.take(50)
+
     fun cancel() {
         // A stopped batch must retain completed image extraction without querying an unchecked prefix.
         if (currentParsed.isNotEmpty()) {

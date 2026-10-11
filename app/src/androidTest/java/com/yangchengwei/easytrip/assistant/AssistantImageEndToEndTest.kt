@@ -101,7 +101,9 @@ class AssistantImageEndToEndTest {
             compose.waitUntil(10_000) { model.controller.state.value.images.size == 1 && !model.controller.state.value.attachmentSelectionBusy }
             assertEquals(0, modelCalls.get())
             val imageId = model.controller.state.value.images.single().id
-            compose.onNodeWithTag("assistant-preview-$imageId").performScrollTo().performClick()
+            // The thumbnail is in a LazyRow: scroll its outer vertical container first.
+            compose.onNodeWithTag("assistant-image-list").performScrollTo()
+            compose.onNodeWithTag("assistant-preview-$imageId").performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithText("关闭预览").assertIsDisplayed()
             screenshot("preview")
             compose.onNodeWithText("关闭预览").performClick()

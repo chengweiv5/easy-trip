@@ -20,6 +20,37 @@ class AssistantImageControllerTest {
         override suspend fun remove(sessionId: String, imageId: String) {}
         override suspend fun release(sessionId: String) {}
     }
+    @Test fun imageInputInheritsTripCityBeforeParsingAndKeepsManualCityFirst() = runTest {
+        for (manualCity in listOf("", "杭州")) {
+            var resolutions = 0
+            val parsedCities = mutableListOf<String>()
+            val queryCities = mutableListOf<String?>()
+            val text = PlaceIntentParser { _, _ -> emptyList() }
+            val processor = AssistantInputProcessor(text, ImageIntentParser { image, ordinal, _, city, _ ->
+                parsedCities += city
+                listOf(PlaceIntent("云龙湖", "", "云龙湖",
+                    sources = listOf(IntakeSource.Image(image.id, ordinal, "云龙湖"))))
+            }, Images())
+            val controller = PlaceAssistantController("trip", this, text, object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                    queryCities += city
+                    return emptyList()
+                }
+            }, object : PlaceImport {
+                override suspend fun receipt(operationId: String): ImportReceipt? = null
+                override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt = error("no saves")
+            }, resolveDefaultCity = { resolutions++; "徐州" }, processor = { processor }, sessionId = "session")
+            controller.environment(true, true, true)
+            controller.editCity(manualCity)
+            controller.addImages(listOf(AssistantImage("i1", 1, "image/png", 100, 100, 100)))
+            controller.submit(); advanceUntilIdle()
+            val expected = manualCity.ifBlank { "徐州" }
+            assertEquals(listOf(expected), parsedCities)
+            assertEquals(listOf(expected), queryCities)
+            assertEquals(if (manualCity.isBlank()) 1 else 0, resolutions)
+            assertEquals(expected, controller.state.value.city)
+        }
+    }
     @Test fun imageOnlyInputQueriesWithoutSendingOnSelectionOrSaving() = runTest {
         var imageCalls = 0
         var textCalls = 0
