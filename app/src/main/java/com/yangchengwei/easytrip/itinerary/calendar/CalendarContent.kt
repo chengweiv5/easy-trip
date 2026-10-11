@@ -214,6 +214,7 @@ fun CalendarContent(
         .coerceAtLeast(1.dp)
     Column(Modifier.fillMaxSize().testTag("calendar-content")) {
         ItinerarySummaryHeader(
+            inlineDate = false,
             modifier = Modifier.onGloballyPositioned { summaryBounds = it.boundsInRoot() }
                 .testTag("calendar-summary")
                 .drawWithContent { if (!hideSummary) drawContent() }

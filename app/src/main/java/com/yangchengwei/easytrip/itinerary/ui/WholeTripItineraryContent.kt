@@ -39,6 +39,7 @@ fun WholeTripItineraryContent(
     Column(modifier.fillMaxSize()) {
         if (days.isNotEmpty()) {
             ItinerarySummaryHeader(
+                inlineDate = false,
                 text = "全程 · ${formatCount(days.size)} 天 · ${formatCount(totalStops)} 站",
                 onExpenseClick = com.yangchengwei.easytrip.expense.ui.LocalExpenseReviewOpener.current?.let { open -> { open(null) } },
                 expenseLabel = com.yangchengwei.easytrip.expense.ExpenseSummary(days.sumOf { it.expenses.cents }, days.sumOf { it.expenses.recorded }, days.sumOf { it.expenses.missing }).label("全程已记"),
