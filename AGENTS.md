@@ -2,7 +2,7 @@
 
 ## 当前设计目标
 
-- **v3.2.0 Git交付（2026-10-11，进行中）**：用户已授权“提交，推送”；首次fetch确认origin/main仍为`c1e0a7f`，开放PR为空，29个实施输入／设计／预览hash复核一致。本轮在功能分支提交后显式快进推送origin/main，不发布Release／标签、不重新安装手机。准确交付状态见`docs/testing/v3.2.0-assistant-simplify-git-delivery.md`；下方“未提交／未推送”为开发和安装阶段历史。
+- **v3.2.0 Git交付（2026-10-11）**：功能提交`13bc782`已快进推送origin/main，远端独立SHA回读一致；punk-12通知已回读。继续开发或发布前读取`docs/testing/v3.2.0-assistant-simplify-git-delivery.md`中的验证边界、设计预览来源及手机DIRTY包说明。本轮不发布Release／标签、不重新安装手机；下方“未提交／未推送”为开发和安装阶段历史。
 
 - **v3.2.0后续安装（2026-10-11）**：用户单独授权“安装”后，21:15:46同签名3.2.0/build25/schema11开发包已覆盖安装华为ALN-AL00，手机APK回读hash与已验证归档包一致，UID／首次安装时间／数据目录不变；没有卸载或清数据。手机前台为飞书，未打断用户，未进行本轮真机界面或全库核验。准确证据与回滚见`docs/testing/v3.2.0-assistant-simplify-install.md`。未提交、推送、发布；下条“未安装”只记载开发阶段，Pencil不因单独安装重写。
 

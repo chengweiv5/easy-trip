@@ -1,11 +1,13 @@
 # 当前任务：v3.2.0 提交与推送
 
-状态：**IN_PROGRESS（2026-10-11）**。
+状态：**DONE（2026-10-11，功能交付与通知已核验）**。本状态收尾提交的最终远端SHA以本机`final-push-verification.json`为准；工具回合在该核验完成后结束。
 
 - 用户明确授权“提交，推送”，本轮不发布Release／标签，不重新构建或安装手机。
 - 功能分支`codex/v3.2-assistant-simplify`；首次fetch确认HEAD与origin/main均为`c1e0a7faddf8e542f380a67699515399a0139fc5`，开放PR为空，无需rebase。
 - 29个应用／设计／预览文件hash与已验证清单一致，Debug/Release各1035 JVM及38项设备专项和额外320dp双倍字体复测日志已回读；冻结v3.1源不变。
-- 已备份全部未提交成果，待功能提交、再次fetch／祖先检查、快进推送、独立远端SHA核验、完成通知及最终状态写回。
+- 功能提交`13bc7826800cc092cdbc775cd2a2d5c8fdcaaf24`已显式快进推送origin/main；21:56:11独立远端回读与本地SHA一致，当时工作区干净。两次fetch均无上游新增，无需rebase。
+- punk-12通知`om_x100b638d17cd98a0c3e6ea87e6b1742`已发送并独立校验chat／sender／完整正文／deleted=false，状态在通知验证后写回。
+- 功能提交宿主硬编码hook超时放行，不声明该扫描通过；未修改或禁用hook，独立凭据模式扫描无候选命中。手机仍为此前安装的DIRTY开发包，不冒称新提交CLEAN构建。
 - Git交付记录：`docs/testing/v3.2.0-assistant-simplify-git-delivery.md`；证据目录：`/Users/bytedance/.codex/artifacts/easy-trip/v3.2.0-git-delivery-f445-20261011-212108/`。
 
 ---
