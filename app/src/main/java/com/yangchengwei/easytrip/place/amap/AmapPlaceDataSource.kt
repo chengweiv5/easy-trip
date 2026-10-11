@@ -29,6 +29,7 @@ data class PlaceCandidate(
 
 interface PlaceSearchDataSource {
     suspend fun search(keyword: String, city: String?): List<PlaceCandidate>
+    suspend fun details(poiId: String): PlaceCandidate? = null
     /** Explicit search only: discard a failed location attempt, not a usable fix or active request. */
     fun retryFailedLocation() = Unit
     suspend fun cityAt(point: GeoPoint): com.yangchengwei.easytrip.place.domain.PlaceCity? = null
@@ -41,6 +42,31 @@ class AmapPlaceDataSource(context: Context, private val consent: AmapConsentToke
     init { consent.validateActive() }
 
     override suspend fun cityAt(point: GeoPoint) = com.yangchengwei.easytrip.amap.lookupCity(context, consent, point)
+
+    override suspend fun details(poiId: String): PlaceCandidate? {
+        consent.validateActive()
+        require(poiId.isNotBlank())
+        val search = PoiSearch(context, null)
+        return awaitSdkCallback("POI_DETAIL", object : CallbackBoundary<Pair<com.amap.api.services.core.PoiItem?, Int>> {
+            override fun install(listener: (Result<Pair<com.amap.api.services.core.PoiItem?, Int>>) -> Unit) {
+                search.setOnPoiSearchListener(object : PoiSearch.OnPoiSearchListener {
+                    override fun onPoiSearched(result: PoiResult?, code: Int) = Unit
+                    override fun onPoiItemSearched(item: com.amap.api.services.core.PoiItem?, code: Int) =
+                        listener(Result.success(item to code))
+                })
+            }
+            override fun clear() = search.setOnPoiSearchListener(null)
+            override fun start() = search.searchPOIIdAsyn(poiId)
+        }) { (item, code) ->
+            consent.validateActive()
+            if (code != AMapException.CODE_AMAP_SUCCESS) throw AmapServiceException("POI_DETAIL", code, "AMap place lookup failed")
+            item?.let {
+                parsePlaces(listOf(RawPlace(it.poiId.orEmpty(), it.title.orEmpty(), it.snippet.orEmpty(),
+                    it.latLonPoint?.let { point -> GeoPoint(point.latitude, point.longitude) },
+                    it.cityCode, it.cityName, it.adCode, it.adName))).firstOrNull()
+            }
+        }
+    }
 
     override suspend fun cityForPoi(poiId: String): com.yangchengwei.easytrip.place.domain.PlaceCity? {
         consent.validateActive()

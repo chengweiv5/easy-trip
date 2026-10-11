@@ -1,4 +1,20 @@
-# v3.0.0 正式发布（当前）
+# v3.0.1 地图地点卡与地址补全（当前）
+
+状态：**DONE — 地址补全、右下紧凑按钮与长标题关闭对齐已实现，专项验证及 Pencil 落盘回读完成。未安装真实手机、未提交、未推送、未发布。** 2026-10-11（Asia/Shanghai）。
+
+- 工作树为 `/Users/bytedance/.codex/worktrees/2df7/easy-trip`，功能分支 `codex/v3.0.1-map-place-card`；HEAD 仍为 `bebaf82ca0dba4188f09fe31dba2724c4d594cdc`。版本 3.0.1/build22，schema11 不变。
+- 根因是底图 POI 点击转换默认空地址且旧卡片不查详情；新增真实 POI ID 详情、8 秒超时、重试与取消隔离，收藏使用补全地址，既有地址免查询。保留地图相机和地点池完整详情抽屉。
+- 用户否定通栏大按钮后，确认改为右下紧凑单操作：普通 112×36dp 视觉、8dp 圆角、至少 48dp 点击高，透明边缘可点击；大字号自然增高。未收藏实心，取消收藏描边；长标题下关闭保持顶部对齐。
+- 1000 JVM / 94 suites 全通过；标准屏 11 项、320dp 双倍系统字号 7 项专项全通过（含真实高德详情独立测试）；Debug 构建成功、lint 0错误/58警告/1提示。不是全量 connected 或真实手机验收。
+- 正式源 `/Users/bytedance/.codex/worktrees/2df7/easy-trip/design/easy-trip-v3.0.1.pen` 为 242根/42,312节点，保留234继承根、8个地点卡状态；0重复ID/断裂引用/placeholder。所有编辑通过绝对路径 Pencil MCP，最终磁盘与MCP回读一致，hash `a8a1756b1fc7f279ea39fb277b60eef96a4d6a2edc545a5f241ecb3172155574`；v3.0.0 冻结源不变。没有抢切其他设计窗口；本轮未关闭重开文件，不扩大为继承页面全量验收。
+- 实施与回滚记录：`/Users/bytedance/.codex/worktrees/2df7/easy-trip/docs/testing/v3.0.1-map-place-card.md`。完整证据/初始与紧凑版前备份位于 `/Users/bytedance/.codex/artifacts/easy-trip/v3.0.1-map-place-card-2df7`。
+- 自有 `emulator-5586` 已恢复配置并停止；真实手机与其他模拟器未操作。punk-12 通知 `om_x100b63871ebab0a0c2c24a50c252f4b` 已回读核对全文、chat、机器人 app 与未删除状态。
+- 用户要求复制覆盖的 `AGENTS.md` 保持原样；其独立备份与通知不由本功能回滚撤销。
+
+
+---
+
+# v3.0.0 正式发布（历史）
 
 状态：**DONE — v3.0.0正式发布，Latest及认证/匿名完整下载验证通过。** 2026-10-11。
 

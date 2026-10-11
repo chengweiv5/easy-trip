@@ -3109,13 +3109,13 @@ class WorkspaceFlowTest {
         compose.onNodeWithText("故宫").assertIsDisplayed()
         compose.onNodeWithText("北京市东城区").assertIsDisplayed()
         val viewportBeforeClose = model.state.value.map.viewportRequest
-        compose.onNodeWithText("关闭").performClick()
+        compose.onNodeWithContentDescription("关闭地点详情").performClick()
         compose.waitForIdle()
         assertEquals(viewportBeforeClose, model.state.value.map.viewportRequest)
         assertEquals(0, toggles)
     }
 
-    @Test fun mapPoiWithoutAddressShowsUnavailableMessageAndCanBeCollected() {
+    @Test fun mapPoiWithoutAddressLoadsDetailsBeforeCollection() {
         val model = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         lateinit var host: PoiHost
         var collected: PlaceCandidate? = null
@@ -3127,6 +3127,11 @@ class WorkspaceFlowTest {
                 onSettings = {},
                 isPoiSaved = false,
                 onTogglePoiCollection = { collected = it },
+                placeDetailsSource = object : com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource {
+                    override suspend fun search(keyword: String, city: String?) = emptyList<PlaceCandidate>()
+                    override suspend fun details(poiId: String) =
+                        PlaceCandidate(poiId, "故宫", "北京市东城区景山前街4号", GeoPoint(39.9, 116.4), "010")
+                },
                 placeContent = { Text("地点内容") },
                 dayItineraryContent = { Text("行程内容") },
                 mapHostFactory = { PoiHost(it).also { created -> host = created } },
@@ -3135,9 +3140,9 @@ class WorkspaceFlowTest {
         compose.waitUntil(5_000) { runCatching { host }.isSuccess }
         compose.runOnIdle { host.emit(MapPoiUi("poi-empty-address", "故宫", "", GeoPoint(39.9, 116.4))) }
 
-        compose.onNodeWithText("地址暂不可用").assertIsDisplayed()
+        compose.onNodeWithText("北京市东城区景山前街4号").assertIsDisplayed()
         compose.onNodeWithTag("place-card-collection").performClick()
-        assertEquals("", collected?.address)
+        assertEquals("北京市东城区景山前街4号", collected?.address)
     }
 
     @Test fun mapPoiWithoutStableIdCannotBeCollected() {

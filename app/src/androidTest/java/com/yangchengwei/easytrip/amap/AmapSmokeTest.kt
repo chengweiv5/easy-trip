@@ -12,6 +12,9 @@ import com.yangchengwei.easytrip.route.domain.RouteRequest
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Assume.assumeTrue
 import org.junit.Test
@@ -27,6 +30,17 @@ class AmapSmokeTest {
         assertTrue(places.isNotEmpty())
         assertTrue(places.all { it.poiId.isNotBlank() && it.name.isNotBlank() })
         println("AMAP_RESULT POI count=${places.size} first=${places.first().name}")
+    }
+
+    @Test fun poiDetailsReturnAddressForSelectedMapIdentity() = runBlocking {
+        assumeConfiguredKey()
+        val source = AmapPlaceDataSource(context, consent())
+        val candidate = withTimeout(20_000) { source.search("故宫博物院", "北京") }.first()
+        val detail = withTimeout(20_000) { source.details(candidate.poiId) }
+        assertNotNull(detail)
+        assertEquals(candidate.poiId, detail?.poiId)
+        assertTrue(detail?.address.orEmpty().isNotBlank())
+        println("AMAP_RESULT POI_DETAIL name=${detail?.name} address=${detail?.address}")
     }
 
     @Test fun walkAndDriveRoutesContainUsableGeometry() = runBlocking {

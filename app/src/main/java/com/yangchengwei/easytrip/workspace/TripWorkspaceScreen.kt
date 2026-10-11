@@ -26,6 +26,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.testTag
+import androidx.compose.ui.platform.LocalContext
+import com.yangchengwei.easytrip.place.amap.AmapPlaceDataSource
+import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
@@ -168,7 +171,12 @@ fun TripWorkspaceScreen(
     searchReturn: WorkspaceSearchReturn? = null,
     onDeleteDay: (() -> Unit)? = null,
     mapSession: WorkspaceMapSession? = null,
+    placeDetailsSource: PlaceSearchDataSource? = null,
 ) {
+    val context = LocalContext.current
+    val detailsSource = remember(consent, placeDetailsSource, context) {
+        placeDetailsSource ?: consent?.let { AmapPlaceDataSource(context, it) }
+    }
     var mapAttempt by remember { mutableIntStateOf(0) }
     var zoomInRequest by remember { mutableIntStateOf(0) }
     var zoomOutRequest by remember { mutableIntStateOf(0) }
@@ -358,6 +366,7 @@ fun TripWorkspaceScreen(
                         onDismissPermissionExplanation = onDismissPermissionExplanation,
                         onDismissLocationSettings = onDismissLocationSettings,
                         onOpenLocationSettings = onOpenLocationSettings,
+                        placeDetailsSource = detailsSource,
                     )
                 }
             }
@@ -382,6 +391,7 @@ fun TripWorkspaceScreen(
     onTogglePoiCollection: (PlaceCandidate) -> Unit = {},
     mapHostFactory: (android.content.Context) -> AmapMapHost = { RealAmapMapHost.create(it) },
     mapReadyTimeoutMillis: Long = DEFAULT_MAP_READY_TIMEOUT_MILLIS,
+    placeDetailsSource: PlaceSearchDataSource? = null,
 ) {
     val pageState by viewModel.pageState.collectAsStateWithLifecycle()
     TripWorkspaceScreen(
@@ -435,6 +445,7 @@ fun TripWorkspaceScreen(
         onTogglePoiCollection = onTogglePoiCollection,
         mapHostFactory = mapHostFactory,
         mapReadyTimeoutMillis = mapReadyTimeoutMillis,
+        placeDetailsSource = placeDetailsSource,
     )
 }
 
@@ -468,12 +479,18 @@ private fun WorkspaceOverlayContent(
     onDismissPermissionExplanation: () -> Unit,
     onDismissLocationSettings: () -> Unit,
     onOpenLocationSettings: () -> Unit,
+    placeDetailsSource: PlaceSearchDataSource?,
 ) {
     when (val overlay = state.overlay) {
         WorkspaceOverlay.None, WorkspaceOverlay.LayerMenu, WorkspaceOverlay.MoreMenu -> Unit
         is WorkspaceOverlay.PlaceDetail -> {
             when {
-                state.selectedMapPoi != null -> MapPoiDialog(state.selectedMapPoi, isPoiSaved, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
+                state.selectedMapPoi != null -> MapPlaceDialog(
+                    poi = state.selectedMapPoi, source = placeDetailsSource, isSaved = isPoiSaved,
+                    collectionBusy = state.selectedMapPoi.poiId in collectionBusyPoiIds,
+                    collectionError = collectionError, onToggleCollection = onTogglePoiCollection,
+                    onDismiss = onDismissMapPlace,
+                )
                 placeState.selectedDetailPlace != null || placeState.editing != null -> {
                     val place = placeState.editing ?: placeState.selectedDetailPlace
                     if (place != null) {
@@ -513,7 +530,14 @@ private fun WorkspaceOverlayContent(
                         )
                     }
                 }
-                state.selectedMarker != null -> MarkerDialog(state.selectedMarker, state.selectedMarkerPoi, collectionBusyPoiIds, collectionError, onTogglePoiCollection, onDismissMapPlace)
+                state.selectedMarker != null -> MapPlaceDialog(
+                    poi = state.selectedMarkerPoi ?: MapPoiUi(null, state.selectedMarker.label, "", state.selectedMarker.point),
+                    source = placeDetailsSource, isSaved = true,
+                    collectionBusy = state.selectedMarkerPoi?.poiId in collectionBusyPoiIds,
+                    collectionError = collectionError, onToggleCollection = onTogglePoiCollection,
+                    onDismiss = onDismissMapPlace, showCollection = state.selectedMarkerPoi != null,
+                    occurrences = state.selectedMarker.occurrences.map { "${it.dayLabel} · 第 ${it.order} 项 · ${it.placeName}" },
+                )
             }
         }
         is WorkspaceOverlay.EditItineraryItem -> itineraryState.editDraft?.let { draft ->
@@ -746,55 +770,6 @@ private fun WorkspaceOverlayContent(
             )
         }
     }
-}
-
-@Composable
-private fun MapPoiDialog(
-    poi: MapPoiUi,
-    isPoiSaved: Boolean,
-    collectionBusyPoiIds: Set<String>,
-    collectionError: String?,
-    onTogglePoiCollection: (PlaceCandidate) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(poi.name) },
-        text = { Column { Text(poi.address.ifBlank { "地址暂不可用" }); collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) } } },
-        confirmButton = {
-            val poiId = poi.poiId
-            CompactPrimaryButton(
-                onClick = { if (poiId != null) onTogglePoiCollection(PlaceCandidate(poiId, poi.name, poi.address, poi.point, null)) },
-                enabled = poiId != null && poiId !in collectionBusyPoiIds,
-                modifier = Modifier.testTag("place-card-collection"),
-            ) { Text(if (poiId == null) "无法收藏" else if (isPoiSaved) "取消收藏" else "收藏") }
-        },
-        dismissButton = { CompactSecondaryButton(onDismiss) { Text("关闭") } },
-    )
-}
-
-@Composable
-private fun MarkerDialog(
-    marker: MapMarkerUi,
-    markerPoi: MapPoiUi?,
-    collectionBusyPoiIds: Set<String>,
-    collectionError: String?,
-    onTogglePoiCollection: (PlaceCandidate) -> Unit,
-    onDismiss: () -> Unit,
-) {
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(marker.label) },
-        text = { Column { if (marker.occurrences.isEmpty()) Text("收藏地点"); marker.occurrences.forEach { Text("${it.dayLabel} · 第 ${it.order} 项 · ${it.placeName}") }; collectionError?.let { Text(it, color = MaterialTheme.colorScheme.error) } } },
-        confirmButton = {
-            if (markerPoi != null) CompactPrimaryButton(
-                onClick = { onTogglePoiCollection(PlaceCandidate(requireNotNull(markerPoi.poiId), markerPoi.name, markerPoi.address, markerPoi.point, null)) },
-                enabled = markerPoi.poiId !in collectionBusyPoiIds,
-                modifier = Modifier.testTag("place-card-collection"),
-            ) { Text("取消收藏") } else CompactPrimaryButton(onDismiss) { Text("关闭") }
-        },
-        dismissButton = markerPoi?.let { { CompactSecondaryButton(onDismiss) { Text("关闭") } } },
-    )
 }
 
 private fun TransportMode.label() = when (this) {
