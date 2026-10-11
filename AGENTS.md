@@ -2,7 +2,7 @@
 
 ## 当前工作树修复版本
 
-- **f254 / v3.0.2（2026-10-11用户指定）**：`codex/v3.0.2-assistant-city` 基于 `ed1bf0c` 修复助手搜索城市继承与整批补充，3.0.2/build23/schema11。正式累积设计 `design/easy-trip-v3.0.2.pen` 从本树已发布 v3.0.0 派生；其他树 v3.0.1 尚未集成，不声称继承。998 Debug JVM、3项模拟器UI、0错误lint；未真实联网、未Release构建、未装手机、未提交推送或发布。后续先读 `docs/testing/v3.0.2-assistant-city.md`，集成时刷新main/rebase并核对上游设计差异。
+- **f254 / v3.0.2（2026-10-11用户指定）**：`codex/v3.0.2-assistant-city` 已将助手搜索城市修复 rebase 到 `origin/main 7c04eeb`，保留 v3.0.1 地图地点卡与地址补全，3.0.2/build23/schema11。正式累积设计 `design/easy-trip-v3.0.2.pen` 已经 Pencil 合入上游全部变化，243根/42,324节点，冻结旧版不改。1005 Release JVM、9项城市/地图卡UI及6项窄屏大字地图卡通过，Release lint 0错误。用户已授权提交、推送和安装；准确交付及真实联网验证边界见 `docs/testing/v3.0.2-delivery.md`，原修复阶段记录见 `docs/testing/v3.0.2-assistant-city.md`。本轮不创建Release或标签。
 
 ## 当前发布基线
 

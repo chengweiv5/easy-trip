@@ -3,6 +3,7 @@ package com.yangchengwei.easytrip.amap
 import android.content.Context
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
+import com.yangchengwei.easytrip.place.amap.AmapPlaceDataSource
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.*
@@ -12,6 +13,28 @@ import org.junit.runner.RunWith
 /** Live SDK boundary: catalog coverage, title order and city-wide fit geometry. */
 @RunWith(AndroidJUnit4::class)
 class AmapTripCityLocatorSmokeTest {
+    @Test fun xuzhouAssistantCityFindsBothNamesWithoutAddingPlaces() = runBlocking {
+        val context = ApplicationProvider.getApplicationContext<Context>()
+        AmapPrivacyGate.create(context).apply { reportShown(); reportDecision(true) }
+        val token = requireNotNull(TestConsentGate().apply { show() }.decide(true))
+        withTimeout(40_000) {
+            val city = withTimeout(12_000) {
+                lookupTripCity(context, token, "徐州", requireSingleCity = true)
+            }
+            assertEquals("徐州市", city?.name)
+            assertEquals("320300", city?.code)
+            val source = AmapPlaceDataSource(context, token)
+            for (name in listOf("云龙湖", "云龙山")) {
+                val results = source.search(name, requireNotNull(city).name)
+                assertTrue("$name should resolve within the trip city", results.isNotEmpty())
+                assertTrue(results.all { it.cityName == "徐州市" })
+                assertTrue(results.any { it.name.contains(name) })
+                println("AMAP_RESULT ASSISTANT_CITY city=${city.name} query=$name count=${results.size}")
+            }
+            assertNull(lookupTripCity(context, token, "徐州·南京", requireSingleCity = true))
+        }
+    }
+
     @Test fun resolvesFirstCityIncludingCountyLevelCitiesWithoutAddingPlaces() = runBlocking {
         val context = ApplicationProvider.getApplicationContext<Context>()
         AmapPrivacyGate.create(context).apply { reportShown(); reportDecision(true) }

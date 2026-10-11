@@ -1,4 +1,16 @@
-# v3.0.2 助手城市上下文修复（当前）
+# v3.0.2 提交、推送与安装（当前）
+
+状态：**IN_PROGRESS — 已rebase与累积设计合并，正式包重建和设备交付验证中。** 2026-10-11。
+
+- 用户已授权提交、推送、安装；不创建Release或标签。
+- 功能分支`codex/v3.0.2-assistant-city`，已rebase到main 7c04eeb，修复提交317ec1e。
+- 设计经Pencil保存并核验243根/42,324节点，完整合入v3.0.1地图卡及56组标题结构，旧版源未改。
+- 已通过1005 Release JVM、9项城市/地图卡UI、6项窄屏大字地图卡，Release lint 0错误。
+- 交付记录：`docs/testing/v3.0.2-delivery.md`；证据：`/Users/bytedance/.codex/artifacts/easy-trip/v3.0.2-delivery-f254/`。
+
+---
+
+# v3.0.2 助手城市上下文修复（原实现阶段）
 
 状态：**DONE — 已实现并完成本地专项验证；未提交推送、未安装手机、未发布。** 2026-10-11。
 
