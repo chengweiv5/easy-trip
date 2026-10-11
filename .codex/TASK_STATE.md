@@ -1,4 +1,18 @@
-# v3.0.1 地图地点卡与地址补全（当前）
+# v3.0.1 提交与主线交付（当前）
+
+状态：**DONE — 用户授权后已 rebase 到最新主线并快进推送 origin/main，功能提交完整 SHA 远端回读一致；未安装手机、未发布 Release。** 2026-10-11。
+
+- 当前2df7/`codex/v3.0.1-map-place-card`；先拉取上游 `ed1bf0ce98a5e8c96040625186217067b3546240` 发布记录，再rebase两笔本地提交。规则提交 `a95005842eed929a48001e6120e7f9b80d205555`、功能提交 `a59500d90a8901eb06ae14e8e33e08495bd94479`；显式推送main并独立回读一致。
+- 仅规则/任务历史两处文档冲突，保留上游发布安装记录和用户要求的多窗口隔离等规则；9个应用文件及v3.0.1设计hash未变，6个上游独立文件逐字节保持。未混入其他工作树功能。
+- 干净功能提交重跑1000 JVM/94 suites、Debug构建和lint通过，0错误/58警告/1提示，BuildConfig SHA/CLEAN回读通过。本轮复用此前11标准屏/7窄屏专项，未重跑设备；源码hash一致已验证。
+- 提交钩子超时及scanner调用Git的架构问题已通过独立完整扫描和任务局部原生Git包装器复核，无风险输出；未禁用或修改共享钩子。
+- v3.0.1设计仍为 `a8a1756b1fc7f279ea39fb277b60eef96a4d6a2edc545a5f241ecb3172155574`；上游发布后的v3.0.0源随rebase保留，未通过本轮Pencil修改。3.0.1/build22/schema11不变。
+- 交付记录：`/Users/bytedance/.codex/worktrees/2df7/easy-trip/docs/testing/v3.0.1-map-place-card.md` 第7节；证据 `/Users/bytedance/.codex/artifacts/easy-trip/v3.0.1-delivery-2df7`。本地rebase前备份分支保留，回滚只用新反向提交，不强推。
+- 本条及交付记录属于仅文档收尾提交，最终HEAD、远端、干净状态和完成通知回读写入本机 `final-delivery.json` 与 `completion-verified.json`。下方“未提交/未推送”只代表此前实现阶段。
+
+---
+
+# v3.0.1 地图地点卡与地址补全（历史）
 
 状态：**DONE — 地址补全、右下紧凑按钮与长标题关闭对齐已实现，专项验证及 Pencil 落盘回读完成。未安装真实手机、未提交、未推送、未发布。** 2026-10-11（Asia/Shanghai）。
 
