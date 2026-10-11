@@ -2,7 +2,7 @@
 
 ## 当前工作树修复版本
 
-- **f254 rebase集成（2026-10-11）**：用户明确要求“肯定要rebase”，已将本批助手默认值/精简修复rebase到`origin/main 9cb2c99`，应用提交`ca74862`，自然继承v3.1.0/build24/schema11与图文直接发送。Debug/Release各1029 JVM、17项助手UI及0错误Release lint通过；本树v3.1累积设计已补齐为262根/43,451节点。交付目标仍为快进推送main及同签名覆盖安装；当前ADB未发现手机，安装尚未执行。准确进度见`.codex/TASK_STATE.md`与`docs/testing/v3.1.0-assistant-defaults-delivery.md`，不再等待版本授权。
+- **f254 rebase集成（2026-10-11）**：用户明确要求“肯定要rebase”，已将本批助手默认值/精简修复rebase到`origin/main 9cb2c99`，应用提交`ca74862`，自然继承v3.1.0/build24/schema11与图文直接发送。Debug/Release各1029 JVM、17项助手UI及0错误Release lint通过；本树v3.1累积设计已补齐为262根/43,451节点。代码/设计提交`c567979`已快进推送main并回读一致；仅安装阻塞：当前ADB未发现手机，尚未执行覆盖安装。准确进度见`.codex/TASK_STATE.md`与`docs/testing/v3.1.0-assistant-defaults-delivery.md`，不再等待版本授权。
 
 - **同分支追加精简（2026-10-11）**：助手内容顶部移除重复的“当前旅行：名称”，保留页面旅行顶栏、默认城市与收藏确认目标；1012 Debug JVM、7项UI及0错误Debug lint复跑通过。Pencil规则同步保存，243根/42,324节点保持，仍未提交、推送或安装手机。证据见下述默认行为修复报告的追加章节。
 

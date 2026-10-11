@@ -1,12 +1,13 @@
 # 当前交付：rebase v3.1.0并推送安装
 
-状态：IN_PROGRESS。2026-10-11用户明确要求直接rebase，已解除此前版本确认门禁。保留v3.1图片/直接发送与本批默认城市/首候选/顶部精简；完成验证后快进推送main并同签名覆盖安装。下方均为阶段历史。
+状态：**BLOCKED（仅手机安装）**。2026-10-11用户明确要求直接rebase，已完成rebase、验证、提交及快进推送；应用和设计提交`c56797909b5f2ae9f6aa5bd19457289b83489e23`已独立回读远端一致。真实手机ADB报`device not found`，需要用户重新连接USB后才能覆盖安装。下方均为阶段历史；本次文档收尾提交的最终SHA保存在本机`push-readback.json`，避免文档自引用。
 
 - rebase已完成：`ca74862fac5f2defcbaf147fb7f378eac37509c1`基于main`9cb2c999c8cdf46aa79d51778a93f85ae7571e13`；版本3.1.0/build24/schema11。备份分支`codex/backup-assistant-defaults-pre-rebase-20261011`保留。
 - 集成Debug/Release各1029 JVM、17项助手UI通过，Release lint 0错误/58警告/1提示。正式签名APK通过证书、16KB对齐、非debuggable与DEX内CLEAN构建身份复核，564份应用构建源与应用提交一致。
 - 本树v3.1 Pencil已补齐为262根/43,451节点，保留19个图片区根，补地图卡/整批城市与56组两行标题；原生保存/重开及磁盘/MCP回读通过，旧版冻结。
 - 手机`FMR0224725012307`当前不在ADB列表，尚未安装；已向用户和punk-12通知重新连接USB，通知`om_x100b6380918c78a8de798c221084f00`正文与机器人身份已回读。不再等待版本授权。
 - 报告`docs/testing/v3.1.0-assistant-defaults-delivery.md`；证据`/Users/bytedance/.codex/artifacts/easy-trip/v3.1.0-defaults-delivery-20261011/`。本轮不创建Release或标签。
+- 自有emulator-5588已停止，两个专属锁均核对token后释放；未操作其他模拟器或共享Gradle daemon。最终安装阻塞/交付通知`om_x100b6380bdfa00a8c124c30e0d28201`已独立回读正文、chat、机器人身份及未删除状态。真实手机仍未安装，不能把本次Git完成当作端到端安装完成。
 
 ---
 
