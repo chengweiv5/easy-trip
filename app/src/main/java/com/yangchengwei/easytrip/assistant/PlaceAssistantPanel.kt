@@ -40,6 +40,9 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
     var consentPrompt by remember { mutableStateOf(false) }
     var editingId by remember { mutableStateOf<String?>(null) }
     var categoryId by remember { mutableStateOf<String?>(null) }
+    var batchCityPrompt by remember { mutableStateOf(false) }
+    var batchCity by remember { mutableStateOf("") }
+    val missingCityCount = s.items.count { it.status == IntakeStatus.NEED_CITY && it.intent.city.isBlank() }
     Column(modifier.fillMaxSize().verticalScroll(rememberScrollState()).imePadding().padding(bottom = 16.dp)
         .testTag("assistant-panel"), verticalArrangement = Arrangement.spacedBy(10.dp)) {
         Text("当前旅行：${host.tripName}", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.primary)
@@ -52,7 +55,8 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             Button(host.onConsent, Modifier.fillMaxWidth()) { Text("查看地图授权") }
         }
         if (s.items.isEmpty() && s.receipt == null) {
-            OutlinedTextField(s.city, controller::editCity, label = { Text("默认搜索城市") }, placeholder = { Text("例如：杭州；也可在原文中写明城市") },
+            OutlinedTextField(s.city, controller::editCity, label = { Text("默认搜索城市") }, placeholder = { Text("留空时自动识别当前旅行城市") },
+                supportingText = { Text("优先使用地点池当前城市，否则识别旅行名称中的唯一城市。也可手动填写。") },
                 singleLine = true, enabled = !s.busy, modifier = Modifier.fillMaxWidth().testTag("assistant-city"))
             OutlinedTextField(s.input, controller::editInput, label = { Text("把想去的地点一次告诉我") },
                 placeholder = { Text("例如：杭州的灵隐寺、河坊街、雷峰塔") }, minLines = 3, maxLines = 6,
@@ -104,6 +108,16 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                 OutlinedButton(controller::backFromReview, enabled = !s.saving, modifier = Modifier.fillMaxWidth()) { Text("返回调整选择") }
             }
             s.items.isNotEmpty() -> {
+                if (missingCityCount > 0) {
+                    Text("$missingCityCount 项缺少搜索城市，统一补充后继续查询。")
+                    OutlinedButton({
+                        batchCity = s.city
+                        batchCityPrompt = true
+                    }, enabled = !s.busy && !s.saving,
+                        modifier = Modifier.fillMaxWidth().testTag("assistant-supply-city")) {
+                        Text("补充本批搜索城市")
+                    }
+                }
                 Text("${s.eligible.size} 个可收藏 · ${s.selected.size} 个已选", style = MaterialTheme.typography.titleMedium)
                 if (host.focused != null) TextButton({ host.model.focus(null) }, Modifier.testTag("assistant-show-all")) { Text("查看本批全部标记") }
                 s.items.forEach { item ->
@@ -181,6 +195,28 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
         text = { Text("未收藏候选将清除；已经收藏的地点不受影响。") },
         confirmButton = { TextButton({ controller.clear(); host.model.focus(null); clearPrompt = false }) { Text("清空未收藏内容") } },
         dismissButton = { TextButton({ clearPrompt = false }) { Text("保留") } })
+    if (batchCityPrompt) AlertDialog(
+        onDismissRequest = { batchCityPrompt = false },
+        title = { Text("补充本批搜索城市") },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Text("仅重查缺少城市的 $missingCityCount 项，不重复理解原文，也不改变其他地点。")
+                OutlinedTextField(batchCity, { batchCity = it.take(50) }, singleLine = true,
+                    label = { Text("搜索城市") }, placeholder = { Text("例如：徐州") },
+                    modifier = Modifier.fillMaxWidth().testTag("assistant-batch-city"))
+            }
+        },
+        confirmButton = {
+            TextButton({
+                controller.supplyMissingCity(batchCity)
+                batchCityPrompt = false
+            }, enabled = batchCity.isNotBlank() && !s.busy && !s.saving && missingCityCount > 0,
+                modifier = Modifier.testTag("assistant-batch-city-confirm")) {
+                Text("补充并重查 $missingCityCount 项")
+            }
+        },
+        dismissButton = { TextButton({ batchCityPrompt = false }) { Text("取消") } },
+    )
     s.items.find { it.id == editingId }?.let { item ->
         var query by remember(item.id) { mutableStateOf(item.intent.query) }
         var city by remember(item.id) { mutableStateOf(item.intent.city) }

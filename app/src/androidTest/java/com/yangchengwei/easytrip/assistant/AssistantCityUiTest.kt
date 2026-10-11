@@ -1,0 +1,144 @@
+package com.yangchengwei.easytrip.assistant
+
+import android.graphics.Bitmap
+import android.view.View
+import androidx.activity.ComponentActivity
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.requiredSize
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.test.*
+import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.dp
+import androidx.lifecycle.SavedStateHandle
+import androidx.lifecycle.ViewModelStore
+import androidx.room.Room
+import androidx.test.platform.app.InstrumentationRegistry
+import com.yangchengwei.easytrip.amap.*
+import com.yangchengwei.easytrip.assistant.data.RoomPlaceImport
+import com.yangchengwei.easytrip.core.database.EasyTripDatabase
+import com.yangchengwei.easytrip.core.model.GeoPoint
+import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
+import com.yangchengwei.easytrip.itinerary.data.RoomItineraryRepository
+import com.yangchengwei.easytrip.permission.*
+import com.yangchengwei.easytrip.place.amap.*
+import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
+import com.yangchengwei.easytrip.place.ui.PlacePoolViewModel
+import com.yangchengwei.easytrip.route.data.RoomRouteLegRepository
+import com.yangchengwei.easytrip.trip.data.RoomTripRepository
+import com.yangchengwei.easytrip.trip.domain.CreateTrip
+import com.yangchengwei.easytrip.workspace.*
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.*
+import org.junit.Rule
+import org.junit.Test
+import java.io.File
+import java.util.concurrent.CopyOnWriteArrayList
+
+/** Deterministic emulator-only tests. No real provider, map requests or production database. */
+class AssistantCityUiTest {
+    @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun xuzhouTitleFlowsThroughWorkspaceToBothSearchQueries() = exercise(knownCity = true, small = false)
+    @Test fun missingCityIsSuppliedOnceForWholeBatch() = exercise(knownCity = false, small = false)
+    @Test fun batchCityDialogWorksAtNarrowDoubleFont() = exercise(knownCity = false, small = true)
+
+    private fun exercise(knownCity: Boolean, small: Boolean) {
+        val context = compose.activity.applicationContext
+        val config = AssistantConfigStore(context)
+        val original = config.read()
+        val db = Room.inMemoryDatabaseBuilder(context, EasyTripDatabase::class.java).build()
+        val stores = ViewModelStore()
+        val trips = RoomTripRepository(db.tripDao())
+        val places = RoomSavedPlaceRepository(db)
+        val title = if (knownCity) "徐州" else "周末出游"
+        val trip = runBlocking { trips.createTrip(CreateTrip(title, 1)) }
+        val queries = CopyOnWriteArrayList<Pair<String, String?>>()
+        val parserCities = CopyOnWriteArrayList<String>()
+        val resolvedTitles = CopyOnWriteArrayList<String>()
+        val source = object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                queries += keyword to city
+                return listOf(PlaceCandidate(keyword, keyword, "徐州市测试地址",
+                    GeoPoint(34.23, 117.17), null, "徐州市"))
+            }
+        }
+        val parser = PlaceIntentParser { input, city ->
+            assertEquals("云龙湖、云龙山", input)
+            parserCities += city
+            listOf("云龙湖", "云龙山").map { PlaceIntent(it, "", it) }
+        }
+        try {
+            config.save(ProviderConfig("https://example.invalid", "test", "not-a-real-key"))
+            val token = TestConsentGate().run { show(); requireNotNull(decide(true)) }
+            val assistant = PlaceAssistantViewModel(trip, config, RoomPlaceImport(db), places, parser)
+            assistant.controller.updateSource(source)
+            val workspace = TripWorkspaceViewModel(trip, trips, places,
+                RoomItineraryRepository(db, db.itineraryEditingDao(), db.routeLegDao()),
+                RoomRouteLegRepository(db.routeLegDao()), SavedStateHandle())
+            val pool = PlacePoolViewModel(trip, places, source)
+            stores.put("assistant", assistant); stores.put("workspace", workspace); stores.put("pool", pool)
+            val permission = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore())
+            compose.setContent {
+                EasyTripTheme {
+                    val density = LocalDensity.current.density
+                    CompositionLocalProvider(LocalDensity provides Density(density, if (small) 2f else 1f)) {
+                        Box(if (small) Modifier.requiredSize(320.dp, 568.dp) else Modifier) {
+                            TripWorkspaceRoute(workspace, token, onBack = {}, onSettings = {},
+                                assistantViewModel = assistant, placeViewModel = pool,
+                                resolveAssistantTripCity = {
+                                    resolvedTitles += it
+                                    if (knownCity) "徐州市" else null
+                                },
+                                locationPermissionCoordinator = permission,
+                                locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) },
+                                onWorkspaceEffect = {},
+                                mapHostFactory = { ctx -> object : AmapMapHost {
+                                    override val view = View(ctx)
+                                    override fun canRenderBeforeReady() = true
+                                    override fun onCreate() = Unit
+                                    override fun onResume() = Unit
+                                    override fun onPause() = Unit
+                                    override fun onDestroy() = Unit
+                                } })
+                        }
+                    }
+                }
+            }
+            compose.waitUntil(10_000) { assistant.controller.state.value.configured }
+            compose.onNodeWithTag("assistant-entry").performClick()
+            compose.runOnIdle { workspace.setSheetLevel(WorkspaceSheetLevel.EXPANDED) }
+            compose.onNodeWithTag("assistant-input").performScrollTo().performTextInput("云龙湖、云龙山")
+            compose.onNodeWithTag("assistant-submit").performScrollTo().performClick()
+            compose.onNodeWithText("同意并发送本次内容").performClick()
+            compose.waitUntil(10_000) { assistant.controller.state.value.items.size == 2 && !assistant.controller.state.value.busy }
+            assertEquals(listOf(title), resolvedTitles.toList())
+            if (!knownCity) {
+                assertTrue(queries.isEmpty())
+                compose.onNodeWithTag("assistant-supply-city").performScrollTo().performClick()
+                compose.onNodeWithTag("assistant-batch-city").performTextInput("徐州")
+                compose.onNodeWithTag("assistant-batch-city-confirm").assertIsDisplayed().performClick()
+                compose.waitUntil(10_000) { assistant.controller.state.value.eligible.size == 2 }
+            }
+            assertEquals(listOf(if (knownCity) "徐州市" else ""), parserCities.toList())
+            assertEquals(listOf("云龙湖", "云龙山"), queries.map { it.first })
+            assertTrue(queries.all { sameCity(it.second, "徐州") })
+            assertEquals(2, assistant.controller.state.value.eligible.size)
+            compose.onAllNodesWithText("请补充搜索城市。").assertCountEquals(0)
+            assertTrue(runBlocking { places.observePlaces(trip, emptySet()).first() }.isEmpty())
+            compose.onNodeWithTag("assistant-item-A").performScrollTo().assertIsDisplayed()
+            val folder = File(context.filesDir, "v3.0.2-city-evidence").apply { mkdirs() }
+            val name = if (knownCity) "xuzhou" else if (small) "batch-small" else "batch"
+            InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot().let { bitmap ->
+                File(folder, "$name.png").outputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it) }
+            }
+        } finally {
+            compose.runOnIdle { compose.activity.setContentView(View(compose.activity)); stores.clear() }
+            db.close()
+            if (original != null) config.save(original) else config.clear()
+        }
+    }
+}

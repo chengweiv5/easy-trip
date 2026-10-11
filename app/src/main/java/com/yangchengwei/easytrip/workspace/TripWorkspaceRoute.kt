@@ -9,6 +9,7 @@ import androidx.compose.material3.TextButton
 import com.yangchengwei.easytrip.assistant.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -272,6 +273,7 @@ fun TripWorkspaceRoute(
     mapSession: WorkspaceMapSession? = null,
     assistantViewModel: PlaceAssistantViewModel? = null,
     onAssistantSettings: () -> Unit = {},
+    resolveAssistantTripCity: suspend (String) -> String? = { null },
 ) {
     val page = viewModel.pageState.collectAsStateWithLifecycle().value
     val places = placeViewModel?.state?.collectAsStateWithLifecycle()?.value ?: placeState
@@ -299,6 +301,13 @@ fun TripWorkspaceRoute(
         if (page is TripWorkspacePageState.NotFound) assistantViewModel?.controller?.invalidateTrip()
     }
     val activePoolCity = com.yangchengwei.easytrip.place.ui.activePlacePoolCity(places)
+    SideEffect {
+        assistantViewModel?.controller?.updateCityResolver {
+            com.yangchengwei.easytrip.place.ui.placeCityGroups(places.allRows ?: places.rows)
+                .firstOrNull { it.key == activePoolCity && it.key != com.yangchengwei.easytrip.place.ui.UNKNOWN_CITY_KEY }
+                ?.name ?: ready?.tripName?.let { resolveAssistantTripCity(it) }
+        }
+    }
     LaunchedEffect(viewModel, activePoolCity, places.selectedTagIds) {
         viewModel.setPlacePoolFilter(PlacePoolMapFilter(activePoolCity, places.selectedTagIds))
     }

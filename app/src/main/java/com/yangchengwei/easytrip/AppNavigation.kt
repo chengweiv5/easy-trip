@@ -651,6 +651,11 @@ fun AppNavigation(
                 TripWorkspaceRoute(
                     viewModel = workspaceModel,
                     assistantViewModel = assistantModel,
+                    resolveAssistantTripCity = { title ->
+                        token?.let {
+                            com.yangchengwei.easytrip.amap.lookupTripCity(context, it, title, requireSingleCity = true)?.name
+                        }
+                    },
                     onAssistantSettings = { navigate(ASSISTANT_SETTINGS_ROUTE) },
                     mapSession = workspaceMapSession,
                     consent = token,

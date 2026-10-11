@@ -16,6 +16,7 @@ class PlaceAssistantController(
     private val parser: PlaceIntentParser,
     source: PlaceSearchDataSource?,
     private val importer: PlaceImport,
+    private var resolveDefaultCity: suspend () -> String? = { null },
 ) {
     private val mutable = MutableStateFlow(PlaceAssistantState())
     val state = mutable.asStateFlow()
@@ -37,6 +38,7 @@ class PlaceAssistantController(
             confirmation = if (!mapReady) null else mutable.value.confirmation)
     }
     fun updateSource(value: PlaceSearchDataSource?) { source = value }
+    fun updateCityResolver(value: suspend () -> String?) { resolveDefaultCity = value }
     fun configurationChanged() { cancel(); mutable.value = mutable.value.copy(sendConsent = false, confirmation = null) }
     fun invalidateTrip() {
         cancel(); active = false
@@ -69,6 +71,20 @@ class PlaceAssistantController(
         mutable.value = PlaceAssistantState(city = old.city, configured = old.configured,
             consent = old.consent, mapReady = old.mapReady, sendConsent = false)
     }
+    fun supplyMissingCity(value: String) {
+        val city = value.trim()
+        val s = mutable.value
+        if (s.busy || s.saving || city.isBlank() || city.length > 50 || city.any(Char::isISOControl) || !canQuery()) return
+        val missing = s.items.filter { it.status == IntakeStatus.NEED_CITY && it.intent.city.isBlank() }.map { it.id }.toSet()
+        if (missing.isEmpty()) return
+        mutable.value = s.copy(city = s.city.ifBlank { city }, confirmation = null,
+            items = s.items.map {
+                if (it.id in missing) it.copy(intent = it.intent.copy(city = city, usesDefaultCity = true),
+                    generation = it.generation + 1, status = IntakeStatus.CANCELLED, detail = null, cityConflict = false)
+                else it
+            })
+        retry(missing)
+    }
     fun dismissError() { mutable.value = mutable.value.copy(error = null) }
     suspend fun recoverReceipt() {
         val receipt = importer.latestReceipt(tripId)
@@ -83,12 +99,22 @@ class PlaceAssistantController(
         if (!canQuery() || s.busy || s.items.isNotEmpty()) return
         if (s.input.isBlank()) { fail("请先输入地点文字。"); return }
         val input = s.input
-        val city = s.city.trim()
         val generation = ++run
         mutable.value = s.copy(busy = true, error = null, receipt = null)
         work = scope.launch {
             try {
                 withTimeout(90_000) {
+                    val city = s.city.trim().ifBlank {
+                        try {
+                            withTimeoutOrNull(12_000) { resolveDefaultCity() }?.trim().orEmpty()
+                        } catch (error: CancellationException) {
+                            throw error
+                        } catch (_: Exception) {
+                            ""
+                        }
+                    }.take(50)
+                    if (!isCurrent(generation)) return@withTimeout
+                    mutable.value = mutable.value.copy(city = city)
                     val intents = parser.parse(input, city)
                     if (!isCurrent(generation)) return@withTimeout
                     require(intents.size in 1..20)

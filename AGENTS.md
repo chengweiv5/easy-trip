@@ -1,5 +1,9 @@
 # easy-trip 项目约定
 
+## 当前工作树修复版本
+
+- **f254 / v3.0.2（2026-10-11用户指定）**：`codex/v3.0.2-assistant-city` 基于 `ed1bf0c` 修复助手搜索城市继承与整批补充，3.0.2/build23/schema11。正式累积设计 `design/easy-trip-v3.0.2.pen` 从本树已发布 v3.0.0 派生；其他树 v3.0.1 尚未集成，不声称继承。998 Debug JVM、3项模拟器UI、0错误lint；未真实联网、未Release构建、未装手机、未提交推送或发布。后续先读 `docs/testing/v3.0.2-assistant-city.md`，集成时刷新main/rebase并核对上游设计差异。
+
 ## 当前发布基线
 
 - **v3.0.0/build21/schema11已正式发布（2026-10-11）**，标签固定`bebaf82ca0dba4188f09fe31dba2724c4d594cdc`。唯一正式累积源`design/easy-trip-v3.0.0.pen`，234根；已通过Pencil同步v2.2.1两行标题与发布状态。后续开发、安装或发布前读取`docs/testing/v3.0.0-release.md`，遵守其中的验证边界和schema11前向修复要求。下方“当前v2.2/草案/未发布/标题待同步”均为阶段历史，由本段及发布记录取代；旧PDF不代表最终源，历史全页验收缺口保留。

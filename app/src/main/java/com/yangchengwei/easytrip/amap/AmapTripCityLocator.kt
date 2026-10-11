@@ -9,9 +9,12 @@ import com.amap.api.services.district.DistrictSearchQuery
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.workspace.TripCity
 import com.yangchengwei.easytrip.workspace.firstTripCity
+import com.yangchengwei.easytrip.workspace.uniqueTripCity
 
 /** Uses the consent-gated SDK's administrative catalog, not a hardcoded popular-city list. */
-internal suspend fun lookupTripCity(context: Context, consent: AmapConsentToken, title: String): TripCity? {
+internal suspend fun lookupTripCity(
+    context: Context, consent: AmapConsentToken, title: String, requireSingleCity: Boolean = false,
+): TripCity? {
     if (title.isBlank()) return null
     val country = searchDistrict(context, consent, "中国", children = 3)
     fun flatten(item: DistrictItem): List<DistrictItem> = listOf(item) + item.subDistrict.orEmpty().flatMap(::flatten)
@@ -22,7 +25,8 @@ internal suspend fun lookupTripCity(context: Context, consent: AmapConsentToken,
         val code = item.adcode?.takeIf { it.isNotBlank() } ?: return@mapNotNull null
         TripCity(code, item.name ?: return@mapNotNull null, GeoPoint(point.latitude, point.longitude))
     }
-    val city = firstTripCity(title, cities) ?: return null
+    val city = (if (requireSingleCity) uniqueTripCity(title, cities) else firstTripCity(title, cities)) ?: return null
+    if (requireSingleCity) return city
     val details = searchDistrict(context, consent, city.code, children = 0, boundary = true)
         .firstOrNull { it.adcode == city.code } ?: return city
     val points = details.districtBoundary().orEmpty().flatMap { polygon ->

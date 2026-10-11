@@ -4,6 +4,10 @@ import com.yangchengwei.easytrip.core.model.GeoPoint
 
 data class TripCity(val code: String, val name: String, val center: GeoPoint, val bounds: List<GeoPoint> = emptyList())
 
+/** Searching places must not silently pick the first stop of a multi-city trip. */
+fun uniqueTripCity(title: String, cities: List<TripCity>): TripCity? =
+    cities.distinctBy { it.code }.filter { firstTripCity(title, listOf(it)) != null }.singleOrNull()
+
 /** Match the title's order, not the service's ranking. Ambiguous aliases never choose a random city. */
 fun firstTripCity(title: String, cities: List<TripCity>): TripCity? {
     data class Match(val city: TripCity, val index: Int, val length: Int)

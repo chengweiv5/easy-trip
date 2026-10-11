@@ -21,4 +21,14 @@ class TripCityLocatorTest {
         assertEquals(jilin, firstTripCity("吉林市之旅", listOf(jilin)))
         assertNull(firstTripCity("苏州游", catalog + suzhou.copy(code = "other")))
     }
+
+    @Test fun assistantAcceptsOnlyOneConfirmedCityInTripTitle() {
+        val xuzhou = TripCity("320300", "徐州市", GeoPoint(34.26, 117.18))
+        val cities = catalog + xuzhou
+        assertEquals(xuzhou, uniqueTripCity("徐州", cities))
+        assertEquals(xuzhou, uniqueTripCity("徐州周末游", cities))
+        assertNull(uniqueTripCity("徐州·苏州", cities))
+        assertNull(uniqueTripCity("周末出游", cities))
+        assertNull(uniqueTripCity("徐州", cities + xuzhou.copy(code = "ambiguous")))
+    }
 }
