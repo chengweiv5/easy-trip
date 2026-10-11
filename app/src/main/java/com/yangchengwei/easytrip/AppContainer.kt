@@ -103,6 +103,7 @@ class AppContainer(
     val assistantConfig = com.yangchengwei.easytrip.assistant.AssistantConfigStore(this.context)
     val assistantImages = com.yangchengwei.easytrip.assistant.AndroidAssistantImageStore(this.context)
     val assistantSearchDiagnostics = com.yangchengwei.easytrip.assistant.AndroidAssistantSearchDiagnostics(this.context)
+    val assistantSearchPacer = com.yangchengwei.easytrip.assistant.AssistantSearchPacer()
     val placeImport = com.yangchengwei.easytrip.assistant.data.RoomPlaceImport(database)
     val networkMonitor = networkFactory(this.context, applicationScope)
     val mapPreferences = SharedPreferencesMapPreferences(this.context.getSharedPreferences("map", Context.MODE_PRIVATE))

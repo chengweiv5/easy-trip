@@ -1,4 +1,35 @@
-# 当前任务：统一默认城市提交与推送
+# 当前任务：v3.2.0 首次搜索请求节流修复
+
+状态：**DONE（2026-10-11，修复、验证和通知完成；未安装手机、未提交推送、未发布）**。
+
+- 分支`codex/v3.2-assistant-search-pacing`，HEAD仍`1eaa409a9ad94b56d86ee01e2db8334bdd36a424`，开始前PR为空。上一轮诊断未提交内容保留。
+- AppContainer共用`AssistantSearchPacer`，700ms发起间隔、并发2；首次/单项重试/新批次/跨旅行共用。排队可取消，过期item generation不发送，SDK15秒从实际请求开始；无自动重试、UI/DB/版本/签名变更。
+- 新增10项节流JVM回归，前3成功/后5失败和排队旧名称红色证据保留。Debug/Release各1056测试0失败；Release lint0错误/59警告/1Hint，三种APK构建通过。
+- 4轮生产路径真实SDK32项首次READY，实际最小间隔700ms；最终10项助手UI及青州4地点真实专项通过。初轮2项UI等待1秒不够，改为搜索等待5秒后全部复跑通过，业务断言未删。
+- Spec0发现；Standards旧对照模式失真问题已移除并复审0未解决。最终诊断只接受production，历史源码归档；两项opt-in跳过门禁已验证。
+- 自有read-only模拟器PID9699已正常退出并清锁；没有手机操作，只读确认仍22:44:14安装的build25。
+- 同原证书开发Release包已归档，SOURCE_STATE=DIRTY，未安装/发布；全量验证后的产品/JVM源及Release APK哈希保持一致。
+- punk-12通知`om_x100b638f5e0c4088c4a0c6b12d94088`已回读chat/sender/完整正文/deleted=false。
+- 报告`docs/testing/v3.2.0-assistant-search-pacing-fix.md`；证据与回滚备份`/Users/bytedance/.codex/artifacts/easy-trip/f445-search-pacing-fix-20261011/`。手机及全应用验收边界保留。
+
+---
+
+# 历史任务：v3.2.0 首次批量搜索频率故障诊断
+
+状态：**DONE（2026-10-11，诊断与通知已验证，产品修复尚未实施）**。
+
+- 分支`codex/v3.2-assistant-search-pacing`，HEAD保持`1eaa409a9ad94b56d86ee01e2db8334bdd36a424`；开始时开放PR为空。
+- 手机23:13:53的8项请求455ms内发起，前3项成功、后5项1800且均cityQualified=true。读取现场后未点击、重试、重启、安装或清日志。
+- 21组162次真实SDK调用：3次突发失败抓到`1800 / CUQPS_HAS_EXCEEDED_THE_LIMIT`；700ms间隔的控制器40项和同步SDK24项全成功。控制器原样5组40项未复现，模拟器自然时延较高；手机缺少原始错误名称，保留直接证据与高度吻合推断的边界。
+- 新增emulator-only opt-in诊断测试和报告；默认2项跳过门禁验证。产品代码、版本、DB、UI/Pencil零修改；未提交、推送、安装手机或发布。
+- 自有read-only模拟器PID90262已正常退出、锁已清理。其他会话后启动的`emulator-5582`未操作。
+- punk-12通知`om_x100b638ef32118a8c3e3a2d05363d56`已回读chat／sender／全文／deleted=false。
+- 结果与后续修复建议：`docs/testing/v3.2.0-assistant-search-pacing-diagnosis.md`。
+- 证据目录：`/Users/bytedance/.codex/artifacts/easy-trip/f445-search-pacing-20261011/`，见`experiment-summary.json`、`cleanup-verification.json`、`notification-verification.json`。备份在`baseline/`，回滚仅撤销本轮新增内容。
+
+---
+
+# 上游历史任务：统一默认城市提交与推送
 
 状态：**DONE（2026-10-11，功能推送、集成验证与完成通知均已核验）**。本状态收尾提交的最终远端SHA以本机`final-push-verification.json`为准，回合在该核验完成后结束。
 
@@ -27,7 +58,7 @@
 
 ---
 
-# 上游交付记录：v3.2.0 城市限定修复提交、推送与安装
+# 历史任务：v3.2.0 城市限定修复提交、推送与安装
 
 状态：**DONE（2026-10-11，功能推送、手机安装与通知已核验）**。文档收尾提交的最终远端SHA以本轮证据目录`final-push-verification.json`为准，回合在该验证通过后结束。不发布 Release／标签。
 

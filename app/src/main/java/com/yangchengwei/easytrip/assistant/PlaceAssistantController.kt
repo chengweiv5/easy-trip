@@ -22,6 +22,7 @@ class PlaceAssistantController(
     private val sessionId: String = "",
     private val imageAllowed: () -> Boolean = { true },
     private val diagnostics: AssistantSearchDiagnostics = AssistantSearchDiagnostics.NONE,
+    private val searchPacer: AssistantSearchPacer = AssistantSearchPacer(),
 ) {
     private val diagnosticSession = UUID.randomUUID().toString()
     private val diagnosticSalt = UUID.randomUUID().toString()
@@ -417,21 +418,32 @@ class PlaceAssistantController(
                 if (item.intent.city.isBlank()) { changeItem(id) { it.copy(status = IntakeStatus.NEED_CITY, detail = "请补充搜索城市。") }; return@withPermit }
                 changeItem(id) { it.copy(status = IntakeStatus.QUERYING, detail = null) }
                 val keyword = assistantSearchKeyword(item.intent.query, item.intent.city)
-                val event = AssistantSearchEvent(diagnosticSession, generation,
+                var event = AssistantSearchEvent(diagnosticSession, generation,
                     item.label.singleOrNull()?.let { (it - 'A').takeIf { index -> index in 0..19 } } ?: -1,
                     searchFingerprint(diagnosticSalt, keyword), searchFingerprint(diagnosticSalt, item.intent.city),
                     keyword != item.intent.query.trim(), SearchOutcome.STARTED)
-                val started = System.nanoTime()
+                var started: Long? = null
                 var outcome = SearchOutcome.CANCELLED
                 var resultCount = 0
                 var sameCityCount = 0
                 var errorCode: Int? = null
                 val result = try {
-                    recordSearch(event)
-                    currentCoroutineContext().ensureActive()
-                    if (!isCurrent(generation)) throw CancellationException()
-                    val dataSource = source ?: throw AssistantFailure("地图服务未授权。")
-                    val results = withTimeout(15_000) { dataSource.search(keyword, item.intent.city) }
+                    val results = searchPacer.execute(beforeStart = {
+                        if (!isCurrent(generation) ||
+                            mutable.value.items.find { it.id == id }?.generation != item.generation)
+                            throw CancellationException()
+                        event = event.copy(timestampMs = System.currentTimeMillis())
+                        started = System.nanoTime()
+                        recordSearch(event)
+                    }) {
+                        currentCoroutineContext().ensureActive()
+                        if (!isCurrent(generation) ||
+                            mutable.value.items.find { it.id == id }?.generation != item.generation)
+                            throw CancellationException()
+                        val dataSource = source ?: throw AssistantFailure("地图服务未授权。")
+                        // Waiting for a start slot must not consume the SDK's request timeout.
+                        withTimeout(15_000) { dataSource.search(keyword, item.intent.city) }
+                    }
                     resultCount = results.size
                     sameCityCount = results.filter { it.validPosition() }.distinctBy { it.poiId }.take(20)
                         .count { sameCity(it.cityName, item.intent.city) }
@@ -452,10 +464,12 @@ class PlaceAssistantController(
                     outcome = if (errorCode != null) SearchOutcome.SDK_ERROR else SearchOutcome.ERROR
                     item.copy(status = IntakeStatus.FAILED, detail = "地点查询失败，可仅重试此项。")
                 } finally {
-                    recordSearch(event.copy(outcome = outcome,
-                        elapsedMs = ((System.nanoTime() - started) / 1_000_000).coerceAtLeast(0),
-                        resultCount = resultCount, sameCityCount = sameCityCount, errorCode = errorCode,
-                        timestampMs = System.currentTimeMillis()))
+                    started?.let { requestStarted ->
+                        recordSearch(event.copy(outcome = outcome,
+                            elapsedMs = ((System.nanoTime() - requestStarted) / 1_000_000).coerceAtLeast(0),
+                            resultCount = resultCount, sameCityCount = sameCityCount, errorCode = errorCode,
+                            timestampMs = System.currentTimeMillis()))
+                    }
                 }
                 if (isCurrent(generation) && mutable.value.items.find { it.id == id }?.generation == item.generation) {
                     changeItem(id) { result }; reconcile()

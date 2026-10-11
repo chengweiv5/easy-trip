@@ -109,7 +109,10 @@ class AssistantDirectSaveUiTest {
                 model.controller.editInput("甲、乙、失败")
                 model.controller.submit()
             }
-            compose.waitUntil { !model.controller.state.value.busy && model.controller.state.value.items.size == 3 }
+            // Three first-attempt requests now require at least two 700ms start intervals.
+            compose.waitUntil(timeoutMillis = 5_000) {
+                !model.controller.state.value.busy && model.controller.state.value.items.size == 3
+            }
             compose.onNodeWithTag("assistant-save").assertIsDisplayed().assertIsNotEnabled()
             compose.onNodeWithTag("assistant-marker-A").performScrollTo().performClick()
             compose.runOnIdle {
@@ -131,7 +134,7 @@ class AssistantDirectSaveUiTest {
             compose.onNodeWithTag("assistant-edit-name-C").performScrollTo().performTextReplacement("修正地点")
             androidx.test.espresso.Espresso.closeSoftKeyboard()
             compose.onNodeWithTag("assistant-edit-retry-C").performScrollTo().performClick()
-            compose.waitUntil { model.controller.state.value.eligible.size == 3 }
+            compose.waitUntil(timeoutMillis = 5_000) { model.controller.state.value.eligible.size == 3 }
             assertEquals(1, queries.count { it == "杭州甲" })
             assertEquals(1, queries.count { it == "杭州乙" })
             assertEquals(1, model.controller.state.value.selected.size)

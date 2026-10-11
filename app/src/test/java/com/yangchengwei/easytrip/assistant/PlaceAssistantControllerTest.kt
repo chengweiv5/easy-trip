@@ -141,8 +141,11 @@ class PlaceAssistantControllerTest {
         val c = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> listOf("慢", "快").map { PlaceIntent(it, "杭州", it) } },
             object : PlaceSearchDataSource { override suspend fun search(keyword: String, city: String?) =
-                if (keyword == "杭州慢") slow.await() else listOf(poi("快", "same")) }, Importer())
+                if (keyword == "杭州慢") slow.await() else listOf(poi("快", "same")) }, Importer(),
+            searchPacer = AssistantSearchPacer { testScheduler.currentTime })
         c.environment(true, true, true); c.editInput("慢、快"); c.submit(); runCurrent()
+        // The fast second request becomes available only after its paced start slot.
+        advanceTimeBy(700); runCurrent()
         val fast = c.state.value.items[1].id
         c.toggle(fast)
         slow.complete(listOf(poi("慢", "same"))); advanceUntilIdle()
