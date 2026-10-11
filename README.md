@@ -14,7 +14,13 @@
 
 </div>
 
-> 当前正式版为 **[v2.2.0](https://github.com/chengweiv5/easy-trip/releases/tag/v2.2.0)**（build19）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.0/easy-trip-v2.2.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.0/easy-trip-v2.2.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v2.2.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v2.2.0 新样式截图。
+> 当前正式版为 **[v2.2.1](https://github.com/chengweiv5/easy-trip/releases/tag/v2.2.1)**（build20）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.1/easy-trip-v2.2.1-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v2.2.1/easy-trip-v2.2.1-release.apk.sha256) · [发布验证与已知限制](docs/testing/v2.2.1-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v2.2.1 新样式截图。
+
+## v2.2.1：行程标题更紧凑
+
+- 单日和全程中**每天的标题都为两行**：第一行天标题与小日期垂直居中，第二行费用摘要；日期不再单独占第三行。
+- 新收藏地点默认“景点”，已有地点分类保持不变。日历、分享布局和费用/每日操作入口不改。
+- 同签名覆盖升级，schema10不变；无需卸载或清空数据。
 
 ## v2.2：地点分类更直观，旅行浏览更顺手
 
