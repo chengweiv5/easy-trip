@@ -19,14 +19,14 @@ fun AssistantPanelHeader(host: AssistantWorkspace) {
     val large = androidx.compose.ui.platform.LocalDensity.current.fontScale > 1.3f
     if (large) {
         Column(Modifier.fillMaxWidth()) {
-            Text("✦ 地点助手", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+            Text("✦ 助手", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.End) {
                 TextButton(host.onSettings, enabled = !host.state.busy && !host.state.saving) { Text("设置") }
                 TextButton({ host.model.hide() }, enabled = !host.state.saving, modifier = Modifier.testTag("assistant-collapse")) { Text("收起") }
             }
         }
     } else Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-        Text("✦ 地点助手", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+        Text("✦ 助手", Modifier.weight(1f), style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
         TextButton(host.onSettings, enabled = !host.state.busy && !host.state.saving) { Text("设置") }
         TextButton({ host.model.hide() }, enabled = !host.state.saving, modifier = Modifier.testTag("assistant-collapse")) { Text("收起") }
     }

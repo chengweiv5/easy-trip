@@ -12,6 +12,7 @@ import androidx.compose.ui.test.*
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
 import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.height
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModelStore
 import androidx.room.Room
@@ -134,6 +135,21 @@ class AssistantUiTest {
                 }
             } }
             compose.waitUntil(25_000) { assistant.controller.state.value.mapReady }
+            val entry = compose.onNodeWithTag("assistant-entry").getUnclippedBoundsInRoot()
+            val search = compose.onNodeWithTag("workspace-search-launcher").getUnclippedBoundsInRoot()
+            assertTrue("assistant must stay left of search: $entry / $search", entry.right <= search.left)
+            compose.onAllNodesWithTag("map-legend").assertCountEquals(0)
+            compose.onNodeWithTag("assistant-entry-surface", useUnmergedTree = true)
+                .assertWidthIsEqualTo(124.dp).assertHeightIsAtLeast(32.dp)
+            compose.onNodeWithTag("assistant-entry").assertHeightIsAtLeast(48.dp)
+            val assistantSurface = compose.onNodeWithTag("assistant-entry-surface", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            val searchSurface = compose.onNodeWithTag("workspace-search-launcher-surface", useUnmergedTree = true).getUnclippedBoundsInRoot()
+            assertEquals(assistantSurface.top, searchSurface.top)
+            assertEquals(assistantSurface.height, searchSurface.height)
+            if (!small) assertEquals(32.dp, assistantSurface.height)
+            val root = compose.onNodeWithTag("workspace-screen-root").getUnclippedBoundsInRoot()
+            assertEquals("search stays 12dp from the right edge", 12f, (root.right - search.right).value, 1f)
+            image("map-entry")
             compose.onNodeWithTag("assistant-entry").performClick()
             compose.onNodeWithTag("assistant-city").performScrollTo().performTextInput("杭州")
             val text = if (real) "把杭州的灵隐寺、河坊街、雷峰塔标记出来" else "杭州的灵隐寺、河坊街、雷峰塔、失败项"

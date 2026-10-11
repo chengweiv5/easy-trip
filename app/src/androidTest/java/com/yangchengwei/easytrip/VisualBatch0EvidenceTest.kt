@@ -956,7 +956,7 @@ class VisualBatch0EvidenceTest {
         compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed()
         compose.onNodeWithTag("workspace-locate").assertIsDisplayed()
         compose.onNodeWithTag("layer-menu").assertIsDisplayed()
-        compose.onNodeWithTag("map-legend").assertIsDisplayed()
+        compose.onNodeWithTag("map-legend").assertDoesNotExist()
         compose.onNodeWithTag("workspace-tabs").assertIsDisplayed()
         compose.onNodeWithTag("workspace-sheet").assertIsDisplayed()
         compose.onNodeWithTag("workspace-sheet-handle").assertIsDisplayed()

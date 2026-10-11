@@ -6,6 +6,8 @@
 
 ## UI 设计
 
+- **v3地图入口本轮实施（2026-10-11）**：5ac3工作树按用户确认修正左下实心「助手」/右下搜索同排、删除地图图例、顶部动态日程摘要与图层对齐及名称统一，build21/schema11。不得据本轮修改行程业务、模型、数据库或地图相机。已确认的Pencil与预览随代码交付；准确验证、已知两项极小窗口旧缺口及构建安装/提交推送状态见`docs/testing/v3.0-map-entry-ui-implementation.md`。本轮只推送`origin/codex/v3-agent-place-intake`，不推main、不force、不发布Release。
+
 - UI 设计与设计修改必须使用 Pencil MCP，不得因报错自动改用其他设计工具或直接修改 `.pen` 文件来绕过 Pencil。
 - **当前 v3 实施与评审目标（2026-10-11，5ac3）**：`design/easy-trip-v3.0.0.pen` 为首版累积草案，继承v2.2全部198根，UI Kit + A00–A34共36新增根，合计234根（233有效、1历史）。后续设计/实施先读 `docs/superpowers/specs/2026-10-11-easy-trip-v3-first-agent-design.md`：文字多地点全部标记，待核对项独立处理，单项或勾选后确认收藏；地图入口与普通搜索并列，App全局「助手设置」共用。用户已授权直接开发；v3.0.0/build20/schema11首版已实现，Debug与Release专项通过，正式签名包已覆盖安装手机，功能提交已推送v3分支，仍待体验微调，未公开发布。实施/验证/回滚见 `docs/testing/v3.0-agent-implementation.md`，准确构建/安装/分支交付见 `docs/testing/v3.0-agent-delivery.md`；Pencil源与PDF本轮保持评审基线，不声称所有UI状态已设备验收。验证与本次回滚见 `docs/testing/v3.0-agent-place-map-loop-validation.md`；冻结v2.2不改。
 - **当前公开正式版（2026-10-10）**：v2.2.0/build19/schema10已发布，标签固定于 `3c59ed1f4343a40da33a2ab4e87e21363a92b568`，公开APK与Latest回读通过。正式源 `design/easy-trip-v2.2.0.pen` 已回写发布状态；原生保存、776a路径关闭重开、MCP回读及可编辑属性检查通过，198根/40,607节点保持。后续7处设计元数据随文档收尾提交，标签和安装包不变。准确发布证据、设计hash、已知限制及回滚见 `docs/testing/v2.2.0-release.md`。下文为各阶段历史，“待Mac解锁／未提交／未发布”不代表当前状态；该次发布未重装手机，2026-10-11已按上条升级v3体验包。

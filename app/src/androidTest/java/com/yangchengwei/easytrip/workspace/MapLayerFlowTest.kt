@@ -111,7 +111,9 @@ class MapLayerFlowTest {
     @Test fun searchSurfaceMatchesCompactMapField() {
         compose.setContent { EasyTripTheme { WorkspaceSearchBar(onClick = {}) } }
 
-        compose.onNodeWithTag("workspace-search-surface").assertHeightIsEqualTo(32.dp).assertWidthIsEqualTo(160.dp)
+        compose.onNodeWithTag("workspace-search-launcher-surface", useUnmergedTree = true)
+            .assertHeightIsEqualTo(32.dp).assertWidthIsEqualTo(160.dp)
+        compose.onNodeWithTag("workspace-search-launcher").assertHeightIsEqualTo(48.dp)
         compose.onNodeWithText("搜索地点").assertIsDisplayed()
     }
 

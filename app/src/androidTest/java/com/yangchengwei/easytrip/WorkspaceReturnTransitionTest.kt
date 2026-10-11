@@ -105,7 +105,7 @@ class WorkspaceReturnTransitionTest {
         try {
             compose.waitUntil(10_000) { compose.onNodeWithTag("primary-trip-$tripId").runCatching { fetchSemanticsNode() }.isSuccess }
             compose.onNodeWithTag("primary-trip-$tripId").performClick()
-            compose.waitUntil(10_000) { compose.onNodeWithTag("map-legend").runCatching { fetchSemanticsNode() }.isSuccess }
+            compose.waitUntil(10_000) { compose.onNodeWithTag("workspace-search-launcher").runCatching { fetchSemanticsNode() }.isSuccess }
             compose.waitForIdle()
             compose.onNodeWithTag("workspace-search-launcher").assertIsDisplayed()
             capture("before-$systemBack-$realMap")
