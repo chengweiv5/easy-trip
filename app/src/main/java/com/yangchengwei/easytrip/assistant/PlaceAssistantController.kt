@@ -2,6 +2,7 @@ package com.yangchengwei.easytrip.assistant
 
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import com.yangchengwei.easytrip.place.domain.PlaceCategory
+import com.yangchengwei.easytrip.amap.AmapServiceException
 import java.util.UUID
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -20,7 +21,10 @@ class PlaceAssistantController(
     private val processor: (() -> AssistantInputProcessor)? = null,
     private val sessionId: String = "",
     private val imageAllowed: () -> Boolean = { true },
+    private val diagnostics: AssistantSearchDiagnostics = AssistantSearchDiagnostics.NONE,
 ) {
+    private val diagnosticSession = UUID.randomUUID().toString()
+    private val diagnosticSalt = UUID.randomUUID().toString()
     private val mutable = MutableStateFlow(PlaceAssistantState())
     val state = mutable.asStateFlow()
     private var source = source
@@ -405,17 +409,56 @@ class PlaceAssistantController(
                 }
                 if (item.intent.city.isBlank()) { changeItem(id) { it.copy(status = IntakeStatus.NEED_CITY, detail = "请补充搜索城市。") }; return@withPermit }
                 changeItem(id) { it.copy(status = IntakeStatus.QUERYING, detail = null) }
+                val keyword = assistantSearchKeyword(item.intent.query, item.intent.city)
+                val event = AssistantSearchEvent(diagnosticSession, generation,
+                    item.label.singleOrNull()?.let { (it - 'A').takeIf { index -> index in 0..19 } } ?: -1,
+                    searchFingerprint(diagnosticSalt, keyword), searchFingerprint(diagnosticSalt, item.intent.city),
+                    keyword != item.intent.query.trim(), SearchOutcome.STARTED)
+                val started = System.nanoTime()
+                var outcome = SearchOutcome.CANCELLED
+                var resultCount = 0
+                var sameCityCount = 0
+                var errorCode: Int? = null
                 val result = try {
+                    recordSearch(event)
+                    currentCoroutineContext().ensureActive()
+                    if (!isCurrent(generation)) throw CancellationException()
                     val dataSource = source ?: throw AssistantFailure("地图服务未授权。")
-                    matchItem(item, withTimeout(15_000) { dataSource.search(item.intent.query, item.intent.city) })
-                } catch (_: TimeoutCancellationException) { item.copy(status = IntakeStatus.FAILED, detail = "查询超时，可仅重试此项。") }
+                    val results = withTimeout(15_000) { dataSource.search(keyword, item.intent.city) }
+                    resultCount = results.size
+                    sameCityCount = results.filter { it.validPosition() }.distinctBy { it.poiId }.take(20)
+                        .count { sameCity(it.cityName, item.intent.city) }
+                    matchItem(item, results).also {
+                        outcome = when (it.status) {
+                            IntakeStatus.READY -> SearchOutcome.READY
+                            IntakeStatus.NEED_CITY -> SearchOutcome.CITY_MISMATCH
+                            else -> SearchOutcome.NOT_FOUND
+                        }
+                    }
+                } catch (_: TimeoutCancellationException) {
+                    outcome = SearchOutcome.TIMEOUT
+                    item.copy(status = IntakeStatus.FAILED, detail = "查询超时，可仅重试此项。")
+                }
                 catch (e: CancellationException) { throw e }
-                catch (_: Exception) { item.copy(status = IntakeStatus.FAILED, detail = "地点查询失败，可仅重试此项。") }
+                catch (e: Exception) {
+                    errorCode = (e as? AmapServiceException)?.errorCode
+                    outcome = if (errorCode != null) SearchOutcome.SDK_ERROR else SearchOutcome.ERROR
+                    item.copy(status = IntakeStatus.FAILED, detail = "地点查询失败，可仅重试此项。")
+                } finally {
+                    recordSearch(event.copy(outcome = outcome,
+                        elapsedMs = ((System.nanoTime() - started) / 1_000_000).coerceAtLeast(0),
+                        resultCount = resultCount, sameCityCount = sameCityCount, errorCode = errorCode,
+                        timestampMs = System.currentTimeMillis()))
+                }
                 if (isCurrent(generation) && mutable.value.items.find { it.id == id }?.generation == item.generation) {
                     changeItem(id) { result }; reconcile()
                 }
             }
         } }.joinAll()
+    }
+    private suspend fun recordSearch(event: AssistantSearchEvent) = withContext(NonCancellable) {
+        // A full/unavailable diagnostics directory must not change search, cancellation or saving.
+        try { withTimeoutOrNull(500) { diagnostics.record(event) } } catch (_: Exception) { }
     }
     private fun reconcile() {
         // Prefer the user's selected representative when an earlier query finishes late.

@@ -64,9 +64,10 @@ class AssistantCityUiTest {
         val source = object : PlaceSearchDataSource {
             override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
                 queries += keyword to city
-                val first = PlaceCandidate("$keyword-first", if (alternatives) "${keyword}风景区" else keyword, "徐州市测试地址",
+                val name = keyword.removePrefix("徐州")
+                val first = PlaceCandidate("$name-first", if (alternatives) "${name}风景区" else name, "徐州市测试地址",
                     GeoPoint(34.23, 117.17), null, "徐州市")
-                return if (alternatives) listOf(first, first.copy(poiId = "$keyword-second", name = keyword, address = "徐州市第二处地址"))
+                return if (alternatives) listOf(first, first.copy(poiId = "$name-second", name = name, address = "徐州市第二处地址"))
                     else listOf(first)
             }
         }
@@ -153,7 +154,7 @@ class AssistantCityUiTest {
                 compose.waitUntil(10_000) { assistant.controller.state.value.eligible.size == 2 }
             }
             assertEquals(listOf(if (knownCity) "徐州市" else ""), parserCities.toList())
-            assertEquals(listOf("云龙湖", "云龙山"), queries.map { it.first })
+            assertEquals(listOf("徐州云龙湖", "徐州云龙山"), queries.map { it.first })
             assertTrue(queries.all { sameCity(it.second, "徐州") })
             assertEquals(2, assistant.controller.state.value.eligible.size)
             assertTrue(assistant.controller.state.value.selected.isEmpty())

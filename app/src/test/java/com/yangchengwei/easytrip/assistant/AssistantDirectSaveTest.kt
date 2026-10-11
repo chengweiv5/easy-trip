@@ -16,7 +16,7 @@ class AssistantDirectSaveTest {
             PlaceIntentParser { _, _ -> listOf("灵隐寺", "河坊街").map { PlaceIntent(it, "杭州", it) } },
             source ?: object : PlaceSearchDataSource {
                 override suspend fun search(keyword: String, city: String?) =
-                    listOf(PlaceCandidate(keyword, keyword, "地址", GeoPoint(30.2, 120.1), null, "杭州市"))
+                    listOf(PlaceCandidate(keyword.removePrefix("杭州"), keyword.removePrefix("杭州"), "地址", GeoPoint(30.2, 120.1), null, "杭州市"))
             }, importer).also {
             it.environment(true, true, true)
             it.editInput("灵隐寺、河坊街")
@@ -40,7 +40,7 @@ class AssistantDirectSaveTest {
             PlaceIntentParser { _, _ -> listOf("灵隐寺", "河坊街").map { PlaceIntent(it, "杭州", it) } },
             object : PlaceSearchDataSource {
                 override suspend fun search(keyword: String, city: String?) =
-                    listOf(PlaceCandidate(keyword, keyword, "地址", GeoPoint(30.2, 120.1), null, "杭州市"))
+                    listOf(PlaceCandidate(keyword.removePrefix("杭州"), keyword.removePrefix("杭州"), "地址", GeoPoint(30.2, 120.1), null, "杭州市"))
             }, importer)
         controller.environment(true, true, true)
         controller.editInput("灵隐寺、河坊街")
@@ -152,10 +152,10 @@ class AssistantDirectSaveTest {
         val c = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> listOf("甲", "重复甲", "已收藏", "慢", "失败").map { PlaceIntent(it, "杭州", it) } },
             object : PlaceSearchDataSource {
-                override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> = when (keyword) {
+                override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> = when (keyword.removePrefix("杭州")) {
                     "慢" -> slow.await()
                     "失败" -> error("failed")
-                    else -> listOf(PlaceCandidate(if (keyword == "重复甲") "甲" else keyword,
+                    else -> listOf(PlaceCandidate(if (keyword == "杭州重复甲") "甲" else keyword.removePrefix("杭州"),
                         keyword, "地址", GeoPoint(30.2, 120.1), null, "杭州"))
                 }
             }, object : PlaceImport {

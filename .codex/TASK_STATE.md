@@ -1,4 +1,34 @@
-# 当前任务：v3.2.0 提交与推送
+# 当前任务：v3.2.0 城市限定修复提交、推送与安装
+
+状态：**IN_PROGRESS（2026-10-11）**。用户明确授权“提交推送安装”，不发布 Release／标签。
+
+- 当前功能分支`codex/v3.2-assistant-city-query`，HEAD／origin/main均为`4eb7052`；开放PR为空，无需rebase。
+- 18个应用／测试输入与已验证源码清单一致，全部未提交成果已备份；后续先提交并从干净工作区构建复验，再快进推送与同签名覆盖安装手机。
+- 交付记录：`docs/testing/v3.2.0-assistant-city-query-delivery.md`。
+- 本轮证据：`/Users/bytedance/.codex/artifacts/easy-trip/f445-city-query-delivery-20261011-224037/`。
+
+---
+
+## 历史任务记录
+
+# v3.2.0 助手首次城市限定与脱敏诊断
+
+状态：**DONE（2026-10-11，开发及本批验证完成）**。用户确认后实施；未安装真实手机、未提交推送、未发布。
+
+- 分支`codex/v3.2-assistant-city-query`，基线及HEAD保持`4eb70523d969af57a31b865ab4f8e31ee1d9c441`，开始前origin/main一致且开放PR为空；本批为未提交修改。
+- 助手首次与重试在地图边界补单项已明确城市，已含城市不重复；原输入／来源不改，异地确认、缺城市门禁与零隐式收藏不变。新增64KiB脱敏日志，保留SDK数值错误码／耗时／结果数量，不保存正文、图片、Key或坐标。
+- Debug/Release各1046 JVM全通过，Debug/AndroidTest/Release构建成功；lint均0错误，警告62/59及各1 Hint保留。13项助手UI专项通过；最终真实高德四地点名称与青州市均匹配，日志已从模拟器拉回。
+- 真实专项过程中一次广福寺返回SDK1800，相同代码／参数复跑成功；保留失败日志，不声称全部运行全绿或消除全部首次失败，不认定其为手机原问题的根因。测试门禁初次跳过亦不算通过。
+- Spec复核0发现，Standards无阻断，模拟器代码门禁提醒已修正。自有模拟器PID46621与归属锁已核验清理，未操作真实手机。UI/Pencil、DB/schema、版本及签名配置保持不变。
+- punk-12通知`om_x100b638d81befcacdfaa314337f5ddc`已回读chat／sender／正文／deleted=false，状态最后写回。
+- 验证与回滚：`docs/testing/v3.2.0-assistant-city-query.md`。
+- 证据／源码清单／归档APK：`/Users/bytedance/.codex/artifacts/easy-trip/f445-city-qualified-search-20261011/`。手机仍为此前安装的旧DIRTY包，本轮修复尚未到手机。
+
+---
+
+## 历史任务记录
+
+# v3.2.0 提交与推送
 
 状态：**DONE（2026-10-11，功能交付与通知已核验）**。本状态收尾提交的最终远端SHA以本机`final-push-verification.json`为准；工具回合在该核验完成后结束。
 

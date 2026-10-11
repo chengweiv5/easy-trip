@@ -104,8 +104,8 @@ class AssistantUiTest {
                 override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
                     poiCalls.incrementAndGet()
                     if (real) return requireNotNull(realSource).search(keyword, city)
-                    if (keyword == "失败项") error("simulated source failure")
-                    if (keyword == "雷峰塔") return listOf(
+                    if (keyword == "杭州失败项") error("simulated source failure")
+                    if (keyword == "杭州雷峰塔") return listOf(
                         PlaceCandidate("tower1", "雷峰塔景区", "南山路", GeoPoint(30.23,120.15), null, "杭州"),
                         PlaceCandidate("tower2", "雷峰塔塔体", "景区内", GeoPoint(30.231,120.151), null, "杭州"))
                     return listOf(PlaceCandidate(keyword, keyword, "杭州市真实地点测试地址", GeoPoint(30.24 + poiCalls.get() * .008,120.14), null, "杭州"))

@@ -87,7 +87,7 @@ class AssistantDirectSaveUiTest {
         model.controller.updateSource(object : PlaceSearchDataSource {
             override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
                 queries += keyword
-                if (keyword == "失败") error("retry needs correction")
+                if (keyword == "杭州失败") error("retry needs correction")
                 return listOf(PlaceCandidate(keyword, keyword, "杭州市测试地址", GeoPoint(30.2, 120.1), null, "杭州"))
             }
         })
@@ -132,8 +132,8 @@ class AssistantDirectSaveUiTest {
             androidx.test.espresso.Espresso.closeSoftKeyboard()
             compose.onNodeWithTag("assistant-edit-retry-C").performScrollTo().performClick()
             compose.waitUntil { model.controller.state.value.eligible.size == 3 }
-            assertEquals(1, queries.count { it == "甲" })
-            assertEquals(1, queries.count { it == "乙" })
+            assertEquals(1, queries.count { it == "杭州甲" })
+            assertEquals(1, queries.count { it == "杭州乙" })
             assertEquals(1, model.controller.state.value.selected.size)
             compose.onNodeWithTag("assistant-select-all").performClick().assertIsOn()
             compose.onNodeWithTag("assistant-select-all").performClick().assertIsOff()

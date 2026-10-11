@@ -25,7 +25,7 @@ class PlaceAssistantControllerTest {
         val c = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> listOf(PlaceIntent("灵隐寺", "杭州", "灵隐寺")) },
             object : PlaceSearchDataSource {
-                override suspend fun search(keyword: String, city: String?) = listOf(poi(keyword))
+                override suspend fun search(keyword: String, city: String?) = listOf(poi(keyword.removePrefix("杭州")))
             }, importer)
         c.environment(true, true, true)
         c.editInput("杭州灵隐寺")
@@ -68,10 +68,10 @@ class PlaceAssistantControllerTest {
         val controller = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> names.map { PlaceIntent(it, "杭州", it) } },
             object : PlaceSearchDataSource {
-                override suspend fun search(keyword: String, city: String?) = when (keyword) {
+                override suspend fun search(keyword: String, city: String?) = when (keyword.removePrefix("杭州")) {
                     "失败" -> throw IllegalStateException("untrusted secret")
                     "雷峰塔" -> listOf(poi("雷峰塔景区"), poi("雷峰塔塔体"))
-                    else -> listOf(poi(keyword))
+                    else -> listOf(poi(keyword.removePrefix("杭州")))
                 }
             }, importer)
         controller.environment(true, true, true)
@@ -94,7 +94,7 @@ class PlaceAssistantControllerTest {
         val controller = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> listOf(PlaceIntent("灵隐寺", "杭州", "灵隐寺"), PlaceIntent("慢", "杭州", "慢")) },
             object : PlaceSearchDataSource {
-                override suspend fun search(keyword: String, city: String?) = if (keyword == "慢") waiting.await() else listOf(poi(keyword))
+                override suspend fun search(keyword: String, city: String?) = if (keyword == "杭州慢") waiting.await() else listOf(poi(keyword.removePrefix("杭州")))
             }, Importer())
         controller.environment(true, true, true); controller.editInput("灵隐寺、慢"); controller.submit()
         runCurrent()
@@ -108,7 +108,7 @@ class PlaceAssistantControllerTest {
         val importer = Importer()
         val c = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> listOf("灵隐寺", "灵隐寺").map { PlaceIntent(it, "杭州", it) } },
-            object : PlaceSearchDataSource { override suspend fun search(keyword: String, city: String?) = listOf(poi(keyword)) }, importer)
+            object : PlaceSearchDataSource { override suspend fun search(keyword: String, city: String?) = listOf(poi(keyword.removePrefix("杭州"))) }, importer)
         c.environment(true, true, true); c.editInput("灵隐寺、灵隐寺"); c.submit(); advanceUntilIdle()
         assertEquals(listOf(IntakeStatus.READY, IntakeStatus.DUPLICATE), c.state.value.items.map { it.status })
         assertTrue(c.state.value.selected.isEmpty()); assertEquals(0, importer.calls)
@@ -124,13 +124,13 @@ class PlaceAssistantControllerTest {
             PlaceIntentParser { _, _ -> listOf("灵隐寺", "故宫", "失败").map { PlaceIntent(it, "杭州", it) } },
             object : PlaceSearchDataSource { override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
                 calls += keyword
-                if (keyword == "失败") throw IllegalStateException()
-                return listOf(poi(keyword).let { if (keyword == "故宫") it.copy(cityName = "北京") else it })
+                if (keyword == "杭州失败") throw IllegalStateException()
+                return listOf(poi(keyword.removePrefix("杭州")).let { if (keyword == "杭州故宫") it.copy(cityName = "北京") else it })
             } }, Importer())
         c.environment(true, true, true); c.editInput("灵隐寺、故宫、失败"); c.submit(); advanceUntilIdle()
         assertEquals(IntakeStatus.NEED_CITY, c.state.value.items[1].status)
         c.retry(); advanceUntilIdle()
-        assertEquals(1, calls.count { it == "灵隐寺" }); assertEquals(1, calls.count { it == "故宫" }); assertEquals(2, calls.count { it == "失败" })
+        assertEquals(1, calls.count { it == "杭州灵隐寺" }); assertEquals(1, calls.count { it == "杭州故宫" }); assertEquals(2, calls.count { it == "杭州失败" })
         c.choosePoi(c.state.value.items[1].id, "故宫")
         assertEquals(IntakeStatus.READY, c.state.value.items[1].status)
         assertTrue(c.state.value.selected.isEmpty())
@@ -141,7 +141,7 @@ class PlaceAssistantControllerTest {
         val c = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> listOf("慢", "快").map { PlaceIntent(it, "杭州", it) } },
             object : PlaceSearchDataSource { override suspend fun search(keyword: String, city: String?) =
-                if (keyword == "慢") slow.await() else listOf(poi("快", "same")) }, Importer())
+                if (keyword == "杭州慢") slow.await() else listOf(poi("快", "same")) }, Importer())
         c.environment(true, true, true); c.editInput("慢、快"); c.submit(); runCurrent()
         val fast = c.state.value.items[1].id
         c.toggle(fast)

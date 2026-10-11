@@ -147,7 +147,7 @@ class AssistantCityContextTest {
         advanceUntilIdle()
 
         assertEquals("徐州市", parserCity)
-        assertEquals(listOf("云龙湖" to "徐州市", "云龙山" to "徐州市"), queries)
+        assertEquals(listOf("徐州云龙湖" to "徐州市", "徐州云龙山" to "徐州市"), queries)
         assertEquals(listOf(IntakeStatus.READY, IntakeStatus.READY), controller.state.value.items.map { it.status })
         assertTrue(controller.state.value.selected.isEmpty())
     }
@@ -202,7 +202,7 @@ class AssistantCityContextTest {
         controller.toggle(palace.id)
         controller.supplyMissingCity("徐州"); advanceUntilIdle()
         assertEquals(1, parses)
-        assertEquals(listOf("故宫" to "北京", "云龙湖" to "徐州", "云龙山" to "徐州"), queries)
+        assertEquals(listOf("北京故宫" to "北京", "徐州云龙湖" to "徐州", "徐州云龙山" to "徐州"), queries)
         assertEquals(palace, controller.state.value.items.last())
         assertEquals(setOf(palace.id), controller.state.value.selected)
         assertTrue(controller.state.value.items.all { it.status == IntakeStatus.READY })

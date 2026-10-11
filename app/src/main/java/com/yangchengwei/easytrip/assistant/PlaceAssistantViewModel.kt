@@ -27,6 +27,7 @@ class PlaceAssistantViewModel(
     val images: AssistantImageStore? = null,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val imageParserOverride: ImageIntentParser? = null,
+    private val searchDiagnostics: AssistantSearchDiagnostics = AssistantSearchDiagnostics.NONE,
 ) : ViewModel() {
     val sessionId = UUID.randomUUID().toString()
     private var selectionGeneration = 0L
@@ -44,7 +45,8 @@ class PlaceAssistantViewModel(
                     }
                 }, store)
         } }, sessionId = sessionId,
-        imageAllowed = { config.imageCapability().capability != ImageCapability.UNSUPPORTED })
+        imageAllowed = { config.imageCapability().capability != ImageCapability.UNSUPPORTED },
+        diagnostics = searchDiagnostics)
     private val mutableOpen = MutableStateFlow(false)
     val open = mutableOpen.asStateFlow()
     private val mutableFocus = MutableStateFlow<String?>(null)
@@ -139,10 +141,12 @@ class PlaceAssistantViewModel(
         private val importer: PlaceImport, private val places: SavedPlaceRepository,
         private val images: AssistantImageStore? = null,
         private val savedState: SavedStateHandle = SavedStateHandle(),
+        private val searchDiagnostics: AssistantSearchDiagnostics = AssistantSearchDiagnostics.NONE,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
-            PlaceAssistantViewModel(tripId, config, importer, places, images = images, savedState = savedState) as T
+            PlaceAssistantViewModel(tripId, config, importer, places, images = images, savedState = savedState,
+                searchDiagnostics = searchDiagnostics) as T
     }
     companion object { private val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.IO) }
 }
