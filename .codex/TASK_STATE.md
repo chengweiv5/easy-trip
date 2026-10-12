@@ -1,4 +1,17 @@
-# 当前任务：助手收藏后自动新一轮
+# 当前任务：助手自动新一轮提交与推送
+
+状态：**DONE（2026-10-12，功能提交推送、干净构建与通知已验证）**。本状态随文档收尾提交再次推送，最终SHA以本机`final-push-verification.json`为准；回合在最终远端核验后结束。
+
+- 用户本轮授权“提交，推送”，不含手机安装、Release或标签；仅操作origin/main，不操作codebase。
+- `codex/assistant-next-round`从`55ba7c50ee9931053b34051de0d043a1d34c2875`提交`eda833d60b2a7a55aed7fcce01bff59445a8d5ce`，开放PR为空，远端未前进无需rebase；祖先校验、快进推送与独立远端SHA回读一致。
+- 干净提交Debug/Release各1080 JVM、0失败/错误/跳过、lint0错误，Debug/AndroidTest/Release构建通过；生成BuildConfig为该SHA和CLEAN。
+- 11个提交文件与开发验证备份逐字节一致，570个此前测试输入hash一致。此前32项模拟器UI不冒充本轮重跑；本轮无设备操作、Pencil再编辑或版本变化。
+- punk-12消息`om_x100b63ff60c2b0a0c150c443ab50a42`独立回读chat、机器人、全文及deleted=false通过；本状态在通知验证后写回。
+- 交付与回滚`docs/testing/assistant-next-round-git-delivery.md`；证据`/Users/bytedance/.codex/artifacts/easy-trip/assistant-next-round-delivery-e9e3-20261012/`。应用3.2.0/build25/schema11；未安装手机、未发布。
+
+---
+
+# 历史任务：助手收藏后自动新一轮开发
 
 状态：**DONE（2026-10-12，开发、验证、Pencil保存回读与通知完成；未提交推送、未安装手机、未发布）**。
 
