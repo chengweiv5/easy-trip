@@ -14,9 +14,18 @@
 
 </div>
 
-> 当前正式版为 **[v3.1.0](https://github.com/chengweiv5/easy-trip/releases/tag/v3.1.0)**（build24）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v3.1.0/easy-trip-v3.1.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v3.1.0/easy-trip-v3.1.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v3.1.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v3.1 新样式截图。
+> 当前正式版为 **[v3.2.0](https://github.com/chengweiv5/easy-trip/releases/tag/v3.2.0)**（build25）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v3.2.0/easy-trip-v3.2.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v3.2.0/easy-trip-v3.2.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v3.2.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v3.2 新样式截图。
 
-## v3.1：图片也能录入地点，点击直接处理
+## v3.2：选好直接收藏，继续下一轮
+
+- 助手结果左侧选择／全选后点一次「收藏」即可；成功后清空本批候选、文字、图片和焦点，回到空输入。旅行、城市和已收藏地点保留；保存失败保留选择并可重试。
+- 搜索框与助手共用默认城市：用户指定优先；旅行名单城固定、多城优先命中定位否则首城，无城市名时定位兜底。
+- 助手首次检索与重试均带城市，共享请求节流，降低批量查询突发限流的风险；不承诺所有配额或网络错误消失。
+- 收藏底栏不再有独立白底，全选框与文字靠拢；助手抽屉开关、重开、拖动不重置地图中心或缩放，新结果和主动选点仍定位。
+- **3.2.0/build25/schema11**，同签名覆盖升级；已装同名build25体验包可能不提示更新，可手动覆盖。图片／文字仍仅在主动处理时发送到所配置模型服务，可能计费，请勿提交敏感信息。
+- Debug／Release各1083项单测、43项模拟器专项、5项系统320dp／双倍字体复测及真实高德青州4地点查询专项通过，lint0错误。本轮未安装正式包到真实手机，未实测真实模型／系统相册／TalkBack；历史失败边界见[发布记录](docs/testing/v3.2.0-release.md)。
+
+## v3.1（历史）：图片也能录入地点，点击直接处理
 
 - 助手支持纯文字、纯图和图文混合，最多6张图片，可预览与移除；**选图不上传，点击「全部标记到地图」直接处理，发送前不弹确认框**。
 - 进入助手即优先填入旅行城市，手动修改优先；每项默认采用第一条有效同城候选，可更换，**不自动勾选、收藏或加入行程**。收藏、清空和离开确认保留。

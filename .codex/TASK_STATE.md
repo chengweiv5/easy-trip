@@ -1,11 +1,15 @@
 # 当前任务：提交推送并发布 v3.2.0
 
-状态：**IN_PROGRESS（2026-10-12）**。
+状态：**DONE（2026-10-12，功能快进推送、正式发布、下载／Latest核验、清理与通知完成）**。本次文档收尾提交的最终远端SHA以证据目录`final-push-verification.json`为准，回合在该独立核验完成后结束。
 
-- 用户授权“提交，推送，发布 v3.2”。沿用3.2.0/build25/schema11，在现有功能分支交付；本轮不再安装手机。
-- 发布前远端main与HEAD均为`bdc0a25`，开放PR为空，远端v3.2标签不存在，当前Latest为v3.1.0。
-- 567个已验证源码／构建输入未变；修改前备份位于`/Users/bytedance/.codex/artifacts/easy-trip/v3.2.0-release-e9e3-20261012/`。
-- 计划`docs/superpowers/plans/2026-10-12-v3.2.0-release.md`；需干净提交构建、发布回归、快进推送、固定标签、草稿下载及公开Latest回读；未完成前不称正式发布。
+- 用户授权“提交，推送，发布 v3.2”。功能提交`d92768c543a93e13f2d11b548400f863ba3a525f`已快进推送origin/main并回读一致；开放PR为空，无新上游无需rebase，不强推、不操作codebase远端。
+- 2026-10-12 23:52:22（Asia/Shanghai）v3.2.0正式公开并设为Latest；Release ID410776037，标签和CLEAN APK固定上述功能SHA。3.2.0/build25/schema11，正式签名、非debuggable、16KB对齐通过。
+- 正式APK SHA256`9199c92ca9add7821920ce858b867fd32dafaafe9b824a2fb030796f23375a66`，63,368,271 bytes。草稿认证完整下载、公开匿名完整下载APK与SHA文件均一致；认证/匿名Latest回读同一Release，页面HTTP200。
+- 干净提交Debug/Release各1083 JVM、0失败/错误/跳过，lint0错误；43项模拟器专项、5项系统320dp/双倍字体复测、真实高德青州4地点首次查询专项均通过；1202个tracked输入公开前hash不变。
+- 唯一v3.2 Pencil源265根/43,305节点，仅提交上轮已原生保存回读字节，hash仍`12b145e0b1674d4e4a58b7251ec7a6686b57e0875aefdbc9085a915cbbd984f2`；v3.1冻结源未改。本轮不新增设计或全页验收。
+- 没有再次安装手机，23:32手机仍为DIRTY开发包；真实模型/相册/TalkBack及旧测试缺口保留。自有emulator-5582正常退出并按owner释放锁，未操作其他设备。
+- punk-12消息`om_x100b63e4651890a8c2f9dd71052a717`独立回读chat、bot、全文及deleted=false通过；本状态在通知验证后写回。后续文档提交不移动标签或替换资产。
+- 发布记录`docs/testing/v3.2.0-release.md`；证据、输入快照、下载包及回滚备份`/Users/bytedance/.codex/artifacts/easy-trip/v3.2.0-release-e9e3-20261012/`。
 
 ---
 
