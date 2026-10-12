@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.workspace
 
 import android.content.Context
+import android.content.ContextWrapper
 import android.view.View
 import androidx.activity.ComponentActivity
 import androidx.compose.material3.Text
@@ -38,7 +39,10 @@ import androidx.compose.ui.test.performScrollTo
 import androidx.compose.ui.test.performTextInput
 import androidx.compose.ui.test.performTouchInput
 import androidx.compose.ui.test.swipeDown
+import androidx.compose.ui.test.swipe
 import androidx.room.Room
+import androidx.lifecycle.ViewModelStore
+import com.yangchengwei.easytrip.assistant.*
 import com.yangchengwei.easytrip.AppNavigation
 import com.yangchengwei.easytrip.AppNavigationDependencies
 import com.yangchengwei.easytrip.AppNavigationObserver
@@ -1129,6 +1133,123 @@ class WorkspaceFlowTest {
         compose.runOnIdle { zoomOutRequest.value++ }
         compose.waitForIdle()
         compose.runOnIdle { assertEquals(listOf("zoom-in", "zoom-out"), events) }
+    }
+
+    @Test fun reopeningAssistantWithCandidatesDoesNotMoveMap() = exerciseAssistantCamera(WorkspaceSection.PLACE_POOL)
+
+    @Test fun assistantDrawerOverItineraryDoesNotMoveMap() = exerciseAssistantCamera(WorkspaceSection.ITINERARY)
+
+    private fun exerciseAssistantCamera(section: WorkspaceSection) {
+        val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
+        val configDirectory = java.io.File(compose.activity.cacheDir, "assistant-camera-${java.util.UUID.randomUUID()}").apply { mkdirs() }
+        val config = AssistantConfigStore(object : ContextWrapper(compose.activity) {
+            override fun getNoBackupFilesDir() = configDirectory
+        })
+        config.save(ProviderConfig("https://example.invalid/v1", "test", "synthetic-not-a-secret"))
+        val assistant = PlaceAssistantViewModel("trip", config, object : PlaceImport {
+            override suspend fun receipt(operationId: String): ImportReceipt? = null
+            override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt = error("No collection in this test")
+        }, Places(), PlaceIntentParser { input, _ -> listOf(PlaceIntent(input, "杭州", input)) })
+        assistant.controller.updateSource(object : com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?) = listOf(
+                PlaceCandidate("candidate", "测试地点", "杭州测试地址", GeoPoint(30.2, 120.1), null, "杭州"),
+                PlaceCandidate("alternative", "另一地点", "杭州另一地址", GeoPoint(30.3, 120.2), null, "杭州"),
+            )
+        })
+        val store = ViewModelStore().apply { put("workspace", workspace); put("assistant", assistant) }
+        lateinit var host: ZoomRecordingHost
+        var mounts = 0
+        val token = consentToken()
+        try {
+            compose.setContent {
+                TripWorkspaceRoute(
+                    viewModel = workspace, assistantViewModel = assistant,
+                    consent = token, onBack = {}, onSettings = {},
+                    locationPermissionCoordinator = LocationPermissionCoordinator(InMemoryLocationPermissionRequestStore()),
+                    locationPermissionSnapshot = { LocationPermissionSnapshot(false, false) }, onWorkspaceEffect = {},
+                    mapHostFactory = { context -> ZoomRecordingHost(context).also { host = it; mounts++ } },
+                )
+            }
+            compose.waitUntil(5_000) { runCatching { host.viewportCalls > 0 }.getOrDefault(false) }
+            compose.runOnIdle { workspace.selectSection(section) }
+            compose.waitForIdle()
+            val beforeOpening = host.viewportCalls
+            compose.onNodeWithTag("assistant-entry").performClick()
+            compose.waitUntil(5_000) { assistant.controller.state.value.let { it.configured && it.consent && it.mapReady } }
+            compose.runOnIdle { assertEquals("Opening an empty assistant must retain the camera", beforeOpening, host.viewportCalls) }
+            compose.runOnIdle {
+                assistant.controller.editCity("杭州")
+                assistant.controller.editInput("测试地点")
+                assistant.controller.submit()
+            }
+            compose.waitUntil(5_000) { assistant.controller.state.value.let { !it.busy && it.items.singleOrNull()?.poi != null } }
+            compose.waitForIdle()
+            val before = host.viewportCalls
+            compose.runOnIdle {
+                assertEquals("New assistant results must still position the map", beforeOpening + 1, before)
+                assertEquals(GeoPoint(30.2, 120.1), (host.commands.last() as ViewportCommand.SinglePoint).point)
+            }
+            val mapSize = host.view.width to host.view.height
+            listOf(
+                WorkspaceSheetLevel.EXPANDED to -220f,
+                WorkspaceSheetLevel.HALF to 220f,
+                WorkspaceSheetLevel.COLLAPSED to 220f,
+                WorkspaceSheetLevel.HALF to -220f,
+            ).forEach { (level, drag) ->
+                compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+                    swipe(center, center + Offset(0f, drag), 300)
+                }
+                compose.waitUntil(5_000) { workspace.state.value.sheetLevel == level }
+                compose.waitForIdle()
+                compose.runOnIdle {
+                    assertEquals("Assistant over $section at $level must retain center and zoom", before, host.viewportCalls)
+                    assertEquals(mapSize, host.view.width to host.view.height)
+                    assertEquals(1, mounts)
+                }
+            }
+            compose.onNodeWithTag("assistant-collapse").performClick()
+            compose.waitForIdle()
+            compose.runOnIdle { assertEquals("Closing the assistant must retain the camera", before, host.viewportCalls) }
+            compose.onNodeWithTag("assistant-entry").performClick()
+            compose.waitForIdle()
+            compose.runOnIdle {
+                assertEquals("Reopening retained candidates must not reset center or zoom", before, host.viewportCalls)
+                assertEquals(mapSize, host.view.width to host.view.height)
+                assertEquals(1, mounts)
+            }
+            // A manually moved map stays put across selection-only UI changes.
+            compose.runOnIdle {
+                workspace.onMapGesture()
+                assistant.controller.selectAll()
+            }
+            compose.waitForIdle()
+            compose.runOnIdle { assertEquals(before, host.viewportCalls) }
+            val itemId = assistant.controller.state.value.items.single().id
+            compose.runOnIdle { assistant.focus(itemId) }
+            compose.waitForIdle()
+            compose.runOnIdle {
+                assertEquals("Explicit focus still owns the camera", before + 1, host.viewportCalls)
+                assistant.controller.choosePoi(itemId, "alternative")
+            }
+            compose.waitForIdle()
+            compose.runOnIdle {
+                assertEquals(before + 2, host.viewportCalls)
+                assertEquals(GeoPoint(30.3, 120.2), (host.commands.last() as ViewportCommand.SinglePoint).point)
+                workspace.focusSearchResult(PlaceCandidate("ordinary", "普通搜索", "", GeoPoint(31.0, 121.0), null, "上海"))
+            }
+            compose.waitForIdle()
+            compose.runOnIdle {
+                assertEquals("Ordinary search regains the camera", before + 3, host.viewportCalls)
+                assertEquals(GeoPoint(31.0, 121.0), (host.commands.last() as ViewportCommand.SinglePoint).point)
+                assistant.controller.clear()
+            }
+            compose.waitForIdle()
+            compose.runOnIdle { assertEquals("Clearing a draft must not replay either old request", before + 3, host.viewportCalls) }
+        } finally {
+            compose.runOnIdle { store.clear() }
+            config.clear()
+            configDirectory.deleteRecursively()
+        }
     }
 
     @Test fun drawerRevealRefitsItineraryOnceWithoutRemountingMap() {
@@ -3446,6 +3567,7 @@ class WorkspaceFlowTest {
             private set
         var zoomInCalls = 0
             private set
+        val commands = mutableListOf<ViewportCommand>()
         override fun onCreate() = Unit
         override fun onResume() = Unit
         override fun onPause() = Unit
@@ -3465,7 +3587,7 @@ class WorkspaceFlowTest {
             )
             consumedViewportId = rendering.consumedRequestId
             consumedViewportInsets = rendering.consumedSafeInsets
-            if (rendering.command != null) viewportCalls++
+            rendering.command?.let { commands += it; viewportCalls++ }
         }
     }
 

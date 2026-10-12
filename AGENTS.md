@@ -2,6 +2,12 @@
 
 ## 当前设计目标
 
+- **助手抽屉视角修复已安装手机（2026-10-12，e9e3）**：用户单独授权安装；23:32:18同签名覆盖安装华为ALN-AL00，APK拉回hash一致，UID/首次安装时间/dataDir不变，启动Status ok。来源`codex/assistant-drawer-camera`未提交DIRTY修复，HEAD仍`bdc0a25`；安装前567输入hash一致、Release1083 JVM及lint0错误通过。版本3.2.0/build25/schema11不变；未实机操作助手、搜索或收藏，未提交/推送/发布，Pencil未改，详见`docs/testing/assistant-drawer-camera-install.md`。下条未安装为开发阶段历史。
+
+- **助手抽屉保持地图视角（2026-10-12，e9e3，开发验证完成未交付）**：`codex/assistant-drawer-camera`基于`bdc0a25`。助手开关/重开/三档拖动不重发定位，不回放旧workspace请求；覆盖行程时不触发行程恢复fit，普通行程自身恢复保留。新可见结果/主动选点/普通搜索仍定位。Debug/Release各1083 JVM、9项相关模拟器UI（含系统320dp/双倍字体）通过，lint0错误；额外旧手势切标签UI失败已用未修改bdc0a25独立复现，不宣称全应用全绿。Pencil仅两处context，265根/43,305节点原生保存重开回读。版本3.2.0/build25/schema11不变；未提交、推送、发布或安装手机，详见`docs/testing/assistant-drawer-camera.md`。
+
+- **助手自动新一轮已安装（2026-10-12，e9e3）**：用户单独授权安装，22:19:00同签名覆盖安装华为ALN-AL00，3.2.0/build25/schema11，来源`eda833d`的已验证CLEAN Release；手机APK拉回hash与目标包一致，UID/首次安装时间/dataDir不变，无卸载清数据。桌面状态下恢复启动Status ok、进程正常，捕获日志无FATAL；未触发搜索/模型/收藏或全库验收。punk-12通知已回读；本轮只记录安装、不提交推送或发布、不改Pencil。详见`docs/testing/assistant-next-round-install.md`，下条“未安装”为Git交付阶段历史。
+
 - **助手自动新一轮已推送（2026-10-12，e9e3）**：功能提交`eda833d`从`55ba7c5`快进推送origin/main，独立远端SHA回读一致。干净提交重新验证Debug/Release各1080 JVM、lint0错误、三种APK构建通过；此前32项模拟器专项的源码hash一致，本轮不重跑设备。累积Pencil源一并提交，未再次改稿；punk-12通知已回读。3.2.0/build25/schema11不变，未安装手机或发布，详见`docs/testing/assistant-next-round-git-delivery.md`。下条“未提交/推送”为开发阶段历史。
 
 - **助手收藏后自动新一轮（2026-10-12，e9e3，开发验证完成未交付）**：`codex/assistant-next-round`基于`55ba7c5`；收藏一次，持久化成功后清空本批全部候选、文字、图片、焦点及地图候选，回到空输入，保留旅行/城市/已收藏地点；失败保留并幂等重试，旧查询与旧图片清理不会覆盖新批次。Debug/Release各1080 JVM、32项相关模拟器UI（含系统320dp/2倍字体）、lint0错误通过。Pencil 265根/43,305节点已原生保存重开回读，v3.1冻结源不变。版本仍3.2.0/build25/schema11；本轮未提交、推送、发布或安装真实手机。详见`docs/testing/assistant-next-round.md`，下条手机安装仅为上一轮交付。

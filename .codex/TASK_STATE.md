@@ -1,4 +1,55 @@
-# 当前任务：助手自动新一轮提交与推送
+# 当前任务：提交推送并发布 v3.2.0
+
+状态：**IN_PROGRESS（2026-10-12）**。
+
+- 用户授权“提交，推送，发布 v3.2”。沿用3.2.0/build25/schema11，在现有功能分支交付；本轮不再安装手机。
+- 发布前远端main与HEAD均为`bdc0a25`，开放PR为空，远端v3.2标签不存在，当前Latest为v3.1.0。
+- 567个已验证源码／构建输入未变；修改前备份位于`/Users/bytedance/.codex/artifacts/easy-trip/v3.2.0-release-e9e3-20261012/`。
+- 计划`docs/superpowers/plans/2026-10-12-v3.2.0-release.md`；需干净提交构建、发布回归、快进推送、固定标签、草稿下载及公开Latest回读；未完成前不称正式发布。
+
+---
+
+# 历史任务：助手抽屉视角修复安装手机
+
+状态：**DONE（2026-10-12，覆盖安装、APK与启动核验、锁清理及通知完成；未提交、推送或发布）**。
+
+- 用户单独授权“安装”；567个源码／构建输入与前轮验证相同，重新Release1083 JVM、0失败／错误／跳过、lint0错误与Release构建通过；本轮未重跑Debug或模拟器UI。
+- 23:32:18（手机包管理器时间，Asia/Shanghai）华为ALN-AL00同签名`adb install -r`成功；3.2.0/build25/schema11。来源`codex/assistant-drawer-camera`未提交DIRTY修复，HEAD仍`bdc0a253e1b5cc9533c731a09faf4381fa6a1c36`，不是正式Release。
+- 目标与手机拉回APK SHA256均`cada898f830a6644fef2112801e97fd7f02dc5383b83ca0faa38e4659817ae1c`；签名匹配，非debuggable、16KB对齐通过。UID10477、首次安装时间、dataDir不变，无卸载／清数据／降级；旧APK已备份，不冒称全库审计。
+- 手机安装前后在桌面，启动Status ok / COLD / 进程存在，捕获PID日志无FATAL EXCEPTION；未打开旅行、调用真实模型或搜索收藏，未实机验证助手抽屉相机行为。Pencil未再编辑，哈希不变。
+- 独占设备锁已按token核验释放；punk-12消息`om_x100b63fb92ed04a4c3f1849b7e0e02d`独立回读chat、bot、全文和deleted=false通过；本状态在通知验证后写回。
+- 安装记录`docs/testing/assistant-drawer-camera-install.md`；证据与回滚`/Users/bytedance/.codex/artifacts/easy-trip/assistant-drawer-camera-install-e9e3-20261012/`。本轮文档留在工作区，未提交推送。
+
+---
+
+# 历史任务：助手抽屉保持地图视角
+
+状态：**DONE（2026-10-12，开发、红绿回归、Pencil保存重开回读、清理及通知核验完成；未提交推送、安装手机或发布）**。
+
+- 用户确认助手开关/重开/三档拖动不改变中心缩放，新结果与主动选点保留定位。功能分支`codex/assistant-drawer-camera`，HEAD保持`bdc0a253e1b5cc9533c731a09faf4381fa6a1c36`，版本3.2.0/build25/schema11不变；前轮安装记录与无关内容保留。
+- 两个真实Route→相机命令红测分别捕获关闭旧请求重放（2→3）与助手覆盖行程后收回触发行程fit（3→4）；修正请求生命周期与助手拖动保留标记后绿。没有修改通用地图控制器或地点池/行程本身逻辑。
+- Debug/Release各1083 JVM、0失败/错误/跳过；Debug lint0错误/62 Warning/1 Hint，Release lint0错误/59 Warning/1 Hint；三种APK构建通过。普通尺寸6项、系统320dp/双倍字体3项UI通过。
+- 额外已有手势切标签UI期望1实际3失败；独立git archive构建未改bdc0a25精确复现同一失败，不扩大修复、不声称全应用全绿。相机host为记录器，未验真实SDK瓦片或物理手机。
+- Pencil仅WPYC3/kIRND两处context变化，265根/43,305节点；原生保存关闭重开、精确绝对路径MCP回读与截图通过，SHA256`12b145e0b1674d4e4a58b7251ec7a6686b57e0875aefdbc9085a915cbbd984f2`。冻结v3.1不变。
+- 567个验证输入hash回读不变，前轮安装报告保持；自有emulator-5582退出，锁核验释放，独立基线临时目录删除。punk-12消息`om_x100b63fb8e967ca0c4f7191fd6eab21`独立回读chat、bot、全文、deleted=false通过；本状态在通知验证后写回。
+- 记录`docs/testing/assistant-drawer-camera.md`；证据与选择性回滚备份`/Users/bytedance/.codex/artifacts/easy-trip/assistant-drawer-camera-e9e3-20261012/`。
+
+---
+
+# 历史任务：助手自动新一轮安装手机
+
+状态：**DONE（2026-10-12，安装、APK与启动核验、通知完成）**。
+
+- 用户单独授权“安装”；本轮不提交推送、发布或改Pencil。HEAD仍`bdc0a253e1b5cc9533c731a09faf4381fa6a1c36`，安装源为功能提交`eda833d60b2a7a55aed7fcce01bff59445a8d5ce`的已验证CLEAN Release；两提交的应用/构建输入相同。
+- 22:19:00（Asia/Shanghai）华为ALN-AL00同签名`adb install -r`成功，3.2.0/build25/schema11。安装前APK已备份，签名一致、非debuggable、16KB zipalign通过。
+- 手机拉回安装后APK SHA256`3cc0d0618aec67f45d84dffca792fbcc8b3f2a7d737746a184872274a336ce9d`与目标完全一致。UID10477、首次安装时间2026-09-21 08:33:25、dataDir不变；没有卸载、清数据或降级，不冒称全库审计。
+- 手机在桌面，安装后启动Status ok / COLD / 进程存在，捕获日志无FATAL EXCEPTION。本轮未触发搜索、真实模型或收藏，也未验收完整助手真机界面。
+- 归属锁按本轮token核验释放，未操作其他设备。punk-12消息`om_x100b63fa87ba84b0c36201a71ec8823`已回读chat、bot、全文、deleted=false；状态在通知验证后写回。
+- 报告`docs/testing/assistant-next-round-install.md`；证据与回滚`/Users/bytedance/.codex/artifacts/easy-trip/assistant-next-round-install-e9e3-20261012/`。本轮安装记录留在工作区未提交。
+
+---
+
+# 历史任务：助手自动新一轮提交与推送
 
 状态：**DONE（2026-10-12，功能提交推送、干净构建与通知已验证）**。本状态随文档收尾提交再次推送，最终SHA以本机`final-push-verification.json`为准；回合在最终远端核验后结束。
 

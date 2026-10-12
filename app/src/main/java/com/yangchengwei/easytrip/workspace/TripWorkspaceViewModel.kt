@@ -454,7 +454,11 @@ class TripWorkspaceViewModel(
     fun retryCalendar() { viewModelScope.launch { calendarTiming.retry() } }
     fun dismissCalendarMessage() = calendarTiming.dismiss()
 
-    fun setSheetLevel(value: WorkspaceSheetLevel) {
+    fun setSheetLevel(value: WorkspaceSheetLevel, retainViewport: Boolean = false) {
+        if (retainViewport && restoreWorkspaceSheetLevel(savedState[SHEET]) != value) {
+            // Assistant anchors must not reveal/refit the itinerary hidden underneath.
+            viewportController.retainViewportOnNextUpdate()
+        }
         savedState[SHEET] = value.name
         if (value == WorkspaceSheetLevel.EXPANDED && overlay.value == WorkspaceOverlay.LayerMenu) {
             closeOverlay()

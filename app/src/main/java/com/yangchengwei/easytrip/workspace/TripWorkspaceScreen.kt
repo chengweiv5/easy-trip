@@ -213,14 +213,17 @@ fun TripWorkspaceScreen(
     }
     val transientMarkers = assistant?.let { assistantMarkers(it.state, it.focused) }.orEmpty()
     val assistantPoints = assistant?.let { assistantViewportPoints(it.state, it.focused) }.orEmpty()
-    val assistantViewport = remember(assistantPoints, assistant?.focused, assistant?.open) {
-        assistantPoints.takeIf { it.isNotEmpty() && assistant?.open == true }?.let {
+    // Camera intents follow content/focus, never drawer visibility or geometry.
+    val assistantViewport = remember(assistant?.model, assistantPoints, assistant?.focused) {
+        assistantPoints.takeIf { it.isNotEmpty() }?.let {
             MapViewportRequest(System.nanoTime(), ViewportReason.SEARCH_RESULTS, it, singlePointZoom = 15f)
         }
     }
 
     val viewportOwner = remember { AssistantViewportOwner() }
-    val effectiveViewport = viewportOwner.resolve(ready?.map?.viewportRequest, assistantViewport)
+    val effectiveViewport = viewportOwner.resolve(
+        ready?.map?.viewportRequest, assistantViewport, assistantVisible = assistant?.open == true,
+    )
     Box(Modifier.fillMaxSize().testTag("workspace-screen-root")) {
         workspaceRootLayers(hasReadyOverlay = ready != null).forEach { layer ->
             when (layer) {

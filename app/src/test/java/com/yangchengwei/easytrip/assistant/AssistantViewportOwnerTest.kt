@@ -5,6 +5,42 @@ import org.junit.Assert.assertEquals
 import org.junit.Test
 
 class AssistantViewportOwnerTest {
+    private val initial = MapViewportRequest(1, ViewportReason.INITIAL, emptyList())
+    private val candidate = MapViewportRequest(100, ViewportReason.SEARCH_RESULTS, emptyList())
+
+    @Test fun drawerVisibilityNeverReplaysEitherCameraRequest() {
+        val owner = AssistantViewportOwner()
+        assertEquals(initial, owner.resolve(initial, null, false))
+        assertEquals(candidate, owner.resolve(initial, candidate, true))
+        assertEquals(candidate, owner.resolve(initial, candidate, false))
+        assertEquals(candidate, owner.resolve(initial, candidate, true))
+        assertEquals(null, owner.resolve(initial, null, true))
+        assertEquals(null, owner.resolve(initial, null, false))
+    }
+
+    @Test fun hiddenResultsDoNotMoveCameraOrReplayWhenReopened() {
+        val owner = AssistantViewportOwner()
+        owner.resolve(initial, null, false)
+        assertEquals(initial, owner.resolve(initial, candidate, false))
+        assertEquals(initial, owner.resolve(initial, candidate, true))
+        val next = candidate.copy(id = 101)
+        assertEquals(next, owner.resolve(initial, next, true))
+        assertEquals(null, owner.resolve(initial, next.copy(id = 102), false))
+        assertEquals(null, owner.resolve(initial, next.copy(id = 102), true))
+    }
+
+    @Test fun gestureAndWorkspaceSearchKeepOwnershipUntilNewVisibleAssistantIntent() {
+        val owner = AssistantViewportOwner()
+        owner.resolve(initial, candidate)
+        assertEquals(null, owner.resolve(null, candidate))
+        assertEquals(null, owner.resolve(null, candidate, false))
+        assertEquals(null, owner.resolve(null, candidate, true))
+        val search = initial.copy(id = 2, reason = ViewportReason.SEARCH_FOCUS)
+        assertEquals(search, owner.resolve(search, candidate))
+        assertEquals(search, owner.resolve(search, null))
+        assertEquals(candidate.copy(id = 101), owner.resolve(search, candidate.copy(id = 101)))
+    }
+
     @Test fun ordinarySearchRegainsCameraEvenWhileDraftIsRetained() {
         val owner = AssistantViewportOwner()
         val initial = MapViewportRequest(1, ViewportReason.INITIAL, emptyList())

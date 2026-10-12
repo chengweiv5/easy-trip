@@ -39,12 +39,31 @@ class AssistantViewportOwner {
     private var workspaceId: Long? = null
     private var assistantId: Long? = null
     private var assistantOwnsCamera = false
-    fun resolve(workspace: MapViewportRequest?, assistant: MapViewportRequest?): MapViewportRequest? {
-        if (workspace?.id != workspaceId) assistantOwnsCamera = false
-        if (assistant?.id != assistantId && assistant != null) assistantOwnsCamera = true
+    private var currentRequest: MapViewportRequest? = null
+
+    fun resolve(
+        workspace: MapViewportRequest?,
+        assistant: MapViewportRequest?,
+        assistantVisible: Boolean = true,
+    ): MapViewportRequest? {
+        if (workspace?.id != workspaceId) {
+            assistantOwnsCamera = false
+            currentRequest = workspace
+        }
+        if (assistant?.id != assistantId) {
+            when {
+                assistant != null && assistantVisible -> {
+                    assistantOwnsCamera = true
+                    currentRequest = assistant
+                }
+                // Retiring a draft must not replay an older workspace request.
+                assistantOwnsCamera -> currentRequest = null
+            }
+        }
+        // Observe hidden results too: reopening a retained draft is not a new camera intent.
         workspaceId = workspace?.id
         assistantId = assistant?.id
-        return if (assistant != null && assistantOwnsCamera) assistant else workspace
+        return currentRequest
     }
 }
 

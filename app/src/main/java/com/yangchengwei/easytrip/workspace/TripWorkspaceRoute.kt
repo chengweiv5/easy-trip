@@ -602,7 +602,7 @@ fun TripWorkspaceRoute(
                 }
                 is TripWorkspaceAction.SelectItineraryScope -> viewModel.selectItineraryScope(action.scope)
                 is TripWorkspaceAction.SelectMapLayer -> viewModel.selectMapLayer(action.layer)
-                is TripWorkspaceAction.SetSheetLevel -> viewModel.setSheetLevel(action.level)
+                is TripWorkspaceAction.SetSheetLevel -> viewModel.setSheetLevel(action.level, retainViewport = assistantOpen)
                 is TripWorkspaceAction.OpenOverlay -> {
                     dismissPendingDialogs()
                     viewModel.openOverlay(action.overlay)
