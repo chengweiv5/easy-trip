@@ -214,6 +214,11 @@ class AssistantUiTest {
             compose.onNodeWithTag("assistant-save").performClick()
             compose.waitUntil(15_000) { assistant.controller.state.value.receipt != null }
             assertEquals(count, saved().size)
+            assertFalse(assistant.controller.state.value.hasDraft)
+            assertNull(assistant.focus.value)
+            assertTrue(assistantMarkers(assistant.controller.state.value, null).isEmpty())
+            compose.onNodeWithTag("assistant-save").assertDoesNotExist()
+            compose.onNodeWithTag("assistant-input").assertIsDisplayed()
             assertEquals(count, assistant.controller.state.value.receipt!!.addedCount)
             assertEquals(assistant.controller.state.value.receipt, runBlocking { importer.latestReceipt(trip) })
             compose.onNodeWithTag("assistant-receipt").performScrollTo().assertIsDisplayed()

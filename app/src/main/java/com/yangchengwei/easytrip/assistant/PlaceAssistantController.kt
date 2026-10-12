@@ -23,6 +23,7 @@ class PlaceAssistantController(
     private val imageAllowed: () -> Boolean = { true },
     private val diagnostics: AssistantSearchDiagnostics = AssistantSearchDiagnostics.NONE,
     private val searchPacer: AssistantSearchPacer = AssistantSearchPacer(),
+    private val onBatchSaved: (List<String>) -> Unit = {},
 ) {
     private val diagnosticSession = UUID.randomUUID().toString()
     private val diagnosticSalt = UUID.randomUUID().toString()
@@ -394,8 +395,15 @@ class PlaceAssistantController(
                 pendingSave = null
                 if (!active) return@launch
                 savedIds = savedIds + receipt.results.map { it.poiId }
-                mutable.value = mutable.value.copy(receipt = receipt, selected = emptySet())
-                reconcile()
+                cancel()
+                inputRevision++
+                parsedSources = emptyList()
+                pendingSave = null
+                val old = mutable.value
+                mutable.value = PlaceAssistantState(city = old.city, configured = old.configured,
+                    consent = old.consent, mapReady = old.mapReady, receipt = receipt, saving = true)
+                // Cache/UI cleanup must never turn a committed transaction into a save failure.
+                runCatching { onBatchSaved(old.images.map { it.id }) }
             } catch (e: CancellationException) { throw e }
             catch (_: Exception) { if (active) fail("收藏失败，已保留选择，请重试。") }
             finally { mutable.value = mutable.value.copy(saving = false) }

@@ -1,3 +1,18 @@
+# 当前任务：助手收藏后自动新一轮
+
+状态：**DONE（2026-10-12，开发、验证、Pencil保存回读与通知完成；未提交推送、未安装手机、未发布）**。
+
+- 用户确认收藏只点一次；成功持久化后清空本批全部候选、文字、图片、焦点与地图候选，直接回到空输入。失败保留本批和幂等重试；保留旅行、城市、已有收藏，旧查询和旧图片清理不会误伤下一轮。
+- 功能分支`codex/assistant-next-round`，HEAD仍`55ba7c50ee9931053b34051de0d043a1d34c2875`。3.2.0/build25/schema11不变；没有本轮提交/推送/手机操作。此前底栏手机交付只属历史。
+- Debug/Release各1080 JVM，0失败/错误/跳过；Debug lint0错误/62 Warning/1 Hint，Release lint0错误/59 Warning/1 Hint；三种APK构建通过。
+- 最终31项相关模拟器UI及系统320dp/双倍字体1项通过；图片失败重试、延迟清理后新图仍在、迟到查询、保存锁、候选清空与已收藏标记保留均有证据。570个构建/源码输入在验证后hash一致。
+- 唯一v3.2 Pencil源265根/43,305节点，仅6个相关根变化；原生保存、关闭重开、同绝对路径MCP回读与截图已验证，SHA256`dfa571bb0d751132f183017974aa7bf37544ea2a29fcc9c00249f136a4ad0582`。v3.1冻结源不变。全量遍历一次interrupted已按editId缩小查询恢复，未绕过Pencil。
+- 只读Standards未发现必须修复项；Spec未发现明确实现缺陷但子代理缺最新需求上下文，主代理逐项核对用户确认与测试。真实手机/模型/系统相册/TalkBack/280dp及全应用历史边界保留。
+- 自有`emulator-5582`正常退出，归属锁核验删除；未操作其他设备。punk-12消息`om_x100b63f7fc7d38acc2f56915c546d96`独立回读chat、bot、完整正文、deleted=false通过；本状态在通知验证后写回。
+- 报告`docs/testing/assistant-next-round.md`；证据与回滚备份`/Users/bytedance/.codex/artifacts/easy-trip/assistant-next-round-e9e3-20261012/`。
+
+---
+
 # 当前任务：助手底栏等待上游、提交推送与手机安装
 
 状态：**DONE（2026-10-12，功能推送、集成验证、手机覆盖安装及通知已核验）**。状态收尾提交最终SHA以本机`final-push-verification.json`为准，回合在该核验完成后结束。

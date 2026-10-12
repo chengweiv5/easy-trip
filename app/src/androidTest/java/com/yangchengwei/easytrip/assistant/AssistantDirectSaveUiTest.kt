@@ -157,10 +157,14 @@ class AssistantDirectSaveUiTest {
             assertEquals(2, requests.size)
             assertEquals(requests[0].operationId, requests[1].operationId)
             assertEquals(PlaceCategory.FOOD, requests.last().items.single().category)
-            compose.onNodeWithTag("assistant-item-B").performScrollTo().assertIsDisplayed()
+            compose.onNodeWithTag("assistant-item-B").assertDoesNotExist()
             compose.onNodeWithTag("assistant-select-A").assertDoesNotExist()
-            compose.onNodeWithTag("assistant-save").assertIsDisplayed().assertIsNotEnabled()
-            assertEquals(3, model.controller.state.value.items.size)
+            compose.onNodeWithTag("assistant-save").assertDoesNotExist()
+            assertTrue(model.controller.state.value.items.isEmpty())
+            assertNull(model.focus.value)
+            assertNull(model.detail.value)
+            compose.onNodeWithTag("assistant-input").assertIsDisplayed().performTextReplacement("新一轮")
+            compose.onNodeWithTag("assistant-submit").performScrollTo().assertIsEnabled()
         } finally {
             gate.complete(Unit)
             compose.runOnIdle { compose.activity.setContentView(View(compose.activity)); store.clear() }

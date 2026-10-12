@@ -36,15 +36,24 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
     val controller = host.controller
     var clearPrompt by remember { mutableStateOf(false) }
     var batchCityPrompt by remember { mutableStateOf(false) }
+    val scroll = rememberScrollState()
     var batchCity by remember { mutableStateOf("") }
     val missingCityCount = s.items.count { it.status == IntakeStatus.NEED_CITY && it.intent.city.isBlank() }
     var previewId by remember { mutableStateOf<String?>(null) }
+    LaunchedEffect(s.receipt?.operationId) {
+        if (s.receipt != null && !s.hasDraft) {
+            clearPrompt = false
+            batchCityPrompt = false
+            previewId = null
+            scroll.scrollTo(0)
+        }
+    }
     var pickerRevision by remember { mutableLongStateOf(-1L) }
     val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(6)) {
         if (pickerRevision == controller.draftRevision) host.model.selectImages(it)
     }
     Column(modifier.fillMaxSize().imePadding().testTag("assistant-panel")) {
-        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(rememberScrollState()).padding(bottom = 8.dp),
+        Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
             if (!s.configured) {
                 Text("先配置模型服务，再开始标记。普通搜索和已有地点不受影响。")
@@ -108,7 +117,7 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             }
             if (!s.mapReady && s.items.isNotEmpty()) Text("地图尚未就绪，结果已保留；恢复后可收藏。", color = MaterialTheme.colorScheme.error)
             s.receipt?.let { receipt ->
-                Text("${if (s.items.isEmpty()) "上次" else "本次"}已收藏 ${receipt.addedCount} 个地点",
+                Text("已收藏 ${receipt.addedCount} 个地点，可以继续输入。",
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.testTag("assistant-receipt"))
             }

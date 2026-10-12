@@ -5,6 +5,8 @@ import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -56,10 +58,13 @@ class AssistantDirectSaveTest {
 
         assertEquals(1, requests.size)
         assertEquals(listOf("灵隐寺"), requests.single().items.map { it.poi.name })
-        assertEquals(listOf(IntakeStatus.ALREADY_SAVED, IntakeStatus.READY),
-            controller.state.value.items.map { it.status })
+        assertTrue(controller.state.value.items.isEmpty())
+        assertEquals("", controller.state.value.input)
+        assertFalse(controller.state.value.hasDraft)
         assertTrue(controller.state.value.selected.isEmpty())
         assertEquals(1, controller.state.value.receipt?.addedCount)
+        controller.editInput("新一轮地点")
+        assertEquals("新一轮地点", controller.state.value.input)
     }
 
     @Test fun failedSaveKeepsSelectionAndRetriesTheSameOperation() = runTest {
@@ -84,6 +89,56 @@ class AssistantDirectSaveTest {
         assertEquals(requests[0].operationId, requests[1].operationId)
         assertNull(c.state.value.error)
         assertEquals(2, c.state.value.receipt?.addedCount)
+    }
+
+    @Test fun successClearsUnselectedFailedAndLateCandidatesButKeepsCityAndSavedPlaces() = runTest {
+        val late = CompletableDeferred<Unit>()
+        val started = CompletableDeferred<Unit>()
+        val requests = mutableListOf<ImportConfirmation>()
+        val c = PlaceAssistantController("trip", this,
+            PlaceIntentParser { text, _ ->
+                (if (text == "下一轮") listOf("甲", "新地点") else listOf("甲", "未选", "失败", "慢"))
+                    .map { PlaceIntent(it, "", it) }
+            },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                    val name = keyword.removePrefix("杭州")
+                    if (name == "失败") error("search failed")
+                    if (name == "慢") withContext(NonCancellable) { started.complete(Unit); late.await() }
+                    return listOf(PlaceCandidate(name, name, "地址", GeoPoint(30.2, 120.1), null, "杭州"))
+                }
+            }, object : PlaceImport {
+                override suspend fun receipt(operationId: String): ImportReceipt? = null
+                override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt {
+                    requests += confirmation
+                    return confirmation.success()
+                }
+            }, resolveDefaultCity = { "上海" })
+        c.environment(true, true, true)
+        c.editCity("杭州")
+        c.editInput("本批")
+        c.submit()
+        advanceTimeBy(2_101); runCurrent()
+        assertTrue(started.isCompleted)
+        assertEquals(listOf(IntakeStatus.READY, IntakeStatus.READY, IntakeStatus.FAILED, IntakeStatus.QUERYING),
+            c.state.value.items.map { it.status })
+        c.toggle(c.state.value.items.first().id)
+        c.saveSelected(); runCurrent()
+        assertEquals("trip", requests.single().tripId)
+        assertEquals(listOf("甲"), requests.single().items.map { it.poi.name })
+        assertEquals("杭州", c.state.value.city)
+        assertFalse(c.state.value.hasDraft)
+        assertTrue(assistantMarkers(c.state.value, null).isEmpty())
+        c.editInput("下一轮")
+        late.complete(Unit); advanceUntilIdle()
+        assertTrue(c.state.value.items.isEmpty())
+        assertEquals("下一轮", c.state.value.input)
+        c.submit(); advanceUntilIdle()
+        assertEquals("杭州", c.state.value.city)
+        assertEquals(listOf(IntakeStatus.ALREADY_SAVED, IntakeStatus.READY), c.state.value.items.map { it.status })
+        c.selectAll(); c.saveSelected(); advanceUntilIdle()
+        assertEquals(listOf("新地点"), requests.last().items.map { it.poi.name })
+        assertNotEquals(requests.first().operationId, requests.last().operationId)
     }
 
     @Test fun changedCategoryAfterFailureCreatesNewContentAndOperation() = runTest {

@@ -2,6 +2,8 @@
 
 ## 当前设计目标
 
+- **助手收藏后自动新一轮（2026-10-12，e9e3，开发验证完成未交付）**：`codex/assistant-next-round`基于`55ba7c5`；收藏一次，持久化成功后清空本批全部候选、文字、图片、焦点及地图候选，回到空输入，保留旅行/城市/已收藏地点；失败保留并幂等重试，旧查询与旧图片清理不会覆盖新批次。Debug/Release各1080 JVM、32项相关模拟器UI（含系统320dp/2倍字体）、lint0错误通过。Pencil 265根/43,305节点已原生保存重开回读，v3.1冻结源不变。版本仍3.2.0/build25/schema11；本轮未提交、推送、发布或安装真实手机。详见`docs/testing/assistant-next-round.md`，下条手机安装仅为上一轮交付。
+
 - **助手底栏修复已推送并安装（2026-10-12，e9e3）**：已等待“v3.2 优化交互”最终`657dfad`推送完成，本批rebase后功能提交`d1d7d08`快进推送main并独立SHA回读一致。干净构建包含统一城市、请求节流和底栏修复；Debug/Release各1079 JVM、21项UI、真实SDK青州8地点首次查询通过，lint0错误。07:59:07同签名3.2.0/build25/schema11覆盖安装华为，APK拉回hash一致，UID/首次安装时间/dataDir不变，首页青州8地点/3天可见；未实机重建助手结果或触发搜索收藏。Pencil未再编辑，地点行未改。punk-12通知已回读；未发布Release，详见`docs/testing/assistant-footer-delivery.md`，下条“未交付”为开发阶段历史。
 
 - **助手收藏底栏对齐（2026-10-11，e9e3，开发验证完成未交付）**：`codex/assistant-footer-alignment`基于`008ad1c`；底栏去独立白底，全选合并同一48dp高点击区域，框到文案8dp、全选组与收藏16dp。Debug/Release各1069 JVM、17项模拟器助手UI、0错误lint通过，地图UI须软件渲染模拟器重跑，保留硬件EGL失败边界。Pencil仅四处context同步，265根/43,295节点原生保存重开核验，v3.1冻结源不变。上方地点行框到字母38dp、字母到名称10dp与稿一致，本轮只检查未改。未提交、推送、发布或安装手机；详见`docs/testing/assistant-footer-alignment.md`。

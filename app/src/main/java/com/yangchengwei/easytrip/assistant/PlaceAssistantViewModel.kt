@@ -47,7 +47,8 @@ class PlaceAssistantViewModel(
                 }, store)
         } }, sessionId = sessionId,
         imageAllowed = { config.imageCapability().capability != ImageCapability.UNSUPPORTED },
-        diagnostics = searchDiagnostics, searchPacer = searchPacer)
+        diagnostics = searchDiagnostics, searchPacer = searchPacer,
+        onBatchSaved = ::completeBatch)
     private val mutableOpen = MutableStateFlow(false)
     val open = mutableOpen.asStateFlow()
     private val mutableFocus = MutableStateFlow<String?>(null)
@@ -68,6 +69,16 @@ class PlaceAssistantViewModel(
         mutableDetail.value = detail
     }
     fun consumeDetail() { mutableDetail.value = null }
+    private fun completeBatch(imageIds: List<String>) {
+        selectionGeneration++
+        savedState["assistant-had-images"] = false
+        mutableFocus.value = null
+        mutableDetail.value = null
+        // Remove only this batch: releasing the reused session could delete new-round images.
+        cleanup.launch {
+            imageIds.forEach { id -> runCatching { images?.remove(sessionId, id) } }
+        }
+    }
     fun selectImages(uris: List<Uri>) {
         val store = images ?: return
         val s = controller.state.value
