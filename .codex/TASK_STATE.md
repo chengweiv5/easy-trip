@@ -1,4 +1,18 @@
-# 当前任务：助手收藏底栏对齐与地点行间距检查
+# 当前任务：助手底栏等待上游、提交推送与手机安装
+
+状态：**DONE（2026-10-12，功能推送、集成验证、手机覆盖安装及通知已核验）**。状态收尾提交最终SHA以本机`final-push-verification.json`为准，回合在该核验完成后结束。
+
+- 已按用户顺序等待“v3.2 优化交互”完成`657dfad`推送，再提交并rebase，形成功能提交`d1d7d08cab5a01dc81db0cbff2a9722a065fae1b`。仅两份状态文档冲突，保留双方历史；应用/设计patch-id一致，上游节流源码保持原样。
+- 07:58:50功能提交快进推送origin/main，独立远端SHA回读一致；在功能分支操作，不强推、不操作codebase远端。
+- 干净提交构建：Debug/Release各1079 JVM、21项UI、真实SDK青州8地点首次READY，最小间隔701ms，lint0错误；581构建/源码输入验证后不变。Pencil未再编辑，地点行间距未改。
+- 07:59:07同签名3.2.0/build25/schema11覆盖安装华为ALN-AL00。手机APK拉回SHA256`ac7e88f225e49f5df0b3cd490cdfa10e226d5f3f633f2fd612069a4a494f13bd`与验证包一致，UID/首次安装时间/dataDir不变；无卸载、清数据或降级。
+- 安装前应用在前台，更新后恢复启动，Status ok、进程正常；首页待出行4/已出行1、青州8地点/3天可见。未触发手机搜索或收藏，不冒称全库/真机助手结果页验收；未发布Release。
+- 自有emulator-5582已退出，手机/模拟器锁已核验释放。punk-12通知`om_x100b63f67fdb3ca0c255179bb0d6461`已回读chat、sender、全文和deleted=false；本状态在通知验证后写回。
+- 交付与回滚：`docs/testing/assistant-footer-delivery.md`；证据`/Users/bytedance/.codex/artifacts/easy-trip/assistant-footer-delivery-e9e3-20261012/`。安装包固定来自d1d7d08，后续文档提交不改写其构建来源。
+
+---
+
+# 历史任务：助手收藏底栏对齐与地点行间距检查
 
 状态：**DONE（2026-10-11，开发、测试、设计保存、范围检查、临时模拟器清理和完成通知均已核验；未提交或部署）**。
 
