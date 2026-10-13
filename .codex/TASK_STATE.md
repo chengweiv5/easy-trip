@@ -1,12 +1,15 @@
 # 当前任务：v3.3 提交与推送
 
-状态：**IN_PROGRESS（2026-10-13 13:27，保存已确认；用户单独授权Git交付，正在提交前核验）**。
+状态：**DONE（2026-10-13，功能提交已快进推送并独立回读；本状态随最后文档收尾提交，最终SHA以证据文件为准）**。
 
-- 本轮仅提交/推送，不安装手机、不发布Release或标签。用户新的直接Git授权不以前次手机连接为前提。
-- 当前功能分支`codex/v3.3-paste-links`，HEAD和fetch后的origin/main均为`6a1497b2062d2678a9720aff7b896ab07e7d284a`；开放PR为空、无需rebase。
-- 原待提交51路径已逐个备份；代码与`fourth-pass/source-hashes.json`完全一致，真实模型Key精确扫描零匹配。待功能提交后干净重跑JVM/lint/三APK并复核范围，再快进`HEAD:main`和独立远端SHA回读。
-- 用户保存的v3.3稿磁盘与Pencil定向回读确认一致，SHA `e55030c5ed4d00cd7d0fcef59d448c525a73c2b933c06776d8252a14d61b8225`，265根/43305节点；AA-AD两处规则已落盘。v3.2冻结源不变。此前保存阻塞已解除，不改稿或重复保存。
-- 本轮证据/备份：`/Users/bytedance/.codex/artifacts/easy-trip/v3.3-git-delivery-46b4-20261013-1325/`。历史阶段状态保留在下方，最终交付状态在远端验证及通知后写回。
+- 功能分支`codex/v3.3-paste-links`，功能提交`3e08285766dffe9050939a944aa47e0a0746b14a`。开始/推送前fetch均为`6a1497b2062d2678a9720aff7b896ab07e7d284a`，无新main/开放PR，无需rebase。
+- 51个预期路径进入功能提交，已备份并验证字节一致；使用`git push origin HEAD:main`仅快进推送，随后ls-remote独立回读与功能SHA一致。没有force、merge commit或codebase远端操作。
+- 干净功能提交重新验证Debug/Release各1119 JVM，0失败/错误/跳过；lint0 Error/Fatal（64/61 Warning，各1 Hint），三APK成功；两variant BuildConfig均功能SHA/CLEAN。前轮fourth-pass源码hash无变化，未重复真实模型或设备运行。
+- hook硬编码扫描2秒超时，不冒称完整扫描通过；独立51文件token/私钥模式及真实模型Key精确扫描零匹配，未跳过hook。两轴审查0阻断，Standards保留1条processImages职责较多的非阻断维护观察。
+- v3.3稿用户原生保存已确认，SHA `e55030c5ed4d00cd7d0fcef59d448c525a73c2b933c06776d8252a14d61b8225`，265根/43305节点；AA-AD两处规则落盘，v3.2冻结不变。本轮不改稿、不重复关闭重开或声明全页验收。
+- 本轮只Git交付，未安装手机、未发布Release/标签、未写用户旅行。3.3.0/build26/schema11不变，古城南门仍为待核对边界。
+- 报告`docs/testing/v3.3.0-paste-links-git-delivery.md`；本机证据/备份`/Users/bytedance/.codex/artifacts/easy-trip/v3.3-git-delivery-46b4-20261013-1325/`。`feature-push-verification.json`已存在；最后文档提交的推送结果必须写入`final-push-verification.json`且与最终HEAD一致，不能仅凭本段状态推断文档已推送。
+- punk-12消息`om_x100b63e86b9d8ca8b29394ecc4dd1dc`已独立回读chat/bot/完整正文/deleted=false；本状态在通知后最后写回。后续报告中的“未提交/保存阻塞/须先接手机”为阶段历史，由本段和本轮Git报告覆盖。
 
 ---
 
