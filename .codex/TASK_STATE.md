@@ -1,4 +1,20 @@
-# 当前任务：识别地点 30 → 100
+# 当前任务：100 地点提交与推送
+
+状态：**功能已推送并独立回读（2026-10-14，8bc4）；本状态随仅文档收尾提交／推送，最终完整交付以证据根 `final-push-verification.json` 为准。**
+
+- 用户本轮明确授权“修改完之后提交，推送”，未授权安装手机或发布。
+- 功能提交`3d1d2fb32520e08b0b07e1030beb551e706e4ef6`，`feat: 将助手识别地点上限扩展到100个`；分支`codex/assistant-100-places`。43个Git差异文件（44备份路径含UI测试重命名）均与提交前字节一致，未包含本地配置、凭据或APK。
+- 开始及推送前fetch均确认main为`9ee79bd3`，开放PR为空，无需rebase。祖先检查通过后`git push origin HEAD:main`快进；00:42:41独立`git ls-remote`确认功能SHA一致。无force、merge或codebase远端操作。
+- 干净提交重新验证：Debug／Release各1135 JVM，0失败／错误／跳过；lint0错误（64/61 Warning，各1 Hint）；三APK构建成功，1m22s。BuildConfig为功能SHA／CLEAN，Release签名验证与16KB zipalign通过。
+- 597个源码／测试／构建输入与开发轮验收hash一致；前轮19设备／2系统窄屏大字回归只按源码一致边界沿用，本轮不重跑设备或模型。版本仍3.4.0/build27/schema12。
+- Pencil仅提交已保存的305根／45,243节点源及19图／4页PDF，未再次改稿。源SHA256`fbc1dca80b5f6d8d95b0091b3ed72d7ad31f90645db6798b9f73c9bccf421ddc`，冻结v3.3不变；图内“未提交”是保存时的历史阶段说明。
+- punk-12通知`om_x100b63d1b38d00a4c0f461b921e8215`于00:44:04发送，完整正文／目标chat／bot app_id／deleted=false独立回读通过后，最后写入本状态，再提交推送仅文档收尾。
+- 未操作真实手机、未安装APK、未发布Release／标签；真实模型＋高德100地点链路仍未验收。100地点待恢复记录和schema12不得直接降回旧上限／schema11。
+- 详细记录：`docs/testing/assistant-100-places-git-delivery.md`。证据根：`/Users/bytedance/.codex/artifacts/easy-trip/places100-git-8bc4-20261014`；功能SHA、最终文档SHA与APK构建SHA分别记录，不混淆。
+
+---
+
+# 历史任务：识别地点 30 → 100
 
 状态：**DONE — 开发及限定回归完成（2026-10-14，8bc4），未提交／推送／安装手机／发布。**
 

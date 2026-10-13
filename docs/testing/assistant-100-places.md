@@ -1,5 +1,7 @@
 # 助手识别地点上限 30 → 100
 
+> **Git 已交付（2026-10-14）**：功能提交 `3d1d2fb32520e08b0b07e1030beb551e706e4ef6` 已快进推送 origin/main 并独立 SHA 回读一致；干净提交重新验证 Debug／Release 各 1135 JVM、lint 0 错误及三 APK。详见[提交与推送记录](assistant-100-places-git-delivery.md)。下文保留开发轮事实，“未提交／推送”和 DIRTY APK 均为历史；本轮仍未安装手机或发布。
+
 状态：**开发及限定回归完成，未提交／推送／安装手机／发布**。验证完成于 2026-10-14（Asia/Shanghai）。
 
 ## 范围与基线

@@ -6,6 +6,8 @@
 
 ## 当前设计目标
 
+- **100地点已提交推送（2026-10-14，8bc4）**：功能`3d1d2fb32520e08b0b07e1030beb551e706e4ef6`从`9ee79bd3`快进推送origin/main，独立SHA回读一致。43个Git差异文件（44备份路径含UI测试重命名）逐字节核验；干净提交Debug/Release各1135 JVM、lint0错误、三APK通过，BuildConfig为功能SHA/CLEAN。597源码输入与前轮19设备/2系统窄屏大字验收一致，本轮不重跑设备或真实模型。仅提交已保存Pencil源与预览，未再改稿；未安装手机、未发布Release/标签。详见`docs/testing/assistant-100-places-git-delivery.md`，保留100地点恢复记录兼容及schema12前向修复边界。下条未提交为开发阶段历史；最终文档收尾SHA以证据根`final-push-verification.json`为准。
+
 - **识别地点放宽到100已开发验证（2026-10-14，8bc4，未提交）**：`codex/assistant-100-places`基于`9ee79bd3`，旅行内收藏与首页从攻略创建均最终100地点，编号到CV，超限不截断不查询；20图／30天／700ms／并发2不变。文本批次与重试180秒、输出8192 tokens、创建恢复记录1MiB以支持完整100地点；版本仍3.4.0/build27/schema12。Debug/Release各1135 JVM、最终APK19项设备及2项系统320dp/2倍字体复测通过，lint0错误。Pencil305根/45,243节点、19根增量，原生保存重开及定向回读，冻结v3.3不变；最新19图/4页PDF位于`design/previews/assistant-100-places/`。自有模拟器已退出；未真实模型/高德100地点验收、未碰手机、未提交推送或发布。后续先读`docs/testing/assistant-100-places.md`，保留100地点恢复记录兼容和schema12前向修复边界；下方30地点与旧手机包均为历史。
 
 - **v3.4已提交推送并安装手机（2026-10-13，46b4）**：功能`941bf44987214ecfe7d65628dc37a35302bedc92`从确认设计`df7fc573`快进推送main，独立SHA回读一致；干净提交Debug/Release各1130 JVM、lint0错误、三APK通过，594输入与开发验收一致。23:34:59同签名CLEAN Release覆盖安装华为ALN-AL00，3.4.0/build27/schema12；手机APK拉回hash一致，UID/首次安装时间/dataDir不变。手机前台为其他App，未切走或主动启动，因此实际迁移、首页数据及真机新建闭环未验。Pencil仅提交已保存字节，未改稿；本轮未重跑模型／设备专项，未发布Release／标签。后续先读`docs/testing/v3.4.0-trip-from-guide-delivery.md`，保留schema12前向修复与验收边界。下条“产品未提交／未安装”为开发阶段历史。
