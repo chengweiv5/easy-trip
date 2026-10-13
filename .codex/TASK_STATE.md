@@ -1,4 +1,18 @@
-# 当前任务：v3.3 提交与推送
+# 当前任务：v3.3.0 正式发布
+
+状态：**DONE（正式发布及下载验收完成，2026-10-13 13:56:07；本状态随docs-only收尾提交，最终Git推送以独立回读文件为准）**。
+
+- 用户最新授权“发布 v3.3”。3.3.0/build26/schema11已公开为stable Latest，Release ID `411329824`；认证／匿名完整下载APK与SHA文件、Latest、公开页面HTTP200及固定tag回读通过。
+- CLEAN正式APK与`v3.3.0`标签固定`41cda646962badd114d5afe83e5a3fa301437f27`，大小63,417,419 bytes，SHA256 `9bdc9d6b2582159f0f8222e03d391505e99b687ee5df245f04d0ec51db8173f6`；正式签名不变。发布开始、打标签前和公开前main都一致。
+- Debug/Release各1119 JVM、lint0错误、三APK构建通过；41项设备专项、3项系统320dp/2倍字体、携程／小红书原文及各6图、真实高德4地点首次查询通过。550源码hash与开发轮真实DeepSeek结果一致，本轮未读取模型凭据或重复调用模型。
+- 本轮未安装物理手机、未访问生产旅行库，不新增产品代码或Pencil修改。v3.3设计SHA `e55030c5ed4d00cd7d0fcef59d448c525a73c2b933c06776d8252a14d61b8225`保持，265根／43,305节点；旧源冻结。自有模拟器正常退出、系统配置恢复、owner锁释放、ADB最终为空。
+- README、AGENTS、设计索引、发布报告和计划是发布后docs-only收尾；不把最终文档main当作APK构建SHA。只在`codex/v3.3-paste-links`提交，fetch／必要时rebase，快进`git push origin HEAD:main`；必须生成与最终HEAD一致的`final-push-verification.json`，不能仅凭本段断言文档已推送。
+- punk-12消息`om_x100b63e8c54a14a4b3f0f95a04ad76c`已独立验证chat/bot/完整正文/deleted=false；本状态在通知回读后最后写入。发布及验证边界、回滚见`docs/testing/v3.3.0-release.md`；本机证据`/Users/bytedance/.codex/artifacts/easy-trip/v3.3.0-release-46b4-20261013-1340/`。
+- 未实测系统相册、TalkBack、API26及全设备／全应用UI；历史280dp等缺口保留。仅前向同签名schema11修复，不移动标签、覆盖资产、删除Release或强推。以下“未发布／保存／手机阻塞”均为阶段历史。
+
+---
+
+# 前轮任务：v3.3 提交与推送
 
 状态：**DONE（2026-10-13，功能提交已快进推送并独立回读；本状态随最后文档收尾提交，最终SHA以证据文件为准）**。
 

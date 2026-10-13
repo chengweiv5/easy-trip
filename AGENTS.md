@@ -1,5 +1,9 @@
 # easy-trip 项目约定
 
+## 最新发布状态
+
+- **v3.3.0/build26/schema11已正式发布（2026-10-13，46b4）**：13:56:07公开为Latest，认证／匿名完整下载、SHA256与标签回读通过；CLEAN APK及固定标签指向`41cda646962badd114d5afe83e5a3fa301437f27`。Debug/Release各1119 JVM、41项设备专项、3项系统320dp/2倍字体、两平台正文及各6图读取与真实高德4地点通过，lint0错误。开发轮真实模型结果仅经550源码hash复核沿用，本轮未调用模型或安装手机，Pencil源未改。后续开发、安装或发布前先读`docs/testing/v3.3.0-release.md`，保留验收缺口、schema11前向修复及固定标签/资产规则。以下“未发布”等是阶段历史。
+
 ## 当前设计目标
 
 - **v3.3粘贴链接已推送（2026-10-13，46b4）**：功能提交`3e08285`从`6a1497b`快进推送origin/main，独立远端SHA回读一致。携程/小红书已有旅行粘贴、作者证据与语义去重、30地点/20图片及已保存Pencil源一并提交。干净提交Debug/Release各1119 JVM、0错误lint、三APK构建通过，BuildConfig=CLEAN；前轮真实携程24 READY/小红书26 READY＋南门1待核对与16设备回归源码hash一致，本轮不重跑。用户本轮仅授权Git，不安装手机、不发布Release/标签；设计不再改稿。punk-12通知已回读，后续仅文档状态收尾提交。当前交付与回滚见`docs/testing/v3.3.0-paste-links-git-delivery.md`；下条保存/Git未交付为阶段历史。

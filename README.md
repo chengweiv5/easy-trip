@@ -14,9 +14,19 @@
 
 </div>
 
-> 当前正式版为 **[v3.2.0](https://github.com/chengweiv5/easy-trip/releases/tag/v3.2.0)**（build25）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v3.2.0/easy-trip-v3.2.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v3.2.0/easy-trip-v3.2.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v3.2.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v3.2 新样式截图。
+> 当前正式版为 **[v3.3.0](https://github.com/chengweiv5/easy-trip/releases/tag/v3.3.0)**（build26）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v3.3.0/easy-trip-v3.3.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v3.3.0/easy-trip-v3.3.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v3.3.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v3.3 新样式截图。
 
-## v3.2：选好直接收藏，继续下一轮
+## v3.3：把攻略链接变成旅行地点
+
+- 在**已有旅行**的助手输入框粘贴携程社区或小红书分享文案／URL，点击后读取正文与原帖图片，提取地点并查询地图候选；一批一条链接。
+- 每批最多 **30 个最终地点、20 张图片**，独立体积限制仍在；超限明确提示，不静默截断。
+- 根据作者证据合并同地别名，剔除单独食品和所有餐饮地点，住宿等非餐饮地点保留；过滤图片地图中的普通底图背景名称，不把独立城门与古城强行合并。
+- 沿用选择后手动收藏，成功后开始空白新一轮；不自动新建旅行或调整行程。暂不支持大众点评、系统分享扩展和语音输入。
+- 登录／验证、内容删除或图片不齐时明确失败，不用分享标题冒充正文。图文会发送至用户配置模型，可能计费；请勿提交敏感资料，收藏前请核对结果。
+- **3.3.0/build26/schema11**，同签名覆盖升级，不卸载或清数据；已装同名build26体验包时可能不提示更新，可手动覆盖。
+- Debug／Release各1119项单测、41项模拟器专项、3项系统320dp／双倍字体复测、两平台原文及各6图读取、真实高德4地点查询通过，lint0错误。开发阶段真实DeepSeek：携程24个可选、小红书26个可选＋1个待核对；本次核对源码一致，不重复付费模型调用。**未安装物理手机**，其余验收边界见[发布记录](docs/testing/v3.3.0-release.md)。
+
+## v3.2（历史）：选好直接收藏，继续下一轮
 
 - 助手结果左侧选择／全选后点一次「收藏」即可；成功后清空本批候选、文字、图片和焦点，回到空输入。旅行、城市和已收藏地点保留；保存失败保留选择并可重试。
 - 搜索框与助手共用默认城市：用户指定优先；旅行名单城固定、多城优先命中定位否则首城，无城市名时定位兜底。
