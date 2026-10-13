@@ -1,4 +1,19 @@
-# 当前任务：v3.4 从攻略创建旅行
+# 当前任务：v3.4 提交、推送与安装
+
+状态：**功能与手机已交付（2026-10-13），仅剩本文档收尾提交／推送；最终以证据根`final-push-verification.json`回读为准。**
+
+- 功能提交`941bf44987214ecfe7d65628dc37a35302bedc92`，40个代码／测试／已保存设计／文档文件，在`codex/v3.4-trip-from-guide`提交并从`df7fc573`快进推送origin/main，独立远端SHA回读一致；开放PR为空、无需rebase、未force。
+- 干净提交Debug／Release各1130 JVM、lint0错误、三APK构建通过；BuildConfig为功能SHA／CLEAN，594输入与上轮开发验收一致。本轮未重跑真实模型或模拟器专项，不冒称新真机功能验收。
+- **23:34:59同签名覆盖安装华为ALN-AL00**：原3.2.0/build25→3.4.0/build27，应用schema12。手机APK拉回SHA256与目标完全一致：`0add6c3102593fd0135b2c6c278fe2066b31421ea3625c3d02e3eba5da8513e8`；签名与原包一致，非debuggable，16KB zipalign通过。
+- UID10477、首次安装2026-09-21 08:33:25、dataDir保持；没有卸载、清数据或降级。原APK已备份，不等同数据库备份。
+- 手机前台在其他App，安装前后未改变，没有主动启动Easy Trip；**实际迁移、首页数据与新建真机闭环未验收**。不把包管理器成功当全库核验。schema12设备后续必须同签名前向修复，不回装schema11旧包。
+- Pencil未再次修改，已保存v3.4源`e30de573...30612`及冻结v3.3 hash均一致；未创建Release／标签。手机锁已按owner核验释放，未停止共享ADB。
+- 交付记录：`docs/testing/v3.4.0-trip-from-guide-delivery.md`；备份、构建／推送／手机APK回读证据：`/Users/bytedance/.codex/artifacts/easy-trip/v34-delivery-install-46b4-20261013-2331/`。
+- punk-12通知`om_x100b63d0b10f68a4dfc8e8db4bc95a1`（23:36:28）已回读全文、目标、bot及deleted=false。本状态在通知验证后最后写入；下步仅暂存本状态、AGENTS和交付报告，文档提交后fetch／祖先校验／快进推送／远端SHA及干净状态回读，不能结束在未推送阶段。APK固定来自功能提交，不随文档SHA变化。
+
+---
+
+# 前轮任务：v3.4 从攻略创建旅行
 
 状态：**DONE（2026-10-13，开发验证完成；产品代码未提交／推送，未安装真实手机，未发布）**。
 
