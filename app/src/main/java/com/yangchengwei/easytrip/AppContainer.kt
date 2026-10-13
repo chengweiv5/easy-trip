@@ -92,7 +92,7 @@ class AppContainer(
     applicationScope: CoroutineScope,
     databaseFactory: (Context) -> EasyTripDatabase = {
         Room.databaseBuilder(it, EasyTripDatabase::class.java, "easy-trip.db")
-            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10, EasyTripDatabase.MIGRATION_10_11)
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10, EasyTripDatabase.MIGRATION_10_11, EasyTripDatabase.MIGRATION_11_12)
             .addCallback(FlexibleRouteDefaultsUpdate)
             .build()
     },
@@ -107,6 +107,8 @@ class AppContainer(
     val assistantSearchDiagnostics = com.yangchengwei.easytrip.assistant.AndroidAssistantSearchDiagnostics(this.context)
     val assistantSearchPacer = com.yangchengwei.easytrip.assistant.AssistantSearchPacer()
     val placeImport = com.yangchengwei.easytrip.assistant.data.RoomPlaceImport(database)
+    val tripCreation = com.yangchengwei.easytrip.assistant.data.RoomTripCreation(database)
+    val tripCreationJournal = com.yangchengwei.easytrip.assistant.TripCreationJournal(this.context)
     val networkMonitor = networkFactory(this.context, applicationScope)
     val mapPreferences = SharedPreferencesMapPreferences(this.context.getSharedPreferences("map", Context.MODE_PRIVATE))
     val locationPermissionRequestStore = SharedPreferencesLocationPermissionRequestStore(

@@ -16,6 +16,10 @@ data class AssistantWorkspace(
     val onOpen: () -> Unit,
     val onViewPool: () -> Unit,
     val detail: AssistantDetail? = null,
+    val onCreateTrip: (() -> Unit)? = null,
+    val onSubmit: (() -> Unit)? = null,
+    val onClear: (() -> Unit)? = null,
+    val onCancel: (() -> Unit)? = null,
 ) {
     val controller get() = model.controller
 }

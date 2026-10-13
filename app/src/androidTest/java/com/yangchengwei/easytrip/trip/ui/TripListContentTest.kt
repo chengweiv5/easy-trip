@@ -197,7 +197,7 @@ class TripListContentTest {
         assertEquals(listOf(TripListAction.OpenSettings("trip-2")), actions)
     }
 
-    @Test fun contentCreateActionIsA132By48RightAlignedFixedButton() {
+    @Test fun contentCreateActionsAre128WideAndEdgeAligned() {
         compose.setContent {
             EasyTripTheme {
                 Box(Modifier.requiredWidth(320.dp).height(700.dp).testTag("trip-list-container").consumeWindowInsets(androidx.compose.foundation.layout.WindowInsets.safeDrawing)) {
@@ -219,8 +219,8 @@ class TripListContentTest {
         val primaryBounds = compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed().getUnclippedBoundsInRoot()
         check(headerBounds.bottom <= primaryBounds.top)
         val createBounds = compose.onNodeWithTag("create-trip")
-            .assertWidthIsEqualTo(132.dp)
-            .assertHeightIsEqualTo(48.dp)
+            .assertWidthIsEqualTo(128.dp)
+            .assertHeightIsAtLeast(48.dp)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
         assertEquals(containerBounds.right - 16.dp, createBounds.right)
@@ -242,7 +242,7 @@ class TripListContentTest {
         )
 
         compose.onNodeWithTag("primary-trip-trip-1").assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(132.dp).assertHeightIsEqualTo(48.dp).assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(128.dp).assertHeightIsAtLeast(48.dp).assertIsDisplayed()
         compose.onAllNodesWithText("其他旅行").assertCountEquals(0)
     }
 
@@ -333,8 +333,8 @@ class TripListContentTest {
         val primaryBounds = compose.onNodeWithTag("primary-trip-trip-primary").assertIsDisplayed().getUnclippedBoundsInRoot()
         check(headerBounds.bottom <= primaryBounds.top)
         val createBounds = compose.onNodeWithTag("create-trip")
-            .assertWidthIsEqualTo(132.dp)
-            .assertHeightIsEqualTo(48.dp)
+            .assertWidthIsEqualTo(128.dp)
+            .assertHeightIsAtLeast(48.dp)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
 
@@ -372,8 +372,8 @@ class TripListContentTest {
 
         val container = compose.onNodeWithTag("compact-trip-list-container").getUnclippedBoundsInRoot()
         val create = compose.onNodeWithTag("create-trip")
-            .assertWidthIsEqualTo(132.dp)
-            .assertHeightIsEqualTo(48.dp)
+            .assertWidthIsEqualTo(128.dp)
+            .assertHeightIsAtLeast(48.dp)
             .assertIsDisplayed()
             .getUnclippedBoundsInRoot()
         assertEquals(container.right - 16.dp, create.right)
@@ -413,7 +413,7 @@ class TripListContentTest {
         }
 
         compose.onNodeWithTag("primary-trip-trip-primary").assert(hasClickAction()).assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(132.dp).assertHeightIsEqualTo(48.dp).assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertWidthIsEqualTo(118.dp).assertHeightIsAtLeast(48.dp).assertIsDisplayed()
         compose.onNodeWithTag("other-trips-list").performScrollToNode(hasTestTag("other-trip-trip-12"))
         compose.onNodeWithTag("other-trip-trip-12").assertIsDisplayed()
     }
@@ -477,7 +477,8 @@ class TripListContentTest {
         }
 
         compose.onNodeWithText("开始规划一次旅行").assertIsDisplayed()
-        compose.onNodeWithTag("create-trip").assertIsNotDisplayed().performScrollTo().assertIsDisplayed()
+        compose.onNodeWithTag("create-trip").assertIsDisplayed()
+        compose.onNodeWithTag("assistant-create-trip").assertIsDisplayed()
         val emptyHeightDp = with(density) { emptyHeightPx.toDp() }
         assertEquals(true, emptyHeightDp > 0.dp && emptyHeightDp < 300.dp)
         assertFalse(emptyHeightDp == 647.dp)

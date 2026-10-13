@@ -12,7 +12,7 @@ import kotlinx.coroutines.sync.withPermit
 
 /** One controller per trip back-stack entry. Only a user save action may write places. */
 class PlaceAssistantController(
-    private val tripId: String,
+    private val tripId: String?,
     private val scope: CoroutineScope,
     private val parser: PlaceIntentParser,
     source: PlaceSearchDataSource?,
@@ -25,6 +25,7 @@ class PlaceAssistantController(
     private val searchPacer: AssistantSearchPacer = AssistantSearchPacer(),
     private val onBatchSaved: (List<String>) -> Unit = {},
     private val linkLoader: AssistantLinkLoader? = null,
+    val target: AssistantTarget = tripId?.let(AssistantTarget::ExistingTrip) ?: AssistantTarget.NewTripDraft,
 ) {
     private val diagnosticSession = UUID.randomUUID().toString()
     private val diagnosticSalt = UUID.randomUUID().toString()
@@ -88,6 +89,7 @@ class PlaceAssistantController(
     fun updateCityResolver(value: suspend () -> String?) { resolveDefaultCity = value }
     /** Refresh automatic context on opening/context changes, but never replace a user override or a batch. */
     suspend fun prepareDefaultCity() {
+        if (target == AssistantTarget.NewTripDraft) return
         val s = mutable.value
         if (!active || !s.consent || s.busy || s.saving || s.resolvingCity ||
             cityEdited || s.items.isNotEmpty()) return
@@ -174,7 +176,8 @@ class PlaceAssistantController(
     }
     fun dismissError() { mutable.value = mutable.value.copy(error = null) }
     suspend fun recoverReceipt() {
-        val receipt = importer.latestReceipt(tripId)
+        if (target == AssistantTarget.NewTripDraft) return
+        val receipt = importer.latestReceipt(requireNotNull(tripId))
         if (!mutable.value.hasDraft && !mutable.value.saving && receipt != null) {
             mutable.value = mutable.value.copy(receipt = receipt)
         }
@@ -211,7 +214,7 @@ class PlaceAssistantController(
                             cityConflict = conflict)
                     }
                     mutable.value = mutable.value.copy(items = items)
-                    query(items.map { it.id }.toSet(), generation)
+                    queryOrConfirm(items.map { it.id }.toSet(), generation)
                 }
             } catch (_: TimeoutCancellationException) { if (isCurrent(generation)) stopPending("整批查询已超时，已完成结果保留。") }
             catch (e: CancellationException) { throw e }
@@ -335,7 +338,7 @@ class PlaceAssistantController(
                     }
                     mutable.value = mutable.value.copy(items = mutable.value.items + items)
                     if (mutable.value.items.isEmpty()) fail("未识别到明确地点，请换清晰图片或补充文字；素材已保留。")
-                    query(items.map { it.id }.toSet(), generation)
+                    queryOrConfirm(items.map { it.id }.toSet(), generation)
                 }
             } catch (_: TimeoutCancellationException) {
                 if (isCurrent(generation)) { cancel(); fail("整批处理超时，已完成结果保留；已发送内容无法撤回。") }
@@ -354,7 +357,49 @@ class PlaceAssistantController(
         }
     }
     private suspend fun resolveSearchCity(value: String): String =
-        (value.trim().takeIf { cityEdited && it.isNotBlank() } ?: lookupDefaultCity()).take(50)
+        if (target == AssistantTarget.NewTripDraft) value.trim().take(50)
+        else (value.trim().takeIf { cityEdited && it.isNotBlank() } ?: lookupDefaultCity()).take(50)
+
+    private suspend fun queryOrConfirm(ids: Set<String>, generation: Long) {
+        if (target != AssistantTarget.NewTripDraft) { query(ids, generation); return }
+        mutable.value = mutable.value.copy(awaitingCityConfirmation = true, items = mutable.value.items.map {
+            if (it.id !in ids) it else it.copy(status = if (it.intent.city.isBlank()) IntakeStatus.NEED_CITY else IntakeStatus.CANCELLED,
+                cityConflict = false, detail = if (it.intent.city.isBlank()) "请补充搜索城市。" else "请核对城市后查询地图。")
+        })
+    }
+
+    fun confirmCities() {
+        val s = mutable.value
+        if (target != AssistantTarget.NewTripDraft || !s.awaitingCityConfirmation || s.busy || !canQuery()) return
+        mutable.value = s.copy(awaitingCityConfirmation = false)
+        retry(s.items.filter { it.intent.city.isNotBlank() }.map { it.id }.toSet())
+    }
+
+    fun selectedImportItems(requireMapReady: Boolean = true): List<ImportItem> {
+        val s = mutable.value
+        if (s.busy || s.saving || !active || !s.consent || (requireMapReady && !s.mapReady) || s.selected.isEmpty()) return emptyList()
+        val selected = s.eligible.filter { it.id in s.selected }
+        if (selected.size != s.selected.size) return emptyList()
+        return selected.map { ImportItem(it.id, it.generation, requireNotNull(it.poi), it.category) }
+    }
+
+    fun setExternalSaving(saving: Boolean) {
+        if (target == AssistantTarget.NewTripDraft) mutable.value = mutable.value.copy(saving = saving)
+    }
+
+    /** Only the locally validated, never-submitted journal may restore a confirmed selection. */
+    fun restoreCreationSelection(items: List<ImportItem>) {
+        val s = mutable.value
+        if (target != AssistantTarget.NewTripDraft || s.busy || s.saving || s.items.isNotEmpty() ||
+            items.isEmpty() || items.size > AssistantPlacePolicy.MAX_PLACES) return
+        require(items.all { it.poi.validPosition() })
+        mutable.value = s.copy(items = items.mapIndexed { index, item ->
+            IntakeItem(item.itemId, AssistantPlacePolicy.label(index),
+                PlaceIntent(item.poi.name, item.poi.cityName.orEmpty(), item.poi.name),
+                generation = item.generation, status = IntakeStatus.READY,
+                candidates = listOf(item.poi), poi = item.poi, category = item.category)
+        }, selected = items.map { it.itemId }.toSet())
+    }
 
     private fun absorbRepeatedMaterials(intents: List<PlaceIntent>): List<PlaceIntent> {
         val unique = mergeIdenticalPlaceIntents(intents)
@@ -418,7 +463,7 @@ class PlaceAssistantController(
     fun retry(ids: Set<String> = mutable.value.items.filter {
         it.status in setOf(IntakeStatus.FAILED, IntakeStatus.CANCELLED)
     }.map { it.id }.toSet()) {
-        if (!canQuery() || mutable.value.busy || ids.isEmpty()) return
+        if (!canQuery() || mutable.value.busy || mutable.value.awaitingCityConfirmation || ids.isEmpty()) return
         val allowed = mutable.value.items.filter { it.id in ids && it.status !in setOf(IntakeStatus.READY, IntakeStatus.ALREADY_SAVED, IntakeStatus.DUPLICATE) }.map { it.id }.toSet()
         if (allowed.isEmpty()) return
         val generation = ++run
@@ -465,11 +510,12 @@ class PlaceAssistantController(
     }
     /** A click captures immutable content; retrying that content reuses its operation ID. */
     fun saveSelected() {
+        if (target == AssistantTarget.NewTripDraft) return
         if (!canSave() || mutable.value.saving) return
         val selected = mutable.value.eligible.filter { it.id in mutable.value.selected }
         if (selected.isEmpty() || selected.size != mutable.value.selected.size) return
         val items = selected.map { ImportItem(it.id, it.generation, requireNotNull(it.poi), it.category) }
-        val next = ImportConfirmation.create(tripId, items)
+        val next = ImportConfirmation.create(requireNotNull(tripId), items)
         val snapshot = pendingSave?.takeIf { it.digest == next.digest } ?: next
         val generation = run
         pendingSave = snapshot

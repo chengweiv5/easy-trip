@@ -51,6 +51,10 @@ fun interface PlaceIntentParser {
 }
 
 enum class IntakeStatus { WAITING, QUERYING, NEED_CITY, AMBIGUOUS, NOT_FOUND, FAILED, READY, ALREADY_SAVED, DUPLICATE, CANCELLED }
+sealed interface AssistantTarget {
+    data object NewTripDraft : AssistantTarget
+    data class ExistingTrip(val tripId: String) : AssistantTarget
+}
 data class IntakeItem(
     val id: String,
     val label: String,
@@ -73,6 +77,7 @@ data class PlaceAssistantState(
     val attachmentSelectionBusy: Boolean = false,
     val city: String = "",
     val resolvingCity: Boolean = false,
+    val awaitingCityConfirmation: Boolean = false,
     val items: List<IntakeItem> = emptyList(),
     val selected: Set<String> = emptySet(),
     val busy: Boolean = false,

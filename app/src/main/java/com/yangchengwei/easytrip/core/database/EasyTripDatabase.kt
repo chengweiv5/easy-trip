@@ -27,12 +27,18 @@ interface SchemaItineraryDao {
     @Query("SELECT COUNT(*) FROM itinerary_items WHERE tripId=:tripId") suspend fun items(tripId:String):Int
     @Query("SELECT COUNT(*) FROM route_legs WHERE tripDayId IN (SELECT id FROM trip_days WHERE tripId=:tripId)") suspend fun legs(tripId:String):Int
 }
-@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class,com.yangchengwei.easytrip.expense.data.PlaceExpenseEntity::class,com.yangchengwei.easytrip.assistant.data.ImportReceiptEntity::class],version=11,exportSchema=true)
+@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class,com.yangchengwei.easytrip.expense.data.PlaceExpenseEntity::class,com.yangchengwei.easytrip.assistant.data.ImportReceiptEntity::class,com.yangchengwei.easytrip.assistant.data.TripCreationReceiptEntity::class],version=12,exportSchema=true)
 @TypeConverters(Converters::class) abstract class EasyTripDatabase:RoomDatabase(){
+    abstract fun tripCreationReceiptDao(): com.yangchengwei.easytrip.assistant.data.TripCreationReceiptDao
     abstract fun importReceiptDao(): com.yangchengwei.easytrip.assistant.data.ImportReceiptDao
     abstract fun expenseDao(): com.yangchengwei.easytrip.expense.data.ExpenseDao
     abstract fun tripDao():TripDao; abstract fun placeDao():SchemaPlaceDao; abstract fun savedPlaceDao():com.yangchengwei.easytrip.place.data.PlaceDao; abstract fun itineraryDao():SchemaItineraryDao; abstract fun itineraryEditingDao():com.yangchengwei.easytrip.itinerary.data.ItineraryDao; abstract fun routeDao():SchemaRouteDao; abstract fun routeLegDao():com.yangchengwei.easytrip.route.data.RouteLegDao; abstract fun deleteImpactDao():DeleteImpactDao; abstract fun cascadeCountDao():CascadeCountDao
     companion object {
+        val MIGRATION_11_12 = object : Migration(11, 12) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS assistant_trip_creation_receipts (operationId TEXT NOT NULL PRIMARY KEY, tripId TEXT NOT NULL, digest TEXT NOT NULL, resultsJson TEXT NOT NULL)")
+            }
+        }
         val MIGRATION_10_11 = object : Migration(10, 11) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS assistant_import_receipts (operationId TEXT NOT NULL PRIMARY KEY, tripId TEXT NOT NULL, digest TEXT NOT NULL, resultsJson TEXT NOT NULL, FOREIGN KEY(tripId) REFERENCES trips(id) ON UPDATE NO ACTION ON DELETE CASCADE)")

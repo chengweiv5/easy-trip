@@ -8,6 +8,28 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AssistantMigrationTest {
+    @Test fun elevenToTwelvePreservesLegacyRowsAndAddsIndependentCreationReceipts() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val name = "v34-migration-11-12"
+        val helper = MigrationTestHelper(InstrumentationRegistry.getInstrumentation(), EasyTripDatabase::class.java,
+            emptyList(), FrameworkSQLiteOpenHelperFactory())
+        try {
+            helper.createDatabase(name, 11).use { db ->
+                db.execSQL("INSERT INTO trips (id,name,timeMode,startDate,travelMode,createdAt,updatedAt,hasTraveled) VALUES ('t','原旅行','DRAFT',NULL,'FLEXIBLE',0,0,0)")
+                db.execSQL("INSERT INTO assistant_import_receipts (operationId,tripId,digest,resultsJson) VALUES ('old','t','old-digest','[]')")
+            }
+            helper.runMigrationsAndValidate(name, 12, true, EasyTripDatabase.MIGRATION_11_12).use { db ->
+                // MigrationTestHelper does not enable SQLite FK enforcement like Room's onOpen.
+                db.execSQL("PRAGMA foreign_keys=ON")
+                db.query("SELECT name FROM trips WHERE id='t'").use { assertTrue(it.moveToFirst()); assertEquals("原旅行", it.getString(0)) }
+                db.query("SELECT digest FROM assistant_import_receipts WHERE operationId='old'").use { assertTrue(it.moveToFirst()); assertEquals("old-digest", it.getString(0)) }
+                db.execSQL("INSERT INTO assistant_trip_creation_receipts VALUES ('create-trip:v1:a','t','digest','[]')")
+                db.execSQL("DELETE FROM trips WHERE id='t'")
+                db.query("SELECT * FROM assistant_trip_creation_receipts").use { assertEquals(1, it.count) }
+                db.query("PRAGMA foreign_key_check").use { assertEquals(0, it.count) }
+            }
+        } finally { context.deleteDatabase(name) }
+    }
     @Test fun tenToElevenKeepsEveryLegacyTableAndColumnUnchanged() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val name = "v3-migration-10-11"

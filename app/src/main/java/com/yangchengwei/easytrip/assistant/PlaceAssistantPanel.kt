@@ -66,7 +66,8 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             if (s.items.isEmpty()) {
                 OutlinedTextField(s.city, controller::editCity, label = { Text("默认搜索城市") },
                     placeholder = { Text(if (s.resolvingCity) "正在获取默认城市…" else "请填写搜索城市") },
-                    supportingText = { Text(if (s.resolvingCity) "正在根据旅行名和定位选择城市，也可直接手动填写。"
+                    supportingText = { Text(if (controller.target == AssistantTarget.NewTripDraft) "可留空，从攻略识别后核对城市；不会采用手机位置。"
+                        else if (s.resolvingCity) "正在根据旅行名和定位选择城市，也可直接手动填写。"
                         else if (s.city.isBlank()) "未能确认默认城市，请手动填写或在原文中指定城市。"
                         else "默认按旅行名和定位选择；手动填写或原文指定的城市优先。") },
                     singleLine = true, enabled = !s.busy, modifier = Modifier.fillMaxWidth().testTag("assistant-city"))
@@ -82,7 +83,7 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                     },
                     { previewId = it }, host.model::removeImage, host.model.images, host.model.sessionId)
                 Text("点击后读取链接，再将笔记文字、配图及本次所选素材和必要城市发送至已配置的模型服务。文字与图片分别处理，可能产生多次调用费用。", style = MaterialTheme.typography.bodySmall)
-                Button(controller::submit, enabled = s.configured && s.consent && !s.busy && !s.resolvingCity && !s.attachmentSelectionBusy &&
+                Button(host.onSubmit ?: controller::submit, enabled = s.configured && s.consent && !s.busy && !s.resolvingCity && !s.attachmentSelectionBusy &&
                     (s.input.isNotBlank() || s.images.isNotEmpty()),
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("assistant-submit")) {
                     Text(if (s.linkProgress != null) "正在处理笔记…" else if (s.busy) "正在理解地点…" else "全部标记到地图")
@@ -112,7 +113,7 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                 LinearProgressIndicator(Modifier.fillMaxWidth())
                 if (s.items.isNotEmpty()) Text("地图查询已完成 ${s.items.count { it.status !in setOf(IntakeStatus.WAITING, IntakeStatus.QUERYING) }} / ${s.items.size} 项",
                     style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(controller::cancel, enabled = !s.saving,
+                OutlinedButton(host.onCancel ?: controller::cancel, enabled = !s.saving,
                     modifier = Modifier.fillMaxWidth().testTag("assistant-cancel")) { Text("停止剩余处理") }
                 Text("停止保留素材和已完成结果；已发送内容无法撤回。", style = MaterialTheme.typography.bodySmall)
             }
@@ -124,6 +125,11 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             }
             if (s.items.isNotEmpty()) {
                 Text("找到 ${s.items.size} 个地点", style = MaterialTheme.typography.titleSmall)
+                if (s.awaitingCityConfirmation) {
+                    Text("请核对各地点的城市，确认后再查询地图。")
+                    Button(controller::confirmCities, enabled = !s.busy && s.items.any { it.intent.city.isNotBlank() },
+                        modifier = Modifier.fillMaxWidth().testTag("assistant-confirm-cities")) { Text("确认城市并查询地图") }
+                }
                 if (missingCityCount > 0) {
                     TextButton({ batchCity = s.city; batchCityPrompt = true }, enabled = !s.busy && !s.saving,
                         modifier = Modifier.testTag("assistant-supply-city")) { Text("$missingCityCount 项缺少城市 · 补充") }
@@ -132,11 +138,12 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             }
             if (s.hasDraft && !s.saving) TextButton({ clearPrompt = true }) { Text("清空本批，输入新的地点") }
         }
-        if (s.items.isNotEmpty()) AssistantSelectionBar(s, controller::selectAll, controller::saveSelected)
+        if (s.items.isNotEmpty()) AssistantSelectionBar(s, controller::selectAll,
+            host.onCreateTrip ?: controller::saveSelected, createTrip = host.onCreateTrip != null)
     }
     if (clearPrompt) AlertDialog(onDismissRequest = { clearPrompt = false }, title = { Text("清空这次输入和候选？") },
         text = { Text("未收藏候选将清除；已经收藏的地点不受影响。") },
-        confirmButton = { TextButton({ host.model.clearDraft(); clearPrompt = false }) { Text("清空未收藏内容") } },
+        confirmButton = { TextButton({ host.model.clearDraft(); host.onClear?.invoke(); clearPrompt = false }) { Text("清空未收藏内容") } },
         dismissButton = { TextButton({ clearPrompt = false }) { Text("保留") } })
     if (batchCityPrompt) AlertDialog(
         onDismissRequest = { batchCityPrompt = false },

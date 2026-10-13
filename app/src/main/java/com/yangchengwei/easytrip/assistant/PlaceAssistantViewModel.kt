@@ -19,7 +19,7 @@ import androidx.lifecycle.SavedStateHandle
 import android.net.Uri
 
 class PlaceAssistantViewModel(
-    private val tripId: String,
+    private val tripId: String?,
     val config: AssistantConfigStore,
     importer: PlaceImport,
     places: SavedPlaceRepository,
@@ -32,8 +32,10 @@ class PlaceAssistantViewModel(
     linkLoader: AssistantLinkLoader? = null,
     private val materialTextParserOverride: PlaceIntentParser? = null,
     private val normalizerOverride: PlaceIntentNormalizer? = null,
+    val target: AssistantTarget = tripId?.let(AssistantTarget::ExistingTrip) ?: AssistantTarget.NewTripDraft,
 ) : ViewModel() {
     val sessionId = UUID.randomUUID().toString()
+    private val imageRecoveryScope = tripId ?: "new-trip-intake"
     private var selectionGeneration = 0L
     private var clearing = false
     val controller = PlaceAssistantController(tripId, viewModelScope, parser, null, importer,
@@ -64,7 +66,7 @@ class PlaceAssistantViewModel(
         } }, sessionId = sessionId,
         imageAllowed = { config.imageCapability().capability != ImageCapability.UNSUPPORTED },
         diagnostics = searchDiagnostics, searchPacer = searchPacer,
-        onBatchSaved = ::completeBatch, linkLoader = linkLoader)
+        onBatchSaved = ::completeBatch, linkLoader = linkLoader, target = target)
     private val mutableOpen = MutableStateFlow(false)
     val open = mutableOpen.asStateFlow()
     private val mutableFocus = MutableStateFlow<String?>(null)
@@ -143,7 +145,7 @@ class PlaceAssistantViewModel(
         viewModelScope.launch {
             try {
                 images?.release(sessionId)
-                (images as? AndroidAssistantImageStore)?.startSession(sessionId, tripId)
+                (images as? AndroidAssistantImageStore)?.startSession(sessionId, imageRecoveryScope)
             } finally { clearing = false; controller.attachmentSelection(false) }
         }
     }
@@ -153,30 +155,32 @@ class PlaceAssistantViewModel(
         cleanup.launch { images?.release(sessionId) }
     }
     init {
-        val interrupted = (images as? AndroidAssistantImageStore)?.startSession(sessionId, tripId) == true
+        val interrupted = (images as? AndroidAssistantImageStore)?.startSession(sessionId, imageRecoveryScope) == true
         if (interrupted || savedState.get<Boolean>("assistant-had-images") == true) {
             savedState["assistant-had-images"] = false
             controller.reportError("上次图片草稿已失效，请重新选择；已收藏地点不受影响。")
         }
         viewModelScope.launch { controller.recoverReceipt() }
-        viewModelScope.launch { places.observeSavedPoiIds(tripId).collect(controller::updateSaved) }
+        if (target is AssistantTarget.ExistingTrip)
+            viewModelScope.launch { places.observeSavedPoiIds(target.tripId).collect(controller::updateSaved) }
         viewModelScope.launch {
             config.revision.collect { controller.configurationChanged() }
         }
     }
     class Factory(
-        private val tripId: String, private val config: AssistantConfigStore,
+        private val tripId: String?, private val config: AssistantConfigStore,
         private val importer: PlaceImport, private val places: SavedPlaceRepository,
         private val images: AssistantImageStore? = null,
         private val savedState: SavedStateHandle = SavedStateHandle(),
         private val searchDiagnostics: AssistantSearchDiagnostics = AssistantSearchDiagnostics.NONE,
         private val searchPacer: AssistantSearchPacer = AssistantSearchPacer(),
         private val linkLoader: AssistantLinkLoader? = null,
+        private val target: AssistantTarget = tripId?.let(AssistantTarget::ExistingTrip) ?: AssistantTarget.NewTripDraft,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             PlaceAssistantViewModel(tripId, config, importer, places, images = images, savedState = savedState,
-                searchDiagnostics = searchDiagnostics, searchPacer = searchPacer, linkLoader = linkLoader) as T
+                searchDiagnostics = searchDiagnostics, searchPacer = searchPacer, linkLoader = linkLoader, target = target) as T
     }
     companion object { private val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.IO) }
 }

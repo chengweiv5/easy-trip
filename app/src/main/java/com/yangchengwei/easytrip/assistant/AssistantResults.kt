@@ -42,6 +42,7 @@ private fun AssistantSelectionBox(
 internal fun AssistantSelectionBar(
     state: PlaceAssistantState, onSelectAll: () -> Unit, onSave: () -> Unit,
     modifier: Modifier = Modifier,
+    createTrip: Boolean = false,
 ) {
     val selected = state.selected.size
     val toggle = when {
@@ -66,10 +67,11 @@ internal fun AssistantSelectionBar(
                 Text("全选", fontSize = if (large) 12.sp else 15.sp,
                     color = MaterialTheme.colorScheme.onSurface)
             }
-            Button(onSave, enabled = selected > 0 && !state.saving && state.mapReady && state.consent,
+            Button(onSave, enabled = selected > 0 && !state.saving && !state.busy && state.mapReady && state.consent,
                 contentPadding = PaddingValues(horizontal = 10.dp, vertical = 12.dp),
                 modifier = Modifier.weight(1f).heightIn(min = 48.dp).testTag("assistant-save")) {
                 Text(when {
+                    createTrip -> if (selected == 0) "创建旅行" else "创建旅行（$selected）"
                     state.saving -> "收藏中…"
                     selected == 0 -> "收藏"
                     else -> "收藏（$selected）"

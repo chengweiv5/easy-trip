@@ -342,6 +342,7 @@ data class AppNavigationDependencies(
     val placeSearchDataSource: PlaceSearchDataSource? = null,
     val mapConsentToken: AmapConsentToken? = null,
     val expenseRepository: ExpenseRepository? = null,
+    val assistantContainer: AppContainer? = null,
 )
 
 fun interface AppNavigationObserver {
@@ -437,6 +438,7 @@ fun AppNavigation(
                 { navigate("trips/$it") },
                 { navigate("trips/$it/settings") },
                 onAppSettings = { navigate(APP_SETTINGS_ROUTE) },
+                onAssistantCreate = { navigate("assistant/new-trip") },
             ) }
             }
             ExpensePrimaryNavigation(false, {}, { navigate("expenses") })
@@ -476,6 +478,37 @@ fun AppNavigation(
                 { navigate(APP_UPDATE_ROUTE); if (update == com.yangchengwei.easytrip.settings.UpdateState.Idle) updateModel.controller.check() },
                 onAssistant = application?.let { { navigate(ASSISTANT_SETTINGS_ROUTE) } },
             )
+        }
+        composable("assistant/new-trip") { entry ->
+            val container = effectiveDependencies?.assistantContainer ?: application?.container
+            if (container == null || effectiveDependencies == null) {
+                Column { Text("助手服务暂不可用"); Button({ navController.popBackStack() }) { Text("返回") } }
+            } else {
+                val assistant: com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel = viewModel(
+                    viewModelStoreOwner = entry,
+                    factory = com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel.Factory(
+                        null, container.assistantConfig, container.placeImport,
+                        effectiveDependencies.savedPlaceRepository, container.assistantImages, entry.savedStateHandle,
+                        container.assistantSearchDiagnostics, container.assistantSearchPacer, container.assistantLinks,
+                        target = com.yangchengwei.easytrip.assistant.AssistantTarget.NewTripDraft))
+                val draft: com.yangchengwei.easytrip.assistant.TripDraftViewModel = viewModel(
+                    viewModelStoreOwner = entry,
+                    factory = com.yangchengwei.easytrip.assistant.TripDraftViewModel.Factory(
+                        container.tripCreation, container.tripCreationJournal,
+                        com.yangchengwei.easytrip.assistant.TripDraftInterpreter(container.assistantConfig::read)::interpret))
+                val runtime = resolveAmapRuntimeDependencies(appConsent, appRuntimeSession,
+                    AmapRuntimeDependencies(effectiveDependencies.mapConsentToken?.takeIf { it.isActive() },
+                        effectiveDependencies.placeSearchDataSource, effectiveDependencies.routeCoordinator))
+                com.yangchengwei.easytrip.assistant.GlobalAssistantRoute(assistant, draft,
+                    runtime.placeSearchDataSource, runtime.token,
+                    onConsent = { navigate(APP_MAP_CONSENT_ROUTE) },
+                    onBack = { navController.popBackStack() },
+                    onCreated = { id ->
+                        navController.navigate("trips/${Uri.encode(id)}") {
+                            popUpTo("assistant/new-trip") { inclusive = true }
+                        }
+                    })
+            }
         }
         composable(ASSISTANT_SETTINGS_ROUTE) {
             application?.container?.assistantConfig?.let { store ->

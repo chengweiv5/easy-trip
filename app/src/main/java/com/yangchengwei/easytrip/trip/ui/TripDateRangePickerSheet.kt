@@ -87,6 +87,7 @@ fun TripDateRangePickerSheet(
     title: String = "选择出行日期",
     confirmLabel: String = "确认",
     fixedDayCount: Int? = null,
+    allowStartOnly: Boolean = false,
 ) = BoxWithConstraints(modifier.fillMaxSize()) {
     var selection by remember(initialSelection, fixedDayCount) {
         mutableStateOf(initialSelection.fixedToDayCount(fixedDayCount))
@@ -187,11 +188,13 @@ fun TripDateRangePickerSheet(
                     onClick = {
                         if (!confirmDispatched) {
                             confirmDispatched = true
-                            onConfirm(currentSelection)
+                            onConfirm(if (allowStartOnly && currentSelection.startDate != null && currentSelection.endDate == null)
+                                DateRangeSelection(currentSelection.startDate, currentSelection.startDate) else currentSelection)
                         }
                     },
                     modifier = Modifier.weight(1f).testTag("trip-date-range-confirm"),
-                    enabled = currentSelection.isConfirmable && !confirmDispatched,
+                    enabled = (currentSelection.isConfirmable || allowStartOnly &&
+                        currentSelection.startDate != null && currentSelection.endDate == null) && !confirmDispatched,
                 ) { Text(confirmLabel) }
             }
         }

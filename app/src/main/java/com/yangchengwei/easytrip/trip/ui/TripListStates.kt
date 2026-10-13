@@ -28,22 +28,23 @@ import com.yangchengwei.easytrip.core.ui.component.InlineStatus
 internal fun EmptyTrips(onCreate: () -> Unit, modifier: Modifier = Modifier) {
     BoxWithConstraints(modifier.fillMaxWidth().testTag("empty-trips")) {
         val compact = maxHeight < 360.dp
+        val minimal = maxHeight < 200.dp
         Column(
             modifier = Modifier.fillMaxSize().verticalScroll(rememberScrollState()).padding(horizontal = 16.dp),
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = if (compact) Arrangement.Top else Arrangement.Center,
         ) {
             if (compact) Spacer(Modifier.height(16.dp))
-            EmptyState(
+            if (minimal) {
+                Text("开始规划一次旅行", style = MaterialTheme.typography.titleMedium)
+                Spacer(Modifier.height(8.dp))
+                Text("创建旅行后，可以收藏地点并按天安排行程", style = MaterialTheme.typography.bodySmall)
+            } else EmptyState(
                 title = "开始规划一次旅行",
                 message = "创建旅行后，可以收藏地点并按天安排行程",
                 emptyIllustration = EmptyIllustration.Trips,
                 modifier = Modifier.padding(vertical = 0.dp),
-                action = {
-                    EasyTripPrimaryButton(onClick = onCreate, modifier = Modifier.testTag("create-trip")) {
-                        Text("创建旅行")
-                    }
-                },
+                action = {},
             )
             if (compact) Spacer(Modifier.height(16.dp))
         }
@@ -70,7 +71,5 @@ internal fun TripListErrorState(
         Text(message, style = MaterialTheme.typography.titleMedium)
         Spacer(Modifier.height(16.dp))
         EasyTripSecondaryButton(onClick = onRetry, modifier = Modifier.testTag("retry-trips")) { Text("重试") }
-        Spacer(Modifier.height(12.dp))
-        EasyTripPrimaryButton(onClick = onCreate, modifier = Modifier.testTag("create-trip")) { Text("创建旅行") }
     }
 }
