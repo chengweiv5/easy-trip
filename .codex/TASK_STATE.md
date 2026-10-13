@@ -1,4 +1,19 @@
-# 当前任务：完成 v3.4 UI设计
+# 当前任务：v3.4 UI设计提交与推送
+
+状态：**DONE（2026-10-13，设计提交已推送并独立回读；本文随文档收尾提交交付）**。
+
+- 用户仅授权“提交并推送”。分支`codex/v3.4-trip-from-guide`，基线`9a8417e7bea5d10b91bbc5eb78a67a9265c8cacf`；GitHub开放PR为空，推送前再次fetch main，远端未前移，无需rebase。
+- 设计提交`1e39f6d5df8f662040911c7d0c904c612e20d59e`包含精确48个设计／预览／规划文档；暂存区及提交字节与本轮前备份一致。已用`git push origin HEAD:main`快进推送，独立`ls-remote`回读SHA一致；推送后工作区干净。
+- v3.4源305根／45,259唯一节点、39状态＋1总览；无重复ID、断引用或placeholder，继承265根保持。源SHA `0cde210e96a1d9c8153a73f7dcb76a126141026efc2de45f95923aede700cc15`与前轮原生保存／重开验证结果相同。本轮未调用Pencil改稿；40张JPEG及10页PDF字节不变。
+- 基线与提交app树一致；未改应用代码、版本、schema或模型提示词，因此不重复构建、模型／地图／设备测试。设计仍待用户UI评审；未开发、安装或发布，不把Git授权扩大为开发授权。
+- 提交钩子硬编码扫描超过2秒终止，提交正常成功；未绕过钩子。独立48文件敏感信息模式扫描无命中，不称完整钩子或所有敏感信息形式化验证通过。
+- 交付记录`docs/testing/v3.4.0-ui-design-git-delivery.md`及设计索引同步；punk-12通知`om_x100b63eb794ea088b2ccd9b699ef873`已独立验证目标chat、bot身份、全文及deleted=false。本状态在通知回读后最后写入，随后只提交推送文档收尾，不再改设计。
+- 最终文档提交及远端SHA以本轮最终回复、`/Users/bytedance/.codex/artifacts/easy-trip/v3.4-ui-git-delivery-46b4-20261013-165823/final-push-verification.json`为准，不循环把自身提交SHA写入自身。
+- 备份及日志：`/Users/bytedance/.codex/artifacts/easy-trip/v3.4-ui-git-delivery-46b4-20261013-165823/`。回滚需另获授权后以新分支反向提交，先核对后续依赖；不重写远端、不整树重置、不改v3.3发布资产。
+
+---
+
+# 前轮任务：完成 v3.4 UI设计
 
 状态：**DONE（2026-10-13，39状态＋1流程总览已保存、重开核验；等待用户UI评审，未开发）**。
 
