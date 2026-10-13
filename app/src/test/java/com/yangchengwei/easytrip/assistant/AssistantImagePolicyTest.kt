@@ -4,9 +4,9 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AssistantImagePolicyTest {
-    @Test fun seventhImageIsRejectedWithoutDroppingSixAcceptedImages() {
-        assertNull(AssistantImagePolicy.rejection(5, 5_000, 1_000))
-        assertEquals("每批最多 6 张图片", AssistantImagePolicy.rejection(6, 6_000, 1_000))
+    @Test fun twentiethImageIsAcceptedAndTwentyFirstDoesNotDropAcceptedImages() {
+        for (count in listOf(6, 9, 19)) assertNull(AssistantImagePolicy.rejection(count, 20_000, 1_000))
+        assertEquals("每批最多 20 张图片", AssistantImagePolicy.rejection(20, 20_000, 1_000))
     }
     @Test fun exactByteLimitsAreInclusiveAndOverflowNeverWraps() {
         val single = AssistantImagePolicy.MAX_SINGLE_BYTES

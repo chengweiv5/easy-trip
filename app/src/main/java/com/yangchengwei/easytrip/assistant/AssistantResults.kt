@@ -109,12 +109,13 @@ internal fun AssistantResultRow(host: AssistantWorkspace, item: IntakeItem, onPr
                 !s.saving, "选择${item.poi?.name ?: item.intent.query}", "assistant-select-${item.label}",
                 { controller.toggle(item.id) })
             else Spacer(Modifier.size(48.dp))
-            Box(Modifier.width(28.dp).heightIn(min = 48.dp)
+            Box(Modifier.widthIn(min = 28.dp).heightIn(min = 48.dp)
                 .clickable(enabled = !s.saving) { host.model.focus(item.id) }
                 .testTag("assistant-marker-${item.label}"), contentAlignment = Alignment.Center) {
                 Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
-                    Box(Modifier.size(28.dp), contentAlignment = Alignment.Center) {
-                    Text(item.label, style = MaterialTheme.typography.labelMedium)
+                    Box(Modifier.sizeIn(minWidth = 28.dp, minHeight = 28.dp).padding(horizontal = 4.dp),
+                        contentAlignment = Alignment.Center) {
+                    Text(item.label, style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false)
                     }
                 }
             }

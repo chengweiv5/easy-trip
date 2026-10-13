@@ -49,7 +49,7 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
         }
     }
     var pickerRevision by remember { mutableLongStateOf(-1L) }
-    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(6)) {
+    val picker = rememberLauncherForActivityResult(ActivityResultContracts.PickMultipleVisualMedia(AssistantImagePolicy.MAX_IMAGES)) {
         if (pickerRevision == controller.draftRevision) host.model.selectImages(it)
     }
     Column(modifier.fillMaxSize().imePadding().testTag("assistant-panel")) {
@@ -71,8 +71,8 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                         else "默认按旅行名和定位选择；手动填写或原文指定的城市优先。") },
                     singleLine = true, enabled = !s.busy, modifier = Modifier.fillMaxWidth().testTag("assistant-city"))
                 OutlinedTextField(s.input, controller::editInput, label = { Text("把想去的地点一次告诉我") },
-                    placeholder = { Text("例如：杭州的灵隐寺、河坊街、雷峰塔") }, minLines = 3, maxLines = 6,
-                    enabled = !s.busy, supportingText = { Text("${s.input.length} / 2000 · 每批最多 20 个地点") },
+                    placeholder = { Text("输入地点，或粘贴携程／小红书分享链接") }, minLines = 3, maxLines = 6,
+                    enabled = !s.busy, supportingText = { Text("${s.input.length} / 2000 · 每批最多 ${AssistantPlacePolicy.MAX_PLACES} 个地点") },
                     modifier = Modifier.fillMaxWidth().testTag("assistant-input"))
                 Text("默认采用第一条有效结果，可在地图查看、更换，勾选后收藏。", style = MaterialTheme.typography.bodySmall)
                 if (host.model.images != null) AssistantImageInput(s,
@@ -81,14 +81,15 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
                     { previewId = it }, host.model::removeImage, host.model.images, host.model.sessionId)
-                Text("点击即发送至助手设置中的模型服务，仅发送本次所选图片、文字和必要城市。文字与图片分别处理，可能产生多次调用费用。", style = MaterialTheme.typography.bodySmall)
+                Text("点击后读取链接，再将笔记文字、配图及本次所选素材和必要城市发送至已配置的模型服务。文字与图片分别处理，可能产生多次调用费用。", style = MaterialTheme.typography.bodySmall)
                 Button(controller::submit, enabled = s.configured && s.consent && !s.busy && !s.resolvingCity && !s.attachmentSelectionBusy &&
                     (s.input.isNotBlank() || s.images.isNotEmpty()),
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("assistant-submit")) {
-                    Text(if (s.busy) "正在理解地点…" else "全部标记到地图")
+                    Text(if (s.linkProgress != null) "正在处理笔记…" else if (s.busy) "正在理解地点…" else "全部标记到地图")
                 }
             }
             s.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("assistant-error")) }
+            s.linkProgress?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("assistant-link-progress")) }
             s.sourceProgress.filter { s.busy || it.stage != SourceStage.COMPLETE }.forEach { progress ->
                 val name = if (progress.sourceId == "text") "文字" else "图 ${s.images.find { it.id == progress.sourceId }?.ordinal ?: "?"}"
                 Text("$name · ${when (progress.stage) {

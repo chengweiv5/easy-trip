@@ -23,9 +23,9 @@ import androidx.compose.ui.draw.clipToBounds
 fun AssistantImageInput(state: PlaceAssistantState, onPick: () -> Unit, onPreview: (String) -> Unit,
     onRemove: (String) -> Unit, store: AssistantImageStore? = null, sessionId: String = "") {
     val editable = !state.busy && !state.saving && state.items.isEmpty() && !state.attachmentSelectionBusy
-    OutlinedButton(onPick, enabled = editable && state.images.size < 6,
+    OutlinedButton(onPick, enabled = editable && state.images.size < AssistantImagePolicy.MAX_IMAGES,
         modifier = Modifier.heightIn(min = 48.dp).testTag("assistant-pick-images")) {
-        Text(if (state.attachmentSelectionBusy) "正在读取所选图片…" else "添加图片 · ${state.images.size}/6")
+        Text(if (state.attachmentSelectionBusy) "正在读取所选图片…" else "添加图片 · ${state.images.size}/${AssistantImagePolicy.MAX_IMAGES}")
     }
     if (state.images.isNotEmpty()) LazyRow(Modifier.fillMaxWidth().testTag("assistant-image-list"),
         horizontalArrangement = Arrangement.spacedBy(8.dp)) {

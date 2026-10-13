@@ -34,6 +34,8 @@ interface AssistantImageStore {
     suspend fun thumbnail(sessionId: String, imageId: String): Bitmap = preview(sessionId, imageId)
     suspend fun remove(sessionId: String, imageId: String)
     suspend fun release(sessionId: String)
+    suspend fun importBytes(sessionId: String, bytes: ByteArray, existing: List<AssistantImage>): AssistantImage =
+        throw AssistantFailure("当前图片存储不支持链接素材。")
 }
 
 /** App-scoped, private, temporary storage. No URI, image or model payload enters a database. */
@@ -44,6 +46,39 @@ class AndroidAssistantImageStore(
     private val resolver = context.applicationContext.contentResolver
     private val lock = Mutex()
     private val interrupted = mutableSetOf<String>()
+    override suspend fun importBytes(sessionId: String, bytes: ByteArray, existing: List<AssistantImage>): AssistantImage {
+        var created: File? = null
+        try {
+            return withContext(Dispatchers.IO) {
+                lock.withLock {
+                    currentCoroutineContext().ensureActive()
+                    AssistantImagePolicy.rejection(existing.size, existing.sumOf { it.byteCount }, bytes.size.toLong())
+                        ?.let { throw AssistantFailure(it) }
+                    val mime = AssistantImagePolicy.mime(bytes)
+                    val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                    BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                    AssistantImagePolicy.targetSize(bounds.outWidth, bounds.outHeight)
+                    val id = UUID.randomUUID().toString()
+                    directory(sessionId)
+                    val destination = file(sessionId, id)
+                    created = destination
+                    try {
+                        destination.writeBytes(bytes)
+                        currentCoroutineContext().ensureActive()
+                        AssistantImage(id, (existing.maxOfOrNull { it.ordinal } ?: 0) + 1,
+                            mime, bytes.size.toLong(), bounds.outWidth, bounds.outHeight)
+                    } catch (error: Exception) {
+                        destination.delete()
+                        throw error
+                    }
+                }
+            }
+        } catch (error: Throwable) {
+            // Also covers cancellation on the return dispatch from IO to the caller.
+            created?.delete()
+            throw error
+        }
+    }
     init {
         // Only our previous process's session directories, never other application caches.
         root.listFiles()?.filter { it.isDirectory && validId(it.name) }?.forEach {
@@ -81,7 +116,8 @@ class AndroidAssistantImageStore(
                     uris.distinct().forEachIndexed { index, uri ->
                         currentCoroutineContext().ensureActive()
                         try {
-                            if (existing.size + accepted.size >= 6) throw AssistantFailure("每批最多 6 张图片")
+                            if (existing.size + accepted.size >= AssistantImagePolicy.MAX_IMAGES)
+                                throw AssistantFailure("每批最多 ${AssistantImagePolicy.MAX_IMAGES} 张图片")
                             val bytes = resolver.openInputStream(uri)?.use { input ->
                                 val out = ByteArrayOutputStream()
                                 val buffer = ByteArray(16 * 1024)

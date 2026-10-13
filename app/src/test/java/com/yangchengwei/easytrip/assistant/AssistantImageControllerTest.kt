@@ -205,17 +205,17 @@ class AssistantImageControllerTest {
         val selected = c.state.value.selected
         c.retryImages(); advanceUntilIdle()
         assertEquals(listOf("i1","i2","i3","i2"), calls)
-        assertEquals(3, queries.size)
+        assertEquals(1, queries.size) // Identical names/cities now merge before the POI request.
         assertEquals(selected, c.state.value.selected)
         assertEquals(1, c.state.value.eligible.size)
         assertEquals(setOf("i1","i2","i3"), c.state.value.eligible.single().sources.filterIsInstance<IntakeSource.Image>().map { it.imageId }.toSet())
     }
 
-    @Test fun twentyOnePlacesNeverQueryATruncatedPrefix() = runTest {
+    @Test fun thirtyOnePlacesNeverQueryATruncatedPrefix() = runTest {
         var queries = 0
         val text = PlaceIntentParser { _, _ -> emptyList() }
         val runner = AssistantInputProcessor(text, ImageIntentParser { image, ordinal, _, _, _ ->
-            (1..(if (ordinal == 6) 1 else 4)).map {
+            (1..(if (ordinal == 6) 6 else 5)).map {
                 PlaceIntent("地点$ordinal-$it", "杭州", "地点$ordinal-$it",
                     sources = listOf(IntakeSource.Image(image.id, ordinal, "地点")))
             }
@@ -232,7 +232,7 @@ class AssistantImageControllerTest {
         assertEquals(0, queries)
         assertTrue(c.state.value.items.isEmpty())
         assertEquals(6, c.state.value.images.size)
-        assertTrue(c.state.value.error!!.contains("20"))
+        assertTrue(c.state.value.error!!.contains("30"))
     }
     @Test fun unsupportedFirstImageStopsRemainingUploads() = runTest {
         var calls = 0

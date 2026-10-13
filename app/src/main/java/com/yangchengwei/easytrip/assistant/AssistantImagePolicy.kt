@@ -4,18 +4,21 @@ import kotlin.math.min
 import kotlin.math.sqrt
 
 object AssistantImagePolicy {
-    const val MAX_IMAGES = 6
+    const val MAX_IMAGES = 20
     const val MAX_SINGLE_BYTES = 10L * 1024 * 1024
     const val MAX_TOTAL_BYTES = 30L * 1024 * 1024
     const val MAX_PREPARED_BYTES = 4 * 1024 * 1024
 
     fun rejection(existingCount: Int, totalBytes: Long, nextBytes: Long): String? = when {
-        existingCount >= MAX_IMAGES -> "每批最多 6 张图片"
+        existingCount >= MAX_IMAGES -> "每批最多 $MAX_IMAGES 张图片"
         nextBytes <= 0 -> "图片为空或无法读取"
         nextBytes > MAX_SINGLE_BYTES -> "单张图片不能超过 10 MB"
         totalBytes < 0 || totalBytes > MAX_TOTAL_BYTES || nextBytes > MAX_TOTAL_BYTES - totalBytes -> "图片总计不能超过 30 MB"
         else -> null
     }
+
+    fun batchTimeoutMillis(imageCount: Int): Long =
+        (180_000L + imageCount.coerceIn(0, MAX_IMAGES) * 75_000L).coerceAtMost(1_800_000L)
 
     fun targetSize(width: Int, height: Int): Pair<Int, Int> {
         if (width <= 0 || height <= 0 || width > 50_000 || height > 50_000 ||

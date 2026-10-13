@@ -14,7 +14,7 @@ data class ImportConfirmation(
 ) {
     companion object {
         fun create(tripId: String, items: List<ImportItem>, operationId: String = UUID.randomUUID().toString()): ImportConfirmation {
-            require(tripId.isNotBlank() && items.size in 1..20)
+            require(tripId.isNotBlank() && items.size in 1..AssistantPlacePolicy.MAX_PLACES)
             val sorted = items.sortedBy { it.itemId }
             val parts = listOf(tripId) + sorted.flatMap { i ->
                 listOf(i.itemId, i.generation.toString(), i.poi.poiId, i.poi.name, i.poi.address,

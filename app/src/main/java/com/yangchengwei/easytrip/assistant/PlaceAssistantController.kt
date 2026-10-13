@@ -24,6 +24,7 @@ class PlaceAssistantController(
     private val diagnostics: AssistantSearchDiagnostics = AssistantSearchDiagnostics.NONE,
     private val searchPacer: AssistantSearchPacer = AssistantSearchPacer(),
     private val onBatchSaved: (List<String>) -> Unit = {},
+    private val linkLoader: AssistantLinkLoader? = null,
 ) {
     private val diagnosticSession = UUID.randomUUID().toString()
     private val diagnosticSalt = UUID.randomUUID().toString()
@@ -40,13 +41,27 @@ class PlaceAssistantController(
     private var parsedSources = emptyList<ParsedSource>()
     private var inputRevision = 0L
     private var currentParsed = emptyList<ParsedSource>()
+    private var loadedLink: LoadedAssistantLink? = null
+    private var semanticBatch = false
+    private var parsedCity: String? = null
+    private fun forgetLink(removeImages: Boolean = false) {
+        semanticBatch = false
+        parsedCity = null
+        val old = loadedLink ?: return
+        loadedLink = null
+        if (removeImages) {
+            val ids = old.images.map { it.id }.toSet()
+            mutable.value = mutable.value.copy(images = mutable.value.images.filterNot { it.id in ids })
+            scope.launch { withContext(NonCancellable) { linkLoader?.discard(sessionId, old.images) } }
+        }
+    }
     val draftRevision get() = inputRevision
     fun attachmentSelection(busy: Boolean) { mutable.value = mutable.value.copy(attachmentSelectionBusy = busy) }
     fun reportError(message: String) { fail(message) }
     fun addImages(images: List<AssistantImage>) {
         val s = mutable.value
         if (!active || s.busy || s.saving || s.items.isNotEmpty()) return
-        if (s.images.size + images.size > 6 || (s.images + images).sumOf { it.byteCount } > AssistantImagePolicy.MAX_TOTAL_BYTES) {
+        if (s.images.size + images.size > AssistantImagePolicy.MAX_IMAGES || (s.images + images).sumOf { it.byteCount } > AssistantImagePolicy.MAX_TOTAL_BYTES) {
             fail("图片超过本批数量或大小上限。"); return
         }
         parsedSources = emptyList()
@@ -106,6 +121,7 @@ class PlaceAssistantController(
     fun editInput(value: String) {
         if (mutable.value.saving || mutable.value.busy || mutable.value.items.isNotEmpty()) return
         if (value.length > 2000) { fail("文字最多 2000 字，请分批输入；原输入保留。"); return }
+        if (value != mutable.value.input) forgetLink(removeImages = true)
         parsedSources = emptyList()
         mutable.value = mutable.value.copy(input = value, sourceProgress = emptyList(), error = null)
     }
@@ -132,6 +148,7 @@ class PlaceAssistantController(
         cancel()
         inputRevision++
         parsedSources = emptyList()
+        forgetLink()
         pendingSave = null
         val old = mutable.value
         mutable.value = PlaceAssistantState(city = old.city, configured = old.configured,
@@ -168,6 +185,9 @@ class PlaceAssistantController(
         val s = mutable.value
         if (!canQuery() || s.busy || s.resolvingCity || s.attachmentSelectionBusy || s.items.isNotEmpty()) return
         if (s.input.isBlank() && s.images.isEmpty()) { fail("请先输入地点文字或选择图片。"); return }
+        val link = try { AssistantLinkInput.parse(s.input) }
+        catch (error: AssistantFailure) { fail(error.userMessage); return }
+        if (link != null) { processImages(null, link); return }
         if (s.images.isNotEmpty()) { processImages(null); return }
         val input = s.input
         val generation = ++run
@@ -180,13 +200,13 @@ class PlaceAssistantController(
                     mutable.value = mutable.value.copy(city = city)
                     val intents = parser.parse(input, city)
                     if (!isCurrent(generation)) return@withTimeout
-                    require(intents.size in 1..20)
+                    require(intents.size in 1..AssistantPlacePolicy.MAX_PLACES)
                     val items = intents.mapIndexed { index, intent ->
                         val default = intent.city.isBlank() || (city.isNotBlank() &&
                             sameCity(intent.city, city) && !input.contains(intent.city.removeSuffix("市")))
                         val conflict = city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, city) &&
                             !intent.hasExplicitCityIn(input)
-                        IntakeItem(UUID.randomUUID().toString(), ('A' + index).toString(),
+                        IntakeItem(UUID.randomUUID().toString(), AssistantPlacePolicy.label(index),
                             intent.copy(city = intent.city.ifBlank { city }, usesDefaultCity = default),
                             cityConflict = conflict)
                     }
@@ -208,24 +228,53 @@ class PlaceAssistantController(
         val allowed = ids.intersect(retryable)
         if (allowed.isNotEmpty()) processImages(allowed)
     }
-    private fun processImages(retryIds: Set<String>?) {
+    private fun processImages(retryIds: Set<String>?, link: AssistantLinkInput? = null) {
         val s = mutable.value
-        if (!imageAllowed()) { fail("当前模型的图片能力检查未通过，图片尚未发送。请在助手设置重新检查，素材已保留。"); return }
+        if (s.images.isNotEmpty() && !imageAllowed()) { fail("当前模型的图片能力检查未通过，图片尚未发送。请在助手设置重新检查，素材已保留。"); return }
         val runner = processor?.invoke() ?: run { fail("图片处理暂不可用，请重新打开助手。"); return }
         val generation = ++run
-        val input = AssistantInputRequest(sessionId, s.input, s.city.trim(), s.images, retryIds)
-        val sourceIds = (if (s.input.isBlank()) emptyList() else listOf("text")) + s.images.map { it.id }
-        if (retryIds == null) parsedSources = emptyList()
+        val semantic = (link != null || loadedLink != null) && runner.supportsNormalization
+        semanticBatch = semantic
         currentParsed = emptyList()
-        mutable.value = s.copy(busy = true, error = null, receipt = null,
-            sourceProgress = sourceIds.map { id ->
-                if (retryIds == null || id in retryIds) SourceProgress(id, SourceStage.SELECTED)
-                else s.sourceProgress.find { it.sourceId == id } ?: SourceProgress(id, SourceStage.COMPLETE)
-            })
+        mutable.value = s.copy(busy = true, error = null, receipt = null)
         work = scope.launch {
             try {
-                withTimeout(540_000) {
-                    val request = input.copy(city = if (retryIds != null) input.city else resolveSearchCity(input.city))
+                withTimeout(AssistantImagePolicy.batchTimeoutMillis(if (link != null) AssistantImagePolicy.MAX_IMAGES else s.images.size)) {
+                    if (link != null && loadedLink == null) {
+                        val loader = linkLoader ?: throw AssistantFailure("链接读取暂不可用，请重新打开助手。")
+                        val loaded = loader.load(sessionId, link, s.images) { progress ->
+                            if (isCurrent(generation)) mutable.value = mutable.value.copy(linkProgress = progress)
+                        }
+                        if (!isCurrent(generation)) {
+                            withContext(NonCancellable) { loader.discard(sessionId, loaded.images) }
+                            return@withTimeout
+                        }
+                        loadedLink = loaded
+                        mutable.value = mutable.value.copy(images = s.images + loaded.images, linkProgress = null)
+                    }
+                    val material = mutable.value
+                    if (material.images.isNotEmpty() && !imageAllowed())
+                        throw AssistantFailure("当前模型不支持图片，素材已保留且尚未发送，请在助手设置检查图片能力。")
+                    val city = if (retryIds != null && !semantic) s.city.trim() else resolveSearchCity(s.city.trim())
+                    if (!isCurrent(generation)) return@withTimeout
+                    val cityChanged = semantic && parsedCity != null && parsedCity != city
+                    // Extraction binds missing cities to its default. Reuse it only in the same city context.
+                    val effectiveRetryIds = if (cityChanged) null
+                    else if (semantic && loadedLink != null && parsedSources.isNotEmpty() && retryIds == null) {
+                        val completed = parsedSources.filter { it.failure == null }.map { it.sourceId }.toSet()
+                        ((if (loadedLink!!.modelText.isBlank()) emptyList() else listOf("text")) +
+                            material.images.map { it.id }).filterNot { it in completed }.toSet()
+                    } else retryIds
+                    if (effectiveRetryIds == null) parsedSources = emptyList()
+                    if (semantic) parsedCity = city
+                    val input = AssistantInputRequest(sessionId, loadedLink?.modelText ?: s.input,
+                        city, material.images, effectiveRetryIds, travelMaterials = semantic)
+                    val sourceIds = (if (input.text.isBlank()) emptyList() else listOf("text")) + input.images.map { it.id }
+                    mutable.value = mutable.value.copy(linkProgress = null, sourceProgress = sourceIds.map { id ->
+                        if (effectiveRetryIds == null || id in effectiveRetryIds) SourceProgress(id, SourceStage.SELECTED)
+                        else s.sourceProgress.find { it.sourceId == id } ?: SourceProgress(id, SourceStage.COMPLETE)
+                    })
+                    val request = input
                     if (!isCurrent(generation)) return@withTimeout
                     mutable.value = mutable.value.copy(city = request.city)
                     val batch = runner.parse(request, onSource = { parsed ->
@@ -244,10 +293,11 @@ class PlaceAssistantController(
                     }
                     if (!isCurrent(generation)) return@withTimeout
                     val merged = parsedSources.filterNot { old -> batch.sources.any { it.sourceId == old.sourceId } } + batch.sources
-                    if (batch.overflow || merged.sumOf { it.intents.size } > 20) {
-                        fail("每批最多 20 个地点，请保留素材重新分批；没有查询或截断新增内容。")
+                    val raw = mergeIdenticalPlaceIntents(merged.flatMap { it.intents })
+                    if (batch.overflow || raw.size > if (semantic) AssistantMaterialPolicy.MAX_CANDIDATES else AssistantPlacePolicy.MAX_PLACES) {
+                        fail("每批最多 ${AssistantPlacePolicy.MAX_PLACES} 个地点，请保留素材重新分批；没有查询或截断新增内容。")
                         mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map {
-                            if (retryIds == null || it.sourceId in retryIds) it.copy(stage = SourceStage.FAILED, error = "地点数量超限，请分批") else it
+                            if (effectiveRetryIds == null || it.sourceId in effectiveRetryIds) it.copy(stage = SourceStage.FAILED, error = "候选数量超限，请分批") else it
                         })
                         return@withTimeout
                     }
@@ -259,10 +309,25 @@ class PlaceAssistantController(
                                 error = parsed.failure?.userMessage, sendEvidence = parsed.failure?.sendEvidence ?: SendEvidence.RESPONSE_RECEIVED)
                         } ?: progress
                     })
-                    val fresh = batch.sources.filter { it.failure == null }.flatMap { it.intents }
+                    val normalized = if (semantic) {
+                        if (merged.any { it.failure != null }) {
+                            fail("部分素材尚未理解完成，请重试失败素材后统一整理地点；没有查询地图。")
+                            return@withTimeout
+                        }
+                        mutable.value = mutable.value.copy(linkProgress = "正在合并同一地点、剔除餐饮和非地点名称…")
+                        val result = runner.normalize(raw, request.text, request.city)
+                        if (!isCurrent(generation)) return@withTimeout
+                        if (result.size > AssistantPlacePolicy.MAX_PLACES) {
+                            fail("语义去重后仍有 ${result.size} 个地点，每批最多 ${AssistantPlacePolicy.MAX_PLACES} 个；没有截断或查询，请分批。")
+                            return@withTimeout
+                        }
+                        mutable.value = mutable.value.copy(linkProgress = null)
+                        result
+                    } else batch.sources.filter { it.failure == null }.flatMap { it.intents }
+                    val fresh = absorbRepeatedMaterials(normalized)
                     val items = fresh.mapIndexed { index, intent ->
                         val city = request.city
-                        IntakeItem(UUID.randomUUID().toString(), ('A' + s.items.size + index).toString(),
+                        IntakeItem(UUID.randomUUID().toString(), AssistantPlacePolicy.label(s.items.size + index),
                             intent.copy(city = intent.city.ifBlank { city }, usesDefaultCity = intent.city.isBlank() ||
                                 (sameCity(intent.city, city) && !intent.sourceSpan.contains(intent.city.removeSuffix("市")))),
                             cityConflict = city.isNotBlank() && intent.city.isNotBlank() && !sameCity(intent.city, city) &&
@@ -280,7 +345,7 @@ class PlaceAssistantController(
             finally {
                 if (isCurrent(generation)) {
                     stopPending(null)
-                    mutable.value = mutable.value.copy(busy = false, sourceProgress = mutable.value.sourceProgress.map {
+                    mutable.value = mutable.value.copy(busy = false, linkProgress = null, sourceProgress = mutable.value.sourceProgress.map {
                         if (it.stage in setOf(SourceStage.SELECTED, SourceStage.PREPARING, SourceStage.SENDING, SourceStage.UNDERSTANDING))
                             it.copy(stage = SourceStage.CANCELLED) else it
                     })
@@ -291,18 +356,40 @@ class PlaceAssistantController(
     private suspend fun resolveSearchCity(value: String): String =
         (value.trim().takeIf { cityEdited && it.isNotBlank() } ?: lookupDefaultCity()).take(50)
 
+    private fun absorbRepeatedMaterials(intents: List<PlaceIntent>): List<PlaceIntent> {
+        val unique = mergeIdenticalPlaceIntents(intents)
+        val byKey = unique.associateBy { it.materialKey() }
+        val represented = mutable.value.items.map { it.intent.materialKey() }.toSet()
+        mutable.value = mutable.value.copy(items = mutable.value.items.map { item ->
+            val extra = byKey[item.intent.materialKey()] ?: return@map item
+            val sources = (item.intent.sources + extra.sources).distinct()
+            item.copy(intent = item.intent.copy(sources = sources), sources = sources)
+        })
+        return unique.filterNot { it.materialKey() in represented }
+    }
+
     fun cancel() {
         // A stopped batch must retain completed image extraction without querying an unchecked prefix.
+        if (semanticBatch && currentParsed.isNotEmpty()) {
+            parsedSources = parsedSources.filterNot { old -> currentParsed.any { it.sourceId == old.sourceId } } + currentParsed
+            mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map { progress ->
+                currentParsed.find { it.sourceId == progress.sourceId }?.let {
+                    progress.copy(stage = if (it.failure == null) SourceStage.COMPLETE else SourceStage.FAILED,
+                        error = it.failure?.userMessage)
+                } ?: progress
+            })
+            currentParsed = emptyList()
+        }
         if (currentParsed.isNotEmpty()) {
             val merged = parsedSources.filterNot { old -> currentParsed.any { it.sourceId == old.sourceId } } + currentParsed
-            if (merged.none { it.failure?.code == AssistantFailureCode.OVERFLOW } && merged.sumOf { it.intents.size } <= 20) {
+            if (merged.none { it.failure?.code == AssistantFailureCode.OVERFLOW } && mergeIdenticalPlaceIntents(merged.flatMap { it.intents }).size <= AssistantPlacePolicy.MAX_PLACES) {
                 val represented = mutable.value.items.flatMap { it.intent.sources }.mapNotNull {
                     when (it) { is IntakeSource.Image -> it.imageId; is IntakeSource.Text -> "text" }
                 }.toSet()
-                val fresh = currentParsed.filter { it.failure == null && it.sourceId !in represented }.flatMap { it.intents }
+                val fresh = absorbRepeatedMaterials(currentParsed.filter { it.failure == null && it.sourceId !in represented }.flatMap { it.intents })
                 val s = mutable.value
                 mutable.value = s.copy(items = s.items + fresh.mapIndexed { index, intent ->
-                    IntakeItem(UUID.randomUUID().toString(), ('A' + s.items.size + index).toString(),
+                    IntakeItem(UUID.randomUUID().toString(), AssistantPlacePolicy.label(s.items.size + index),
                         intent.copy(city = intent.city.ifBlank { s.city }, usesDefaultCity = intent.city.isBlank() ||
                             (sameCity(intent.city, s.city) && !intent.sourceSpan.contains(intent.city.removeSuffix("市")))),
                         status = IntakeStatus.CANCELLED, detail = "已理解，地图查询尚未开始；可继续此项。",
@@ -323,7 +410,7 @@ class PlaceAssistantController(
         cityRevision++
         work?.cancel(); work = null
         stopPending(null)
-        mutable.value = mutable.value.copy(busy = false, resolvingCity = false, sourceProgress = mutable.value.sourceProgress.map {
+        mutable.value = mutable.value.copy(busy = false, resolvingCity = false, linkProgress = null, sourceProgress = mutable.value.sourceProgress.map {
             if (it.stage in setOf(SourceStage.SELECTED, SourceStage.PREPARING, SourceStage.SENDING, SourceStage.UNDERSTANDING))
                 it.copy(stage = SourceStage.CANCELLED) else it
         })
@@ -398,6 +485,7 @@ class PlaceAssistantController(
                 cancel()
                 inputRevision++
                 parsedSources = emptyList()
+                forgetLink()
                 pendingSave = null
                 val old = mutable.value
                 mutable.value = PlaceAssistantState(city = old.city, configured = old.configured,
@@ -427,7 +515,7 @@ class PlaceAssistantController(
                 changeItem(id) { it.copy(status = IntakeStatus.QUERYING, detail = null) }
                 val keyword = assistantSearchKeyword(item.intent.query, item.intent.city)
                 var event = AssistantSearchEvent(diagnosticSession, generation,
-                    item.label.singleOrNull()?.let { (it - 'A').takeIf { index -> index in 0..19 } } ?: -1,
+                    mutable.value.items.indexOfFirst { it.id == item.id },
                     searchFingerprint(diagnosticSalt, keyword), searchFingerprint(diagnosticSalt, item.intent.city),
                     keyword != item.intent.query.trim(), SearchOutcome.STARTED)
                 var started: Long? = null

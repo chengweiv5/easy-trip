@@ -102,6 +102,8 @@ class AppContainer(
     val database = databaseFactory(this.context)
     val assistantConfig = com.yangchengwei.easytrip.assistant.AssistantConfigStore(this.context)
     val assistantImages = com.yangchengwei.easytrip.assistant.AndroidAssistantImageStore(this.context)
+    val assistantLinks = com.yangchengwei.easytrip.assistant.DefaultAssistantLinkLoader(
+        com.yangchengwei.easytrip.assistant.AndroidAssistantLinkReader(this.context), assistantImages)
     val assistantSearchDiagnostics = com.yangchengwei.easytrip.assistant.AndroidAssistantSearchDiagnostics(this.context)
     val assistantSearchPacer = com.yangchengwei.easytrip.assistant.AssistantSearchPacer()
     val placeImport = com.yangchengwei.easytrip.assistant.data.RoomPlaceImport(database)

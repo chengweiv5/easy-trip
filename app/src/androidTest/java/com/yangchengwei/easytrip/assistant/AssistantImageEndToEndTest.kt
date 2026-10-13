@@ -41,8 +41,10 @@ class AssistantImageEndToEndTest {
     @Test fun imageOnlySavesOnceThenStartsAnEmptyRound() = exercise(false)
     @Test fun narrowDoubleFontImageFlowStartsAnEditableNextRound() = exercise(true)
     @Test fun failedSaveRetainsImagesAndDelayedCleanupDoesNotDeleteNextRound() = exercise(false, true)
+    @Test fun pastedLinkUsesExistingInputAndStartsEmptyRoundAfterSave() = exercise(false, link = true)
+    @Test fun narrowDoubleFontPastedLinkHasNoNewConfirmationFlow() = exercise(true, link = true)
 
-    private fun exercise(small: Boolean, failAndDelayCleanup: Boolean = false) {
+    private fun exercise(small: Boolean, failAndDelayCleanup: Boolean = false, link: Boolean = false) {
         val context = compose.activity
         val folder = File(context.noBackupFilesDir, "image-e2e-${UUID.randomUUID()}").apply { mkdirs() }
         val isolated = object : ContextWrapper(context) {
@@ -53,12 +55,19 @@ class AssistantImageEndToEndTest {
         val cleanupStarted = CompletableDeferred<Unit>()
         val cleanupGate = CompletableDeferred<Unit>()
         val cleanupFinished = CompletableDeferred<Unit>()
-        val imageStore = if (!failAndDelayCleanup) localImages else object : AssistantImageStore by localImages {
+        val sessionReleased = CompletableDeferred<Unit>()
+        val imageStore = object : AssistantImageStore by localImages {
             override suspend fun remove(sessionId: String, imageId: String) {
-                cleanupStarted.complete(Unit)
-                cleanupGate.await()
+                if (failAndDelayCleanup) {
+                    cleanupStarted.complete(Unit)
+                    cleanupGate.await()
+                }
                 localImages.remove(sessionId, imageId)
-                cleanupFinished.complete(Unit)
+                if (failAndDelayCleanup) cleanupFinished.complete(Unit)
+            }
+            override suspend fun release(sessionId: String) {
+                try { localImages.release(sessionId) }
+                finally { sessionReleased.complete(Unit) }
             }
         }
         val database = Room.inMemoryDatabaseBuilder(context, EasyTripDatabase::class.java).build()
@@ -77,6 +86,8 @@ class AssistantImageEndToEndTest {
             }
         }
         val source = File(folder, "source.png")
+        val share = "杭州 https://xhslink.cn/o/fixture"
+        val linkReads = AtomicInteger()
         Bitmap.createBitmap(640, 320, Bitmap.Config.ARGB_8888).also { bitmap ->
             bitmap.eraseColor(android.graphics.Color.WHITE)
             android.graphics.Canvas(bitmap).drawText("杭州 · 灵隐寺", 40f, 150f,
@@ -95,12 +106,25 @@ class AssistantImageEndToEndTest {
             }
             config.save(ProviderConfig("https://example.invalid", "test-vision", "not-a-real-key"))
             val model = PlaceAssistantViewModel(trip, config, importer, repo,
+                normalizerOverride = PlaceIntentNormalizer { candidates, _, _ -> mergeIdenticalPlaceIntents(candidates) },
                 images = imageStore, savedState = savedState, imageParserOverride = ImageIntentParser { image, ordinal, _, _, waiting ->
                     modelCalls.incrementAndGet()
                     assertEquals("image/jpeg", image.mimeType)
                     waiting()
                     listOf(PlaceIntent("灵隐寺", "杭州", "灵隐寺",
                         sources = listOf(IntakeSource.Image(image.id, ordinal, "灵隐寺"))))
+                }, linkLoader = if (!link) null else object : AssistantLinkLoader {
+                    override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
+                        linkReads.incrementAndGet()
+                        onProgress("正在读取小红书笔记…")
+                        return LoadedAssistantLink("杭州 · 灵隐寺", listOf(localImages.importBytes(sessionId, source.readBytes(), existing)))
+                    }
+                    override suspend fun discard(sessionId: String, images: List<AssistantImage>) {
+                        images.forEach { localImages.remove(sessionId, it.id) }
+                    }
+                }, materialTextParserOverride = PlaceIntentParser { input, _ ->
+                    assertEquals("杭州 · 灵隐寺", input)
+                    listOf(PlaceIntent("灵隐寺", "杭州", "灵隐寺"))
                 })
             vmStore.put("assistant", model)
             model.controller.updateSource(object : PlaceSearchDataSource {
@@ -120,11 +144,29 @@ class AssistantImageEndToEndTest {
             }
             compose.runOnIdle {
                 model.controller.environment(true, true, true)
-                model.selectImages(listOf(Uri.fromFile(source)))
+                if (!link) model.selectImages(listOf(Uri.fromFile(source)))
+            }
+            if (link) {
+                compose.onNodeWithTag("assistant-input").performScrollTo().performTextReplacement(share)
+                androidx.test.espresso.Espresso.closeSoftKeyboard()
+                assertEquals(0, linkReads.get())
+                assertEquals(0, modelCalls.get())
+                compose.onNodeWithTag("assistant-submit").performScrollTo().assertIsEnabled().performClick()
+                try {
+                    compose.waitUntil(10_000) { !model.controller.state.value.busy && model.controller.state.value.eligible.size == 1 }
+                } catch (error: Throwable) {
+                    android.util.Log.e("AssistantLinkUiTest",
+                        "reads=${linkReads.get()} images=${modelCalls.get()} state=${model.controller.state.value}")
+                    screenshot("link-failure")
+                    throw error
+                }
+                assertEquals(1, linkReads.get())
+                assertEquals(share, model.controller.state.value.input)
             }
             compose.waitUntil(10_000) { model.controller.state.value.images.size == 1 && !model.controller.state.value.attachmentSelectionBusy }
-            assertEquals(0, modelCalls.get())
             val imageId = model.controller.state.value.images.single().id
+            if (!link) {
+            assertEquals(0, modelCalls.get())
             // The thumbnail is in a LazyRow: scroll its outer vertical container first.
             compose.onNodeWithTag("assistant-image-list").performScrollTo()
             compose.onNodeWithTag("assistant-preview-$imageId").performScrollTo().assertIsDisplayed().performClick()
@@ -135,6 +177,7 @@ class AssistantImageEndToEndTest {
             compose.onNodeWithTag("assistant-submit").performScrollTo().assertIsEnabled().assertHeightIsAtLeast(48.dp)
             screenshot("selected")
             compose.onNodeWithTag("assistant-submit").performClick()
+            }
             compose.onNodeWithText("同意并发送本次内容").assertDoesNotExist()
             compose.waitUntil(10_000) { !model.controller.state.value.busy && model.controller.state.value.eligible.size == 1 }
             assertEquals(1, modelCalls.get())
@@ -194,6 +237,7 @@ class AssistantImageEndToEndTest {
         } finally {
             cleanupGate.complete(Unit)
             compose.runOnIdle { vmStore.clear() }
+            runBlocking { kotlinx.coroutines.withTimeout(5_000) { sessionReleased.await() } }
             database.close()
             folder.deleteRecursively()
         }

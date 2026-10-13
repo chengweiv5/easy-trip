@@ -4,6 +4,15 @@ import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
+object AssistantPlacePolicy {
+    const val MAX_PLACES = 30
+
+    fun label(index: Int): String {
+        require(index in 0 until MAX_PLACES)
+        return if (index < 26) ('A' + index).toString() else "A${'A' + index - 26}"
+    }
+}
+
 enum class SendEvidence { NOT_DISPATCHED, POSSIBLY_SENT, RESPONSE_RECEIVED }
 enum class AssistantFailureCode { UNKNOWN, NO_PLACES, OVERFLOW, UNSUPPORTED_IMAGE, AUTH, LIMIT, NETWORK, PROTOCOL }
 class AssistantFailure(val userMessage: String,
@@ -25,9 +34,15 @@ class ProviderConfig(val baseUrl: String, val model: String, val apiKey: String)
     override fun toString() = "ProviderConfig(credentials=redacted)"
 }
 
+enum class ImageTargetBasis { AUTHOR_MARK, RECOMMENDED, CONTEXT_REFERENCE }
+enum class ImageEntityRole { PLACE, DISTINCT_PART }
+data class ImageTargetEvidence(val basis: ImageTargetBasis, val detail: String,
+    val role: ImageEntityRole = ImageEntityRole.PLACE, val parentName: String = "")
+
 sealed interface IntakeSource {
     data class Text(val span: String) : IntakeSource
-    data class Image(val imageId: String, val ordinal: Int, val excerpt: String) : IntakeSource
+    data class Image(val imageId: String, val ordinal: Int, val excerpt: String,
+        val target: ImageTargetEvidence? = null) : IntakeSource
 }
 data class PlaceIntent(val query: String, val city: String, val sourceSpan: String,
     val usesDefaultCity: Boolean = false, val sources: List<IntakeSource> = emptyList(), val needsReview: Boolean = false)
@@ -54,6 +69,7 @@ data class PlaceAssistantState(
     val input: String = "",
     val images: List<AssistantImage> = emptyList(),
     val sourceProgress: List<SourceProgress> = emptyList(),
+    val linkProgress: String? = null,
     val attachmentSelectionBusy: Boolean = false,
     val city: String = "",
     val resolvingCity: Boolean = false,

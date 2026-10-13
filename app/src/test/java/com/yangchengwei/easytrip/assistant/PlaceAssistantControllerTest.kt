@@ -20,6 +20,52 @@ class PlaceAssistantControllerTest {
         }
     }
     private fun poi(name: String, id: String = name) = PlaceCandidate(id, name, "真实地址", GeoPoint(30.2, 120.1), null, "杭州市")
+    @Test fun independentGateChoosesMatchingGateInsteadOfFirstParentResult() = runTest {
+        val c = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> listOf(PlaceIntent("古城(南门)", "杭州", "古城(南门)")) },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) = listOf(
+                    poi("古城", "parent"), poi("古城(北门)", "north"), poi("古城南门", "south"))
+            }, Importer())
+        c.environment(true, true, true); c.editCity("杭州"); c.editInput("古城(南门)")
+        c.submit(); advanceUntilIdle()
+        assertEquals(IntakeStatus.READY, c.state.value.items.single().status)
+        assertEquals("south", c.state.value.items.single().poi?.poiId)
+    }
+
+    @Test fun independentGateWithoutMatchingResultWaitsForManualSelection() = runTest {
+        val importer = Importer()
+        val c = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> listOf(PlaceIntent("古城(南门)", "杭州", "古城(南门)")) },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) =
+                    listOf(poi("古城", "parent"), poi("古城(北门)", "north"))
+            }, importer)
+        c.environment(true, true, true); c.editCity("杭州"); c.editInput("古城(南门)")
+        c.submit(); advanceUntilIdle()
+        assertEquals(IntakeStatus.AMBIGUOUS, c.state.value.items.single().status)
+        assertNull(c.state.value.items.single().poi)
+        c.selectAll(); c.saveSelected(); advanceUntilIdle()
+        assertEquals(0, importer.calls)
+        assertEquals(2, c.state.value.items.single().candidates.size)
+    }
+
+    @Test fun thirtyPlacesHaveReadableUniqueLabelsAndCanBeCollectedTogether() = runTest {
+        val importer = Importer()
+        val names = (1..30).map { "公园$it" }
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> names.map { PlaceIntent(it, "杭州", it) } },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) = listOf(poi(keyword.removePrefix("杭州")))
+            }, importer)
+        controller.environment(true, true, true)
+        controller.editInput(names.joinToString("、")); controller.submit(); advanceUntilIdle()
+        assertEquals(30, controller.state.value.eligible.size)
+        assertEquals(listOf("Y", "Z", "AA", "AB", "AC", "AD"), controller.state.value.items.takeLast(6).map { it.label })
+        controller.selectAll(); controller.saveSelected(); advanceUntilIdle()
+        assertEquals(1, importer.calls)
+        assertEquals(30, controller.state.value.receipt!!.addedCount)
+    }
     @Test fun submitDoesNotRequireSendConsentAndStillCannotSave() = runTest {
         val importer = Importer()
         val c = PlaceAssistantController("trip", this,

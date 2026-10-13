@@ -14,14 +14,15 @@ class AssistantImageInputUiTest {
         var picked = 0
         var previewed = ""
         var removed = ""
-        val images = (1..6).map { AssistantImage("i$it", it, "image/png", 100, 80, 40) }
+        val images = (1..20).map { AssistantImage("i$it", it, "image/png", 100, 80, 40) }
         compose.setContent { EasyTripTheme {
             AssistantImageInput(PlaceAssistantState(images = images), { picked++ }, { previewed = it }, { removed = it })
         } }
-        compose.onNodeWithTag("assistant-image-list").performScrollToNode(hasTestTag("assistant-preview-i6"))
-        compose.onNodeWithTag("assistant-preview-i6").performClick()
-        compose.runOnIdle { assertEquals("i6", previewed); assertEquals(0, picked) }
-        compose.onNodeWithTag("assistant-remove-i6").performClick()
-        compose.runOnIdle { assertEquals("i6", removed) }
+        compose.onNodeWithText("添加图片 · 20/20").assertIsDisplayed()
+        compose.onNodeWithTag("assistant-image-list").performScrollToNode(hasTestTag("assistant-preview-i20"))
+        compose.onNodeWithTag("assistant-preview-i20").performClick()
+        compose.runOnIdle { assertEquals("i20", previewed); assertEquals(0, picked) }
+        compose.onNodeWithTag("assistant-remove-i20").performClick()
+        compose.runOnIdle { assertEquals("i20", removed) }
     }
 }
