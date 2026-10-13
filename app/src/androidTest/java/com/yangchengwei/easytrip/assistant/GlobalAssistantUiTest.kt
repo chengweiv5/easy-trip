@@ -38,7 +38,10 @@ class GlobalAssistantUiTest {
     @Test fun cleanupFailureCanReopenWithoutDuplicateCreation() = exercise(false, failFirstClear = true)
     @Test fun dayInputAndValidationPreserveSelection() = exercise(false, editForm = true)
     @Test fun recreatedCompositionCanSubmitWithoutRemountingCandidateMap() = exercise(false, recreate = true)
-    private fun exercise(small: Boolean, failFirstClear: Boolean = false, editForm: Boolean = false, recreate: Boolean = false) {
+    @Test fun hundredPlacesCreateOneUndatedTripOnlyAfterFinalConfirmation() = exercise(false, placeCount = 100)
+    @Test fun narrowDoubleFontHundredPlacesCanReachFinalCreation() = exercise(true, placeCount = 100)
+    private fun exercise(small: Boolean, failFirstClear: Boolean = false, editForm: Boolean = false,
+        recreate: Boolean = false, placeCount: Int = 1) {
         val context = compose.activity
         val db = Room.inMemoryDatabaseBuilder(context, EasyTripDatabase::class.java).build()
         val trips = RoomTripRepository(db.tripDao(), database = db)
@@ -67,14 +70,18 @@ class GlobalAssistantUiTest {
             val source = object : PlaceSearchDataSource {
                 override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
                     searches++
-                    return listOf(PlaceCandidate("p", "雷峰塔", "杭州市南山路", GeoPoint(30.230, 120.149), null, "杭州"))
+                    return listOf(PlaceCandidate(keyword, keyword.removePrefix("杭州"), "杭州市测试地址",
+                        GeoPoint(30.230, 120.149), null, "杭州"))
                 }
             }
             lateinit var assistant: PlaceAssistantViewModel
             lateinit var draft: TripDraftViewModel
             compose.runOnUiThread {
                 assistant = PlaceAssistantViewModel(null, config, RoomPlaceImport(db), places,
-                    PlaceIntentParser { _, _ -> listOf(PlaceIntent("雷峰塔", "杭州", "杭州雷峰塔")) },
+                    PlaceIntentParser { _, _ -> (1..placeCount).map {
+                        val name = if (placeCount == 1) "雷峰塔" else "公园$it"
+                        PlaceIntent(name, "杭州", "杭州$name")
+                    } },
                     target = AssistantTarget.NewTripDraft)
                 draft = TripDraftViewModel(RoomTripCreation(db), journal) { TripDraftMetadata(TripDateSuggestion(null)) }
                 stores.put("assistant", assistant); stores.put("draft", draft)
@@ -98,13 +105,15 @@ class GlobalAssistantUiTest {
             screenshot("home", small)
             compose.onNodeWithTag("assistant-create-trip").performClick()
             compose.waitUntil(10_000) { !draft.state.value.recovering && assistant.controller.state.value.configured }
-            compose.onNodeWithTag("assistant-input").performScrollTo().performTextInput("杭州雷峰塔")
+            compose.onNodeWithTag("assistant-input").performScrollTo().performTextInput(
+                if (placeCount == 1) "杭州雷峰塔" else (1..placeCount).joinToString("、") { "杭州公园$it" })
             compose.onNodeWithTag("assistant-submit").performScrollTo().performClick()
             compose.waitUntil(10_000) { assistant.controller.state.value.awaitingCityConfirmation }
             assertEquals(0, searches)
             assertTrue(runBlocking { trips.observeTrips().first().isEmpty() })
             compose.onNodeWithTag("assistant-confirm-cities").performScrollTo().performClick()
-            compose.waitUntil(20_000) { assistant.controller.state.value.eligible.size == 1 && assistant.controller.state.value.mapReady }
+            compose.waitUntil(100_000) { assistant.controller.state.value.eligible.size == placeCount &&
+                assistant.controller.state.value.mapReady }
             compose.onNodeWithTag("assistant-select-all").performClick()
             compose.onNodeWithTag("assistant-save").assertIsDisplayed().performClick()
             compose.waitUntil(5_000) { draft.state.value.confirming }
@@ -140,7 +149,7 @@ class GlobalAssistantUiTest {
             compose.waitUntil(10_000) { created != null }
             val result = runBlocking { trips.observeTrips().first().single() }
             assertEquals(created, result.id)
-            assertNull(result.startDate); assertEquals(if (editForm) 3 else 1, result.dayCount); assertEquals(1, result.placeCount)
+            assertNull(result.startDate); assertEquals(if (editForm) 3 else 1, result.dayCount); assertEquals(placeCount, result.placeCount)
             assertEquals(0, result.scheduledDayCount); assertNull(journal.pending)
         } finally {
             compose.runOnUiThread { stores.clear() }

@@ -28,19 +28,19 @@ class AssistantLinkNormalizationTest {
         override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
     }
 
-    @Test fun normalizesMoreThanThirtyRawCandidatesBeforeFinalLimitAndRetriesOnlyNormalization() = runTest {
+    @Test fun normalizesMoreThanHundredRawCandidatesBeforeFinalLimitAndRetriesOnlyNormalization() = runTest {
         var textCalls = 0
         var imageCalls = 0
         var normalizationCalls = 0
-        val raw = (0..34).map { PlaceIntent("别名$it", "青州", "别名$it") }
-        val text = PlaceIntentParser { _, _ -> textCalls++; raw }
+        val raw = (1..120).map { PlaceIntent("别名$it", "青州", "别名$it") }
+        val text = PlaceIntentParser { _, _ -> textCalls++; raw.take(60) }
         val normalizer = PlaceIntentNormalizer { candidates, _, _ ->
             normalizationCalls++
-            assertEquals(35, candidates.size)
+            assertEquals(120, candidates.size)
             if (normalizationCalls == 1) throw AssistantFailure("temporary normalization failure")
-            listOf(candidates.first().copy(sources = candidates.flatMap { it.sources }))
+            candidates.take(100)
         }
-        val runner = AssistantInputProcessor(text, ImageIntentParser { _, _, _, _, _ -> imageCalls++; emptyList() },
+        val runner = AssistantInputProcessor(text, ImageIntentParser { _, _, _, _, _ -> imageCalls++; raw.drop(60) },
             Images(), normalizer = normalizer)
         val controller = PlaceAssistantController("trip", this, text, null, importer,
             processor = { runner }, linkLoader = loader())
@@ -52,7 +52,8 @@ class AssistantLinkNormalizationTest {
         assertEquals(1, textCalls)
         assertEquals(1, imageCalls)
         assertEquals(2, normalizationCalls)
-        assertEquals(1, controller.state.value.items.size)
+        assertEquals(100, controller.state.value.items.size)
+        assertEquals("CV", controller.state.value.items.last().label)
         assertEquals(share, controller.state.value.input)
     }
 
@@ -80,12 +81,12 @@ class AssistantLinkNormalizationTest {
         assertTrue(controller.state.value.items.isEmpty())
     }
 
-    @Test fun thirtyNormalizedPlacesProceedAndThirtyOneBlocksWithoutTruncating() = runTest {
-        for (count in listOf(30, 31)) {
+    @Test fun hundredNormalizedPlacesProceedAndHundredOneBlocksWithoutTruncating() = runTest {
+        for (count in listOf(100, 101)) {
             var searches = 0
             val places = (1..count).map { PlaceIntent("公园$it", "青州", "公园$it") }
-            val text = PlaceIntentParser { _, _ -> places }
-            val runner = AssistantInputProcessor(text, ImageIntentParser { _, _, _, _, _ -> emptyList() }, Images(),
+            val text = PlaceIntentParser { _, _ -> places.take(60) }
+            val runner = AssistantInputProcessor(text, ImageIntentParser { _, _, _, _, _ -> places.drop(60) }, Images(),
                 normalizer = PlaceIntentNormalizer { candidates, _, _ -> candidates })
             val controller = PlaceAssistantController("trip", this, text,
                 object : com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource {
@@ -96,14 +97,14 @@ class AssistantLinkNormalizationTest {
                 }, importer, processor = { runner }, linkLoader = loader())
             controller.environment(true, true, true)
             controller.editInput(share); controller.submit(); advanceUntilIdle()
-            if (count == 30) {
-                assertEquals(30, searches)
-                assertEquals("AD", controller.state.value.items.last().label)
+            if (count == 100) {
+                assertEquals(100, searches)
+                assertEquals("CV", controller.state.value.items.last().label)
             } else {
                 assertEquals(0, searches)
                 assertTrue(controller.state.value.items.isEmpty())
-                assertTrue(controller.state.value.error!!.contains("31"))
-                assertTrue(controller.state.value.error!!.contains("最多 30"))
+                assertTrue(controller.state.value.error!!.contains("101"))
+                assertTrue(controller.state.value.error!!.contains("最多 100"))
             }
         }
     }
@@ -145,7 +146,7 @@ class AssistantLinkNormalizationTest {
         val args = """{"items":[$items],"overflow":false}"""
         val response = """{"choices":[{"finish_reason":"tool_calls","message":{"tool_calls":[{"type":"function","function":{"name":"search_place_batch","arguments":${JsonPrimitive(args)}}}]}}]}"""
         assertEquals(35, BatchToolProtocol.decode(response, input, "青州", maxPlaces = 100).size)
-        assertThrows(AssistantFailure::class.java) { BatchToolProtocol.decode(response, input, "青州") }
+        assertEquals(35, BatchToolProtocol.decode(response, input, "青州").size)
         val text = BatchToolProtocol.request(config, input, "青州", maxPlaces = 100, travelMaterials = true)
         val image = ImageToolProtocol.request(config, PreparedImage("id", "image/jpeg", byteArrayOf(1)), 1, input, "青州",
             maxPlaces = 100, travelMaterials = true)

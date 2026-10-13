@@ -32,11 +32,11 @@ import org.junit.Rule
 import org.junit.Test
 
 /** Production panel and controller with synthetic POIs and an in-memory repository only. */
-class AssistantThirtyPlacesUiTest {
+class AssistantHundredPlacesUiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun thirtyPlacesTailLabelsAndDirectSave() = exercise(false)
-    @Test fun narrowDoubleFontThirtyPlacesTailLabelsAndDirectSave() = exercise(true)
+    @Test fun hundredPlacesTailLabelsAndDirectSave() = exercise(false)
+    @Test fun narrowDoubleFontHundredPlacesTailLabelsAndDirectSave() = exercise(true)
 
     private fun exercise(small: Boolean) {
         assumeTrue(Build.HARDWARE in setOf("ranchu", "goldfish"))
@@ -44,8 +44,8 @@ class AssistantThirtyPlacesUiTest {
         val db = Room.inMemoryDatabaseBuilder(context, EasyTripDatabase::class.java).build()
         val stores = ViewModelStore()
         val saved = AtomicInteger()
-        val names = (1..30).map { "公园$it" }
-        val model = PlaceAssistantViewModel("thirty-fixture", AssistantConfigStore(context), object : PlaceImport {
+        val names = (1..100).map { "公园$it" }
+        val model = PlaceAssistantViewModel("hundred-fixture", AssistantConfigStore(context), object : PlaceImport {
             override suspend fun receipt(operationId: String): ImportReceipt? = null
             override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt {
                 saved.set(confirmation.items.size)
@@ -76,9 +76,9 @@ class AssistantThirtyPlacesUiTest {
                     }
                 }
             }
-            compose.waitUntil(35_000) { !model.controller.state.value.busy }
-            assertEquals(30, model.controller.state.value.eligible.size)
-            for (label in listOf("AA", "AB", "AC", "AD")) {
+            compose.waitUntil(100_000) { !model.controller.state.value.busy }
+            assertEquals(100, model.controller.state.value.eligible.size)
+            for (label in listOf("Z", "AA", "AZ", "BA", "BZ", "CA", "CS", "CT", "CU", "CV")) {
                 compose.onNodeWithTag("assistant-marker-$label").performScrollTo().assertIsDisplayed()
                 val layouts = mutableListOf<TextLayoutResult>()
                 compose.onNodeWithText(label, useUnmergedTree = true)
@@ -97,10 +97,10 @@ class AssistantThirtyPlacesUiTest {
             compose.onNodeWithTag("assistant-save").assertIsDisplayed().assertIsEnabled()
             saveScreenshot(if (small) "narrow-double" else "normal")
             compose.onNodeWithTag("assistant-select-all").performClick()
-            compose.waitUntil { model.controller.state.value.selected.size == 30 }
+            compose.waitUntil { model.controller.state.value.selected.size == 100 }
             compose.onNodeWithTag("assistant-save").performClick()
-            compose.waitUntil { saved.get() == 30 && model.controller.state.value.items.isEmpty() }
-            assertEquals(30, saved.get())
+            compose.waitUntil { saved.get() == 100 && model.controller.state.value.items.isEmpty() }
+            assertEquals(100, saved.get())
         } finally {
             compose.runOnIdle { compose.activity.setContentView(View(compose.activity)); stores.clear() }
             db.close()
@@ -108,7 +108,7 @@ class AssistantThirtyPlacesUiTest {
     }
 
     private fun saveScreenshot(name: String) {
-        val output = File(compose.activity.getExternalFilesDir(null), "assistant-thirty").apply { mkdirs() }
+        val output = File(compose.activity.getExternalFilesDir(null), "assistant-hundred").apply { mkdirs() }
         val screenshot = androidx.test.platform.app.InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
         File(output, "$name.png").outputStream().use {
             requireNotNull(screenshot).compress(android.graphics.Bitmap.CompressFormat.PNG, 100, it)

@@ -24,6 +24,26 @@ class RoomTripCreationTest {
         listOf("A", "B").map { ImportItem(it, 0, PlaceCandidate(it, "地点$it", "地址", GeoPoint(30.2, 120.1), null, "杭州"), PlaceCategory.ATTRACTION) },
         listOf("作者推荐"), "create-trip:v1:op", "new-trip")
 
+    @Test fun hundredPlacesCreateAndRecoverOnlyOnceWithNoPartialHundredFirstWrite() = runTest {
+        val items = (1..100).map { index ->
+            ImportItem("item-$index", 0, PlaceCandidate("poi-$index", "地点$index", "地址",
+                GeoPoint(30.2, 120.1), null, "杭州"), PlaceCategory.ATTRACTION)
+        }
+        val cmd = TripCreationCommand.create("100地点", null, 3, TravelMode.FLEXIBLE, items, listOf("测试来源"))
+        val creator = RoomTripCreation(db)
+        val receipt = creator.commit(cmd)
+        assertEquals(100, receipt.addedCount)
+        assertEquals(receipt, RoomTripCreation(db).commit(TripCreationCommand.decode(cmd.encode())))
+        assertEquals(TripCreationRecovery.Committed(receipt), creator.recover(cmd))
+        assertEquals(100, RoomSavedPlaceRepository(db).observePlaces(cmd.tripId, emptySet()).first().size)
+        assertEquals(1, RoomTripRepository(db.tripDao()).observeTrips().first().size)
+        assertThrows(IllegalArgumentException::class.java) {
+            TripCreationCommand.create("101地点", null, 1, TravelMode.FLEXIBLE,
+                items + items.first().copy(itemId = "item-101", poi = items.first().poi.copy(poiId = "poi-101")), emptyList())
+        }
+        assertEquals(1, RoomTripRepository(db.tripDao()).observeTrips().first().size)
+    }
+
     @Test fun createsOnlyOnceAndNeverOverwritesLaterEditsOrResurrectsDeletedTrip() = runTest {
         val creator = RoomTripCreation(db)
         val trips = RoomTripRepository(db.tripDao(), database = db)

@@ -36,6 +36,8 @@ data class TripCreationCommand private constructor(
 
     companion object {
         const val PREFIX = "create-trip:v1:"
+        // Bounded UTF-8 recovery envelope for up to 100 names, addresses and source summaries.
+        const val MAX_ENCODED_BYTES = 1024 * 1024
         fun create(
             name: String, startDate: LocalDate?, dayCount: Int, travelMode: TravelMode,
             items: List<ImportItem>, sources: List<String>,
@@ -63,7 +65,7 @@ data class TripCreationCommand private constructor(
         }
 
         fun decode(value: String): TripCreationCommand {
-            require(value.toByteArray(Charsets.UTF_8).size <= 256 * 1024)
+            require(value.toByteArray(Charsets.UTF_8).size <= MAX_ENCODED_BYTES)
             val root = Json.parseToJsonElement(value).jsonObject
             val c = root.getValue("command").jsonObject
             val command = create(c.text("name"), c["date"]?.jsonPrimitive?.contentOrNull?.let(LocalDate::parse),

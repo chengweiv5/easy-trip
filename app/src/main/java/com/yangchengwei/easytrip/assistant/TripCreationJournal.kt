@@ -18,7 +18,7 @@ class TripCreationJournal(context: Context) : PendingTripCreation {
         val bytes = try { file.openRead().use { stream ->
             val output = java.io.ByteArrayOutputStream()
             val buffer = ByteArray(8192)
-            while (output.size() <= 256 * 1024) {
+            while (output.size() <= TripCreationCommand.MAX_ENCODED_BYTES) {
                 val count = stream.read(buffer)
                 if (count < 0) break
                 output.write(buffer, 0, count)
@@ -26,7 +26,7 @@ class TripCreationJournal(context: Context) : PendingTripCreation {
             output.toByteArray()
         } }
         catch (_: FileNotFoundException) { return null }
-        require(bytes.size <= 256 * 1024) { "创建恢复记录无效，请保留记录并重试" }
+        require(bytes.size <= TripCreationCommand.MAX_ENCODED_BYTES) { "创建恢复记录无效，请保留记录并重试" }
         return TripCreationCommand.decode(bytes.toString(Charsets.UTF_8))
     }
     @Synchronized override fun write(command: TripCreationCommand) {
@@ -34,7 +34,7 @@ class TripCreationJournal(context: Context) : PendingTripCreation {
         val old = read()
         require(old == null || old == command) { "请先处理上次未完成的创建" }
         val bytes = command.encode().toByteArray(Charsets.UTF_8)
-        require(bytes.size <= 256 * 1024)
+        require(bytes.size <= TripCreationCommand.MAX_ENCODED_BYTES)
         val output = file.startWrite()
         try { output.write(bytes); file.finishWrite(output) }
         catch (e: Exception) { file.failWrite(output); throw e }

@@ -5,11 +5,13 @@ import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import okhttp3.HttpUrl.Companion.toHttpUrl
 
 object AssistantPlacePolicy {
-    const val MAX_PLACES = 30
+    const val MAX_PLACES = 100
+    const val BATCH_TIMEOUT_MILLIS = 180_000L
 
     fun label(index: Int): String {
         require(index in 0 until MAX_PLACES)
-        return if (index < 26) ('A' + index).toString() else "A${'A' + index - 26}"
+        return if (index < 26) ('A' + index).toString()
+        else "${'A' + index / 26 - 1}${'A' + index % 26}"
     }
 }
 

@@ -1,4 +1,20 @@
-# 当前任务：v3.4 提交、推送与安装
+# 当前任务：识别地点 30 → 100
+
+状态：**DONE — 开发及限定回归完成（2026-10-14，8bc4），未提交／推送／安装手机／发布。**
+
+- 用户确认将旅行内识别收藏与首页从攻略创建同时放宽到最终100地点；编号A–Z、AA–AZ、BA–BZ、CA–CV，超过100不截断、不查询、不部分写入。20图／1–30天／700ms／并发2不变。
+- 分支`codex/assistant-100-places`，HEAD仍`9ee79bd3c62d1c9311e0cba2a2a6fe2c92c41867`；初始干净、开放PR为空，本轮未暂存或提交。版本仍3.4.0/build27/schema12。
+- 共享上限／编号、文字批次与重试180秒、普通解析8192输出预算、创建恢复记录1MiB已实现；保留严格来源、语义整理、原子创建、幂等与超大记录拒绝。
+- 最终Debug／Release各1135 JVM，0失败／错误／跳过；lint0错误（Debug64Warning+1Hint，Release61Warning+1Hint）；三APK构建成功，Release签名校验与16KB zipalign通过。
+- **最终精确APK19项设备专项通过（322.829秒）**；系统960×1800／480dpi／font_scale=2.0下两条100地点入口复测通过（148.420秒，非额外独立用例）。597源码／测试／构建输入hash和三APK hash收尾回读一致。
+- Pencil唯一目标`design/easy-trip-v3.4.0.pen`：305根／45,243节点，19根增量；原生保存关闭重开、8bc4完整路径回读及代表节点可编辑属性检查通过。当前SHA256`fbc1dca80b5f6d8d95b0091b3ed72d7ad31f90645db6798b9f73c9bccf421ddc`，冻结v3.3不变。最新19图／4页PDF位于`design/previews/assistant-100-places/`；旧30地点预览为历史。
+- 系统显示设置已恢复，read-only自有模拟器`emulator-5586`／PID57277已退出；未对已连接真实手机执行操作，未真实模型／高德100地点端到端验收。旧模型结果、手机安装不代表本批交付。
+- punk-12完成通知`om_x100b63d1adb560a0de647a8aece75ba`于2026-10-14 00:37发送；已独立回读核验完整正文、chat_id、bot app_id及deleted=false后，最后写回本状态。
+- 详细验收、证据与回滚见`docs/testing/assistant-100-places.md`。证据根`/Users/bytedance/.codex/artifacts/easy-trip/places100-8bc4-20261013`。不能把含100地点的待恢复记录直接降回30地点／256KiB版本；schema12只做前向兼容修复。
+
+---
+
+# 历史任务：v3.4 提交、推送与安装
 
 状态：**功能与手机已交付（2026-10-13），仅剩本文档收尾提交／推送；最终以证据根`final-push-verification.json`回读为准。**
 

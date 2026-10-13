@@ -73,7 +73,7 @@ class GlobalAssistantLiveTest {
             val extracted = withTimeout(720_000) { controller.state.first { !it.busy } }
             assertNull(extracted.error)
             assertTrue(extracted.awaitingCityConfirmation)
-            assertTrue(extracted.items.size in 1..30)
+            assertTrue(extracted.items.size in 1..AssistantPlacePolicy.MAX_PLACES)
             assertEquals(6, extracted.images.size)
             assertTrue(trips.observeTrips().first().isEmpty())
             assertTrue(extracted.items.all { it.candidates.isEmpty() })

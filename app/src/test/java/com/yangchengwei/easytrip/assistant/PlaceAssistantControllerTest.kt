@@ -4,6 +4,7 @@ import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.*
 import org.junit.Assert.*
 import org.junit.Test
@@ -50,9 +51,9 @@ class PlaceAssistantControllerTest {
         assertEquals(2, c.state.value.items.single().candidates.size)
     }
 
-    @Test fun thirtyPlacesHaveReadableUniqueLabelsAndCanBeCollectedTogether() = runTest {
+    @Test fun hundredPlacesHaveReadableUniqueLabelsAndCanBeCollectedTogether() = runTest {
         val importer = Importer()
-        val names = (1..30).map { "公园$it" }
+        val names = (1..100).map { "公园$it" }
         val controller = PlaceAssistantController("trip", this,
             PlaceIntentParser { _, _ -> names.map { PlaceIntent(it, "杭州", it) } },
             object : PlaceSearchDataSource {
@@ -60,11 +61,55 @@ class PlaceAssistantControllerTest {
             }, importer)
         controller.environment(true, true, true)
         controller.editInput(names.joinToString("、")); controller.submit(); advanceUntilIdle()
-        assertEquals(30, controller.state.value.eligible.size)
-        assertEquals(listOf("Y", "Z", "AA", "AB", "AC", "AD"), controller.state.value.items.takeLast(6).map { it.label })
+        assertEquals(100, controller.state.value.eligible.size)
+        val labels = controller.state.value.items.map { it.label }
+        assertEquals(100, labels.distinct().size)
+        assertTrue(labels.all { it.matches(Regex("[A-Z]{1,2}")) })
+        assertEquals(listOf("Y", "Z", "AA", "AB", "AC", "AD"), labels.subList(24, 30))
+        assertEquals(listOf("AZ", "BA", "BB"), labels.subList(51, 54))
+        assertEquals(listOf("BZ", "CA", "CB"), labels.subList(77, 80))
+        assertEquals(listOf("CS", "CT", "CU", "CV"), labels.takeLast(4))
         controller.selectAll(); controller.saveSelected(); advanceUntilIdle()
         assertEquals(1, importer.calls)
-        assertEquals(30, controller.state.value.receipt!!.addedCount)
+        assertEquals(100, controller.state.value.receipt!!.addedCount)
+    }
+    @Test fun hundredPlacesFinishAfterSlowRecognitionWithoutRelaxingSearchPacing() = runTest {
+        val starts = mutableListOf<Long>()
+        val names = (1..100).map { "公园$it" }
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> delay(60_000); names.map { PlaceIntent(it, "杭州", it) } },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                    starts += testScheduler.currentTime
+                    return listOf(poi(keyword.removePrefix("杭州")))
+                }
+            }, Importer(), searchPacer = AssistantSearchPacer { testScheduler.currentTime })
+        controller.environment(true, true, true)
+        controller.editInput(names.joinToString("、")); controller.submit(); advanceUntilIdle()
+        assertEquals(100, controller.state.value.eligible.size)
+        assertEquals(100, starts.size)
+        assertTrue(starts.zipWithNext().all { (a, b) -> b - a >= 700 })
+        assertNull(controller.state.value.error)
+    }
+    @Test fun hundredOneTextPlacesNeverSearchOrSaveATruncatedPrefix() = runTest {
+        val importer = Importer()
+        var searches = 0
+        val names = (1..101).map { "公园$it" }
+        val controller = PlaceAssistantController("trip", this,
+            PlaceIntentParser { _, _ -> names.map { PlaceIntent(it, "杭州", it) } },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
+                    searches++
+                    return listOf(poi(keyword))
+                }
+            }, importer)
+        controller.environment(true, true, true)
+        controller.editInput(names.joinToString("、")); controller.submit(); advanceUntilIdle()
+        assertEquals(0, searches)
+        assertEquals(0, importer.calls)
+        assertTrue(controller.state.value.items.isEmpty())
+        assertEquals(names.joinToString("、"), controller.state.value.input)
+        assertTrue(controller.state.value.error!!.contains("最多 100"))
     }
     @Test fun submitDoesNotRequireSendConsentAndStillCannotSave() = runTest {
         val importer = Importer()

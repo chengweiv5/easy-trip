@@ -50,7 +50,7 @@ object BatchToolProtocol {
 
     fun request(config: ProviderConfig, input: String, city: String, maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
         travelMaterials: Boolean = false): String = buildJsonObject {
-        put("model", config.model); put("stream", false); put("max_tokens", if (travelMaterials) 8192 else 4096)
+        put("model", config.model); put("stream", false); put("max_tokens", 8192)
         if (okhttp3.HttpUrl.Companion.run { config.baseUrl.toHttpUrl().host } == "api.deepseek.com") putJsonObject("thinking") { put("type", "disabled") }
         putJsonArray("messages") {
             addJsonObject {

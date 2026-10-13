@@ -28,4 +28,22 @@ class TripCreationCommandTest {
         assertTrue(runCatching { TripCreationCommand.create("旅行", null, 1, TravelMode.FLEXIBLE,
             listOf(item, item.copy(itemId = "B")), emptyList()) }.isFailure)
     }
+    @Test fun hundredLongNamedPlacesRoundTripWithoutLosingTheLastPlace() {
+        val items = (1..100).map { index ->
+            item.copy(itemId = "item-$index", poi = item.poi.copy(
+                poiId = "poi-$index", name = "景".repeat(200), address = "址".repeat(1000)))
+        }
+        val command = TripCreationCommand.create("旅行", null, 1, TravelMode.FLEXIBLE, items,
+            (1..60).map { "$it" + "源".repeat(497) })
+        assertTrue(command.encode().toByteArray(Charsets.UTF_8).size > 256 * 1024)
+        assertEquals(command, TripCreationCommand.decode(command.encode()))
+        assertThrows(IllegalArgumentException::class.java) {
+            TripCreationCommand.decode(" ".repeat(1024 * 1024 + 1))
+        }
+        assertEquals(items.map { it.poi.poiId }.toSet(), command.items.map { it.poi.poiId }.toSet())
+        assertThrows(IllegalArgumentException::class.java) {
+            TripCreationCommand.create("旅行", null, 1, TravelMode.FLEXIBLE,
+                items + item.copy(itemId = "item-101", poi = item.poi.copy(poiId = "poi-101")), emptyList())
+        }
+    }
 }

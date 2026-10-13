@@ -211,11 +211,11 @@ class AssistantImageControllerTest {
         assertEquals(setOf("i1","i2","i3"), c.state.value.eligible.single().sources.filterIsInstance<IntakeSource.Image>().map { it.imageId }.toSet())
     }
 
-    @Test fun thirtyOnePlacesNeverQueryATruncatedPrefix() = runTest {
+    @Test fun hundredOnePlacesNeverQueryATruncatedPrefix() = runTest {
         var queries = 0
         val text = PlaceIntentParser { _, _ -> emptyList() }
         val runner = AssistantInputProcessor(text, ImageIntentParser { image, ordinal, _, _, _ ->
-            (1..(if (ordinal == 6) 6 else 5)).map {
+            (1..(if (ordinal == 6) 16 else 17)).map {
                 PlaceIntent("地点$ordinal-$it", "杭州", "地点$ordinal-$it",
                     sources = listOf(IntakeSource.Image(image.id, ordinal, "地点")))
             }
@@ -232,7 +232,7 @@ class AssistantImageControllerTest {
         assertEquals(0, queries)
         assertTrue(c.state.value.items.isEmpty())
         assertEquals(6, c.state.value.images.size)
-        assertTrue(c.state.value.error!!.contains("30"))
+        assertTrue(c.state.value.error!!.contains("100"))
     }
     @Test fun unsupportedFirstImageStopsRemainingUploads() = runTest {
         var calls = 0

@@ -58,7 +58,7 @@ class ImagePlaceParserTest {
     @Test fun oversizedToolItemsAreOverflowEvenWhenModelFlagIsFalse() {
         val item = """{"query":"灵隐寺","city":"杭州","sourceSpan":"杭州 灵隐寺","uncertain":false}"""
         val failure = assertThrows(AssistantFailure::class.java) {
-            ImageToolProtocol.decode(response("""{"items":[${List(31) { item }.joinToString(",")}],"overflow":false}"""), "id", 1)
+            ImageToolProtocol.decode(response("""{"items":[${List(101) { item }.joinToString(",")}],"overflow":false}"""), "id", 1)
         }
         assertEquals(AssistantFailureCode.OVERFLOW, failure.code)
     }

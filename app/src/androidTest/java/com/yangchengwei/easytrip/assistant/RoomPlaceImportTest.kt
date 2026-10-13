@@ -28,18 +28,18 @@ class RoomPlaceImportTest {
     private fun item(id: String) = ImportItem(id, 0, PlaceCandidate(id, "地点$id", "地址$id",
         GeoPoint(30.2, 120.1), null, "杭州"), PlaceCategory.ATTRACTION)
 
-    @Test fun thirtyPlacesCommitAtomicallyAndThirtyFirstIsRejectedBeforeWrites() = runTest {
-        val trip = RoomTripRepository(db.tripDao()).createTrip(CreateTrip("三十地点", 1))
+    @Test fun hundredPlacesCommitAtomicallyAndHundredFirstIsRejectedBeforeWrites() = runTest {
+        val trip = RoomTripRepository(db.tripDao()).createTrip(CreateTrip("一百地点", 1))
         val places = RoomSavedPlaceRepository(db)
         val importer = RoomPlaceImport(db)
-        val thirty = (1..30).map { item("place-$it") }
-        val confirmation = ImportConfirmation.create(trip, thirty, "thirty")
+        val hundred = (1..100).map { item("place-$it") }
+        val confirmation = ImportConfirmation.create(trip, hundred, "hundred")
         val receipt = importer.commit(confirmation)
-        assertEquals(30, receipt.addedCount)
+        assertEquals(100, receipt.addedCount)
         assertEquals(receipt, importer.commit(confirmation))
-        assertEquals(30, places.observePlaces(trip, emptySet()).first().size)
-        assertTrue(runCatching { ImportConfirmation.create(trip, thirty + item("31")) }.isFailure)
-        assertEquals(30, places.observePlaces(trip, emptySet()).first().size)
+        assertEquals(100, places.observePlaces(trip, emptySet()).first().size)
+        assertTrue(runCatching { ImportConfirmation.create(trip, hundred + item("101")) }.isFailure)
+        assertEquals(100, places.observePlaces(trip, emptySet()).first().size)
     }
 
     @Test fun batchAndReceiptArePersistentAndIdempotentWithoutOverwritingExisting() = runTest {

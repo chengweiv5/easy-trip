@@ -2,8 +2,24 @@ package com.yangchengwei.easytrip.assistant
 
 import org.junit.Assert.*
 import org.junit.Test
+import kotlinx.serialization.json.*
 
 class DeepSeekPlaceParserTest {
+    @Test fun hundredPlaceRequestsHaveLargerOutputBudgetForTextAndImages() {
+        val config = ProviderConfig("https://example.test", "model", "secret")
+        val requests = listOf(
+            BatchToolProtocol.request(config, "公园", "杭州"),
+            ImageToolProtocol.request(config, PreparedImage("i", "image/jpeg", byteArrayOf(1)), 1, "", "杭州"),
+        )
+        requests.forEach { request ->
+            val root = Json.parseToJsonElement(request).jsonObject
+            assertEquals(8192, root.getValue("max_tokens").jsonPrimitive.int)
+            val items = root.getValue("tools").jsonArray.single().jsonObject.getValue("function").jsonObject
+                .getValue("parameters").jsonObject.getValue("properties").jsonObject.getValue("items").jsonObject
+            assertEquals(100, items.getValue("maxItems").jsonPrimitive.int)
+        }
+    }
+
     @Test fun providerRejectsInsecureOrCredentialBearingUrls() {
         listOf("http://example.com", "https://user:pass@example.com", "https://example.com?key=a",
             "https://example.com/#secret", "https://example.com/chat/completions").forEach {
@@ -20,6 +36,23 @@ class DeepSeekPlaceParserTest {
         val response = response("""{"items":[{"query":"灵隐寺","city":"杭州","sourceSpan":"灵隐寺"},{"query":"河坊街","city":"杭州","sourceSpan":"河坊街"}],"overflow":false}""")
         assertEquals(listOf(PlaceIntent("灵隐寺", "杭州", "灵隐寺"), PlaceIntent("河坊街", "杭州", "河坊街")),
             BatchToolProtocol.decode(response, "杭州的灵隐寺和河坊街"))
+    }
+    @Test fun hundredTextAndImagePlacesDecodeButHundredOneIsRejectedWithoutTruncation() {
+        for (count in listOf(100, 101)) {
+            val names = (1..count).map { "公园$it" }
+            val items = names.joinToString(",") {
+                """{"query":"$it","city":"杭州","sourceSpan":"$it","uncertain":false}"""
+            }
+            val response = response("""{"items":[$items],"overflow":false}""")
+            val textResponse = response("""{"items":[${items.replace(",\"uncertain\":false", "")}],"overflow":false}""")
+            if (count == 100) {
+                assertEquals(names, BatchToolProtocol.decode(textResponse, names.joinToString("、"), "杭州").map { it.query })
+                assertEquals(names, ImageToolProtocol.decode(response, "image", 1).map { it.query })
+            } else {
+                assertThrows(AssistantFailure::class.java) { BatchToolProtocol.decode(textResponse, names.joinToString("、"), "杭州") }
+                assertThrows(AssistantFailure::class.java) { ImageToolProtocol.decode(response, "image", 1) }
+            }
+        }
     }
 
     @Test fun untrustedIncompleteAndWriteToolsAreRejected() {

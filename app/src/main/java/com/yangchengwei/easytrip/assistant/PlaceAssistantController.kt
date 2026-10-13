@@ -197,13 +197,16 @@ class PlaceAssistantController(
         mutable.value = s.copy(busy = true, error = null, receipt = null)
         work = scope.launch {
             try {
-                withTimeout(90_000) {
+                withTimeout(AssistantPlacePolicy.BATCH_TIMEOUT_MILLIS) {
                     val city = resolveSearchCity(s.city)
                     if (!isCurrent(generation)) return@withTimeout
                     mutable.value = mutable.value.copy(city = city)
                     val intents = parser.parse(input, city)
                     if (!isCurrent(generation)) return@withTimeout
-                    require(intents.size in 1..AssistantPlacePolicy.MAX_PLACES)
+                    if (intents.size > AssistantPlacePolicy.MAX_PLACES) throw AssistantFailure(
+                        "每批最多 ${AssistantPlacePolicy.MAX_PLACES} 个地点，请分批；原输入保留，没有截断或查询。",
+                        AssistantFailureCode.OVERFLOW, SendEvidence.RESPONSE_RECEIVED)
+                    require(intents.isNotEmpty())
                     val items = intents.mapIndexed { index, intent ->
                         val default = intent.city.isBlank() || (city.isNotBlank() &&
                             sameCity(intent.city, city) && !input.contains(intent.city.removeSuffix("市")))
@@ -469,7 +472,7 @@ class PlaceAssistantController(
         val generation = ++run
         mutable.value = mutable.value.copy(busy = true, error = null)
         work = scope.launch {
-            try { withTimeout(90_000) { query(allowed, generation) } }
+            try { withTimeout(AssistantPlacePolicy.BATCH_TIMEOUT_MILLIS) { query(allowed, generation) } }
             catch (_: TimeoutCancellationException) { if (isCurrent(generation)) stopPending("查询超时，已完成结果保留。") }
             finally { if (isCurrent(generation)) mutable.value = mutable.value.copy(busy = false) }
         }
