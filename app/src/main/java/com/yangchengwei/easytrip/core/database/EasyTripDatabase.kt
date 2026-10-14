@@ -27,13 +27,22 @@ interface SchemaItineraryDao {
     @Query("SELECT COUNT(*) FROM itinerary_items WHERE tripId=:tripId") suspend fun items(tripId:String):Int
     @Query("SELECT COUNT(*) FROM route_legs WHERE tripDayId IN (SELECT id FROM trip_days WHERE tripId=:tripId)") suspend fun legs(tripId:String):Int
 }
-@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class,com.yangchengwei.easytrip.expense.data.PlaceExpenseEntity::class,com.yangchengwei.easytrip.assistant.data.ImportReceiptEntity::class,com.yangchengwei.easytrip.assistant.data.TripCreationReceiptEntity::class],version=12,exportSchema=true)
+@Database(entities=[TripEntity::class,TripDayEntity::class,SavedPlaceEntity::class,TagEntity::class,SavedPlaceTagCrossRef::class,ItineraryItemEntity::class,RouteLegEntity::class,com.yangchengwei.easytrip.expense.data.PlaceExpenseEntity::class,com.yangchengwei.easytrip.assistant.data.ImportReceiptEntity::class,com.yangchengwei.easytrip.assistant.data.TripCreationReceiptEntity::class,com.yangchengwei.easytrip.assistant.data.GuideDestinationEntity::class,com.yangchengwei.easytrip.assistant.data.GuideHandoffEntity::class,com.yangchengwei.easytrip.assistant.data.GuideCreationReceiptEntity::class],version=13,exportSchema=true)
 @TypeConverters(Converters::class) abstract class EasyTripDatabase:RoomDatabase(){
+    abstract fun guideCreationDao(): com.yangchengwei.easytrip.assistant.data.GuideCreationDao
     abstract fun tripCreationReceiptDao(): com.yangchengwei.easytrip.assistant.data.TripCreationReceiptDao
     abstract fun importReceiptDao(): com.yangchengwei.easytrip.assistant.data.ImportReceiptDao
     abstract fun expenseDao(): com.yangchengwei.easytrip.expense.data.ExpenseDao
     abstract fun tripDao():TripDao; abstract fun placeDao():SchemaPlaceDao; abstract fun savedPlaceDao():com.yangchengwei.easytrip.place.data.PlaceDao; abstract fun itineraryDao():SchemaItineraryDao; abstract fun itineraryEditingDao():com.yangchengwei.easytrip.itinerary.data.ItineraryDao; abstract fun routeDao():SchemaRouteDao; abstract fun routeLegDao():com.yangchengwei.easytrip.route.data.RouteLegDao; abstract fun deleteImpactDao():DeleteImpactDao; abstract fun cascadeCountDao():CascadeCountDao
     companion object {
+        val MIGRATION_12_13 = object : Migration(12, 13) {
+            override fun migrate(db: SupportSQLiteDatabase) {
+                db.execSQL("CREATE TABLE IF NOT EXISTS assistant_trip_destinations (tripId TEXT NOT NULL PRIMARY KEY, cities TEXT NOT NULL, FOREIGN KEY(tripId) REFERENCES trips(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS assistant_guide_handoffs (operationId TEXT NOT NULL PRIMARY KEY, tripId TEXT NOT NULL, digest TEXT NOT NULL, materialId TEXT NOT NULL, materialDigest TEXT NOT NULL, status TEXT NOT NULL, attempt INTEGER NOT NULL, resultRef TEXT, FOREIGN KEY(tripId) REFERENCES trips(id) ON UPDATE NO ACTION ON DELETE CASCADE)")
+                db.execSQL("CREATE UNIQUE INDEX IF NOT EXISTS index_assistant_guide_handoffs_tripId ON assistant_guide_handoffs(tripId)")
+                db.execSQL("CREATE TABLE IF NOT EXISTS assistant_guide_creation_receipts (operationId TEXT NOT NULL PRIMARY KEY, tripId TEXT NOT NULL, digest TEXT NOT NULL)")
+            }
+        }
         val MIGRATION_11_12 = object : Migration(11, 12) {
             override fun migrate(db: SupportSQLiteDatabase) {
                 db.execSQL("CREATE TABLE IF NOT EXISTS assistant_trip_creation_receipts (operationId TEXT NOT NULL PRIMARY KEY, tripId TEXT NOT NULL, digest TEXT NOT NULL, resultsJson TEXT NOT NULL)")

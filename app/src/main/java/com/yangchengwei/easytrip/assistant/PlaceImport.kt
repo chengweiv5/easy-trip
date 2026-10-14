@@ -33,6 +33,7 @@ data class ImportReceipt(val operationId: String, val tripId: String, val digest
 }
 interface PlaceImport {
     suspend fun latestReceipt(tripId: String): ImportReceipt? = null
+    suspend fun guideReceipt(operationId: String): ImportReceipt? = null
     suspend fun commit(confirmation: ImportConfirmation): ImportReceipt
     suspend fun receipt(operationId: String): ImportReceipt?
 }

@@ -18,12 +18,22 @@ import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.draw.clipToBounds
+import com.yangchengwei.easytrip.core.ui.component.EasyTripSecondaryButton
 
 @Composable
 fun AssistantImageInput(state: PlaceAssistantState, onPick: () -> Unit, onPreview: (String) -> Unit,
-    onRemove: (String) -> Unit, store: AssistantImageStore? = null, sessionId: String = "") {
+    onRemove: (String) -> Unit, store: AssistantImageStore? = null, sessionId: String = "",
+    compact: Boolean = false) {
     val editable = !state.busy && !state.saving && state.items.isEmpty() && !state.attachmentSelectionBusy
-    OutlinedButton(onPick, enabled = editable && state.images.size < AssistantImagePolicy.MAX_IMAGES,
+    if (compact) Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween) {
+        EasyTripSecondaryButton(onPick, enabled = editable && state.images.size < AssistantImagePolicy.MAX_IMAGES,
+            modifier = Modifier.heightIn(min = 48.dp).testTag("assistant-pick-images")) {
+            Text(if (state.attachmentSelectionBusy) "正在读取…" else "上传图片")
+        }
+        Text(if (state.images.isEmpty()) "最多 20 张" else "${state.images.size} / 20 张",
+            style = MaterialTheme.typography.bodySmall)
+    } else OutlinedButton(onPick, enabled = editable && state.images.size < AssistantImagePolicy.MAX_IMAGES,
         modifier = Modifier.heightIn(min = 48.dp).testTag("assistant-pick-images")) {
         Text(if (state.attachmentSelectionBusy) "正在读取所选图片…" else "添加图片 · ${state.images.size}/${AssistantImagePolicy.MAX_IMAGES}")
     }
@@ -54,7 +64,7 @@ fun AssistantImageInput(state: PlaceAssistantState, onPick: () -> Unit, onPrevie
             }
         }
     }
-    Text("JPG / PNG / WebP 静态图 · 单张 ≤10 MB，总计 ≤30 MB。选图不会发送。",
+    if (!compact) Text("JPG / PNG / WebP 静态图 · 单张 ≤10 MB，总计 ≤30 MB。选图不会发送。",
         style = MaterialTheme.typography.bodySmall)
 }
 

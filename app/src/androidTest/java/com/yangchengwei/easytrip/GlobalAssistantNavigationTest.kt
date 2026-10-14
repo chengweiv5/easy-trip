@@ -16,10 +16,60 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
 import org.junit.*
 import org.junit.Assert.*
+import com.yangchengwei.easytrip.assistant.cityfirst.*
+import java.util.UUID
+import kotlinx.serialization.json.*
 
 /** Production NavHost and recovery; only this test's in-memory DB is written. */
 class GlobalAssistantNavigationTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
+
+    @Test fun cityFirstRecoveredCreationOpensWorkspaceAndBackRemovesGlobalEntry() {
+        val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+        val db = Room.inMemoryDatabaseBuilder(compose.activity, EasyTripDatabase::class.java).build()
+        val container = AppContainer(compose.activity, scope, databaseFactory = { db },
+            networkFactory = { _, _ -> object : NetworkMonitor { override val isOnline = MutableStateFlow(false) } })
+        check(container.tripCreationJournal.read() == null && container.guideJournal.read() == null)
+        val session = UUID.randomUUID().toString()
+        try {
+            compose.setContent {
+                EasyTripTheme {
+                    AppNavigation(container.tripService, container.tripRepository, container.deleteImpactProvider,
+                        dependencies = AppNavigationDependencies(container.savedPlaceRepository, container.itineraryRepository,
+                            container.routeLegRepository, container.mapPreferences, container.locationPermissionRequestStore,
+                            assistantContainer = container))
+                }
+            }
+            val command = runBlocking {
+                val material = container.guideMaterials.prepare(session, "青州公园", emptyList()) {}
+                CreateGuideTripCommand.create("城市优先导航", null, 1, TravelMode.FLEXIBLE,
+                    AssistantCityScope.parse("青州"), material.ref).also {
+                    container.guideMaterials.withRetained(it.material) { container.guideCreation.commit(it) }
+                }
+            }
+            container.guideJournal.write(buildJsonObject {
+                put("version", 1); put("session", session); put("reference", "2026-10-14"); put("zone", "Asia/Shanghai")
+                put("input", "青州公园"); put("images", JsonArray(emptyList())); put("cities", "青州")
+                put("name", "城市优先导航"); put("date", JsonNull); put("days", 1); put("mode", "FLEXIBLE")
+                put("confirming", true); put("materialDigest", command.material.digest); put("pending", command.encode())
+            }.toString())
+            compose.onNodeWithTag("assistant-create-trip").performClick()
+            compose.waitUntil(15_000) { compose.onAllNodesWithTag("workspace-screen-root").fetchSemanticsNodes().isNotEmpty() }
+            compose.waitUntil(10_000) { container.guideJournal.read() == null }
+            assertEquals(1, runBlocking { container.tripRepository.observeTrips().first().size })
+            assertEquals(0, runBlocking { container.tripRepository.observeTrips().first().single().placeCount })
+            assertEquals(listOf("青州"), runBlocking { container.guideCreation.scope(command.tripId) }!!.names)
+            compose.activityRule.scenario.onActivity { it.onBackPressedDispatcher.onBackPressed() }
+            compose.waitUntil(10_000) { compose.onAllNodesWithTag("assistant-create-trip").fetchSemanticsNodes().isNotEmpty() }
+            compose.onNodeWithTag("global-assistant").assertDoesNotExist()
+            runBlocking { container.tripRepository.deleteTrip(command.tripId) }
+        } finally {
+            container.guideJournal.read()?.let { container.guideJournal.clear(session) }
+            compose.activityRule.scenario.close()
+            scope.cancel()
+            db.close()
+        }
+    }
 
     @Test fun restoredCommitOpensNewWorkspaceAndBackDoesNotReturnToDraft() {
         val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)

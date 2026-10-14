@@ -16,7 +16,7 @@ fun tripUserIntent(input: String): String {
     if (!Regex("https?://", RegexOption.IGNORE_CASE).containsMatchIn(input)) return input
     return input.lineSequence().filter { line ->
         !Regex("https?://", RegexOption.IGNORE_CASE).containsMatchIn(line) &&
-            Regex("^\\s*(我计划|我打算|我想|我要|我的出行计划[：:]|我的安排[：:])").containsMatchIn(line)
+            Regex("^\\s*(我计划|我打算|我想|我要|我(?:明天|后天|下周|周末|下个月)|我的出行计划[：:]|我的安排[：:])").containsMatchIn(line)
     }.joinToString("\n")
 }
 

@@ -21,5 +21,7 @@ interface ImportReceiptDao {
     suspend fun receipt(operationId: String): ImportReceiptEntity?
     @Query("SELECT * FROM assistant_import_receipts WHERE tripId=:tripId ORDER BY rowid DESC LIMIT 1")
     suspend fun latest(tripId: String): ImportReceiptEntity?
+    @Query("SELECT * FROM assistant_import_receipts WHERE substr(operationId,1,length(:prefix))=:prefix ORDER BY rowid DESC LIMIT 1")
+    suspend fun forGuide(prefix: String): ImportReceiptEntity?
     @Insert suspend fun insert(receipt: ImportReceiptEntity)
 }

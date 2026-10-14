@@ -149,12 +149,13 @@ class ImagePlaceParser(
     private val transport: AssistantTransport = AssistantTransport(),
     private val maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
     private val travelMaterials: Boolean = false,
+    private val cityScope: () -> AssistantCityScope? = { null },
 ) : ImageIntentParser {
     override suspend fun parse(image: PreparedImage, ordinal: Int, context: String, defaultCity: String,
         onResponseWait: () -> Unit): List<PlaceIntent> {
         require(context.length <= 20_000 && defaultCity.length <= 50)
         val current = config()?.validated() ?: throw AssistantFailure("请先配置助手模型。")
-        val response = transport.post(current, ImageToolProtocol.request(current, image, ordinal, context, defaultCity, maxPlaces, travelMaterials), onResponseWait)
+        val response = transport.post(current, withCityScope(ImageToolProtocol.request(current, image, ordinal, context, defaultCity, maxPlaces, travelMaterials), cityScope()), onResponseWait)
         return ImageToolProtocol.decode(response, image.id, ordinal, maxPlaces, requireTargetEvidence = travelMaterials)
     }
 }

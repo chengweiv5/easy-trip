@@ -420,7 +420,7 @@ fun AppNavigation(
     }
     val navigate: (String) -> Unit = { route ->
         currentNavigationObserver.value?.onNavigate(route)
-        navController.navigate(route)
+        navController.navigate(route) { if (route == "assistant/new-trip") launchSingleTop = true }
     }
     NavHost(navController, startDestination = TRIP_LIST_ROUTE) {
         composable(
@@ -484,6 +484,8 @@ fun AppNavigation(
             if (container == null || effectiveDependencies == null) {
                 Column { Text("助手服务暂不可用"); Button({ navController.popBackStack() }) { Text("返回") } }
             } else {
+                val oldPending = remember(container) { runCatching { container.tripCreationJournal.read() } }
+                if (oldPending.isFailure || oldPending.getOrNull() != null) {
                 val assistant: com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel = viewModel(
                     viewModelStoreOwner = entry,
                     factory = com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel.Factory(
@@ -508,6 +510,18 @@ fun AppNavigation(
                             popUpTo("assistant/new-trip") { inclusive = true }
                         }
                     })
+                } else {
+                    val model: com.yangchengwei.easytrip.assistant.cityfirst.GuideCreationViewModel = viewModel(
+                        viewModelStoreOwner = entry,
+                        factory = com.yangchengwei.easytrip.assistant.cityfirst.GuideCreationViewModel.Factory(container::guideViewModel))
+                    com.yangchengwei.easytrip.assistant.cityfirst.GuideCreationRoute(model,
+                        onBack = { navController.popBackStack() },
+                        onCreated = { id ->
+                            navController.navigate("trips/${Uri.encode(id)}") {
+                                popUpTo("assistant/new-trip") { inclusive = true }
+                            }
+                        })
+                }
             }
         }
         composable(ASSISTANT_SETTINGS_ROUTE) {
@@ -581,13 +595,14 @@ fun AppNavigation(
                 val token = runtime.token
                 val placeModel: PlacePoolViewModel = viewModel(factory = PlacePoolViewModel.Factory(id, workspaceDependencies.savedPlaceRepository, source))
                 val workspaceModel: TripWorkspaceViewModel = viewModel(factory = TripWorkspaceViewModel.Factory(id, repository, workspaceDependencies.savedPlaceRepository, workspaceDependencies.itineraryRepository, workspaceDependencies.routeLegRepository, mapPreferences = workspaceDependencies.mapPreferences))
-                val assistantModel = application?.container?.let { container ->
+                val assistantModel = (workspaceDependencies.assistantContainer ?: application?.container)?.let { container ->
                     viewModel<com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel>(
                         viewModelStoreOwner = entry,
                         factory = com.yangchengwei.easytrip.assistant.PlaceAssistantViewModel.Factory(
                             id, container.assistantConfig, container.placeImport, workspaceDependencies.savedPlaceRepository,
                             container.assistantImages, entry.savedStateHandle, container.assistantSearchDiagnostics,
-                            container.assistantSearchPacer, container.assistantLinks),
+                            container.assistantSearchPacer, container.assistantLinks,
+                            guideStore = container.guideCreation, guideMaterials = container.guideMaterials, guideResults = container.guideResults),
                     )
                 }
                 LaunchedEffect(assistantModel, source) { assistantModel?.controller?.updateSource(source) }

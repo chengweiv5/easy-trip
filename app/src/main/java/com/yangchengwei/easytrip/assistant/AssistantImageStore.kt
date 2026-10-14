@@ -36,16 +36,33 @@ interface AssistantImageStore {
     suspend fun release(sessionId: String)
     suspend fun importBytes(sessionId: String, bytes: ByteArray, existing: List<AssistantImage>): AssistantImage =
         throw AssistantFailure("当前图片存储不支持链接素材。")
+    suspend fun restoreCopy(sessionId: String, descriptor: AssistantImage, prepared: PreparedImage): AssistantImage =
+        throw AssistantFailure("当前图片存储不支持恢复素材。")
 }
 
 /** App-scoped, private, temporary storage. No URI, image or model payload enters a database. */
 class AndroidAssistantImageStore(
     context: Context,
     private val root: File = File(context.noBackupFilesDir, "assistant-input"),
+    private val clearOnStart: Boolean = true,
 ) : AssistantImageStore {
     private val resolver = context.applicationContext.contentResolver
     private val lock = Mutex()
     private val interrupted = mutableSetOf<String>()
+    override suspend fun restoreCopy(sessionId: String, descriptor: AssistantImage, prepared: PreparedImage): AssistantImage =
+        withContext(Dispatchers.IO) {
+            lock.withLock {
+                require(descriptor.id == prepared.id && validId(descriptor.id))
+                require(prepared.bytes.size in 1..AssistantImagePolicy.MAX_PREPARED_BYTES)
+                AssistantImagePolicy.mime(prepared.bytes)
+                directory(sessionId)
+                val target = android.util.AtomicFile(file(sessionId, descriptor.id))
+                val output = target.startWrite()
+                try { output.write(prepared.bytes); target.finishWrite(output) }
+                catch (e: Exception) { target.failWrite(output); throw e }
+                descriptor.copy(mimeType = prepared.mimeType, byteCount = prepared.bytes.size.toLong())
+            }
+        }
     override suspend fun importBytes(sessionId: String, bytes: ByteArray, existing: List<AssistantImage>): AssistantImage {
         var created: File? = null
         try {
@@ -81,7 +98,7 @@ class AndroidAssistantImageStore(
     }
     init {
         // Only our previous process's session directories, never other application caches.
-        root.listFiles()?.filter { it.isDirectory && validId(it.name) }?.forEach {
+        root.listFiles()?.filter { clearOnStart && it.isDirectory && validId(it.name) }?.forEach {
             if (it.listFiles()?.any { child -> child.isFile && validId(child.name) } == true)
                 runCatching { File(it, "trip").readText() }.getOrNull()?.let(interrupted::add)
             it.deleteRecursively()

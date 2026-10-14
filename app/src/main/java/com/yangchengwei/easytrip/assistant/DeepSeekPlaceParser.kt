@@ -13,7 +13,8 @@ import okhttp3.RequestBody.Companion.toRequestBody
 
 object BatchToolProtocol {
     private val json = Json
-    fun decode(response: String, input: String, defaultCity: String = "", maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES): List<PlaceIntent> = try {
+    fun decode(response: String, input: String, defaultCity: String = "", maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
+        scope: AssistantCityScope? = null): List<PlaceIntent> = try {
         val root = json.parseToJsonElement(response).jsonObject
         val choices = root.getValue("choices").jsonArray
         require(choices.size == 1)
@@ -41,7 +42,7 @@ object BatchToolProtocol {
             require(listOf("query", "city", "sourceSpan").all { item.getValue(it).jsonPrimitive.isString })
             require(query.none(Char::isISOControl) && city.none(Char::isISOControl))
             require(normalizedPlace(query).isNotEmpty() && normalizedPlace(span).contains(normalizedPlace(query)))
-            require(city.isBlank() || sameCity(city, defaultCity) ||
+            require(city.isBlank() || sameCity(city, defaultCity) || scope?.names?.any { sameCity(city, it) } == true ||
                 normalizedPlace(input).contains(normalizedPlace(city).removeSuffix("市")))
             PlaceIntent(query, city, span)
         }
@@ -100,10 +101,11 @@ class DeepSeekPlaceParser(
     private val travelMaterials: Boolean = false,
 ) : PlaceIntentParser {
     private val transport = AssistantTransport(client)
-    override suspend fun parse(input: String, defaultCity: String): List<PlaceIntent> {
+    override suspend fun parse(input: String, defaultCity: String) = parseInScope(input, defaultCity, null)
+    override suspend fun parseInScope(input: String, defaultCity: String, scope: AssistantCityScope?): List<PlaceIntent> {
         require(input.length in 1..maxInputLength && defaultCity.length <= 50)
         val current = config()?.validated() ?: throw AssistantFailure("请先在助手设置配置模型服务。")
-        val response = transport.post(current, BatchToolProtocol.request(current, input, defaultCity, maxPlaces, travelMaterials))
-        return BatchToolProtocol.decode(response, input, defaultCity, maxPlaces)
+        val response = transport.post(current, withCityScope(BatchToolProtocol.request(current, input, defaultCity, maxPlaces, travelMaterials), scope))
+        return BatchToolProtocol.decode(response, input, defaultCity, maxPlaces, scope)
     }
 }

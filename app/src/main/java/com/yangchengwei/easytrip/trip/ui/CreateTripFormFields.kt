@@ -235,7 +235,7 @@ private fun NameFieldIcon(modifier: Modifier = Modifier) {
 }
 
 @Composable
-private fun DateFieldIcon(modifier: Modifier = Modifier) {
+internal fun DateFieldIcon(modifier: Modifier = Modifier) {
     val color = MaterialTheme.colorScheme.primary
     Canvas(modifier) {
         val stroke = Stroke(1.8.dp.toPx())

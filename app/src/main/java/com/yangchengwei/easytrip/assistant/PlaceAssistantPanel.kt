@@ -34,6 +34,7 @@ fun AssistantPanelHeader(host: AssistantWorkspace) {
 fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier) {
     val s = host.state
     val controller = host.controller
+    val guide by host.model.guide.collectAsState()
     var clearPrompt by remember { mutableStateOf(false) }
     var batchCityPrompt by remember { mutableStateOf(false) }
     val scroll = rememberScrollState()
@@ -55,6 +56,12 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
     Column(modifier.fillMaxSize().imePadding().testTag("assistant-panel")) {
         Column(Modifier.weight(1f).fillMaxWidth().verticalScroll(scroll).padding(bottom = 8.dp),
             verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            if (guide != null && !s.busy && !s.saving && s.items.isEmpty() &&
+                guide?.status != com.yangchengwei.easytrip.assistant.cityfirst.GuideHandoffStatus.PENDING) {
+                Text("旅行和原攻略已保留，可继续导入。")
+                Text("若上次请求已发出，重试可能再次计费。", style = MaterialTheme.typography.bodySmall)
+                Button(host.model::retryGuide, modifier = Modifier.testTag("guide-retry-import")) { Text("重试导入") }
+            }
             if (!s.configured) {
                 Text("先配置模型服务，再开始标记。普通搜索和已有地点不受影响。")
                 Button(host.onSettings, Modifier.fillMaxWidth().testTag("assistant-open-settings")) { Text("前往助手设置") }
@@ -66,7 +73,8 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             if (s.items.isEmpty()) {
                 OutlinedTextField(s.city, controller::editCity, label = { Text("默认搜索城市") },
                     placeholder = { Text(if (s.resolvingCity) "正在获取默认城市…" else "请填写搜索城市") },
-                    supportingText = { Text(if (controller.target == AssistantTarget.NewTripDraft) "可留空，从攻略识别后核对城市；不会采用手机位置。"
+                    supportingText = { Text(if (controller.guideCityScope != null) "目的地：${controller.guideCityScope!!.names.joinToString("、")}；多城市按地点来源分别匹配，手动填写优先。"
+                        else if (controller.target == AssistantTarget.NewTripDraft) "可留空，从攻略识别后核对城市；不会采用手机位置。"
                         else if (s.resolvingCity) "正在根据旅行名和定位选择城市，也可直接手动填写。"
                         else if (s.city.isBlank()) "未能确认默认城市，请手动填写或在原文中指定城市。"
                         else "默认按旅行名和定位选择；手动填写或原文指定的城市优先。") },
@@ -113,7 +121,7 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                 LinearProgressIndicator(Modifier.fillMaxWidth())
                 if (s.items.isNotEmpty()) Text("地图查询已完成 ${s.items.count { it.status !in setOf(IntakeStatus.WAITING, IntakeStatus.QUERYING) }} / ${s.items.size} 项",
                     style = MaterialTheme.typography.bodySmall)
-                OutlinedButton(host.onCancel ?: controller::cancel, enabled = !s.saving,
+                OutlinedButton(host.onCancel ?: host.model::cancelCurrentBatch, enabled = !s.saving,
                     modifier = Modifier.fillMaxWidth().testTag("assistant-cancel")) { Text("停止剩余处理") }
                 Text("停止保留素材和已完成结果；已发送内容无法撤回。", style = MaterialTheme.typography.bodySmall)
             }

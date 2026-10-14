@@ -45,6 +45,36 @@ class PlaceAssistantController(
     private var loadedLink: LoadedAssistantLink? = null
     private var semanticBatch = false
     private var parsedCity: String? = null
+    var guideCityScope: AssistantCityScope? = null
+        private set
+    private var guideOperation: String? = null
+    fun ownsGuideBatch(operation: String) = guideOperation == operation
+    fun setGuideCityScope(value: AssistantCityScope?) {
+        if (value == guideCityScope) return
+        cityRevision++
+        guideCityScope = value
+        parsedSources = emptyList(); parsedCity = null
+        mutable.value = mutable.value.copy(resolvingCity = false)
+        if (!cityEdited && !mutable.value.busy && mutable.value.items.isEmpty())
+            mutable.value = mutable.value.copy(city = value?.defaultCity.orEmpty())
+    }
+    fun acceptGuideInput(operation: String, text: String, images: List<AssistantImage>, loaded: LoadedAssistantLink?, cities: AssistantCityScope): Boolean {
+        if (guideOperation == operation) return false
+        if (mutable.value.busy || mutable.value.saving || mutable.value.hasDraft) return false
+        guideOperation = operation
+        setGuideCityScope(cities)
+        loadedLink = loaded
+        mutable.value = mutable.value.copy(input = text, images = images, error = null, receipt = null)
+        return true
+    }
+    fun restoreGuideState(value: PlaceAssistantState, operation: String, cities: AssistantCityScope) {
+        if (mutable.value.hasDraft || mutable.value.busy || mutable.value.saving) return
+        setGuideCityScope(cities); guideOperation = operation
+        val old = mutable.value
+        mutable.value = value.copy(configured = old.configured, consent = old.consent, mapReady = old.mapReady,
+            busy = false, saving = false, resolvingCity = false)
+        reconcile()
+    }
     private fun forgetLink(removeImages: Boolean = false) {
         semanticBatch = false
         parsedCity = null
@@ -106,7 +136,7 @@ class PlaceAssistantController(
         }
     }
 
-    private suspend fun lookupDefaultCity(): String = try {
+    private suspend fun lookupDefaultCity(): String = guideCityScope?.let { it.defaultCity.orEmpty() } ?: try {
         withTimeoutOrNull(12_000) { resolveDefaultCity() }?.trim().orEmpty().take(50)
             .takeUnless { it.any(Char::isISOControl) }.orEmpty()
     } catch (error: CancellationException) {
@@ -152,6 +182,7 @@ class PlaceAssistantController(
         parsedSources = emptyList()
         forgetLink()
         pendingSave = null
+        guideOperation = null
         val old = mutable.value
         mutable.value = PlaceAssistantState(city = old.city, configured = old.configured,
             consent = old.consent, mapReady = old.mapReady)
@@ -201,7 +232,7 @@ class PlaceAssistantController(
                     val city = resolveSearchCity(s.city)
                     if (!isCurrent(generation)) return@withTimeout
                     mutable.value = mutable.value.copy(city = city)
-                    val intents = parser.parse(input, city)
+                    val intents = parser.parseInScope(input, city, guideCityScope)
                     if (!isCurrent(generation)) return@withTimeout
                     if (intents.size > AssistantPlacePolicy.MAX_PLACES) throw AssistantFailure(
                         "每批最多 ${AssistantPlacePolicy.MAX_PLACES} 个地点，请分批；原输入保留，没有截断或查询。",
@@ -274,7 +305,7 @@ class PlaceAssistantController(
                     if (effectiveRetryIds == null) parsedSources = emptyList()
                     if (semantic) parsedCity = city
                     val input = AssistantInputRequest(sessionId, loadedLink?.modelText ?: s.input,
-                        city, material.images, effectiveRetryIds, travelMaterials = semantic)
+                        city, material.images, effectiveRetryIds, travelMaterials = semantic, cityScope = guideCityScope)
                     val sourceIds = (if (input.text.isBlank()) emptyList() else listOf("text")) + input.images.map { it.id }
                     mutable.value = mutable.value.copy(linkProgress = null, sourceProgress = sourceIds.map { id ->
                         if (effectiveRetryIds == null || id in effectiveRetryIds) SourceProgress(id, SourceStage.SELECTED)
@@ -519,7 +550,10 @@ class PlaceAssistantController(
         if (selected.isEmpty() || selected.size != mutable.value.selected.size) return
         val items = selected.map { ImportItem(it.id, it.generation, requireNotNull(it.poi), it.category) }
         val next = ImportConfirmation.create(requireNotNull(tripId), items)
-        val snapshot = pendingSave?.takeIf { it.digest == next.digest } ?: next
+        val guideNext = guideOperation?.let {
+            ImportConfirmation.create(requireNotNull(tripId), items, "guide:$it:${next.digest.take(24)}")
+        } ?: next
+        val snapshot = pendingSave?.takeIf { it.digest == guideNext.digest } ?: guideNext
         val generation = run
         pendingSave = snapshot
         mutable.value = mutable.value.copy(saving = true, error = null, receipt = null)
@@ -536,6 +570,7 @@ class PlaceAssistantController(
                 parsedSources = emptyList()
                 forgetLink()
                 pendingSave = null
+                guideOperation = null
                 val old = mutable.value
                 mutable.value = PlaceAssistantState(city = old.city, configured = old.configured,
                     consent = old.consent, mapReady = old.mapReady, receipt = receipt, saving = true)

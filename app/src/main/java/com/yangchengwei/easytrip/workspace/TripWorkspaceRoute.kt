@@ -560,6 +560,14 @@ fun TripWorkspaceRoute(
         },
         detail = assistantDetail,
     ) else null
+    val guideHandoff = assistantViewModel?.guide?.collectAsStateWithLifecycle()?.value
+    LaunchedEffect(guideHandoff?.operationId, ready != null) {
+        if (guideHandoff != null && ready != null) assistantHost?.onOpen?.invoke()
+    }
+    LaunchedEffect(guideHandoff?.operationId, guideHandoff?.attempt, guideHandoff?.status, assistantState?.configured,
+        assistantState?.consent, assistantState?.mapReady, assistantState?.hasDraft, ready != null) {
+        if (ready != null) assistantViewModel?.consumePendingGuide()
+    }
     CompositionLocalProvider(LocalAssistantWorkspace provides assistantHost) {
     TripWorkspaceScreen(
         onDeleteDay = daySettingsViewModel?.let { model -> {

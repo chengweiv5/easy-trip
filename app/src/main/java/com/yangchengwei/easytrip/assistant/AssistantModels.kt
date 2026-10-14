@@ -50,6 +50,10 @@ data class PlaceIntent(val query: String, val city: String, val sourceSpan: Stri
     val usesDefaultCity: Boolean = false, val sources: List<IntakeSource> = emptyList(), val needsReview: Boolean = false)
 fun interface PlaceIntentParser {
     suspend fun parse(input: String, defaultCity: String): List<PlaceIntent>
+    suspend fun parseInScope(input: String, defaultCity: String, scope: AssistantCityScope?): List<PlaceIntent> {
+        require(scope == null || scope.names.size == 1) { "解析器尚不支持多城市上下文" }
+        return parse(input, defaultCity)
+    }
 }
 
 enum class IntakeStatus { WAITING, QUERYING, NEED_CITY, AMBIGUOUS, NOT_FOUND, FAILED, READY, ALREADY_SAVED, DUPLICATE, CANCELLED }

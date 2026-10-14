@@ -12,6 +12,8 @@ class RoomPlaceImport(
     private val idFactory: () -> String = { UUID.randomUUID().toString() },
 ) : PlaceImport {
     override suspend fun latestReceipt(tripId: String): ImportReceipt? = database.importReceiptDao().latest(tripId)?.decode()
+    override suspend fun guideReceipt(operationId: String): ImportReceipt? =
+        database.importReceiptDao().forGuide("guide:$operationId:")?.decode()
 
     override suspend fun receipt(operationId: String): ImportReceipt? =
         database.importReceiptDao().receipt(operationId)?.decode()
@@ -50,6 +52,12 @@ class RoomPlaceImport(
                     put("itemId", r.itemId); put("poiId", r.poiId); put("placeId", r.placeId); put("added", r.added)
                 } }
             }.toString()))
+        if (result.operationId.startsWith("guide:")) {
+            val id = result.operationId.removePrefix("guide:").substringBefore(':')
+            database.guideCreationDao().handoff(id)?.takeIf { it.tripId == result.tripId }?.let {
+                database.guideCreationDao().complete(id, it.attempt, "FINISHED", null)
+            }
+        }
         result
     }
 

@@ -11,7 +11,7 @@ data class ParsedSource(val sourceId: String, val intents: List<PlaceIntent>, va
 data class ParsedInputBatch(val sources: List<ParsedSource>, val overflow: Boolean)
 data class AssistantInputRequest(val sessionId: String, val text: String, val city: String,
     val images: List<AssistantImage>, val retrySourceIds: Set<String>? = null,
-    val travelMaterials: Boolean = false)
+    val travelMaterials: Boolean = false, val cityScope: AssistantCityScope? = null)
 
 class AssistantInputProcessor(
     private val textParser: PlaceIntentParser,
@@ -60,7 +60,7 @@ class AssistantInputProcessor(
         if (request.text.isNotBlank() && (request.retrySourceIds == null || "text" in request.retrySourceIds)) {
             parseOne("text") {
                 onProgress(SourceProgress("text", SourceStage.SENDING, sendEvidence = SendEvidence.POSSIBLY_SENT))
-                (if (semantic) materialTextParser ?: textParser else textParser).parse(request.text, request.city).map {
+                (if (semantic) materialTextParser ?: textParser else textParser).parseInScope(request.text, request.city, request.cityScope).map {
                     it.copy(sources = listOf(IntakeSource.Text(it.sourceSpan)))
                 }
             }

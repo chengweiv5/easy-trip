@@ -92,7 +92,7 @@ class AppContainer(
     applicationScope: CoroutineScope,
     databaseFactory: (Context) -> EasyTripDatabase = {
         Room.databaseBuilder(it, EasyTripDatabase::class.java, "easy-trip.db")
-            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10, EasyTripDatabase.MIGRATION_10_11, EasyTripDatabase.MIGRATION_11_12)
+            .addMigrations(EasyTripDatabase.MIGRATION_1_2, EasyTripDatabase.MIGRATION_2_3, EasyTripDatabase.MIGRATION_3_4, EasyTripDatabase.MIGRATION_4_5, EasyTripDatabase.MIGRATION_5_6, EasyTripDatabase.MIGRATION_6_7, EasyTripDatabase.MIGRATION_7_8, EasyTripDatabase.MIGRATION_8_9, EasyTripDatabase.MIGRATION_9_10, EasyTripDatabase.MIGRATION_10_11, EasyTripDatabase.MIGRATION_11_12, EasyTripDatabase.MIGRATION_12_13)
             .addCallback(FlexibleRouteDefaultsUpdate)
             .build()
     },
@@ -104,6 +104,26 @@ class AppContainer(
     val assistantImages = com.yangchengwei.easytrip.assistant.AndroidAssistantImageStore(this.context)
     val assistantLinks = com.yangchengwei.easytrip.assistant.DefaultAssistantLinkLoader(
         com.yangchengwei.easytrip.assistant.AndroidAssistantLinkReader(this.context), assistantImages)
+    val guideCreation = com.yangchengwei.easytrip.assistant.data.RoomGuideCreation(database)
+    val guideImages = com.yangchengwei.easytrip.assistant.AndroidAssistantImageStore(this.context,
+        java.io.File(this.context.noBackupFilesDir, "guide-images"), clearOnStart = false)
+    val guideMaterials = com.yangchengwei.easytrip.assistant.cityfirst.GuideMaterialStore(
+        java.io.File(this.context.noBackupFilesDir, "guide-materials"), guideImages,
+        com.yangchengwei.easytrip.assistant.DefaultAssistantLinkLoader(
+            com.yangchengwei.easytrip.assistant.AndroidAssistantLinkReader(this.context), guideImages),
+        database.guideCreationDao()::referencedMaterials)
+    val guideResults = com.yangchengwei.easytrip.assistant.cityfirst.GuideImportResultStore(
+        java.io.File(this.context.noBackupFilesDir, "guide-results"))
+    val guideJournal = com.yangchengwei.easytrip.assistant.cityfirst.GuideCreationJournal(
+        java.io.File(this.context.noBackupFilesDir, "guide-creation-pending.json"))
+    fun guideViewModel() = com.yangchengwei.easytrip.assistant.cityfirst.GuideCreationViewModel(
+        guideMaterials, assistantConfig, guideCreation, guideJournal,
+        destination = { materials ->
+            com.yangchengwei.easytrip.assistant.cityfirst.ModelGuideDestinationInterpreter(assistantConfig::read)
+                .interpret(materials.modelText, materials.images.map { image ->
+                    image to suspend { guideImages.prepare(materials.imageSessionId, image.id) }
+                })
+        }, dates = com.yangchengwei.easytrip.assistant.TripDraftInterpreter(assistantConfig::read)::interpret)
     val assistantSearchDiagnostics = com.yangchengwei.easytrip.assistant.AndroidAssistantSearchDiagnostics(this.context)
     val assistantSearchPacer = com.yangchengwei.easytrip.assistant.AssistantSearchPacer()
     val placeImport = com.yangchengwei.easytrip.assistant.data.RoomPlaceImport(database)
@@ -117,7 +137,12 @@ class AppContainer(
     val expensePeriodPrompter = com.yangchengwei.easytrip.expense.ExpensePeriodPrompter()
     val expenseRemovalPrompter = com.yangchengwei.easytrip.expense.ExpenseRemovalPrompter()
     val expenseRepository = com.yangchengwei.easytrip.expense.data.RoomExpenseRepository(database)
-    val tripRepository = RoomTripRepository(database.tripDao(), database = database, isOnline = { networkMonitor.isOnline.value }, confirmExpenseRemoval = expenseRemovalPrompter::confirm, confirmExpensePeriod = expensePeriodPrompter::confirm)
+    val tripRepository = RoomTripRepository(database.tripDao(), database = database, isOnline = { networkMonitor.isOnline.value },
+        confirmExpenseRemoval = expenseRemovalPrompter::confirm, confirmExpensePeriod = expensePeriodPrompter::confirm,
+        onTripDeleted = { material, result ->
+            material?.let { guideMaterials.release(it) }
+            result?.let { guideResults.remove(it) }
+        })
     val tripService = TripService(tripRepository)
     val savedPlaceRepository = RoomSavedPlaceRepository(database, isOnline = { networkMonitor.isOnline.value }, confirmExpenseRemoval = expenseRemovalPrompter::confirm)
     val placeService = PlaceService(savedPlaceRepository)

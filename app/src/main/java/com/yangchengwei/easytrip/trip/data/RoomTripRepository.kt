@@ -43,6 +43,7 @@ class RoomTripRepository(
     private val database: EasyTripDatabase? = null,
     private val isOnline: () -> Boolean = { true },
     private val confirmExpenseRemoval: ConfirmExpenseRemoval? = null,
+    private val onTripDeleted: suspend (String?, String?) -> Unit = { _, _ -> },
     private val confirmExpensePeriod: ConfirmExpensePeriod? = null,
 ) : TripRepository {
     override fun observeTrips(): Flow<List<TripSummary>> = dao.observeTrips().map { trips ->
@@ -233,10 +234,13 @@ class RoomTripRepository(
         }
     }
     override suspend fun deleteTrip(tripId: String) {
+        val guide = database?.guideCreationDao()?.forTrip(tripId)
         val operation: suspend () -> Unit = {
             database?.let { requireExpenseRemovalConsent(expensesForDays(it, dao.days(tripId).map { day -> day.id })) }
             dao.deleteTripChecked(tripId)
         }
         if (database == null) operation() else expenseTransaction(database, confirmExpenseRemoval, block = operation)
+        // Deletion is already committed. Cleanup failure must not present a deleted trip as undeleted.
+        runCatching { onTripDeleted(guide?.materialId, guide?.resultRef) }
     }
 }

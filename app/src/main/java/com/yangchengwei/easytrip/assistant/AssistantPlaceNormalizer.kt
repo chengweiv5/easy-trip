@@ -208,11 +208,12 @@ groups中每组canonical为已有候选中最明确的名称对应id，members�
 class ModelPlaceNormalizer(
     private val config: () -> ProviderConfig?,
     private val transport: AssistantTransport = AssistantTransport(),
+    private val cityScope: () -> AssistantCityScope? = { null },
 ) : PlaceIntentNormalizer {
     override suspend fun normalize(candidates: List<PlaceIntent>, context: String, city: String): List<PlaceIntent> {
         if (candidates.isEmpty()) return emptyList()
         val current = config()?.validated() ?: throw AssistantFailure("请先配置助手模型。")
         return PlaceNormalizationProtocol.decode(
-            transport.post(current, PlaceNormalizationProtocol.request(current, candidates, context, city)), candidates)
+            transport.post(current, withCityScope(PlaceNormalizationProtocol.request(current, candidates, context, city), cityScope())), candidates)
     }
 }
