@@ -5,6 +5,7 @@ import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
 import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlinx.coroutines.ensureActive
 import kotlinx.serialization.json.*
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaType
@@ -13,7 +14,41 @@ import okio.BufferedSink
 
 class AssistantTransport(private val client: OkHttpClient = OkHttpClient.Builder()
     .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false)
-    .callTimeout(45, TimeUnit.SECONDS).connectTimeout(15, TimeUnit.SECONDS).build()) {
+    .callTimeout(45, TimeUnit.SECONDS).connectTimeout(15, TimeUnit.SECONDS).build(),
+    private val diagnostics: AssistantProtocolDiagnostics = AssistantProtocolDiagnostics.NONE,
+) {
+    internal suspend fun <T> decodeWithRepair(config: ProviderConfig, request: String,
+        stage: AssistantProtocolStage, ordinal: Int? = null,
+        onResponseWait: () -> Unit = {}, decode: (String) -> T): T {
+        var next = request
+        val operation = java.util.UUID.randomUUID().toString()
+        suspend fun record(attempt: Int, outcome: AssistantProtocolOutcome, failure: AssistantFailure? = null) {
+            try {
+                diagnostics.record(AssistantProtocolEvent(operation, stage, ordinal, attempt + 1, outcome,
+                    failure?.protocolIssue, failure?.code))
+            } catch (e: kotlinx.coroutines.CancellationException) { throw e }
+            catch (_: Exception) { /* Diagnostics must never turn a valid result into a retry. */ }
+        }
+        repeat(2) { attempt ->
+            kotlinx.coroutines.currentCoroutineContext().ensureActive()
+            // Transport failures are deliberately outside the repair catch: never repeat
+            // an unknown network outcome, authentication failure, rate limit or HTTP error.
+            val response = try { post(config, next, onResponseWait) }
+            catch (e: AssistantFailure) { record(attempt, AssistantProtocolOutcome.FAILED, e); throw e }
+            try {
+                val result = decode(response)
+                record(attempt, AssistantProtocolOutcome.SUCCESS)
+                return result
+            }
+            catch (e: AssistantFailure) {
+                val repair = attempt == 0 && e.protocolIssue?.repairable == true
+                record(attempt, if (repair) AssistantProtocolOutcome.REPAIRING else AssistantProtocolOutcome.FAILED, e)
+                if (!repair) throw e
+                next = AssistantToolResponse.repairRequest(request)
+            }
+        }
+        error("unreachable")
+    }
     suspend fun post(config: ProviderConfig, json: String, onResponseWait: () -> Unit = {}): String {
         val current = config.validated()
         val bytes = json.toByteArray(Charsets.UTF_8)

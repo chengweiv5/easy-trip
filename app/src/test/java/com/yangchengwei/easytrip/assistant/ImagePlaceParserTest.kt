@@ -46,9 +46,12 @@ class ImagePlaceParserTest {
         assertEquals(listOf(IntakeSource.Image("local-image", 2, "杭州 灵隐寺")), result.single().sources)
         assertTrue(result.single().needsReview)
     }
-    @Test fun modelCannotReturnWritesCoordinatesOrUngroundedNames() {
+    @Test fun modelCannotExecuteWritesUseCoordinatesOrInventUngroundedNames() {
         val valid = """{"items":[{"query":"灵隐寺","city":"杭州","sourceSpan":"杭州 灵隐寺","uncertain":false}],"overflow":false}"""
-        listOf(response(valid, "save_places"), response(valid.replace("\"uncertain\":false", "\"uncertain\":false,\"lat\":30")),
+        // Unknown fields never cross into PlaceIntent; model coordinates cannot become POIs.
+        assertEquals(ImageToolProtocol.decode(response(valid), "id", 1),
+            ImageToolProtocol.decode(response(valid.replace("\"uncertain\":false", "\"uncertain\":false,\"lat\":30")), "id", 1))
+        listOf(response(valid, "save_places"),
             response(valid.replace("\"query\":\"灵隐寺\"", "\"query\":\"故宫\"")),
             response(valid.replace("\"uncertain\":false", "\"uncertain\":\"false\"")),
             response(valid.replace("\"overflow\":false", "\"overflow\":true"))).forEach {
@@ -90,7 +93,7 @@ class ImagePlaceParserTest {
         val valid = """{"items":[{"query":"北城美术馆","city":"北城","sourceSpan":"北城美术馆","uncertain":false,"targetBasis":"AUTHOR_MARK","targetDetail":"作者标签","entityRole":"PLACE","parentName":""}],"overflow":false}"""
         listOf(
             valid.replace("\"AUTHOR_MARK\"", "\"SYSTEM_AUTHORITY\""),
-            valid.replace(",\"parentName\":\"\"", ""),
+            valid.replace("\"PLACE\"", "\"DISTINCT_PART\"").replace(",\"parentName\":\"\"", ""),
             valid.replace("\"作者标签\"", "\"${"长".repeat(301)}\""),
             valid.replace("\"PLACE\"", "false"),
             valid.replace("\"北城美术馆\",\"city\"", "\"猜测新地点\",\"city\""),

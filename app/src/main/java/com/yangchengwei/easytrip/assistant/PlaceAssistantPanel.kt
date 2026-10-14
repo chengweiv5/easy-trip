@@ -98,6 +98,9 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                 }
             }
             s.error?.let { Text(it, color = MaterialTheme.colorScheme.error, modifier = Modifier.testTag("assistant-error")) }
+            if (!s.busy) s.partialNotice?.let {
+                Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("assistant-partial-notice"))
+            }
             s.linkProgress?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("assistant-link-progress")) }
             s.sourceProgress.filter { s.busy || it.stage != SourceStage.COMPLETE }.forEach { progress ->
                 val name = if (progress.sourceId == "text") "文字" else "图 ${s.images.find { it.id == progress.sourceId }?.ordinal ?: "?"}"
@@ -115,7 +118,13 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                 OutlinedButton({ controller.retryImages() }, enabled = !s.saving,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
                     .testTag("assistant-retry-images")) { Text("仅重试失败 / 未完成素材") }
-                Text("成功素材不重复发送，重试可能产生费用。", style = MaterialTheme.typography.bodySmall)
+                Text("仅重新识别失败素材；合并去重可能再次调用模型并产生费用。", style = MaterialTheme.typography.bodySmall)
+            }
+            if (!s.busy && s.normalizationPending) {
+                OutlinedButton(controller::retryNormalization, enabled = !s.saving,
+                    modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("assistant-retry-normalization")) {
+                    Text("重试地点整理")
+                }
             }
             if (s.busy) {
                 LinearProgressIndicator(Modifier.fillMaxWidth())
@@ -127,7 +136,8 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             }
             if (!s.mapReady && s.items.isNotEmpty()) Text("地图尚未就绪，结果已保留；恢复后可收藏。", color = MaterialTheme.colorScheme.error)
             s.receipt?.let { receipt ->
-                Text("已收藏 ${receipt.addedCount} 个地点，可以继续输入。",
+                Text(if (s.hasIncompleteMaterials) "已收藏 ${receipt.addedCount} 个地点，未完成素材仍可重试。"
+                    else "已收藏 ${receipt.addedCount} 个地点，可以继续输入。",
                     color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.testTag("assistant-receipt"))
             }

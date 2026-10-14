@@ -93,7 +93,13 @@ class AssistantInputProcessor(
 
 /** Only identical names in the same explicit city are combined; different aliases still need POI identity. */
 internal fun PlaceIntent.materialKey() = Triple(normalizedPlace(query), city.trim().removeSuffix("市"), needsReview)
+/** Local identity only: never model-supplied, retained when the user edits a result. */
+internal fun PlaceIntent.materialIdentities(): Set<String> = materialKeys.ifEmpty {
+    val key = materialKey()
+    setOf("${key.first.length}:${key.first}${key.second.length}:${key.second}:${key.third}")
+}
 internal fun mergeIdenticalPlaceIntents(intents: List<PlaceIntent>): List<PlaceIntent> =
     intents.groupBy { it.materialKey() }.values.map { group ->
-        group.first().copy(sources = group.flatMap { it.sources }.distinct())
+        group.first().copy(sources = group.flatMap { it.sources }.distinct(),
+            materialKeys = group.flatMap { it.materialIdentities() }.toSet())
     }

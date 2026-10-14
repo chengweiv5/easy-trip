@@ -118,16 +118,8 @@ groups中每组canonical为已有候选中最明确的名称对应id，members�
 
     fun decode(response: String, candidates: List<PlaceIntent>): List<PlaceIntent> = try {
         require(candidates.size in 1..AssistantMaterialPolicy.MAX_CANDIDATES)
-        val choices = Json.parseToJsonElement(response).jsonObject.getValue("choices").jsonArray
-        require(choices.size == 1)
-        val choice = choices.single().jsonObject
-        require(choice.getValue("finish_reason").jsonPrimitive.content == "tool_calls")
-        val calls = choice.getValue("message").jsonObject.getValue("tool_calls").jsonArray
-        require(calls.size == 1 && calls.single().jsonObject.getValue("type").jsonPrimitive.content == "function")
-        val function = calls.single().jsonObject.getValue("function").jsonObject
-        require(function.getValue("name").jsonPrimitive.content == "normalize_place_candidates")
-        val args = Json.parseToJsonElement(function.getValue("arguments").jsonPrimitive.content).jsonObject
-        require(args.keys == setOf("groups", "discarded"))
+        val args = AssistantToolResponse.arguments(response, "normalize_place_candidates")
+        protocolRequire(args.keys.containsAll(setOf("groups", "discarded")), AssistantProtocolIssue.REQUIRED_FIELDS)
         val seen = mutableSetOf<Int>()
         fun id(value: JsonElement): Int {
             val primitive = value.jsonPrimitive
@@ -136,7 +128,7 @@ groups中每组canonical为已有候选中最明确的名称对应id，members�
         }
         val groups = args.getValue("groups").jsonArray.map { element ->
             val group = element.jsonObject
-            require(group.keys == setOf("canonical", "members"))
+            require(group.keys.containsAll(setOf("canonical", "members")))
             val canonical = id(group.getValue("canonical"))
             val members = group.getValue("members").jsonArray.map(::id)
             require(members.isNotEmpty() && canonical in members)
@@ -151,6 +143,7 @@ groups中每组canonical为已有候选中最明确的名称对应id，members�
                 val aliases = partition.map(candidates::get)
                 partition.min() to selected.copy(
                     sources = aliases.flatMap { it.sources.ifEmpty { listOf(IntakeSource.Text(it.sourceSpan)) } }.distinct(),
+                    materialKeys = aliases.flatMap { it.materialIdentities() }.toSet(),
                     needsReview = selected.needsReview || aliases.any {
                         it.needsReview && normalizedPlace(it.query) == normalizedPlace(selected.query)
                     },
@@ -159,12 +152,12 @@ groups中每组canonical为已有候选中最明确的名称对应id，members�
         }.flatten().toMutableList()
         args.getValue("discarded").jsonArray.forEach { element ->
             val item = element.jsonObject
-            require(item.keys == setOf("id", "reason"))
+            require(item.keys.containsAll(setOf("id", "reason")))
             val candidateId = id(item.getValue("id"))
             require(seen.add(candidateId))
-            require(item.getValue("reason").jsonPrimitive.isString &&
-                item.getValue("reason").jsonPrimitive.content in setOf("FOOD", "DINING", "BACKGROUND", "NOT_PLACE"))
-            val reason = item.getValue("reason").jsonPrimitive.content
+            require(item.getValue("reason").jsonPrimitive.isString)
+            val reason = item.getValue("reason").jsonPrimitive.content.trim().uppercase(java.util.Locale.ROOT)
+            require(reason in setOf("FOOD", "DINING", "BACKGROUND", "NOT_PLACE"))
             val candidate = candidates[candidateId]
             if (reason in setOf("BACKGROUND", "NOT_PLACE") && candidate.sources.filterIsInstance<IntakeSource.Image>()
                     .any { it.target?.basis in setOf(ImageTargetBasis.AUTHOR_MARK, ImageTargetBasis.RECOMMENDED) }) {
@@ -174,9 +167,8 @@ groups中每组canonical为已有候选中最明确的名称对应id，members�
         }
         require(seen.size == candidates.size)
         groups.sortedBy { it.first }.map { it.second }
-    } catch (_: Exception) {
-        throw AssistantFailure("地点整理结果不完整，未查询地图；请重试整理。",
-            AssistantFailureCode.PROTOCOL, SendEvidence.RESPONSE_RECEIVED)
+    } catch (e: Exception) {
+        throw protocolFailure(e, AssistantProtocolStage.NORMALIZATION, AssistantProtocolIssue.INVALID_GROUPS)
     }
 
     private fun partitionIndependent(members: List<Int>, candidates: List<PlaceIntent>): List<List<Int>> {
@@ -213,7 +205,7 @@ class ModelPlaceNormalizer(
     override suspend fun normalize(candidates: List<PlaceIntent>, context: String, city: String): List<PlaceIntent> {
         if (candidates.isEmpty()) return emptyList()
         val current = config()?.validated() ?: throw AssistantFailure("请先配置助手模型。")
-        return PlaceNormalizationProtocol.decode(
-            transport.post(current, withCityScope(PlaceNormalizationProtocol.request(current, candidates, context, city), cityScope())), candidates)
+        val request = withCityScope(PlaceNormalizationProtocol.request(current, candidates, context, city), cityScope())
+        return transport.decodeWithRepair(current, request, AssistantProtocolStage.NORMALIZATION) { PlaceNormalizationProtocol.decode(it, candidates) }
     }
 }

@@ -492,7 +492,8 @@ fun AppNavigation(
                         null, container.assistantConfig, container.placeImport,
                         effectiveDependencies.savedPlaceRepository, container.assistantImages, entry.savedStateHandle,
                         container.assistantSearchDiagnostics, container.assistantSearchPacer, container.assistantLinks,
-                        target = com.yangchengwei.easytrip.assistant.AssistantTarget.NewTripDraft))
+                        target = com.yangchengwei.easytrip.assistant.AssistantTarget.NewTripDraft,
+                        protocolDiagnostics = container.assistantProtocolDiagnostics))
                 val draft: com.yangchengwei.easytrip.assistant.TripDraftViewModel = viewModel(
                     viewModelStoreOwner = entry,
                     factory = com.yangchengwei.easytrip.assistant.TripDraftViewModel.Factory(
@@ -602,7 +603,8 @@ fun AppNavigation(
                             id, container.assistantConfig, container.placeImport, workspaceDependencies.savedPlaceRepository,
                             container.assistantImages, entry.savedStateHandle, container.assistantSearchDiagnostics,
                             container.assistantSearchPacer, container.assistantLinks,
-                            guideStore = container.guideCreation, guideMaterials = container.guideMaterials, guideResults = container.guideResults),
+                            guideStore = container.guideCreation, guideMaterials = container.guideMaterials, guideResults = container.guideResults,
+                            protocolDiagnostics = container.assistantProtocolDiagnostics),
                     )
                 }
                 LaunchedEffect(assistantModel, source) { assistantModel?.controller?.updateSource(source) }

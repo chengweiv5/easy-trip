@@ -95,16 +95,8 @@ ${if (travelMaterials) TRAVEL_MATERIAL_EXTRACTION_RULES + "\n" + TRAVEL_MAP_TARG
 
     fun decode(response: String, imageId: String, ordinal: Int, maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
         requireTargetEvidence: Boolean = false): List<PlaceIntent> = try {
-        val choices = Json.parseToJsonElement(response).jsonObject.getValue("choices").jsonArray
-        require(choices.size == 1)
-        val choice = choices.single().jsonObject
-        require(choice["finish_reason"]?.jsonPrimitive?.content == "tool_calls")
-        val calls = choice.getValue("message").jsonObject.getValue("tool_calls").jsonArray
-        require(calls.size == 1 && calls.single().jsonObject["type"]?.jsonPrimitive?.content == "function")
-        val function = calls.single().jsonObject.getValue("function").jsonObject
-        require(function["name"]?.jsonPrimitive?.content == "search_place_batch")
-        val args = Json.parseToJsonElement(function.getValue("arguments").jsonPrimitive.content).jsonObject
-        require(args.keys == setOf("items", "overflow"))
+        val args = AssistantToolResponse.arguments(response, "search_place_batch")
+        protocolRequire(args.keys.containsAll(setOf("items", "overflow")), AssistantProtocolIssue.REQUIRED_FIELDS)
         require(!args.getValue("overflow").jsonPrimitive.isString)
         if (args.getValue("overflow").jsonPrimitive.boolean) throw AssistantFailure("本份素材超过 $maxPlaces 个候选，请分批；没有截断查询。",
             AssistantFailureCode.OVERFLOW, SendEvidence.RESPONSE_RECEIVED)
@@ -116,9 +108,11 @@ ${if (travelMaterials) TRAVEL_MATERIAL_EXTRACTION_RULES + "\n" + TRAVEL_MAP_TARG
         items.map { element ->
             val item = element.jsonObject
             val baseKeys = setOf("query","city","sourceSpan","uncertain")
-            val evidenceKeys = setOf("targetBasis","targetDetail","entityRole","parentName")
-            require(item.keys == baseKeys || item.keys == baseKeys + evidenceKeys)
-            require(!requireTargetEvidence || item.keys.containsAll(evidenceKeys))
+            val evidenceKeys = setOf("targetBasis","targetDetail","entityRole")
+            protocolRequire(item.keys.containsAll(baseKeys), AssistantProtocolIssue.REQUIRED_FIELDS)
+            protocolRequire(item.keys.intersect(evidenceKeys + "parentName").isEmpty() || item.keys.containsAll(evidenceKeys),
+                AssistantProtocolIssue.TARGET_EVIDENCE)
+            protocolRequire(!requireTargetEvidence || item.keys.containsAll(evidenceKeys), AssistantProtocolIssue.TARGET_EVIDENCE)
             require(listOf("query","city","sourceSpan").all { item.getValue(it).jsonPrimitive.isString })
             require(!item.getValue("uncertain").jsonPrimitive.isString)
             val query = item.getValue("query").jsonPrimitive.content.trim()
@@ -126,22 +120,29 @@ ${if (travelMaterials) TRAVEL_MATERIAL_EXTRACTION_RULES + "\n" + TRAVEL_MAP_TARG
             val span = item.getValue("sourceSpan").jsonPrimitive.content.trim()
             require(query.length in 1..100 && city.length <= 50 && span.length in 1..500)
             require(query.none(Char::isISOControl) && city.none(Char::isISOControl))
-            require(normalizedPlace(query).isNotEmpty() && normalizedPlace(span).contains(normalizedPlace(query)))
-            val target = if (item.keys.containsAll(evidenceKeys)) {
+            protocolRequire(normalizedPlace(query).isNotEmpty() && normalizedPlace(span).contains(normalizedPlace(query)),
+                AssistantProtocolIssue.SOURCE_MISMATCH)
+            val target = if (item.keys.containsAll(evidenceKeys)) protocolSection(AssistantProtocolIssue.TARGET_EVIDENCE) {
                 require(evidenceKeys.all { item.getValue(it).jsonPrimitive.isString })
                 val detail = item.getValue("targetDetail").jsonPrimitive.content.trim()
-                val parent = item.getValue("parentName").jsonPrimitive.content.trim()
+                val role = ImageEntityRole.valueOf(item.getValue("entityRole").jsonPrimitive.content.trim().uppercase(java.util.Locale.ROOT))
+                val parentValue = item["parentName"]
+                // Missing parent is unambiguous only for an ordinary place. Do not erase a
+                // distinct part's relationship evidence to make a malformed result pass.
+                require(parentValue != null && parentValue != JsonNull || role == ImageEntityRole.PLACE)
+                require(parentValue == null || parentValue == JsonNull || parentValue.jsonPrimitive.isString)
+                val parent = parentValue?.jsonPrimitive?.contentOrNull?.trim().orEmpty()
                 require(detail.length in 1..300 && parent.length <= 100)
                 require(detail.none(Char::isISOControl) && parent.none(Char::isISOControl))
-                ImageTargetEvidence(ImageTargetBasis.valueOf(item.getValue("targetBasis").jsonPrimitive.content),
-                    detail, ImageEntityRole.valueOf(item.getValue("entityRole").jsonPrimitive.content), parent)
+                ImageTargetEvidence(ImageTargetBasis.valueOf(item.getValue("targetBasis").jsonPrimitive.content.trim().uppercase(java.util.Locale.ROOT)),
+                    detail, role, parent)
             } else null
             PlaceIntent(query, city, span, sources = listOf(IntakeSource.Image(imageId, ordinal, span, target)),
                 needsReview = item.getValue("uncertain").jsonPrimitive.boolean)
         }
     } catch (e: AssistantFailure) { throw e }
-    catch (_: Exception) { throw AssistantFailure("图片返回格式不完整或不支持工具调用，未查询地点。",
-        AssistantFailureCode.PROTOCOL, SendEvidence.RESPONSE_RECEIVED) }
+    catch (e: Exception) { throw protocolFailure(e, AssistantProtocolStage.IMAGE,
+        AssistantProtocolIssue.INVALID_FIELDS) }
 }
 
 class ImagePlaceParser(
@@ -155,7 +156,9 @@ class ImagePlaceParser(
         onResponseWait: () -> Unit): List<PlaceIntent> {
         require(context.length <= 20_000 && defaultCity.length <= 50)
         val current = config()?.validated() ?: throw AssistantFailure("请先配置助手模型。")
-        val response = transport.post(current, withCityScope(ImageToolProtocol.request(current, image, ordinal, context, defaultCity, maxPlaces, travelMaterials), cityScope()), onResponseWait)
-        return ImageToolProtocol.decode(response, image.id, ordinal, maxPlaces, requireTargetEvidence = travelMaterials)
+        val request = withCityScope(ImageToolProtocol.request(current, image, ordinal, context, defaultCity, maxPlaces, travelMaterials), cityScope())
+        return transport.decodeWithRepair(current, request, AssistantProtocolStage.IMAGE, ordinal, onResponseWait) { response ->
+            ImageToolProtocol.decode(response, image.id, ordinal, maxPlaces, requireTargetEvidence = travelMaterials)
+        }
     }
 }

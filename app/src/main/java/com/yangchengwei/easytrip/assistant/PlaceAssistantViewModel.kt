@@ -27,7 +27,7 @@ class PlaceAssistantViewModel(
     val config: AssistantConfigStore,
     importer: PlaceImport,
     places: SavedPlaceRepository,
-    parser: PlaceIntentParser = DeepSeekPlaceParser(config::read),
+    parser: PlaceIntentParser? = null,
     val images: AssistantImageStore? = null,
     private val savedState: SavedStateHandle = SavedStateHandle(),
     private val imageParserOverride: ImageIntentParser? = null,
@@ -40,29 +40,36 @@ class PlaceAssistantViewModel(
     private val guideStore: GuideHandoffStore? = null,
     private val guideMaterials: GuideMaterialStore? = null,
     private val guideResults: GuideImportResultStore? = null,
+    private val protocolDiagnostics: AssistantProtocolDiagnostics = AssistantProtocolDiagnostics.NONE,
 ) : ViewModel() {
     val sessionId = UUID.randomUUID().toString()
     private val imageRecoveryScope = tripId ?: "new-trip-intake"
     private var selectionGeneration = 0L
     private var clearing = false
-    val controller: PlaceAssistantController = PlaceAssistantController(tripId, viewModelScope, parser, null, importer,
+    val controller: PlaceAssistantController = PlaceAssistantController(tripId, viewModelScope,
+        parser ?: DeepSeekPlaceParser(config::read, diagnostics = protocolDiagnostics), null, importer,
         processor = images?.let { store -> {
             val snapshot = config.read()
-            AssistantInputProcessor(materialTextParserOverride ?: DeepSeekPlaceParser(config = { snapshot }, maxInputLength = 20_000),
+            AssistantInputProcessor(materialTextParserOverride ?: DeepSeekPlaceParser(config = { snapshot }, maxInputLength = 20_000,
+                diagnostics = protocolDiagnostics),
                 imageParserOverride ?: ImageIntentParser { image, ordinal, context, city, waiting ->
-                    try { ImagePlaceParser({ snapshot }, cityScope = { controller.guideCityScope }).parse(image, ordinal, context, city, waiting) }
+                    try { ImagePlaceParser({ snapshot }, AssistantTransport(diagnostics = protocolDiagnostics),
+                        cityScope = { controller.guideCityScope }).parse(image, ordinal, context, city, waiting) }
                     catch (e: AssistantFailure) {
                         if (e.code == AssistantFailureCode.UNSUPPORTED_IMAGE && snapshot != null)
                             config.saveImageCapability(snapshot, ImageCapabilityResult(ImageCapability.UNSUPPORTED, System.currentTimeMillis()))
                         throw e
                     }
                 }, store,
-                normalizer = normalizerOverride ?: ModelPlaceNormalizer({ snapshot }, cityScope = { controller.guideCityScope }),
+                normalizer = normalizerOverride ?: ModelPlaceNormalizer({ snapshot }, AssistantTransport(diagnostics = protocolDiagnostics),
+                    cityScope = { controller.guideCityScope }),
                 materialTextParser = materialTextParserOverride ?: DeepSeekPlaceParser({ snapshot },
-                    maxInputLength = 20_000, maxPlaces = AssistantMaterialPolicy.MAX_PER_SOURCE, travelMaterials = true),
+                    maxInputLength = 20_000, maxPlaces = AssistantMaterialPolicy.MAX_PER_SOURCE, travelMaterials = true,
+                    diagnostics = protocolDiagnostics),
                 materialImageParser = imageParserOverride ?: ImageIntentParser { image, ordinal, context, city, waiting ->
                     try {
-                        ImagePlaceParser({ snapshot }, maxPlaces = AssistantMaterialPolicy.MAX_PER_SOURCE, travelMaterials = true, cityScope = { controller.guideCityScope })
+                        ImagePlaceParser({ snapshot }, AssistantTransport(diagnostics = protocolDiagnostics),
+                            maxPlaces = AssistantMaterialPolicy.MAX_PER_SOURCE, travelMaterials = true, cityScope = { controller.guideCityScope })
                             .parse(image, ordinal, context, city, waiting)
                     } catch (e: AssistantFailure) {
                         if (e.code == AssistantFailureCode.UNSUPPORTED_IMAGE && snapshot != null)
@@ -264,7 +271,8 @@ class PlaceAssistantViewModel(
                 val materials = materialStore.read(handoff.material)
                 copyGuideImages(materials)
                 activeGuide = handoff; guideStarted = true
-                controller.restoreGuideState(recovered, handoff.operationId, handoff.scope)
+                controller.restoreGuideState(recovered, handoff.operationId, handoff.scope,
+                    if (materials.fromLink) LoadedAssistantLink(materials.modelText, recovered.images) else null)
                 return@withLock
             }
             if (handoff.status != GuideHandoffStatus.PENDING) {
@@ -337,12 +345,14 @@ class PlaceAssistantViewModel(
         private val guideStore: GuideHandoffStore? = null,
         private val guideMaterials: GuideMaterialStore? = null,
         private val guideResults: GuideImportResultStore? = null,
+        private val protocolDiagnostics: AssistantProtocolDiagnostics = AssistantProtocolDiagnostics.NONE,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             PlaceAssistantViewModel(tripId, config, importer, places, images = images, savedState = savedState,
                 searchDiagnostics = searchDiagnostics, searchPacer = searchPacer, linkLoader = linkLoader, target = target,
-                guideStore = guideStore, guideMaterials = guideMaterials, guideResults = guideResults) as T
+                guideStore = guideStore, guideMaterials = guideMaterials, guideResults = guideResults,
+                protocolDiagnostics = protocolDiagnostics) as T
     }
     companion object { private val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.IO) }
 }

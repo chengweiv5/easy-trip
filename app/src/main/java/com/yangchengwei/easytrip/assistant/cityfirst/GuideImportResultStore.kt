@@ -47,17 +47,39 @@ object GuideResultCodec {
             p["code"]?.jsonPrimitive?.contentOrNull, p["city"]?.jsonPrimitive?.contentOrNull,
             p["adcode"]?.jsonPrimitive?.contentOrNull, p.getValue("version").jsonPrimitive.int)
     }
+    private fun intent(p: PlaceIntent) = buildJsonObject {
+        put("query", p.query); put("city", p.city); put("span", p.sourceSpan)
+        put("default", p.usesDefaultCity); put("review", p.needsReview)
+        put("sources", sources(p.sources))
+        put("materialKeys", JsonArray(p.materialKeys.sorted().map(::JsonPrimitive)))
+    }
+    private fun intent(j: JsonObject): PlaceIntent {
+        val keys = j["materialKeys"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty()
+        require(keys.size <= AssistantMaterialPolicy.MAX_CANDIDATES && keys.all { it.length <= 500 })
+        return PlaceIntent(j.string("query"), j.string("city"), j.string("span"),
+            j.getValue("default").jsonPrimitive.boolean, sources(j.getValue("sources")),
+            j.getValue("review").jsonPrimitive.boolean, keys).also {
+            require(it.query.length in 1..100 && it.city.length <= 50 && it.sourceSpan.length <= 20_000)
+        }
+    }
     fun encode(s: PlaceAssistantState): String = buildJsonObject {
         put("version", 1); put("input", s.input); put("city", s.city); put("error", s.error)
+        put("normalizationPending", s.normalizationPending)
+        put("parsedMaterialCity", s.parsedMaterialCity)
+        putJsonArray("sourceProgress") { s.sourceProgress.forEach { p -> addJsonObject {
+            put("id", p.sourceId); put("stage", p.stage.name); put("error", p.error); put("send", p.sendEvidence.name)
+        } } }
+        putJsonArray("parsedMaterials") { s.parsedMaterials.forEach { p -> addJsonObject {
+            put("id", p.sourceId); put("intents", JsonArray(p.intents.map(::intent)))
+            p.failure?.let { f -> putJsonObject("failure") {
+                put("message", f.userMessage); put("code", f.code.name); put("send", f.sendEvidence.name)
+            } }
+        } } }
         put("images", encodeGuideImages(s.images)); put("selected", JsonArray(s.selected.sorted().map(::JsonPrimitive)))
         putJsonArray("items") { s.items.forEach { item -> addJsonObject {
             put("id", item.id); put("label", item.label); put("generation", item.generation); put("status", item.status.name)
             put("category", item.category.name); put("detail", item.detail); put("conflict", item.cityConflict)
-            putJsonObject("intent") {
-                put("query", item.intent.query); put("city", item.intent.city); put("span", item.intent.sourceSpan)
-                put("default", item.intent.usesDefaultCity); put("review", item.intent.needsReview)
-                put("sources", sources(item.intent.sources))
-            }
+            put("intent", intent(item.intent))
             put("sources", sources(item.sources)); put("candidates", JsonArray(item.candidates.map(::poi)))
             put("poi", item.poi?.let(::poi) ?: JsonNull)
         } } }
@@ -67,11 +89,9 @@ object GuideResultCodec {
         val r = Json.parseToJsonElement(text).jsonObject
         require(r.getValue("version").jsonPrimitive.int == 1)
         val items = r.getValue("items").jsonArray.map { j ->
-            val i = j.jsonObject; val intent = i.getValue("intent").jsonObject
+            val i = j.jsonObject
             IntakeItem(i.string("id"), i.string("label"),
-                PlaceIntent(intent.string("query"), intent.string("city"), intent.string("span"),
-                    intent.getValue("default").jsonPrimitive.boolean, sources(intent.getValue("sources")),
-                    intent.getValue("review").jsonPrimitive.boolean),
+                intent(i.getValue("intent").jsonObject),
                 i.getValue("generation").jsonPrimitive.int, IntakeStatus.valueOf(i.string("status")).let {
                     if (it == IntakeStatus.WAITING || it == IntakeStatus.QUERYING) IntakeStatus.CANCELLED else it
                 },
@@ -89,8 +109,34 @@ object GuideResultCodec {
         }
         val selected = r.getValue("selected").jsonArray.map { it.jsonPrimitive.content }.toSet()
         require(selected.all { id -> items.any { it.id == id } })
-        return PlaceAssistantState(input = r.string("input"), city = r.string("city"), images = decodeGuideImages(r.getValue("images")),
-            items = items, selected = selected, error = r["error"]?.jsonPrimitive?.contentOrNull)
+        val images = decodeGuideImages(r.getValue("images"))
+        val validSources = images.map { it.id }.toSet() + "text"
+        val progress = r["sourceProgress"]?.jsonArray?.map { value ->
+            val p = value.jsonObject
+            SourceProgress(p.string("id"), SourceStage.valueOf(p.string("stage")).let {
+                if (it in setOf(SourceStage.SELECTED, SourceStage.PREPARING, SourceStage.SENDING, SourceStage.UNDERSTANDING))
+                    SourceStage.CANCELLED else it
+            }, p["error"]?.jsonPrimitive?.contentOrNull, SendEvidence.valueOf(p.string("send")))
+        }.orEmpty()
+        val parsed = r["parsedMaterials"]?.jsonArray?.map { value ->
+            val p = value.jsonObject
+            val failure = p["failure"]?.jsonObject?.let {
+                AssistantFailure(it.string("message"), AssistantFailureCode.valueOf(it.string("code")),
+                    SendEvidence.valueOf(it.string("send")))
+            }
+            ParsedSource(p.string("id"), p.getValue("intents").jsonArray.map { intent(it.jsonObject) }, failure)
+        }.orEmpty()
+        require(progress.size <= 21 && progress.map { it.sourceId }.distinct().size == progress.size)
+        require(parsed.size <= 21 && parsed.map { it.sourceId }.distinct().size == parsed.size)
+        require(progress.all { it.sourceId in validSources } && parsed.all { it.sourceId in validSources })
+        require(parsed.all { it.intents.size <= AssistantMaterialPolicy.MAX_PER_SOURCE })
+        val parsedCity = r["parsedMaterialCity"]?.jsonPrimitive?.contentOrNull
+        require(parsedCity == null || parsedCity.length <= 50 && parsedCity.none(Char::isISOControl))
+        return PlaceAssistantState(input = r.string("input"), city = r.string("city"), images = images,
+            items = items, selected = selected, error = r["error"]?.jsonPrimitive?.contentOrNull,
+            sourceProgress = progress, parsedMaterials = parsed,
+            normalizationPending = r["normalizationPending"]?.jsonPrimitive?.booleanOrNull ?: false,
+            parsedMaterialCity = parsedCity)
     }
 }
 

@@ -15,39 +15,31 @@ object BatchToolProtocol {
     private val json = Json
     fun decode(response: String, input: String, defaultCity: String = "", maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
         scope: AssistantCityScope? = null): List<PlaceIntent> = try {
-        val root = json.parseToJsonElement(response).jsonObject
-        val choices = root.getValue("choices").jsonArray
-        require(choices.size == 1)
-        val choice = choices.single().jsonObject
-        require(choice["finish_reason"]?.jsonPrimitive?.content == "tool_calls")
-        val calls = choice.getValue("message").jsonObject.getValue("tool_calls").jsonArray
-        require(calls.size == 1)
-        val call = calls.single().jsonObject
-        require(call["type"]?.jsonPrimitive?.content == "function")
-        val function = call.getValue("function").jsonObject
-        require(function["name"]?.jsonPrimitive?.content == "search_place_batch")
-        val args = json.parseToJsonElement(function.getValue("arguments").jsonPrimitive.content).jsonObject
-        require(args.keys == setOf("items", "overflow"))
+        val args = AssistantToolResponse.arguments(response, "search_place_batch")
+        protocolRequire(args.keys.containsAll(setOf("items", "overflow")), AssistantProtocolIssue.REQUIRED_FIELDS)
+        require(!args.getValue("overflow").jsonPrimitive.isString)
         if (args.getValue("overflow").jsonPrimitive.boolean) throw AssistantFailure("本份素材超过 $maxPlaces 个候选，请分批编辑；没有查询或截断原文。", AssistantFailureCode.OVERFLOW, SendEvidence.RESPONSE_RECEIVED)
         val items = args.getValue("items").jsonArray
         if (items.isEmpty()) throw AssistantFailure("未识别到地点，请提供明确的地点名称。", AssistantFailureCode.NO_PLACES, SendEvidence.RESPONSE_RECEIVED)
         if (items.size > maxPlaces) throw AssistantFailure("候选数量超限，请分批。", AssistantFailureCode.OVERFLOW, SendEvidence.RESPONSE_RECEIVED)
         items.map { element ->
             val item = element.jsonObject
-            require(item.keys == setOf("query", "city", "sourceSpan"))
+            protocolRequire(item.keys.containsAll(setOf("query", "city", "sourceSpan")), AssistantProtocolIssue.REQUIRED_FIELDS)
             val query = item.getValue("query").jsonPrimitive.content.trim()
             val city = item.getValue("city").jsonPrimitive.content.trim()
             val span = item.getValue("sourceSpan").jsonPrimitive.content.trim()
-            require(query.length in 1..100 && city.length <= 50 && span.isNotEmpty() && input.contains(span))
+            require(query.length in 1..100 && city.length <= 50 && span.isNotEmpty())
             require(listOf("query", "city", "sourceSpan").all { item.getValue(it).jsonPrimitive.isString })
             require(query.none(Char::isISOControl) && city.none(Char::isISOControl))
-            require(normalizedPlace(query).isNotEmpty() && normalizedPlace(span).contains(normalizedPlace(query)))
-            require(city.isBlank() || sameCity(city, defaultCity) || scope?.names?.any { sameCity(city, it) } == true ||
-                normalizedPlace(input).contains(normalizedPlace(city).removeSuffix("市")))
+            protocolRequire(input.contains(span) && normalizedPlace(query).isNotEmpty() &&
+                normalizedPlace(span).contains(normalizedPlace(query)), AssistantProtocolIssue.SOURCE_MISMATCH)
+            protocolRequire(city.isBlank() || sameCity(city, defaultCity) || scope?.names?.any { sameCity(city, it) } == true ||
+                normalizedPlace(input).contains(normalizedPlace(city).removeSuffix("市")), AssistantProtocolIssue.SOURCE_MISMATCH)
             PlaceIntent(query, city, span)
         }
     } catch (e: AssistantFailure) { throw e }
-    catch (_: Exception) { throw AssistantFailure("模型返回格式不完整或不支持工具调用，请重试。没有执行地点查询。") }
+    catch (e: Exception) { throw protocolFailure(e, AssistantProtocolStage.TEXT,
+        AssistantProtocolIssue.INVALID_FIELDS) }
 
     fun request(config: ProviderConfig, input: String, city: String, maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
         travelMaterials: Boolean = false): String = buildJsonObject {
@@ -99,13 +91,16 @@ class DeepSeekPlaceParser(
     private val maxInputLength: Int = 2000,
     private val maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
     private val travelMaterials: Boolean = false,
+    diagnostics: AssistantProtocolDiagnostics = AssistantProtocolDiagnostics.NONE,
 ) : PlaceIntentParser {
-    private val transport = AssistantTransport(client)
+    private val transport = AssistantTransport(client, diagnostics)
     override suspend fun parse(input: String, defaultCity: String) = parseInScope(input, defaultCity, null)
     override suspend fun parseInScope(input: String, defaultCity: String, scope: AssistantCityScope?): List<PlaceIntent> {
         require(input.length in 1..maxInputLength && defaultCity.length <= 50)
         val current = config()?.validated() ?: throw AssistantFailure("请先在助手设置配置模型服务。")
-        val response = transport.post(current, withCityScope(BatchToolProtocol.request(current, input, defaultCity, maxPlaces, travelMaterials), scope))
-        return BatchToolProtocol.decode(response, input, defaultCity, maxPlaces, scope)
+        val request = withCityScope(BatchToolProtocol.request(current, input, defaultCity, maxPlaces, travelMaterials), scope)
+        return transport.decodeWithRepair(current, request, AssistantProtocolStage.TEXT) { response ->
+            BatchToolProtocol.decode(response, input, defaultCity, maxPlaces, scope)
+        }
     }
 }

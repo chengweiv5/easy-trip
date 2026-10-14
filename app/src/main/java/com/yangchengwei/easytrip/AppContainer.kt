@@ -125,6 +125,8 @@ class AppContainer(
                 })
         }, dates = com.yangchengwei.easytrip.assistant.TripDraftInterpreter(assistantConfig::read)::interpret)
     val assistantSearchDiagnostics = com.yangchengwei.easytrip.assistant.AndroidAssistantSearchDiagnostics(this.context)
+    val assistantProtocolDiagnostics = com.yangchengwei.easytrip.assistant.AssistantProtocolLogFile(
+        java.io.File(this.context.externalCacheDir ?: this.context.cacheDir, "diagnostics"))
     val assistantSearchPacer = com.yangchengwei.easytrip.assistant.AssistantSearchPacer()
     val placeImport = com.yangchengwei.easytrip.assistant.data.RoomPlaceImport(database)
     val tripCreation = com.yangchengwei.easytrip.assistant.data.RoomTripCreation(database)

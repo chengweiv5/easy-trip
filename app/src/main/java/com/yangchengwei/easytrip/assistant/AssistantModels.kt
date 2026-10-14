@@ -20,6 +20,7 @@ enum class AssistantFailureCode { UNKNOWN, NO_PLACES, OVERFLOW, UNSUPPORTED_IMAG
 class AssistantFailure(val userMessage: String,
     val code: AssistantFailureCode = AssistantFailureCode.UNKNOWN,
     val sendEvidence: SendEvidence = SendEvidence.NOT_DISPATCHED,
+    val protocolIssue: AssistantProtocolIssue? = null,
 ) : Exception(userMessage)
 
 class ProviderConfig(val baseUrl: String, val model: String, val apiKey: String) {
@@ -47,7 +48,8 @@ sealed interface IntakeSource {
         val target: ImageTargetEvidence? = null) : IntakeSource
 }
 data class PlaceIntent(val query: String, val city: String, val sourceSpan: String,
-    val usesDefaultCity: Boolean = false, val sources: List<IntakeSource> = emptyList(), val needsReview: Boolean = false)
+    val usesDefaultCity: Boolean = false, val sources: List<IntakeSource> = emptyList(), val needsReview: Boolean = false,
+    val materialKeys: Set<String> = emptySet())
 fun interface PlaceIntentParser {
     suspend fun parse(input: String, defaultCity: String): List<PlaceIntent>
     suspend fun parseInScope(input: String, defaultCity: String, scope: AssistantCityScope?): List<PlaceIntent> {
@@ -93,7 +95,15 @@ data class PlaceAssistantState(
     val consent: Boolean = false,
     val receipt: ImportReceipt? = null,
     val error: String? = null,
+    val parsedMaterials: List<ParsedSource> = emptyList(),
+    val normalizationPending: Boolean = false,
+    val parsedMaterialCity: String? = null,
 ) {
     val eligible get() = items.filter { it.status == IntakeStatus.READY }
+    val unfinishedSources get() = sourceProgress.filter { it.stage != SourceStage.COMPLETE }
+    val hasIncompleteMaterials get() = unfinishedSources.isNotEmpty() || normalizationPending
+    val partialNotice get() = unfinishedSources.takeIf { it.isNotEmpty() && items.isNotEmpty() }?.let {
+        "${it.size} 份素材未完成，成功结果可继续标记和收藏。"
+    }
     val hasDraft get() = input.isNotBlank() || items.isNotEmpty() || images.isNotEmpty() || attachmentSelectionBusy
 }

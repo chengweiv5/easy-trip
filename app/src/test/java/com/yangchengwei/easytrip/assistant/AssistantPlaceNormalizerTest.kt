@@ -123,13 +123,14 @@ class AssistantPlaceNormalizerTest {
         assertEquals(1, calls)
     }
 
-    @Test fun refusesMissingDuplicateInventedCrossCityOrExtraModelOutput() {
+    @Test fun refusesMissingDuplicateInventedOrCrossCityOutputAndIgnoresUnknownFields() {
+        assertEquals(PlaceNormalizationProtocol.decode(response(valid), candidates),
+            PlaceNormalizationProtocol.decode(response(valid.replace("\"canonical\":1", "\"query\":\"新地点\",\"canonical\":1")), candidates))
         listOf(
             valid.replace("\"members\":[0,1]", "\"members\":[1]"),
             valid.replace("\"members\":[0,1]", "\"members\":[0,1,1]"),
             valid.replace("\"canonical\":1", "\"canonical\":99"),
             valid.replace("\"reason\":\"FOOD\"", "\"reason\":\"TOO_MANY\""),
-            valid.replace("\"canonical\":1", "\"query\":\"新地点\",\"canonical\":1"),
         ).forEach { args ->
             assertThrows(AssistantFailure::class.java) { PlaceNormalizationProtocol.decode(response(args), candidates) }
         }
