@@ -4,6 +4,30 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AssistantLinkInputTest {
+    @Test fun observedXhsImageFormatsAreAcceptedButUntrustedPathsAreNot() {
+        val base = "https://sns-webpic-qc.xhscdn.com"
+        val legacy = "$base/202610142202/8a3598d07b386e520d0d445654cbe3d7/notes_pre_post/abc!h5_1080jpg"
+        val current = "$base/202610142202/8a3598d07b386e520d0d445654cbe3d7/1040g2sg320tt6ntvn4004a69f7139bh1au5vi88!h5_1080jpg"
+        for (url in listOf(legacy, current)) {
+            assertEquals(url, AssistantLinkPolicy.image(AssistantLinkPlatform.XIAOHONGSHU, url))
+        }
+        for (url in listOf(
+            "$base/avatar/1040abc", "$base/arbitrary/1040abc",
+            "https://sns-webpic-evil.xhscdn.com.evil.invalid/notes_pre_post/a",
+            "https://sns-avatar-qc.xhscdn.com/notes_pre_post/a",
+            "$base/202610142202/not-a-signature/1040abc",
+        )) assertThrows(AssistantFailure::class.java) {
+            AssistantLinkPolicy.image(AssistantLinkPlatform.XIAOHONGSHU, url)
+        }
+    }
+
+    @Test fun knownShareSuffixWithoutSpaceCannotBecomePartOfUrl() {
+        assertEquals("https://xhslink.cn/o/a", AssistantLinkInput.parse(
+            "攻略 https://xhslink.cn/o/a复制内容后去【小红书】，直接看笔记详情。")!!.url)
+        assertEquals("https://xhslink.cn/o/a?xsec_token=ABC%2Fxyz", AssistantLinkInput.parse(
+            "攻略https://xhslink.cn/o/a?xsec_token=ABC%2Fxyz 进入【小红书】发现更多内容~")!!.url)
+    }
+
     @Test fun fullShareTextFindsAdjacentUrlAndPreservesParameters() {
         val url = "https://m.ctrip.com/webapp/you/community/detail?articleId=353997561&x=1"
         val result = AssistantLinkInput.parse("被低估的青州🌿${url}。")!!

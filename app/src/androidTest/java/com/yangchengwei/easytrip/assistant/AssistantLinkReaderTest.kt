@@ -38,6 +38,18 @@ class AssistantLinkReaderTest {
 
     /** Opt-in only, isolated emulator; no model, POI or collection writes. */
     @Test fun originalShareLinkReadsBodyAndAllSixImagesUsingProductionPipeline() = runBlocking {
+        verifyLiveLink(6, "青州", "井塘古村")
+    }
+
+    /** Additional URLs must declare independent expected facts, not adapt assertions to parser output. */
+    @Test fun sharedNoteReadsExpectedBodyAndEveryImageUsingProductionPipeline() = runBlocking {
+        val args = InstrumentationRegistry.getArguments()
+        assumeTrue(args.getString("liveAssistantLink") == "true")
+        verifyLiveLink(requireNotNull(args.getString("expectedImages")).toInt(),
+            requireNotNull(args.getString("expectedCity")), requireNotNull(args.getString("expectedPlace")))
+    }
+
+    private suspend fun verifyLiveLink(expected: Int, city: String, place: String) {
         val args = InstrumentationRegistry.getArguments()
         assumeTrue(args.getString("liveAssistantLink") == "true")
         val input = requireNotNull(AssistantLinkInput.parse(requireNotNull(args.getString("shareUrl"))))
@@ -55,19 +67,19 @@ class AssistantLinkReaderTest {
             val document = reader.read(input).validated(input)
             File(context.cacheDir, "assistant-link-test-${input.platform}.txt")
                 .writeText(document.title + "\n" + document.body)
-            assertEquals(6, document.expectedImages)
-            assertEquals(6, document.imageUrls.size)
-            assertTrue(document.body.contains("青州"))
-            assertTrue(document.body.contains("井塘古村"))
+            assertEquals(expected, document.expectedImages)
+            assertEquals(expected, document.imageUrls.size)
+            assertTrue(document.body.contains(city))
+            assertTrue(document.body.contains(place))
             assertFalse(document.body.contains("猜你喜欢"))
             assertFalse(document.body.contains("共 63 条评论"))
             assertFalse(document.body.contains("携程推荐"))
-            if (input.platform == AssistantLinkPlatform.CTRIP)
+            if (input.platform == AssistantLinkPlatform.CTRIP && city == "青州")
                 assertEquals(1, Regex("挖到宝藏了").findAll(document.body).count())
             val store = AndroidAssistantImageStore(context, root)
             val loader = DefaultAssistantLinkLoader(AssistantLinkReader { document }, store)
             val loaded = loader.load(session, input, emptyList()) {}
-            assertEquals(6, loaded.images.size)
+            assertEquals(expected, loaded.images.size)
             loaded.images.forEach {
                 val prepared = store.prepare(session, it.id)
                 assertTrue(prepared.bytes.isNotEmpty())

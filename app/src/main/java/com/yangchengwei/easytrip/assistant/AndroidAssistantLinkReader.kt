@@ -17,30 +17,37 @@ import android.webkit.WebView
 import android.webkit.WebViewClient
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.TimeoutCancellationException
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.withTimeout
+import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.serialization.json.*
 import java.io.ByteArrayInputStream
 import kotlin.coroutines.resume
 
 /** A bounded read-only page renderer, not an account browser or JavaScript bridge. */
-class AndroidAssistantLinkReader(context: Context, private val diagnostic: (String) -> Unit = {}) : AssistantLinkReader {
+class AndroidAssistantLinkReader(
+    context: Context,
+    private val diagnostic: (String) -> Unit = { android.util.Log.i("AssistantLinkRead", it) },
+) : AssistantLinkReader {
     private val context = context.applicationContext
     override suspend fun read(input: AssistantLinkInput): AssistantLinkDocument = gate.withLock {
+        var lastSnapshot: JsonObject? = null
         try {
-            withTimeout(45_000) { withContext(Dispatchers.Main.immediate) { render(input) } }
-        } catch (_: TimeoutCancellationException) {
-            throw AssistantFailure("读取笔记超时，请重试或改用文字／图片，原输入已保留。")
+            diagnostic("begin platform=${input.platform} adapter=${AssistantLinkDom.ADAPTER_VERSION}")
+            withTimeoutOrNull(45_000) {
+                withContext(Dispatchers.Main.immediate) { render(input) { lastSnapshot = it } }
+            } ?: throw AssistantLinkDom.incompleteFailure(lastSnapshot)
+        } catch (error: AssistantFailure) {
+            diagnostic("failed platform=${input.platform} reason=${lastSnapshot?.get("reason")?.jsonPrimitive?.contentOrNull ?: "network"}")
+            throw error
         }
     }
 
     @SuppressLint("SetJavaScriptEnabled")
-    private suspend fun render(input: AssistantLinkInput): AssistantLinkDocument {
+    private suspend fun render(input: AssistantLinkInput, observe: (JsonObject) -> Unit): AssistantLinkDocument {
         val web = WebView(context)
         var error: AssistantFailure? = null
         var pageFinished = CompletableDeferred<Unit>()
@@ -124,7 +131,8 @@ class AndroidAssistantLinkReader(context: Context, private val diagnostic: (Stri
                 checkFailure()
                 val json = runCatching { Json.parseToJsonElement(raw).jsonObject }.getOrNull()
                 if (json != null) {
-                    diagnostic("dom body=${json["body"]?.jsonPrimitive?.contentOrNull?.length ?: 0} images=${json["images"]?.jsonArray?.size ?: 0} expected=${json["expected"]}")
+                    observe(json)
+                    diagnostic("dom body=${json["body"]?.jsonPrimitive?.contentOrNull?.length ?: 0} images=${json["images"]?.jsonArray?.size ?: 0} expected=${json["expected"]} reason=${json["reason"]}")
                     if (json["restricted"]?.jsonPrimitive?.booleanOrNull == true)
                         throw AssistantFailure("笔记需要登录／验证或内容不可用，请改用文字／图片。")
                     val document = AssistantLinkDom.decode(input, json)
@@ -132,8 +140,18 @@ class AndroidAssistantLinkReader(context: Context, private val diagnostic: (Stri
                         val validated = document.validated(input)
                         stable = if (validated == previous) stable + 1 else 0
                         previous = validated
-                        if (stable >= 2) return validated
+                        if (stable >= 2) {
+                            diagnostic("ready platform=${input.platform} images=${validated.imageUrls.size}")
+                            return validated
+                        }
+                    } else {
+                        // An intermediate incomplete frame must break consecutive-ready evidence.
+                        previous = null
+                        stable = 0
                     }
+                } else {
+                    previous = null
+                    stable = 0
                 }
                 delay(700)
             }
@@ -155,56 +173,4 @@ class AndroidAssistantLinkReader(context: Context, private val diagnostic: (Stri
         }
     }
     companion object { private val gate = Mutex() }
-}
-
-/** DOM-only extraction; no page state, token, cookie or private API is accessed. */
-internal object AssistantLinkDom {
-    fun script(platform: AssistantLinkPlatform): String = """
-        (() => {
-          const platform = '${platform.name}';
-          const text = document.body?.innerText || '';
-          const restricted = /verify\.ctrip\.com|\/login(?:[/?]|$)/.test(location.href) ||
-            (!document.querySelector('.article-content-container,span.content,.author-desc-content,#detail-desc') &&
-              /拖动滑块|安全验证|内容已删除|笔记不存在|当前笔记暂时无法浏览/.test(text));
-          let title='', body='', images=[], expected=-1;
-          if(platform === 'CTRIP') {
-            const content = Array.from(document.querySelectorAll('.article-content-container'))
-              .find(e=>!e.querySelector('.article-content-container')) || document.querySelector('span.content');
-            body = content?.innerText || content?.textContent || '';
-            const heading = document.querySelector('.article-title,.article-title-text,.title-content');
-            title = heading?.innerText || content?.previousElementSibling?.innerText || '';
-            if(!title && body) title = body.split('\n').find(t=>t.trim()) || '';
-            const mobile = Array.from(document.querySelectorAll('.swiper-item-image img'));
-            const carousel = mobile.length ? mobile : Array.from(document.querySelectorAll('.image-item img'));
-            images = carousel.map(i=>i.currentSrc || i.src);
-            const noteArea = content?.closest('.article-container') || document.body;
-            const counter = (noteArea?.innerText || '').match(/(?:^|\n)\s*\d+\s*\/\s*(\d+)\s*(?:\n|$)/);
-            expected = counter ? Number(counter[1]) :
-              (document.readyState==='complete' && content && !document.querySelector('video') && carousel.length===1 ? 1 : -1);
-          } else {
-            const note = document.querySelector('.narmal-note-container') || document.querySelector('.note-container');
-            const content = note?.querySelector('.author-desc-content') || document.querySelector('#detail-desc');
-            body = content?.innerText || content?.textContent || '';
-            title = (document.querySelector('#detail-title,.note-title')?.innerText || body.split('\n')[0] || '');
-            const area = note || document.querySelector('.note-detail-mask');
-            images = Array.from(area?.querySelectorAll('img') || []).map(i=>i.currentSrc||i.src)
-              .filter(s=>s.includes('/notes_pre_post/'));
-            const counter = (area?.innerText || '').match(/(?:^|\n)\s*\d+\s*\/\s*(\d+)\s*(?:\n|$)/);
-            expected = counter ? Number(counter[1]) :
-              (document.readyState==='complete' && content && !area?.querySelector('video') && images.length===1 ? 1 : -1);
-          }
-          return JSON.stringify({url:location.href,title:title.trim(),body:body.trim(),
-            images:[...new Set(images)],expected,restricted});
-        })()
-    """.trimIndent()
-
-    fun decode(input: AssistantLinkInput, json: JsonObject): AssistantLinkDocument? {
-        val title = json["title"]?.jsonPrimitive?.contentOrNull.orEmpty()
-        val body = json["body"]?.jsonPrimitive?.contentOrNull.orEmpty()
-        val expected = json["expected"]?.jsonPrimitive?.intOrNull ?: -1
-        val images = json["images"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull }.orEmpty()
-        if (title.isBlank() || body.isBlank() || expected < 0 || images.size < expected) return null
-        return AssistantLinkDocument(input.platform, json["url"]?.jsonPrimitive?.contentOrNull.orEmpty(),
-            title, body, images, expected)
-    }
 }

@@ -40,7 +40,8 @@ class GuideCityFirstUiTest {
     @Test fun importedSelectionReopensWithoutReparsingOrResearching() = exercise(false, 1, restore = true)
     @Test fun optionalDatesCanBeEditedAndClearedBeforeCreation() = exercise(false, 1, editDates = true)
     @Test fun hundredFirstPlaceKeepsEmptyTripAndGuideWithoutSearching() = exercise(false, 101)
-    private fun exercise(small: Boolean, count: Int, failFirst: Boolean = false, restore: Boolean = false, editDates: Boolean = false) {
+    @Test fun readFailureKeepsOriginalGuideAndDoesNotCreateTrip() = exercise(false, 1, readFailure = true)
+    private fun exercise(small: Boolean, count: Int, failFirst: Boolean = false, restore: Boolean = false, editDates: Boolean = false, readFailure: Boolean = false) {
         val context = compose.activity
         val db = Room.inMemoryDatabaseBuilder(context, EasyTripDatabase::class.java).build()
         val trips = RoomTripRepository(db.tripDao(), database = db)
@@ -55,6 +56,7 @@ class GuideCityFirstUiTest {
         val links = object : AssistantLinkLoader {
             override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
                 linkLoads.incrementAndGet()
+                if (readFailure) throw AssistantFailure("笔记图片尚未读取完整，请重试或改用文字／图片，原输入已保留。")
                 return LoadedAssistantLink("青州攻略：博物馆", emptyList())
             }
             override suspend fun discard(sessionId: String, images: List<AssistantImage>) = Unit
@@ -88,6 +90,25 @@ class GuideCityFirstUiTest {
             screenshot("input-${if (small) "large" else "normal"}")
             compose.onNodeWithTag("assistant-input").performTextInput("青州三日游 https://xhslink.cn/o/example")
             compose.onNodeWithTag("guide-identify-destination").performScrollTo().performClick()
+            if (readFailure) {
+                compose.waitUntil(10_000) { global.state.value.error != null && !global.state.value.busy }
+                assertEquals("青州三日游 https://xhslink.cn/o/example", global.state.value.input)
+                assertFalse(global.state.value.confirming)
+                assertEquals(1, linkLoads.get())
+                assertEquals(0, parsed.get())
+                assertEquals(0, searches.get())
+                assertTrue(runBlocking { trips.observeTrips().first().isEmpty() })
+                val error = compose.onNodeWithText(requireNotNull(global.state.value.error))
+                error.performScrollTo().assertIsDisplayed()
+                val layout = mutableListOf<androidx.compose.ui.text.TextLayoutResult>()
+                error.performSemanticsAction(androidx.compose.ui.semantics.SemanticsActions.GetTextLayoutResult) { it(layout) }
+                assertTrue(layout.isNotEmpty())
+                assertTrue(layout.none { it.hasVisualOverflow })
+                screenshot("read-failure")
+                compose.onNodeWithTag("assistant-input").performScrollTo().assertIsDisplayed()
+                compose.onNodeWithTag("guide-identify-destination").performScrollTo().assertIsEnabled()
+                return
+            }
             compose.waitUntil(10_000) { global.state.value.confirming && !global.state.value.busy }
             assertEquals(0, parsed.get()); assertEquals(0, searches.get())
             assertTrue(runBlocking { trips.observeTrips().first().isEmpty() })
