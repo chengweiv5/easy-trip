@@ -1,4 +1,20 @@
-# 当前任务：v3.4部分素材失败不阻塞成功结果
+# 当前任务：v3.4协议兼容与部分成功修复交付
+
+状态：**DONE（功能已提交推送并覆盖安装手机；未发布），2026-10-15。**
+
+- 用户本轮明确授权“提交，推送，安装”。功能提交`633703a686a60a8465601eb515aa697cc4328836`，分支`codex/v3.4-model-protocol-compat`；29文件备份、暂存逐字节核对，开放PR为0。fetch、祖先检查、dry-run通过，07:39:37独立ls-remote确认从`d12a5756`快进推送origin/main。
+- 交付模型协议兼容和部分素材失败隔离：成功先整理／匹配／手动收藏，失败独立重试，增量保留用户修改与已收藏结果；部分收藏保留攻略与缓存。100地点／20图／30天／400候选及城市优先、多城、作者证据、餐饮过滤不变。
+- 功能提交工作树干净时重建Debug／Release各1176 JVM，0失败／错误／跳过；lint0 Error／Fatal，Debug64 Warning+1 Hint、Release61 Warning+1 Hint，三APK及Release验签／16KiB对齐通过。包内DEX核实功能SHA／CLEAN；640输入与前轮19设备＋2系统专项验收一致，本轮未重跑设备专项或真实模型／高德。
+- 07:40:30同签名CLEAN Release覆盖安装华为ALN-AL00，仍3.4.0/build27/schema13；手机APK回拉hash为`34a55d0244749e22deb517828a74053c5eac44bc9ece3978c628c2fa02603f2c`，与归档目标一致。UID10477、首次安装时间2026-09-21 08:33:25、dataDir保持不变，无卸载清数据。
+- 桌面下启动Status ok，原有旅行首页可见，限定错误日志未见FATAL；未点击识别／创建／搜索／收藏，未真机重试原攻略或做全库验收。首次日志时间格式错误已只读修正，未重复安装。手机独占锁核对owner后释放，没有停止共享ADB或新增模拟器／凭据。
+- Pencil仅提交已保存字节，346根／47,089节点，SHA256`1dac025f12bd61084954d425c43a39f31229c425e41713a8e64dbe9e0b1f6b29`；本轮未调用Pencil改稿。
+- 正常hook运行，但硬编码扫描2秒超时，不宣称完整安全扫描通过。手机图2原始响应未知，不能声称实际根因或任意URL已根治；保留真实服务／完整OS杀进程／TalkBack／20图100地点真实负载边界。schema13只前向修复。
+- 报告`docs/testing/v3.4.0-protocol-partial-delivery.md`；证据根`/Users/bytedance/.codex/artifacts/easy-trip/v34-protocol-partial-delivery-46b4-20261015/`。功能前备份`before/`与文档收尾前`before-closeout/`保留，回滚不reset／force／降级；Pencil经原生操作。
+- punk-12通知`om_x100b6235772354a0dd12c209f629cb5`已独立回读全文／chat／bot一致且未删除，之后最后更新本状态。此状态与报告为仅文档收尾，最终main SHA以证据根`final-push-verification.json`为准；安装包仍固定功能SHA，不因文档提交重建／重装。
+
+---
+
+# 历史任务：v3.4部分素材失败不阻塞成功结果
 
 状态：**DONE（开发与验证完成，未提交／推送／安装真实手机／发布），2026-10-15；不沿用旧交付授权。**
 
