@@ -1,4 +1,19 @@
-# 当前任务：v3.4 城市优先串行开发
+# 当前任务：v3.4 城市优先Git交付
+
+状态：**功能已提交并快进推送，独立远端SHA回读一致（2026-10-14）；本状态随仅文档收尾提交／推送，最终SHA以本轮交付证据为准。**
+
+- 本轮用户明确授权“提交，推送”；未授权／执行手机安装、Release或标签发布。功能分支`codex/v3.4-city-first`，功能提交`8dc819a3ea8ff1e03f2d0b55878529b3fce11c12`从`d3903aa8145ad06c00e43b27914db58d3ef829b1`快进推送main；10:53:29 +08:00独立`git ls-remote`回读一致。
+- 91文件先备份、逐字节核验暂存，再保留hooks提交；开放PR为0，fetch后主线无新提交，无需rebase。只操作origin/main，不force，不改codebase远端。
+- 干净功能提交重新构建：Debug／Release各1147 JVM、lint0 Error／Fatal、三APK、Release签名和16KB对齐通过，BuildConfig及精确Release DEX核验GIT_SHA为功能SHA、SOURCE_STATE=CLEAN。版本3.4.0/build27/schema13不变。
+- 629输入与开发最终设备验收一致；前轮47设备／3系统及真实服务结果仅按原边界沿用，本轮未重跑设备或模型。开发中真实携程25 READY／4重复、小红书27 READY／南门1待核对，不冒称最终CLEAN包完整真实网络UI验收。
+- 已确认Pencil源SHA仍`70ae3bf520884e9ef65f7a3875b7e7c2c17c48bd70428d325f4d22cbaa66d048`，仅提交原保存字节，无Pencil调用或预览改动。100地点／20图及多城、失败恢复规则保持。
+- punk-12通知`om_x100b63daa05b14a0dde94b41a0de33e`已独立回读全文、目标chat和bot身份一致；之后最后写入本状态。最终文档提交不改变应用／设计输入，推送后再次回读main并检查工作区干净。
+- 交付记录：`docs/testing/v3.4.0-city-first-git-delivery.md`；证据和91文件备份：`/Users/bytedance/.codex/artifacts/easy-trip/v34-city-first-git-46b4-20261014/`，最终main SHA见`final-push-verification.json`。
+- 继续开发／安装／发布前先读交付记录。schema13迁移后只允许同签名兼容前向修复，不降级、不卸载清数据；真实手机、完整OS杀进程／旋转、TalkBack、20图真帖、真实100地点负载等未验边界保留。后续安装／发布仍需单独授权。
+
+---
+
+# 历史任务：v3.4 城市优先串行开发
 
 状态：**DONE（已批准开发与限定验证范围），2026-10-14；未提交、推送、安装真实手机或发布。**
 
