@@ -1,4 +1,18 @@
-# 当前任务：助手地图按半展开区域计算缩放
+# 当前任务：助手半展开地图缩放Git交付
+
+状态：**DONE（功能已提交推送，未安装手机／未发布），2026-10-15，b6fd。**
+
+- 本轮明确授权“提交，推送”。功能提交`e13325dbc3eb7eb15e0bc7b4afa2de15e093a0a5`，分支`codex/v3.4-assistant-half-viewport`；从`5a34612e`快进推送origin/main，独立ls-remote核验一致，未强制推送。开放PR为0，8文件备份及暂存／提交逐字节验证通过。
+- 功能提交工作树干净时，Debug／Release各1180 JVM、lint0 Error／Fatal、三APK／Release验签和16KiB对齐通过；包内BuildConfig核实功能SHA及CLEAN。644输入与开发轮10设备＋5系统320dp/2倍字体验证相同，本轮不重跑设备或真实服务。
+- 仅提交已保存Pencil源，未再次改稿，346根／47089节点、SHA `7cf3d1c515a08e52a9313ee7de947b15ca4f31a04559548ac8bf21d7e404852b`保持。3.4.0/build27/schema13及100地点／20图／30天不变。
+- 保留普通搜索旧测试的独立基线超时、真实SDK投影／手机视觉未验收边界。不安装手机、不操作旅行、不创建Release或标签，不沿用旧授权。
+- 报告：`/Users/bytedance/.codex/worktrees/b6fd/easy-trip/docs/testing/v3.4.0-assistant-half-viewport-git-delivery.md`。
+- 证据：`/Users/bytedance/.codex/artifacts/easy-trip/v34-assistant-half-viewport-git-b6fd-20261015/`；最终仅文档收尾提交／远端SHA及干净状态见`final-push-verification.json`。
+- punk-12通知`om_x100b62377d8fa480cf447ff5c2256fa`已独立核验完整正文、目标chat、bot及deleted=false；本状态在通知验证后写回。回滚选择性前向修复，不reset远端／force，不丢上游成果，schema13只前向兼容。
+
+---
+
+# 历史任务：助手地图按半展开区域计算缩放
 
 状态：**DONE（本轮开发与专项验证完成，未提交／推送／安装／发布），2026-10-15，b6fd。**
 

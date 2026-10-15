@@ -6,6 +6,8 @@
 
 ## 当前设计目标
 
+- **助手半展开地图缩放已提交推送（2026-10-15，b6fd）**：功能`e13325dbc3eb7eb15e0bc7b4afa2de15e093a0a5`从`5a34612e`快进推送origin/main、独立SHA回读一致；8文件逐字节核对，干净提交Debug/Release各1180 JVM、lint0错误、三APK／Release验签和16KiB对齐及包内SHA/CLEAN通过。644输入与开发轮10设备＋5系统320dp/2倍字体专项一致，本轮未重跑设备或真实服务。Pencil仅提交已保存字节，版本3.4.0/build27/schema13及100地点/20图/30天保持。**继续前读`docs/testing/v3.4.0-assistant-half-viewport-git-delivery.md`；保留普通搜索旧测试基线失败、真实SDK／真机视觉未验边界；未安装手机或发布，最终文档SHA见交付证据。下条未提交为开发阶段历史。**
+
 - **助手按半展开区域缩放已开发验证（2026-10-15，b6fd，未提交）**：`codex/v3.4-assistant-half-viewport`基于`5a34612e`；助手新结果／选点按HALF安全区域定位，大字最低高度与抽屉一致，实际遮挡仍随抽屉变化，开关／三档拖动不重放相机请求，普通搜索／地点池／行程规则不变。Debug/Release各1180 JVM、最终精确APK10项设备＋5项系统320dp/2倍字体通过，lint0错误；额外普通搜索旧测试超时已在未修改HEAD独立包复现，不称全应用全绿。Pencil仅C11 context，346根/47089节点，原生保存重开和绝对路径回读通过。3.4.0/build27/schema13及100地点/20图/30天不变。**继续前读`docs/testing/v3.4.0-assistant-half-viewport.md`；命令记录器验证不等于真实SDK／手机视觉验收，本轮未模型／高德／手机操作、提交推送或发布，不沿用旧授权。**
 
 - **v3.4协议兼容与部分成功已推送安装（2026-10-15，46b4）**：功能`633703a686a60a8465601eb515aa697cc4328836`从`d12a5756`快进推送origin/main，独立SHA回读一致；29文件逐字节核对，干净重建Debug/Release各1176 JVM、lint0错误、三APK及包内SHA/CLEAN验证通过。640项输入与前轮19设备/2系统验收一致，本轮未重跑设备专项或真实模型/高德。07:40:30同签名CLEAN Release覆盖华为ALN-AL00，APK回拉hash一致，UID/首次安装时间/dataDir不变，首页既有旅行可见；未真机重试攻略。保留成功素材先匹配收藏、失败独立重试、部分收藏保留原素材与缓存及100地点/20图/30天；3.4.0/build27/schema13不变。Pencil仅提交已保存字节，未再改稿。**继续前读`docs/testing/v3.4.0-protocol-partial-delivery.md`，保留hook扫描超时、真实服务未验和schema13前向修复边界；未发布，最终文档SHA见交付证据。下方未提交/安装为开发阶段历史。**
