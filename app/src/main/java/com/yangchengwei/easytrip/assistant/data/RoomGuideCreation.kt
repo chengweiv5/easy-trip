@@ -44,7 +44,9 @@ class RoomGuideCreation(private val db: EasyTripDatabase) : GuideTripCreation, G
     }
     override suspend fun complete(id: String, attempt: Int, status: GuideHandoffStatus, resultRef: String?): Boolean = db.withTransaction {
         require(status !in setOf(GuideHandoffStatus.PENDING, GuideHandoffStatus.CLAIMED))
-        require((status == GuideHandoffStatus.IMPORTED) == (resultRef != null))
+        require(status != GuideHandoffStatus.IMPORTED || resultRef != null)
+        require(resultRef == null || status in setOf(GuideHandoffStatus.IMPORTED, GuideHandoffStatus.FAILED))
+        require(resultRef == null || validGuideId(resultRef))
         val existing = dao.handoff(id) ?: return@withTransaction false
         if (existing.attempt != attempt) return@withTransaction false
         if (existing.status == GuideHandoffStatus.FINISHED.name)

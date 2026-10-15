@@ -1,6 +1,7 @@
 package com.yangchengwei.easytrip.assistant
 
 import java.io.IOException
+import java.io.File
 import java.util.concurrent.TimeUnit
 import kotlin.coroutines.resume
 import kotlin.coroutines.resumeWithException
@@ -19,7 +20,7 @@ class AssistantTransport(private val client: OkHttpClient = OkHttpClient.Builder
 ) {
     internal suspend fun <T> decodeWithRepair(config: ProviderConfig, request: String,
         stage: AssistantProtocolStage, ordinal: Int? = null,
-        onResponseWait: () -> Unit = {}, decode: (String) -> T): T {
+        onResponseWait: () -> Unit = {}, policy: AssistantTextPolicy? = null, decode: (String) -> T): T {
         var next = request
         val operation = java.util.UUID.randomUUID().toString()
         suspend fun record(attempt: Int, outcome: AssistantProtocolOutcome, failure: AssistantFailure? = null) {
@@ -33,7 +34,7 @@ class AssistantTransport(private val client: OkHttpClient = OkHttpClient.Builder
             kotlinx.coroutines.currentCoroutineContext().ensureActive()
             // Transport failures are deliberately outside the repair catch: never repeat
             // an unknown network outcome, authentication failure, rate limit or HTTP error.
-            val response = try { post(config, next, onResponseWait) }
+            val response = try { post(config, next, onResponseWait, policy) }
             catch (e: AssistantFailure) { record(attempt, AssistantProtocolOutcome.FAILED, e); throw e }
             try {
                 val result = decode(response)
@@ -49,7 +50,8 @@ class AssistantTransport(private val client: OkHttpClient = OkHttpClient.Builder
         }
         error("unreachable")
     }
-    suspend fun post(config: ProviderConfig, json: String, onResponseWait: () -> Unit = {}): String {
+    suspend fun post(config: ProviderConfig, json: String, onResponseWait: () -> Unit = {},
+        policy: AssistantTextPolicy? = null): String {
         val current = config.validated()
         val bytes = json.toByteArray(Charsets.UTF_8)
         if (bytes.size > 6 * 1024 * 1024) throw AssistantFailure("请求超过安全上限，尚未发送，请分批。")
@@ -60,6 +62,58 @@ class AssistantTransport(private val client: OkHttpClient = OkHttpClient.Builder
             override fun writeTo(sink: BufferedSink) { body.writeTo(sink); onResponseWait() }
         }
         val request = Request.Builder().url(current.chatUrl).header("Authorization", "Bearer ${current.apiKey}").post(tracked).build()
+        val requestClient = if (policy == null) client else client.newBuilder()
+            .followRedirects(false).followSslRedirects(false).retryOnConnectionFailure(false)
+            .callTimeout(policy.callMillis, TimeUnit.MILLISECONDS)
+            .readTimeout(policy.readMillis, TimeUnit.MILLISECONDS)
+            .writeTimeout(policy.writeMillis, TimeUnit.MILLISECONDS)
+            .connectTimeout(policy.connectMillis, TimeUnit.MILLISECONDS).build()
+        return send(requestClient, request, policy?.responseBytes ?: 256 * 1024L)
+    }
+
+    /** A sealed private body is streamed once. No retry, redirect or full-body String copy. */
+    suspend fun postFile(config: ProviderConfig, file: File, policy: GuideBatchPolicy,
+        onResponseWait: () -> Unit = {}): String {
+        val current = config.validated()
+        kotlinx.coroutines.currentCoroutineContext().ensureActive()
+        val length = file.length()
+        if (!file.isFile || length !in 1..policy.bodyLimit)
+            throw AssistantFailure("请求文件无效或超过安全上限，尚未发送；原素材保留。",
+                sendEvidence = SendEvidence.NOT_DISPATCHED)
+        val job = kotlinx.coroutines.currentCoroutineContext()[kotlinx.coroutines.Job]
+        val body = object : RequestBody() {
+            override fun contentType() = "application/json".toMediaType()
+            override fun contentLength() = length
+            override fun isOneShot() = true
+            override fun writeTo(sink: BufferedSink) {
+                if (!file.isFile || file.length() != length) throw IOException("Body changed before upload")
+                file.inputStream().use { input ->
+                    val buffer = ByteArray(16 * 1024)
+                    var count = 0L
+                    while (true) {
+                        if (job?.isActive == false) throw IOException("Canceled")
+                        val n = input.read(buffer)
+                        if (n < 0) break
+                        count += n
+                        if (count > length) throw IOException("Body changed during upload")
+                        sink.write(buffer, 0, n)
+                    }
+                    if (count != length) throw IOException("Body truncated during upload")
+                }
+                onResponseWait()
+            }
+        }
+        val request = Request.Builder().url(current.chatUrl)
+            .header("Authorization", "Bearer ${current.apiKey}").post(body).build()
+        val guideClient = client.newBuilder().followRedirects(false).followSslRedirects(false)
+            .retryOnConnectionFailure(false).connectTimeout(15, TimeUnit.SECONDS)
+            .callTimeout(policy.callTimeoutMillis, TimeUnit.MILLISECONDS)
+            .readTimeout(policy.callTimeoutMillis, TimeUnit.MILLISECONDS)
+            .writeTimeout(policy.callTimeoutMillis, TimeUnit.MILLISECONDS).build()
+        return send(guideClient, request, policy.responseLimit)
+    }
+
+    private suspend fun send(client: OkHttpClient, request: Request, responseLimit: Long): String {
         return suspendCancellableCoroutine { continuation ->
             val call = client.newCall(request)
             continuation.invokeOnCancellation { call.cancel() }
@@ -74,7 +128,7 @@ class AssistantTransport(private val client: OkHttpClient = OkHttpClient.Builder
                         response.use {
                             val source = it.body?.source() ?: throw AssistantFailure("模型返回空响应。",
                                 AssistantFailureCode.PROTOCOL, SendEvidence.RESPONSE_RECEIVED)
-                            if (source.request(256 * 1024L + 1)) throw AssistantFailure("模型响应超过安全上限。",
+                            if (source.request(responseLimit + 1)) throw AssistantFailure("模型响应超过安全上限。",
                                 AssistantFailureCode.PROTOCOL, SendEvidence.RESPONSE_RECEIVED)
                             val text = source.readUtf8()
                             if (!it.isSuccessful) throw failure(it.code, text)

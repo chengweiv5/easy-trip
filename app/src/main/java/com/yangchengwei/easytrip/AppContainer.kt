@@ -107,13 +107,13 @@ class AppContainer(
     val guideCreation = com.yangchengwei.easytrip.assistant.data.RoomGuideCreation(database)
     val guideImages = com.yangchengwei.easytrip.assistant.AndroidAssistantImageStore(this.context,
         java.io.File(this.context.noBackupFilesDir, "guide-images"), clearOnStart = false)
+    val guideResults = com.yangchengwei.easytrip.assistant.cityfirst.GuideImportResultStore(
+        java.io.File(this.context.noBackupFilesDir, "guide-results"))
     val guideMaterials = com.yangchengwei.easytrip.assistant.cityfirst.GuideMaterialStore(
         java.io.File(this.context.noBackupFilesDir, "guide-materials"), guideImages,
         com.yangchengwei.easytrip.assistant.DefaultAssistantLinkLoader(
             com.yangchengwei.easytrip.assistant.AndroidAssistantLinkReader(this.context), guideImages),
-        database.guideCreationDao()::referencedMaterials)
-    val guideResults = com.yangchengwei.easytrip.assistant.cityfirst.GuideImportResultStore(
-        java.io.File(this.context.noBackupFilesDir, "guide-results"))
+        { database.guideCreationDao().referencedMaterials() + guideResults.localMaterialIds() })
     val guideJournal = com.yangchengwei.easytrip.assistant.cityfirst.GuideCreationJournal(
         java.io.File(this.context.noBackupFilesDir, "guide-creation-pending.json"))
     fun guideViewModel() = com.yangchengwei.easytrip.assistant.cityfirst.GuideCreationViewModel(
@@ -128,6 +128,33 @@ class AppContainer(
     val assistantProtocolDiagnostics = com.yangchengwei.easytrip.assistant.AssistantProtocolLogFile(
         java.io.File(this.context.externalCacheDir ?: this.context.cacheDir, "diagnostics"))
     val assistantSearchPacer = com.yangchengwei.easytrip.assistant.AssistantSearchPacer()
+    private val guideBatchScheduler = com.yangchengwei.easytrip.assistant.GuideBatchScheduler()
+    private val guidePreparationLock = kotlinx.coroutines.sync.Mutex()
+    fun guideEvidenceParser(config: com.yangchengwei.easytrip.assistant.ProviderConfig):
+        com.yangchengwei.easytrip.assistant.GuideMaterialParser =
+        com.yangchengwei.easytrip.assistant.BatchedGuideMaterialParser(config,
+            com.yangchengwei.easytrip.assistant.GuideBatchFiles(
+                java.io.File(context.cacheDir, "assistant-guide-batches"), assistantImages, guidePreparationLock),
+            com.yangchengwei.easytrip.assistant.GuideBatchBody(com.yangchengwei.easytrip.assistant.EvidenceGuideWireProtocol),
+            com.yangchengwei.easytrip.assistant.AssistantTransport(diagnostics = assistantProtocolDiagnostics),
+            guideBatchScheduler, assistantProtocolDiagnostics,
+            protocol = com.yangchengwei.easytrip.assistant.EvidenceGuideWireProtocol) {
+                assistantConfig.saveImageCapability(config,
+                    com.yangchengwei.easytrip.assistant.ImageCapabilityResult(
+                        com.yangchengwei.easytrip.assistant.ImageCapability.UNSUPPORTED, System.currentTimeMillis()))
+            }
+    fun guideParser(config: com.yangchengwei.easytrip.assistant.ProviderConfig):
+        com.yangchengwei.easytrip.assistant.GuideMaterialParser =
+        com.yangchengwei.easytrip.assistant.BatchedGuideMaterialParser(config,
+            com.yangchengwei.easytrip.assistant.GuideBatchFiles(
+                java.io.File(context.cacheDir, "assistant-guide-batches"), assistantImages, guidePreparationLock),
+            com.yangchengwei.easytrip.assistant.GuideBatchBody(),
+            com.yangchengwei.easytrip.assistant.AssistantTransport(diagnostics = assistantProtocolDiagnostics),
+            guideBatchScheduler, assistantProtocolDiagnostics) {
+                assistantConfig.saveImageCapability(config,
+                    com.yangchengwei.easytrip.assistant.ImageCapabilityResult(
+                        com.yangchengwei.easytrip.assistant.ImageCapability.UNSUPPORTED, System.currentTimeMillis()))
+            }
     val placeImport = com.yangchengwei.easytrip.assistant.data.RoomPlaceImport(database)
     val tripCreation = com.yangchengwei.easytrip.assistant.data.RoomTripCreation(database)
     val tripCreationJournal = com.yangchengwei.easytrip.assistant.TripCreationJournal(this.context)

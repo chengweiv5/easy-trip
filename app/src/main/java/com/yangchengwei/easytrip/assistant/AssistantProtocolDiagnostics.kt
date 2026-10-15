@@ -8,7 +8,7 @@ import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import kotlinx.serialization.json.*
 
-enum class AssistantProtocolStage { TEXT, IMAGE, NORMALIZATION }
+enum class AssistantProtocolStage { TEXT, IMAGE, NORMALIZATION, GUIDE_BATCH }
 enum class AssistantProtocolOutcome { SUCCESS, REPAIRING, FAILED }
 
 /** No URLs, input, image identifiers, arguments, model output or exception messages. */

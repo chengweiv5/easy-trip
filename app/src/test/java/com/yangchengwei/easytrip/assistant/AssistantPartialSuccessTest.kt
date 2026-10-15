@@ -50,6 +50,81 @@ class AssistantPartialSuccessTest {
         c.editInput("北城 https://xhslink.cn/o/fixture"); c.submit()
     }
 
+    @Test fun retryCannotBypassCombinedFourHundredCandidateBudgetUsingCachedSources() = runTest {
+        val searched = mutableListOf<String>()
+        var normalizations = 0
+        var attempts = 0
+        val allImages = (1..5).map { images().single().copy(id = "image-$it", ordinal = it) }
+        val materialLoader = object : AssistantLinkLoader {
+            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                onProgress: (String) -> Unit) = LoadedAssistantLink("原攻略", allImages)
+            override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
+        }
+        val guide = object : GuideMaterialParser {
+            override suspend fun parse(request: AssistantInputRequest, onSource: (ParsedSource) -> Unit,
+                onProgress: (SourceProgress) -> Unit): ParsedInputBatch {
+                attempts++
+                val sources = allImages.filter { request.retrySourceIds == null || it.id in request.retrySourceIds }.map { image ->
+                    if (attempts == 1 && image.ordinal == 5) ParsedSource(image.id, emptyList(), AssistantFailure("未读清"))
+                    else ParsedSource(image.id, (1..100).map { index ->
+                        val name = "公园${image.ordinal}_$index"
+                        PlaceIntent(name, "北城", name, sources = listOf(IntakeSource.Image(image.id, image.ordinal, name)))
+                    })
+                } + if (request.retrySourceIds == null) listOf(ParsedSource("text", emptyList())) else emptyList()
+                sources.forEach(onSource)
+                return ParsedInputBatch(sources, false)
+            }
+        }
+        val text = PlaceIntentParser { _, _ -> error("guide only") }
+        val runner = AssistantInputProcessor(text, ImageIntentParser { _, _, _, _, _ -> error("guide only") },
+            Images(), normalizer = PlaceIntentNormalizer { values, _, _ ->
+                normalizations++
+                listOf(values.first())
+            }, guideParser = guide)
+        val c = PlaceAssistantController("trip", this, text, source(searched), Importer(),
+            processor = { runner }, linkLoader = materialLoader)
+        start(c); advanceUntilIdle()
+        assertEquals(400, c.state.value.parsedMaterials.sumOf { it.intents.size })
+        assertEquals(1, normalizations)
+        val queriesBefore = searched.size
+        c.retryImages(); advanceUntilIdle()
+        assertEquals(2, attempts)
+        assertEquals(1, normalizations)
+        assertEquals(queriesBefore, searched.size)
+        assertEquals(400, c.state.value.parsedMaterials.sumOf { it.intents.size })
+        assertEquals(1, c.state.value.items.size)
+    }
+
+    @Test fun retryRestoresOriginalSourceOrderInsteadOfPuttingCachedImagesBeforeText() = runTest {
+        val order = mutableListOf<List<String>>()
+        var attempt = 0
+        val picture = ParsedSource(images().single().id, listOf(PlaceIntent("公园", "北城", "公园",
+            sources = listOf(IntakeSource.Image(images().single().id, 1, "公园")))))
+        val guide = object : GuideMaterialParser {
+            override suspend fun parse(request: AssistantInputRequest, onSource: (ParsedSource) -> Unit,
+                onProgress: (SourceProgress) -> Unit): ParsedInputBatch {
+                attempt++
+                val text = if (attempt == 1) ParsedSource("text", emptyList(), AssistantFailure("未读清"))
+                    else ParsedSource("text", listOf(PlaceIntent("美术馆", "北城", "美术馆",
+                        sources = listOf(IntakeSource.Text("美术馆")))))
+                val values = if (attempt == 1) listOf(text, picture) else listOf(text)
+                values.forEach(onSource)
+                return ParsedInputBatch(values, false)
+            }
+        }
+        val text = PlaceIntentParser { _, _ -> error("must use guide") }
+        val runner = AssistantInputProcessor(text, ImageIntentParser { _, _, _, _, _ -> error("must use guide") },
+            Images(), normalizer = PlaceIntentNormalizer { values, _, _ ->
+                order += values.map { it.query }; values
+            }, guideParser = guide)
+        val c = PlaceAssistantController("trip", this, text, source(mutableListOf()), Importer(),
+            processor = { runner }, linkLoader = loader())
+        start(c); advanceUntilIdle()
+        c.retryImages(); advanceUntilIdle()
+        assertEquals(listOf("美术馆", "公园"), order.last())
+        assertEquals(listOf("text", images().single().id), c.state.value.parsedMaterials.map { it.sourceId })
+    }
+
     @Test fun failedImageDoesNotBlockSuccessfulTextFromNormalizationAndMapQuery() = runTest {
         val searched = mutableListOf<String>()
         var normalized = 0

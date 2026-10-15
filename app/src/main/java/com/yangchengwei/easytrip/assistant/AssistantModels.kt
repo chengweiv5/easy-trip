@@ -98,12 +98,18 @@ data class PlaceAssistantState(
     val parsedMaterials: List<ParsedSource> = emptyList(),
     val normalizationPending: Boolean = false,
     val parsedMaterialCity: String? = null,
+    val guideVersion: GuideProtocolVersion = GuideProtocolVersion.LEGACY_V1,
+    val guideCheckpoint: GuideEvidenceCheckpoint? = null,
 ) {
     val eligible get() = items.filter { it.status == IntakeStatus.READY }
     val unfinishedSources get() = sourceProgress.filter { it.stage != SourceStage.COMPLETE }
     val hasIncompleteMaterials get() = unfinishedSources.isNotEmpty() || normalizationPending
-    val partialNotice get() = unfinishedSources.takeIf { it.isNotEmpty() && items.isNotEmpty() }?.let {
-        "${it.size} 份素材未完成，成功结果可继续标记和收藏。"
+    val partialNotice get() = when {
+        guideVersion == GuideProtocolVersion.EVIDENCE_V2 && normalizationPending ->
+            "部分地点整理未完成，成功结果可继续标记和收藏。"
+        unfinishedSources.isNotEmpty() && items.isNotEmpty() ->
+            "${unfinishedSources.size} 份素材未完成，成功结果可继续标记和收藏。"
+        else -> null
     }
     val hasDraft get() = input.isNotBlank() || items.isNotEmpty() || images.isNotEmpty() || attachmentSelectionBusy
 }

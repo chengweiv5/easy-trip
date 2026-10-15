@@ -26,6 +26,11 @@ import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.*
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.serialization.json.*
+import okhttp3.*
+import okhttp3.ResponseBody.Companion.toResponseBody
+import okio.Buffer
 import org.junit.Assert.*
 import org.junit.Rule
 import org.junit.Test
@@ -34,7 +39,11 @@ import org.junit.Test
 class AssistantPartialGuideRecoveryTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun partialCollectionReopensAndRetriesWithoutFinishingGuideOrDuplicatingSavedPlaces() {
+    @Test fun partialCollectionReopensAndRetriesWithoutFinishingGuideOrDuplicatingSavedPlaces() = exercise(false)
+    @Test fun batchedPartialSaveThenRetryDoesNotRepeatSavedPlace() = exercise(true)
+    @Test fun cancelledNormalizationRestoresSuccessfulSourcesWithoutExtractingAgain() = exercise(true, true)
+
+    private fun exercise(batched: Boolean, cancelNormalization: Boolean = false) {
         val context = compose.activity
         val root = File(context.noBackupFilesDir, "partial-guide-${UUID.randomUUID()}").apply { mkdirs() }
         val config = AssistantConfigStore(object : ContextWrapper(context) { override fun getNoBackupFilesDir() = root })
@@ -48,6 +57,32 @@ class AssistantPartialGuideRecoveryTest {
         val texts = AtomicInteger()
         val pictures = AtomicInteger()
         val searches = AtomicInteger()
+        val normalizations = AtomicInteger()
+        val scheduler = GuideBatchScheduler()
+        val preparation = Mutex()
+        val batches = AtomicInteger()
+        val batchHttp = OkHttpClient.Builder().addInterceptor { chain ->
+            val buffer = Buffer(); chain.request().body!!.writeTo(buffer)
+            val request = buffer.readUtf8()
+            val number = batches.incrementAndGet()
+            if (number == 1) texts.incrementAndGet()
+            pictures.incrementAndGet()
+            if (number > 1) assertFalse(request.contains("目标text："))
+            val arguments = buildJsonObject { putJsonArray("sources") {
+                if (number == 1) addJsonObject {
+                    put("sourceId", "text"); put("status", "OK")
+                    putJsonArray("items") { add(batchedDeviceItem("美术馆")) }
+                }
+                addJsonObject {
+                    put("sourceId", "image_1"); put("status", if (number == 1) "UNREADABLE" else "OK")
+                    putJsonArray("items") {
+                        if (number > 1) { add(batchedDeviceItem("美术馆", true)); add(batchedDeviceItem("公园", true)) }
+                    }
+                }
+            } }
+            Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1)
+                .code(200).message("OK").body(batchedDeviceReply(arguments).toResponseBody()).build()
+        }.build()
         val png = java.io.ByteArrayOutputStream().use { stream ->
             Bitmap.createBitmap(40, 40, Bitmap.Config.ARGB_8888).also {
                 it.compress(Bitmap.CompressFormat.PNG, 100, stream); it.recycle()
@@ -72,8 +107,14 @@ class AssistantPartialGuideRecoveryTest {
                 CreateGuideTripCommand.create("北城之旅", null, 1, TravelMode.FLEXIBLE, AssistantCityScope.parse("北城"), material.ref)
                     .also { creation.commit(it) }
             }
-            fun createModel(folder: String) = PlaceAssistantViewModel(command.tripId, config, RoomPlaceImport(db), repo,
-                images = AndroidAssistantImageStore(context, File(root, folder)),
+            fun createModel(folder: String): PlaceAssistantViewModel {
+              val store = AndroidAssistantImageStore(context, File(root, folder))
+              return PlaceAssistantViewModel(command.tripId, config, RoomPlaceImport(db), repo,
+                images = store,
+                guideParserFactory = if (!batched) null else { snapshot ->
+                    BatchedGuideMaterialParser(snapshot, GuideBatchFiles(File(root, "batches"), store, preparation),
+                        GuideBatchBody(), AssistantTransport(batchHttp), scheduler)
+                },
                 materialTextParserOverride = PlaceIntentParser { _, _ ->
                     texts.incrementAndGet(); listOf(PlaceIntent("美术馆", "北城", "北城美术馆"))
                 },
@@ -82,7 +123,10 @@ class AssistantPartialGuideRecoveryTest {
                     listOf("美术馆", "公园").map { PlaceIntent(it, "北城", it,
                         sources = listOf(IntakeSource.Image(image.id, ordinal, it))) }
                 },
-                normalizerOverride = PlaceIntentNormalizer { values, _, _ -> mergeIdenticalPlaceIntents(values) },
+                normalizerOverride = PlaceIntentNormalizer { values, _, _ ->
+                    if (normalizations.incrementAndGet() == 1 && cancelNormalization) awaitCancellation()
+                    mergeIdenticalPlaceIntents(values)
+                },
                 guideStore = creation, guideMaterials = materials, guideResults = results).also { model ->
                 model.controller.updateSource(object : PlaceSearchDataSource {
                     override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
@@ -92,10 +136,30 @@ class AssistantPartialGuideRecoveryTest {
                     }
                 })
                 model.controller.environment(true, true, true)
+              }
             }
             compose.runOnUiThread { assistant = createModel("workspace"); stores.put("assistant", assistant) }
             compose.waitUntil(10_000) { assistant.guide.value != null }
             compose.runOnUiThread { assistant.consumePendingGuide() }
+            if (cancelNormalization) {
+                compose.waitUntil(10_000) { normalizations.get() == 1 }
+                compose.runOnUiThread { assistant.cancelCurrentBatch() }
+                compose.waitUntil(10_000) { !assistant.controller.state.value.busy }
+                assertTrue(assistant.controller.state.value.items.isEmpty())
+                assertTrue(assistant.controller.state.value.normalizationPending)
+                compose.waitUntil(10_000) {
+                    runBlocking { creation.find(command.tripId)?.resultRef != null }
+                }
+                compose.runOnUiThread { stores.put("assistant", object : ViewModel() {}) }
+                runBlocking { delay(250) }
+                compose.runOnUiThread { assistant = createModel("workspace-after-cancel"); stores.put("assistant", assistant) }
+                compose.waitUntil(10_000) { assistant.guide.value != null }
+                compose.runOnUiThread { assistant.consumePendingGuide() }
+                compose.waitUntil(10_000) { assistant.controller.state.value.normalizationPending }
+                assertTrue(assistant.controller.state.value.parsedMaterials.any { it.failure == null && it.intents.isNotEmpty() })
+                assertEquals(1, batches.get())
+                compose.runOnUiThread { assistant.controller.retryNormalization() }
+            }
             compose.waitUntil(15_000) { assistant.guide.value?.status == GuideHandoffStatus.IMPORTED && !assistant.controller.state.value.busy }
             assertEquals(1, assistant.controller.state.value.eligible.size)
             assertEquals(1, searches.get())
@@ -148,6 +212,10 @@ class AssistantPartialGuideRecoveryTest {
             compose.runOnUiThread { assistant.consumePendingGuide() }
             compose.waitForIdle()
             assertEquals(2, pictures.get())
+            if (batched) {
+                assertEquals(2, batches.get())
+                assertTrue(File(root, "batches").listFiles()!!.isEmpty())
+            }
         } finally {
             compose.runOnUiThread { stores.clear() }
             runBlocking { delay(250) }

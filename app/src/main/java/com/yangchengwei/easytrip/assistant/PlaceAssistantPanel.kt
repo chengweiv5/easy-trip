@@ -90,7 +90,7 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
                         picker.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
                     },
                     { previewId = it }, host.model::removeImage, host.model.images, host.model.sessionId)
-                Text("点击后读取链接，再将笔记文字、配图及本次所选素材和必要城市发送至已配置的模型服务。文字与图片分别处理，可能产生多次调用费用。", style = MaterialTheme.typography.bodySmall)
+                Text("点击后读取链接，并将素材及必要城市发送至已配置的模型。攻略图文合并理解；分组、整理或重试可能产生多次调用费用。", style = MaterialTheme.typography.bodySmall)
                 Button(host.onSubmit ?: controller::submit, enabled = s.configured && s.consent && !s.busy && !s.resolvingCity && !s.attachmentSelectionBusy &&
                     (s.input.isNotBlank() || s.images.isNotEmpty()),
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp).testTag("assistant-submit")) {

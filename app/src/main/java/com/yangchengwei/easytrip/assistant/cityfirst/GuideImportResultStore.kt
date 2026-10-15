@@ -8,6 +8,8 @@ import java.io.File
 import java.util.UUID
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.*
 
 object GuideResultCodec {
@@ -47,13 +49,13 @@ object GuideResultCodec {
             p["code"]?.jsonPrimitive?.contentOrNull, p["city"]?.jsonPrimitive?.contentOrNull,
             p["adcode"]?.jsonPrimitive?.contentOrNull, p.getValue("version").jsonPrimitive.int)
     }
-    private fun intent(p: PlaceIntent) = buildJsonObject {
+    internal fun intent(p: PlaceIntent) = buildJsonObject {
         put("query", p.query); put("city", p.city); put("span", p.sourceSpan)
         put("default", p.usesDefaultCity); put("review", p.needsReview)
         put("sources", sources(p.sources))
         put("materialKeys", JsonArray(p.materialKeys.sorted().map(::JsonPrimitive)))
     }
-    private fun intent(j: JsonObject): PlaceIntent {
+    internal fun intent(j: JsonObject): PlaceIntent {
         val keys = j["materialKeys"]?.jsonArray?.map { it.jsonPrimitive.content }?.toSet().orEmpty()
         require(keys.size <= AssistantMaterialPolicy.MAX_CANDIDATES && keys.all { it.length <= 500 })
         return PlaceIntent(j.string("query"), j.string("city"), j.string("span"),
@@ -63,7 +65,10 @@ object GuideResultCodec {
         }
     }
     fun encode(s: PlaceAssistantState): String = buildJsonObject {
-        put("version", 1); put("input", s.input); put("city", s.city); put("error", s.error)
+        put("version", if (s.guideVersion == GuideProtocolVersion.EVIDENCE_V2) 2 else 1)
+        if (s.guideVersion == GuideProtocolVersion.EVIDENCE_V2)
+            put("checkpoint", GuideEvidenceCheckpointCodec.encode(requireNotNull(s.guideCheckpoint)))
+        put("input", s.input); put("city", s.city); put("error", s.error)
         put("normalizationPending", s.normalizationPending)
         put("parsedMaterialCity", s.parsedMaterialCity)
         putJsonArray("sourceProgress") { s.sourceProgress.forEach { p -> addJsonObject {
@@ -83,11 +88,14 @@ object GuideResultCodec {
             put("sources", sources(item.sources)); put("candidates", JsonArray(item.candidates.map(::poi)))
             put("poi", item.poi?.let(::poi) ?: JsonNull)
         } } }
-    }.toString().also { require(it.toByteArray().size <= GUIDE_RECORD_LIMIT) }
+    }.let { if (s.guideVersion == GuideProtocolVersion.EVIDENCE_V2) GuideSnapshotStrings.pack(it) else it }
+        .toString().also { require(it.toByteArray().size <= GUIDE_RECORD_LIMIT) { "恢复记录过大，原记录已保留" } }
     fun decode(text: String): PlaceAssistantState {
         require(text.toByteArray().size <= GUIDE_RECORD_LIMIT)
-        val r = Json.parseToJsonElement(text).jsonObject
-        require(r.getValue("version").jsonPrimitive.int == 1)
+        val r = GuideSnapshotStrings.unpack(Json.parseToJsonElement(text).jsonObject)
+        val version = r.getValue("version").strictGuideInt()
+        require(version in 1..2)
+        val checkpoint = if (version == 2) GuideEvidenceCheckpointCodec.decode(r.getValue("checkpoint").jsonObject) else null
         val items = r.getValue("items").jsonArray.map { j ->
             val i = j.jsonObject
             IntakeItem(i.string("id"), i.string("label"),
@@ -110,6 +118,11 @@ object GuideResultCodec {
         val selected = r.getValue("selected").jsonArray.map { it.jsonPrimitive.content }.toSet()
         require(selected.all { id -> items.any { it.id == id } })
         val images = decodeGuideImages(r.getValue("images"))
+        checkpoint?.sources?.flatMap { it.evidence }?.forEach { evidence ->
+            require(if (evidence.sourceId == "text") evidence.ordinal == null
+                else images.singleOrNull { it.id == evidence.sourceId }?.ordinal == evidence.ordinal &&
+                    evidence.ordinal != null)
+        }
         val validSources = images.map { it.id }.toSet() + "text"
         val progress = r["sourceProgress"]?.jsonArray?.map { value ->
             val p = value.jsonObject
@@ -118,7 +131,7 @@ object GuideResultCodec {
                     SourceStage.CANCELLED else it
             }, p["error"]?.jsonPrimitive?.contentOrNull, SendEvidence.valueOf(p.string("send")))
         }.orEmpty()
-        val parsed = r["parsedMaterials"]?.jsonArray?.map { value ->
+        val parsed = checkpoint?.sources ?: r["parsedMaterials"]?.jsonArray?.map { value ->
             val p = value.jsonObject
             val failure = p["failure"]?.jsonObject?.let {
                 AssistantFailure(it.string("message"), AssistantFailureCode.valueOf(it.string("code")),
@@ -136,11 +149,52 @@ object GuideResultCodec {
             items = items, selected = selected, error = r["error"]?.jsonPrimitive?.contentOrNull,
             sourceProgress = progress, parsedMaterials = parsed,
             normalizationPending = r["normalizationPending"]?.jsonPrimitive?.booleanOrNull ?: false,
-            parsedMaterialCity = parsedCity)
+            parsedMaterialCity = parsedCity,
+            guideVersion = if (version == 2) GuideProtocolVersion.EVIDENCE_V2 else GuideProtocolVersion.LEGACY_V1,
+            guideCheckpoint = checkpoint)
     }
 }
 
 class GuideImportResultStore(private val root: File) {
+    private val localLock = Mutex()
+    private fun localFile(tripId: String): File {
+        require(validGuideId(tripId)); return File(root, "local-$tripId.json")
+    }
+    private fun decodeLocal(file: File): GuideLocalDraftRef? {
+        if (!file.exists() && !File(file.path + ".bak").exists()) return null
+        val r = Json.parseToJsonElement(readGuideFile(file)).jsonObject
+        require(r.getValue("version").jsonPrimitive.int == 1)
+        val value = GuideLocalDraftRef(r.string("trip"), r.string("batch"), r.getValue("revision").jsonPrimitive.long,
+            GuideMaterialRef(r.string("material"), r.string("digest")), r.string("result"))
+        require(file.name == "local-${value.tripId}.json")
+        return value
+    }
+    suspend fun localDraft(tripId: String): GuideLocalDraftRef? = withContext(Dispatchers.IO) {
+        localLock.withLock { decodeLocal(localFile(tripId)) }
+    }
+    suspend fun localMaterialIds(): List<String> = withContext(Dispatchers.IO) {
+        localLock.withLock {
+            root.listFiles().orEmpty().filter { it.name.startsWith("local-") && it.name.endsWith(".json") }
+                .mapNotNull { decodeLocal(it)?.material?.id }
+        }
+    }
+    suspend fun replaceLocalDraft(tripId: String, expected: GuideLocalDraftRef?,
+        value: GuideLocalDraftRef?): Boolean = withContext(Dispatchers.IO) {
+        localLock.withLock {
+            val file = localFile(tripId)
+            require(value == null || value.tripId == tripId)
+            if (decodeLocal(file) != expected) return@withLock false
+            if (value == null) android.util.AtomicFile(file).delete()
+            else {
+                read(value.resultRef) // Never publish a pointer to an unreadable result.
+                writeGuideFile(file, buildJsonObject {
+                    put("version", 1); put("trip", tripId); put("batch", value.batchId); put("revision", value.revision)
+                    put("material", value.material.id); put("digest", value.material.digest); put("result", value.resultRef)
+                }.toString())
+            }
+            true
+        }
+    }
     suspend fun remove(id: String) = withContext(Dispatchers.IO) {
         require(validGuideId(id))
         android.util.AtomicFile(File(root, "$id.json")).delete()

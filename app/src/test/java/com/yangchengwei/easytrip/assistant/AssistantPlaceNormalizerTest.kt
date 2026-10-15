@@ -144,6 +144,31 @@ class AssistantPlaceNormalizerTest {
         assertEquals(31, PlaceNormalizationProtocol.decode(response("""{"groups":[$groups],"discarded":[]}"""), many).size)
     }
 
+    @Test fun normalizationPromptRequiresCanonicalMembershipAndCompleteDisjointPartition() {
+        val request = Json.parseToJsonElement(PlaceNormalizationProtocol.request(
+            ProviderConfig("https://example.test", "model", "secret"),
+            listOf(PlaceIntent("公园", "北城", "公园")), "公园", "北城")).jsonObject
+        val system = request.getValue("messages").jsonArray[0].jsonObject.getValue("content").jsonPrimitive.content
+        assertTrue(system.contains("canonical必须包含在本组members中"))
+        assertTrue(system.contains("不能把同一canonical拆成多个组"))
+        val canonical = request.getValue("tools").jsonArray[0].jsonObject.getValue("function").jsonObject
+            .getValue("parameters").jsonObject.getValue("properties").jsonObject.getValue("groups").jsonObject
+            .getValue("items").jsonObject.getValue("properties").jsonObject.getValue("canonical").jsonObject
+        assertTrue(canonical.getValue("description").jsonPrimitive.content.contains("members"))
+    }
+
+    @Test fun normalizationRequestsContextualAliasesAndCorroboratedOriginalSpelling() {
+        val request = Json.parseToJsonElement(PlaceNormalizationProtocol.request(
+            ProviderConfig("https://example.test", "model", "secret"),
+            listOf(PlaceIntent("望月公园", "北城", "望月公园")), "望月公园", "北城")).jsonObject
+        val system = request.getValue("messages").jsonArray[0].jsonObject.getValue("content").jsonPrimitive.content
+        assertTrue(system.contains("同城同一行程区域内唯一对应的专名"))
+        assertTrue(system.contains("不能仅因短名可能表示园内建筑就臆测"))
+        assertTrue(system.contains("多个独立来源一致支持的清晰原字"))
+        assertTrue(system.contains("不按输入先后或正文优先"))
+        assertTrue(system.contains("不能自行纠错生成候选中没有的新写法"))
+    }
+
     @Test fun fixedSystemRulesAreTripIndependentAndTravelFactsStayInUserData() {
         val config = ProviderConfig("https://example.test", "model", "secret")
         val image = PreparedImage("id", "image/jpeg", byteArrayOf(1))

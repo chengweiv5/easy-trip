@@ -7,11 +7,19 @@ import kotlinx.coroutines.ensureActive
 enum class SourceStage { SELECTED, PREPARING, SENDING, UNDERSTANDING, COMPLETE, FAILED, CANCELLED }
 data class SourceProgress(val sourceId: String, val stage: SourceStage,
     val error: String? = null, val sendEvidence: SendEvidence = SendEvidence.NOT_DISPATCHED)
-data class ParsedSource(val sourceId: String, val intents: List<PlaceIntent>, val failure: AssistantFailure? = null)
+data class ParsedSource(val sourceId: String, val intents: List<PlaceIntent>, val failure: AssistantFailure? = null,
+    val evidence: List<GuideEvidence> = emptyList()) {
+    init {
+        require(intents.isEmpty() || evidence.isEmpty())
+        require(failure == null || intents.isEmpty() && evidence.isEmpty())
+    }
+}
 data class ParsedInputBatch(val sources: List<ParsedSource>, val overflow: Boolean)
 data class AssistantInputRequest(val sessionId: String, val text: String, val city: String,
     val images: List<AssistantImage>, val retrySourceIds: Set<String>? = null,
-    val travelMaterials: Boolean = false, val cityScope: AssistantCityScope? = null)
+    val travelMaterials: Boolean = false, val cityScope: AssistantCityScope? = null,
+    val guideVersion: GuideProtocolVersion = GuideProtocolVersion.LEGACY_V1,
+    val guideBinding: GuideBatchBinding? = null)
 
 class AssistantInputProcessor(
     private val textParser: PlaceIntentParser,
@@ -20,8 +28,14 @@ class AssistantInputProcessor(
     private val normalizer: PlaceIntentNormalizer? = null,
     private val materialTextParser: PlaceIntentParser? = null,
     private val materialImageParser: ImageIntentParser? = null,
+    private val guideParser: GuideMaterialParser? = null,
+    private val evidenceResolver: GuideEvidenceResolver? = null,
+    private val evidenceGuideParser: GuideMaterialParser? = null,
 ) {
     val supportsNormalization get() = normalizer != null
+    val supportsEvidence get() = evidenceResolver != null
+    suspend fun resolveEvidence(evidence: List<GuideEvidence>, context: GuideContext,
+        frozen: List<GuideFrozenPlace>) = requireNotNull(evidenceResolver).resolve(evidence, context, frozen)
     suspend fun normalize(candidates: List<PlaceIntent>, context: String, city: String): List<PlaceIntent> {
         require(candidates.size <= AssistantMaterialPolicy.MAX_CANDIDATES)
         return requireNotNull(normalizer).normalize(candidates, context, city)
@@ -29,6 +43,9 @@ class AssistantInputProcessor(
     suspend fun parse(request: AssistantInputRequest, onSource: (ParsedSource) -> Unit = {},
         onProgress: (SourceProgress) -> Unit): ParsedInputBatch {
         val semantic = request.travelMaterials && supportsNormalization
+        if (semantic && request.guideVersion == GuideProtocolVersion.EVIDENCE_V2)
+            return requireNotNull(evidenceGuideParser ?: guideParser).parse(request, onSource, onProgress)
+        if (semantic && guideParser != null) return guideParser.parse(request, onSource, onProgress)
         val candidateLimit = if (semantic) AssistantMaterialPolicy.MAX_PER_SOURCE else AssistantPlacePolicy.MAX_PLACES
         val sources = mutableListOf<ParsedSource>()
         suspend fun parseOne(id: String, operation: suspend () -> List<PlaceIntent>) {

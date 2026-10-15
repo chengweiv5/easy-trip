@@ -16,6 +16,13 @@ object BatchToolProtocol {
     fun decode(response: String, input: String, defaultCity: String = "", maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
         scope: AssistantCityScope? = null): List<PlaceIntent> = try {
         val args = AssistantToolResponse.arguments(response, "search_place_batch")
+        decodeItems(args, input, defaultCity, maxPlaces, scope)
+    } catch (e: AssistantFailure) { throw e }
+    catch (e: Exception) { throw protocolFailure(e, AssistantProtocolStage.TEXT,
+        AssistantProtocolIssue.INVALID_FIELDS) }
+
+    fun decodeItems(args: JsonObject, input: String, defaultCity: String = "",
+        maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES, scope: AssistantCityScope? = null): List<PlaceIntent> = try {
         protocolRequire(args.keys.containsAll(setOf("items", "overflow")), AssistantProtocolIssue.REQUIRED_FIELDS)
         require(!args.getValue("overflow").jsonPrimitive.isString)
         if (args.getValue("overflow").jsonPrimitive.boolean) throw AssistantFailure("本份素材超过 $maxPlaces 个候选，请分批编辑；没有查询或截断原文。", AssistantFailureCode.OVERFLOW, SendEvidence.RESPONSE_RECEIVED)

@@ -62,6 +62,33 @@ class GuideMaterialStore(
     private val referenced: suspend () -> List<String>,
 ) {
     private val lock = Mutex()
+    /** Retain already-loaded content; never resolve the URL again during checkpointing. */
+    suspend fun retainLoaded(original: String, modelText: String, fromLink: Boolean,
+        sourceSession: String, selected: List<AssistantImage>, sourceImages: AssistantImageStore): GuideMaterials =
+        withContext(Dispatchers.IO) { lock.withLock {
+            require(original.length <= 20_000 && modelText.length <= 20_000)
+            val id = java.util.UUID.randomUUID().toString()
+            try {
+                val checksums = linkedMapOf<String, String>()
+                val copies = selected.map { image ->
+                    val prepared = sourceImages.prepare(sourceSession, image.id)
+                    checksums[image.id] = guideDigest(prepared.bytes)
+                    images.restoreCopy(id, image, prepared)
+                }
+                val payload = buildJsonObject {
+                    put("version", 1); put("session", id); put("original", original)
+                    put("intent", tripUserIntent(original)); put("text", modelText); put("link", fromLink)
+                    put("images", encodeGuideImages(copies))
+                    put("checksums", JsonObject(checksums.mapValues { JsonPrimitive(it.value) }))
+                }.toString()
+                writeGuideFile(file(id), payload)
+                GuideMaterials(GuideMaterialRef(id, guideDigest(payload.toByteArray())), original,
+                    tripUserIntent(original), modelText, id, copies, fromLink)
+            } catch (e: Exception) {
+                withContext(NonCancellable) { AtomicFile(file(id)).delete(); images.release(id) }
+                throw e
+            }
+        } }
     suspend fun prepare(sessionId: String, original: String, selected: List<AssistantImage>,
         progress: (String) -> Unit): GuideMaterials = withContext(Dispatchers.IO) { lock.withLock {
         require(validGuideId(sessionId) && original.length <= 20_000)

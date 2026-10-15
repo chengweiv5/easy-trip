@@ -96,6 +96,14 @@ ${if (travelMaterials) TRAVEL_MATERIAL_EXTRACTION_RULES + "\n" + TRAVEL_MAP_TARG
     fun decode(response: String, imageId: String, ordinal: Int, maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
         requireTargetEvidence: Boolean = false): List<PlaceIntent> = try {
         val args = AssistantToolResponse.arguments(response, "search_place_batch")
+        decodeItems(args, imageId, ordinal, maxPlaces, requireTargetEvidence)
+    } catch (e: AssistantFailure) { throw e }
+    catch (e: Exception) { throw protocolFailure(e, AssistantProtocolStage.IMAGE,
+        AssistantProtocolIssue.INVALID_FIELDS) }
+
+    fun decodeItems(args: JsonObject, imageId: String, ordinal: Int,
+        maxPlaces: Int = AssistantPlacePolicy.MAX_PLACES,
+        requireTargetEvidence: Boolean = false): List<PlaceIntent> = try {
         protocolRequire(args.keys.containsAll(setOf("items", "overflow")), AssistantProtocolIssue.REQUIRED_FIELDS)
         require(!args.getValue("overflow").jsonPrimitive.isString)
         if (args.getValue("overflow").jsonPrimitive.boolean) throw AssistantFailure("本份素材超过 $maxPlaces 个候选，请分批；没有截断查询。",

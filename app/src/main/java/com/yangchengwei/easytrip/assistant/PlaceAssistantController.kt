@@ -45,17 +45,27 @@ class PlaceAssistantController(
     private var loadedLink: LoadedAssistantLink? = null
     private var semanticBatch = false
     private var parsedCity: String? = null
+    private var evidenceSession: GuideEvidenceSession? = null
+    private var restoredLegacyGuide = false
     var guideCityScope: AssistantCityScope? = null
         private set
     private var guideOperation: String? = null
     fun ownsGuideBatch(operation: String) = guideOperation == operation
     fun setGuideCityScope(value: AssistantCityScope?) {
         if (value == guideCityScope) return
+        cancel()
+        inputRevision++
         cityRevision++
         guideCityScope = value
+        evidenceSession = evidenceSession?.checkpoint?.let { prior ->
+            GuideEvidenceSession(prior.copy(
+                binding = prior.binding.copy(revision = prior.binding.revision + 1,
+                    cityScopeKey = value?.encode() ?: mutable.value.city),
+                sources = emptyList(), resolution = GuideResolution(emptyList(), emptyList(), emptySet())))
+        }
         parsedSources = emptyList(); parsedCity = null
         mutable.value = mutable.value.copy(resolvingCity = false, parsedMaterials = emptyList(),
-            parsedMaterialCity = null, normalizationPending = false)
+            parsedMaterialCity = null, normalizationPending = false, guideCheckpoint = evidenceSession?.checkpoint)
         if (!cityEdited && !mutable.value.busy && mutable.value.items.isEmpty())
             mutable.value = mutable.value.copy(city = value?.defaultCity.orEmpty())
     }
@@ -68,13 +78,15 @@ class PlaceAssistantController(
         mutable.value = mutable.value.copy(input = text, images = images, error = null, receipt = null)
         return true
     }
-    fun restoreGuideState(value: PlaceAssistantState, operation: String, cities: AssistantCityScope,
+    fun restoreGuideState(value: PlaceAssistantState, operation: String, cities: AssistantCityScope?,
         loaded: LoadedAssistantLink? = null) {
         if (mutable.value.hasDraft || mutable.value.busy || mutable.value.saving) return
         setGuideCityScope(cities); guideOperation = operation
         loadedLink = loaded
         parsedSources = value.parsedMaterials
         parsedCity = value.parsedMaterialCity
+        evidenceSession = value.guideCheckpoint?.let(::GuideEvidenceSession)
+        restoredLegacyGuide = value.guideVersion == GuideProtocolVersion.LEGACY_V1
         // A recovered batch keeps its saved city, including a user's override.
         cityEdited = value.city.isNotBlank()
         semanticBatch = loaded != null
@@ -83,7 +95,11 @@ class PlaceAssistantController(
             busy = false, saving = false, resolvingCity = false)
         reconcile()
     }
+    internal fun loadedGuideMaterial(): LoadedAssistantLink? = loadedLink
     private fun forgetLink(removeImages: Boolean = false) {
+        evidenceSession = null
+        restoredLegacyGuide = false
+        mutable.value = mutable.value.copy(guideCheckpoint = null, guideVersion = GuideProtocolVersion.LEGACY_V1)
         semanticBatch = false
         parsedCity = null
         val old = loadedLink ?: return
@@ -106,15 +122,19 @@ class PlaceAssistantController(
         parsedSources = emptyList()
         currentParsed = emptyList()
         parsedCity = null
+        evidenceSession = null
+        inputRevision++
         mutable.value = s.copy(images = s.images + images, sourceProgress = emptyList(), error = null,
-            parsedMaterials = emptyList(), parsedMaterialCity = null, normalizationPending = false)
+            parsedMaterials = emptyList(), parsedMaterialCity = null, normalizationPending = false, guideCheckpoint = null)
     }
     fun removeImage(id: String) {
         if (mutable.value.busy || mutable.value.saving || mutable.value.items.isNotEmpty()) return
         parsedSources = emptyList()
         parsedCity = null
+        evidenceSession = null
+        inputRevision++
         mutable.value = mutable.value.copy(images = mutable.value.images.filterNot { it.id == id }, sourceProgress = emptyList(),
-            parsedMaterials = emptyList(), parsedMaterialCity = null, normalizationPending = false)
+            parsedMaterials = emptyList(), parsedMaterialCity = null, normalizationPending = false, guideCheckpoint = null)
     }
 
     fun environment(configured: Boolean, consent: Boolean, mapReady: Boolean) {
@@ -159,7 +179,12 @@ class PlaceAssistantController(
     fun configurationChanged() { cancel(); inputRevision++ }
     fun invalidateTrip() {
         cancel(); inputRevision++; active = false
-        mutable.value = mutable.value.copy(items = emptyList(), selected = emptySet(), error = "目标旅行已失效，请返回旅行列表。")
+        parsedSources = emptyList()
+        currentParsed = emptyList()
+        forgetLink()
+        mutable.value = mutable.value.copy(items = emptyList(), selected = emptySet(),
+            parsedMaterials = emptyList(), parsedMaterialCity = null, normalizationPending = false,
+            error = "目标旅行已失效，请返回旅行列表。")
     }
     fun updateSaved(ids: Set<String>) { savedIds = ids; reconcile() }
     fun editInput(value: String) {
@@ -239,7 +264,7 @@ class PlaceAssistantController(
         if (s.images.isNotEmpty()) { processImages(null); return }
         val input = s.input
         val generation = ++run
-        mutable.value = s.copy(busy = true, error = null, receipt = null)
+        mutable.value = mutable.value.copy(busy = true, error = null, receipt = null)
         work = scope.launch {
             try {
                 withTimeout(AssistantPlacePolicy.BATCH_TIMEOUT_MILLIS) {
@@ -288,14 +313,28 @@ class PlaceAssistantController(
         val s = mutable.value
         if (s.images.isNotEmpty() && !imageAllowed()) { fail("当前模型的图片能力检查未通过，图片尚未发送。请在助手设置重新检查，素材已保留。"); return }
         val runner = processor?.invoke() ?: run { fail("图片处理暂不可用，请重新打开助手。"); return }
+        if (s.guideVersion == GuideProtocolVersion.EVIDENCE_V2 && !runner.supportsEvidence) {
+            fail("当前模型尚未核验此攻略整理能力，已保留原文证据；请切换回支持的模型后重试。")
+            return
+        }
         val generation = ++run
         val semantic = (link != null || loadedLink != null) && runner.supportsNormalization
         semanticBatch = semantic
+        val useEvidence = semantic && runner.supportsEvidence && !restoredLegacyGuide
+        if (useEvidence && evidenceSession == null) {
+            evidenceSession = GuideEvidenceSession(GuideEvidenceCheckpoint(
+                GuideBatchBinding(UUID.randomUUID().toString(), inputRevision, guideCityScope?.encode() ?: s.city),
+                emptyList(), GuideResolution(emptyList(), emptyList(), emptySet()), emptyList()))
+            mutable.value = mutable.value.copy(guideVersion = GuideProtocolVersion.EVIDENCE_V2,
+                guideCheckpoint = evidenceSession?.checkpoint)
+        }
         currentParsed = emptyList()
-        mutable.value = s.copy(busy = true, error = null, receipt = null)
+        mutable.value = mutable.value.copy(busy = true, error = null, receipt = null)
         work = scope.launch {
             try {
-                withTimeout(AssistantImagePolicy.batchTimeoutMillis(if (link != null) AssistantImagePolicy.MAX_IMAGES else s.images.size)) {
+                val imageCount = if (link != null) AssistantImagePolicy.MAX_IMAGES else s.images.size
+                withTimeout(if (useEvidence) GuideEvidenceBudget.batchTimeoutMillis(imageCount)
+                    else AssistantImagePolicy.batchTimeoutMillis(imageCount)) {
                     if (link != null && loadedLink == null) {
                         val loader = linkLoader ?: throw AssistantFailure("链接读取暂不可用，请重新打开助手。")
                         val loaded = loader.load(sessionId, link, s.images) { progress ->
@@ -314,6 +353,13 @@ class PlaceAssistantController(
                     val city = if (retryIds != null && !semantic) s.city.trim() else resolveSearchCity(s.city.trim())
                     if (!isCurrent(generation)) return@withTimeout
                     val cityChanged = semantic && parsedCity != null && parsedCity != city
+                    if (useEvidence && cityChanged) {
+                        val prior = requireNotNull(evidenceSession).checkpoint
+                        evidenceSession = GuideEvidenceSession(prior.copy(
+                            binding = prior.binding.copy(revision = prior.binding.revision + 1,
+                                cityScopeKey = guideCityScope?.encode() ?: city), sources = emptyList(),
+                            resolution = GuideResolution(emptyList(), emptyList(), emptySet())))
+                    }
                     // Extraction binds missing cities to its default. Reuse it only in the same city context.
                     val effectiveRetryIds = if (cityChanged) null
                     else if (semantic && loadedLink != null && parsedSources.isNotEmpty() && retryIds == null) {
@@ -324,7 +370,9 @@ class PlaceAssistantController(
                     if (effectiveRetryIds == null) parsedSources = emptyList()
                     if (semantic) parsedCity = city
                     val input = AssistantInputRequest(sessionId, loadedLink?.modelText ?: s.input,
-                        city, material.images, effectiveRetryIds, travelMaterials = semantic, cityScope = guideCityScope)
+                        city, material.images, effectiveRetryIds, travelMaterials = semantic, cityScope = guideCityScope,
+                        guideVersion = if (useEvidence) GuideProtocolVersion.EVIDENCE_V2 else GuideProtocolVersion.LEGACY_V1,
+                        guideBinding = evidenceSession?.checkpoint?.binding)
                     val sourceIds = (if (input.text.isBlank()) emptyList() else listOf("text")) + input.images.map { it.id }
                     mutable.value = mutable.value.copy(linkProgress = null, sourceProgress = sourceIds.map { id ->
                         if (effectiveRetryIds == null || id in effectiveRetryIds) SourceProgress(id, SourceStage.SELECTED)
@@ -334,7 +382,14 @@ class PlaceAssistantController(
                     if (!isCurrent(generation)) return@withTimeout
                     mutable.value = mutable.value.copy(city = request.city)
                     val batch = runner.parse(request, onSource = { parsed ->
-                        if (isCurrent(generation)) currentParsed = currentParsed + parsed
+                        if (isCurrent(generation)) {
+                            currentParsed = currentParsed + parsed
+                            if (useEvidence) {
+                                evidenceSession?.accept(parsed)
+                                mutable.value = mutable.value.copy(guideCheckpoint = evidenceSession?.checkpoint,
+                                    normalizationPending = evidenceSession?.checkpoint?.sources?.any { it.evidence.isNotEmpty() } == true)
+                            }
+                        }
                     }) { progress ->
                         // OkHttp's body callback is not on the controller dispatcher.
                         scope.launch {
@@ -348,8 +403,12 @@ class PlaceAssistantController(
                         }
                     }
                     if (!isCurrent(generation)) return@withTimeout
-                    val merged = parsedSources.filterNot { old -> batch.sources.any { it.sourceId == old.sourceId } } + batch.sources
+                    val merged = (parsedSources.filterNot { old -> batch.sources.any { it.sourceId == old.sourceId } } +
+                        batch.sources).sortedBy { sourceIds.indexOf(it.sourceId).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }
                     val raw = mergeIdenticalPlaceIntents(merged.flatMap { it.intents })
+                    if (useEvidence && (batch.overflow || merged.sumOf { it.evidence.size } > AssistantMaterialPolicy.MAX_CANDIDATES))
+                        throw AssistantFailure("本批证据超过400份，请分批；已有结果保留。",
+                            AssistantFailureCode.OVERFLOW)
                     if (raw.size > if (semantic) AssistantMaterialPolicy.MAX_CANDIDATES else AssistantPlacePolicy.MAX_PLACES) {
                         fail("每批最多 ${AssistantPlacePolicy.MAX_PLACES} 个地点，请保留素材重新分批；没有查询或截断新增内容。")
                         mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map {
@@ -366,7 +425,26 @@ class PlaceAssistantController(
                                 error = parsed.failure?.userMessage, sendEvidence = parsed.failure?.sendEvidence ?: SendEvidence.RESPONSE_RECEIVED)
                         } ?: progress
                     })
-                    val normalized = if (semantic) {
+                    val normalized = if (useEvidence) {
+                        val session = requireNotNull(evidenceSession)
+                        mutable.value.items.filter { it.poi != null || it.generation > 0 ||
+                            it.status == IntakeStatus.ALREADY_SAVED }.forEach {
+                            session.freeze(it, it.status == IntakeStatus.ALREADY_SAVED)
+                        }
+                        mutable.value = mutable.value.copy(normalizationPending = merged.any { it.evidence.isNotEmpty() },
+                            linkProgress = "正在整理地点与原文依据…", guideCheckpoint = session.checkpoint)
+                        val resolution = runner.resolveEvidence(merged.flatMap { it.evidence },
+                            GuideContext(request.text, request.city, guideCityScope), session.checkpoint.frozen)
+                        if (!isCurrent(generation)) return@withTimeout
+                        val applied = session.apply(resolution, mutable.value.items)
+                        mutable.value = mutable.value.copy(items = mutable.value.items.map { item ->
+                            applied.absorbedMaterialKeys[item.id]?.let {
+                                item.copy(intent = item.intent.copy(materialKeys = it))
+                            } ?: item
+                        }, guideCheckpoint = session.checkpoint,
+                            normalizationPending = session.checkpoint.resolution.pending.isNotEmpty(), linkProgress = null)
+                        applied.additions
+                    } else if (semantic) {
                         mutable.value = mutable.value.copy(normalizationPending = raw.isNotEmpty(),
                             linkProgress = "正在合并同一地点、剔除餐饮和非地点名称…")
                         val result = if (raw.isEmpty()) emptyList() else runner.normalize(raw, request.text, request.city)
@@ -378,8 +456,9 @@ class PlaceAssistantController(
                         mutable.value = mutable.value.copy(linkProgress = null)
                         result
                     } else batch.sources.filter { it.failure == null }.flatMap { it.intents }
-                    val fresh = absorbRepeatedMaterials(normalized)
-                    mutable.value = mutable.value.copy(normalizationPending = false)
+                    // v2 has already resolved identities, including homonymous entrances with different parents.
+                    val fresh = if (useEvidence) normalized else absorbRepeatedMaterials(normalized)
+                    if (!useEvidence) mutable.value = mutable.value.copy(normalizationPending = false)
                     val items = fresh.mapIndexed { index, intent ->
                         val city = request.city
                         IntakeItem(UUID.randomUUID().toString(), AssistantPlacePolicy.label(s.items.size + index),
@@ -476,7 +555,10 @@ class PlaceAssistantController(
     fun cancel() {
         // A stopped batch must retain completed image extraction without querying an unchecked prefix.
         if (semanticBatch && currentParsed.isNotEmpty()) {
-            parsedSources = parsedSources.filterNot { old -> currentParsed.any { it.sourceId == old.sourceId } } + currentParsed
+            val sourceIds = (if (loadedLink?.modelText.orEmpty().isNotBlank()) listOf("text") else emptyList()) +
+                mutable.value.images.map { it.id }
+            parsedSources = (parsedSources.filterNot { old -> currentParsed.any { it.sourceId == old.sourceId } } +
+                currentParsed).sortedBy { sourceIds.indexOf(it.sourceId).takeIf { index -> index >= 0 } ?: Int.MAX_VALUE }
             mutable.value = mutable.value.copy(parsedMaterials = parsedSources, parsedMaterialCity = parsedCity,
                 normalizationPending = mutable.value.normalizationPending || currentParsed.any { it.failure == null && it.intents.isNotEmpty() },
                 sourceProgress = mutable.value.sourceProgress.map { progress ->
@@ -542,6 +624,7 @@ class PlaceAssistantController(
         mutable.value = mutable.value.copy(selected = mutable.value.selected - id)
         changeItem(id) { it.copy(intent = it.intent.copy(query = query.trim(), city = city.trim(), needsReview = false),
             generation = it.generation + 1, status = IntakeStatus.CANCELLED, candidates = emptyList(), poi = null, detail = null, cityConflict = false) }
+        freezeEvidenceItem(id)
     }
     fun confirmCity(id: String) {
         if (mutable.value.busy || mutable.value.saving) return
@@ -555,11 +638,13 @@ class PlaceAssistantController(
         val poi = item.candidates.find { it.poiId == poiId && it.validPosition() } ?: return
         mutable.value = mutable.value.copy(selected = mutable.value.selected - id)
         changeItem(id) { it.copy(poi = poi, status = IntakeStatus.READY, generation = it.generation + 1, detail = null) }
+        freezeEvidenceItem(id)
         reconcile()
     }
     fun category(id: String, category: PlaceCategory) {
         if (mutable.value.saving) return
         changeItem(id) { it.copy(category = category) }
+        freezeEvidenceItem(id)
     }
     fun toggle(id: String) {
         if (mutable.value.saving || mutable.value.eligible.none { it.id == id }) return
@@ -595,6 +680,7 @@ class PlaceAssistantController(
                 pendingSave = null
                 if (!active) return@launch
                 savedIds = savedIds + receipt.results.map { it.poiId }
+                selected.forEach { freezeEvidenceItem(it.id, committed = true) }
                 cancel()
                 if (mutable.value.hasIncompleteMaterials) {
                     // A partial save is not batch completion: keep the failed sources,
@@ -618,6 +704,11 @@ class PlaceAssistantController(
             finally { mutable.value = mutable.value.copy(saving = false) }
         }
     }
+    private fun freezeEvidenceItem(id: String, committed: Boolean = false) {
+        val item = mutable.value.items.find { it.id == id } ?: return
+        evidenceSession?.freeze(item, committed)
+        mutable.value = mutable.value.copy(guideCheckpoint = evidenceSession?.checkpoint)
+    }
     private suspend fun query(ids: Set<String>, generation: Long) = coroutineScope {
         val semaphore = Semaphore(2)
         ids.map { id -> launch {
@@ -625,7 +716,7 @@ class PlaceAssistantController(
                 val item = mutable.value.items.find { it.id == id } ?: return@withPermit
                 if (!isCurrent(generation)) return@withPermit
                 if (item.intent.needsReview) {
-                    changeItem(id) { it.copy(status = IntakeStatus.NEED_CITY, detail = "图片中的名称不够明确，请对照来源核对名称和城市。") }
+                    changeItem(id) { it.copy(status = IntakeStatus.NEED_CITY, detail = "名称或所属地点需核对，请对照来源修改。") }
                     return@withPermit
                 }
                 if (item.cityConflict) {

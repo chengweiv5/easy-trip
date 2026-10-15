@@ -27,6 +27,7 @@ internal fun protocolFailure(error: Exception, stage: AssistantProtocolStage, fa
         AssistantProtocolStage.IMAGE -> "图片理解"
         AssistantProtocolStage.TEXT -> "文字理解"
         AssistantProtocolStage.NORMALIZATION -> "地点整理"
+        AssistantProtocolStage.GUIDE_BATCH -> "本组素材理解"
     }
     val detail = when (issue) {
         AssistantProtocolIssue.TRUNCATED -> "模型输出被截断"

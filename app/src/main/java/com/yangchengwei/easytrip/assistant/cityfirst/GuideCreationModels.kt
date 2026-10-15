@@ -16,6 +16,10 @@ const val GUIDE_RECORD_LIMIT = 1024 * 1024
 data class GuideMaterialRef(val id: String, val digest: String) {
     init { require(validGuideId(id) && digest.matches(Regex("[a-f0-9]{64}"))) }
 }
+data class GuideLocalDraftRef(val tripId: String, val batchId: String, val revision: Long,
+    val material: GuideMaterialRef, val resultRef: String) {
+    init { require(validGuideId(tripId) && validGuideId(batchId) && revision >= 0 && validGuideId(resultRef)) }
+}
 data class GuideCityEvidence(val name: String, val sourceId: String, val sourceSpan: String)
 data class GuideDestinationResult(val cities: List<GuideCityEvidence>, val suggestedName: String)
 enum class GuideHandoffStatus { PENDING, CLAIMED, IMPORTED, FAILED, CANCELLED, FINISHED }

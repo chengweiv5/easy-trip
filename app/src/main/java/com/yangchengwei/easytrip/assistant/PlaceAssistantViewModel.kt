@@ -41,6 +41,9 @@ class PlaceAssistantViewModel(
     private val guideMaterials: GuideMaterialStore? = null,
     private val guideResults: GuideImportResultStore? = null,
     private val protocolDiagnostics: AssistantProtocolDiagnostics = AssistantProtocolDiagnostics.NONE,
+    private val guideParserFactory: ((ProviderConfig) -> GuideMaterialParser)? = null,
+    private val guideEvidenceParserFactory: ((ProviderConfig) -> GuideMaterialParser)? = null,
+    private val evidenceResolverOverride: GuideEvidenceResolver? = null,
 ) : ViewModel() {
     val sessionId = UUID.randomUUID().toString()
     private val imageRecoveryScope = tripId ?: "new-trip-intake"
@@ -76,7 +79,11 @@ class PlaceAssistantViewModel(
                             config.saveImageCapability(snapshot, ImageCapabilityResult(ImageCapability.UNSUPPORTED, System.currentTimeMillis()))
                         throw e
                     }
-                })
+                }, guideParser = snapshot?.let { guideParserFactory?.invoke(it) },
+                evidenceGuideParser = snapshot?.let { guideEvidenceParserFactory?.invoke(it) },
+                evidenceResolver = evidenceResolverOverride ?: if (guideEvidenceParserFactory != null &&
+                    snapshot?.let(GuideEvidenceBudget::supports) == true)
+                    ModelGuideEvidenceResolver({ snapshot }, AssistantTransport(diagnostics = protocolDiagnostics)) else null)
         } }, sessionId = sessionId,
         imageAllowed = { config.imageCapability().capability != ImageCapability.UNSUPPORTED },
         diagnostics = searchDiagnostics, searchPacer = searchPacer,
@@ -87,6 +94,12 @@ class PlaceAssistantViewModel(
     private var activeGuide: GuideHandoff? = null
     private var guideStarted = false
     private var lastGuideSnapshot: String? = null
+    private val guideSnapshotSaveGuard = GuideSnapshotSaveGuard()
+    private var localDraft: GuideLocalDraftRef? = null
+    private var localReady = guideResults == null || guideMaterials == null || tripId == null
+    private var localRestoreFailed = false
+    private var lastLocalSnapshot: String? = null
+    private val localSnapshotGuard = GuideSnapshotSaveGuard()
     private val mutableOpen = MutableStateFlow(false)
     val open = mutableOpen.asStateFlow()
     private val mutableFocus = MutableStateFlow<String?>(null)
@@ -188,20 +201,114 @@ class PlaceAssistantViewModel(
         controller.cancel()
         cleanup.launch { images?.release(sessionId) }
     }
-    init {
-        if (tripId != null && guideStore != null) viewModelScope.launch {
+    private suspend fun clearLocalDraft(expected: GuideLocalDraftRef) {
+        val results = guideResults ?: return
+        if (results.replaceLocalDraft(expected.tripId, expected, null)) {
+            if (localDraft == expected) {
+                localDraft = null
+                lastLocalSnapshot = null
+            }
+            results.remove(expected.resultRef)
+            guideMaterials?.release(expected.material.id)
+        }
+    }
+    private suspend fun saveLocalDraft(value: PlaceAssistantState) {
+        if (!localReady || localRestoreFailed || activeGuide != null || tripId == null ||
+            guideResults == null || guideMaterials == null || images == null) return
+        val checkpoint = value.guideCheckpoint
+        if (checkpoint == null || value.guideVersion != GuideProtocolVersion.EVIDENCE_V2) {
+            localDraft?.let { clearLocalDraft(it) }
+            return
+        }
+        val loaded = controller.loadedGuideMaterial() ?: return
+        localSnapshotGuard.attempt(checkpoint.binding.batchId, value) {
+            val encoded = GuideResultCodec.encode(value.copy(error = null))
+            if (encoded == lastLocalSnapshot) return@attempt
+            val previous = localDraft
+            val retainPrevious = previous?.takeIf {
+                it.batchId == checkpoint.binding.batchId && it.revision == checkpoint.binding.revision
+            }
+            var createdMaterial: GuideMaterialRef? = null
+            var createdResult: String? = null
+            var published = false
             try {
-                controller.setGuideCityScope(guideStore.scope(tripId))
-                val stored = guideStore.find(tripId)
+                val material = retainPrevious?.material ?: guideMaterials.retainLoaded(
+                    value.input, loaded.modelText, true, sessionId, value.images, images).ref.also {
+                    createdMaterial = it
+                }
+                createdResult = guideResults.write(value.copy(error = null))
+                val next = GuideLocalDraftRef(tripId, checkpoint.binding.batchId, checkpoint.binding.revision,
+                    material, requireNotNull(createdResult))
+                withContext(NonCancellable) {
+                    // Never let an old suspended save publish over a cleared or replaced live batch.
+                    if (value != controller.state.value) return@withContext
+                    if (!guideResults.replaceLocalDraft(tripId, previous, next))
+                        throw IllegalStateException("草稿引用已变化，未覆盖其他批次")
+                    published = true
+                    localDraft = next
+                    lastLocalSnapshot = encoded
+                    previous?.let {
+                        runCatching { guideResults.remove(it.resultRef) }
+                        if (it.material != material) runCatching { guideMaterials.release(it.material.id) }
+                    }
+                }
+            } finally {
+                if (!published) withContext(NonCancellable) {
+                    createdResult?.let { runCatching { guideResults.remove(it) } }
+                    createdMaterial?.let { runCatching { guideMaterials.release(it.id) } }
+                }
+            }
+        }
+    }
+    init {
+        val interrupted = (images as? AndroidAssistantImageStore)?.startSession(sessionId, imageRecoveryScope) == true
+        if (!localReady) controller.attachmentSelection(true)
+        if (tripId != null) viewModelScope.launch {
+            guideLock.withLock { try {
+                controller.setGuideCityScope(guideStore?.scope(tripId))
+                val stored = guideStore?.find(tripId)
                 mutableGuide.value = stored?.takeUnless { it.status == GuideHandoffStatus.FINISHED }
                 if (stored?.status == GuideHandoffStatus.FINISHED) runCatching { guideMaterials?.release(stored.material.id) }
-            } catch (_: Exception) { controller.reportError("攻略交接暂不可读取，请重新打开旅行。") }
+                if (guideResults != null && guideMaterials != null) {
+                    val draft = guideResults.localDraft(tripId)
+                    localDraft = draft
+                    if (draft != null) {
+                        val recovered = guideResults.read(draft.resultRef)
+                        val binding = requireNotNull(recovered.guideCheckpoint).binding
+                        require(binding.batchId == draft.batchId && binding.revision == draft.revision)
+                        val material = guideMaterials.read(draft.material)
+                        copyGuideImages(material)
+                        controller.attachmentSelection(false)
+                        controller.restoreGuideState(recovered, draft.batchId, controller.guideCityScope,
+                            LoadedAssistantLink(material.modelText, recovered.images))
+                        lastLocalSnapshot = GuideResultCodec.encode(recovered.copy(error = null))
+                    }
+                }
+                if (localDraft == null && (interrupted || savedState.get<Boolean>("assistant-had-images") == true))
+                    controller.reportError("上次图片草稿已失效，请重新选择；已收藏地点不受影响。")
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) {
+                localRestoreFailed = true
+                controller.reportError("攻略草稿暂不可恢复，原文件和旅行仍保留；请重新打开旅行，勿清理数据。")
+            } finally {
+                localReady = true
+                savedState["assistant-had-images"] = false
+                controller.attachmentSelection(false)
+            } }
         }
         viewModelScope.launch {
             controller.state.collect { value ->
-                if (value.busy || value.saving) return@collect
+                if (value.busy || value.saving || value.attachmentSelectionBusy) return@collect
                 guideLock.withLock {
-                    val handoff = activeGuide ?: return@withLock
+                    if (value != controller.state.value) return@withLock
+                    val handoff = activeGuide ?: run {
+                        try { saveLocalDraft(value) }
+                        catch (e: CancellationException) { throw e }
+                        catch (_: Exception) {
+                            controller.reportError("攻略草稿暂未保存，当前结果仍可使用；请勿清理数据。")
+                        }
+                        return@withLock
+                    }
                     if (!guideStarted || value != controller.state.value) return@withLock
                     try {
                     if (!controller.ownsGuideBatch(handoff.operationId)) {
@@ -211,7 +318,8 @@ class PlaceAssistantViewModel(
                         guideStarted = false
                         return@withLock
                     }
-                    if (value.items.isEmpty()) {
+                    if (value.guideVersion != GuideProtocolVersion.EVIDENCE_V2 && value.items.isEmpty() &&
+                        value.parsedMaterials.none { it.failure == null && it.intents.isNotEmpty() }) {
                         if (handoff.status in setOf(GuideHandoffStatus.FAILED, GuideHandoffStatus.CANCELLED)) return@withLock
                         if (guideStore?.complete(handoff.operationId, handoff.attempt, GuideHandoffStatus.FAILED, null) == true) {
                             val failed = handoff.copy(status = GuideHandoffStatus.FAILED, resultRef = null)
@@ -220,24 +328,28 @@ class PlaceAssistantViewModel(
                         }
                         return@withLock
                     }
-                    val encoded = GuideResultCodec.encode(value)
-                    if (encoded != lastGuideSnapshot) {
+                    guideSnapshotSaveGuard.attempt("${handoff.operationId}:${handoff.attempt}", value) {
+                      val encoded = GuideResultCodec.encode(value)
+                      if (encoded != lastGuideSnapshot) {
                         val ref = requireNotNull(guideResults).write(value)
-                        if (guideStore?.complete(handoff.operationId, handoff.attempt, GuideHandoffStatus.IMPORTED, ref) == true) {
+                        val status = if (value.guideVersion == GuideProtocolVersion.EVIDENCE_V2 &&
+                            (value.hasIncompleteMaterials || value.guideCheckpoint?.resolution?.places.isNullOrEmpty()))
+                            GuideHandoffStatus.FAILED else GuideHandoffStatus.IMPORTED
+                        if (guideStore?.complete(handoff.operationId, handoff.attempt, status, ref) == true) {
                             lastGuideSnapshot = encoded
-                            val updated = handoff.copy(status = GuideHandoffStatus.IMPORTED, resultRef = ref)
+                            val updated = handoff.copy(status = status, resultRef = ref)
                             activeGuide = updated
                             mutableGuide.value = updated
                             handoff.resultRef?.let { runCatching { guideResults.remove(it) } }
                         } else guideResults.remove(ref)
+                      }
                     }
                     } catch (e: CancellationException) { throw e }
                     catch (_: Exception) { controller.reportError("导入结果暂未保存，攻略和旅行仍保留；请勿清理数据。") }
                 }
             }
         }
-        val interrupted = (images as? AndroidAssistantImageStore)?.startSession(sessionId, imageRecoveryScope) == true
-        if (interrupted || savedState.get<Boolean>("assistant-had-images") == true) {
+        if (tripId == null && (interrupted || savedState.get<Boolean>("assistant-had-images") == true)) {
             savedState["assistant-had-images"] = false
             controller.reportError("上次图片草稿已失效，请重新选择；已收藏地点不受影响。")
         }
@@ -266,7 +378,7 @@ class PlaceAssistantViewModel(
                 store.complete(handoff.operationId, handoff.attempt, GuideHandoffStatus.FINISHED, null)
                 mutableGuide.value = null; materialStore.release(handoff.material.id); return@withLock
             }
-            if (handoff.status == GuideHandoffStatus.IMPORTED && handoff.resultRef != null) {
+            if (handoff.status in setOf(GuideHandoffStatus.IMPORTED, GuideHandoffStatus.FAILED) && handoff.resultRef != null) {
                 val recovered = requireNotNull(guideResults).read(handoff.resultRef)
                 val materials = materialStore.read(handoff.material)
                 copyGuideImages(materials)
@@ -289,6 +401,10 @@ class PlaceAssistantViewModel(
             controller.submit()
         } catch (e: CancellationException) { throw e }
         catch (_: Exception) {
+            if (handoff.resultRef != null) {
+                controller.reportError("保存的攻略暂不能恢复，旅行和原记录已保留；不会自动重新发送。")
+                return@withLock
+            }
             store.complete(handoff.operationId, handoff.attempt, GuideHandoffStatus.FAILED, null)
             activeGuide = null
             guideStarted = false
@@ -302,7 +418,9 @@ class PlaceAssistantViewModel(
         val handoff = activeGuide ?: return
         viewModelScope.launch {
             guideLock.withLock {
-                if (activeGuide?.attempt != handoff.attempt || controller.state.value.items.isNotEmpty()) return@withLock
+                val current = controller.state.value
+                if (activeGuide?.attempt != handoff.attempt || current.items.isNotEmpty() ||
+                    current.parsedMaterials.any { it.failure == null && (it.intents.isNotEmpty() || it.evidence.isNotEmpty()) }) return@withLock
                 if (guideStore?.complete(handoff.operationId, handoff.attempt, GuideHandoffStatus.CANCELLED, null) == true) {
                     val cancelled = handoff.copy(status = GuideHandoffStatus.CANCELLED, resultRef = null)
                     activeGuide = cancelled
@@ -318,6 +436,12 @@ class PlaceAssistantViewModel(
     fun retryGuide() {
         if (mutableGuide.value == null) return
         if (controller.state.value.busy || controller.state.value.saving) return
+        if (controller.state.value.guideVersion == GuideProtocolVersion.EVIDENCE_V2 &&
+            controller.state.value.guideCheckpoint != null) {
+            if (controller.state.value.normalizationPending) controller.retryNormalization()
+            else controller.retryImages()
+            return
+        }
         viewModelScope.launch {
             guideLock.withLock {
                 val handoff = mutableGuide.value ?: return@withLock
@@ -346,13 +470,19 @@ class PlaceAssistantViewModel(
         private val guideMaterials: GuideMaterialStore? = null,
         private val guideResults: GuideImportResultStore? = null,
         private val protocolDiagnostics: AssistantProtocolDiagnostics = AssistantProtocolDiagnostics.NONE,
+        private val guideParserFactory: ((ProviderConfig) -> GuideMaterialParser)? = null,
+        private val normalizerOverride: PlaceIntentNormalizer? = null,
+        private val guideEvidenceParserFactory: ((ProviderConfig) -> GuideMaterialParser)? = null,
+        private val evidenceResolverOverride: GuideEvidenceResolver? = null,
     ) : ViewModelProvider.Factory {
         @Suppress("UNCHECKED_CAST")
         override fun <T : ViewModel> create(modelClass: Class<T>): T =
             PlaceAssistantViewModel(tripId, config, importer, places, images = images, savedState = savedState,
                 searchDiagnostics = searchDiagnostics, searchPacer = searchPacer, linkLoader = linkLoader, target = target,
                 guideStore = guideStore, guideMaterials = guideMaterials, guideResults = guideResults,
-                protocolDiagnostics = protocolDiagnostics) as T
+                protocolDiagnostics = protocolDiagnostics, guideParserFactory = guideParserFactory,
+                normalizerOverride = normalizerOverride, guideEvidenceParserFactory = guideEvidenceParserFactory,
+                evidenceResolverOverride = evidenceResolverOverride) as T
     }
     companion object { private val cleanup = CoroutineScope(SupervisorJob() + Dispatchers.IO) }
 }
