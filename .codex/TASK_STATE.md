@@ -1,5 +1,21 @@
 # 当前任务：v3.4完整证据与64K提交、推送、手机安装
 
+状态：**DONE（用户授权的提交、快进推送和覆盖安装完成；真实模型质量未通过边界保持），2026-10-15。**
+
+- 功能提交`2d083b6e3108e328f3992ef3abd5aa64a6da87c6`，分支`codex/v3.4-batched-guide-understanding`；rebase保留上游4提交及半展开地图修复。23:01:19从`cd52639a`快进推送origin/main，独立SHA回读一致。
+- 77文件逐字节暂存／提交验证；仅AGENTS、TASK_STATE和Pencil冲突，两边文档历史保留。Pencil通过原生工具合并C11说明、保存关闭重开并定向回读；346根，SHA256`2f9a445662f305d6b4188bbe1021b4f5d8398cd8bb40fa6e73e658bcbaa21c90`，本轮未改布局。
+- 干净提交Debug／Release各1249 JVM，0失败／错误／跳过；lint0 Error／Fatal。三APK、Release验签／16KiB对齐及包内精确SHA／CLEAN通过；688整合输入hash稳定。本轮精确APK19项设备及5项系统320dp／2倍字体回归通过，设备APK回拉hash一致，模型／POI为fixture。
+- 23:01:57同签名CLEAN Release覆盖安装华为ALN-AL00，仍3.4.0/build27/schema13；手机回拉SHA256`69d9106e2054c7d997ee3b2cbb5244f4e26597e739f815be8dbdd46d50224bf5`与目标一致。UID10477、首次安装时间2026-09-21 08:33:25及dataDir保持，无卸载／清数据。
+- 安装前Easy Trip前台、安装后桌面；只恢复启动一次，Status ok，首页5待出行／1已出行、青州20地点／3天及徐州旅行可见，有限日志无FATAL。未点击识别、创建、搜索或收藏，不宣称全库或手机攻略闭环验收。
+- 真实模型质量仍未通过：别名冲突、漏项、非地点误提保留；累计23／24，不新增模型或高德调用。住宿排除是上游已确认目标但尚未实现，没有引入其他工作树未提交试验代码；不发布Release或标签。
+- 自有只读模拟器退出、系统设置恢复、owner锁释放；手机owner锁也已核对后释放，未停止共享ADB或其他模拟器。完整OS杀进程、TalkBack、20图真帖及真实100地点负载未验收。
+- punk-12通知`om_x100b623af9db00a4c1b6dc85f3b4799`全文、目标chat、bot身份及未删除状态已独立核验后最后写本状态。本报告／AGENTS／状态只作文档收尾提交，最终main SHA见证据，不替换APK功能来源SHA。
+- 交付报告：`/Users/bytedance/.codex/worktrees/46b4/easy-trip/docs/testing/v3.4.0-guide-evidence-git-install.md`；证据：`/Users/bytedance/.codex/artifacts/easy-trip/v34-evidence-64k-delivery-46b4-20261015/`。后续质量优化仍需确认方案及新增模型预算，回滚仅选择性前向修复，不reset／force或降schema。
+
+---
+
+# 历史阶段：v3.4完整证据与64K Git／手机交付准备
+
 状态：**IN_PROGRESS（用户明确授权交付当前成果，真实质量未通过事实保留），2026-10-15。**
 
 - 用户最新要求“提交，推送，安装”；本轮只整合已开发成果，不扩展质量优化或真实模型预算，不发布Release／标签。
