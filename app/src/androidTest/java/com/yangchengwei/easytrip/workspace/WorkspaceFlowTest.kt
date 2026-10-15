@@ -1139,7 +1139,20 @@ class WorkspaceFlowTest {
 
     @Test fun assistantDrawerOverItineraryDoesNotMoveMap() = exerciseAssistantCamera(WorkspaceSection.ITINERARY)
 
-    private fun exerciseAssistantCamera(section: WorkspaceSection) {
+    @Test fun assistantResultsWhileExpandedUseHalfViewportAndKeepItAfterCollapse() =
+        exerciseAssistantCamera(WorkspaceSection.PLACE_POOL, multipleResults = true, initialLevel = WorkspaceSheetLevel.EXPANDED)
+
+    @Test fun assistantResultsWhileCollapsedUseHalfViewportAndKeepItAfterExpansion() =
+        exerciseAssistantCamera(WorkspaceSection.PLACE_POOL, multipleResults = true, initialLevel = WorkspaceSheetLevel.COLLAPSED)
+
+    @Test fun assistantResultsOverItineraryUseHalfViewportAndKeepItAfterCollapse() =
+        exerciseAssistantCamera(WorkspaceSection.ITINERARY, multipleResults = true, initialLevel = WorkspaceSheetLevel.EXPANDED)
+
+    private fun exerciseAssistantCamera(
+        section: WorkspaceSection,
+        multipleResults: Boolean = false,
+        initialLevel: WorkspaceSheetLevel = WorkspaceSheetLevel.HALF,
+    ) {
         val workspace = TripWorkspaceViewModel("trip", Trips(), Places(), Itineraries(), Legs(), SavedStateHandle())
         val configDirectory = java.io.File(compose.activity.cacheDir, "assistant-camera-${java.util.UUID.randomUUID()}").apply { mkdirs() }
         val config = AssistantConfigStore(object : ContextWrapper(compose.activity) {
@@ -1149,9 +1162,16 @@ class WorkspaceFlowTest {
         val assistant = PlaceAssistantViewModel("trip", config, object : PlaceImport {
             override suspend fun receipt(operationId: String): ImportReceipt? = null
             override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt = error("No collection in this test")
-        }, Places(), PlaceIntentParser { input, _ -> listOf(PlaceIntent(input, "杭州", input)) })
+        }, Places(), PlaceIntentParser { input, _ ->
+            if (multipleResults) listOf(
+                PlaceIntent("测试地点", "杭州", input),
+                PlaceIntent("第二地点", "杭州", input),
+            ) else listOf(PlaceIntent(input, "杭州", input))
+        })
         assistant.controller.updateSource(object : com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource {
-            override suspend fun search(keyword: String, city: String?) = listOf(
+            override suspend fun search(keyword: String, city: String?) = if (keyword.contains("第二地点")) listOf(
+                PlaceCandidate("second", "第二地点", "杭州第二地址", GeoPoint(30.25, 120.15), null, "杭州"),
+            ) else listOf(
                 PlaceCandidate("candidate", "测试地点", "杭州测试地址", GeoPoint(30.2, 120.1), null, "杭州"),
                 PlaceCandidate("alternative", "另一地点", "杭州另一地址", GeoPoint(30.3, 120.2), null, "杭州"),
             )
@@ -1177,17 +1197,70 @@ class WorkspaceFlowTest {
             compose.onNodeWithTag("assistant-entry").performClick()
             compose.waitUntil(5_000) { assistant.controller.state.value.let { it.configured && it.consent && it.mapReady } }
             compose.runOnIdle { assertEquals("Opening an empty assistant must retain the camera", beforeOpening, host.viewportCalls) }
+            if (initialLevel != WorkspaceSheetLevel.HALF) {
+                compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+                    val drag = if (initialLevel == WorkspaceSheetLevel.EXPANDED) -220f else 220f
+                    swipe(center, center + Offset(0f, drag), 300)
+                }
+                compose.waitUntil(5_000) { workspace.state.value.sheetLevel == initialLevel }
+            }
             compose.runOnIdle {
                 assistant.controller.editCity("杭州")
                 assistant.controller.editInput("测试地点")
                 assistant.controller.submit()
             }
-            compose.waitUntil(5_000) { assistant.controller.state.value.let { !it.busy && it.items.singleOrNull()?.poi != null } }
+            compose.waitUntil(5_000) { assistant.controller.state.value.let {
+                !it.busy && it.items.size == (if (multipleResults) 2 else 1) && it.items.all { item -> item.poi != null }
+            } }
             compose.waitForIdle()
             val before = host.viewportCalls
+            if (multipleResults) {
+                val mapSize = host.view.width to host.view.height
+                val command = host.commands.last() as ViewportCommand.Bounds
+                val density = compose.activity.resources.displayMetrics.density
+                val heightDp = mapSize.second / density
+                val halfDp = maxOf(
+                    workspaceSheetAnchors(heightDp.dp).half.value,
+                    if (compose.activity.resources.configuration.fontScale > 1.3f) 360f else 0f,
+                ).coerceAtMost(workspaceSheetAnchors(heightDp.dp).expanded.value)
+                assertEquals(2, command.points.size)
+                assertEquals("Assistant must use the HALF top inset", (76 * density).toInt(), command.safeInsets.topPx)
+                assertEquals("Assistant must use the HALF bottom inset even while expanded",
+                    ((halfDp + 44) * density).toInt(), command.safeInsets.bottomPx)
+                val usableHeight = mapSize.second - command.safeInsets.topPx - command.safeInsets.bottomPx
+                assertTrue("HALF area must remain usable on this device: ${usableHeight / density}dp, not a 1px strip",
+                    usableHeight > 96 * density)
+                val levels = if (initialLevel == WorkspaceSheetLevel.COLLAPSED) {
+                    listOf(WorkspaceSheetLevel.HALF, WorkspaceSheetLevel.EXPANDED)
+                } else listOf(WorkspaceSheetLevel.HALF, WorkspaceSheetLevel.COLLAPSED)
+                levels.forEach { level ->
+                    compose.onNodeWithTag("workspace-sheet-handle").performTouchInput {
+                        val drag = if (initialLevel == WorkspaceSheetLevel.COLLAPSED) -220f else 220f
+                        swipe(center, center + Offset(0f, drag), 300)
+                    }
+                    compose.waitUntil(5_000) { workspace.state.value.sheetLevel == level }
+                    compose.waitForIdle()
+                    compose.runOnIdle {
+                        assertEquals("Collapsing must retain the already-correct HALF camera", before, host.viewportCalls)
+                        assertEquals(mapSize, host.view.width to host.view.height)
+                        assertEquals(1, mounts)
+                    }
+                }
+                return
+            }
             compose.runOnIdle {
                 assertEquals("New assistant results must still position the map", beforeOpening + 1, before)
-                assertEquals(GeoPoint(30.2, 120.1), (host.commands.last() as ViewportCommand.SinglePoint).point)
+                val command = host.commands.last() as ViewportCommand.SinglePoint
+                assertEquals(GeoPoint(30.2, 120.1), command.point)
+                val density = compose.activity.resources.displayMetrics.density
+                val heightDp = host.view.height / density
+                val halfDp = maxOf(
+                    workspaceSheetAnchors(heightDp.dp).half.value,
+                    if (compose.activity.resources.configuration.fontScale > 1.3f) 360f else 0f,
+                ).coerceAtMost(workspaceSheetAnchors(heightDp.dp).expanded.value)
+                assertEquals("Single point uses the HALF area too",
+                    (((halfDp + 44) * density).toInt() - (76 * density).toInt()) / 2,
+                    command.centerOffset.yPx)
             }
             val mapSize = host.view.width to host.view.height
             listOf(

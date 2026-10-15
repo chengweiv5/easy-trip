@@ -93,6 +93,22 @@ internal fun workspaceSearchMapLayout(metrics: WorkspaceLayoutMetrics, density: 
     }
 }
 
+/** Assistant camera intents fit the HALF area once; drawer movement only changes occlusion. */
+internal fun workspaceAssistantMapLayout(
+    metrics: WorkspaceLayoutMetrics,
+    density: Float,
+    minimumHalfSheetHeight: Dp = 0.dp,
+): WorkspaceMapLayout {
+    val anchors = workspaceSheetAnchors(metrics.availableHeight)
+    val halfHeight = maxOf(anchors.half, minimumHalfSheetHeight.coerceAtMost(anchors.expanded))
+    val halfMetrics = workspaceLayoutMetrics(
+        availableWidth = metrics.availableWidth,
+        availableHeight = metrics.availableHeight,
+        visibleSheetHeight = halfHeight,
+    )
+    return workspaceMapLayout(metrics, density).copy(fitInsets = workspaceViewportInsets(halfMetrics, density))
+}
+
 data class WorkspaceMapLayout(
     val fitInsets: MapViewportInsets,
     val visibleInsets: MapViewportInsets,

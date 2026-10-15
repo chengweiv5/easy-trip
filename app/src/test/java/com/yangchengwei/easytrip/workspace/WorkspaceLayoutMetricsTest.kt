@@ -86,6 +86,62 @@ class WorkspaceLayoutMetricsTest {
         assertEquals(firstFrame.fitInsets, nextFrame.fitInsets)
     }
 
+    @Test fun `assistant fits the half area at every drawer level while occlusion follows the drawer`() {
+        listOf(108, 240, 346, 480, 720).forEach { height ->
+            val metrics = workspaceLayoutMetrics(
+                availableWidth = 390.dp,
+                availableHeight = 782.dp,
+                visibleSheetHeight = height.dp,
+            )
+            val layout = workspaceAssistantMapLayout(metrics, density = 1f)
+
+            assertEquals(MapViewportInsets(132, 76, 40, 390), layout.fitInsets)
+            assertEquals(MapViewportInsets(bottomPx = height), layout.visibleInsets)
+        }
+    }
+
+    @Test fun `assistant half area uses the same large font minimum as the drawer`() {
+        val metrics = workspaceLayoutMetrics(
+            availableWidth = 320.dp,
+            availableHeight = 782.dp,
+            visibleSheetHeight = 720.dp,
+        )
+
+        val layout = workspaceAssistantMapLayout(metrics, density = 3f, minimumHalfSheetHeight = 360.dp)
+
+        assertEquals(MapViewportInsets(396, 228, 120, 1212), layout.fitInsets)
+        assertEquals(MapViewportInsets(bottomPx = 2160), layout.visibleInsets)
+    }
+
+    @Test fun `assistant half area scales with a shorter workspace and pixel density`() {
+        val metrics = workspaceLayoutMetrics(
+            availableWidth = 320.dp,
+            availableHeight = 391.dp,
+            visibleSheetHeight = 360.dp,
+        )
+
+        assertEquals(
+            MapViewportInsets(264, 152, 80, 434),
+            workspaceAssistantMapLayout(metrics, density = 2f).fitInsets,
+        )
+    }
+
+    @Test fun `assistant fit stays bounded when large font minimum exceeds a tiny workspace`() {
+        listOf(0, 90, 200, 320).forEach { height ->
+            val metrics = workspaceLayoutMetrics(
+                availableWidth = 100.dp,
+                availableHeight = height.dp,
+                visibleSheetHeight = height.dp,
+            )
+            val insets = workspaceAssistantMapLayout(metrics, density = 1f, minimumHalfSheetHeight = 360.dp).fitInsets
+
+            assertTrue(insets.leftPx >= 0 && insets.rightPx >= 0)
+            assertTrue(insets.topPx >= 0 && insets.bottomPx >= 0)
+            assertTrue(insets.leftPx + insets.rightPx <= 99)
+            assertTrue(insets.topPx + insets.bottomPx <= (height - 1).coerceAtLeast(0))
+        }
+    }
+
     @Test fun `viewport safe rectangle stays clear of bottom left legend`() {
         val metrics = workspaceLayoutMetrics(
             availableWidth = 390.dp,

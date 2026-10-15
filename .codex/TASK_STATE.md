@@ -1,4 +1,21 @@
-# 当前任务：v3.4协议兼容与部分成功修复交付
+# 当前任务：助手地图按半展开区域计算缩放
+
+状态：**DONE（本轮开发与专项验证完成，未提交／推送／安装／发布），2026-10-15，b6fd。**
+
+- 用户最新确认：“按半展开区域来计算缩放”。分支`codex/v3.4-assistant-half-viewport`基于`5a34612ea38187b271a380b35584d849633c76fe`，修改前fetch／开放PR检查完成（0候选），重要文件已备份。
+- 助手新结果和主动选点统一使用HALF安全区域；大字最低高度复用360dp抽屉规则，真实遮挡仍跟随实时高度。抽屉展开／折叠／关闭／重开不重发旧相机请求；普通搜索、地点池、行程规则保持。3.4.0/build27/schema13与100地点／20图／30天不变。
+- 全展开两点红测从错误bottom inset2292px改为HALF1170px后通过。最终Debug／Release各1180 JVM、lint0错误、三APK构建与Release验签／16KiB对齐通过；精确最终APK10项正常尺寸＋5项系统320dp／2倍字体专项通过。
+- 扩大测试中的普通搜索导航旧case第289行等待超时，已用未修改HEAD独立包在同模拟器复现。本輪不修该基线问题，不宣称全应用全绿。单点测试字段与大字比例断言的开发中错误已纠正，保留原始失败日志。
+- 唯一Pencil源`/Users/bytedance/.codex/worktrees/b6fd/easy-trip/design/easy-trip-v3.4.0.pen`仅C11 context改变，346根／47089节点；原生保存、关闭重开、同绝对路径回读及截图通过。SHA256 `7cf3d1c515a08e52a9313ee7de947b15ca4f31a04559548ac8bf21d7e404852b`，冻结v3.3／v3.2未变，未操作46b4画布。
+- 644项验证输入回读无变化。专有emulator-5594恢复原设置后退出，自有锁与独立基线临时目录已清理；未停止共享ADB，没有手机操作。
+- 未调用真实模型／高德搜索；命令记录器专项不等于真实SDK投影／真机视觉验收。没有提交、推送、手机安装或发布授权，不沿用旧轮授权。
+- 报告：`/Users/bytedance/.codex/worktrees/b6fd/easy-trip/docs/testing/v3.4.0-assistant-half-viewport.md`。
+- 证据：`/Users/bytedance/.codex/artifacts/easy-trip/v34-assistant-half-viewport-b6fd-20261015/`，含before备份、红绿、最终构建与设备日志、旧失败基线、APK、Pencil核验、清理与通知回读。
+- punk-12通知`om_x100b62375a8700a8cfaf2562801cb26`完整正文、chat、bot及deleted=false已独立核验；此状态在通知验证后写回。回滚只选择性撤销本轮内容，不丢上游部分成功规则；schema13仅前向兼容，不卸载清数据。
+
+---
+
+# 历史任务：v3.4协议兼容与部分成功修复交付
 
 状态：**DONE（功能已提交推送并覆盖安装手机；未发布），2026-10-15。**
 

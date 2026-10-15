@@ -143,6 +143,8 @@ private fun WorkspaceReadyContent(
     onDeleteDay: (() -> Unit)?,
 ) {
     val density = LocalDensity.current
+    val assistantOpen = LocalAssistantWorkspace.current?.open == true
+    val assistantMinimumHalfHeight = if (assistantOpen && density.fontScale > 1.3f) 360.dp else 0.dp
     var calendarBusy by remember { mutableStateOf(false) }
     var calendarWideHint by remember { mutableStateOf(false) }
     var calendarWideArea by remember { mutableStateOf(Rect.Zero) }
@@ -152,8 +154,7 @@ private fun WorkspaceReadyContent(
     WorkspaceScaffold(
         sheetLevel = state.sheetLevel,
         sheetHeaderHeight = if (LocalAssistantWorkspace.current?.open == true) 80.dp else WorkspaceSheetHeaderHeight,
-        minimumHalfSheetHeight = if (LocalAssistantWorkspace.current?.open == true &&
-            LocalDensity.current.fontScale > 1.3f) 360.dp else 0.dp,
+        minimumHalfSheetHeight = assistantMinimumHalfHeight,
         sheetGesturesEnabled = !calendarBusy,
         onSheetLevelChange = { if (!calendarBusy) onAction(TripWorkspaceAction.SetSheetLevel(it)) },
         modifier = modifier,
@@ -311,8 +312,11 @@ private fun WorkspaceReadyContent(
         map = { metrics ->
             Box(Modifier.fillMaxSize().testTag("workspace-map")) {
                 if (mapState == WorkspaceMapState.Ready || mapState == WorkspaceMapState.Loading) {
-                    mapContent(if (state.searchResults != null) workspaceSearchMapLayout(metrics, density.density)
-                        else workspaceMapLayout(metrics, density.density))
+                    mapContent(when {
+                        state.searchResults != null -> workspaceSearchMapLayout(metrics, density.density)
+                        assistantOpen -> workspaceAssistantMapLayout(metrics, density.density, assistantMinimumHalfHeight)
+                        else -> workspaceMapLayout(metrics, density.density)
+                    })
                 }
                 if (mapState != WorkspaceMapState.Ready && workspaceMapOverlaysFit(metrics)) {
                     WorkspaceMapFallback(
