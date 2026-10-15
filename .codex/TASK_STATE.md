@@ -1,4 +1,18 @@
-# 当前任务：v3.4住宿排除规则与分类可行性试验
+# 当前任务：v3.4住宿排除规则文档提交与推送
+
+状态：**DONE（规则／验证文档已推送并独立回读；本状态随仅文档收尾提交），2026-10-15。**
+
+- 用户授权“提交，推送”。规则文档提交`686a3ed3336f14ffe486970fc0f1704fbf7177e1`已从`b02af49a`快进推送origin/main，12:31:55 +08:00独立ls-remote回读一致；开发分支`codex/v3.4-attraction-level`。
+- fetch发现上游半展开地图修复`e13325db`及交付记录`b02af49a`，通过rebase集成；仅解决AGENTS／任务状态追加冲突，两边历史与共同尾部精确保留。四文档提交的app／design／gradle子树与上游完全相同。
+- 六个尚未通过质量验收的代码／测试文件未提交，已从限定stash恢复且SHA256与本轮开始备份一致；两个新增测试仍未跟踪，暂存区没有产品文件。保留stash及独立备份，不丢弃本地成果。
+- 推荐住宿排除仍是已确认目标，尚未集成App；整体分类质量未通过。不能把规则文档推送称为功能完成。未构建、未重跑模型／高德／设备，未操作Pencil或手机，未安装或发布。
+- 规则／试验报告与rebase前逐字节一致，无冲突标记，git diff --check通过。报告：`docs/testing/v3.4.0-classification-docs-delivery.md`。
+- punk-12通知`om_x100b6231379a40a0cf2aed1ab485371`已独立回读全文、chat、app及未删除状态；之后最后更新本任务状态，仅提交本报告、AGENTS和本状态，不包含实验代码。
+- 证据：`/Users/bytedance/.codex/artifacts/easy-trip/v34-classification-docs-delivery-1e8a-20261015/`。最终文档收尾SHA及远端回读见`final-push-verification.json`。回滚选择性前向撤销文档增量，不reset／force，不撤销上游，不覆盖六个本地实验文件。
+
+---
+
+# 历史任务：v3.4住宿排除规则与分类可行性试验
 
 状态：**DONE（本次规则确认、隔离试验及记录已完成；整体质量未通过，产品实现未完成），2026-10-15。**
 
