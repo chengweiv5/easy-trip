@@ -12,6 +12,83 @@ import org.junit.Test
 import kotlin.math.roundToInt
 
 class MapMarkerBitmapTest {
+    @Test fun exportActualMarkerArtworkForVisualReview() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val density = context.resources.displayMetrics.density
+        val width = (360 * density).toInt()
+        val sheet = Bitmap.createBitmap(width, (210 * density).toInt(), Bitmap.Config.ARGB_8888)
+        val canvas = Canvas(sheet)
+        canvas.drawColor(Color.rgb(237, 242, 238))
+        val markers = listOf(
+            MapMarkerUi("a", GeoPoint(30.25, 120.15), "青州博物馆", emptyList(), MapMarkerKind.UNSAVED_SEARCH, badgeText = "A", isFocused = true),
+            MapMarkerUi("aa", GeoPoint(30.25, 120.15), "青州古城", emptyList(), MapMarkerKind.UNSAVED_SEARCH, badgeText = "AA"),
+            MapMarkerUi("cv1", GeoPoint(30.25, 120.15), "云门山", emptyList(), MapMarkerKind.UNSAVED_SEARCH, badgeText = "CV1", isFocused = true),
+            MapMarkerUi("search", GeoPoint(30.25, 120.15), "西湖天地", emptyList(), MapMarkerKind.UNSAVED_SEARCH, isFocused = true),
+            MapMarkerUi("saved", GeoPoint(30.25, 120.15), "已收藏地点", emptyList(), MapMarkerKind.SAVED_PLACE_POOL,
+                category = com.yangchengwei.easytrip.place.domain.PlaceCategory.ATTRACTION),
+            MapMarkerUi("scheduled", GeoPoint(30.25, 120.15), "已安排地点", emptyList(), MapMarkerKind.SAVED_PLACE_POOL, scheduled = true),
+        )
+        markers.forEachIndexed { index, marker ->
+            val bitmap = render(MarkerIconView(context, marker))
+            val cx = (60 + index % 3 * 120) * density
+            canvas.drawBitmap(bitmap, cx - bitmap.width / 2f, (24 + index / 3 * 100) * density, null)
+            bitmap.recycle()
+        }
+        val output = java.io.File(context.getExternalFilesDir(null), "marker-artwork.png")
+        output.outputStream().use { assertTrue(sheet.compress(Bitmap.CompressFormat.PNG, 100, it)) }
+        sheet.recycle()
+    }
+
+    @Test fun searchAndAssistantBadgesStayCircularWithNamesAndCenteredAnchors() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val density = context.resources.displayMetrics.density
+        for (kind in listOf(MapMarkerKind.UNSAVED_SEARCH, MapMarkerKind.SEARCH_RESULT)) {
+            for (badge in listOf(null, "A", "AA", "CV", "A1", "CV1")) {
+                for (focused in listOf(false, true)) {
+                    val view = MarkerIconView(context, MapMarkerUi(
+                        "search", GeoPoint(30.25, 120.15), "西湖天地", emptyList(), kind,
+                        badgeText = badge, isFocused = focused,
+                    ))
+                    val bitmap = render(view)
+                    assertEquals("$kind/$badge height", (52 * density).toInt(), bitmap.height)
+                    assertEquals(14f * density, view.anchorY * bitmap.height, 1f)
+                    val y = (14 * density).toInt()
+                    val visible = (0 until bitmap.width).filter { Color.alpha(bitmap.getPixel(it, y)) > 0 }
+                    assertEquals("$kind/$badge circle width", 28 * density, (visible.last() - visible.first() + 1).toFloat(), 2f)
+                    assertTrue("$kind/$badge name below circle", (30 * density).toInt().until(bitmap.height).any { row ->
+                        (0 until bitmap.width).any { x -> Color.alpha(bitmap.getPixel(x, row)) > 0 }
+                    })
+                    bitmap.recycle()
+                }
+            }
+        }
+    }
+
+    @Test fun ordinarySearchUsesSavedCategoryArtworkWithoutInventingABadge() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        for (palette in com.yangchengwei.easytrip.core.ui.theme.ThemePalette.entries) {
+            for (kind in listOf(MapMarkerKind.UNSAVED_SEARCH, MapMarkerKind.SEARCH_RESULT)) {
+                val marker = MapMarkerUi("search", GeoPoint(30.25, 120.15), "西湖天地", emptyList(), kind, isFocused = true)
+                val search = render(MarkerIconView(context, marker, palette))
+                val saved = render(MarkerIconView(context, marker.copy(kind = MapMarkerKind.SAVED_PLACE_POOL), palette))
+                assertTrue("$palette/$kind", search.sameAs(saved))
+                search.recycle()
+                saved.recycle()
+            }
+        }
+    }
+
+    @Test fun searchLongNamesUseExistingEllipsisRule() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val marker = MapMarkerUi("search", GeoPoint(30.25, 120.15), "一二三四五六七八九十一二三四五六七八九十", emptyList(),
+            MapMarkerKind.UNSAVED_SEARCH, badgeText = "AA")
+        val original = render(MarkerIconView(context, marker))
+        val shortened = render(MarkerIconView(context, marker.copy(label = "一二三四五六七八九十一二三四五六七…")))
+        assertTrue(original.sameAs(shortened))
+        original.recycle()
+        shortened.recycle()
+    }
+
     @Test fun savedMarkersKeepLayerButtonDiameterAndVisibleFillWhenFocused() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val density = context.resources.displayMetrics.density

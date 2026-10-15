@@ -20,9 +20,37 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.PlatformTextStyle
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.yangchengwei.easytrip.place.domain.PlaceCategory
+import com.yangchengwei.easytrip.core.ui.PlaceBadgeStyle
+
+@Composable
+internal fun AssistantLabelBadge(label: String) {
+    val density = LocalDensity.current
+    val measure = rememberTextMeasurer()
+    // Only the compact identifier is fixed in dp; adjacent place names still follow system text size.
+    val baseStyle = MaterialTheme.typography.labelMedium.copy(
+        fontSize = with(density) { PlaceBadgeStyle.textSizeDp(label).dp.toSp() },
+        lineHeight = with(density) { 18.dp.toSp() },
+        letterSpacing = 0.sp,
+        fontWeight = FontWeight.Bold,
+        platformStyle = PlatformTextStyle(includeFontPadding = false),
+    )
+    val textWidthDp = measure.measure(label, baseStyle, softWrap = false, maxLines = 1).size.width / density.density
+    val fittedSize = PlaceBadgeStyle.fittedTextSizeDp(label, textWidthDp)
+    Surface(
+        modifier = Modifier.size(PlaceBadgeStyle.diameterDp.dp).testTag("assistant-badge-$label"),
+        shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer,
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(label, style = baseStyle.copy(fontSize = with(density) { fittedSize.dp.toSp() }),
+                color = MaterialTheme.colorScheme.primary, maxLines = 1, softWrap = false)
+        }
+    }
+}
 
 /** Visual selection column is shared by rows and the pinned bulk action. */
 @Composable
@@ -111,15 +139,10 @@ internal fun AssistantResultRow(host: AssistantWorkspace, item: IntakeItem, onPr
                 !s.saving, "选择${item.poi?.name ?: item.intent.query}", "assistant-select-${item.label}",
                 { controller.toggle(item.id) })
             else Spacer(Modifier.size(48.dp))
-            Box(Modifier.widthIn(min = 28.dp).heightIn(min = 48.dp)
+            Box(Modifier.width(PlaceBadgeStyle.diameterDp.dp).heightIn(min = 48.dp)
                 .clickable(enabled = !s.saving) { host.model.focus(item.id) }
                 .testTag("assistant-marker-${item.label}"), contentAlignment = Alignment.Center) {
-                Surface(shape = CircleShape, color = MaterialTheme.colorScheme.secondaryContainer) {
-                    Box(Modifier.sizeIn(minWidth = 28.dp, minHeight = 28.dp).padding(horizontal = 4.dp),
-                        contentAlignment = Alignment.Center) {
-                    Text(item.label, style = MaterialTheme.typography.labelMedium, maxLines = 1, softWrap = false)
-                    }
-                }
+                AssistantLabelBadge(item.label)
             }
             Column(Modifier.weight(1f).heightIn(min = 48.dp)
                 .clickable(enabled = !s.saving) { host.model.focus(item.id) }

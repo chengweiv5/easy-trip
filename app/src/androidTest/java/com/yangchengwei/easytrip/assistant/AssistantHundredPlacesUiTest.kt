@@ -78,19 +78,27 @@ class AssistantHundredPlacesUiTest {
             }
             compose.waitUntil(100_000) { !model.controller.state.value.busy }
             assertEquals(100, model.controller.state.value.eligible.size)
-            for (label in listOf("Z", "AA", "AZ", "BA", "BZ", "CA", "CS", "CT", "CU", "CV")) {
+            for (label in listOf("A", "Z", "AA", "AZ", "BA", "BZ", "CA", "CS", "CT", "CU", "CV")) {
                 compose.onNodeWithTag("assistant-marker-$label").performScrollTo().assertIsDisplayed()
+                    .assertWidthIsEqualTo(28.dp).assertHeightIsAtLeast(48.dp)
+                compose.onNodeWithTag("assistant-badge-$label", useUnmergedTree = true)
+                    .assertWidthIsEqualTo(28.dp).assertHeightIsEqualTo(28.dp)
                 val layouts = mutableListOf<TextLayoutResult>()
                 compose.onNodeWithText(label, useUnmergedTree = true)
                     .performSemanticsAction(SemanticsActions.GetTextLayoutResult) { it(layouts) }
                 saveScreenshot(if (small) "narrow-$label" else "normal-$label")
                 // TextLayout uses integer pixel size, while the line edge may retain a subpixel.
-                // The badge has 4dp padding: allow at most one rounding pixel, never a wrapped line.
+                // Allow at most one rounding pixel, never a wrapped or clipped label.
                 assertTrue("Badge $label must fit: ${layouts.map { "size=${it.size}, lines=${it.lineCount}, right=${it.getLineRight(0)}, height=${it.didOverflowHeight}" }}",
                     layouts.isNotEmpty() && layouts.all {
                         it.lineCount == 1 && !it.didOverflowHeight &&
                             it.getLineRight(0) <= it.size.width + 1f && it.getLineLeft(0) >= -1f
                     })
+                val layout = layouts.single()
+                with(layout.layoutInput.density) {
+                    assertEquals(if (label.length == 1) 14f else 11f,
+                        layout.layoutInput.style.fontSize.toPx() / density, .1f)
+                }
                 compose.onNodeWithTag("assistant-select-$label").assertHeightIsAtLeast(48.dp).performClick()
                 assertEquals(0, saved.get())
             }

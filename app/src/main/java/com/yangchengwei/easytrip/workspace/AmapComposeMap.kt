@@ -375,21 +375,19 @@ internal fun mapMarkerRendering(marker: MapMarkerUi, palette: ThemePalette = The
     val primary = palette.colors.primary.toArgb()
     val focusedBorder = palette.colors.tertiary.toArgb()
     return when (marker.kind) {
-        MapMarkerKind.UNSAVED_SEARCH, MapMarkerKind.SEARCH_RESULT -> MapMarkerRendering(
-            glyph = marker.badgeText ?: "●",
-            foregroundColor = 0xFFFFFFFF.toInt(),
-            backgroundColor = palette.colors.tertiary.toArgb(),
-            borderColor = if (marker.isFocused) focusedBorder else 0xFFFFFFFF.toInt(),
-            borderWidth = if (marker.isFocused) 6 else 3,
-            solid = true,
-        )
-        MapMarkerKind.SAVED_PLACE_POOL -> {
+        MapMarkerKind.UNSAVED_SEARCH, MapMarkerKind.SEARCH_RESULT, MapMarkerKind.SAVED_PLACE_POOL -> {
             val style = com.yangchengwei.easytrip.place.ui.placeCategoryStyle(
                 marker.category ?: com.yangchengwei.easytrip.place.domain.PlaceCategory.OTHER)
-            MapMarkerRendering(glyph = "", foregroundColor = style.foregroundArgb.toInt(),
-                backgroundColor = style.backgroundArgb.toInt(), borderColor = if (marker.isFocused) focusedBorder else style.foregroundArgb.toInt(),
+            val badge = marker.badgeText?.takeIf {
+                marker.kind != MapMarkerKind.SAVED_PLACE_POOL && it.isNotBlank()
+            }
+            val foreground = if (badge != null) primary else style.foregroundArgb.toInt()
+            MapMarkerRendering(glyph = badge.orEmpty(), foregroundColor = foreground,
+                backgroundColor = if (badge != null) palette.colors.secondaryContainer.toArgb() else style.backgroundArgb.toInt(),
+                borderColor = if (marker.isFocused) focusedBorder else foreground,
                 borderWidth = if (marker.isFocused) 3 else 1, solid = false,
-                categoryIconRes = style.iconRes, showScheduledCheck = marker.scheduled)
+                categoryIconRes = if (badge == null) style.iconRes else null,
+                showScheduledCheck = marker.kind == MapMarkerKind.SAVED_PLACE_POOL && marker.scheduled)
         }
         MapMarkerKind.SAVED_ITINERARY -> MapMarkerRendering(
             glyph = if (marker.scheduled) marker.badgeText.orEmpty() else "",
@@ -410,14 +408,8 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
     private val rendering = mapMarkerRendering(marker, palette)
     private val density = resources.displayMetrics.density
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
-    private val name = marker.label.takeIf {
-        marker.kind == MapMarkerKind.SAVED_ITINERARY || marker.kind == MapMarkerKind.SAVED_PLACE_POOL || marker.kind == MapMarkerKind.SEARCH_RESULT
-    }?.let { if (it.length > 18) it.take(17) + "…" else it }
-    private val diameter = when (marker.kind) {
-        MapMarkerKind.UNSAVED_SEARCH -> 44f
-        MapMarkerKind.SEARCH_RESULT -> 32f
-        else -> 28f
-    }
+    private val name = marker.label.let { if (it.length > 18) it.take(17) + "…" else it }
+    private val diameter = com.yangchengwei.easytrip.core.ui.PlaceBadgeStyle.diameterDp
     private val accessoryHeight = if (rendering.showCategoryAccessory) 18f else 0f
     private val textSizePx = 15f * density
     private val segments = marker.badgeSegments.takeIf {
@@ -425,6 +417,7 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
     }.orEmpty()
     private val segmentWidths: List<Float>
     private val badgeWidth: Float
+    private val badgeTextSizePx: Float
     private val badgeBounds = RectF()
     private val badgeClip = Path()
     val anchorX: Float get() = 0.5f
@@ -434,11 +427,18 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
         paint.textSize = textSizePx
         paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
         segmentWidths = segments.map { maxOf(diameter * density, paint.measureText(it.text) + 12f * density) }
-        badgeWidth = if (segments.isEmpty()) {
+        badgeWidth = if (marker.kind != MapMarkerKind.SAVED_ITINERARY) {
+            diameter * density
+        } else if (segments.isEmpty()) {
             maxOf(diameter * density, paint.measureText(rendering.glyph) + 12f * density)
         } else segmentWidths.sum()
-        val nameWidth = name?.let { paint.measureText(it) + 8f * density } ?: 0f
-        layoutParams = android.view.ViewGroup.LayoutParams(kotlin.math.ceil(maxOf(badgeWidth, nameWidth)).toInt(), ((diameter + accessoryHeight + if (name != null) 24f else 0f) * density).toInt())
+        val nameWidth = paint.measureText(name) + 8f * density
+        badgeTextSizePx = if (marker.kind == MapMarkerKind.SAVED_ITINERARY) textSizePx else {
+            val style = com.yangchengwei.easytrip.core.ui.PlaceBadgeStyle
+            paint.textSize = style.textSizeDp(rendering.glyph) * density
+            style.fittedTextSizeDp(rendering.glyph, paint.measureText(rendering.glyph) / density) * density
+        }
+        layoutParams = android.view.ViewGroup.LayoutParams(kotlin.math.ceil(maxOf(badgeWidth, nameWidth)).toInt(), ((diameter + accessoryHeight + 24f) * density).toInt())
     }
 
     private fun drawCategoryIcon(canvas: AndroidCanvas, cx: Float, cy: Float, size: Float, color: Int) {
@@ -480,18 +480,11 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
         paint.color = rendering.borderColor
         if (rendering.borderWidth > 0) canvas.drawRoundRect(badgeBounds, radius, radius, paint)
         paint.color = rendering.foregroundColor
-        if (marker.kind == MapMarkerKind.SEARCH_RESULT) {
-            paint.style = Paint.Style.STROKE
-            paint.strokeWidth = 2f * density
-            paint.strokeCap = Paint.Cap.ROUND
-            canvas.drawCircle(cx - 1.5f * density, cy - 1.5f * density, 5f * density, paint)
-            canvas.drawLine(cx + 2f * density, cy + 2f * density, cx + 7f * density, cy + 7f * density, paint)
-            paint.strokeCap = Paint.Cap.BUTT
-        } else if (rendering.categoryIconRes != null && !rendering.showCategoryAccessory) {
+        if (rendering.categoryIconRes != null && !rendering.showCategoryAccessory) {
             drawCategoryIcon(canvas, cx, cy, 18f * density, rendering.foregroundColor)
         } else if (rendering.geometry.isEmpty()) {
             paint.style = Paint.Style.FILL
-            paint.textSize = textSizePx
+            paint.textSize = badgeTextSizePx
             paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
             paint.textAlign = Paint.Align.CENTER
             val baseline = cy - (paint.ascent() + paint.descent()) / 2f
@@ -534,7 +527,7 @@ internal class MarkerIconView(context: Context, private val marker: MapMarkerUi,
             drawCategoryIcon(canvas, cx, diameter * density + accessoryHeight * density / 2,
                 14f * density, style.foregroundArgb.toInt())
         }
-        name?.let {
+        name.let {
             val label = it
             paint.textSize = textSizePx
             paint.typeface = android.graphics.Typeface.DEFAULT_BOLD
