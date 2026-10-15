@@ -9,7 +9,7 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AssistantPlaceNormalizerTest {
-    @Test fun authorMarkedTargetsCannotBeDiscardedAsBackgroundOrMergedIntoTheirParent() {
+    @Test fun wholeGuideMayDiscardMarkedDetailsWhileKeepingIndependentMuseum() {
         val source = IntakeSource.Image("i", 1, "北城(南门)",
             ImageTargetEvidence(ImageTargetBasis.AUTHOR_MARK, "作者编号4",
                 ImageEntityRole.DISTINCT_PART, "北城"))
@@ -20,11 +20,10 @@ class AssistantPlaceNormalizerTest {
                 IntakeSource.Image("i", 1, "北城美术馆",
                     ImageTargetEvidence(ImageTargetBasis.AUTHOR_MARK, "作者标签和图钉")))),
         )
-        val model = """{"groups":[{"canonical":0,"members":[0,1]}],"discarded":[{"id":2,"reason":"BACKGROUND"}]}"""
+        val model = """{"groups":[{"canonical":0,"members":[0]},{"canonical":2,"members":[2]}],"discarded":[{"id":1,"reason":"NOT_PLACE"}]}"""
         val result = PlaceNormalizationProtocol.decode(response(model), places)
-        assertEquals(listOf("北城", "北城(南门)", "北城美术馆"), result.map { it.query })
-        assertEquals(listOf(source), result[1].sources)
-        assertFalse(result[2].needsReview)
+        assertEquals(listOf("北城", "北城美术馆"), result.map { it.query })
+        assertFalse(result[1].needsReview)
     }
     @Test fun authorEvidenceDoesNotExemptDiningAndProtectedItemsStillRequireExactIdCoverage() {
         val venue = PlaceIntent("北城餐馆", "北市", "北城餐馆", sources = listOf(
@@ -36,12 +35,14 @@ class AssistantPlaceNormalizerTest {
             response("""{"groups":[],"discarded":[]}"""), listOf(venue)) }
     }
 
-    @Test fun legacyGateQualifierIsNotMergedIntoParentButOrdinaryAliasesStillMerge() {
+    @Test fun legacyGateCannotBeAnAliasOfParentButCanBeDiscardedAsInternalAccess() {
         val places = listOf("北城", "北城(南门)", "望月山", "望月山风景区")
             .map { PlaceIntent(it, "北市", it) }
         val args = """{"groups":[{"canonical":0,"members":[0,1]},{"canonical":3,"members":[2,3]}],"discarded":[]}"""
-        assertEquals(listOf("北城", "北城(南门)", "望月山风景区"),
-            PlaceNormalizationProtocol.decode(response(args), places).map { it.query })
+        assertThrows(AssistantFailure::class.java) { PlaceNormalizationProtocol.decode(response(args), places) }
+        assertEquals(listOf("北城", "望月山风景区"), PlaceNormalizationProtocol.decode(response(
+            """{"groups":[{"canonical":0,"members":[0]},{"canonical":3,"members":[2,3]}],"discarded":[{"id":1,"reason":"NOT_PLACE"}]}"""),
+            places).map { it.query })
     }
     @Test fun parentConflictDoesNotSplitSafeAliasesAndPartAliasesStillMerge() {
         val gateEvidence = listOf(IntakeSource.Image("i", 1, "北城南门城楼",
@@ -53,8 +54,7 @@ class AssistantPlaceNormalizerTest {
             PlaceIntent("北城南门城楼", "北市", "北城南门城楼", sources = gateEvidence),
         )
         val mixed = """{"groups":[{"canonical":1,"members":[0,1,2,3]}],"discarded":[]}"""
-        assertEquals(listOf("北城古城", "北城南门城楼"),
-            PlaceNormalizationProtocol.decode(response(mixed), places).map { it.query })
+        assertThrows(AssistantFailure::class.java) { PlaceNormalizationProtocol.decode(response(mixed), places) }
         val partOnly = """{"groups":[{"canonical":1,"members":[0,1]}],"discarded":[]}"""
         assertEquals(1, PlaceNormalizationProtocol.decode(response(partOnly), places.takeLast(2)).size)
     }
@@ -77,9 +77,9 @@ class AssistantPlaceNormalizerTest {
         val alias = PlaceIntent("荣华门城楼", "北市", "荣华门城楼")
         listOf(listOf(gate, alias), listOf(alias, gate)).forEach { gates ->
             val places = listOf(PlaceIntent("北城", "北市", "北城")) + gates
-            for (canonical in 0..2) {
+            for (canonical in 1..2) {
                 val result = PlaceNormalizationProtocol.decode(response(
-                    """{"groups":[{"canonical":$canonical,"members":[0,1,2]}],"discarded":[]}"""), places)
+                    """{"groups":[{"canonical":0,"members":[0]},{"canonical":$canonical,"members":[1,2]}],"discarded":[]}"""), places)
                 assertEquals(2, result.size)
                 assertEquals("北城", result.first().query)
                 assertTrue(result.last().query.startsWith("荣华门"))
@@ -99,7 +99,7 @@ class AssistantPlaceNormalizerTest {
     private val valid = """{"groups":[{"canonical":1,"members":[0,1]},{"canonical":3,"members":[2,3]},{"canonical":6,"members":[6]}],"discarded":[{"id":4,"reason":"FOOD"},{"id":5,"reason":"DINING"}]}"""
     private fun response(args: String) = """{"choices":[{"finish_reason":"tool_calls","message":{"tool_calls":[{"type":"function","function":{"name":"normalize_place_candidates","arguments":${JsonPrimitive(args)}}}]}}]}"""
 
-    @Test fun modelGroupsAliasesDropsFoodAndDiningKeepsLodgingAndRetainsEvidence() = runTest {
+    @Test fun modelGroupsAliasesDropsFoodDiningAndLodgingAndRetainsEvidence() = runTest {
         var calls = 0
         val client = OkHttpClient.Builder().addInterceptor { chain ->
             calls++
@@ -113,11 +113,16 @@ class AssistantPlaceNormalizerTest {
             assertTrue(request.contains("不是为了"))
             assertFalse(request.contains("secret"))
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200)
-                .message("OK").body(response(valid).toResponseBody("application/json".toMediaType())).build()
+                .message("OK").body(response(valid.replace("\"canonical\":1,", "\"classification\":{\"purpose\":\"SIGHTSEEING\",\"granularity\":\"DESTINATION\",\"independentVisit\":true,\"evidenceQuote\":\"九龙峪景区\"},\"canonical\":1,")
+                    .replace("\"canonical\":3,", "\"classification\":{\"purpose\":\"SIGHTSEEING\",\"granularity\":\"DESTINATION\",\"independentVisit\":true,\"evidenceQuote\":\"青州博物馆\"},\"canonical\":3,")
+                    .replace("\"canonical\":6,", "\"classification\":{\"purpose\":\"LODGING\",\"granularity\":\"DESTINATION\",\"independentVisit\":true,\"evidenceQuote\":\"古州往事客栈\"},\"canonical\":6,")
+                    .replace("\"reason\":\"FOOD\"", "\"reason\":\"FOOD\",\"classification\":{\"purpose\":\"DINING\",\"granularity\":\"DESTINATION\",\"independentVisit\":false,\"evidenceQuote\":\"糗糕\"}")
+                    .replace("\"reason\":\"DINING\"", "\"reason\":\"DINING\",\"classification\":{\"purpose\":\"DINING\",\"granularity\":\"DESTINATION\",\"independentVisit\":false,\"evidenceQuote\":\"丁妈妈糗糕\"}")
+                ).toResponseBody("application/json".toMediaType())).build()
         }.build()
         val normalizer = ModelPlaceNormalizer({ ProviderConfig("https://example.test", "model", "secret") }, AssistantTransport(client))
         val places = normalizer.normalize(candidates, "青州博物馆和九龙峪攻略；糗糕是小吃，丁妈妈糗糕是店名。", "青州")
-        assertEquals(listOf("九龙峪景区", "青州博物馆", "古州往事客栈"), places.map { it.query })
+        assertEquals(listOf("九龙峪景区", "青州博物馆"), places.map { it.query })
         assertEquals(2, places.first().sources.size)
         assertFalse(places[1].needsReview)
         assertEquals(1, calls)

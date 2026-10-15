@@ -7,7 +7,7 @@ object GuideEntityProtocol {
         frozen: List<GuideFrozenPlace>): String = guideEntityRequest(config, evidence, context, frozen)
 
     fun decode(response: String, evidence: List<GuideEvidence>, context: GuideContext,
-        frozen: List<GuideFrozenPlace>): GuideEntityDecode {
+        frozen: List<GuideFrozenPlace>, requireClassification: Boolean = false): GuideEntityDecode {
         val args = try {
             AssistantToolResponse.arguments(response, "resolve_guide_entities").also {
                 it.getValue("evidenceResults").jsonArray
@@ -41,7 +41,9 @@ object GuideEntityProtocol {
                     "EXCLUDED" -> {
                         val reason = entry.text("reason")
                         require(reason in setOf("FOOD_OR_DINING", "BACKGROUND", "NOT_PLACE"))
-                        require(reason == "FOOD_OR_DINING" || e.kind != GuideEvidenceKind.AUTHOR_LABEL &&
+                        if (requireClassification) {
+                            require(classify(entry, e.rawQuote) == GuidePlaceClassification.Decision.DROP)
+                        } else require(reason == "FOOD_OR_DINING" || e.kind != GuideEvidenceKind.AUTHOR_LABEL &&
                             e.basis == ImageTargetBasis.CONTEXT_REFERENCE)
                         require(entry["mentions"]?.jsonArray.isNullOrEmpty())
                         excluded += e.id
@@ -91,6 +93,18 @@ object GuideEntityProtocol {
             } catch (_: Exception) { pending += e.id }
         }
         val invalidEvidence = pending.toSet()
+        // Classification is transient: retain every original quote and index for
+        // recovery, but never send an excluded/unknown occurrence to POI search.
+        val decisions = mentions.mapValues { (key, mention) ->
+            if (!requireClassification) GuidePlaceClassification.Decision.KEEP
+            else classify(entries.getValue(key.first).single().getValue("mentions")
+                .jsonArray[key.second].jsonObject, evidence[key.first].rawQuote, mention.literal)
+        }
+        decisions.filterValues { it == GuidePlaceClassification.Decision.REVIEW }.keys.forEach {
+            pending += mentions.getValue(it).evidenceId
+        }
+        val eligibleIds = decisions.filterValues { it == GuidePlaceClassification.Decision.KEEP }
+            .keys.map { mentions.getValue(it).id }.toSet()
         val invalidMentions = linkedSetOf<String>()
         val groups = args.getValue("groups").jsonArray.mapNotNull { value ->
             val related = linkedSetOf<String>()
@@ -101,7 +115,8 @@ object GuideEntityProtocol {
                 (raw as? JsonArray)?.takeIf { it.size == 2 }?.let { pair ->
                     val eIndex = (pair[0] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull
                     val mIndex = (pair[1] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull
-                    if (eIndex != null && mIndex != null) mentions[eIndex to mIndex]?.let { relatedMentions += it.id }
+                    if (eIndex != null && mIndex != null) mentions[eIndex to mIndex]
+                        ?.takeIf { it.id in eligibleIds }?.let { relatedMentions += it.id }
                 }
                 ((raw as? JsonArray)?.firstOrNull() as? JsonPrimitive)
                     ?.takeUnless { it.isString }?.intOrNull?.let { index ->
@@ -110,14 +125,15 @@ object GuideEntityProtocol {
             }
             try {
                 val o = value.jsonObject
-                val members = o.getValue("members").jsonArray.map {
+                val members = o.getValue("members").jsonArray.mapNotNull {
                     val pair = it.jsonArray
                     require(pair.size == 2)
                     val eIndex = pair[0].strictGuideInt()
                     evidence.getOrNull(eIndex)?.let { e -> related += e.id }
                     requireNotNull(mentions[eIndex to pair[1].strictGuideInt()])
+                        .takeIf { it.id in eligibleIds }
                 }
-                require(members.isNotEmpty())
+                if (members.isEmpty()) return@mapNotNull null
                 require(members.none { it.evidenceId in invalidEvidence })
                 require(members.map { it.id }.distinct().size == members.size)
                 val relation = GuideAliasKind.valueOf(o.text("relation"))
@@ -155,8 +171,13 @@ object GuideEntityProtocol {
             } catch (_: Exception) { pending += related; invalidMentions += relatedMentions; null }
         }
         val counts = groups.flatMap { it.members }.groupingBy { it.id }.eachCount()
-        mentions.values.filter { counts[it.id] != 1 }.forEach {
+        mentions.values.filter { it.id in eligibleIds && counts[it.id] != 1 }.forEach {
             pending += it.evidenceId; invalidMentions += it.id
+        }
+        if (requireClassification) evidence.forEachIndexed { index, e ->
+            val values = decisions.filterKeys { it.first == index }.values
+            if (values.isNotEmpty() && values.all { it == GuidePlaceClassification.Decision.DROP })
+                excluded += e.id
         }
         // A bad mention/group must not taint independent mentions in the same route excerpt.
         val accepted = groups.filter { g ->
@@ -169,6 +190,17 @@ object GuideEntityProtocol {
         return GuideEntityDecode(accepted,
             pending.map { GuidePendingEvidence(setOf(it), "部分原文尚未整理完成，请重试整理。") }, excluded - pending)
     }
+
+    private fun classify(item: JsonObject, quote: String, literal: String = ""): GuidePlaceClassification.Decision =
+        try {
+            val citation = GuidePlaceClassification.quote(item)
+            if (citation.isBlank() || GuidePlaceClassification.originalQuote(quote, citation) == null ||
+                literal.isNotEmpty() && !citation.contains(literal)) GuidePlaceClassification.Decision.REVIEW
+            else GuidePlaceClassification.decide(buildJsonObject {
+                item.forEach { (key, value) -> put(key, value) }
+                put("query", literal)
+            }, listOf(quote))
+        } catch (_: Exception) { GuidePlaceClassification.Decision.REVIEW }
 }
 
 internal fun JsonElement.strictGuideInt(): Int = jsonPrimitive.let {

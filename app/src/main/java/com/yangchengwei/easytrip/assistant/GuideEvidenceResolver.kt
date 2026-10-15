@@ -16,7 +16,7 @@ class ModelGuideEvidenceResolver(private val config: () -> ProviderConfig?,
         val decoded = transport.decodeWithRepair(current,
             GuideEntityProtocol.request(current, evidence, context, frozen),
             AssistantProtocolStage.NORMALIZATION, policy = GuideEvidenceBudget.transport) {
-            GuideEntityProtocol.decode(it, evidence, context, frozen)
+            GuideEntityProtocol.decode(it, evidence, context, frozen, requireClassification = true)
         }
         val byId = evidence.associateBy { it.id }
         val places = decoded.groups.map { group ->

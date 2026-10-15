@@ -446,7 +446,7 @@ class PlaceAssistantController(
                         applied.additions
                     } else if (semantic) {
                         mutable.value = mutable.value.copy(normalizationPending = raw.isNotEmpty(),
-                            linkProgress = "正在合并同一地点、剔除餐饮和非地点名称…")
+                            linkProgress = "正在整理独立景点、合并同一地点…")
                         val result = if (raw.isEmpty()) emptyList() else runner.normalize(raw, request.text, request.city)
                         if (!isCurrent(generation)) return@withTimeout
                         if (result.size > AssistantPlacePolicy.MAX_PLACES) {
@@ -716,7 +716,7 @@ class PlaceAssistantController(
                 val item = mutable.value.items.find { it.id == id } ?: return@withPermit
                 if (!isCurrent(generation)) return@withPermit
                 if (item.intent.needsReview) {
-                    changeItem(id) { it.copy(status = IntakeStatus.NEED_CITY, detail = "名称或所属地点需核对，请对照来源修改。") }
+                    changeItem(id) { it.copy(status = IntakeStatus.NEED_CITY, detail = "地点信息尚不明确，请对照来源核对名称和城市。") }
                     return@withPermit
                 }
                 if (item.cityConflict) {

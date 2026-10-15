@@ -70,7 +70,7 @@ class AssistantLinkNormalizationTest {
         controller.environment(true, true, true)
         controller.editInput(share); controller.submit(); runCurrent()
         try {
-            assertEquals("正在合并同一地点、剔除餐饮和非地点名称…", controller.state.value.linkProgress)
+            assertEquals("正在整理独立景点、合并同一地点…", controller.state.value.linkProgress)
             controller.cancel()
             assertTrue(controller.state.value.items.isEmpty())
         } finally {

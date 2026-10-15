@@ -35,6 +35,10 @@ class GuideEvidenceCapacityTest {
                         put("parentLiteral", if (mode == "ordinary") "" else name(i).removeSuffix("南门"))
                         put("partKind", if (mode == "ordinary") JsonNull else JsonPrimitive("GATE"))
                         put("uncertain", false)
+                        putJsonObject("classification") {
+                            put("purpose", "SIGHTSEEING"); put("granularity", "DESTINATION")
+                            put("independentVisit", true); put("evidenceQuote", evidence[index].rawQuote)
+                        }
                     } }
                 } } }
                 putJsonArray("groups") { repeat(100) { i -> addJsonObject {

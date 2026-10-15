@@ -63,14 +63,14 @@ class AssistantEvidenceGuideFactoryTest {
                 check(release.await(20, TimeUnit.SECONDS))
                 batchedDeviceReply(buildJsonObject { putJsonArray("sources") {
                     addJsonObject { put("sourceId", "text"); put("status", "OK")
-                        putJsonArray("evidence") { addJsonObject { put("rawQuote", "北城美术馆"); put("kind", "BODY_EXCERPT"); put("basis", "RECOMMENDED"); put("uncertain", false); put("detail", "") } } }
+                        putJsonArray("evidence") { addJsonObject { put("rawQuote", "北城美术馆 推荐山间客栈 园内LED舞台"); put("kind", "BODY_EXCERPT"); put("basis", "RECOMMENDED"); put("uncertain", false); put("detail", "") } } }
                     (1..6).forEach { n -> addJsonObject {
                         put("sourceId", "image_$n"); put("status", "NO_PLACES"); putJsonArray("evidence") {}
                     } }
                 } }, tool)
             } else {
                 assertEquals("resolve_guide_entities", tool); normalizes.incrementAndGet()
-                batchedDeviceReply(Json.parseToJsonElement("""{"evidenceResults":[{"e":0,"status":"PARSED","mentions":[{"literal":"美术馆","occurrence":0,"city":"北城","cityEvidenceRefs":[0],"role":"PLACE","parentLiteral":"","partKind":null,"uncertain":false}]}],"groups":[{"members":[[0,0]],"relation":"SAME_LITERAL","evidenceRefs":[0],"frozenAnchors":[]}]}""").jsonObject, tool)
+                batchedDeviceReply(Json.parseToJsonElement("""{"evidenceResults":[{"e":0,"status":"PARSED","mentions":[{"literal":"美术馆","occurrence":0,"city":"北城","cityEvidenceRefs":[0],"role":"PLACE","parentLiteral":"","partKind":null,"uncertain":false,"classification":{"purpose":"SIGHTSEEING","granularity":"DESTINATION","independentVisit":true,"evidenceQuote":"北城美术馆"}},{"literal":"山间客栈","occurrence":0,"city":"","cityEvidenceRefs":[],"role":"PLACE","parentLiteral":"","partKind":null,"uncertain":false,"classification":{"purpose":"LODGING","granularity":"DESTINATION","independentVisit":false,"evidenceQuote":"推荐山间客栈"}},{"literal":"LED舞台","occurrence":0,"city":"","cityEvidenceRefs":[],"role":"PLACE","parentLiteral":"","partKind":null,"uncertain":false,"classification":{"purpose":"OTHER","granularity":"INTERNAL_DETAIL","independentVisit":false,"evidenceQuote":"园内LED舞台"}}]}],"groups":[{"members":[[0,0]],"relation":"SAME_LITERAL","evidenceRefs":[0],"frozenAnchors":[]},{"members":[[0,1]],"relation":"SAME_LITERAL","evidenceRefs":[0],"frozenAnchors":[]},{"members":[[0,2]],"relation":"SAME_LITERAL","evidenceRefs":[0],"frozenAnchors":[]}]}""").jsonObject, tool)
             }
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1)
                 .code(200).message("OK").body(response.toResponseBody()).build()
@@ -86,7 +86,7 @@ class AssistantEvidenceGuideFactoryTest {
                     onProgress: (String) -> Unit): LoadedAssistantLink {
                     var added = emptyList<AssistantImage>()
                     repeat(6) { added = added + images.importBytes(sessionId, png, existing + added) }
-                    return LoadedAssistantLink("北城美术馆", added)
+                    return LoadedAssistantLink("北城美术馆 推荐山间客栈 园内LED舞台", added)
                 }
                 override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
             }
@@ -127,6 +127,7 @@ class AssistantEvidenceGuideFactoryTest {
             compose.waitUntil(15_000) { !model.controller.state.value.busy && model.controller.state.value.eligible.size == 1 }
             assertEquals(listOf("extract_guide_evidence", "resolve_guide_entities"), calls.toList())
             assertEquals(1, searches.get())
+            assertEquals(listOf("美术馆"), model.controller.state.value.items.map { it.intent.query })
             compose.onNodeWithTag("assistant-select-A").performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithTag("assistant-save").assertIsEnabled().assertIsDisplayed()
             assertTrue(File(root, "bodies").listFiles()!!.isEmpty())

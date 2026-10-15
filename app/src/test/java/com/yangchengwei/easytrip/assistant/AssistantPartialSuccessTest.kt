@@ -143,6 +143,29 @@ class AssistantPartialSuccessTest {
         assertTrue(importer.commits.isEmpty())
     }
 
+    @Test fun classifiedReviewAndExcludedLodgingCannotBlockAValidAttractionFromQueryOrCollection() = runTest {
+        val searched = mutableListOf<String>()
+        val input = "美术馆，山间客栈，不明场馆"
+        val args = """{"overflow":false,"items":[
+            {"query":"美术馆","city":"北城","sourceSpan":"美术馆","classification":{"purpose":"SIGHTSEEING","granularity":"DESTINATION","independentVisit":true,"evidenceQuote":"美术馆"}},
+            {"query":"山间客栈","city":"北城","sourceSpan":"山间客栈","classification":{"purpose":"LODGING","granularity":"DESTINATION","independentVisit":true,"evidenceQuote":"山间客栈"}},
+            {"query":"不明场馆","city":"北城","sourceSpan":"不明场馆","classification":{"purpose":"UNKNOWN","granularity":"UNKNOWN","independentVisit":false,"evidenceQuote":"不明场馆"}}
+        ]}"""
+        val response = """{"choices":[{"finish_reason":"tool_calls","message":{"tool_calls":[{"type":"function","function":{"name":"search_place_batch","arguments":${JsonPrimitive(args)}}}]}}]}"""
+        val text = PlaceIntentParser { _, _ -> BatchToolProtocol.decode(response, input, "北城", travelMaterials = true) }
+        val importer = Importer()
+        val c = PlaceAssistantController("trip", this, text, source(searched), importer)
+        c.environment(true, true, true); c.editCity("北城"); c.editInput(input); c.submit()
+        advanceUntilIdle()
+        assertEquals(listOf("北城美术馆"), searched)
+        assertEquals(listOf(IntakeStatus.READY, IntakeStatus.NEED_CITY), c.state.value.items.map { it.status })
+        assertTrue(c.state.value.items.none { it.intent.query == "山间客栈" })
+        val restored = GuideResultCodec.decode(GuideResultCodec.encode(c.state.value))
+        assertEquals(listOf(false, true), restored.items.map { it.intent.needsReview })
+        c.toggle(c.state.value.items.first().id); c.saveSelected(); advanceUntilIdle()
+        assertEquals(listOf("美术馆"), importer.commits.single().items.map { it.poi.name })
+    }
+
     @Test fun collectingSuccessKeepsFailedMaterialAndRetryAddsOnlyNewPlaces() = runTest {
         val searched = mutableListOf<String>()
         var textCalls = 0

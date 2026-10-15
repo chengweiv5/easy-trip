@@ -53,7 +53,7 @@ class AssistantLinkLiveModelTest {
             .callTimeout(45, TimeUnit.SECONDS).connectTimeout(15, TimeUnit.SECONDS)
             .addInterceptor { chain ->
                 val ordinal = modelCalls.incrementAndGet()
-                check(ordinal <= 8) { "Exceeded text plus six images plus one normalization request" }
+                check(ordinal <= 16) { "Exceeded eight stages with at most one format repair each" }
                 check(chain.request().url.host == "api.deepseek.com")
                 val started = System.nanoTime()
                 try {
@@ -185,10 +185,14 @@ class AssistantLinkLiveModelTest {
             assertEquals(share, state.input)
             assertEquals(0, writes.get())
             assertEquals(6, state.images.size)
-            assertEquals(8, modelCalls.get())
-            assertEquals(8, requests.size)
-            assertTrue("All eight real model requests must succeed",
+            assertTrue(modelCalls.get() in 8..16)
+            assertEquals(modelCalls.get(), requests.size)
+            assertTrue("All real model requests must succeed",
                 requests.all { it["http_status"]?.jsonPrimitive?.int == 200 })
+            assertTrue("Independent destinations must not all require review",
+                normalizedPlaces.none { it.needsReview })
+            assertTrue("Recommended lodging is not a sightseeing destination",
+                normalizedPlaces.none { it.query in setOf("古州往事客栈", "建国璞隐酒店", "桔子酒店") })
             assertTrue(normalizedPlaces.none { it.query == "青州糗糕" })
             val excludedDining = setOf("王家煎包", "王志勇早餐", "齐记土鸡米线", "马杰炸鸡",
                 "玲珑小吃", "回香斋", "建军烧烤", "古州学伟牛鲜苼", "古州学伟牛鲜笙",
@@ -202,16 +206,12 @@ class AssistantLinkLiveModelTest {
                 normalizedPlaces.none { it.query in setOf("博物馆", "古城") })
             assertTrue("Author-marked art museum must survive", normalizedPlaces.any { it.query.contains("青州美术馆") })
             assertTrue("Author-marked flower market must survive", normalizedPlaces.any { it.query.contains("青州花卉市场") })
-            assertTrue("Referenced gate must not be lost", normalizedPlaces.any { it.query.contains("阜财门") })
+            // A historic gate may remain when introduced as an independent visit;
+            // a lodging/entry reference alone no longer forces it into the result.
             if (input.platform == AssistantLinkPlatform.XIAOHONGSHU) {
                 assertTrue(normalizedPlaces.any { it.query == "青州古城" })
-                assertTrue("Independent south gate is not an alias of the whole ancient city",
-                    normalizedPlaces.any { it.query.contains("古城") && it.query.contains("南门") })
-                state.items.filter { it.intent.query.contains("古城") && it.intent.query.contains("南门") }.forEach {
-                    assertTrue("South gate must not auto-select the parent ancient city",
-                        it.poi == null || independentPlaceQualifier(it.poi.name) == "南门")
-                    assertTrue(it.status != IntakeStatus.DUPLICATE)
-                }
+                assertTrue("An ordinary entry inside the ancient-city visit is not a separate itinerary stop",
+                    normalizedPlaces.none { it.query in setOf("南门", "青州古城(南门)", "青州古城南门") })
                 val backgrounds = setOf("角楼村", "壮汉庙村", "薄板台村", "西建德村", "西河村", "窦楼村", "闫刘村",
                     "赤涧村", "石河村", "西赵村", "白家店村", "西刘井村", "西上院村", "凤凰山西路")
                 assertTrue(rawCandidates.none { it.query in backgrounds })

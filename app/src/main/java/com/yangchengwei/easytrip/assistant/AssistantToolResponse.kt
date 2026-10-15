@@ -71,8 +71,40 @@ internal object AssistantToolResponse {
         return protocolSection(AssistantProtocolIssue.INVALID_ARGUMENTS) {
             val arguments = function.getValue("arguments").jsonPrimitive
             require(arguments.isString)
-            Json.parseToJsonElement(arguments.content).jsonObject
+            argumentObject(arguments.content)
         }
+    }
+
+    private fun argumentObject(raw: String): JsonObject {
+        try { return Json.parseToJsonElement(raw).jsonObject } catch (_: Exception) { }
+        // Some compatible outputs append an extra '}' after an otherwise complete
+        // object. Accept only that unambiguous suffix, never truncation, prose,
+        // another value, or an error inside the object.
+        val text = raw.trim()
+        require(text.startsWith("{"))
+        var depth = 0
+        var quoted = false
+        var escaped = false
+        for ((index, char) in text.withIndex()) {
+            if (quoted) {
+                if (escaped) escaped = false
+                else if (char == '\\') escaped = true
+                else if (char == '"') quoted = false
+            } else when (char) {
+                '"' -> quoted = true
+                '{', '[' -> depth++
+                '}', ']' -> {
+                    depth--
+                    if (depth == 0) {
+                        val suffix = text.substring(index + 1).filterNot(Char::isWhitespace)
+                        require(suffix.length in 1..2 && suffix.all { it == '}' })
+                        return Json.parseToJsonElement(text.substring(0, index + 1)).jsonObject
+                    }
+                    require(depth > 0)
+                }
+            }
+        }
+        error("Incomplete arguments")
     }
 
     fun repairRequest(original: String): String {

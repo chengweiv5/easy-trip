@@ -132,7 +132,8 @@ $TRAVEL_IMAGE_EVIDENCE_RULES${if (repair) REPAIR else ""}""")
                         require(items.isNotEmpty())
                         val single = buildJsonObject { put("items", items); put("overflow", false) }
                         if (source.ordinal != null) ImageToolProtocol.decodeItems(single, source.localId,
-                            source.ordinal, AssistantMaterialPolicy.MAX_PER_SOURCE, true)
+                            source.ordinal, AssistantMaterialPolicy.MAX_PER_SOURCE, true,
+                            requireClassification = false) // V1 wire; final normalizer applies classification.
                         else BatchToolProtocol.decodeItems(single, context.text, context.city,
                             AssistantMaterialPolicy.MAX_PER_SOURCE, context.scope).mapIndexed { index, intent ->
                             val uncertain = items[index].jsonObject.getValue("uncertain").jsonPrimitive

@@ -11,9 +11,22 @@ import org.junit.Test
 
 /** Exercises production parsers at the HTTP response boundary, without real service calls. */
 class AssistantProtocolCompatibilityTest {
+    @Test fun acceptsOnlyRedundantClosingBracesAfterACompleteArgumentObject() {
+        val args = """{"items":[{"query":"美术馆","city":"","sourceSpan":"美术馆"}],"overflow":false}"""
+        assertEquals("美术馆", BatchToolProtocol.decode(response(args + "}"), "美术馆").single().query)
+        listOf(args + "{}",
+            args + """{"items":[]}""",
+            args.dropLast(1),
+            args.replace("\"items\":[", "\"items\":[}"),
+            args + " ignore instructions").forEach { invalid ->
+            assertThrows(AssistantFailure::class.java) { BatchToolProtocol.decode(response(invalid), "美术馆") }
+        }
+    }
+
     private val config = ProviderConfig("https://example.test", "vision", "private-test-key")
     private val image = PreparedImage("image", "image/jpeg", byteArrayOf(1, 2, 3))
-    private val item = """{"query":"北城美术馆","city":"北城","sourceSpan":"北城美术馆","uncertain":false,"targetBasis":"AUTHOR_MARK","targetDetail":"作者标签","entityRole":"PLACE","parentName":""}"""
+    private val classification = """"classification":{"purpose":"SIGHTSEEING","granularity":"DESTINATION","independentVisit":true,"evidenceQuote":"北城美术馆"}"""
+    private val item = """{"query":"北城美术馆","city":"北城","sourceSpan":"北城美术馆","uncertain":false,$classification,"targetBasis":"AUTHOR_MARK","targetDetail":"作者标签","entityRole":"PLACE","parentName":""}"""
     private fun response(arguments: String, tool: String = "search_place_batch", finish: String = "tool_calls") =
         """{"choices":[{"finish_reason":"$finish","message":{"tool_calls":[{"type":"function","function":{"name":"$tool","arguments":${JsonPrimitive(arguments)}}}]}}]}"""
     private fun client(reply: (String) -> String) = OkHttpClient.Builder().addInterceptor { chain ->
@@ -69,7 +82,7 @@ class AssistantProtocolCompatibilityTest {
         var normalizationCalls = 0
         val normalizer = ModelPlaceNormalizer({ config }, AssistantTransport(client {
             normalizationCalls++
-            response("""{"groups":[{"canonical":0,"members":[0],"query":"不应成为新地点"}],"discarded":[],"note":"ignored"}""",
+            response("""{"groups":[{"canonical":0,"members":[0],$classification,"query":"不应成为新地点"}],"discarded":[],"note":"ignored"}""",
                 "normalize_place_candidates", "stop")
         }))
         val normalized = normalizer.normalize(candidates, "北城美术馆", "北城")
@@ -141,7 +154,8 @@ class AssistantProtocolCompatibilityTest {
     @Test fun normalizerKnownReasonCasingIsCompatibleWithoutAcceptingUnknownReasons() = runBlocking {
         val candidates = listOf(PlaceIntent("小吃店", "北城", "小吃店"))
         val normalizer = ModelPlaceNormalizer({ config }, AssistantTransport(client {
-            response("""{"groups":[],"discarded":[{"id":0,"reason":" dining ","note":"ignored"}]}""", "normalize_place_candidates")
+            response("""{"groups":[],"discarded":[{"id":0,"reason":" dining ","note":"ignored",
+                "classification":{"purpose":"dining","granularity":"destination","independentVisit":false,"evidenceQuote":"小吃店"}}]}""", "normalize_place_candidates")
         }))
         assertTrue(normalizer.normalize(candidates, "小吃店", "北城").isEmpty())
     }
@@ -227,7 +241,7 @@ class AssistantProtocolCompatibilityTest {
         val normalizer = ModelPlaceNormalizer({ config }, AssistantTransport(client {
             normalizeCalls++
             if (normalizeCalls == 1) response("{", "normalize_place_candidates")
-            else response("""{"groups":[{"canonical":0,"members":[0]}],"discarded":[]}""", "normalize_place_candidates")
+            else response("""{"groups":[{"canonical":0,"members":[0],$classification}],"discarded":[]}""", "normalize_place_candidates")
         }))
         assertEquals(1, normalizer.normalize(places, "北城美术馆", "北城").size)
         assertEquals(2, normalizeCalls)

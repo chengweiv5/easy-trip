@@ -147,6 +147,7 @@ class AssistantProtocolRecoveryUiTest {
         val diagnostics = AssistantProtocolLogFile(File(folder, "diagnostics"))
         fun response(args: String, tool: String = "search_place_batch") =
             """{"choices":[{"finish_reason":"tool_calls","message":{"tool_calls":[{"type":"function","function":{"name":"$tool","arguments":${JsonPrimitive(args)}}}]}}]}"""
+        val classification = """"classification":{"purpose":"SIGHTSEEING","granularity":"DESTINATION","independentVisit":true,"evidenceQuote":"美术馆"}"""
         val http = OkHttpClient.Builder().addInterceptor { chain ->
             val buffer = okio.Buffer()
             chain.request().body!!.writeTo(buffer)
@@ -156,11 +157,11 @@ class AssistantProtocolRecoveryUiTest {
             val output = when {
                 tool == "normalize_place_candidates" -> {
                     counts[3].incrementAndGet()
-                    response("""{"groups":[{"canonical":0,"members":[0,1]}],"discarded":[]}""", tool)
+                    response("""{"groups":[{"canonical":0,"members":[0,1],$classification}],"discarded":[]}""", tool)
                 }
                 user is JsonPrimitive -> {
                     counts[0].incrementAndGet()
-                    response("""{"items":[{"query":"美术馆","city":"北城","sourceSpan":"美术馆"}],"overflow":false}""")
+                    response("""{"items":[{"query":"美术馆","city":"北城","sourceSpan":"美术馆",$classification}],"overflow":false}""")
                 }
                 user.jsonArray[0].jsonObject["text"]!!.jsonPrimitive.content.startsWith("图 2\n") -> {
                     if (counts[2].incrementAndGet() <= 2) response("""{"items":[]""".dropLast(1) + "}")
@@ -168,7 +169,7 @@ class AssistantProtocolRecoveryUiTest {
                 }
                 else -> {
                     counts[1].incrementAndGet()
-                    response("""{"items":[{"query":"北城美术馆","city":"北城","sourceSpan":"北城美术馆","uncertain":false,"targetBasis":"author_mark","targetDetail":"作者标记","entityRole":"place","parentName":null,"confidence":0.9}],"overflow":false}""")
+                    response("""{"items":[{"query":"北城美术馆","city":"北城","sourceSpan":"北城美术馆","uncertain":false,"targetBasis":"author_mark","targetDetail":"作者标记","entityRole":"place","parentName":null,"confidence":0.9,$classification}],"overflow":false}""")
                 }
             }
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK")
