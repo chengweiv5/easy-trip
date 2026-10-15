@@ -1,10 +1,16 @@
 # 当前任务：v3.4 地图标记提交、推送、安装
 
-状态：**IN_PROGRESS，2026-10-16。**
+状态：**DONE（功能提交、快进推送与同签名覆盖手机完成；仅本记录等文档收尾），2026-10-16。**
 
 - 用户明确授权“提交，推送，安装”，不包含发布。先提交本轮已验证成果，rebase保留最新主线完整证据/64K更新，再干净构建与整合回归、快进推送、同签名覆盖手机。
 - 本轮已检查开放PR为0，开始HEAD `cd52639a`，远端主线 `66317d3c`；24个待交付文件已完整备份，前轮638项输入hash不变。
 - 证据：`/Users/bytedance/.codex/artifacts/easy-trip/v34-map-marker-delivery-d7c9-20261016/`。不卸载清数据，不回退schema，不覆盖其他会话成果。
+- 功能提交`8e742416347b642633d69b30dfd7900a494c9844`于00:27:30独立回读确认快进推送main；rebase保留上游完整证据/64K，仅TASK_STATE冲突保留双边历史。24文件暂存逐字节核对，产品代码未冲突。
+- 干净构建Debug/Release各1251 JVM、lint0错误、三APK与Release验签/16KiB对齐、包内功能SHA/CLEAN通过；精确设备37项＋系统320dp/2倍字体19项通过，682输入hash不变。
+- 00:28:00同签名CLEAN Release覆盖华为ALN-AL00，APK回拉SHA`fd30b0f4ed30fd0b50e882b2aab5f2e5e27eaeb1e1574d5da5e42df34e9a44fd`与目标一致；UID10477、首次安装时间2026-09-21 08:33:25及dataDir不变。启动Status ok，首页4待出行/1已出行与青州20地点/3天、徐州旅行可见，不宣称全库核验。
+- Pencil由Git自动合并全部上游346根及确认12根，358根/47,850唯一节点，SHA`b3c03f97806a436385cd764bcdf11c7ed2b9affc2d9e39fb49a27d4e5faa660f`；无脚本改稿/原生编辑，本轮不重做设计验收。预览不变。
+- 自有5620及临时AVD清理，手机owner锁已释放；未真实模型/高德查询或手机标记交互，不发布。保留上游模型质量未通过、住宿排除未实施、密集点/真机视觉未验边界。
+- 报告：`docs/testing/v3.4.0-map-markers-delivery.md`。punk-12通知`om_x100b623bb69a94a8c1f0c24332b76ee`已全文/chat/app/deleted=false回读。最终文档SHA见证据根`final-push-verification.json`，安装包固定功能SHA。
 
 ---
 
