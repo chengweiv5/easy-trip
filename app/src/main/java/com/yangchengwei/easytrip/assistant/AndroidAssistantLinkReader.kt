@@ -62,6 +62,7 @@ class AndroidAssistantLinkReader(
             web.layout(0, 0, 1080, 1920)
             web.settings.apply {
                 javaScriptEnabled = true
+                blockNetworkImage = true
                 domStorageEnabled = true
                 allowFileAccess = false
                 allowContentAccess = false
@@ -90,7 +91,10 @@ class AndroidAssistantLinkReader(
                     val allowed = if (request.isForMainFrame)
                         AssistantLinkPolicy.navigation(input.platform, request.url.toString())
                     else AssistantLinkPolicy.resource(input.platform, request.url.toString())
-                    if (allowed) return null
+                    val optionalImage = !request.isForMainFrame && runCatching {
+                        AssistantLinkPolicy.image(input.platform, request.url.toString())
+                    }.isSuccess
+                    if (allowed && !optionalImage) return null
                     if (request.isForMainFrame) main.post { fail("页面要求登录／验证或跳转到了不支持的网站。") }
                     return WebResourceResponse("text/plain", "UTF-8", ByteArrayInputStream(ByteArray(0)))
                 }
@@ -138,7 +142,12 @@ class AndroidAssistantLinkReader(
                     val document = AssistantLinkDom.decode(input, json)
                     if (document != null) {
                         val validated = document.validated(input)
-                        stable = if (validated == previous) stable + 1 else 0
+                        stable = if (previous?.let {
+                            it.platform == validated.platform && it.url == validated.url &&
+                                it.title == validated.title && it.body == validated.body &&
+                                (validated.title.isNotBlank() || validated.body.isNotBlank() ||
+                                    it.imageUrls == validated.imageUrls)
+                        } == true) stable + 1 else 0
                         previous = validated
                         if (stable >= 2) {
                             diagnostic("ready platform=${input.platform} images=${validated.imageUrls.size}")

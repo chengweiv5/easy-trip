@@ -22,6 +22,25 @@ class BatchedGuideMaterialParser(
     }
 
     override suspend fun parse(request: AssistantInputRequest, onSource: (ParsedSource) -> Unit,
+        onProgress: (SourceProgress) -> Unit): ParsedInputBatch {
+        val hasText = request.text.isNotBlank() && (request.retrySourceIds == null || "text" in request.retrySourceIds)
+        val pictureIds = request.images.filter { request.retrySourceIds == null || it.id in request.retrySourceIds }.map { it.id }.toSet()
+        if (hasText && pictureIds.isNotEmpty()) {
+            // Direct callers get the same text-first isolation as AssistantInputProcessor.
+            val text = parseGroupBatch(request.copy(images = emptyList(), retrySourceIds = setOf("text")), onSource, onProgress)
+            val auth = text.sources.firstNotNullOfOrNull { it.failure?.takeIf { e -> e.code == AssistantFailureCode.AUTH } }
+            val pictures = if (auth == null) parseGroupBatch(request.copy(retrySourceIds = pictureIds), onSource, onProgress)
+                else ParsedInputBatch(pictureIds.map { id -> ParsedSource(id, emptyList(), auth).also {
+                    onSource(it); onProgress(SourceProgress(id, SourceStage.FAILED, auth.userMessage))
+                } }, false)
+            val all = text.sources + pictures.sources
+            return ParsedInputBatch(all, text.overflow || pictures.overflow ||
+                all.sumOf { it.evidence.size } > AssistantMaterialPolicy.MAX_CANDIDATES ||
+                mergeIdenticalPlaceIntents(all.flatMap { it.intents }).size > AssistantMaterialPolicy.MAX_CANDIDATES)
+        }
+        return parseGroupBatch(request, onSource, onProgress)
+    }
+    private suspend fun parseGroupBatch(request: AssistantInputRequest, onSource: (ParsedSource) -> Unit,
         onProgress: (SourceProgress) -> Unit): ParsedInputBatch = coroutineScope {
         val context = GuideContext(request.text, request.city, request.cityScope)
         val targets = (if (request.text.isNotBlank()) listOf("text") else emptyList()) +

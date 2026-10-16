@@ -103,22 +103,23 @@ fun PlaceAssistantPanel(host: AssistantWorkspace, modifier: Modifier = Modifier)
             }
             s.linkProgress?.let { Text(it, style = MaterialTheme.typography.bodySmall, modifier = Modifier.testTag("assistant-link-progress")) }
             s.sourceProgress.filter { s.busy || it.stage != SourceStage.COMPLETE }.forEach { progress ->
-                val name = if (progress.sourceId == "text") "文字" else "图 ${s.images.find { it.id == progress.sourceId }?.ordinal ?: "?"}"
+                val name = if (progress.sourceId == "text") "文字" else "图 ${s.optionalImages.assets.find { it.id == progress.sourceId }?.slot ?: s.images.find { it.id == progress.sourceId }?.ordinal ?: "?"}"
                 Text("$name · ${when (progress.stage) {
                     SourceStage.SELECTED -> "等待处理"
                     SourceStage.PREPARING -> "正在本地准备"
                     SourceStage.SENDING -> "正在发送"
                     SourceStage.UNDERSTANDING -> "已发送，等待模型理解"
                     SourceStage.COMPLETE -> "理解完成"
+                    SourceStage.SKIPPED -> "已跳过（可选）"
                     SourceStage.FAILED -> progress.error ?: "处理失败"
                     SourceStage.CANCELLED -> "已停止，素材保留"
                 }}", style = MaterialTheme.typography.bodySmall)
             }
-            if (!s.busy && s.sourceProgress.any { it.stage == SourceStage.FAILED || it.stage == SourceStage.CANCELLED }) {
+            if (!s.busy && s.sourceProgress.any { it.stage == SourceStage.FAILED || it.stage == SourceStage.SKIPPED || it.stage == SourceStage.CANCELLED }) {
                 OutlinedButton({ controller.retryImages() }, enabled = !s.saving,
                     modifier = Modifier.fillMaxWidth().heightIn(min = 48.dp)
-                    .testTag("assistant-retry-images")) { Text("仅重试失败 / 未完成素材") }
-                Text("仅重新识别失败素材；合并去重可能再次调用模型并产生费用。", style = MaterialTheme.typography.bodySmall)
+                    .testTag("assistant-retry-images")) { Text("重试未完成素材（可选）") }
+                Text("无需重试图片也可收藏；重试与整理可能再次产生费用。", style = MaterialTheme.typography.bodySmall)
             }
             if (!s.busy && s.normalizationPending) {
                 OutlinedButton(controller::retryNormalization, enabled = !s.saving,

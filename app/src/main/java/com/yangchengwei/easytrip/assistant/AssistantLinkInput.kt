@@ -104,10 +104,14 @@ data class AssistantLinkDocument(
     val body: String,
     val imageUrls: List<String>,
     val expectedImages: Int,
+    val originalOrdinals: List<Int?> = emptyList(),
+    val bodyAvailable: Boolean = body.isNotBlank(),
+    val skippedImageCount: Int = 0,
+    val noteLocated: Boolean = true,
 ) {
     override fun toString() = "AssistantLinkDocument(platform=$platform, images=${imageUrls.size}, content=redacted)"
     fun validated(input: AssistantLinkInput): AssistantLinkDocument {
-        if (platform != input.platform || !AssistantLinkPolicy.navigation(platform, url))
+        if (!noteLocated || platform != input.platform || !AssistantLinkPolicy.navigation(platform, url))
             throw AssistantFailure("笔记跳转到了不受支持的页面。")
         val finalUrl = AssistantLinkPolicy.https(url)
         val original = AssistantLinkPolicy.https(input.url)
@@ -120,15 +124,20 @@ data class AssistantLinkDocument(
                     finalUrl.pathSegments.filter { it.isNotBlank() }.last() == original.pathSegments.filter { it.isNotBlank() }.last())
         }
         if (!sameNote) throw AssistantFailure("未读取到原始笔记，请重新复制分享链接。")
-        if (title.isBlank() || body.isBlank()) throw AssistantFailure("未读取到完整笔记正文，请重试或改用文字／图片。")
         if (body.length > 20_000 || title.length > 500)
             throw AssistantFailure("笔记文字过长，请改为分段粘贴地点文字。")
-        val images = imageUrls.map { AssistantLinkPolicy.image(platform, it) }
-            .distinctBy { AssistantLinkPolicy.imageIdentity(platform, it) }
-        if (expectedImages < 0 || expectedImages > AssistantImagePolicy.MAX_IMAGES || images.size > AssistantImagePolicy.MAX_IMAGES)
-            throw AssistantFailure("笔记超过 ${AssistantImagePolicy.MAX_IMAGES} 张图片，请分批选择图片；没有截断笔记。")
-        if (expectedImages != images.size) throw AssistantFailure("笔记图片尚未读取完整，请重试；没有只处理部分图片。")
-        return copy(imageUrls = images)
+        val accepted = imageUrls.mapIndexedNotNull { index, raw ->
+            runCatching { AssistantLinkPolicy.image(platform, raw) }.getOrNull()?.let {
+                it to originalOrdinals.getOrNull(index)?.takeIf { n -> n in 1..100_000 }
+            }
+        }
+        val safe = accepted.distinctBy { AssistantLinkPolicy.imageIdentity(platform, it.first) }
+        val ordered = if (safe.all { it.second != null }) safe.sortedBy { it.second } else safe
+        val images = ordered.take(AssistantImagePolicy.MAX_IMAGES)
+        if (title.isBlank() && body.isBlank() && images.isEmpty())
+            throw AssistantFailure("未读取到可用的笔记文字或图片，请重试或补充文字。")
+        return copy(imageUrls = images.map { it.first }, originalOrdinals = images.map { it.second },
+            skippedImageCount = maxOf(skippedImageCount, imageUrls.size - accepted.size + (safe.size - images.size)))
     }
 }
 
@@ -136,12 +145,20 @@ fun interface AssistantLinkReader {
     suspend fun read(input: AssistantLinkInput): AssistantLinkDocument
 }
 
-data class LoadedAssistantLink(val modelText: String, val images: List<AssistantImage>) {
+data class LoadedAssistantLink(val modelText: String, val images: List<AssistantImage>,
+    val imagePlan: OptionalImagePlan = OptionalImagePlan(), val bodyAvailable: Boolean = true) {
     override fun toString() = "LoadedAssistantLink(images=${images.size}, content=redacted)"
 }
 
 interface AssistantLinkLoader {
-    suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+    suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>,
         onProgress: (String) -> Unit): LoadedAssistantLink
+    suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+        loaded: LoadedAssistantLink, retryIds: Set<String> = emptySet(),
+        onProgress: (String) -> Unit): LoadedAssistantLink
+
+    suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+        onProgress: (String) -> Unit): LoadedAssistantLink =
+        prepare(sessionId, input, existing, read(input, existing, onProgress), onProgress = onProgress)
     suspend fun discard(sessionId: String, images: List<AssistantImage>)
 }

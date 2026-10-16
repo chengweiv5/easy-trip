@@ -81,6 +81,7 @@ data class PlaceAssistantState(
     val input: String = "",
     val images: List<AssistantImage> = emptyList(),
     val sourceProgress: List<SourceProgress> = emptyList(),
+    val optionalImages: OptionalImagePlan = OptionalImagePlan(),
     val linkProgress: String? = null,
     val attachmentSelectionBusy: Boolean = false,
     val city: String = "",
@@ -102,14 +103,19 @@ data class PlaceAssistantState(
     val guideCheckpoint: GuideEvidenceCheckpoint? = null,
 ) {
     val eligible get() = items.filter { it.status == IntakeStatus.READY }
-    val unfinishedSources get() = sourceProgress.filter { it.stage != SourceStage.COMPLETE }
+    val unfinishedSources get() = sourceProgress.filter { it.stage !in setOf(SourceStage.COMPLETE, SourceStage.SKIPPED) }
+    val skippedImageSources get() = sourceProgress.filter { it.sourceId != "text" && it.stage == SourceStage.SKIPPED }
+    val retryableSources get() = sourceProgress.filter { it.stage in setOf(SourceStage.FAILED, SourceStage.CANCELLED) ||
+        it.sourceId != "text" && it.stage == SourceStage.SKIPPED }
     val hasIncompleteMaterials get() = unfinishedSources.isNotEmpty() || normalizationPending
     val partialNotice get() = when {
         guideVersion == GuideProtocolVersion.EVIDENCE_V2 && normalizationPending ->
             "部分地点整理未完成，成功结果可继续标记和收藏。"
+        skippedImageSources.isNotEmpty() && unfinishedSources.isEmpty() ->
+            "部分图片已跳过，已使用可用素材。"
         unfinishedSources.isNotEmpty() && items.isNotEmpty() ->
             "${unfinishedSources.size} 份素材未完成，成功结果可继续标记和收藏。"
         else -> null
     }
-    val hasDraft get() = input.isNotBlank() || items.isNotEmpty() || images.isNotEmpty() || attachmentSelectionBusy
+    val hasDraft get() = input.isNotBlank() || items.isNotEmpty() || images.isNotEmpty() || optionalImages.assets.isNotEmpty() || attachmentSelectionBusy
 }

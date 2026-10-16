@@ -7,14 +7,21 @@ import org.junit.Test
 class AssistantLinkReadinessTest {
     private val input = AssistantLinkInput.parse("https://xhslink.cn/o/a")!!
     private fun snapshot(expected: Int, images: Int, extra: String = "") = Json.parseToJsonElement("""
-        {"url":"https://www.xiaohongshu.com/discovery/item/abc","title":"攻略","body":"景点",
+        {"url":"https://www.xiaohongshu.com/discovery/item/abc","title":"攻略","body":"景点","noteLocated":true,
          "expected":$expected,"images":[${(1..images).joinToString { "\"https://sns-webpic-qc.xhscdn.com/notes_pre_post/$it\"" }}]
          $extra}
     """).jsonObject
 
-    @Test fun knownOverflowIsRejectedBeforeAllImagesHaveLoaded() {
-        val error = assertThrows(AssistantFailure::class.java) { AssistantLinkDom.decode(input, snapshot(21, 1)) }
-        assertTrue(error.userMessage.contains("20"))
+    @Test fun textIsReadyWithoutACompleteCarousel() {
+        val doc = requireNotNull(AssistantLinkDom.decode(input, snapshot(-1, 1))).validated(input)
+        assertEquals("景点", doc.body)
+        assertEquals(1, doc.imageUrls.size)
+    }
+
+    @Test fun knownOverflowStillReturnsTextAndAtMostTwentyImages() {
+        val doc = requireNotNull(AssistantLinkDom.decode(input, snapshot(21, 21))).validated(input)
+        assertEquals(20, doc.imageUrls.size)
+        assertEquals(1, doc.skippedImageCount)
     }
 
     @Test fun videoOrRestrictedContentCannotBecomeReadyFromPosterAndCounter() {
@@ -25,9 +32,9 @@ class AssistantLinkReadinessTest {
         }
     }
 
-    @Test fun unknownOrMissingCountNeverReturnsPartialMaterial() {
-        assertNull(AssistantLinkDom.decode(input, snapshot(-1, 1)))
-        assertNull(AssistantLinkDom.decode(input, snapshot(3, 1)))
+    @Test fun unknownOrMissingCountDoesNotBlockText() {
+        assertNotNull(AssistantLinkDom.decode(input, snapshot(-1, 1)))
+        assertNotNull(AssistantLinkDom.decode(input, snapshot(3, 1)))
     }
 
     @Test fun imageVariantsAreCountedByOriginalAssetNotSignedRenderingUrl() {
@@ -38,6 +45,11 @@ class AssistantLinkReadinessTest {
         val doc = AssistantLinkDocument(input.platform, "https://www.xiaohongshu.com/discovery/item/abc",
             "攻略", "景点", urls, 1).validated(input)
         assertEquals(1, doc.imageUrls.size)
+        assertEquals(0, doc.skippedImageCount)
+    }
+
+    @Test fun noOriginalNoteEvidenceCannotBecomeReady() {
+        assertNull(AssistantLinkDom.decode(input, JsonObject(snapshot(1, 1) - "noteLocated")))
     }
 
     @Test fun incompleteMessagesDistinguishUncertainCountsMissingImagesAndNetwork() {

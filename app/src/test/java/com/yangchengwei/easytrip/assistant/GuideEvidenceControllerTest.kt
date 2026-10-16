@@ -86,7 +86,7 @@ class GuideEvidenceControllerTest {
         val guide = object : GuideMaterialParser {
             override suspend fun parse(request: AssistantInputRequest, onSource: (ParsedSource) -> Unit,
                 onProgress: (SourceProgress) -> Unit): ParsedInputBatch {
-                if (request.retrySourceIds?.isEmpty() == true) return ParsedInputBatch(emptyList(), false)
+                if (request.retrySourceIds?.isEmpty() == true || request.images.isEmpty()) return ParsedInputBatch(emptyList(), false)
                 parses++
                 assertEquals(GuideProtocolVersion.EVIDENCE_V2, request.guideVersion)
                 val e = fixtureEvidence("公园", 0).copy(binding = requireNotNull(request.guideBinding))
@@ -105,8 +105,10 @@ class GuideEvidenceControllerTest {
             GuideTestImages(), normalizer = PlaceIntentNormalizer { _, _, _ -> error("legacy normalization") },
             guideParser = guide, evidenceResolver = resolver)
         val loader = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+            override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>,
                 onProgress: (String) -> Unit) = LoadedAssistantLink("正文", listOf(AssistantImage("img0", 1, "image/jpeg", 1, 1, 1)))
+            override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
             override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
         }
         val source = object : PlaceSearchDataSource {

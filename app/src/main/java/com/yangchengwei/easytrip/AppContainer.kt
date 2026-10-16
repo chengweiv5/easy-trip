@@ -119,10 +119,26 @@ class AppContainer(
     fun guideViewModel() = com.yangchengwei.easytrip.assistant.cityfirst.GuideCreationViewModel(
         guideMaterials, assistantConfig, guideCreation, guideJournal,
         destination = { materials ->
-            com.yangchengwei.easytrip.assistant.cityfirst.ModelGuideDestinationInterpreter(assistantConfig::read)
-                .interpret(materials.modelText, materials.images.map { image ->
-                    image to suspend { guideImages.prepare(materials.imageSessionId, image.id) }
+            var current = materials
+            val result = com.yangchengwei.easytrip.assistant.cityfirst.ModelGuideDestinationInterpreter(assistantConfig::read)
+                .interpret(materials.modelText, images = {
+                    if (assistantConfig.imageCapability().capability == com.yangchengwei.easytrip.assistant.ImageCapability.UNSUPPORTED) {
+                        current = current.copy(imagePlan = current.imagePlan.copy(assets = current.imagePlan.assets.map {
+                            it.skipped(com.yangchengwei.easytrip.assistant.OptionalImageSkip.UNSUPPORTED)
+                        }))
+                        emptyList()
+                    } else {
+                        current = guideMaterials.prepareOptional(current)
+                        current.imagePlan.available.map { image ->
+                            image to suspend { guideImages.prepare(current.imageSessionId, image.id) }
+                        }
+                    }
+                }, onImageFailure = { id, reason ->
+                    current.imagePlan.assets.find { it.id == id }?.let {
+                        current = current.copy(imagePlan = current.imagePlan.updated(it.skipped(reason)))
+                    }
                 })
+            result.copy(material = if (current == materials) current else guideMaterials.persistOptional(current))
         }, dates = com.yangchengwei.easytrip.assistant.TripDraftInterpreter(assistantConfig::read)::interpret)
     val assistantSearchDiagnostics = com.yangchengwei.easytrip.assistant.AndroidAssistantSearchDiagnostics(this.context)
     val assistantProtocolDiagnostics = com.yangchengwei.easytrip.assistant.AssistantProtocolLogFile(

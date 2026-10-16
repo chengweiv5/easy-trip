@@ -64,16 +64,15 @@ class AssistantPartialGuideRecoveryTest {
         val batchHttp = OkHttpClient.Builder().addInterceptor { chain ->
             val buffer = Buffer(); chain.request().body!!.writeTo(buffer)
             val request = buffer.readUtf8()
-            val number = batches.incrementAndGet()
-            if (number == 1) texts.incrementAndGet()
-            pictures.incrementAndGet()
-            if (number > 1) assertFalse(request.contains("目标text："))
+            batches.incrementAndGet()
+            val textRequest = request.contains("目标text：")
+            val number = if (textRequest) { texts.incrementAndGet(); 0 } else pictures.incrementAndGet()
             val arguments = buildJsonObject { putJsonArray("sources") {
-                if (number == 1) addJsonObject {
+                if (textRequest) addJsonObject {
                     put("sourceId", "text"); put("status", "OK")
                     putJsonArray("items") { add(batchedDeviceItem("美术馆")) }
                 }
-                addJsonObject {
+                if (!textRequest) addJsonObject {
                     put("sourceId", "image_1"); put("status", if (number == 1) "UNREADABLE" else "OK")
                     putJsonArray("items") {
                         if (number > 1) { add(batchedDeviceItem("美术馆", true)); add(batchedDeviceItem("公园", true)) }
@@ -89,14 +88,7 @@ class AssistantPartialGuideRecoveryTest {
             }
             stream.toByteArray()
         }
-        val loader = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
-                onProgress: (String) -> Unit): LoadedAssistantLink {
-                reads.incrementAndGet()
-                return LoadedAssistantLink("北城美术馆", listOf(imageStore.importBytes(sessionId, png, existing)))
-            }
-            override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
-        }
+        val loader = optionalLinkFixture(imageStore, "北城美术馆", 1, png) { reads.incrementAndGet() }
         val materials = GuideMaterialStore(File(root, "materials"), imageStore, loader) { db.guideCreationDao().referencedMaterials() }
         val results = GuideImportResultStore(File(root, "results"))
         lateinit var assistant: PlaceAssistantViewModel
@@ -110,7 +102,7 @@ class AssistantPartialGuideRecoveryTest {
             fun createModel(folder: String): PlaceAssistantViewModel {
               val store = AndroidAssistantImageStore(context, File(root, folder))
               return PlaceAssistantViewModel(command.tripId, config, RoomPlaceImport(db), repo,
-                images = store,
+                images = store, linkLoader = optionalLinkFixture(store, "北城美术馆", 1, png) { reads.incrementAndGet() },
                 guideParserFactory = if (!batched) null else { snapshot ->
                     BatchedGuideMaterialParser(snapshot, GuideBatchFiles(File(root, "batches"), store, preparation),
                         GuideBatchBody(), AssistantTransport(batchHttp), scheduler)
@@ -157,7 +149,7 @@ class AssistantPartialGuideRecoveryTest {
                 compose.runOnUiThread { assistant.consumePendingGuide() }
                 compose.waitUntil(10_000) { assistant.controller.state.value.normalizationPending }
                 assertTrue(assistant.controller.state.value.parsedMaterials.any { it.failure == null && it.intents.isNotEmpty() })
-                assertEquals(1, batches.get())
+                assertEquals(2, batches.get())
                 compose.runOnUiThread { assistant.controller.retryNormalization() }
             }
             compose.waitUntil(15_000) { assistant.guide.value?.status == GuideHandoffStatus.IMPORTED && !assistant.controller.state.value.busy }
@@ -203,7 +195,7 @@ class AssistantPartialGuideRecoveryTest {
             assertEquals(1, reads.get())
             assertEquals(1, runBlocking { repo.observePlaces(command.tripId, emptySet()).first().size })
             if (batched) {
-                assertEquals(1, batches.get())
+                assertEquals(2, batches.get())
                 assertTrue(File(root, "batches").listFiles()!!.isEmpty())
             }
         } finally {

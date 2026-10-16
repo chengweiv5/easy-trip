@@ -34,9 +34,11 @@ class AssistantPartialSuccessTest {
     }
     private fun images() = listOf(AssistantImage("11111111-1111-4111-8111-111111111111", 1, "image/png", 10, 10, 10))
     private fun loader() = object : AssistantLinkLoader {
-        override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+        override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>,
             onProgress: (String) -> Unit) = LoadedAssistantLink("北城美术馆", images())
-        override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
+        override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
+            override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
     }
     private fun source(searches: MutableList<String>) = object : PlaceSearchDataSource {
         override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
@@ -50,21 +52,37 @@ class AssistantPartialSuccessTest {
         c.editInput("北城 https://xhslink.cn/o/fixture"); c.submit()
     }
 
+    @Test fun unsupportedPicturesDoNotBlockText() = runTest {
+        val searched = mutableListOf<String>()
+        val text = PlaceIntentParser { _, _ -> listOf(PlaceIntent("美术馆", "北城", "美术馆")) }
+        val runner = AssistantInputProcessor(text, ImageIntentParser { _, _, _, _, _ -> error("must not send image") }, Images())
+        val c = PlaceAssistantController("trip", this, text, source(searched), Importer(),
+            processor = { runner }, imageAllowed = { false })
+        c.environment(true, true, true); c.editCity("北城"); c.addImages(images()); c.editInput("美术馆")
+        c.submit(); advanceUntilIdle()
+        assertEquals(SourceStage.COMPLETE, c.state.value.sourceProgress.single { it.sourceId == "text" }.stage)
+        assertEquals(SourceStage.SKIPPED, c.state.value.sourceProgress.single { it.sourceId != "text" }.stage)
+        assertTrue(c.state.value.eligible.isNotEmpty())
+        assertFalse(c.state.value.hasIncompleteMaterials)
+    }
+
     @Test fun retryCannotBypassCombinedFourHundredCandidateBudgetUsingCachedSources() = runTest {
         val searched = mutableListOf<String>()
         var normalizations = 0
         var attempts = 0
         val allImages = (1..5).map { images().single().copy(id = "image-$it", ordinal = it) }
         val materialLoader = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+            override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>,
                 onProgress: (String) -> Unit) = LoadedAssistantLink("原攻略", allImages)
+            override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
             override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
         }
         val guide = object : GuideMaterialParser {
             override suspend fun parse(request: AssistantInputRequest, onSource: (ParsedSource) -> Unit,
                 onProgress: (SourceProgress) -> Unit): ParsedInputBatch {
-                attempts++
-                val sources = allImages.filter { request.retrySourceIds == null || it.id in request.retrySourceIds }.map { image ->
+                if (request.images.isNotEmpty()) attempts++
+                val sources = request.images.filter { request.retrySourceIds == null || it.id in request.retrySourceIds }.map { image ->
                     if (attempts == 1 && image.ordinal == 5) ParsedSource(image.id, emptyList(), AssistantFailure("未读清"))
                     else ParsedSource(image.id, (1..100).map { index ->
                         val name = "公园${image.ordinal}_$index"
@@ -139,7 +157,7 @@ class AssistantPartialSuccessTest {
         assertEquals(1, normalized)
         assertEquals(1, searched.size)
         assertEquals(IntakeStatus.READY, c.state.value.items.single().status)
-        assertEquals(SourceStage.FAILED, c.state.value.sourceProgress.single { it.sourceId == "11111111-1111-4111-8111-111111111111" }.stage)
+        assertEquals(SourceStage.SKIPPED, c.state.value.sourceProgress.single { it.sourceId == "11111111-1111-4111-8111-111111111111" }.stage)
         assertTrue(importer.commits.isEmpty())
     }
 
@@ -255,7 +273,7 @@ class AssistantPartialSuccessTest {
         val first = controller()
         start(first); advanceUntilIdle()
         val recovered = GuideResultCodec.decode(GuideResultCodec.encode(first.state.value))
-        assertEquals(SourceStage.FAILED, recovered.sourceProgress.single { it.sourceId == "11111111-1111-4111-8111-111111111111" }.stage)
+        assertEquals(SourceStage.SKIPPED, recovered.sourceProgress.single { it.sourceId == "11111111-1111-4111-8111-111111111111" }.stage)
         val second = controller()
         second.environment(true, true, true)
         second.restoreGuideState(recovered, "operation", AssistantCityScope.parse("北城"),
@@ -332,7 +350,8 @@ class AssistantPartialSuccessTest {
             processor = { runner }, linkLoader = loader())
         start(c); advanceUntilIdle()
         assertTrue(c.state.value.items.isEmpty())
-        assertEquals(2, c.state.value.unfinishedSources.size)
+        assertEquals(1, c.state.value.unfinishedSources.size)
+        assertEquals(1, c.state.value.skippedImageSources.size)
         assertEquals(0, normalized); assertTrue(searched.isEmpty())
         val old = """{"version":1,"input":"原攻略","city":"北城","error":null,"images":[],"selected":[],"items":[]}"""
         assertEquals("原攻略", GuideResultCodec.decode(old).input)
@@ -407,8 +426,10 @@ class AssistantPartialSuccessTest {
                 sources = listOf(IntakeSource.Image(image.id, ordinal, "公园$ordinal"))))
         }, Images(), normalizer = PlaceIntentNormalizer { candidates, _, _ -> candidates })
         val loader = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+            override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>,
                 onProgress: (String) -> Unit) = LoadedAssistantLink("北城美术馆", allImages)
+            override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
             override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
         }
         val c = PlaceAssistantController("trip", this, text, source(searched), Importer(),

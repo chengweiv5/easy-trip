@@ -28,7 +28,7 @@ internal object GuideSnapshotStrings {
     }
     fun unpack(root: JsonObject): JsonObject {
         val table = root["stringTable"] ?: return root
-        require(root.getValue("version").jsonPrimitive.int == 2)
+        require(root.getValue("version").jsonPrimitive.int in 2..3)
         val values = table.jsonArray
         require(values.size <= 10_000 && values.all { it is JsonPrimitive && it.isString && it.content.length <= 20_000 })
         var expandedBytes = 0L

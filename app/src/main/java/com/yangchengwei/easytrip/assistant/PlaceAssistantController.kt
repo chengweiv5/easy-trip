@@ -69,13 +69,14 @@ class PlaceAssistantController(
         if (!cityEdited && !mutable.value.busy && mutable.value.items.isEmpty())
             mutable.value = mutable.value.copy(city = value?.defaultCity.orEmpty())
     }
-    fun acceptGuideInput(operation: String, text: String, images: List<AssistantImage>, loaded: LoadedAssistantLink?, cities: AssistantCityScope): Boolean {
+    fun acceptGuideInput(operation: String, text: String, images: List<AssistantImage>, loaded: LoadedAssistantLink?, cities: AssistantCityScope,
+        imagePlan: OptionalImagePlan = loaded?.imagePlan ?: OptionalImagePlan()): Boolean {
         if (guideOperation == operation) return false
         if (mutable.value.busy || mutable.value.saving || mutable.value.hasDraft) return false
         guideOperation = operation
         setGuideCityScope(cities)
         loadedLink = loaded
-        mutable.value = mutable.value.copy(input = text, images = images, error = null, receipt = null)
+        mutable.value = mutable.value.copy(input = text, images = images, optionalImages = imagePlan, error = null, receipt = null)
         return true
     }
     fun restoreGuideState(value: PlaceAssistantState, operation: String, cities: AssistantCityScope?,
@@ -99,7 +100,7 @@ class PlaceAssistantController(
     private fun forgetLink(removeImages: Boolean = false) {
         evidenceSession = null
         restoredLegacyGuide = false
-        mutable.value = mutable.value.copy(guideCheckpoint = null, guideVersion = GuideProtocolVersion.LEGACY_V1)
+        mutable.value = mutable.value.copy(guideCheckpoint = null, guideVersion = GuideProtocolVersion.LEGACY_V1, optionalImages = OptionalImagePlan())
         semanticBatch = false
         parsedCity = null
         val old = loadedLink ?: return
@@ -116,15 +117,18 @@ class PlaceAssistantController(
     fun addImages(images: List<AssistantImage>) {
         val s = mutable.value
         if (!active || s.busy || s.saving || s.items.isNotEmpty()) return
-        if (s.images.size + images.size > AssistantImagePolicy.MAX_IMAGES || (s.images + images).sumOf { it.byteCount } > AssistantImagePolicy.MAX_TOTAL_BYTES) {
+        val occupied = (s.images.map { it.ordinal } + s.optionalImages.assets.map { it.slot }).toSet()
+        if (occupied.size + images.size > AssistantImagePolicy.MAX_IMAGES || (s.images + images).sumOf { it.byteCount } > AssistantImagePolicy.MAX_TOTAL_BYTES) {
             fail("图片超过本批数量或大小上限。"); return
         }
+        val slots = (1..AssistantImagePolicy.MAX_IMAGES).filterNot { it in occupied }
+        val added = images.mapIndexed { index, image -> image.copy(ordinal = slots[index]) }
         parsedSources = emptyList()
         currentParsed = emptyList()
         parsedCity = null
         evidenceSession = null
         inputRevision++
-        mutable.value = s.copy(images = s.images + images, sourceProgress = emptyList(), error = null,
+        mutable.value = s.copy(images = s.images + added, sourceProgress = emptyList(), error = null,
             parsedMaterials = emptyList(), parsedMaterialCity = null, normalizationPending = false, guideCheckpoint = null)
     }
     fun removeImage(id: String) {
@@ -133,7 +137,10 @@ class PlaceAssistantController(
         parsedCity = null
         evidenceSession = null
         inputRevision++
-        mutable.value = mutable.value.copy(images = mutable.value.images.filterNot { it.id == id }, sourceProgress = emptyList(),
+        loadedLink = loadedLink?.let { it.copy(images = it.images.filterNot { image -> image.id == id },
+            imagePlan = it.imagePlan.copy(assets = it.imagePlan.assets.filterNot { asset -> asset.id == id })) }
+        mutable.value = mutable.value.copy(images = mutable.value.images.filterNot { it.id == id },
+            optionalImages = mutable.value.optionalImages.copy(assets = mutable.value.optionalImages.assets.filterNot { it.id == id }), sourceProgress = emptyList(),
             parsedMaterials = emptyList(), parsedMaterialCity = null, normalizationPending = false, guideCheckpoint = null)
     }
 
@@ -257,11 +264,11 @@ class PlaceAssistantController(
     fun submit() {
         val s = mutable.value
         if (!canQuery() || s.busy || s.resolvingCity || s.attachmentSelectionBusy || s.items.isNotEmpty()) return
-        if (s.input.isBlank() && s.images.isEmpty()) { fail("请先输入地点文字或选择图片。"); return }
+        if (s.input.isBlank() && s.images.isEmpty() && s.optionalImages.assets.isEmpty()) { fail("请先输入地点文字或选择图片。"); return }
         val link = try { AssistantLinkInput.parse(s.input) }
         catch (error: AssistantFailure) { fail(error.userMessage); return }
         if (link != null) { processImages(null, link); return }
-        if (s.images.isNotEmpty()) { processImages(null); return }
+        if (s.images.isNotEmpty() || s.optionalImages.assets.isNotEmpty()) { processImages(null); return }
         val input = s.input
         val generation = ++run
         mutable.value = mutable.value.copy(busy = true, error = null, receipt = null)
@@ -296,10 +303,10 @@ class PlaceAssistantController(
         }
     }
     fun retryImages(ids: Set<String> = mutable.value.sourceProgress.filter {
-        it.stage == SourceStage.FAILED || it.stage == SourceStage.CANCELLED
+        it.stage == SourceStage.FAILED || it.stage == SourceStage.SKIPPED || it.stage == SourceStage.CANCELLED
     }.map { it.sourceId }.toSet()) {
         if (!canQuery() || mutable.value.busy || mutable.value.attachmentSelectionBusy || ids.isEmpty()) return
-        val retryable = mutable.value.sourceProgress.filter { it.stage in setOf(SourceStage.FAILED, SourceStage.CANCELLED) }
+        val retryable = mutable.value.sourceProgress.filter { it.stage in setOf(SourceStage.FAILED, SourceStage.SKIPPED, SourceStage.CANCELLED) }
             .map { it.sourceId }.toSet()
         val allowed = ids.intersect(retryable)
         if (allowed.isNotEmpty()) processImages(allowed)
@@ -311,7 +318,6 @@ class PlaceAssistantController(
     }
     private fun processImages(retryIds: Set<String>?, link: AssistantLinkInput? = null) {
         val s = mutable.value
-        if (s.images.isNotEmpty() && !imageAllowed()) { fail("当前模型的图片能力检查未通过，图片尚未发送。请在助手设置重新检查，素材已保留。"); return }
         val runner = processor?.invoke() ?: run { fail("图片处理暂不可用，请重新打开助手。"); return }
         if (s.guideVersion == GuideProtocolVersion.EVIDENCE_V2 && !runner.supportsEvidence) {
             fail("当前模型尚未核验此攻略整理能力，已保留原文证据；请切换回支持的模型后重试。")
@@ -332,12 +338,12 @@ class PlaceAssistantController(
         mutable.value = mutable.value.copy(busy = true, error = null, receipt = null)
         work = scope.launch {
             try {
-                val imageCount = if (link != null) AssistantImagePolicy.MAX_IMAGES else s.images.size
+                val imageCount = if (link != null) AssistantImagePolicy.MAX_IMAGES else maxOf(s.images.size, s.optionalImages.assets.size)
                 withTimeout(if (useEvidence) GuideEvidenceBudget.batchTimeoutMillis(imageCount)
-                    else AssistantImagePolicy.batchTimeoutMillis(imageCount)) {
+                    else maxOf(AssistantImagePolicy.batchTimeoutMillis(imageCount), 420_000L)) {
                     if (link != null && loadedLink == null) {
                         val loader = linkLoader ?: throw AssistantFailure("链接读取暂不可用，请重新打开助手。")
-                        val loaded = loader.load(sessionId, link, s.images) { progress ->
+                        val loaded = loader.read(link, s.images) { progress ->
                             if (isCurrent(generation)) mutable.value = mutable.value.copy(linkProgress = progress)
                         }
                         if (!isCurrent(generation)) {
@@ -348,8 +354,6 @@ class PlaceAssistantController(
                         mutable.value = mutable.value.copy(images = s.images + loaded.images, linkProgress = null)
                     }
                     val material = mutable.value
-                    if (material.images.isNotEmpty() && !imageAllowed())
-                        throw AssistantFailure("当前模型不支持图片，素材已保留且尚未发送，请在助手设置检查图片能力。")
                     val city = if (retryIds != null && !semantic) s.city.trim() else resolveSearchCity(s.city.trim())
                     if (!isCurrent(generation)) return@withTimeout
                     val cityChanged = semantic && parsedCity != null && parsedCity != city
@@ -363,17 +367,43 @@ class PlaceAssistantController(
                     // Extraction binds missing cities to its default. Reuse it only in the same city context.
                     val effectiveRetryIds = if (cityChanged) null
                     else if (semantic && loadedLink != null && parsedSources.isNotEmpty() && retryIds == null) {
-                        val completed = parsedSources.filter { it.failure == null }.map { it.sourceId }.toSet()
+                        val completed = parsedSources.filter { it.failure == null }.map { it.sourceId }.toSet() +
+                            s.skippedImageSources.map { it.sourceId }
                         ((if (loadedLink!!.modelText.isBlank()) emptyList() else listOf("text")) +
-                            material.images.map { it.id }).filterNot { it in completed }.toSet()
+                            (material.images.map { it.id } + loadedLink!!.imagePlan.assets.map { it.id })).distinct().filterNot { it in completed }.toSet()
                     } else retryIds
                     if (effectiveRetryIds == null) parsedSources = emptyList()
                     if (semantic) parsedCity = city
+                    val remotePlan = loadedLink?.imagePlan ?: s.optionalImages
+                    val localAssets = material.images.filter { image -> remotePlan.assets.none { it.id == image.id } &&
+                        runCatching { UUID.fromString(image.id).toString() == image.id }.getOrDefault(false) }
+                    val imagePlan = remotePlan.copy(assets = (remotePlan.assets + OptionalImagePlan.local(localAssets).assets).sortedBy { it.slot })
                     val input = AssistantInputRequest(sessionId, loadedLink?.modelText ?: s.input,
                         city, material.images, effectiveRetryIds, travelMaterials = semantic, cityScope = guideCityScope,
                         guideVersion = if (useEvidence) GuideProtocolVersion.EVIDENCE_V2 else GuideProtocolVersion.LEGACY_V1,
-                        guideBinding = evidenceSession?.checkpoint?.binding)
-                    val sourceIds = (if (input.text.isBlank()) emptyList() else listOf("text")) + input.images.map { it.id }
+                        guideBinding = evidenceSession?.checkpoint?.binding,
+                        imagePlan = imagePlan,
+                        imageAllowed = imageAllowed(),
+                        prepareOptionalImages = if (loadedLink == null || linkLoader == null) null else suspend {
+                            val previous = requireNotNull(loadedLink)
+                            val parsedLink = link ?: requireNotNull(AssistantLinkInput.parse(s.input))
+                            val prepared = linkLoader.prepare(sessionId, parsedLink,
+                                s.images.filterNot { image -> previous.imagePlan.assets.any { it.id == image.id } },
+                                previous, retryIds.orEmpty()) {}
+                            if (!isCurrent(generation)) throw CancellationException()
+                            loadedLink = prepared
+                            mutable.value = mutable.value.copy(images = (s.images + prepared.images).distinctBy { it.id },
+                                optionalImages = prepared.imagePlan)
+                            prepared.imagePlan.copy(assets = (prepared.imagePlan.assets +
+                                imagePlan.assets.filter { a -> prepared.imagePlan.assets.none { it.id == a.id } }).sortedBy { it.slot })
+                        }, onImagePlan = { plan ->
+                            if (isCurrent(generation)) {
+                                mutable.value = mutable.value.copy(optionalImages = plan)
+                                loadedLink = loadedLink?.copy(imagePlan = plan)
+                            }
+                        })
+                    val sourceIds = ((if (input.text.isBlank()) emptyList() else listOf("text")) +
+                        input.images.map { it.id } + input.imagePlan.assets.map { it.id }).distinct()
                     mutable.value = mutable.value.copy(linkProgress = null, sourceProgress = sourceIds.map { id ->
                         if (effectiveRetryIds == null || id in effectiveRetryIds) SourceProgress(id, SourceStage.SELECTED)
                         else s.sourceProgress.find { it.sourceId == id } ?: SourceProgress(id, SourceStage.COMPLETE)
@@ -395,7 +425,7 @@ class PlaceAssistantController(
                         scope.launch {
                             if (isCurrent(generation)) {
                                 val old = mutable.value.sourceProgress.find { it.sourceId == progress.sourceId }
-                                if (old?.stage !in setOf(SourceStage.COMPLETE, SourceStage.FAILED, SourceStage.CANCELLED))
+                                if (old?.stage !in setOf(SourceStage.COMPLETE, SourceStage.SKIPPED, SourceStage.FAILED, SourceStage.CANCELLED))
                                     mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map {
                                         if (it.sourceId == progress.sourceId) progress else it
                                     })
@@ -421,10 +451,12 @@ class PlaceAssistantController(
                     mutable.value = mutable.value.copy(parsedMaterials = parsedSources, parsedMaterialCity = parsedCity,
                         sourceProgress = mutable.value.sourceProgress.map { progress ->
                         batch.sources.find { it.sourceId == progress.sourceId }?.let { parsed ->
-                            progress.copy(stage = if (parsed.failure == null) SourceStage.COMPLETE else SourceStage.FAILED,
+                            progress.copy(stage = parsed.completionStage(),
                                 error = parsed.failure?.userMessage, sendEvidence = parsed.failure?.sendEvidence ?: SendEvidence.RESPONSE_RECEIVED)
                         } ?: progress
                     })
+                    merged.firstNotNullOfOrNull { it.failure?.takeIf { error -> error.code == AssistantFailureCode.AUTH } }
+                        ?.let { throw it }
                     val normalized = if (useEvidence) {
                         val session = requireNotNull(evidenceSession)
                         mutable.value.items.filter { it.poi != null || it.generation > 0 ||
@@ -433,7 +465,8 @@ class PlaceAssistantController(
                         }
                         mutable.value = mutable.value.copy(normalizationPending = merged.any { it.evidence.isNotEmpty() },
                             linkProgress = "正在整理地点与原文依据…", guideCheckpoint = session.checkpoint)
-                        val resolution = runner.resolveEvidence(merged.flatMap { it.evidence },
+                        val resolution = if (merged.none { it.evidence.isNotEmpty() }) GuideResolution(emptyList(), emptyList(), emptySet())
+                        else runner.resolveEvidence(merged.flatMap { it.evidence },
                             GuideContext(request.text, request.city, guideCityScope), session.checkpoint.frozen)
                         if (!isCurrent(generation)) return@withTimeout
                         val applied = session.apply(resolution, mutable.value.items)
@@ -563,7 +596,7 @@ class PlaceAssistantController(
                 normalizationPending = mutable.value.normalizationPending || currentParsed.any { it.failure == null && it.intents.isNotEmpty() },
                 sourceProgress = mutable.value.sourceProgress.map { progress ->
                 currentParsed.find { it.sourceId == progress.sourceId }?.let {
-                    progress.copy(stage = if (it.failure == null) SourceStage.COMPLETE else SourceStage.FAILED,
+                    progress.copy(stage = it.completionStage(),
                         error = it.failure?.userMessage)
                 } ?: progress
             })
@@ -588,7 +621,7 @@ class PlaceAssistantController(
                 parsedSources = merged
                 mutable.value = mutable.value.copy(sourceProgress = mutable.value.sourceProgress.map { progress ->
                     currentParsed.find { it.sourceId == progress.sourceId }?.let { parsed ->
-                        progress.copy(stage = if (parsed.failure == null) SourceStage.COMPLETE else SourceStage.FAILED,
+                        progress.copy(stage = parsed.completionStage(),
                             error = parsed.failure?.userMessage, sendEvidence = parsed.failure?.sendEvidence ?: SendEvidence.RESPONSE_RECEIVED)
                     } ?: progress
                 })

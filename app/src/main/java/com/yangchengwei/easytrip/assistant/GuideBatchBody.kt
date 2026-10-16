@@ -68,7 +68,8 @@ class GuideBatchBody(private val protocol: GuideWireProtocol = LegacyGuideWirePr
         for (source in sources) {
             try {
                 if (!fits(listOf(source))) throw AssistantFailure("这份素材超过请求体预算，尚未发送；其他素材继续处理。")
-                if (current.isNotEmpty() && !fits(current + source)) {
+                if (current.isNotEmpty() && (current.first().source.ordinal == null ||
+                    source.source.ordinal == null || !fits(current + source))) {
                     groups += GuideGroup(groups.size + 1, current); current = emptyList()
                 }
                 current = current + source

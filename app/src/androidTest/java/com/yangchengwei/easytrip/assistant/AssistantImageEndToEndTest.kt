@@ -113,16 +113,7 @@ class AssistantImageEndToEndTest {
                     waiting()
                     listOf(PlaceIntent("灵隐寺", "杭州", "灵隐寺",
                         sources = listOf(IntakeSource.Image(image.id, ordinal, "灵隐寺"))))
-                }, linkLoader = if (!link) null else object : AssistantLinkLoader {
-                    override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
-                        linkReads.incrementAndGet()
-                        onProgress("正在读取小红书笔记…")
-                        return LoadedAssistantLink("杭州 · 灵隐寺", listOf(localImages.importBytes(sessionId, source.readBytes(), existing)))
-                    }
-                    override suspend fun discard(sessionId: String, images: List<AssistantImage>) {
-                        images.forEach { localImages.remove(sessionId, it.id) }
-                    }
-                }, materialTextParserOverride = PlaceIntentParser { input, _ ->
+                }, linkLoader = if (!link) null else optionalLinkFixture(localImages, "杭州 · 灵隐寺", 1, source.readBytes()) { linkReads.incrementAndGet() }, materialTextParserOverride = PlaceIntentParser { input, _ ->
                     assertEquals("杭州 · 灵隐寺", input)
                     listOf(PlaceIntent("灵隐寺", "杭州", "灵隐寺"))
                 })
@@ -148,7 +139,13 @@ class AssistantImageEndToEndTest {
             }
             if (link) {
                 compose.onNodeWithTag("assistant-input").performScrollTo().performTextReplacement(share)
-                androidx.test.espresso.Espresso.closeSoftKeyboard()
+                compose.runOnUiThread {
+                    val view = compose.activity.window.decorView
+                    (compose.activity.getSystemService(android.content.Context.INPUT_METHOD_SERVICE) as android.view.inputmethod.InputMethodManager)
+                        .hideSoftInputFromWindow(view.windowToken, 0)
+                    view.clearFocus()
+                }
+                compose.waitForIdle()
                 assertEquals(0, linkReads.get())
                 assertEquals(0, modelCalls.get())
                 compose.onNodeWithTag("assistant-submit").performScrollTo().assertIsEnabled().performClick()

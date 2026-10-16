@@ -80,7 +80,7 @@ class GuideCreationViewModel(
         put("cities", s.cityText); put("name", s.name); put("date", s.startDate?.toString())
         put("days", s.dayCount); put("mode", s.travelMode.name); put("confirming", s.confirming)
         put("metadataReady", metadataReady)
-        put("materialDigest", material?.ref?.digest); put("pending", pending?.encode())
+        put("materialId", material?.ref?.id); put("materialDigest", material?.ref?.digest); put("pending", pending?.encode())
     }.toString()
     private fun persist() { viewModelScope.launch { persistNow() } }
     private suspend fun persistNow(): Boolean = journalLock.withLock {
@@ -117,7 +117,7 @@ class GuideCreationViewModel(
             }
             if (mutable.value.createdTripId == null && !mutable.value.deleted) {
                 try {
-                    r["materialDigest"]?.jsonPrimitive?.contentOrNull?.let { material = materials.read(GuideMaterialRef(sessionId, it)) }
+                    r["materialDigest"]?.jsonPrimitive?.contentOrNull?.let { material = materials.read(GuideMaterialRef(r["materialId"]?.jsonPrimitive?.contentOrNull ?: sessionId, it)) }
                 } catch (e: CancellationException) { throw e }
                 catch (_: Exception) {
                     material = null
@@ -214,6 +214,8 @@ class GuideCreationViewModel(
                     if (generation != revision) return@withTimeout
                     material = prepared
                     val result = destination(prepared)
+                    if (generation != revision) return@withTimeout
+                    material = result.material ?: prepared
                     val dateResult = try {
                         if (prepared.userIntent.isBlank()) TripDraftMetadata(TripDateSuggestion(null))
                         else dates(TripDraftRequest(prepared.userIntent, reference, zone))

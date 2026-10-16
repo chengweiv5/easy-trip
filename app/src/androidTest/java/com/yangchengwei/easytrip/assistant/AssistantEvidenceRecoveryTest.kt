@@ -62,15 +62,7 @@ class AssistantEvidenceRecoveryTest {
             }
             out.toByteArray()
         }
-        val loader = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
-                onProgress: (String) -> Unit): LoadedAssistantLink {
-                reads.incrementAndGet()
-                return LoadedAssistantLink("北城美术馆",
-                    listOf(loadingImages.importBytes(sessionId, imageBytes, existing)))
-            }
-            override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
-        }
+        val loader = optionalLinkFixture(loadingImages, "北城美术馆", 1, imageBytes) { reads.incrementAndGet() }
         val materials = GuideMaterialStore(File(root, "materials"),
             materialImages, loader) {
             creation.referencedMaterialsForTest(db) + results.localMaterialIds()
@@ -85,7 +77,10 @@ class AssistantEvidenceRecoveryTest {
                 {"rawQuote":"美术馆","kind":"BODY_EXCERPT","basis":"RECOMMENDED","uncertain":false,"detail":""}]},
                 {"sourceId":"image_1","status":"NO_PLACES","evidence":[]}]}""").jsonObject
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1).code(200).message("OK")
-                .body(batchedDeviceReply(arguments, tool).toResponseBody()).build()
+                .body(batchedDeviceReply(buildJsonObject { put("sources", JsonArray(arguments.getValue("sources").jsonArray.filter {
+                val isText = it.jsonObject.getValue("sourceId").jsonPrimitive.content == "text"
+                isText == body.toString().contains("目标text：")
+            })) }, tool).toResponseBody()).build()
         }.build()
         val resolver = GuideEvidenceResolver { evidence, ctx, frozen ->
             val number = resolves.incrementAndGet()
@@ -126,7 +121,7 @@ class AssistantEvidenceRecoveryTest {
                 val images = AndroidAssistantImageStore(context, File(root, "vm-images"))
                 loadingImages = images
                 return PlaceAssistantViewModel(command.tripId, config, importer,
-                    RoomSavedPlaceRepository(db), images = images, linkLoader = loader,
+                    RoomSavedPlaceRepository(db), images = images, linkLoader = optionalLinkFixture(images, "北城美术馆", 1, imageBytes) { reads.incrementAndGet() },
                     guideStore = if (global) creation else null, guideMaterials = materials, guideResults = results,
                     guideEvidenceParserFactory = { snapshot ->
                         BatchedGuideMaterialParser(snapshot, GuideBatchFiles(File(root, "bodies"), images, Mutex()),
@@ -169,8 +164,10 @@ class AssistantEvidenceRecoveryTest {
                 compose.waitUntil(10_000) { vm.controller.state.value.eligible.size == 1 &&
                     !vm.controller.state.value.attachmentSelectionBusy }
                 assertEquals(imageBefore, vm.controller.state.value.images.single())
+                assertEquals(OptionalImageStatus.AVAILABLE, vm.controller.state.value.optionalImages.assets.single().status)
+                runBlocking { assertTrue(requireNotNull(vm.images).prepare(vm.sessionId, imageBefore.id).bytes.isNotEmpty()) }
                 assertEquals(readsBefore, reads.get())
-                assertEquals(1, extracts.get()); assertEquals(1, resolves.get()); assertEquals(1, searches.get())
+                assertEquals(2, extracts.get()); assertEquals(1, resolves.get()); assertEquals(1, searches.get())
             }
             compose.setContent {
                 val state by vm.controller.state.collectAsState()
@@ -205,7 +202,7 @@ class AssistantEvidenceRecoveryTest {
                 vm.controller.state.value.receipt != null }
             compose.runOnIdle { vm.consumePendingGuide() }
             compose.waitForIdle()
-            assertEquals(readsBefore, reads.get()); assertEquals(1, extracts.get()); assertEquals(1, resolves.get())
+            assertEquals(readsBefore, reads.get()); assertEquals(2, extracts.get()); assertEquals(1, resolves.get())
             assertEquals(1, searches.get())
             assertFalse(vm.controller.state.value.hasDraft)
             assertNull(vm.guide.value)

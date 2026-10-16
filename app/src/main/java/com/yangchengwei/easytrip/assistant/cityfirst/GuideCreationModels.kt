@@ -21,7 +21,8 @@ data class GuideLocalDraftRef(val tripId: String, val batchId: String, val revis
     init { require(validGuideId(tripId) && validGuideId(batchId) && revision >= 0 && validGuideId(resultRef)) }
 }
 data class GuideCityEvidence(val name: String, val sourceId: String, val sourceSpan: String)
-data class GuideDestinationResult(val cities: List<GuideCityEvidence>, val suggestedName: String)
+data class GuideDestinationResult(val cities: List<GuideCityEvidence>, val suggestedName: String,
+    val material: GuideMaterials? = null)
 enum class GuideHandoffStatus { PENDING, CLAIMED, IMPORTED, FAILED, CANCELLED, FINISHED }
 
 @ConsistentCopyVisibility

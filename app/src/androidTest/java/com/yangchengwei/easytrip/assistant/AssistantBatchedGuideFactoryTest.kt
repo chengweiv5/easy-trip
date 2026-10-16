@@ -56,7 +56,7 @@ internal fun batchedDeviceItem(name: String, image: Boolean = false) = buildJson
 class AssistantBatchedGuideFactoryTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun sixImagesUseOneExtractionAndOneNormalizationWithConcurrentProgress() {
+    @Test fun sixImagesUseSeparateTextAndImageExtraction() {
         val context = compose.activity
         val root = File(context.noBackupFilesDir, "batch-factory-${UUID.randomUUID()}").apply { mkdirs() }
         val config = AssistantConfigStore(object : ContextWrapper(context) { override fun getNoBackupFilesDir() = root })
@@ -77,18 +77,19 @@ class AssistantBatchedGuideFactoryTest {
             val response = if (tool == "extract_guide_sources") {
                 extracts.incrementAndGet()
                 val blocks = body["messages"]!!.jsonArray.flatMap { it.jsonObject["content"] as? JsonArray ?: emptyList() }
-                assertEquals(6, blocks.count { it.jsonObject["type"]?.jsonPrimitive?.content == "image_url" })
-                check(release.await(20, TimeUnit.SECONDS))
+                val pictureCount = blocks.count { it.jsonObject["type"]?.jsonPrimitive?.content == "image_url" }
+                assertTrue(pictureCount == 0 || pictureCount == 6)
+                if (pictureCount > 0) check(release.await(20, TimeUnit.SECONDS))
                 batchedDeviceReply(buildJsonObject { putJsonArray("sources") {
-                    addJsonObject { put("sourceId", "text"); put("status", "OK")
+                    if (pictureCount == 0) addJsonObject { put("sourceId", "text"); put("status", "OK")
                         putJsonArray("items") { add(batchedDeviceItem("美术馆")) } }
-                    (1..6).forEach { n -> addJsonObject {
+                    if (pictureCount > 0) (1..6).forEach { n -> addJsonObject {
                         put("sourceId", "image_$n"); put("status", "NO_PLACES"); putJsonArray("items") {}
                     } }
                 } })
             } else {
                 assertEquals("normalize_place_candidates", tool); normalizes.incrementAndGet()
-                batchedDeviceReply(Json.parseToJsonElement("""{"groups":[{"canonical":0,"members":[0]}],"discarded":[]}""").jsonObject, tool)
+                batchedDeviceReply(Json.parseToJsonElement("""{"groups":[{"canonical":0,"members":[0],"classification":{"purpose":"SIGHTSEEING","granularity":"DESTINATION","independentVisit":true,"evidenceQuote":"美术馆"}}],"discarded":[]}""").jsonObject, tool)
             }
             Response.Builder().request(chain.request()).protocol(Protocol.HTTP_1_1)
                 .code(200).message("OK").body(response.toResponseBody()).build()
@@ -99,15 +100,7 @@ class AssistantBatchedGuideFactoryTest {
                     it.compress(Bitmap.CompressFormat.PNG, 100, out); it.recycle()
                 }; out.toByteArray()
             }
-            val loader = object : AssistantLinkLoader {
-                override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
-                    onProgress: (String) -> Unit): LoadedAssistantLink {
-                    var added = emptyList<AssistantImage>()
-                    repeat(6) { added = added + images.importBytes(sessionId, png, existing + added) }
-                    return LoadedAssistantLink("北城美术馆", added)
-                }
-                override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
-            }
+            val loader = optionalLinkFixture(images, "北城美术馆", 6, png) {  }
             val trip = runBlocking { RoomTripRepository(db.tripDao()).createTrip(CreateTrip("北城之旅", 1)) }
             val scheduler = GuideBatchScheduler()
             val preparation = Mutex()
@@ -138,12 +131,12 @@ class AssistantBatchedGuideFactoryTest {
                 }
             }
             compose.runOnIdle { model.controller.editInput("北城 https://xhslink.cn/o/fixture"); model.controller.submit() }
-            compose.waitUntil(15_000) { model.controller.state.value.sourceProgress.count { it.stage == SourceStage.UNDERSTANDING } == 7 }
-            compose.onAllNodesWithText("已发送，等待模型理解", substring = true).assertCountEquals(7)
-            assertEquals(1, extracts.get()); assertEquals(0, normalizes.get())
+            compose.waitUntil(15_000) { model.controller.state.value.sourceProgress.count { it.stage == SourceStage.UNDERSTANDING } == 6 }
+            compose.onAllNodesWithText("已发送，等待模型理解", substring = true).assertCountEquals(6)
+            assertEquals(2, extracts.get()); assertEquals(0, normalizes.get())
             release.countDown()
             compose.waitUntil(15_000) { !model.controller.state.value.busy && model.controller.state.value.eligible.size == 1 }
-            assertEquals(listOf("extract_guide_sources", "normalize_place_candidates"), calls.toList())
+            assertEquals(listOf("extract_guide_sources", "extract_guide_sources", "normalize_place_candidates"), calls.toList())
             assertEquals(1, searches.get())
             compose.onNodeWithTag("assistant-select-A").performScrollTo().assertIsDisplayed().performClick()
             compose.onNodeWithTag("assistant-save").assertIsEnabled().assertIsDisplayed()

@@ -23,9 +23,11 @@ class AssistantLinkNormalizationTest {
         override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt = error("never auto-save")
     }
     private fun loader() = object : AssistantLinkLoader {
-        override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit) =
+        override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit) =
             LoadedAssistantLink("青州博物馆与别名说明", listOf(AssistantImage("image", 1, "image/png", 10, 10, 10)))
-        override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
+        override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
+            override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
     }
 
     @Test fun normalizesMoreThanHundredRawCandidatesBeforeFinalLimitAndRetriesOnlyNormalization() = runTest {

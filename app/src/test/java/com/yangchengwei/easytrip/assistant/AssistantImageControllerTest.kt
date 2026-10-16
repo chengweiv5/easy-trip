@@ -20,6 +20,26 @@ class AssistantImageControllerTest {
         override suspend fun remove(sessionId: String, imageId: String) {}
         override suspend fun release(sessionId: String) {}
     }
+    @Test fun imageOnlyHandoffKeepsMissingSourceInsteadOfBecomingEmptyInput() = runTest {
+        val text = PlaceIntentParser { _, _ -> error("no text") }
+        val processor = AssistantInputProcessor(text, ImageIntentParser { _, _, _, _, _ -> error("already skipped") }, Images())
+        val controller = PlaceAssistantController("trip", this, text, object : PlaceSearchDataSource {
+            override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> = error("no places")
+        }, object : PlaceImport {
+            override suspend fun receipt(operationId: String): ImportReceipt? = null
+            override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt = error("no saves")
+        }, processor = { processor }, sessionId = "session")
+        val id = "2aef0646-7289-4d53-8f2f-c4219ece3993"
+        val plan = OptionalImagePlan(listOf(OptionalImageAsset(id, 1, null, null,
+            OptionalImageStatus.SKIPPED, skip = OptionalImageSkip.MISSING)))
+        controller.environment(true, true, true)
+        assertTrue(controller.acceptGuideInput("operation", "", emptyList(), null, AssistantCityScope.parse("北城"), plan))
+        assertTrue(controller.state.value.hasDraft)
+        controller.submit(); advanceUntilIdle()
+        assertEquals(SourceStage.SKIPPED, controller.state.value.sourceProgress.single().stage)
+        assertTrue(controller.state.value.items.isEmpty())
+        assertEquals(plan, controller.state.value.optionalImages)
+    }
     @Test fun imageInputInheritsTripCityBeforeParsingAndKeepsManualCityFirst() = runTest {
         for (manualCity in listOf("", "杭州")) {
             var resolutions = 0

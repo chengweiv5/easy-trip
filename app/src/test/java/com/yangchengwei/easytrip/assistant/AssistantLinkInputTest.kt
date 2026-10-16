@@ -60,11 +60,9 @@ class AssistantLinkInputTest {
             }, expected,
         )
         assertEquals(20, doc(20).validated(input).imageUrls.size)
-        assertThrows(AssistantFailure::class.java) { doc(21).validated(input) }
-        assertThrows(AssistantFailure::class.java) { doc(19, 20).validated(input) }
-        assertThrows(AssistantFailure::class.java) {
-            doc(1).copy(imageUrls = listOf("https://127.0.0.1/a")).validated(input)
-        }
+        assertEquals(20, doc(21).validated(input).imageUrls.size)
+        assertEquals(19, doc(19, 20).validated(input).imageUrls.size)
+        assertTrue(doc(1).copy(imageUrls = listOf("https://127.0.0.1/a")).validated(input).imageUrls.isEmpty())
     }
     @Test fun differentArticleCannotMasqueradeAsOriginalNote() {
         val input = AssistantLinkInput.parse("https://m.ctrip.com/webapp/you/community/detail?articleId=123")!!

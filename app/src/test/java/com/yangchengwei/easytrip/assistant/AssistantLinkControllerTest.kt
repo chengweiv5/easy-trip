@@ -26,10 +26,12 @@ class AssistantLinkControllerTest {
         val texts = mutableListOf<String>()
         val text = PlaceIntentParser { input, _ -> texts += input; emptyList() }
         val loader = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
+            override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
                 reads++; onProgress("读取中")
                 return LoadedAssistantLink("完整笔记正文".repeat(500), emptyList())
             }
+            override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
             override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
         }
         val controller = PlaceAssistantController("trip", this, text, null, importer,
@@ -73,10 +75,12 @@ class AssistantLinkControllerTest {
         var models = 0
         val text = PlaceIntentParser { _, _ -> models++; emptyList() }
         val loader = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
+            override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
                 withContext(NonCancellable) { delayed.await() }
                 return LoadedAssistantLink("青州", listOf(AssistantImage("old", 1, "image/png", 10, 10, 10)))
             }
+            override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
             override suspend fun discard(sessionId: String, images: List<AssistantImage>) { removed += images.map { it.id } }
         }
         val controller = PlaceAssistantController("trip", this, text, null, importer,
@@ -98,10 +102,12 @@ class AssistantLinkControllerTest {
         var imageCalls = 0
         val text = PlaceIntentParser { _, _ -> textCalls++; emptyList() }
         val loader = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
+            override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
                 if (++reads == 1) throw AssistantFailure("读取失败")
                 return LoadedAssistantLink("青州古城", listOf(AssistantImage("linked", 1, "image/png", 1, 10, 10)))
             }
+            override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
             override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
         }
         val runner = AssistantInputProcessor(text, ImageIntentParser { image, ordinal, _, _, _ ->

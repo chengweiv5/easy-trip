@@ -87,7 +87,9 @@ object GuideEvidenceCheckpointCodec {
         val byId = evidence.associateBy { it.id }
         val frozen = v.getValue("frozen").jsonArray.map { raw ->
             val f = raw.jsonObject
-            require(f.getValue("item").jsonObject.getValue("version").strictGuideInt() == 1)
+            val itemEnvelope = f.getValue("item").jsonObject
+            val itemVersion = itemEnvelope.getValue("version").strictGuideInt()
+            require(itemVersion == 1 || itemVersion == 3 && itemEnvelope.getValue("protocolVersion").strictGuideInt() == 1)
             val item = GuideResultCodec.decode(f.getValue("item").toString()).items.single().copy(label = f.string("label"))
             val shapes = f["shapes"]?.jsonArray?.map { rawShape ->
                 val shape = rawShape.jsonObject

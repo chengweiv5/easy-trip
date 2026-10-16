@@ -159,6 +159,8 @@ class PlaceAssistantViewModel(
                     result.accepted.forEach { store.remove(sessionId, it.id) }
                 } else {
                     controller.addImages(result.accepted)
+                    val retainedIds = controller.state.value.images.map { it.id }.toSet()
+                    result.accepted.filterNot { it.id in retainedIds }.forEach { store.remove(sessionId, it.id) }
                     savedState["assistant-had-images"] = controller.state.value.images.isNotEmpty()
                     if (result.rejected.isNotEmpty()) controller.reportError(result.rejected.joinToString("\n"))
                 }
@@ -225,15 +227,13 @@ class PlaceAssistantViewModel(
             val encoded = GuideResultCodec.encode(value.copy(error = null))
             if (encoded == lastLocalSnapshot) return@attempt
             val previous = localDraft
-            val retainPrevious = previous?.takeIf {
-                it.batchId == checkpoint.binding.batchId && it.revision == checkpoint.binding.revision
-            }
             var createdMaterial: GuideMaterialRef? = null
             var createdResult: String? = null
             var published = false
             try {
-                val material = retainPrevious?.material ?: guideMaterials.retainLoaded(
-                    value.input, loaded.modelText, true, sessionId, value.images, images).ref.also {
+                val material = guideMaterials.retainLoaded(
+                    value.input, loaded.modelText, true, sessionId, value.images, images, value.optionalImages,
+                    loaded.bodyAvailable).ref.also {
                     createdMaterial = it
                 }
                 createdResult = guideResults.write(value.copy(error = null))
@@ -281,10 +281,11 @@ class PlaceAssistantViewModel(
                         val binding = requireNotNull(recovered.guideCheckpoint).binding
                         require(binding.batchId == draft.batchId && binding.revision == draft.revision)
                         val material = guideMaterials.read(draft.material)
-                        copyGuideImages(material)
+                        val copied = copyGuideImages(material)
+                        val plan = materialCopyPlan(recoveredPlan(recovered, material), copied)
                         controller.attachmentSelection(false)
-                        controller.restoreGuideState(recovered, draft.batchId, controller.guideCityScope,
-                            LoadedAssistantLink(material.modelText, recovered.images))
+                        controller.restoreGuideState(recovered.copy(optionalImages = plan), draft.batchId, controller.guideCityScope,
+                            LoadedAssistantLink(material.modelText, recovered.images, plan, material.bodyAvailable))
                         lastLocalSnapshot = GuideResultCodec.encode(recovered.copy(error = null))
                     }
                 }
@@ -326,7 +327,7 @@ class PlaceAssistantViewModel(
                         return@withLock
                     }
                     if (value.guideVersion != GuideProtocolVersion.EVIDENCE_V2 && value.items.isEmpty() &&
-                        value.parsedMaterials.none { it.failure == null && it.intents.isNotEmpty() }) {
+                        value.parsedMaterials.none { it.failure == null && it.intents.isNotEmpty() } && value.optionalImages.assets.isEmpty()) {
                         if (handoff.status in setOf(GuideHandoffStatus.FAILED, GuideHandoffStatus.CANCELLED)) return@withLock
                         if (guideStore?.complete(handoff.operationId, handoff.attempt, GuideHandoffStatus.FAILED, null) == true) {
                             val failed = handoff.copy(status = GuideHandoffStatus.FAILED, resultRef = null)
@@ -338,8 +339,10 @@ class PlaceAssistantViewModel(
                     guideSnapshotSaveGuard.attempt("${handoff.operationId}:${handoff.attempt}", value) {
                       val encoded = GuideResultCodec.encode(value)
                       if (encoded != lastGuideSnapshot) {
+                        requireNotNull(guideMaterials).cacheWorkspaceImages(handoff.material,
+                            value.images, sessionId, requireNotNull(images))
                         val ref = requireNotNull(guideResults).write(value)
-                        val status = if (value.guideVersion == GuideProtocolVersion.EVIDENCE_V2 &&
+                        val status = if (value.items.isEmpty() || value.guideVersion == GuideProtocolVersion.EVIDENCE_V2 &&
                             (value.hasIncompleteMaterials || value.guideCheckpoint?.resolution?.places.isNullOrEmpty()))
                             GuideHandoffStatus.FAILED else GuideHandoffStatus.IMPORTED
                         if (guideStore?.complete(handoff.operationId, handoff.attempt, status, ref) == true) {
@@ -387,10 +390,12 @@ class PlaceAssistantViewModel(
             if (handoff.status in setOf(GuideHandoffStatus.IMPORTED, GuideHandoffStatus.FAILED) && handoff.resultRef != null) {
                 val recovered = requireNotNull(guideResults).read(handoff.resultRef)
                 val materials = materialStore.read(handoff.material)
-                copyGuideImages(materials)
+                val cached = materials.copy(images = (materials.images + recovered.images).distinctBy { it.id })
+                val copied = copyGuideImages(cached)
+                val plan = materialCopyPlan(recoveredPlan(recovered, materials), copied)
                 activeGuide = handoff; guideStarted = true
-                controller.restoreGuideState(recovered, handoff.operationId, handoff.scope,
-                    if (materials.fromLink) LoadedAssistantLink(materials.modelText, recovered.images) else null)
+                controller.restoreGuideState(recovered.copy(optionalImages = plan), handoff.operationId, handoff.scope,
+                    if (materials.fromLink) LoadedAssistantLink(materials.modelText, recovered.images, plan, materials.bodyAvailable) else null)
                 return@withLock
             }
             if (handoff.status != GuideHandoffStatus.PENDING) {
@@ -401,8 +406,9 @@ class PlaceAssistantViewModel(
             activeGuide = claimed; mutableGuide.value = claimed
             val materials = materialStore.read(claimed.material)
             val copies = copyGuideImages(materials)
-            val loaded = if (materials.fromLink) LoadedAssistantLink(materials.modelText, copies) else null
-            check(controller.acceptGuideInput(claimed.operationId, materials.originalText, copies, loaded, claimed.scope))
+            val plan = materialCopyPlan(materials.imagePlan, copies)
+            val loaded = if (materials.fromLink) LoadedAssistantLink(materials.modelText, copies, plan, materials.bodyAvailable) else null
+            check(controller.acceptGuideInput(claimed.operationId, materials.originalText, copies, loaded, claimed.scope, plan))
             guideStarted = true
             controller.submit()
         } catch (e: CancellationException) { throw e }
@@ -435,9 +441,26 @@ class PlaceAssistantViewModel(
             }
         }
     }
-    private suspend fun copyGuideImages(materials: GuideMaterials): List<AssistantImage> = materials.images.map { image ->
-        requireNotNull(images).restoreCopy(sessionId, image,
-            requireNotNull(guideMaterials).images.prepare(materials.imageSessionId, image.id))
+    private fun materialCopyPlan(plan: OptionalImagePlan, copies: List<AssistantImage>) = plan.copy(assets = plan.assets.map { asset ->
+        if (asset.descriptor != null && copies.none { it.id == asset.id }) asset.skipped(OptionalImageSkip.MISSING) else asset
+    })
+    private fun recoveredPlan(state: PlaceAssistantState, material: GuideMaterials): OptionalImagePlan {
+        val base = state.optionalImages.takeIf { it.assets.isNotEmpty() } ?: material.imagePlan
+        return base.copy(assets = base.assets.map { asset ->
+            if (material.imagePlan.assets.any { it.id == asset.id && it.skip == OptionalImageSkip.MISSING })
+                asset.skipped(OptionalImageSkip.MISSING) else asset
+        })
+    }
+    private suspend fun copyGuideImages(materials: GuideMaterials): List<AssistantImage> {
+        val copies = mutableListOf<AssistantImage>()
+        for (image in materials.images) {
+            try {
+                copies += requireNotNull(images).restoreCopy(sessionId, image,
+                    requireNotNull(guideMaterials).images.prepare(materials.imageSessionId, image.id))
+            } catch (e: CancellationException) { throw e }
+            catch (_: Exception) { /* The source descriptor and validated results remain recoverable. */ }
+        }
+        return copies
     }
     fun retryGuide() {
         if (mutableGuide.value == null) return

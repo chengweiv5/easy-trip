@@ -125,8 +125,10 @@ class DeepSeekPlaceParser(
         require(input.length in 1..maxInputLength && defaultCity.length <= 50)
         val current = config()?.validated() ?: throw AssistantFailure("请先在助手设置配置模型服务。")
         val request = withCityScope(BatchToolProtocol.request(current, input, defaultCity, maxPlaces, travelMaterials), scope)
-        return transport.decodeWithRepair(current, request, AssistantProtocolStage.TEXT) { response ->
-            BatchToolProtocol.decode(response, input, defaultCity, maxPlaces, scope, travelMaterials)
+        return GuideBatchScheduler.shared.withSlot {
+            transport.decodeWithRepair(current, request, AssistantProtocolStage.TEXT) { response ->
+                BatchToolProtocol.decode(response, input, defaultCity, maxPlaces, scope, travelMaterials)
+            }
         }
     }
 }

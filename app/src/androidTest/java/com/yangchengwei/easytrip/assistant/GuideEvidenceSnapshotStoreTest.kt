@@ -20,9 +20,11 @@ class GuideEvidenceSnapshotStoreTest {
             val results = GuideImportResultStore(File(root, "results"))
             val materials = GuideMaterialStore(File(root, "materials"),
                 AndroidAssistantImageStore(context, File(root, "images"), false), object : AssistantLinkLoader {
-                    override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                    override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>,
                         onProgress: (String) -> Unit): LoadedAssistantLink = error("must not load URL")
-                    override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
+                    override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
+            override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
                 }, results::localMaterialIds)
             val retained = materials.retainLoaded("原分享 https://xhslink.cn/o/fixture", "正文", true,
                 UUID.randomUUID().toString(), emptyList(), materials.images)

@@ -186,15 +186,7 @@ class AssistantProtocolRecoveryUiTest {
                 materialTextParserOverride = DeepSeekPlaceParser({ provider }, http, travelMaterials = true),
                 imageParserOverride = ImagePlaceParser({ provider }, AssistantTransport(http, diagnostics), travelMaterials = true),
                 normalizerOverride = ModelPlaceNormalizer({ provider }, AssistantTransport(http, diagnostics)),
-                linkLoader = object : AssistantLinkLoader {
-                    override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
-                        noteReads.incrementAndGet()
-                        val first = images.importBytes(sessionId, png, existing)
-                        val second = images.importBytes(sessionId, png, existing + first)
-                        return LoadedAssistantLink("北城美术馆", listOf(first, second))
-                    }
-                    override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
-                })
+                linkLoader = optionalLinkFixture(images, "北城美术馆", 2, png) { noteReads.incrementAndGet() })
             store.put("assistant", model)
             model.controller.updateSource(object : PlaceSearchDataSource {
                 override suspend fun search(keyword: String, city: String?): List<PlaceCandidate> {
@@ -224,7 +216,7 @@ class AssistantProtocolRecoveryUiTest {
             assertEquals(1, searches.get())
             assertEquals(IntakeStatus.READY, model.controller.state.value.items.single().status)
             compose.onNodeWithTag("assistant-partial-notice").performScrollTo().assertIsDisplayed()
-            val error = "图 2 · 图片理解：返回格式不完整；未查询地点，可重试失败素材。"
+            val error = "图 2 · 已跳过（可选）"
             compose.onNodeWithText(error).performScrollTo().assertIsDisplayed()
             val screenshot = InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()
             File(context.filesDir, "protocol-error-ui.png").outputStream().use { screenshot.compress(Bitmap.CompressFormat.PNG, 100, it) }

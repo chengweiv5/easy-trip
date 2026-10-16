@@ -30,9 +30,11 @@ class GuideCreationRecoveryTest {
         val stores = ViewModelStore()
         val materials = GuideMaterialStore(File(root, "material"),
             AndroidAssistantImageStore(context, File(root, "images"), false), object : AssistantLinkLoader {
-                override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>,
                     onProgress: (String) -> Unit) = LoadedAssistantLink("青州三日游：公园", emptyList())
-                override suspend fun discard(sessionId: String, images: List<AssistantImage>) = Unit
+                override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
+            override suspend fun discard(sessionId: String, images: List<AssistantImage>) = Unit
             }, db.guideCreationDao()::referencedMaterials)
         init { config.save(ProviderConfig("https://example.invalid", "fixture", "not-real")) }
         suspend fun model(creation: GuideTripCreation = creator,

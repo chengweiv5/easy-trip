@@ -191,8 +191,10 @@ class ImagePlaceParser(
         require(context.length <= 20_000 && defaultCity.length <= 50)
         val current = config()?.validated() ?: throw AssistantFailure("请先配置助手模型。")
         val request = withCityScope(ImageToolProtocol.request(current, image, ordinal, context, defaultCity, maxPlaces, travelMaterials), cityScope())
-        return transport.decodeWithRepair(current, request, AssistantProtocolStage.IMAGE, ordinal, onResponseWait) { response ->
-            ImageToolProtocol.decode(response, image.id, ordinal, maxPlaces, requireTargetEvidence = travelMaterials)
+        return GuideBatchScheduler.shared.withSlot {
+            transport.decodeWithRepair(current, request, AssistantProtocolStage.IMAGE, ordinal, onResponseWait) { response ->
+                ImageToolProtocol.decode(response, image.id, ordinal, maxPlaces, requireTargetEvidence = travelMaterials)
+            }
         }
     }
 }

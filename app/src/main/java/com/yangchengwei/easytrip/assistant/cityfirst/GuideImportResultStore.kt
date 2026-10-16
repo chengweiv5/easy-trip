@@ -65,7 +65,9 @@ object GuideResultCodec {
         }
     }
     fun encode(s: PlaceAssistantState): String = buildJsonObject {
-        put("version", if (s.guideVersion == GuideProtocolVersion.EVIDENCE_V2) 2 else 1)
+        put("version", 3)
+        put("protocolVersion", if (s.guideVersion == GuideProtocolVersion.EVIDENCE_V2) 2 else 1)
+        put("optionalImages", OptionalImagePlanCodec.encode(s.optionalImages))
         if (s.guideVersion == GuideProtocolVersion.EVIDENCE_V2)
             put("checkpoint", GuideEvidenceCheckpointCodec.encode(requireNotNull(s.guideCheckpoint)))
         put("input", s.input); put("city", s.city); put("error", s.error)
@@ -94,8 +96,13 @@ object GuideResultCodec {
         require(text.toByteArray().size <= GUIDE_RECORD_LIMIT)
         val r = GuideSnapshotStrings.unpack(Json.parseToJsonElement(text).jsonObject)
         val version = r.getValue("version").strictGuideInt()
-        require(version in 1..2)
-        val checkpoint = if (version == 2) GuideEvidenceCheckpointCodec.decode(r.getValue("checkpoint").jsonObject) else null
+        require(version in 1..3)
+        val protocolVersion = if (version == 3) r.getValue("protocolVersion").strictGuideInt() else version
+        require(protocolVersion in 1..2)
+        require((protocolVersion == 2) == ("checkpoint" in r))
+        val plan = if (version == 3) OptionalImagePlanCodec.decode(r.getValue("optionalImages").jsonObject,
+            AssistantLinkInput.parse(r.string("input"))?.platform) else OptionalImagePlan()
+        val checkpoint = if (protocolVersion == 2) GuideEvidenceCheckpointCodec.decode(r.getValue("checkpoint").jsonObject) else null
         val items = r.getValue("items").jsonArray.map { j ->
             val i = j.jsonObject
             IntakeItem(i.string("id"), i.string("label"),
@@ -118,12 +125,22 @@ object GuideResultCodec {
         val selected = r.getValue("selected").jsonArray.map { it.jsonPrimitive.content }.toSet()
         require(selected.all { id -> items.any { it.id == id } })
         val images = decodeGuideImages(r.getValue("images"))
+        images.forEach { image ->
+            plan.assets.singleOrNull { it.id == image.id }?.let { asset ->
+                require(asset.slot == image.ordinal && asset.descriptor == image)
+            }
+        }
+        val sourceSlots = images.map { it.id to it.ordinal } + plan.assets.map { it.id to it.slot }
+        val uniqueSources = sourceSlots.distinctBy { it.first }
+        require(uniqueSources.size <= AssistantImagePolicy.MAX_IMAGES)
+        require(uniqueSources.map { it.second }.distinct().size == uniqueSources.size)
+        require((images + plan.descriptors).distinctBy { it.id }.sumOf { it.byteCount } <= AssistantImagePolicy.MAX_TOTAL_BYTES)
         checkpoint?.sources?.flatMap { it.evidence }?.forEach { evidence ->
             require(if (evidence.sourceId == "text") evidence.ordinal == null
-                else images.singleOrNull { it.id == evidence.sourceId }?.ordinal == evidence.ordinal &&
+                else (images.singleOrNull { it.id == evidence.sourceId }?.ordinal ?: plan.assets.singleOrNull { it.id == evidence.sourceId }?.slot) == evidence.ordinal &&
                     evidence.ordinal != null)
         }
-        val validSources = images.map { it.id }.toSet() + "text"
+        val validSources = images.map { it.id }.toSet() + plan.assets.map { it.id } + "text"
         val progress = r["sourceProgress"]?.jsonArray?.map { value ->
             val p = value.jsonObject
             SourceProgress(p.string("id"), SourceStage.valueOf(p.string("stage")).let {
@@ -139,6 +156,7 @@ object GuideResultCodec {
             }
             ParsedSource(p.string("id"), p.getValue("intents").jsonArray.map { intent(it.jsonObject) }, failure)
         }.orEmpty()
+        require(progress.none { it.sourceId == "text" && it.stage == SourceStage.SKIPPED })
         require(progress.size <= 21 && progress.map { it.sourceId }.distinct().size == progress.size)
         require(parsed.size <= 21 && parsed.map { it.sourceId }.distinct().size == parsed.size)
         require(progress.all { it.sourceId in validSources } && parsed.all { it.sourceId in validSources })
@@ -150,7 +168,8 @@ object GuideResultCodec {
             sourceProgress = progress, parsedMaterials = parsed,
             normalizationPending = r["normalizationPending"]?.jsonPrimitive?.booleanOrNull ?: false,
             parsedMaterialCity = parsedCity,
-            guideVersion = if (version == 2) GuideProtocolVersion.EVIDENCE_V2 else GuideProtocolVersion.LEGACY_V1,
+            optionalImages = plan,
+            guideVersion = if (protocolVersion == 2) GuideProtocolVersion.EVIDENCE_V2 else GuideProtocolVersion.LEGACY_V1,
             guideCheckpoint = checkpoint)
     }
 }

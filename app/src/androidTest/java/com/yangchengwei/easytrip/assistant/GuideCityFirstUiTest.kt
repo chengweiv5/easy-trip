@@ -54,11 +54,13 @@ class GuideCityFirstUiTest {
         val imageStore = AndroidAssistantImageStore(context, File(root, "images"), false)
         val linkLoads = AtomicInteger()
         val links = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
+            override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink {
                 linkLoads.incrementAndGet()
                 if (readFailure) throw AssistantFailure("笔记图片尚未读取完整，请重试或改用文字／图片，原输入已保留。")
                 return LoadedAssistantLink("青州攻略：博物馆", emptyList())
             }
+            override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
             override suspend fun discard(sessionId: String, images: List<AssistantImage>) = Unit
         }
         val materials = GuideMaterialStore(File(root, "material"), imageStore, links) { db.guideCreationDao().referencedMaterials() }

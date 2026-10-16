@@ -46,7 +46,7 @@ class AssistantLinkDomTest {
     @Test fun unknownCountAndLazySlidesCannotMasqueradeAsCompleteSingleImage() = runBlocking {
         for (html in listOf(xhs(xhsImage("1")), xhs(xhsImage("1") + xhsImage("2", true)))) {
             val json = extract(AssistantLinkPlatform.XIAOHONGSHU, html)
-            assertNull(AssistantLinkDom.decode(AssistantLinkInput.parse("https://xhslink.cn/o/a")!!, json))
+            assertNotNull(AssistantLinkDom.decode(AssistantLinkInput.parse("https://xhslink.cn/o/a")!!, json))
         }
     }
 
@@ -78,9 +78,7 @@ class AssistantLinkDomTest {
         assertEquals(20, AssistantLinkDom.decode(input, twenty)!!.validated(input).imageUrls.size)
         val overflow = extract(AssistantLinkPlatform.XIAOHONGSHU,
             xhs(xhsImage("1"), """<div class="carousel-indicator">1/21</div>"""))
-        assertTrue(assertThrows(AssistantFailure::class.java) {
-            AssistantLinkDom.decode(input, overflow)
-        }.userMessage.contains("20"))
+        assertEquals(21, AssistantLinkDom.decode(input, overflow)!!.expectedImages)
     }
 
     @Test fun trustedLazySourceIsReadOnlyInsideOriginalCarousel() = runBlocking {
@@ -93,7 +91,7 @@ class AssistantLinkDomTest {
         val json = extract(AssistantLinkPlatform.XIAOHONGSHU, xhs(xhsImage("1"),
             """<div class="carousel-indicator">1/1</div><div class="image-count">共3张</div>"""))
         assertEquals(-1, json["expected"]!!.jsonPrimitive.int)
-        assertNull(AssistantLinkDom.decode(AssistantLinkInput.parse("https://xhslink.cn/o/a")!!, json))
+        assertNotNull(AssistantLinkDom.decode(AssistantLinkInput.parse("https://xhslink.cn/o/a")!!, json))
     }
 
     @Test fun repeatedImageRenderingVariantsDoNotInflateOriginalCount() = runBlocking {
@@ -108,11 +106,10 @@ class AssistantLinkDomTest {
             xhsImage("asset!h5_1080jpg") + xhsImage("asset!h5_720jpg")
                 .replace("sns-webpic-qc.xhscdn.com", "evil.invalid"),
             """<div class="carousel-indicator">1/1</div>"""))
-        assertThrows(AssistantFailure::class.java) {
-            val input = AssistantLinkInput.parse("https://xhslink.cn/o/a")!!
-            AssistantLinkDom.decode(input, json)!!.validated(input)
-        }
-        Unit
+        val input = AssistantLinkInput.parse("https://xhslink.cn/o/a")!!
+        val doc = AssistantLinkDom.decode(input, json)!!.validated(input)
+        assertEquals(1, doc.imageUrls.size)
+        assertEquals(1, doc.skippedImageCount)
     }
 
     @Test fun deletedPageWithEmptyArticlePlaceholderIsRestricted() = runBlocking {
@@ -139,7 +136,7 @@ class AssistantLinkDomTest {
                 val pending = extract(platform, page(image.replace(Regex("""src="[^"]*""""), attribute)))
                 assertEquals("Platform $platform, attribute $attribute", 1, pending["pendingImages"]!!.jsonPrimitive.int)
                 assertTrue(pending["images"]!!.jsonArray.isEmpty())
-                assertNull(AssistantLinkDom.decode(input, pending))
+                assertNotNull(AssistantLinkDom.decode(input, pending))
                 val loaded = extract(platform, page(image))
                 assertEquals(1, AssistantLinkDom.decode(input, loaded)!!.validated(input).imageUrls.size)
                 val lazy = extract(platform, page(image.replace("src=", """src=" " data-src=""")))
@@ -207,6 +204,6 @@ class AssistantLinkDomTest {
         val single = extract(AssistantLinkPlatform.XIAOHONGSHU, html)
         assertEquals(1, AssistantLinkDom.decode(input, single)!!.validated(input).imageUrls.size)
         val incomplete = extract(AssistantLinkPlatform.XIAOHONGSHU, html.replace("1/1", "1/3"))
-        assertNull(AssistantLinkDom.decode(input, incomplete))
+        assertNotNull(AssistantLinkDom.decode(input, incomplete))
     }
 }

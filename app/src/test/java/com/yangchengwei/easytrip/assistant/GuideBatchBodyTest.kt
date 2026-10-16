@@ -19,12 +19,13 @@ class GuideBatchBodyTest {
             File(temporary.root, "$n.jpg").apply { writeBytes(ByteArray(bytes) { (n + it).toByte() }) })
     }
 
-    @Test fun smallTwentyStayOneRequestAndExactUtf8Matches() = runTest {
+    @Test fun textIsSeparateWhileTwentySmallImagesStayTogether() = runTest {
         val sources = listOf(GuidePreparedSource(GuideSource("text", "text", null), null)) + images(20)
         val body = GuideBatchBody()
         val plan = body.groups(config, context, sources, policy)
-        assertEquals(1, plan.groups.size); assertTrue(plan.failures.isEmpty())
-        val group = plan.groups.single()
+        assertEquals(2, plan.groups.size); assertTrue(plan.failures.isEmpty())
+        assertEquals(listOf("text"), plan.groups.first().sources.map { it.source.localId })
+        val group = plan.groups.last()
         val file = body.write(config, context, group, policy, false, temporary.newFolder())
         assertEquals(body.size(config, context, group, policy, false), file.length())
         val json = Json.parseToJsonElement(file.readText()).jsonObject

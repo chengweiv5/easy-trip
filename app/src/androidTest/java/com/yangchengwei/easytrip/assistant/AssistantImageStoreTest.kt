@@ -13,6 +13,24 @@ import org.junit.Assert.*
 import org.junit.Test
 
 class AssistantImageStoreTest {
+    @Test fun restoredPreparedPixelsRetainTheExactEvidenceFingerprint() = runBlocking {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        val root = File(context.noBackupFilesDir, "image-fingerprint-${UUID.randomUUID()}")
+        val store = AndroidAssistantImageStore(context, root, false)
+        try {
+            val bitmap = Bitmap.createBitmap(91, 73, Bitmap.Config.ARGB_8888)
+            for (y in 0 until bitmap.height) for (x in 0 until bitmap.width)
+                bitmap.setPixel(x, y, Color.rgb((x * 17 + y) % 256, (y * 19 + x) % 256, (x * y) % 256))
+            val bytes = java.io.ByteArrayOutputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it); it.toByteArray() }
+            bitmap.recycle()
+            val source = UUID.randomUUID().toString()
+            val image = store.importBytes(source, bytes, emptyList())
+            val prepared = store.prepare(source, image.id)
+            val target = UUID.randomUUID().toString()
+            store.restoreCopy(target, image, prepared)
+            assertArrayEquals(prepared.bytes, store.prepare(target, image.id).bytes)
+        } finally { root.deleteRecursively() }
+    }
     @Test fun emptySessionDoesNotClaimLostImageOnRestart() {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         val root = File(context.noBackupFilesDir, "image-test-${UUID.randomUUID()}")

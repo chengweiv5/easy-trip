@@ -38,7 +38,9 @@ class GuideWorkspaceHandoffTest {
         val images = AndroidAssistantImageStore(context, File(root, "images"), false)
         val creation = RoomGuideCreation(db)
         val links = object : AssistantLinkLoader {
-            override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink = error("No link")
+            override suspend fun read(input: AssistantLinkInput, existing: List<AssistantImage>, onProgress: (String) -> Unit): LoadedAssistantLink = error("No link")
+            override suspend fun prepare(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
+                loaded: LoadedAssistantLink, retryIds: Set<String>, onProgress: (String) -> Unit) = loaded
             override suspend fun discard(sessionId: String, images: List<AssistantImage>) = Unit
         }
         val materials = GuideMaterialStore(File(root, "material"), images, links, db.guideCreationDao()::referencedMaterials)

@@ -19,10 +19,12 @@ class GuideBatchInputRoutingTest {
         }
         val processor = AssistantInputProcessor(text, image, GuideTestImages(),
             normalizer = PlaceIntentNormalizer { values, _, _ -> values }, guideParser = guide)
-        val request = guideRequest(0).copy(retrySourceIds = emptySet(),
+        val request = guideRequest(0).copy(retrySourceIds = setOf("text"),
             cityScope = AssistantCityScope(listOf("北城", "南城")))
         processor.parse(request) {}
         assertEquals(request, requests.single())
+        processor.parse(request.copy(retrySourceIds = emptySet())) {}
+        assertEquals(1, requests.size)
         processor.parse(request.copy(travelMaterials = false, retrySourceIds = null, cityScope = null)) {}
         AssistantInputProcessor(text, image, GuideTestImages(), guideParser = guide)
             .parse(request.copy(retrySourceIds = null, cityScope = null)) {}

@@ -4,7 +4,7 @@ import kotlinx.serialization.json.*
 
 /** Public DOM only. Unknown layouts fail closed; no page state, cookie, token or private API reads. */
 internal object AssistantLinkDom {
-    const val ADAPTER_VERSION = 2
+    const val ADAPTER_VERSION = 3
 
     fun script(platform: AssistantLinkPlatform): String = """
         (() => {
@@ -64,6 +64,7 @@ internal object AssistantLinkDom {
             '.note-image-container img,.note-image-box img,.swiper-slide img,.slide-item img';
           const elements = [...new Set(media.flatMap(area => all(area, imageSelector)))];
           const images = new Map();
+          const ordinals = new Map();
           let pendingImages = 0;
           const identity = raw => {
             if (!raw.trim()) return null;
@@ -90,12 +91,20 @@ internal object AssistantLinkDom {
               lazy : current;
             const id = identity(raw);
             if (!id) { pendingImages++; continue; }
-            if (!images.has(id)) images.set(id, new URL(raw, location.href).href);
+            if (!images.has(id)) {
+              images.set(id, new URL(raw, location.href).href);
+              const slide = image.closest('[data-swiper-slide-index],[aria-posinset]');
+              const index = slide?.getAttribute('data-swiper-slide-index');
+              const position = slide?.getAttribute('aria-posinset');
+              ordinals.set(id, /^\d+$/.test(index || '') ? Number(index) + 1 :
+                /^[1-9]\d*$/.test(position || '') ? Number(position) : null);
+            }
           }
           const reason = !note || !media.length ? 'structure' : !body ? 'body' :
             !totals.size ? 'count' : totals.size > 1 ? 'count_conflict' :
             pendingImages || images.size !== expected ? 'images' : 'ready';
           return JSON.stringify({url:location.href,title,body,images:[...images.values()],expected,
+            originalOrdinals:[...ordinals.values()],noteLocated:!!note,
             restricted,video,pendingImages,reason,adapter:$ADAPTER_VERSION});
         })()
     """.trimIndent()
@@ -109,12 +118,13 @@ internal object AssistantLinkDom {
         val body = json["body"]?.jsonPrimitive?.contentOrNull.orEmpty()
         val expected = json["expected"]?.jsonPrimitive?.intOrNull ?: -1
         val images = json["images"]?.jsonArray?.mapNotNull { it.jsonPrimitive.contentOrNull }.orEmpty()
-        if (expected > AssistantImagePolicy.MAX_IMAGES)
-            throw AssistantFailure("笔记超过 ${AssistantImagePolicy.MAX_IMAGES} 张图片，请分批选择图片；没有截断笔记。")
-        if (title.isBlank() || body.isBlank() || expected < 1 ||
-            json["pendingImages"]?.jsonPrimitive?.intOrNull?.let { it > 0 } == true || images.size < expected) return null
+        if (json["noteLocated"]?.jsonPrimitive?.booleanOrNull != true) return null
+        if (title.isBlank() && body.isBlank() && images.isEmpty()) return null
+        val ordinals = json["originalOrdinals"]?.jsonArray?.map {
+            it.jsonPrimitive.intOrNull?.takeIf { n -> n > 0 }
+        }.orEmpty()
         return AssistantLinkDocument(input.platform, json["url"]?.jsonPrimitive?.contentOrNull.orEmpty(),
-            title, body, images, expected)
+            title, body, images, expected, ordinals, body.isNotBlank())
     }
 
     fun incompleteFailure(json: JsonObject?): AssistantFailure {

@@ -36,6 +36,8 @@ interface AssistantImageStore {
     suspend fun release(sessionId: String)
     suspend fun importBytes(sessionId: String, bytes: ByteArray, existing: List<AssistantImage>): AssistantImage =
         throw AssistantFailure("当前图片存储不支持链接素材。")
+    suspend fun importSource(sessionId: String, sourceId: String, ordinal: Int, bytes: ByteArray,
+        existing: List<AssistantImage>): AssistantImage = throw AssistantFailure("当前图片存储不支持稳定素材来源。")
     suspend fun restoreCopy(sessionId: String, descriptor: AssistantImage, prepared: PreparedImage): AssistantImage =
         throw AssistantFailure("当前图片存储不支持恢复素材。")
 }
@@ -60,10 +62,19 @@ class AndroidAssistantImageStore(
                 val output = target.startWrite()
                 try { output.write(prepared.bytes); target.finishWrite(output) }
                 catch (e: Exception) { target.failWrite(output); throw e }
+                val marker = android.util.AtomicFile(preparedMarker(sessionId, descriptor.id))
+                val markerOut = marker.startWrite()
+                try { markerOut.write(digest(prepared.bytes).toByteArray()); marker.finishWrite(markerOut) }
+                catch (e: Exception) { marker.failWrite(markerOut); throw e }
                 descriptor.copy(mimeType = prepared.mimeType, byteCount = prepared.bytes.size.toLong())
             }
         }
-    override suspend fun importBytes(sessionId: String, bytes: ByteArray, existing: List<AssistantImage>): AssistantImage {
+    override suspend fun importBytes(sessionId: String, bytes: ByteArray, existing: List<AssistantImage>): AssistantImage =
+        importSource(sessionId, UUID.randomUUID().toString(), (1..AssistantImagePolicy.MAX_IMAGES).firstOrNull { n -> existing.none { it.ordinal == n } } ?: (AssistantImagePolicy.MAX_IMAGES + 1), bytes, existing)
+    override suspend fun importSource(sessionId: String, sourceId: String, ordinal: Int,
+        bytes: ByteArray, existing: List<AssistantImage>): AssistantImage {
+        require(validId(sourceId) && ordinal in 1..AssistantImagePolicy.MAX_IMAGES)
+        require(existing.none { it.id == sourceId || it.ordinal == ordinal })
         var created: File? = null
         try {
             return withContext(Dispatchers.IO) {
@@ -75,17 +86,20 @@ class AndroidAssistantImageStore(
                     val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
                     AssistantImagePolicy.targetSize(bounds.outWidth, bounds.outHeight)
-                    val id = UUID.randomUUID().toString()
+                    val id = sourceId
                     directory(sessionId)
                     val destination = file(sessionId, id)
-                    created = destination
+                    if (!destination.exists()) created = destination
+                    val atomic = android.util.AtomicFile(destination)
+                    val output = atomic.startWrite()
                     try {
-                        destination.writeBytes(bytes)
+                        output.write(bytes)
                         currentCoroutineContext().ensureActive()
-                        AssistantImage(id, (existing.maxOfOrNull { it.ordinal } ?: 0) + 1,
+                        atomic.finishWrite(output)
+                        AssistantImage(id, ordinal,
                             mime, bytes.size.toLong(), bounds.outWidth, bounds.outHeight)
                     } catch (error: Exception) {
-                        destination.delete()
+                        atomic.failWrite(output)
                         throw error
                     }
                 }
@@ -119,6 +133,7 @@ class AndroidAssistantImageStore(
         require(validId(session) && validId(id))
         return File(File(root, session), id)
     }
+    private fun preparedMarker(session: String, id: String) = File(file(session, id).parentFile, ".prepared-$id")
     private fun digest(bytes: ByteArray) = MessageDigest.getInstance("SHA-256").digest(bytes)
         .joinToString("") { "%02x".format(it) }
 
@@ -159,7 +174,7 @@ class AndroidAssistantImageStore(
                             directory(sessionId)
                             val destination = file(sessionId, id)
                             try { destination.writeBytes(bytes) } catch (e: Exception) { destination.delete(); throw e }
-                            val ordinal = (existing + accepted).maxOfOrNull { it.ordinal }?.plus(1) ?: 1
+                            val ordinal = (1..AssistantImagePolicy.MAX_IMAGES).first { n -> (existing + accepted).none { it.ordinal == n } }
                             accepted += AssistantImage(id, ordinal, mime, bytes.size.toLong(), bounds.outWidth, bounds.outHeight)
                             hashes += hash
                             total += bytes.size
@@ -216,6 +231,16 @@ class AndroidAssistantImageStore(
     override suspend fun prepare(sessionId: String, imageId: String) = withContext(Dispatchers.IO) {
         lock.withLock {
             currentCoroutineContext().ensureActive()
+            // restoreCopy already contains sanitized model bytes. Re-encoding would change
+            // the evidence fingerprint and defeat cached retry/recovery identity.
+            val marker = preparedMarker(sessionId, imageId)
+            val source = file(sessionId, imageId)
+            if (marker.isFile && marker.length() == 64L && source.isFile &&
+                source.length() in 1..AssistantImagePolicy.MAX_PREPARED_BYTES.toLong()) {
+                val bytes = source.readBytes()
+                if (marker.readText() == digest(bytes) && AssistantImagePolicy.mime(bytes) == "image/jpeg")
+                    return@withLock PreparedImage(imageId, "image/jpeg", bytes)
+            }
             val bitmap = decode(sessionId, imageId, 4096)
             val opaque = Bitmap.createBitmap(bitmap.width, bitmap.height, Bitmap.Config.ARGB_8888)
             Canvas(opaque).apply { drawColor(Color.WHITE); drawBitmap(bitmap, 0f, 0f, null) }
@@ -234,7 +259,7 @@ class AndroidAssistantImageStore(
         }
     }
     override suspend fun remove(sessionId: String, imageId: String) = withContext(Dispatchers.IO) {
-        lock.withLock { file(sessionId, imageId).delete(); Unit }
+        lock.withLock { file(sessionId, imageId).delete(); preparedMarker(sessionId, imageId).delete(); Unit }
     }
     override suspend fun release(sessionId: String) = withContext(Dispatchers.IO) {
         lock.withLock { require(validId(sessionId)); File(root, sessionId).deleteRecursively(); Unit }

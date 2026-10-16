@@ -75,19 +75,20 @@ class GuideBatchParserTest {
         } finally { release.countDown(); job.cancelAndJoin() }
     }
 
-    @Test fun twentySmallImagesAndTextUseOneCallWithOrderedReceiptsAndCleanup() = runBlocking {
+    @Test fun twentySmallImagesAndTextUseSeparateCallsWithOrderedReceiptsAndCleanup() = runBlocking {
         var calls = 0
         val http = client { body ->
             calls++
             val blocks = Json.parseToJsonElement(body).jsonObject["messages"]!!.jsonArray.flatMap {
                 it.jsonObject["content"] as? JsonArray ?: emptyList()
             }
-            assertEquals(20, blocks.count { it.jsonObject["type"]?.jsonPrimitive?.content == "image_url" })
-            receipt(listOf("text") + (1..20).map { "image_$it" })
+            val count = blocks.count { it.jsonObject["type"]?.jsonPrimitive?.content == "image_url" }
+            if (body.contains("目标text：")) { assertEquals(0, count); receipt(listOf("text")) }
+            else { assertEquals(20, count); receipt((1..20).map { "image_$it" }) }
         }
         val events = mutableListOf<ParsedSource>()
         val result = parser(http).parse(guideRequest(20), events::add) {}
-        assertEquals(1, calls)
+        assertEquals(2, calls)
         assertEquals(listOf("text") + guideImages(20).map { it.id }, result.sources.map { it.sourceId })
         assertEquals(21, events.size)
         assertTrue(result.sources.all { it.failure == null })
@@ -99,14 +100,15 @@ class GuideBatchParserTest {
         val events = mutableListOf<ParsedSource>()
         val http = client { request ->
             requests += request
-            if (requests.size == 1) receipt(listOf("text", "image_1"))
+            if (request.contains("目标text：")) receipt(listOf("text"))
+            else if (request.contains("目标image_1：")) receipt(listOf("image_1"))
             else {
-                assertEquals(listOf("text", "local-1"), events.map { it.sourceId })
+                assertTrue(events.any { it.sourceId == "local-1" })
                 receipt(listOf("image_2"))
             }
         }
         val result = parser(http).parse(guideRequest(), events::add) {}
-        assertEquals(2, requests.size)
+        assertEquals(3, requests.size)
         val targets = Json.parseToJsonElement(requests.last()).jsonObject["tools"]!!.jsonArray.single()
             .jsonObject["function"]!!.jsonObject["parameters"]!!.jsonObject["properties"]!!.jsonObject
             .getValue("sources").jsonObject["items"]!!.jsonObject["properties"]!!.jsonObject
@@ -118,9 +120,9 @@ class GuideBatchParserTest {
 
     @Test fun repairNetworkFailureKeepsSuccessfulTextAndDoesNotTryAThirdTime() = runBlocking {
         var calls = 0
-        val http = client {
+        val http = client { request ->
             calls++
-            if (calls == 1) receipt(listOf("text"))
+            if (request.contains("目标text：")) receipt(listOf("text"))
             else throw java.io.IOException("fixture")
         }
         val result = parser(http).parse(guideRequest(1), {}) {}
@@ -131,9 +133,11 @@ class GuideBatchParserTest {
 
     @Test fun cleanupUnableToDeleteUnknownChildDoesNotRevokeCompletedReceipts() = runBlocking {
         val http = client { receipt(listOf("text", "image_1")) }
-        val result = parser(http).parse(guideRequest(1), {
-            val workspace = temporary.root.listFiles()!!.single()
-            File(workspace, "unknown-directory").mkdir()
+        val result = parser(http).parse(guideRequest(1), { source ->
+            if (source.sourceId == "text") {
+                val workspace = temporary.root.listFiles()!!.single()
+                File(workspace, "unknown-directory").mkdir()
+            }
         }) {}
         assertTrue(result.sources.all { it.failure == null })
         assertTrue(File(temporary.root.listFiles()!!.single(), ".guide-owner").isFile)
@@ -160,7 +164,7 @@ class GuideBatchParserTest {
             assertEquals(2, calls.get())
             assertEquals(2, temporary.root.walkTopDown().count { it.name.startsWith("body-") && it.extension == "json" })
             release.countDown(); jobs.awaitAll()
-            assertEquals(3, calls.get())
+            assertEquals(6, calls.get())
             assertTrue(temporary.root.listFiles()!!.isEmpty())
         } finally { release.countDown(); jobs.forEach { it.cancelAndJoin() } }
     }
@@ -171,7 +175,7 @@ class GuideBatchParserTest {
             var calls = 0
             val http = client { calls++; response }
             val result = parser(http).parse(guideRequest(1), {}) {}
-            assertEquals(1, calls)
+            assertEquals(2, calls)
             assertTrue(result.sources.all { it.failure != null })
         }
     }
@@ -202,11 +206,11 @@ class GuideBatchParserTest {
             GuideTestImages { PreparedImage(it, "image/jpeg", ByteArray(3 * 1024 * 1024)) }, Mutex()),
             GuideBatchBody(), AssistantTransport(http), GuideBatchScheduler(),
             onUnsupportedImage = { if (capabilityWriteFails) throw java.io.IOException("cache unavailable") })
-        val result = withTimeout(20_000) { parser.parse(guideRequest(3), {
+        val result = withTimeout(20_000) { parser.parse(guideRequest(3).copy(text = ""), {
             if (it.failure?.code in setOf(AssistantFailureCode.AUTH, AssistantFailureCode.UNSUPPORTED_IMAGE)) authReceived.countDown()
         }) {} }
         assertEquals(2, calls.get())
-        assertEquals(listOf("text", "local-1", "local-2", "local-3"), result.sources.map { it.sourceId })
+        assertEquals(listOf("local-1", "local-2", "local-3"), result.sources.map { it.sourceId })
         assertEquals(1, result.sources.count { it.failure == null })
         assertEquals(SendEvidence.NOT_DISPATCHED, result.sources.last().failure?.sendEvidence)
         assertTrue(result.sources.any { it.failure?.sendEvidence == SendEvidence.RESPONSE_RECEIVED })
