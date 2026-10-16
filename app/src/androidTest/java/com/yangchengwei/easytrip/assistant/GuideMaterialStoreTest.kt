@@ -77,7 +77,7 @@ class GuideMaterialStoreTest {
         val root = File(context.noBackupFilesDir, "optional-material-${UUID.randomUUID()}")
         val references = mutableListOf<String>()
         val images = AndroidAssistantImageStore(context, File(root, "images"), false)
-        var downloads = 0
+        val downloads = java.util.concurrent.atomic.AtomicInteger()
         val bitmap = Bitmap.createBitmap(12, 12, Bitmap.Config.ARGB_8888)
         val png = java.io.ByteArrayOutputStream().use { bitmap.compress(Bitmap.CompressFormat.PNG, 100, it); it.toByteArray() }
         bitmap.recycle()
@@ -85,11 +85,11 @@ class GuideMaterialStoreTest {
         val loader = DefaultAssistantLinkLoader(AssistantLinkReader { link ->
             AssistantLinkDocument(link.platform, link.url, "青州", "青州古城", listOf(
                 "https://dimg04.c-ctrip.com/images/1.jpg", "https://dimg04.c-ctrip.com/images/2.jpg"), 2)
-        }, images, AssistantLinkImageFetcher { _, _ -> downloads++; png })
+        }, images, AssistantLinkImageFetcher { _, _ -> downloads.incrementAndGet(); png })
         val store = GuideMaterialStore(File(root, "metadata"), images, loader) { references }
         try {
             val read = store.prepare(UUID.randomUUID().toString(), input, emptyList()) {}
-            assertEquals(0, downloads)
+            assertEquals(0, downloads.get())
             assertEquals(2, read.imagePlan.assets.size)
             val prepared = store.prepareOptional(read)
             assertEquals(2, prepared.images.size)
@@ -106,7 +106,7 @@ class GuideMaterialStoreTest {
             val fork = store.prepareOptional(recovered)
             assertNotEquals(prepared.ref.id, fork.ref.id)
             assertEquals(prepared.ref, store.read(prepared.ref).ref)
-            assertEquals(2, downloads)
+            assertEquals(2, downloads.get())
             assertTrue(runCatching { store.read(prepared.ref.copy(digest = "f".repeat(64))) }.isFailure)
         } finally { root.deleteRecursively() }
     }

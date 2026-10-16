@@ -606,9 +606,9 @@
     "semantic_hash": "ee715795929fe7f9949fc1169e02c9bf"
   },
   "AGENTS.md": {
-    "mtime": 1792154118.904286,
-    "seen": 1792155670.207686,
-    "ast_hash": "c526e08c7137ae3cb6868fa45ff2a0e1",
+    "mtime": 1792157030.0683994,
+    "seen": 1792157985.827164,
+    "ast_hash": "c5eaffad4deb5260730e9eb7eec83846",
     "semantic_hash": ""
   },
   "README.md": {
@@ -2322,9 +2322,9 @@
     "semantic_hash": ""
   },
   ".codex/TASK_STATE.md": {
-    "mtime": 1792154157.4341066,
-    "seen": 1792155670.207623,
-    "ast_hash": "60785528318bfda93d2c1f78142a9f3b",
+    "mtime": 1792157091.179811,
+    "seen": 1792157985.8270888,
+    "ast_hash": "11d4fd2c62336928db0b41ca9e89e7b0",
     "semantic_hash": ""
   },
   "docs/testing/2026-09-06-manual-ui-acceptance.md": {
@@ -5574,9 +5574,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/assistant/GuideMaterialStoreTest.kt": {
-    "mtime": 1792123589.735722,
-    "seen": 1792123730.0797591,
-    "ast_hash": "9f5e5c8394302493f8f9609ff02c8563",
+    "mtime": 1792157943.4725819,
+    "seen": 1792157985.8266408,
+    "ast_hash": "a15621a6825fff06c41c175f12d28601",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/assistant/GuideMigrationTest.kt": {
@@ -5604,9 +5604,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/assistant/RoomGuideCreationTest.kt": {
-    "mtime": 1792022321.5227592,
-    "seen": 1792120403.8623219,
-    "ast_hash": "db24a3c460d8aa1df9213261f824ef79",
+    "mtime": 1792157943.4729998,
+    "seen": 1792157985.826645,
+    "ast_hash": "47f1f91fb694878f8965d8b87de43914",
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/assistant/RoomPlaceImportTest.kt": {
@@ -8433,6 +8433,18 @@
     "mtime": 1792154157.4330602,
     "seen": 1792155670.207838,
     "ast_hash": "a7886a083e6ae000df6b2120bb254112",
+    "semantic_hash": ""
+  },
+  "docs/testing/v3.4.0-assistant-default-category-delivery.md": {
+    "mtime": 1792157030.0679748,
+    "seen": 1792157985.827323,
+    "ast_hash": "c887f72f9dc9a9cdf9a26cc7b5a54ab8",
+    "semantic_hash": ""
+  },
+  "docs/testing/v3.4.0-assistant-default-category.md": {
+    "mtime": 1792157030.0687525,
+    "seen": 1792157985.827324,
+    "ast_hash": "e5176668eecec2eed0d5a0022675ac40",
     "semantic_hash": ""
   }
 }

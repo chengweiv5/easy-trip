@@ -57,7 +57,8 @@ class RoomGuideCreationTest {
         importer.commit(ImportConfirmation.create(command.tripId, listOf(item), "later-normal-batch"))
         assertEquals(receipt, importer.guideReceipt(command.operationId))
         assertEquals(GuideHandoffStatus.FINISHED, creation.find(command.tripId)!!.status)
-        assertFalse(creation.complete(command.operationId, 0, GuideHandoffStatus.IMPORTED, "stale-result"))
+        assertFalse(creation.complete(command.operationId, 0, GuideHandoffStatus.IMPORTED,
+            "ef664cce-4c56-4dda-9d76-4ee4e6df8467"))
         assertNull(creation.requestRetry(command.operationId, 0))
         assertTrue(creation.complete(command.operationId, 0, GuideHandoffStatus.FINISHED, null))
     }
@@ -76,7 +77,8 @@ class RoomGuideCreationTest {
         assertNull(service.claim(c.operationId, c.digest, 0))
         assertTrue(service.complete(c.operationId, 0, GuideHandoffStatus.FAILED, null))
         assertEquals(1, service.requestRetry(c.operationId, 0)!!.attempt)
-        assertFalse(service.complete(c.operationId, 0, GuideHandoffStatus.IMPORTED, "old"))
+        assertFalse(service.complete(c.operationId, 0, GuideHandoffStatus.IMPORTED,
+            "6b43a5c0-182f-4c95-962d-520799f8d026"))
         trips.deleteTrip(c.tripId)
         assertEquals(GuideCreationRecovery.Deleted, service.recover(c))
         assertNull(service.find(c.tripId))
