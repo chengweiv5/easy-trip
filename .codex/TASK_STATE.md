@@ -1,10 +1,15 @@
 # 当前任务：地点整理错误隔离提交推送
 
-状态：**IN_PROGRESS，2026-10-16。**
+状态：**DONE（实际功能已推送、集成验收及通知回读完成；最终记录SHA见交付证据），2026-10-16。**
 
-- 用户最新授权提交推送；已备份9文件并核对开发轮971输入，提交后rebase至`16e6bccd`，保留上游一次收藏结束整批与全部历史记录。
-- 生产代码无冲突；新增设备回归改为收藏前重试、成功收藏后清空整批。正在进行集成后的干净构建与专项回归；未推送。
-- 报告：`docs/testing/v3.4.0-guide-entity-isolation-git-delivery.md`；证据根`v34-entity-isolation-git-11da-20261016`。不安装手机、不发布、不调用真实模型/高德、不碰Pencil。
+- 用户最新授权提交推送，不安装手机、不发布、不新增真实模型/高德调用。功能分支`codex/v3.4-entity-isolation-fix`。
+- 实际产品修复`e16dec86`与对齐上游测试`b562a8f6`，功能头`b562a8f6980b88e104f5a41a8180f03df33063a2`从`16e6bccd`快进推送main；独立SHA回读一致，不是只提交文档。
+- 开始9文件备份，开放PR为0，开发轮971输入不变。rebase仅两份状态文档冲突，双方历史保留；产品无冲突。完整保留上游一次收藏结束整批、防旧草稿复活，不保留旧收藏后继续失败项的例外。
+- 干净Debug/Release各1304 JVM、13设备＋1系统320dp/2倍字体复跑通过，lint0错误；三APK、Release验签/16KiB对齐、包内功能SHA/CLEAN及模拟器APK回拉hash通过。最终972输入不变，Pencil无改动。
+- 初次JDK25配置失败，换宿主JDK21后构建完整通过；未改项目构建配置。自有5630/临时AVD/owner锁清理，尺寸字体恢复，临时配置与宿主原件校验后移除；其他模拟器、共享ADB、手机未操作。
+- 新prompt未真实模型复验，手机准确3项未完整复现，不宣称整体质量通过；旧原响应16→17地点/9→5pending为前轮离线证据，非新模型实测。版本3.4.0/build27/schema13及100地点/20图/30天保持。
+- punk-12通知`om_x100b622d49b448acc1deb559d52482f`已独立回读全文、chat、bot及deleted=false一致，此后最后写本状态。
+- 报告`docs/testing/v3.4.0-guide-entity-isolation-git-delivery.md`；证据根`/Users/bytedance/.codex/artifacts/easy-trip/v34-entity-isolation-git-11da-20261016/`。收尾仅三份交付记录，最终远端SHA见`final-push-verification.json`；APK固定功能头，不随文档改变。回滚从最新主线另建分支选择性前向撤销，不强推/降schema/清数据。
 
 ---
 
