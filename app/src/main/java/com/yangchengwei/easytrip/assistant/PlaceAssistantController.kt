@@ -664,9 +664,9 @@ class PlaceAssistantController(
         if (selected.isEmpty() || selected.size != mutable.value.selected.size) return
         val items = selected.map { ImportItem(it.id, it.generation, requireNotNull(it.poi), it.category) }
         val next = ImportConfirmation.create(requireNotNull(tripId), items)
-        val guideNext = guideOperation?.let {
-            val prefix = if (mutable.value.hasIncompleteMaterials) "guide-partial" else "guide"
-            ImportConfirmation.create(requireNotNull(tripId), items, "$prefix:$it:${next.digest.take(24)}")
+        val guideNext = (guideOperation ?: mutable.value.guideCheckpoint?.binding?.batchId)?.let {
+            // A successful user save finishes this round, including any failed or unselected material.
+            ImportConfirmation.create(requireNotNull(tripId), items, "guide:$it:${next.digest.take(24)}")
         } ?: next
         val snapshot = pendingSave?.takeIf { it.digest == guideNext.digest } ?: guideNext
         val generation = run
@@ -682,13 +682,6 @@ class PlaceAssistantController(
                 savedIds = savedIds + receipt.results.map { it.poiId }
                 selected.forEach { freezeEvidenceItem(it.id, committed = true) }
                 cancel()
-                if (mutable.value.hasIncompleteMaterials) {
-                    // A partial save is not batch completion: keep the failed sources,
-                    // original link and successful extraction cache available for retry.
-                    reconcile()
-                    mutable.value = mutable.value.copy(receipt = receipt, error = null)
-                    return@launch
-                }
                 inputRevision++
                 parsedSources = emptyList()
                 forgetLink()

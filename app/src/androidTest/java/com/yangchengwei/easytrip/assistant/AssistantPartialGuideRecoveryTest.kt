@@ -39,8 +39,8 @@ import org.junit.Test
 class AssistantPartialGuideRecoveryTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun partialCollectionReopensAndRetriesWithoutFinishingGuideOrDuplicatingSavedPlaces() = exercise(false)
-    @Test fun batchedPartialSaveThenRetryDoesNotRepeatSavedPlace() = exercise(true)
+    @Test fun singleCollectionFinishesGuideAndReopensEmptyDespiteFailedImage() = exercise(false)
+    @Test fun batchedSingleCollectionFinishesGuideWithoutRetryingFailedImage() = exercise(true)
     @Test fun cancelledNormalizationRestoresSuccessfulSourcesWithoutExtractingAgain() = exercise(true, true)
 
     private fun exercise(batched: Boolean, cancelNormalization: Boolean = false) {
@@ -181,39 +181,29 @@ class AssistantPartialGuideRecoveryTest {
             }
             screenshot.recycle()
             compose.onNodeWithTag("assistant-save").performClick()
-            compose.waitUntil(10_000) { !assistant.controller.state.value.saving && assistant.controller.state.value.items.single().status == IntakeStatus.ALREADY_SAVED }
-            assertEquals(GuideHandoffStatus.IMPORTED, runBlocking { creation.find(command.tripId) }!!.status)
+            compose.waitUntil(10_000) { !assistant.controller.state.value.saving && !assistant.controller.state.value.hasDraft &&
+                assistant.guide.value == null }
+            assertEquals(GuideHandoffStatus.FINISHED, runBlocking { creation.find(command.tripId) }!!.status)
             assertEquals(1, runBlocking { repo.observePlaces(command.tripId, emptySet()).first().size })
-            assertNull(runBlocking { RoomPlaceImport(db).guideReceipt(command.operationId) })
-            compose.waitUntil(10_000) {
-                runBlocking {
-                    val handoff = creation.find(command.tripId)!!
-                    handoff.resultRef?.let { results.read(it).items.firstOrNull()?.status == IntakeStatus.ALREADY_SAVED } == true
-                }
-            }
+            assertNotNull(runBlocking { RoomPlaceImport(db).guideReceipt(command.operationId) })
+            assertNull(runBlocking { creation.find(command.tripId) }!!.resultRef)
+            compose.onNodeWithTag("assistant-save").assertDoesNotExist()
+            compose.onNodeWithTag("assistant-retry-images").assertDoesNotExist()
             compose.runOnUiThread { stores.put("assistant", object : ViewModel() {}) }
             runBlocking { delay(250) }
             compose.runOnUiThread { assistant = createModel("workspace-restored"); stores.put("assistant", assistant) }
-            compose.waitUntil(10_000) { assistant.guide.value != null }
-            compose.runOnUiThread { assistant.consumePendingGuide() }
-            compose.waitUntil(10_000) { assistant.controller.state.value.items.size == 1 }
-            assertEquals(1, texts.get()); assertEquals(1, pictures.get()); assertEquals(1, searches.get())
-            assertEquals(1, assistant.controller.state.value.unfinishedSources.size)
-            compose.runOnUiThread { visibleModel = assistant }
-            compose.onNodeWithTag("assistant-retry-images").performScrollTo().assertIsEnabled().performClick()
-            compose.waitUntil(15_000) { !assistant.controller.state.value.busy && assistant.controller.state.value.items.size == 2 }
-            assertEquals(1, texts.get()); assertEquals(2, pictures.get()); assertEquals(2, searches.get()); assertEquals(1, reads.get())
-            assertEquals(1, assistant.controller.state.value.eligible.size)
-            compose.onNodeWithTag("assistant-select-B").performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithTag("assistant-save").assertIsDisplayed().assertIsEnabled().performClick()
-            compose.waitUntil(10_000) { assistant.guide.value == null && !assistant.controller.state.value.hasDraft }
-            assertEquals(2, runBlocking { repo.observePlaces(command.tripId, emptySet()).first().size })
-            assertEquals(GuideHandoffStatus.FINISHED, runBlocking { creation.find(command.tripId) }!!.status)
+            compose.waitUntil(10_000) { !assistant.controller.state.value.attachmentSelectionBusy }
             compose.runOnUiThread { assistant.consumePendingGuide() }
             compose.waitForIdle()
-            assertEquals(2, pictures.get())
+            assertEquals(1, texts.get()); assertEquals(1, pictures.get()); assertEquals(1, searches.get())
+            assertFalse(assistant.controller.state.value.hasDraft)
+            assertNull(assistant.guide.value)
+            compose.runOnUiThread { visibleModel = assistant }
+            compose.onNodeWithTag("assistant-save").assertDoesNotExist()
+            assertEquals(1, reads.get())
+            assertEquals(1, runBlocking { repo.observePlaces(command.tripId, emptySet()).first().size })
             if (batched) {
-                assertEquals(2, batches.get())
+                assertEquals(1, batches.get())
                 assertTrue(File(root, "batches").listFiles()!!.isEmpty())
             }
         } finally {

@@ -166,7 +166,7 @@ class AssistantPartialSuccessTest {
         assertEquals(listOf("美术馆"), importer.commits.single().items.map { it.poi.name })
     }
 
-    @Test fun collectingSuccessKeepsFailedMaterialAndRetryAddsOnlyNewPlaces() = runTest {
+    @Test fun collectingSuccessFinishesRoundAndDiscardsFailedMaterial() = runTest {
         val searched = mutableListOf<String>()
         var textCalls = 0
         var imageCalls = 0
@@ -184,18 +184,18 @@ class AssistantPartialSuccessTest {
         start(c); advanceUntilIdle()
         c.selectAll(); c.saveSelected(); advanceUntilIdle()
         assertEquals(1, importer.commits.size)
-        assertEquals(0, finished)
-        assertEquals(IntakeStatus.ALREADY_SAVED, c.state.value.items.single().status)
-        assertEquals(images(), c.state.value.images)
-        assertEquals(SourceStage.FAILED, c.state.value.sourceProgress.single { it.sourceId == "11111111-1111-4111-8111-111111111111" }.stage)
+        assertEquals(1, finished)
+        assertFalse(c.state.value.hasDraft)
+        assertTrue(c.state.value.items.isEmpty())
+        assertTrue(c.state.value.images.isEmpty())
+        assertTrue(c.state.value.sourceProgress.isEmpty())
         c.retryImages(); advanceUntilIdle()
         assertEquals(1, textCalls)
-        assertEquals(2, imageCalls)
-        assertEquals(2, searched.size)
-        assertEquals(listOf(IntakeStatus.ALREADY_SAVED, IntakeStatus.READY), c.state.value.items.map { it.status })
+        assertEquals(1, imageCalls)
+        assertEquals(1, searched.size)
         c.selectAll(); c.saveSelected(); advanceUntilIdle()
-        assertEquals(2, importer.commits.size)
-        assertEquals(listOf("美术馆", "公园"), importer.commits.flatMap { it.items }.map { it.poi.name })
+        assertEquals(1, importer.commits.size)
+        assertEquals(listOf("美术馆"), importer.commits.flatMap { it.items }.map { it.poi.name })
         assertEquals(1, finished)
         assertFalse(c.state.value.hasDraft)
     }
@@ -240,7 +240,7 @@ class AssistantPartialSuccessTest {
         assertTrue(after.sources.any { it is IntakeSource.Image })
     }
 
-    @Test fun restoredPartialBatchKeepsFailedSourceAndSuccessfulExtractionWithoutResending() = runTest {
+    @Test fun unsavedPartialBatchRestoresFailedSourceAndSuccessfulExtractionWithoutResending() = runTest {
         val searched = mutableListOf<String>()
         var textCalls = 0
         var imageCalls = 0
@@ -254,18 +254,20 @@ class AssistantPartialSuccessTest {
             processor = { runner }, linkLoader = loader())
         val first = controller()
         start(first); advanceUntilIdle()
-        first.selectAll(); first.saveSelected(); advanceUntilIdle()
         val recovered = GuideResultCodec.decode(GuideResultCodec.encode(first.state.value))
         assertEquals(SourceStage.FAILED, recovered.sourceProgress.single { it.sourceId == "11111111-1111-4111-8111-111111111111" }.stage)
         val second = controller()
-        second.environment(true, true, true); second.updateSaved(setOf("美术馆"))
+        second.environment(true, true, true)
         second.restoreGuideState(recovered, "operation", AssistantCityScope.parse("北城"),
             LoadedAssistantLink("北城美术馆", images()))
         second.retryImages(); advanceUntilIdle()
         assertEquals(1, textCalls)
         assertEquals(2, imageCalls)
         assertEquals(2, second.state.value.items.size)
-        assertEquals(IntakeStatus.ALREADY_SAVED, second.state.value.items.first().status)
+        assertEquals(IntakeStatus.READY, second.state.value.items.first().status)
+        second.selectAll(); second.saveSelected(); advanceUntilIdle()
+        assertFalse(second.state.value.hasDraft)
+        assertEquals(2, importer.commits.single().items.size)
     }
 
     @Test fun sourceOverflowIsLocalButCombinedLimitDoesNotTruncateOrQueryNewResults() = runTest {

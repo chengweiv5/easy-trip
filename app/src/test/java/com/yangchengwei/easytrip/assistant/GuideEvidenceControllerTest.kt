@@ -78,7 +78,7 @@ class GuideEvidenceControllerTest {
         }
     }
 
-    @Test fun partialEvidenceCanBeSavedAndNormalizationRetryDoesNotReparseOrDuplicateFrozenPlace() = runTest {
+    @Test fun pendingEvidenceCanRetryBeforeSaveAndSingleSaveFinishesTheRound() = runTest {
         var parses = 0
         var resolves = 0
         var searches = 0
@@ -131,13 +131,15 @@ class GuideEvidenceControllerTest {
         assertTrue(c.state.value.normalizationPending)
         assertEquals("部分地点整理未完成，成功结果可继续标记和收藏。", c.state.value.partialNotice)
         assertEquals(1, c.state.value.eligible.size)
-        c.selectAll(); c.saveSelected(); advanceUntilIdle()
-        assertEquals(1, saves)
+        c.category(c.state.value.items.single().id, com.yangchengwei.easytrip.place.domain.PlaceCategory.OTHER)
         c.retryNormalization(); advanceUntilIdle()
         assertEquals(1, parses); assertEquals(2, resolves); assertEquals(1, searches)
         assertEquals(1, c.state.value.items.size)
-        assertTrue(c.state.value.guideCheckpoint!!.frozen.single().committed)
-        c.clear()
+        assertFalse(c.state.value.guideCheckpoint!!.frozen.single().committed)
+        c.selectAll(); c.saveSelected(); advanceUntilIdle()
+        assertEquals(1, saves)
+        assertFalse(c.state.value.hasDraft)
+        assertNull(c.state.value.guideCheckpoint)
         c.editInput("https://xhslink.cn/o/next"); c.submit(); advanceUntilIdle()
         assertEquals(GuideProtocolVersion.EVIDENCE_V2, c.state.value.guideVersion)
         assertTrue(c.state.value.guideCheckpoint!!.frozen.isEmpty())

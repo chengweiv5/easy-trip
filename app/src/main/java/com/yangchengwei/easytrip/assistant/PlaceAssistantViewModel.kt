@@ -272,7 +272,11 @@ class PlaceAssistantViewModel(
                 if (guideResults != null && guideMaterials != null) {
                     val draft = guideResults.localDraft(tripId)
                     localDraft = draft
-                    if (draft != null) {
+                    if (draft != null && importer.guideReceipt(draft.batchId) != null) {
+                        // The transaction may have succeeded just before process death and draft cleanup.
+                        // Its durable receipt wins over the stale snapshot: never revive a finished round.
+                        clearLocalDraft(draft)
+                    } else if (draft != null) {
                         val recovered = guideResults.read(draft.resultRef)
                         val binding = requireNotNull(recovered.guideCheckpoint).binding
                         require(binding.batchId == draft.batchId && binding.revision == draft.revision)
@@ -294,7 +298,10 @@ class PlaceAssistantViewModel(
                 localReady = true
                 savedState["assistant-had-images"] = false
                 controller.attachmentSelection(false)
-            } }
+            }
+                // Restore the receipt only after draft recovery/cleanup releases the attachment gate.
+                controller.recoverReceipt()
+            }
         }
         viewModelScope.launch {
             controller.state.collect { value ->
@@ -353,7 +360,6 @@ class PlaceAssistantViewModel(
             savedState["assistant-had-images"] = false
             controller.reportError("上次图片草稿已失效，请重新选择；已收藏地点不受影响。")
         }
-        viewModelScope.launch { controller.recoverReceipt() }
         if (target is AssistantTarget.ExistingTrip)
             viewModelScope.launch { places.observeSavedPoiIds(target.tripId).collect(controller::updateSaved) }
         viewModelScope.launch {

@@ -23,6 +23,7 @@ import java.io.File
 import java.util.UUID
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.json.*
 import okhttp3.*
@@ -35,10 +36,12 @@ import org.junit.Test
 /** Isolated Room and actual VM lifecycle; no external service or real user data. */
 class AssistantEvidenceRecoveryTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
-    @Test fun pastedGuideRestoresWithoutUrlOrExtractionAndKeepsCommittedIdentity() = exercise(false)
-    @Test fun globalHandoffRestoresPartialEvidenceWithoutResending() = exercise(true)
+    @Test fun pastedGuideRestoresBeforeSaveAndOneCollectionFinishesRound() = exercise(false)
+    @Test fun globalHandoffRestoresBeforeSaveAndOneCollectionFinishesRound() = exercise(true)
+    @Test fun pastedGuideCommitBeforeProcessDeathDoesNotRestoreStaleDraft() = exercise(false, true)
+    @Test fun globalGuideCommitBeforeProcessDeathDoesNotRestoreStaleDraft() = exercise(true, true)
 
-    private fun exercise(global: Boolean) {
+    private fun exercise(global: Boolean, interruptAfterCommit: Boolean = false) {
         val context = compose.activity
         val root = File(context.noBackupFilesDir, "evidence-recovery-${UUID.randomUUID()}").apply { mkdirs() }
         val config = AssistantConfigStore(object : ContextWrapper(context) {
@@ -97,6 +100,18 @@ class AssistantEvidenceRecoveryTest {
                 if (number == 1) groups.pending else emptyList(), emptySet())
         }
         val models = ViewModelStore()
+        var interruptCommit = interruptAfterCommit
+        val roomImporter = RoomPlaceImport(db)
+        val importer = object : PlaceImport by roomImporter {
+            override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt {
+                val receipt = roomImporter.commit(confirmation)
+                if (interruptCommit) {
+                    interruptCommit = false
+                    throw CancellationException("fixture: process stopped after durable transaction, before UI cleanup")
+                }
+                return receipt
+            }
+        }
         try {
             val command = runBlocking {
                 val retained = materials.prepare(UUID.randomUUID().toString(), "北城 https://xhslink.cn/o/fixture", emptyList()) {}
@@ -110,7 +125,7 @@ class AssistantEvidenceRecoveryTest {
             fun create(): PlaceAssistantViewModel {
                 val images = AndroidAssistantImageStore(context, File(root, "vm-images"))
                 loadingImages = images
-                return PlaceAssistantViewModel(command.tripId, config, RoomPlaceImport(db),
+                return PlaceAssistantViewModel(command.tripId, config, importer,
                     RoomSavedPlaceRepository(db), images = images, linkLoader = loader,
                     guideStore = if (global) creation else null, guideMaterials = materials, guideResults = results,
                     guideEvidenceParserFactory = { snapshot ->
@@ -136,6 +151,27 @@ class AssistantEvidenceRecoveryTest {
                 else { vm.controller.editCity("北城"); vm.controller.editInput("北城 https://xhslink.cn/o/fixture"); vm.controller.submit() }
             }
             compose.waitUntil(10_000) { !vm.controller.state.value.busy && vm.controller.state.value.eligible.size == 1 }
+            compose.waitUntil(10_000) { runBlocking {
+                if (global) creation.find(command.tripId)?.resultRef != null
+                else results.localDraft(command.tripId) != null
+            } }
+            val readsBefore = reads.get()
+            val imageBefore = vm.controller.state.value.images.single()
+            if (!interruptAfterCommit) {
+                // Unsaved drafts still recover without another URL read, model call or POI query.
+                compose.runOnUiThread { models.put("vm", object : ViewModel() {}) }
+                runBlocking { delay(250) }
+                compose.runOnUiThread { vm = create(); models.put("vm", vm) }
+                if (global) {
+                    compose.waitUntil(10_000) { vm.guide.value != null }
+                    compose.runOnIdle { vm.consumePendingGuide() }
+                }
+                compose.waitUntil(10_000) { vm.controller.state.value.eligible.size == 1 &&
+                    !vm.controller.state.value.attachmentSelectionBusy }
+                assertEquals(imageBefore, vm.controller.state.value.images.single())
+                assertEquals(readsBefore, reads.get())
+                assertEquals(1, extracts.get()); assertEquals(1, resolves.get()); assertEquals(1, searches.get())
+            }
             compose.setContent {
                 val state by vm.controller.state.collectAsState()
                 EasyTripTheme {
@@ -148,34 +184,36 @@ class AssistantEvidenceRecoveryTest {
                 .performScrollTo().assertIsDisplayed()
             compose.onNodeWithTag("assistant-select-A").performScrollTo().performClick()
             compose.onNodeWithTag("assistant-save").assertIsDisplayed().assertIsEnabled().performClick()
-            compose.waitUntil(10_000) { !vm.controller.state.value.saving &&
-                vm.controller.state.value.items.single().status == IntakeStatus.ALREADY_SAVED }
             compose.waitUntil(10_000) { runBlocking {
-                val ref = if (global) creation.find(command.tripId)?.resultRef else results.localDraft(command.tripId)?.resultRef
-                ref != null && results.read(ref).guideCheckpoint?.frozen?.singleOrNull()?.committed == true
+                !vm.controller.state.value.saving &&
+                    RoomSavedPlaceRepository(db).observePlaces(command.tripId, emptySet()).first().size == 1
             } }
-            val readsBefore = reads.get()
-            val imageBefore = vm.controller.state.value.images.single()
+            if (!interruptAfterCommit) {
+                compose.waitUntil(10_000) { !vm.controller.state.value.hasDraft && vm.guide.value == null }
+                compose.onNodeWithTag("assistant-save").assertDoesNotExist()
+                compose.onNodeWithTag("assistant-retry-images").assertDoesNotExist()
+                assertNull(vm.focus.value)
+                assertNull(vm.detail.value)
+            } else {
+                assertTrue(vm.controller.state.value.hasDraft)
+            }
+            if (global) assertEquals(GuideHandoffStatus.FINISHED, runBlocking { creation.find(command.tripId) }!!.status)
             compose.runOnUiThread { models.put("vm", object : ViewModel() {}) }
             runBlocking { delay(250) }
             compose.runOnUiThread { vm = create(); models.put("vm", vm) }
-            if (global) {
-                compose.waitUntil(10_000) { vm.guide.value != null }
-                compose.runOnIdle { vm.consumePendingGuide() }
-            }
-            compose.waitUntil(10_000) { vm.controller.state.value.guideCheckpoint?.frozen?.singleOrNull()?.committed == true }
+            compose.waitUntil(10_000) { !vm.controller.state.value.attachmentSelectionBusy &&
+                vm.controller.state.value.receipt != null }
+            compose.runOnIdle { vm.consumePendingGuide() }
+            compose.waitForIdle()
             assertEquals(readsBefore, reads.get()); assertEquals(1, extracts.get()); assertEquals(1, resolves.get())
-            assertEquals(GuideProtocolVersion.EVIDENCE_V2, vm.controller.state.value.guideVersion)
-            assertEquals(imageBefore, vm.controller.state.value.images.single())
-            compose.runOnIdle { vm.controller.retryNormalization() }
-            compose.waitUntil(10_000) { resolves.get() == 2 && !vm.controller.state.value.busy }
-            assertEquals(1, extracts.get()); assertEquals(1, searches.get())
-            assertEquals(1, vm.controller.state.value.items.size)
-            assertEquals(IntakeStatus.ALREADY_SAVED, vm.controller.state.value.items.single().status)
-            if (!global) {
-                compose.runOnIdle { vm.clearDraft() }
-                compose.waitUntil(10_000) { runBlocking { results.localDraft(command.tripId) == null } }
-            }
+            assertEquals(1, searches.get())
+            assertFalse(vm.controller.state.value.hasDraft)
+            assertNull(vm.guide.value)
+            assertNull(vm.controller.state.value.guideCheckpoint)
+            assertNull(runBlocking { results.localDraft(command.tripId) })
+            assertEquals(1, vm.controller.state.value.receipt?.addedCount)
+            compose.runOnIdle { vm.controller.editInput("下一批") }
+            assertEquals("下一批", vm.controller.state.value.input)
         } finally {
             compose.runOnUiThread { models.clear() }
             runBlocking { delay(300) }
