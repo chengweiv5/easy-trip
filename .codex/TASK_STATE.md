@@ -1,4 +1,21 @@
-# 当前任务：全链路图片可选 Native 开发
+# 当前任务：全链路图片可选 Git 交付
+
+状态：**DONE（功能已提交并快进推送、独立远端及通知回读完成；本状态随同轮文档收尾提交），2026-10-16 12:32 +08:00。**
+
+- 用户最新授权「提交，推送」，本轮实际交付产品代码，不是仅文档；没有沿用历史安装手机或发布授权。
+- 功能`5cfcf1e357e810e25114809f12d95fe3de601831`与图谱／测试兼容提交形成最终验收头`201ab3894cba85d9d4297b3ba848ad4c5d501819`。已从`f37995d0`快进推送`origin/main`，12:30:24独立`git ls-remote`与本地HEAD／验收头一致。
+- rebase保留上游单项解析错误隔离、prompt与一次收藏结束整批；只冲突两份状态历史，生产零冲突。初次AndroidTest因上游loader fixture缺read/prepare而编译失败，已适配分离图文请求，保留原行为断言；上游产品未改。67差异文件含25生产代码、15 JVM测试与16设备测试文件。
+- 干净Debug/Release各1322 JVM通过，0失败/错误/跳过；lint0 Error/Fatal、64/61 Warning。三APK、Release验签/16KiB对齐、包内精确验收SHA/CLEAN通过。最终729项产品／测试／设计／schema／构建输入保持。
+- 精确最终APK36不同设备用例通过（680.172秒），另7项系统320dp／2倍字体复测通过（94.220秒）；Debug与androidTest模拟器回拉hash一致。HTTP/POI为离线fixture，不是线上质量验收；组件host状态栏与滚动截图边界保留，不冒充完整手机UI验收。
+- 正文独立、图片可选／有界跳过、材料v2／结果封装v3和模型V1/V2隔离保持；100地点/20图/30天、3.4.0/build27/schema13不变。Pencil仅提交已保存字节，SHA`f94d5da784209fbb02a28df81a17c90a3b35553e634fc8e445ef1fbd66b0034b`不变。
+- 图谱AST-only更新13,939节点/31,641边/719社区，35文件提取不完整；Git hook硬编码扫描超时但未绕过，新增行有限模式检查无命中，不称完整安全扫描通过。
+- 自有5600已恢复原显示，owner/PID核验后正常退出并释放锁、保留AVD；未碰其他设备/工作树或手机。本轮未真实模型／高德复验、未安装手机、未发布。
+- 报告：`docs/testing/v3.4.0-optional-images-git-delivery.md`；证据根：`/Users/bytedance/.codex/artifacts/easy-trip/v34-optional-images-git-1e8a-20261016-120525/`。最终文档SHA见`final-push-verification.json`，APK始终对应上述功能验收头。
+- punk-12通知`om_x100b622ec51578a8b0e3eeda1ddf282`已独立回读全文／chat／app／deleted=false一致，再最后写本状态。回滚从最新main前向选择性撤销，不丢上游、不清数据、不降schema；材料/结果记录兼容先核对。
+
+---
+
+# 历史任务：全链路图片可选 Native 开发
 
 状态：**DONE（产品实现、开发验证及通知回读完成；未提交／推送／安装手机／发布），2026-10-16 11:45 +08:00。**
 
