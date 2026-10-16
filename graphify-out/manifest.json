@@ -8394,9 +8394,9 @@
     "semantic_hash": ""
   },
   "app/src/androidTest/java/com/yangchengwei/easytrip/assistant/AssistantEntityIsolationUiTest.kt": {
-    "mtime": 1792123589.4381595,
-    "seen": 1792123730.079736,
-    "ast_hash": "929cc66d148d2f363ee9a575dc08720c",
+    "mtime": 1792123835.6403348,
+    "seen": 1792123868.630498,
+    "ast_hash": "21aff9648b1705b25c97026beebb9ab2",
     "semantic_hash": ""
   },
   "app/src/test/java/com/yangchengwei/easytrip/assistant/GuideEntityIsolationTest.kt": {

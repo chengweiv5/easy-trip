@@ -62,9 +62,14 @@ class AssistantEntityIsolationUiTest {
             val response = when (tool) {
                 "extract_guide_evidence" -> {
                     extracts.incrementAndGet()
+                    val blocks = request.getValue("messages").jsonArray.flatMap {
+                        it.jsonObject["content"] as? JsonArray ?: emptyList()
+                    }
+                    val pictureCount = blocks.count { it.jsonObject["type"]?.jsonPrimitive?.content == "image_url" }
+                    assertTrue(pictureCount in 0..1)
                     buildJsonObject { putJsonArray("sources") {
-                        add(source("text", quote, "BODY_EXCERPT"))
-                        add(source("image_1", destination, "AUTHOR_LABEL"))
+                        if (pictureCount == 0) add(source("text", quote, "BODY_EXCERPT"))
+                        else add(source("image_1", destination, "AUTHOR_LABEL"))
                     } }
                 }
                 "resolve_guide_entities" -> {
@@ -103,12 +108,7 @@ class AssistantEntityIsolationUiTest {
                 }
                 out.toByteArray()
             }
-            val loader = object : AssistantLinkLoader {
-                override suspend fun load(sessionId: String, input: AssistantLinkInput, existing: List<AssistantImage>,
-                    onProgress: (String) -> Unit) =
-                    LoadedAssistantLink(quote, listOf(images.importBytes(sessionId, png, existing)))
-                override suspend fun discard(sessionId: String, images: List<AssistantImage>) {}
-            }
+            val loader = optionalLinkFixture(images, quote, 1, png)
             val trip = runBlocking { RoomTripRepository(db.tripDao()).createTrip(CreateTrip("徐州之旅", 1)) }
             val preparation = Mutex()
             val scheduler = GuideBatchScheduler()
@@ -158,7 +158,7 @@ class AssistantEntityIsolationUiTest {
             compose.waitUntil(15_000) { !model.controller.state.value.busy && resolutions.get() == 2 }
             assertEquals(listOf(destination), model.controller.state.value.items.map { it.intent.query })
             assertTrue(model.controller.state.value.normalizationPending)
-            assertEquals(1, extracts.get())
+            assertEquals(2, extracts.get())
             assertEquals(1, searches.get())
             compose.onNodeWithTag("assistant-select-A").performScrollTo().performClick()
             compose.onNodeWithTag("assistant-save").assertIsEnabled()
@@ -183,7 +183,7 @@ class AssistantEntityIsolationUiTest {
             assertEquals(2, resolutions.get())
             assertTrue(model.controller.state.value.items.isEmpty())
             assertFalse(model.controller.state.value.normalizationPending)
-            assertEquals(1, extracts.get())
+            assertEquals(2, extracts.get())
             assertEquals(1, searches.get())
             assertEquals(1, runBlocking { places.observePlaces(trip, emptySet()).first() }.size)
         } finally {

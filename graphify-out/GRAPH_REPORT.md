@@ -1,16 +1,16 @@
 # Graph Report - easy-trip  (2026-10-16)
 
 ## Corpus Check
-- 1088 files · ~1,467,406 words
+- 1088 files · ~1,467,407 words
 - Verdict: corpus is large enough that graph structure adds value.
 
 ## Summary
-- 13943 nodes · 31648 edges · 688 communities (564 shown, 124 thin omitted)
+- 13939 nodes · 31641 edges · 719 communities (590 shown, 129 thin omitted)
 - Extraction: 89% EXTRACTED · 11% INFERRED · 0% AMBIGUOUS · INFERRED: 3567 edges (avg confidence: 0.85)
 - Token cost: 0 input · 0 output
 
 ## Graph Freshness
-- Built from commit: `5cfcf1e3`
+- Built from commit: `7b246ff9`
 - Run `git rev-parse HEAD` and compare to check if the graph is stale.
 - Run `graphify update .` after code changes (no API cost).
 
@@ -27,7 +27,7 @@
 - .check
 - MapUiModel
 - TripListViewModel
-- PlaceTag
+- Flow
 - DateRangeDeletionCounts
 - v1.8.3 设计覆盖矩阵
 - Legs
@@ -37,7 +37,7 @@
 - V1ScenarioMetadataTest
 - DayItineraryViewModel
 - Easy Trip 一期设计
-- WorkspaceBottomSheet
+- WorkspaceSheetLevel
 - fixtureEvidence
 - PlaceSearchReducer
 - Easy Trip v1.0 Pencil 设计落地方案
@@ -52,13 +52,13 @@
 - RoomRouteLegRepositoryTest
 - Easy Trip 工作台导航重构设计
 - com
-- ItineraryScope
+- RouteLegUi
 - Easy Trip 工作台 UI 收敛设计
 - 2026-08-23-easy-trip-v1-full-ui-implementation.md
 - Easy Trip 设计实现指南
 - TripSettingsViewModel
-- decideCollectionToggle
-- VisualBatch0EvidenceTest
+- PlaceDeletionImpact
+- RealAmapMapHost
 - Easy Trip 实现计划
 - Batch 2 Gate Report
 - FakeRepository
@@ -68,29 +68,29 @@
 - CalendarInteractionTest
 - Easy Trip 搜索与收藏交互设计
 - FakeRepository
-- TripWorkspaceViewModel.kt
-- TripWorkspaceRoute.kt
+- .create
+- LocationPermissionUiState
 - FakeTrips
 - Batch 2 Room Timeout Diagnosis
-- PlaceSearchDataSource
-- ItineraryItemUi
+- PlaceSearchViewModel
+- V12ItineraryPolishTest
 - FakeItineraries
 - AmapMapHost
 - Flow
-- SavedPlace
+- PlaceSearchViewModelTest
 - AmapMapHost
-- TripListAction
+- PlacePoolViewModelTest
 - Batch 2 搜索加载与网络失败可控设备证据方案
 - MapReadyWatchdog
-- PlaceSearchDataSource
+- TripSearchCityResolver
 - AmapConsentStoreTest
 - Easy Trip 旅行入口与创建 UI 收敛设计
 - ItineraryService
 - AmapServiceException
 - Task 4 报告：重做搜索状态机与连续收藏
 - ProviderConfig
-- SavedPlaceRowUi
-- GeoPoint
+- SavedPlace
+- PlaceCity
 - 文件结构
 - Easy Trip Full UI Task 7 状态预研
 - Task 8 Report
@@ -101,42 +101,42 @@
 - FakeRepository
 - TASK_STATE.md
 - PlaceImport
-- ConfirmationDialog
+- WorkspaceNavigationTest
 - ItineraryEditDraft
 - MapLayer
-- ItineraryRepository
+- V2AcceptanceTest.kt
 - CLAUDE.md
-- PlaceCandidate
+- PlaceSearchUiState
 - Task 5 报告：地点池、详情与地图控件
 - ImportConfirmation
 - MapViewportControllerTest
-- GuideContext
+- GuideSource
 - DayItineraryAction
-- PlaceScheduleSummaryUi
+- .setContent
 - PlaceSearchContent.kt
 - ScenarioScreen
 - File Structure
 - File Structure
-- AddPlacesRequest
+- FakeItineraryRepository
 - Global Constraints
 - Easy Trip v1.0 Pencil Reference
 - Batch 1 visual fix report
 - v1.3.0-calendar-interaction.js
 - Batch5FrameCheckpoint
-- RecordingHost
+- .poi
 - validatePlaceTag
-- Color.kt
+- EasyTripPrimaryButton
 - Task 3 报告：搜索详情 AMap 与生命周期复用
 - 旅行设置与日期正确性候选验收
 - ItineraryTransactionTest
-- InsertSide
+- TravelMode
 - Connection
 - File Structure
 - PlaceDao
 - 行程项
 - Task 7 Report
-- ItineraryShareModels.kt
-- PlaceAssistantState
+- ShareOptions
+- GuideContext
 - Easy Trip 旅行设置与日期正确性收敛设计
 - Task 4 报告
 - Batch 2 地点池视觉修复报告
@@ -152,11 +152,11 @@
 - TripWorkspaceAction
 - v1.4.0 行程长图 · R3 全程日历设计
 - run-amap-smoke.sh
-- SchemaTest
+- RouteStatus
 - amap-emulator-gate-test.sh
 - run-amap-smoke-test.sh
 - .controller
-- Trips
+- Legs
 - V1ScenarioFixtures.kt
 - com
 - App 设置与版本更新 · 已确认设计
@@ -167,7 +167,7 @@
 - Task 7 Phase 2 Report
 - Task 5 报告
 - LocationPermissionCoordinatorTest
-- AssistantModels.kt
+- IntakeStatus
 - File Structure
 - V1 Full UI Scenario Matrix
 - lookupCity
@@ -203,7 +203,7 @@
 - androidx
 - 16. 自动化验收
 - Search / Place UI 冲突裁决
-- AppNavigation
+- AppNavigation.kt
 - Task 3 报告：排序仅由拖动手柄发起
 - StreamingPngWriter
 - 18. 实施批次建议
@@ -225,7 +225,7 @@
 - reviewExpenses
 - TripDao
 - Task 7 报告
-- ShareImageStorage.kt
+- ShareImageRenderer.kt
 - 12. 搜索状态视觉
 - FeedbackState
 - Search / Place UI 候选验收
@@ -235,7 +235,7 @@
 - AddToItineraryViewModel
 - Easy Trip 行程内容族 UI 收敛设计
 - SDD ledger — plan: docs/superpowers/plans/2026-08-26-easy-trip-itinerary-ui-convergence.md
-- TripCity
+- TestConsentGate
 - 12. 自动化验收
 - 14. 实施批次建议
 - 5. 组件边界
@@ -243,7 +243,7 @@
 - 6. 视觉规则
 - 8. 交互规则
 - Task 5 报告：标签校验与保存恢复
-- TripDay
+- V1ScenarioExecutable.kt
 - 5. 状态模型
 - 10. 地点池行
 - 11. 收藏、取消收藏和删除
@@ -258,7 +258,7 @@
 - ViewportReason
 - Task 1 报告：搜索详情状态与统一返回
 - 14. 实施分解
-- ExpenseRemovalRequired
+- ExpenseMutationErrorTest
 - Task 6 Report
 - WorkspaceLayoutMetricsTest
 - 地图授权与定位权限候选验收记录
@@ -274,13 +274,13 @@
 - 10. 组件边界
 - Task 6 Report
 - 12. 测试设计
-- .productionLocationDependencies
+- WorkspaceFlowTest
 - 旅行入口与创建 UI 候选验收
 - Task 1 报告
 - ItineraryDao
 - Trips
-- RouteLegRow.kt
-- AssistantProtocolCompatibilityTest
+- WorkspaceRefinementsTest
+- AssistantCityScope
 - 旅行入口与创建 UI 冲突记录
 - CreateTripUiState
 - 8. 错误处理
@@ -298,7 +298,7 @@
 - 7. 提交与完成语义
 - 2. 范围
 - Easy Trip v3.0 Agent 统一规划：智能录入地点
-- ExpensePersistenceTest
+- DelayedCollectionRepository
 - 6. 不可变请求快照
 - v3.4 双平台攻略链接加固
 - ThemePickerTest
@@ -310,7 +310,7 @@
 - 10. 组件职责
 - EasyTripIconButton.kt
 - MapViewportInsets
-- TravelMode
+- SavedPlaceEntity
 - 2026-10-11-easy-trip-v3-first-agent-design.md
 - 11. 测试设计
 - TripListUiModels.kt
@@ -322,18 +322,18 @@
 - 3. 已确认产品规则
 - 5. 架构
 - 9. 错误与并发
-- ControlledItineraries
-- .controller
-- Itineraries
+- DeletingDayItineraries
+- AddPlacesRequest
+- MutableItineraries
 - OfficialRelease
 - v1.3.0 行程日历设计
 - Places
 - 操作步骤
 - TripSettingsNavigationTest
 - DefaultAssistantLinkLoader
-- .unsubmittedRecoveryCanEditMetadataAndCreateWithoutAStaleMapSession
+- AppContainer
 - v1.8.2 可选出行日期：中断记录
-- MapPreferences
+- formatCount
 - RecordingTripRepository
 - TripDraftViewModelTest
 - v3.4 地点整理错误隔离修复
@@ -345,13 +345,13 @@
 - v2.0.0 发布验证
 - GuideCreationViewModel.kt
 - EvidenceMapSurface
-- AmapPlaceDataSource.kt
+- administrativeCity
 - Trips
-- DayItinerary
+- TripDay
 - V1Scenario
 - Batch 7：设置删除、地点详情宿主与证据收口
 - M5：加入行程双入口
-- SavedPlaceRepository
+- TripWorkspaceContentStateTest
 - v3.4 攻略理解：原文证据、独立地点与代表名
 - 日历上下沿调时提示
 - AmapMapHost
@@ -359,13 +359,13 @@
 - v2.0.0 花费一级入口与内联多笔费用 Implementation Plan
 - EvidenceStateSource
 - ScenarioMatrixReferenceTest
-- formatCount
+- ItineraryPlaceContent
 - TripWithDays
 - ItineraryShareScreenTest
 - .createdExecutableRejectsCustomFactoryWithWrongFixtureDespiteMatchingScreenAndFactory
-- .fail
+- PlaceAssistantController.kt
 - v3.2.0 助手交互精简 · UI评审
-- ItineraryShareScreen.kt
+- AmapAttachSmokeActivity
 - MissingTargetItineraries
 - Batch6FrameCheckpoint
 - v1.8.0 设计与历史运行材料登记
@@ -379,13 +379,13 @@
 - 日历交通同列已确认设计
 - Batch 6：异常、权限和最终收敛
 - v1.6.0 全局主题实现验收
-- app/build.gradle.kts
-- EditRouteLegContent
+- ExpenseReviewComponents.kt
+- formatExpense
 - CreateTrip
 - Canvas
 - AssistantLinkDomTest
 - v1.5.0 发布验证
-- WorkspaceSheetLevel
+- WorkspaceSheetSyncTest
 - v1.6.0 发布验证
 - 日历交通空隙显示实施计划
 - 日历交通信息利用地点间空隙
@@ -410,18 +410,18 @@
 - .withPanel
 - RoundedCornerShape
 - 取消花费调整不显示提示
-- Trips
+- Legs
 - v3.4 全链路图片可选：Native 开发验收
 - v1.8.0 页面、状态与设计缺口盘点
 - DayDeleteImpact
 - v1.9.0 六类费用统计设计评审稿
 - CascadeCountDao
-- AssistantCityScope
-- RoomGuideCreation
+- AssistantInputProcessor.kt
+- GuideCreationModels.kt
 - formatDistance
-- PlaceAssistantController.kt
-- DayItinerarySheet.kt
-- SharedPreferences
+- RoomGuideCreation
+- TimelineDragState
+- PlaceDetailPanelAction
 - 导航页面（9）
 - ItineraryRepository
 - v3.4 模型返回协议兼容性修复
@@ -434,10 +434,10 @@
 - com
 - v1.8.0 三项优化：本地开发验证
 - Itineraries
-- Flow
-- PlaceImport
+- Legs
+- AmapMapHost
 - 当前城市重试修复验证
-- SelectablePill
+- CompactSecondaryButton
 - v1.8.3 设计补全审计
 - Easy Trip v1.1 配色
 - v1.1 湖畔晴空配色
@@ -446,31 +446,31 @@
 - v1.9.0 地点多笔费用与六类统计
 - EvidencePermissionSurface
 - calculateScrollbarThumb
-- SavedPlacesContent
+- .Content
 - v1.1 湖畔晴空 Implementation Plan
 - 默认选中当天：本地修复验证
-- PlaceCategory
+- GeoPoint
 - AppSettingsContent.kt
 - v1.8.0 搜索返回地图：开发验证
-- ConnectivityNetworkMonitor
-- 助手识别地点上限 30 → 100
+- TargetDayNotFoundException
+- .itineraryItem
 - expenseTransaction
 - v1.9.0 花费一级入口与年月回顾
 - TripListSortingTest
-- Legs
-- DateRangeChangeImpact
-- Legs
-- BridgeState
+- WorkspaceSearchReturnTestActivity
+- DateRangeChangePhase
+- FakeLegs
+- PlaceAssistantViewModel.kt
 - MapTouchInteractionDetectorTest
 - v3.4 攻略来源覆盖核对：范围修订
 - AmapMapHost
 - v2.1.0 Expense Sections Implementation Plan
 - v2.0.0 开发交付验证
-- PlaceSearchDataSource
-- Places
+- ExpenseReviewViewModelTest
+- Trips
 - v1.8.0 搜索结果返回地图 · UI 设计
 - 旅行管理附属状态（6）
-- CallbackBoundary
+- TestMapHost
 - v2.0.0 花费大改设计覆盖与验证
 - Easy Trip v3.0 Agent 技术架构
 - RouteRefreshCoordinator
@@ -479,21 +479,21 @@
 - MapFacade.kt
 - v1.8.2 创建旅行可不设置日期和天数
 - v1.8.0 发布验证
-- PlaceAssistantViewModel.kt
+- GuideImportResultStore
 - 行程默认选中当天
 - 主题与授权（5）
 - 主动搜索没有重试失败的当前城市请求
 - v1.8.1：搜索失败后主动重试当前城市
 - v1.9.0 编辑地点内联费用
 - ItinerarySummaryHeaderTest
-- AmapMapHost
+- .launchTripObservation
 - Easy Trip v3.1.0 助手图片输入 Implementation Plan
 - v1.7.0 发布验证
 - 不应机械计入页面的源码
 - ThemePalette
 - v1.8.2 创建旅行可跳过日期与天数
 - CreateTripFormFields.kt
-- reduceMapInteraction
+- PlaceSearchContentTest.kt
 - AmapConsentPersistence
 - 搜索结果返回地图
 - CalendarTraffic.kt
@@ -534,20 +534,20 @@
 - v3.4 攻略多图合并理解 Implementation Plan
 - v3.4 城市优先：创建旅行后交给旅行内助手
 - v3.4 全链路图片可选
-- com
+- .verifyReturn
 - v3.3 最新规则：携程／小红书真实模型对比
 - PlaceCategoryMigrationTest.kt
 - validate-design.py
 - 文件分工与接口地图
-- AmapConsentPersistence
+- Legs
 - 全链路图片可选 Implementation Plan
 - Easy Trip v3.0.0 第一版：助手
 - CalendarDetail
 - v2.2.0 地点分类与费用联动实现验证
 - 地点详情与编辑（3）
-- AmapConsentStore
+- ExpenseCategory
 - .exercise
-- Itineraries
+- .complete
 - 日历交互（2）
 - 分享附属界面与导出产物（2）
 - .realMapStopsLocationImmediatelyAndReleasesExactlyOnceAfterRemoval
@@ -555,11 +555,11 @@
 - GuideDestinationProtocolTest
 - PlaceSearchDataSource
 - .from
-- 搜索框与助手统一默认城市
+- 助手抽屉保持地图视角
 - .publicGuideCreatesAnUndatedTripOnlyAfterFinalConfirmation
-- SourceStage
+- .model
 - Easy Trip v4.0 Agent 架构设计：手机端执行、云端推理
-- 助手收藏后自动开始下一轮
+- 助手自动新一轮：Git 交付
 - v3.0.1 地图地点卡：地址补全与紧凑按钮
 - v3.1.0 助手图片输入：实施与验证
 - v3.2.0 助手首次检索补城市与脱敏诊断
@@ -574,15 +574,15 @@
 - v3.2.0 助手直接收藏：实施与验证
 - v3.4 攻略多图合并理解：开发与验收记录
 - ItineraryItemMenu.kt
-- Images
+- CalendarHeaderAlignmentTest
 - ThemePickerViewModel
 - ThemePreferenceStore
 - v3.0 地点标记最小闭环验证与首版 UI
 - AmapMapHost
-- Itineraries
-- Places
+- ItineraryPlaceRow
+- ItineraryShareModels.kt
 - MapAssistantEntry.kt
-- SavedPlaces
+- WorkspaceScaffold.kt
 - CalendarContent.kt
 - CalendarDragMode
 - v2.2.0 分类图标精简与快捷修改
@@ -593,69 +593,77 @@
 - v3.4 完整原文证据与64K整理：实施与验证
 - .exercise
 - AssistantImagePolicy
-- AmapConsentToken
+- v3.3 作者证据优化与 30 地点上限
 - AtomicThemePersistence
 - ExpensePeriodPrompter
 - CalendarResizeHint
-- .controller
+- .verifyDragWinsOverLocationUpdates
 - v3.4 地点整理错误隔离 Git 交付
 - v3.1.0 助手图片输入 · 设计评审
 - v3.0 地点助手 Implementation Plan
 - v3.3 粘贴链接实施计划
-- v3.2.0 助手首次搜索请求节流修复
-- v3.0.0 地点助手：正式签名构建、安装与分支交付
+- 助手收藏底栏对齐修复与地点行间距检查
+- v3.0.0 地点助手首版实施与验证
 - v3.2.0 助手首次批量搜索失败：频率对照诊断
-- .verifyLiveLink
+- v3.3 粘贴链接：Git交付
 - RouteRefreshCoordinator
 - AmapMapHost
 - CalendarTimingController
 - ItineraryRepository
-- com
+- ReviewRow
 - RouteRefreshCoordinator
 - EasyTripThemeHost
-- AssistantLinkInputTest
+- AssistantLinkReadinessTest
 - v3.4 从攻略创建旅行 Implementation Plan
 - v3.3 携程／小红书粘贴链接规格
-- AssistantSearchQueryTest.kt
-- GuideEvidenceControllerTest.kt
+- UndoAddedItemsRequest
+- PlaceDetailEditPolicy.kt
 - v2.2.0 空旅行城市定位修复
 - v3.0 Agent 架构设计与分支交付记录
 - v3 地图入口修正：设计评审
-- AssistantProtocolStage
+- Images
 - GuidePartKind
 - FlexibleRouteDefaultsUpdate
 - v3.4 助手按半展开区域计算地图缩放
 - v3.4 完整证据与64K：Git／手机交付
 - v3.4 模型协议兼容与部分成功：Git／手机交付
 - v3.4 助手一次收藏结束整个批次
+- .openExistingTrips
 - com
-- com
-- PolylineCodec
-- WorkspaceRootLayer
-- GlobalAssistantControllerTest.kt
-- PlaceImport
-- AssistantSingleSaveRoundTest.kt
-- PlaceSearchDataSource
+- AmapMapHost
+- AmapMapHost
+- AssistantFailureCode
+- Edge
+- BlockingSavedPlaces
+- 助手底栏修复：等待上游、提交推送与手机安装
 - v2.2.0 优化实现与专项验收
-- PlaceSearchDataSource
+- v3.2.0-release.md
 - com
-- .workspaceDateLabel
-- .createTrip
+- v3.2.0 请求节流修复：Git 交付
+- v3.2.0 助手首次搜索请求节流修复
 - v3.1.0 助手默认值 rebase 与交付
 - v3.1.0 图片输入开发基线检查
 - v3.1.0 提交与主线集成
+- v3.3 链接资料语义去重与餐饮过滤
 - v3.4 独立景点分类：实际功能 Git 交付
 - v3.4 攻略独立景点筛选：实际实现与验证
 - v3.4 原文证据／实体协议：开发前容量预检
 - v3.4 正圆地图标记与地点名称
 - v3.4 正圆地图标记：提交、推送与手机安装
 - v3.2 首次批量搜索失败：对照诊断
+- .setup
+- OneShotCallback
+- RouteLegRow.kt
 - AmapMapHost
 - AssistantImageStore.kt
-- ImportReceiptEntity
+- Itineraries
+- 助手收藏后自动开始下一轮
+- 搜索框与助手统一默认城市
+- .commit
+- v2.2.0 发布验证
 - EasyTripTokens.kt
 - .observeTrip
-- RoutePlannerTest
+- v3.0.0 正式发布记录
 - v3.4 地图标记：编号与地点名称 UI 评审
 - v3.2 助手直接收藏 Implementation Plan
 - v3 地图入口修正实施计划
@@ -663,10 +671,14 @@
 - 新收藏地点默认景点
 - 统一默认城市：Git 交付
 - v2.2.0 提交、推送与手机安装
+- v3.0.0 地点助手：正式签名构建、安装与分支交付
 - v3.4 多图理解：剩余质量优化复测
-- AssistantImageStoreTest
+- v3.0.0 地图入口修正实施与交付
+- v3.3.0 正式发布记录
+- AmapMapHost
 - GuideSnapshotStrings
 - AssistantImagePolicyTest
+- AmapMapHost
 - v2.2.1 行程天标题两行设计评审
 - v3.4 圆形地图标记实施计划
 - v3.3 固定提示词去旅行特化
@@ -674,22 +686,40 @@
 - 助手半展开地图缩放：Git交付
 - v3.4 一次收藏结束整批：Git 交付
 - 费用领域、草稿与年月汇总
+- AmapMapHost
+- AmapMapHost
+- AmapMapHost
 - GuideEntityValidation
 - PlaceBadgeStyle
+- LayerFailingMapHost
+- GuideHandoffStatus
 - v3.4 独立景点分类安装手机
-- DayItineraryViewModel.kt
-- 地点原位多笔费用闭环
+- 多笔费用权威存储与升级迁移
+- v2.2.0 地点分类：手机安装与 Git 交付
 - 助手请求发起节流
+- AmapMapHost
+- TripDao.kt
 - AmapConsentPersistence
 - AmapConsentPersistence
-- AmapConsentPersistence
+- ExpenseLoadState
+- ItineraryShareScreen.kt
+- PlaceImport
+- TripSettingsViewModelTest.kt
+- PlaceImport
 - v3.2 请求发起节流修复（已确认范围）
-- ContextWrapper
+- ExpenseDraftField
+- Factory
+- AddToItineraryReconciliation
+- GuideCreationCommandTest
+- 花费一级入口与年月分类回顾
+- AddToItineraryStateTest.kt
 - AssistantTransportTest
 - GuideEntityValidationTest
 - DayItineraryViewModelTest
 - v3.0.2 助手首次进入默认值（实现历史）
 - 历史任务：v3.4原文证据／实体结构书面方案
+- .createTrip
+- .deleteDay
 - v3.2.0 助手首次城市限定与脱敏诊断
 - v3.2.0 提交与推送
 - v3.2.0 真实手机安装
@@ -725,34 +755,38 @@
 ## Import Cycles
 - None detected.
 
-## Communities (688 total, 124 thin omitted)
+## Communities (719 total, 129 thin omitted)
 
 ### Community 0 - "Easy Trip v1.0 全量 UI 与交互落地设计"
 Cohesion: 0.04
 Nodes (46): 10.1 批次 1：旅行入口与创建, 10.2 批次 2：搜索、连续收藏与地点池, 10.3 批次 3：从地点池加入行程与旅行日, 10.4 批次 4：单日编辑、交通路段与全程, 10.5 批次 5：设置、日期、权限与完整回归, 10. 五个实施批次, 11.1 本地优先, 11.2 收藏 (+38 more)
 
+### Community 1 - "MapUiModelMapperTest"
+Cohesion: 0.14
+Nodes (3): mapViewportPoints(), routePalette(), MapUiModelMapperTest
+
 ### Community 2 - "ItineraryTimelineContentTest"
-Cohesion: 0.08
-Nodes (7): ItineraryTimelineContentTest, Color, ItineraryItemRow(), ItineraryPlaceRow(), Color, Modifier, RouteLegContent()
+Cohesion: 0.17
+Nodes (3): ItineraryTimelineContentTest, Color, RouteLegContent()
 
 ### Community 3 - "PlaceSearchAction"
-Cohesion: 0.05
-Nodes (39): AddNewTag, AddPresetTag, Back, CancelEdit, ConfirmDiscardEdit, ConfirmRemoval, ContinueEditing, decidePlaceSearchBack() (+31 more)
+Cohesion: 0.07
+Nodes (29): AddNewTag, AddPresetTag, Back, CancelEdit, ConfirmDiscardEdit, ConfirmRemoval, ContinueEditing, DismissRemovalConfirmation (+21 more)
 
 ### Community 4 - "CancellationException"
-Cohesion: 0.10
-Nodes (13): awaitSdkCallback(), CallbackBoundary, cleanupBoundary(), T, FakeBoundary, CallbackBoundary, Result, T (+5 more)
+Cohesion: 0.09
+Nodes (17): awaitSdkCallback(), BridgeState, CANCELLED, COMPLETED, READY, STARTED, STARTING, CallbackBoundary (+9 more)
 
 ### Community 5 - "PlaceIntent"
-Cohesion: 0.04
-Nodes (51): AssistantQingzhouSearchTest, AssistantInputRequest, AssistantFailure, Exception, PlaceIntent, PlaceIntentParser, PlaceIntentNormalizer, AssistantSearchPacer (+43 more)
+Cohesion: 0.05
+Nodes (40): AssistantQingzhouSearchTest, AssistantInputRequest, AssistantFailure, Exception, PlaceIntent, PlaceIntentNormalizer, ImageIntentParser, AssistantCityContextTest (+32 more)
 
 ### Community 6 - "Visual Fix Agent Stall 诊断"
 Cohesion: 0.06
 Nodes (30): 1. Executive summary, 1. Harness 在 tool-result 边界自动结束，最终答复回合缺失, 2. 两次 run timeline, 2. 超大单任务上下文与高频工具链导致空终局/自动收尾概率升高, 3. 停止信号检查, 3. 存在未记录的内部运行时/turn/tool 预算, 4. adb/monkey 失败直接导致第一次停止, 4. 行为模式与次数 (+22 more)
 
 ### Community 7 - "PlaceSearchEvidenceTest"
-Cohesion: 0.22
+Cohesion: 0.21
 Nodes (4): EvidenceCase, ExpectedEvidence, JSONObject, PlaceSearchEvidenceTest
 
 ### Community 8 - "批次记录"
@@ -760,24 +794,20 @@ Cohesion: 0.04
 Nodes (52): 2026-08-30 · Batch 0 / Batch 2 · 工作台抽屉三态, 2026-08-31 · Batch 2 · 工作台空状态与地图图层, 2026-09-01 · Batch 3 / Task 4 · 搜索四态与连续收藏, 2026-09-01 · Batch 3 · 地点池、搜索与地点详情, 2026-09-02 · Batch 4 / Task 4 · 多日与长列表日期选择, 2026-09-02 · Batch 4 / Task 5 · 参数化加入结果, 2026-09-02 · Batch 4 / Task 6 · Fix round 2 · 宿主级场景证据, 2026-09-02 · Batch 4 / Task 6 · 场景、证据和自动化收口 (+44 more)
 
 ### Community 9 - ".check"
-Cohesion: 0.09
-Nodes (13): ComposeScenario, DeclaredScenarioPath, IdentityBoundScenario, com, ScenarioFixture, V1ScenarioExecutable, V1ScenarioExecutableFactory, com (+5 more)
+Cohesion: 0.10
+Nodes (12): ComposeScenario, DeclaredScenarioPath, IdentityBoundScenario, com, ScenarioFixture, V1ScenarioExecutable, V1ScenarioExecutableFactory, com (+4 more)
 
 ### Community 10 - "MapUiModel"
-Cohesion: 0.04
-Nodes (27): AmapComposeMapTest, Lifecycle, LifecycleOwner, MutableLifecycleOwner, TestOwner, AmapMapViewAttachSmokeTest, TestConsentGate, AmapComposeMap() (+19 more)
+Cohesion: 0.07
+Nodes (11): AmapComposeMapTest, Lifecycle, LifecycleOwner, MutableLifecycleOwner, TestOwner, AmapComposeMap(), MapHostCallbackGuard, MapUiModel (+3 more)
 
 ### Community 11 - "TripListViewModel"
 Cohesion: 0.06
-Nodes (24): AwaitingDeletedTrip, Factory, CreationExtras, Job, StateFlow, T, ViewModel, ViewModelProvider (+16 more)
+Nodes (23): AwaitingDeletedTrip, Factory, CreationExtras, Job, StateFlow, T, ViewModel, ViewModelProvider (+15 more)
 
-### Community 12 - "PlaceTag"
+### Community 12 - "Flow"
 Cohesion: 0.04
-Nodes (10): PlaceTag, BlockingSavedPlaces, CoordinateRequiringSavedPlaces, DelayedDetailSavedPlaces, DelayedImpactSavedPlaces, FailingThenBlockingRemovalSavedPlaces, com, Flow (+2 more)
-
-### Community 13 - "DateRangeDeletionCounts"
-Cohesion: 0.09
-Nodes (4): BackLockRepository, com, TripRepository, DateRangeDeletionCounts
+Nodes (8): CoordinateRequiringSavedPlaces, DelayedDetailSavedPlaces, DelayedImpactSavedPlaces, FailingThenBlockingRemovalSavedPlaces, com, Flow, SavedPlaceRepository, OverlappingCollectionSavedPlaces
 
 ### Community 14 - "v1.8.3 设计覆盖矩阵"
 Cohesion: 0.04
@@ -788,32 +818,32 @@ Cohesion: 0.09
 Nodes (5): Coordinator, kotlinx, RouteRefreshCoordinator, Legs, RouteDetails
 
 ### Community 16 - "PlacePoolViewModel"
-Cohesion: 0.05
-Nodes (19): PlaceDeletionImpact, activePlacePoolCity(), PlaceScheduleFilter, ALL, SCHEDULED, UNSCHEDULED, Factory, Job (+11 more)
+Cohesion: 0.09
+Nodes (9): Factory, Job, kotlinx, PlaceSearchDataSource, StateFlow, T, ViewModel, ViewModelProvider (+1 more)
 
 ### Community 17 - "ImportReceipt"
 Cohesion: 0.05
-Nodes (18): PlaceImport, PlaceImport, ImportReceipt, PlaceImport, PlaceImport, PlaceImport, PlaceImport, PlaceImport (+10 more)
+Nodes (22): PlaceImport, PlaceImport, PlaceImport, PlaceImport, PlaceImport, PlaceImport, PlaceImport, PlaceImport (+14 more)
 
 ### Community 18 - "EasyTripDatabase"
 Cohesion: 0.02
-Nodes (71): batchedDeviceReply(), JsonObject, AssistantCityUiTest, AssistantDirectSaveUiTest, AssistantEntityIsolationUiTest, ContextWrapper, PlaceSearchDataSource, ContextWrapper (+63 more)
+Nodes (70): gitBytes(), ByteArray, sha256(), batchedDeviceReply(), JsonObject, AssistantCityUiTest, AssistantDirectSaveUiTest, AssistantEntityIsolationUiTest (+62 more)
 
 ### Community 20 - "DayItineraryViewModel"
-Cohesion: 0.07
-Nodes (11): DayItineraryViewModel, Factory, com, Job, RouteRefreshCoordinator, StateFlow, T, ViewModel (+3 more)
+Cohesion: 0.09
+Nodes (6): ExpenseRouteEditor(), DayItineraryViewModel, RouteRefreshCoordinator, StateFlow, ViewModel, visibleRouteLegs()
 
 ### Community 21 - "Easy Trip 一期设计"
 Cohesion: 0.17
 Nodes (12): Easy Trip v1 实施计划, 地图优先旅行工作台, Room 唯一持久化事实源, 路线版本过期响应保护, 事务化邻接路段维护, Easy Trip 一期设计, 离线路线等待与联网续算, 同一地点可重复安排行程 (+4 more)
 
-### Community 22 - "WorkspaceBottomSheet"
-Cohesion: 0.12
-Nodes (10): clampWorkspaceSheetDragOffsetPx(), Dp, Modifier, resolveWorkspaceSheetDrag(), WorkspaceBottomSheet(), WorkspaceSheetAnchors, workspaceSheetDragThreshold(), Modifier (+2 more)
+### Community 22 - "WorkspaceSheetLevel"
+Cohesion: 0.14
+Nodes (13): clampWorkspaceSheetDragOffsetPx(), Dp, Modifier, resolveWorkspaceSheetDrag(), WorkspaceBottomSheet(), WorkspaceSheetAnchors, workspaceSheetDragThreshold(), WorkspaceSheetLevel (+5 more)
 
 ### Community 23 - "fixtureEvidence"
-Cohesion: 0.12
-Nodes (10): classifiedMentionWire(), GuideEntityClassificationTest, GuideEntityIsolationTest, JsonObject, GuideEntityPromptRegressionTest, entityReply(), fixtureEvidence(), GuideEntityProtocolTest (+2 more)
+Cohesion: 0.11
+Nodes (12): GuideEvidenceResolver, ModelGuideEvidenceResolver, classifiedMentionWire(), GuideEntityClassificationTest, GuideEntityIsolationTest, JsonObject, GuideEntityPromptRegressionTest, entityReply() (+4 more)
 
 ### Community 24 - "PlaceSearchReducer"
 Cohesion: 0.11
@@ -824,12 +854,12 @@ Cohesion: 0.05
 Nodes (39): 10.1 JVM, 10.2 Compose instrumentation, 10.3 数据与导航集成, 10.4 验证命令, 10. 测试策略, 11. 视觉验收, 12. 验收标准, 13. 协作边界 (+31 more)
 
 ### Community 27 - "MutableStateFlow"
-Cohesion: 0.05
-Nodes (16): GlobalAssistantNavigationTest, NetworkMonitor, NetworkMonitor, NetworkMonitor, DayItinerarySelectionTest, Itineraries, com, CompletableDeferred (+8 more)
+Cohesion: 0.11
+Nodes (11): NetworkMonitor, NetworkMonitor, NetworkMonitor, DayItinerarySelectionTest, com, CompletableDeferred, CreateTrip, TripRepository (+3 more)
 
 ### Community 28 - "ExpenseRecord"
-Cohesion: 0.06
-Nodes (18): Flow, ExpenseRepository, ExpenseRepository, kotlinx, expenseRecords(), expenseDate(), ExpenseKey, ExpenseRecord (+10 more)
+Cohesion: 0.08
+Nodes (14): Flow, ExpenseRepository, ExpenseRepository, kotlinx, expenseRecords(), expenseDate(), ExpenseKey, ExpenseRecord (+6 more)
 
 ### Community 29 - "Easy Trip v2 交互与视觉升级设计"
 Cohesion: 0.17
@@ -844,8 +874,8 @@ Cohesion: 0.13
 Nodes (14): Easy Trip 行程内容族 UI 收敛实施计划, Execution Notes, File Structure, Global Constraints, Task 1: 建立共享紧凑地点 primitive, Task 2: 实现行程项 `···` 菜单, Task 3: 将排序手势限制到拖动手柄, Task 4: 将 RouteLeg 补齐为明确四态 (+6 more)
 
 ### Community 32 - "MemoryPreferences"
-Cohesion: 0.15
-Nodes (3): SharedPreferencesMapPreferences, MapPreferencesTest, MemoryPreferences
+Cohesion: 0.10
+Nodes (7): StateFlow, MapPreferences, SharedPreferencesMapPreferences, Editor, MapPreferencesTest, MemoryPreferences, SharedPreferences
 
 ### Community 33 - "高德 Android SDK 集成决策"
 Cohesion: 0.14
@@ -859,9 +889,9 @@ Nodes (33): 10. 数据模型, 11. 空态与错误处理, 12. 可访问性, 13. �
 Cohesion: 0.09
 Nodes (9): com, CoroutineScope, com, com, com, com, com, com (+1 more)
 
-### Community 37 - "ItineraryScope"
+### Community 37 - "RouteLegUi"
 Cohesion: 0.06
-Nodes (23): ItineraryScopeRailTest, V170UiTest, ExpenseSummary, DayScopeItem(), ItineraryScopeRail(), Modifier, Role, ScopeItem() (+15 more)
+Nodes (23): ItineraryRailSpacingTest, ItineraryScopeRailTest, WholeTripItineraryContentTest, V170UiTest, DayScopeItem(), ItineraryScopeRail(), Modifier, Role (+15 more)
 
 ### Community 38 - "Easy Trip 工作台 UI 收敛设计"
 Cohesion: 0.06
@@ -876,16 +906,16 @@ Cohesion: 0.07
 Nodes (27): 10. 行程与路线, 11. 通用状态规范, 12. 权限与危险操作, 13. 分批实现顺序, 14. 每批固定工作流程, 15. 批次验收门槛, 16. 交付报告模板, 1. 事实来源与优先级 (+19 more)
 
 ### Community 41 - "TripSettingsViewModel"
-Cohesion: 0.06
-Nodes (16): DateRangeChangeRequest, DateRangeCommitProgress, DeleteImpactProvider, Factory, Flow, Job, StateFlow, T (+8 more)
+Cohesion: 0.05
+Nodes (20): DateRangeChangeImpact, DateRangeDeletionSnapshot, IllegalStateException, TripDateRangeTargetNotFoundException, DateRangeChangeRequest, DateRangeCommitProgress, DeleteImpactProvider, Factory (+12 more)
 
-### Community 42 - "decideCollectionToggle"
-Cohesion: 0.24
-Nodes (6): CollectionDecision, Confirm, decideCollectionToggle(), RemoveNow, Save, CollectionTogglePolicyTest
+### Community 42 - "PlaceDeletionImpact"
+Cohesion: 0.26
+Nodes (7): PlaceDeletionImpact, CollectionDecision, Confirm, decideCollectionToggle(), RemoveNow, Save, CollectionTogglePolicyTest
 
-### Community 43 - "VisualBatch0EvidenceTest"
-Cohesion: 0.11
-Nodes (6): Batch4HostState, ControlledWorkspaceEvidence, DeterministicFakeMapHost, AmapMapHost, com, VisualBatch0EvidenceTest
+### Community 43 - "RealAmapMapHost"
+Cohesion: 0.07
+Nodes (12): Modifier, View, MapLayerApplicationController, MapLayerRendering, MapMarkerRendering, MapTouchInteractionDetector, NormalizedPoint, northUpCameraPosition() (+4 more)
 
 ### Community 44 - "Easy Trip 实现计划"
 Cohesion: 0.12
@@ -896,8 +926,8 @@ Cohesion: 0.06
 Nodes (34): 1. Graphify 定向查询, 2. 全套 JVM、lint、assemble, 3. 设备检查, 4. Task 4/5 目标 Compose 与相关 Room 测试, adb/uiautomator 断言, API 36 恢复环境生产旅程 B（2026-08-24）, Batch 2 Gate Report, Concerns (+26 more)
 
 ### Community 46 - "FakeRepository"
-Cohesion: 0.13
-Nodes (12): Active, DefaultRouteRefreshCoordinator, CoroutineScope, Job, RouteDisconnectedException, FakeNetworkMonitor, FakePlanner, FakeRepository (+4 more)
+Cohesion: 0.07
+Nodes (22): ConnectivityNetworkMonitorTest, canAttemptInternet(), DefaultNetworkState, T, ConnectivityNetworkMonitor, hasInternetAccess(), StateFlow, NetworkMonitor (+14 more)
 
 ### Community 47 - "讨论草案｜Easy Trip UI 下一步动作"
 Cohesion: 0.08
@@ -908,8 +938,8 @@ Cohesion: 0.08
 Nodes (9): RoomV2MigrationTest, ExpenseMutationConsistencyTest, ExpensePeriodDialogTest, ExpenseReviewNavigationTest, ExpenseV2MigrationTest, ExpenseV2PersistenceTest, automaticallySelectedCategoryDoesNotPreventSavingOnlyAnItineraryNote(), ExpenseRepository (+1 more)
 
 ### Community 49 - "FakeRepository"
-Cohesion: 0.17
-Nodes (6): TripDateRangeService, FakeRepository, CreateTrip, Flow, TripRepository, TripDateRangeServiceTest
+Cohesion: 0.12
+Nodes (7): DateRangeApply, TripDateRangeService, FakeRepository, CreateTrip, Flow, TripRepository, TripDateRangeServiceTest
 
 ### Community 51 - "Easy Trip 搜索与收藏交互设计"
 Cohesion: 0.07
@@ -919,53 +949,53 @@ Nodes (27): 10. 边界与错误处理, 11. 测试策略, 12. 验收标准, 1. �
 Cohesion: 0.12
 Nodes (8): CreateTripViewModelTest, FakeRepository, com, CreateTrip, FakeRepository, Flow, SavedStateHandle, TripRepository
 
-### Community 53 - "TripWorkspaceViewModel.kt"
-Cohesion: 0.12
-Nodes (15): Factory, CreationExtras, Flow, ItineraryRepository, Job, StateFlow, T, ViewModel (+7 more)
+### Community 53 - ".create"
+Cohesion: 0.40
+Nodes (4): Factory, CreationExtras, T, ViewModelProvider
 
-### Community 54 - "TripWorkspaceRoute.kt"
-Cohesion: 0.07
-Nodes (24): StateFlow, LocationPermissionPrompt, EXPLANATION, NONE, SETTINGS, LocationPermissionRequestStore, LocationPermissionUiState, OpenApplicationSettings (+16 more)
+### Community 54 - "LocationPermissionUiState"
+Cohesion: 0.11
+Nodes (11): dispatchApplicationSettingsRequest(), StateFlow, LocationPermissionRequestStore, LocationPermissionUiState, OpenApplicationSettings, RequestLocationPermission, SettingsRecovery, SharedPreferencesLocationPermissionRequestStore (+3 more)
 
 ### Community 55 - "FakeTrips"
-Cohesion: 0.06
-Nodes (17): Add, FakeCoordinator, FakeItineraries, FakeLegs, FakeTrips, ItineraryEditingTest, com, CreateTrip (+9 more)
+Cohesion: 0.08
+Nodes (16): Add, FakeCoordinator, FakeItineraries, FakeTrips, ItineraryEditingTest, CreateTrip, ItineraryRepository, java (+8 more)
 
 ### Community 56 - "Batch 2 Room Timeout Diagnosis"
 Cohesion: 0.11
 Nodes (18): Batch 2 Room Timeout Diagnosis, GREEN 修复与验证, Phase 1：失败与复现, Phase 2：模式对比, Phase 3：单一假设验证, 仓库内 working Room Flow 模式, 假设, 判定 (+10 more)
 
-### Community 57 - "PlaceSearchDataSource"
-Cohesion: 0.29
-Nodes (4): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource
+### Community 57 - "PlaceSearchViewModel"
+Cohesion: 0.08
+Nodes (12): PendingCollectionRemoval, Factory, com, PlaceSearchDataSource, StateFlow, T, ViewModel, ViewModelProvider (+4 more)
 
-### Community 58 - "ItineraryItemUi"
-Cohesion: 0.06
-Nodes (24): CalendarHeaderAlignmentTest, ItineraryDayActionsTest, TextLayoutResult, V12ItineraryPolishTest, WholeTripItineraryContentTest, DeferredLoading(), ExpandableNote(), Dp (+16 more)
+### Community 58 - "V12ItineraryPolishTest"
+Cohesion: 0.17
+Nodes (8): TextLayoutResult, V12ItineraryPolishTest, DeferredLoading(), ExpandableNote(), Dp, Modifier, NoteToggle(), RowScope
 
 ### Community 59 - "FakeItineraries"
-Cohesion: 0.09
-Nodes (8): RecoverablePlaceAddException, TargetDayNotFoundException, UndoCreatedItemsBatch, AddToItineraryStateTest, FakeItineraries, ItineraryRepository, SavedStateHandle, FakeItineraries
+Cohesion: 0.11
+Nodes (5): AddToItineraryStateTest, FakeItineraries, ItineraryRepository, SavedStateHandle, FakeItineraries
 
 ### Community 60 - "AmapMapHost"
-Cohesion: 0.04
-Nodes (11): CameraRecordingHost, LocatedCameraHost, AmapMapHost, MapCameraState, WorkspaceMapSession, PlaceSearchDataSource, WorkspaceMapSessionTest, PlaceSearchDataSource (+3 more)
+Cohesion: 0.05
+Nodes (6): CameraRecordingHost, android, LocatedCameraHost, AmapMapHost, MapCameraState, WorkspaceMapSession
 
 ### Community 61 - "Flow"
-Cohesion: 0.04
-Nodes (9): DelayedCollectionRepository, DelayedDeleteRepository, DelayedPlacesRepository, DelayedRepository, DelayedRowsRepository, DelayedUpdateRepository, com, Flow (+1 more)
+Cohesion: 0.05
+Nodes (7): DelayedDeleteRepository, DelayedPlacesRepository, DelayedRowsRepository, DelayedUpdateRepository, com, Flow, SavedPlaceRepository
 
-### Community 62 - "SavedPlace"
-Cohesion: 0.07
-Nodes (12): SavedPlace, PendingCollectionRemoval, com, PlaceSearchViewModel, ShowResultsOnMap, ControlledSearchSource, FakeSavedPlaces, IgnoringCancellationSearchSource (+4 more)
+### Community 62 - "PlaceSearchViewModelTest"
+Cohesion: 0.11
+Nodes (6): decidePlaceSearchBack(), reducePlaceSearchBack(), FakeSavedPlaces, ImmediateSearchSource, PlaceSearchViewModelTest, RecordingSearchSource
 
 ### Community 63 - "AmapMapHost"
 Cohesion: 0.02
-Nodes (24): AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost (+16 more)
+Nodes (18): AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost (+10 more)
 
-### Community 64 - "TripListAction"
-Cohesion: 0.18
-Nodes (11): CancelDelete, ConfirmDelete, CreateTrip, OpenSettings, OpenTrip, RequestDelete, Retry, RetryDeleteImpact (+3 more)
+### Community 64 - "PlacePoolViewModelTest"
+Cohesion: 0.12
+Nodes (4): activePlacePoolCity(), localSearchRows(), PlacePoolViewModelTest, PoolRepository
 
 ### Community 65 - "Batch 2 搜索加载与网络失败可控设备证据方案"
 Cohesion: 0.07
@@ -975,9 +1005,9 @@ Nodes (26): 1. 无设备的生产状态机回归, 2. 明确锁定获准 AVD, 3. 
 Cohesion: 0.12
 Nodes (4): MapLifecycleController, MapReadyWatchdog, MapLifecycleControllerTest, MapReadyWatchdogTest
 
-### Community 67 - "PlaceSearchDataSource"
-Cohesion: 0.15
-Nodes (7): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource
+### Community 67 - "TripSearchCityResolver"
+Cohesion: 0.12
+Nodes (9): PlaceSearchDataSource, TripCitySearchSource, tripSearchCityResolver(), TripSearchCityResolver, PlaceSearchDataSource, TripSearchCityResolverTest, PlaceSearchDataSource, PlaceSearchDataSource (+1 more)
 
 ### Community 68 - "AmapConsentStoreTest"
 Cohesion: 0.12
@@ -988,8 +1018,8 @@ Cohesion: 0.06
 Nodes (33): 10. 错误与恢复, 11.1 JVM, 11.2 Compose, 11.3 Room 与导航, 11.4 批次门禁, 11. 自动化验收, 12. 真机验收, 13. 冲突与后续 TODO (+25 more)
 
 ### Community 71 - "AmapServiceException"
-Cohesion: 0.08
-Nodes (25): AmapSmokeTest, AmapServiceException, Exception, AmapRouteDataSource, CallbackBoundary, RouteSearch, CallbackBoundary, RouteDataSource (+17 more)
+Cohesion: 0.07
+Nodes (28): AmapSmokeTest, AmapServiceException, Exception, AmapRouteDataSource, CallbackBoundary, RouteSearch, CallbackBoundary, RouteDataSource (+20 more)
 
 ### Community 72 - "Task 4 报告：重做搜索状态机与连续收藏"
 Cohesion: 0.13
@@ -997,15 +1027,15 @@ Nodes (14): Device gate review fix round 1, Fix round 1, Fix round 2, Fix round 
 
 ### Community 73 - "ProviderConfig"
 Cohesion: 0.04
-Nodes (26): AssistantImageCapabilitySettingsTest, ContextWrapper, ContextWrapper, image(), com, JsonObject, checkImageCapability(), ImageCapability (+18 more)
+Nodes (28): places(), AssistantImageCapabilitySettingsTest, ContextWrapper, ContextWrapper, image(), com, JsonObject, checkImageCapability() (+20 more)
 
-### Community 74 - "SavedPlaceRowUi"
+### Community 74 - "SavedPlace"
 Cohesion: 0.05
-Nodes (47): PlacePickerRefinementTest, PlaceCityGroupingTest, PlacePoolFlowTest, PlacePoolSharedHeaderTest, WorkspacePlacePoolLayoutTest, Modifier, PlacePickerFooter(), SelectablePlaceRow() (+39 more)
+Nodes (46): PlacePickerRefinementTest, PlaceCityGroupingTest, Flow, PlacePoolFlowTest, PlacePoolSharedHeaderTest, WorkspacePlacePoolLayoutTest, SelectPlacesContent(), SavedPlace (+38 more)
 
-### Community 75 - "GeoPoint"
-Cohesion: 0.05
-Nodes (29): AmapCitySearchRegressionTest, AmapCurrentLocationSmokeTest, RoomCityMetadataTest, PlaceSearchDataSource, PlaceSearchDataSource, AmapCurrentLocation, hasDeviceLocationPermission(), Context (+21 more)
+### Community 75 - "PlaceCity"
+Cohesion: 0.04
+Nodes (36): AMapLocationListener, AmapCitySearchRegressionTest, AmapCurrentLocationSmokeTest, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, AmapCurrentLocation (+28 more)
 
 ### Community 76 - "文件结构"
 Cohesion: 0.12
@@ -1028,8 +1058,8 @@ Cohesion: 0.50
 Nodes (4): 高德地图本地密钥配置, Easy Trip, 本地优先 Android 旅行规划, 未授权或离线本地编辑
 
 ### Community 83 - "FakeRepository"
-Cohesion: 0.07
-Nodes (12): ExpenseRemovalCancelled, FakeImpacts, FakeRepository, com, CompletableDeferred, CreateTrip, DeleteImpactProvider, FakeRepository (+4 more)
+Cohesion: 0.08
+Nodes (8): ExpenseRemovalCancelled, FakeImpacts, FakeRepository, CompletableDeferred, DeleteImpactProvider, FakeRepository, TripRepository, TripSettingsViewModelTest
 
 ### Community 86 - "TASK_STATE.md"
 Cohesion: 0.01
@@ -1039,29 +1069,29 @@ Nodes (149): v1.8.3 设计补全复核, v1.9.0 编辑地点内联费用设计, v
 Cohesion: 0.29
 Nodes (3): PlaceImport, PlaceImport, PlaceImport
 
-### Community 88 - "ConfirmationDialog"
-Cohesion: 0.13
-Nodes (11): ConfirmationDialogTest, ConfirmationDialog(), ConfirmationSection(), Color, Modifier, ConfirmationUiModel, EasyTripDialogSurface(), Dp (+3 more)
+### Community 88 - "WorkspaceNavigationTest"
+Cohesion: 0.14
+Nodes (8): Day, decodeItineraryScope(), encodeItineraryScope(), reconcileItineraryScope(), RestoredWorkspaceNavigation, restoreWorkspaceNavigation(), toMapScope(), WorkspaceNavigationTest
 
 ### Community 89 - "ItineraryEditDraft"
-Cohesion: 0.12
-Nodes (12): EditPlaceSectionsUiTest, ItineraryTimingPickerTest, EditItineraryItemContent(), Modifier, TimingSummary(), TimingSummaryButton(), ItineraryEditDraft, ArrivalPeriodFilter() (+4 more)
+Cohesion: 0.14
+Nodes (8): EditPlaceSectionsUiTest, ItineraryTimingPickerTest, EditItineraryItemContent(), Modifier, TimingSummary(), TimingSummaryButton(), ItineraryEditDraft, ItineraryTimingPickers()
 
 ### Community 90 - "MapLayer"
-Cohesion: 0.02
-Nodes (26): AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost (+18 more)
+Cohesion: 0.03
+Nodes (21): AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost, AmapMapHost (+13 more)
 
-### Community 91 - "ItineraryRepository"
-Cohesion: 0.07
-Nodes (15): assertArrivalTime(), assertStayHours(), expandTimingIfNeeded(), selectArrivalTime(), selectStayHours(), AmapMapHost, PlaceSearchDataSource, RecordingHost (+7 more)
+### Community 91 - "V2AcceptanceTest.kt"
+Cohesion: 0.13
+Nodes (10): assertArrivalTime(), assertStayHours(), expandTimingIfNeeded(), selectArrivalTime(), selectStayHours(), AmapMapHost, PlaceSearchDataSource, RecordingHost (+2 more)
 
 ### Community 92 - "CLAUDE.md"
 Cohesion: 0.50
 Nodes (3): Batch gates, Easy Trip 设计实现, graphify
 
-### Community 93 - "PlaceCandidate"
-Cohesion: 0.06
-Nodes (22): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, com, Flow, SavedPlaceRepository, PlaceSearchContentTest (+14 more)
+### Community 93 - "PlaceSearchUiState"
+Cohesion: 0.07
+Nodes (16): com, Flow, SavedPlaceRepository, PlaceSearchContentTest, com, com, com, com (+8 more)
 
 ### Community 94 - "Task 5 报告：地点池、详情与地图控件"
 Cohesion: 0.17
@@ -1073,19 +1103,19 @@ Nodes (18): PlaceImport, PlaceImport, PlaceImport, PlaceImport, PlaceImport, Pla
 
 ### Community 96 - "MapViewportControllerTest"
 Cohesion: 0.06
-Nodes (12): AssistantViewportOwner, com, placeCityKey(), MapScope, PLACE_POOL, SINGLE_DAY, WHOLE_TRIP, MapViewportRequest (+4 more)
+Nodes (9): AssistantViewportOwner, com, placeCityKey(), MapZoomRequestController, MapViewportRequest, MapViewportController, PlacePoolMapFilter, AssistantViewportOwnerTest (+1 more)
 
-### Community 97 - "GuideContext"
-Cohesion: 0.07
-Nodes (27): GuideBatchBody, FilterOutputStream, Image, ByteArray, Part, Text, GuideBatchPolicies, GuideBatchPolicy (+19 more)
+### Community 97 - "GuideSource"
+Cohesion: 0.06
+Nodes (24): GuideBatchBody, FilterOutputStream, Image, ByteArray, Part, Text, GuideBatchPolicies, GuideBatchPolicy (+16 more)
 
 ### Community 98 - "DayItineraryAction"
 Cohesion: 0.06
 Nodes (36): AddExpense, AddPlace, AddPlaces, AppendTripDay, ClearSelectedModeOverride, CommitMove, ConfirmDelete, DayItineraryAction (+28 more)
 
-### Community 99 - "PlaceScheduleSummaryUi"
-Cohesion: 0.07
-Nodes (34): PlaceCategoryVisualTest, PlaceDetailPanelTest, Modifier, PlaceDetailContent(), PlaceDetailDialog(), AddPresetTag, AddTag, CancelEdit (+26 more)
+### Community 99 - ".setContent"
+Cohesion: 0.12
+Nodes (13): PlaceCategoryVisualTest, PlaceDetailPanelTest, Modifier, PlaceDetailContent(), PlaceDetailDialog(), PlaceDetailPanel(), PlaceDetailSource, PlacePool (+5 more)
 
 ### Community 100 - "PlaceSearchContent.kt"
 Cohesion: 0.11
@@ -1103,9 +1133,9 @@ Nodes (10): Easy Trip Workspace Navigation Implementation Plan, File Structure, 
 Cohesion: 0.15
 Nodes (12): Easy Trip v1.0 Pencil Implementation Plan, File Structure, Global Constraints, Task 1: 冻结 Pencil 主流程基线, Task 2: 建立 v1.0 Theme 与共享组件, Task 3: 拆分并实现“我的旅行”页面, Task 4: 实现创建旅行状态机与真实提交, Task 5: 拆分工作台并实现地图降级 (+4 more)
 
-### Community 104 - "AddPlacesRequest"
-Cohesion: 0.08
-Nodes (17): AddPlacesRoomIntegrationTest, DeleteTargetDayAfterFirstAddRepository, InterruptAfterCommittedAddRepository, com, ItineraryRepository, SequenceIds, AddPlacesRequest, UndoAddedItemsOutcome (+9 more)
+### Community 104 - "FakeItineraryRepository"
+Cohesion: 0.15
+Nodes (7): AddCall, AddPlacesToDayUseCaseTest, FakeItineraryRepository, ItineraryDetailCall, Flow, ItineraryRepository, java
 
 ### Community 105 - "Global Constraints"
 Cohesion: 0.20
@@ -1127,17 +1157,17 @@ Nodes (28): announce(), applyDelta(), autoScroll(), cancel(), cleanup(), commit(
 Cohesion: 0.17
 Nodes (13): Batch5ExecutableEvidence, Batch5FrameCheckpoint, AppendDay, DeleteDay, EmptyDay, ItemDelete, ItemEditComplete, ItemEditor (+5 more)
 
-### Community 110 - "RecordingHost"
-Cohesion: 0.18
-Nodes (6): AmapMapHost, Lifecycle, LifecycleOwner, RecordingHost, SearchMapFocusTest, TestOwner
+### Community 110 - ".poi"
+Cohesion: 0.10
+Nodes (14): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource (+6 more)
 
 ### Community 111 - "validatePlaceTag"
 Cohesion: 0.15
 Nodes (10): Duplicate, Empty, LimitReached, normalizePlaceTagName(), placeTagUnits(), PlaceTagValidation, TooLong, Valid (+2 more)
 
-### Community 112 - "Color.kt"
-Cohesion: 0.06
-Nodes (34): EasyTripButtonTest, TripDeletionDialogTest, WorkspacePermissionFlowTest, GuideCreationRoute(), TripCreationForm(), ActionStyle, DANGER, PRIMARY (+26 more)
+### Community 112 - "EasyTripPrimaryButton"
+Cohesion: 0.04
+Nodes (43): ConfirmationDialogTest, EasyTripButtonTest, TripDeletionDialogTest, WorkspacePermissionFlowTest, GuideCreationRoute(), TripCreationForm(), ActionStyle, DANGER (+35 more)
 
 ### Community 113 - "Task 3 报告：搜索详情 AMap 与生命周期复用"
 Cohesion: 0.11
@@ -1151,9 +1181,9 @@ Nodes (23): Final fix wave 新鲜验证, FreshGate 工作台根因修复候选�
 Cohesion: 0.14
 Nodes (4): ItineraryTransactionTest, SequenceIds, ItineraryTiming, ItineraryTimingChange
 
-### Community 116 - "InsertSide"
-Cohesion: 0.05
-Nodes (25): Flow, Flow, Flow, Flow, AlreadySaved, Saved, SavePlaceResult, Flow (+17 more)
+### Community 116 - "TravelMode"
+Cohesion: 0.03
+Nodes (58): Flow, Flow, CoroutineScope, Flow, RouteRefreshCoordinator, RouteRefreshCoordinator, Flow, TransportMode (+50 more)
 
 ### Community 117 - "Connection"
 Cohesion: 0.16
@@ -1175,13 +1205,13 @@ Nodes (3): 行程项, 路线段, 收藏地点
 Cohesion: 0.11
 Nodes (17): Diff check, EXPANDED 浮层 RED / 根因 / GREEN, Fix round 1/5, Graphify, RouteLeg RED / 根因 / GREEN, SHA, Task 7 Report, Whole-branch review fix wave (+9 more)
 
-### Community 122 - "ItineraryShareModels.kt"
-Cohesion: 0.10
-Nodes (20): FullTripExportTest, multiDayShareFixture(), ShareImageExportTest, shareFixture(), buildShareTrip(), isShareable(), ShareDay, shareLabel() (+12 more)
+### Community 122 - "ShareOptions"
+Cohesion: 0.19
+Nodes (7): FullTripExportTest, multiDayShareFixture(), ShareImageExportTest, ShareOptions, DrawOp, ShareDayMap, ShareImageRenderer
 
-### Community 123 - "PlaceAssistantState"
-Cohesion: 0.04
-Nodes (72): normalize(), ParsedInputBatch, ParsedSource, progress(), publish(), resolveEvidence(), skipped(), SourceProgress (+64 more)
+### Community 123 - "GuideContext"
+Cohesion: 0.03
+Nodes (76): ParsedSource, resolveEvidence(), assistantMarkers(), assistantViewportPoints(), com, AssistantTarget, ExistingTrip, ImageEntityRole (+68 more)
 
 ### Community 124 - "Easy Trip 旅行设置与日期正确性收敛设计"
 Cohesion: 0.22
@@ -1209,7 +1239,7 @@ Nodes (19): AddPlacesToDayUseCase, Domain Repository, Room/DAO, Task 6 接口预
 
 ### Community 132 - "AssistantImage"
 Cohesion: 0.06
-Nodes (27): places(), AssistantLinkLoader, AssistantLinkLoader, AssistantImageInputUiTest, AssistantLinkLoader, AssistantLinkLoader, AssistantLinkLoader, AssistantLinkLoader (+19 more)
+Nodes (26): AssistantImageInputUiTest, AssistantLinkLoader, AssistantLinkLoader, AssistantLinkLoader, AssistantLinkLoader, AssistantLinkLoader, AssistantLinkLoader, AssistantImage (+18 more)
 
 ### Community 133 - "Task 3 Report"
 Cohesion: 0.07
@@ -1231,9 +1261,9 @@ Nodes (20): v1.4.0 行程长图 · R3 全程日历设计, 内容与交互, 同�
 Cohesion: 0.52
 Nodes (5): cleanup(), handle_signal(), process_alive(), same_process_identity(), run-amap-smoke.sh script
 
-### Community 139 - "SchemaTest"
-Cohesion: 0.08
-Nodes (8): Fixture, SchemaTest, Converters, RouteErrorKind, NO_ROUTE, PERMANENT, TRANSIENT, UNSUPPORTED_TRANSIT
+### Community 139 - "RouteStatus"
+Cohesion: 0.04
+Nodes (20): Converters, RouteStatus, CALCULATING, FAILED, PENDING, SUCCESS, WAITING_NETWORK, AutomaticTimingQueries (+12 more)
 
 ### Community 140 - "amap-emulator-gate-test.sh"
 Cohesion: 0.80
@@ -1244,12 +1274,12 @@ Cohesion: 0.70
 Nodes (4): fail(), make_fixture(), run_status(), run-amap-smoke-test.sh script
 
 ### Community 142 - ".controller"
-Cohesion: 0.08
-Nodes (17): AndroidAssistantSearchDiagnostics, AssistantSearchDiagnostics, AssistantSearchEvent, SearchOutcome, CANCELLED, CITY_MISMATCH, ERROR, NOT_FOUND (+9 more)
+Cohesion: 0.06
+Nodes (25): AndroidAssistantSearchDiagnostics, AssistantSearchDiagnostics, AssistantSearchEvent, SearchOutcome, CANCELLED, CITY_MISMATCH, ERROR, NOT_FOUND (+17 more)
 
-### Community 143 - "Trips"
-Cohesion: 0.11
-Nodes (4): com, CreateTrip, TripRepository, Trips
+### Community 143 - "Legs"
+Cohesion: 0.03
+Nodes (14): FakeMapPreferences, Itineraries, AmapMapHost, com, CreateTrip, ItineraryRepository, Role, SavedPlaceRepository (+6 more)
 
 ### Community 144 - "V1ScenarioFixtures.kt"
 Cohesion: 0.23
@@ -1257,19 +1287,19 @@ Nodes (9): Batch5FrameEvidence, PhysicalDeviceUiStatus, FAIL, PASS, PENDING, Sce
 
 ### Community 145 - "com"
 Cohesion: 0.02
-Nodes (11): AppendableNoDayTrips, DatedTrips, DeferredTrips, com, CreateTrip, TripRepository, LongNameTrips, LongTrips (+3 more)
+Nodes (9): AppendableNoDayTrips, DatedTrips, DeferredTrips, com, TripRepository, LongNameTrips, LongTrips, NoDayTrips (+1 more)
 
 ### Community 146 - "App 设置与版本更新 · 已确认设计"
 Cohesion: 0.09
 Nodes (19): App 设置与版本更新 · 已确认设计, 九种更新状态, 修改与回滚, 原型边界与非目标, 地图授权边界, 已确认的信息架构, 已确认的更新流程, 旅行工作台（单次旅行） (+11 more)
 
 ### Community 147 - "AppContainerTest"
-Cohesion: 0.20
-Nodes (8): AmapRuntimeDependencies, resolveAmapRuntimeDependencies(), AcceptedFixture, AppContainerTest, FakeRouteRefreshCoordinator, CoroutineScope, RouteRefreshCoordinator, RecordingRuntimeSessionFactory
+Cohesion: 0.16
+Nodes (10): AmapRuntimeDependencies, resolveAmapRuntimeDependencies(), AcceptedFixture, AppContainerTest, FakePlaceSearchDataSource, FakeRouteRefreshCoordinator, CoroutineScope, PlaceSearchDataSource (+2 more)
 
 ### Community 149 - "AmapMapHost"
-Cohesion: 0.02
-Nodes (14): FailingMapHost, FirstSatelliteFailingMapHost, AmapMapHost, LayerFailingMapHost, MarkerClickHost, TestMapHost, AmapMapHost, AmapMapHost (+6 more)
+Cohesion: 0.03
+Nodes (11): FailingMapHost, FirstSatelliteFailingMapHost, AmapMapHost, MarkerClickHost, TestMapHost, AmapMapHost, AmapMapHost, AmapMapHost (+3 more)
 
 ### Community 150 - "MutablePlaces"
 Cohesion: 0.10
@@ -1283,9 +1313,9 @@ Nodes (6): Task 7 Phase 2 Report, TDD, 实现, 未覆盖风险, 状态, 验证
 Cohesion: 0.29
 Nodes (6): RED / GREEN, Task 5 报告, 修改文件, 测试, 状态, 自审
 
-### Community 154 - "AssistantModels.kt"
-Cohesion: 0.04
-Nodes (45): AssistantFailureCode, AUTH, LIMIT, NETWORK, NO_PLACES, OVERFLOW, PROTOCOL, UNKNOWN (+37 more)
+### Community 154 - "IntakeStatus"
+Cohesion: 0.18
+Nodes (11): IntakeStatus, ALREADY_SAVED, AMBIGUOUS, CANCELLED, DUPLICATE, FAILED, NEED_CITY, NOT_FOUND (+3 more)
 
 ### Community 155 - "File Structure"
 Cohesion: 0.13
@@ -1296,8 +1326,8 @@ Cohesion: 0.29
 Nodes (6): Coverage model, Cross-cutting journeys and matrices, Gate policy, Non-PASS evidence audit, Scenario directory, V1 Full UI Scenario Matrix
 
 ### Community 157 - "lookupCity"
-Cohesion: 0.10
-Nodes (13): CallbackBoundary, Context, lookupCity(), CallbackBoundary, GeocodeSearch, parsePlaces(), RawPlace, administrativeCity() (+5 more)
+Cohesion: 0.21
+Nodes (7): CallbackBoundary, Context, lookupCity(), CallbackBoundary, GeocodeSearch, GeocodeResult, RegeocodeResult
 
 ### Community 159 - "Post-merge connected test fix report"
 Cohesion: 0.18
@@ -1324,8 +1354,8 @@ Cohesion: 0.20
 Nodes (9): 14. 错误与并发, 15. 可访问性, 17. 人工验收, 19. 完成定义, 1. 目标, 3.1 本阶段包含, 3.2 本阶段不包含, 3. 范围 (+1 more)
 
 ### Community 165 - ".showWorkspace"
-Cohesion: 0.14
-Nodes (9): AmapLocateInteractionTest, LocationSource, TestLocationSource, LocationSource, MapView, LocateVisibleViewportTest, LocationSource, Location (+1 more)
+Cohesion: 0.31
+Nodes (4): LocationSource, MapView, LocateVisibleViewportTest, LocationSource
 
 ### Community 167 - "操作步骤"
 Cohesion: 0.17
@@ -1336,12 +1366,12 @@ Cohesion: 0.15
 Nodes (12): Commit, Fix round 1/5, GREEN / 回归, GREEN / 完整回归, RED, RED 证据, Task 2 Report, 修改文件 (+4 more)
 
 ### Community 169 - "MapPoiUi"
-Cohesion: 0.05
-Nodes (25): AmapMapHost, View, AmapMapHost, AmapMapHost, PlaceSearchDataSource, MapPlaceDialogTest, PlaceSearchDataSource, PlaceSearchDataSource (+17 more)
+Cohesion: 0.07
+Nodes (21): PlaceSearchDataSource, MapPlaceDialogTest, PlaceSearchDataSource, PlaceSearchDataSource, MapPoiUi, Job, MapPlaceAddressStatus, FAILED (+13 more)
 
 ### Community 170 - "Places"
-Cohesion: 0.08
-Nodes (6): FailingMapPreferences, Itineraries, SavedPlaceRepository, StateFlow, Legs, Places
+Cohesion: 0.11
+Nodes (5): FailingMapPreferences, Itineraries, SavedPlaceRepository, StateFlow, Places
 
 ### Community 171 - "BlockingRepository"
 Cohesion: 0.11
@@ -1380,12 +1410,12 @@ Cohesion: 0.18
 Nodes (10): Back, ClearDateRange, CreateTripAction, CreateTripEffect, DateRangeChanged, NameChanged, NavigateBack, OpenWorkspace (+2 more)
 
 ### Community 181 - "ExpenseDraftRow"
-Cohesion: 0.08
-Nodes (29): PlaceExpenseEntity, expenseInput(), requireSummableExpense(), ExpenseDraftField, AMOUNT, CATEGORY, IDENTITY, ExpenseDraftRow (+21 more)
+Cohesion: 0.15
+Nodes (15): PlaceExpenseEntity, expenseInput(), requireSummableExpense(), ExpenseDraftRow, ExpenseDraftValidation, Invalid, PlaceExpenseInput, Valid (+7 more)
 
 ### Community 182 - "TripWorkspaceViewModel"
 Cohesion: 0.09
-Nodes (14): Itineraries, Legs, Places, Trips, WorkspaceFlowTest, AddPlacesToDayUseCase, UndoAddedItemsUseCase, InMemoryLocationPermissionRequestStore (+6 more)
+Nodes (12): Itineraries, Legs, Places, Trips, AddPlacesToDayUseCase, UndoAddedItemsUseCase, InMemoryLocationPermissionRequestStore, LocationPermissionCoordinator (+4 more)
 
 ### Community 183 - "FakeTripRepository"
 Cohesion: 0.16
@@ -1400,12 +1430,12 @@ Cohesion: 0.12
 Nodes (15): Easy Trip v1.6.0 多主题配色设计, 主要设计, 五套主题, 交付, 画板索引, 验证与回滚, v1.6.0 全局主题配色, 入口与页面 (+7 more)
 
 ### Community 186 - "TripSettingsContentTest"
-Cohesion: 0.11
-Nodes (8): java, TripSettingsContentTest, DateRangeChangeUiState, java, TripSettingsContent(), DayUi, PendingDayDeletion, TripSettingsUiState
+Cohesion: 0.10
+Nodes (9): java, TripSettingsContentTest, DateRangeChangeUiState, java, TripSettingsContent(), DayUi, PendingDayDeletion, TripDeleteImpact (+1 more)
 
 ### Community 187 - "androidx"
-Cohesion: 0.11
-Nodes (23): AnnotatedString, androidx, PlaceCategoryShortcutTest, CalendarCard(), CalendarCardText(), CalendarToggle(), Color, com (+15 more)
+Cohesion: 0.10
+Nodes (24): AnnotatedString, androidx, PlaceCategoryShortcutTest, CalendarCard(), CalendarCardText(), CalendarToggle(), Color, com (+16 more)
 
 ### Community 188 - "16. 自动化验收"
 Cohesion: 0.29
@@ -1415,9 +1445,9 @@ Nodes (7): 16.1 搜索与模式恢复, 16.2 地图详情, 16.3 收藏与删除, 
 Cohesion: 0.25
 Nodes (7): Runner 状态, Search / Place UI 冲突裁决, 删除影响计数, 双加入入口, 无坐标候选, 标签 identity, 返回与一次性发布
 
-### Community 190 - "AppNavigation"
-Cohesion: 0.04
-Nodes (41): android, ClearedProbe, ViewModel, WorkspaceSearchReturnNavEntryTest, Bundle, ComponentActivity, WorkspaceSearchReturnTestActivity, OneShotCallback (+33 more)
+### Community 190 - "AppNavigation.kt"
+Cohesion: 0.05
+Nodes (35): Accepted, AmapConsentDecisionSupersededException, AmapConsentPersistence, AmapConsentState, AmapConsentStore, AmapPrivacyReporter, Declined, IllegalStateException (+27 more)
 
 ### Community 191 - "Task 3 报告：排序仅由拖动手柄发起"
 Cohesion: 0.25
@@ -1488,20 +1518,16 @@ Cohesion: 0.04
 Nodes (7): DeferredPlaces, DelayedDeletePlaces, DelayedUpdatePlaces, EditingPlaces, SavedPlaceRepository, RetryImpactPlaces, SavedPlaceRepository
 
 ### Community 210 - "reviewExpenses"
-Cohesion: 0.07
-Nodes (39): ExpenseProgressUiTest, Color, IntRange, ExpensePeriodDialog(), periodAmount(), All, ExpenseBreakdown, ExpensePeriod (+31 more)
-
-### Community 211 - "TripDao"
-Cohesion: 0.08
-Nodes (7): CreateTrip, Flow, TripDao, TripEntityWithDays, TripListProjection, isTripDateRangeRepresentable(), CreateTrip
+Cohesion: 0.15
+Nodes (19): ExpensePeriodDialog(), periodAmount(), All, ExpenseBreakdown, ExpensePeriod, ExpenseTotal, Month, reviewExpenses() (+11 more)
 
 ### Community 212 - "Task 7 报告"
 Cohesion: 0.20
 Nodes (9): Selector 迁移, Task 7 报告, Whole-branch review 关注点, Whole-branch 修复波次, 状态, 真机状态, 范围, 验收记录 (+1 more)
 
-### Community 213 - "ShareImageStorage.kt"
-Cohesion: 0.36
-Nodes (5): ShareImage, Context, Intent, Uri, ShareImageStorage
+### Community 213 - "ShareImageRenderer.kt"
+Cohesion: 0.24
+Nodes (7): Exception, ShareImage, ShareImageTooLongException, Context, Intent, Uri, ShareImageStorage
 
 ### Community 214 - "12. 搜索状态视觉"
 Cohesion: 0.33
@@ -1524,12 +1550,12 @@ Cohesion: 0.20
 Nodes (10): 2026-09-15 地点与行程配色复验（待执行）, 2026-09-15 地点添加与编辑阻断修复（待 Huawei 复验）, M4-1 地点池, M4-2 已安排与仅收藏详情, M4-3 搜索, M4：地点池、搜索与地点详情, M4 当前记录, M4 阻断标准 (+2 more)
 
 ### Community 219 - "RoomTripRepository"
-Cohesion: 0.03
-Nodes (53): GuideWorkspaceHandoffTest, ThemeNavigationTest, CityCase, ExistingEmptyTripCityNavigationTest, ExpenseCancellationUiTest, open(), NewTripCityNavigationTest, ShareNavigationTest (+45 more)
+Cohesion: 0.04
+Nodes (41): GuideWorkspaceHandoffTest, ThemeNavigationTest, ExpenseCancellationUiTest, open(), NewTripCityNavigationTest, RoomCityMetadataTest, ShareNavigationTest, ShareSnapshotLoaderTest (+33 more)
 
 ### Community 220 - "AddToItineraryViewModel"
-Cohesion: 0.08
-Nodes (23): updateSaved(), AddPlacesOutcome, PartialSuccess, Success, TargetDayMissing, AddToItineraryEditingTarget, ForDay, ForPlace (+15 more)
+Cohesion: 0.09
+Nodes (19): updateSaved(), AddToItineraryEditingTarget, ForDay, ForPlace, FromPlacePool, AddToItineraryViewModel, Factory, CreationExtras (+11 more)
 
 ### Community 221 - "Easy Trip 行程内容族 UI 收敛设计"
 Cohesion: 0.25
@@ -1539,9 +1565,9 @@ Nodes (7): 10. 错误与恢复, 11. 可访问性, 13. 人工验收, 15. 完成�
 Cohesion: 0.50
 Nodes (3): Pre-flight, Progress, SDD ledger — plan: docs/superpowers/plans/2026-08-26-easy-trip-itinerary-ui-convergence.md
 
-### Community 223 - "TripCity"
-Cohesion: 0.06
-Nodes (24): AmapTripCityLocatorSmokeTest, PlaceSearchDataSource, PlaceSearchDataSource, cityWithBounds(), CallbackBoundary, Context, lookupCityCatalog(), lookupTripCity() (+16 more)
+### Community 223 - "TestConsentGate"
+Cohesion: 0.04
+Nodes (32): AmapMapViewAttachSmokeTest, AmapTripCityLocatorSmokeTest, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, ShareMapCaptureTest, AmapConsentToken (+24 more)
 
 ### Community 224 - "12. 自动化验收"
 Cohesion: 0.33
@@ -1571,9 +1597,9 @@ Nodes (5): 8.1 排序, 8.2 行程项菜单, 8.3 RouteLeg, 8.4 全程行程, 8. �
 Cohesion: 0.40
 Nodes (4): GREEN 证据, RED 证据, Task 5 报告：标签校验与保存恢复, 实现
 
-### Community 231 - "TripDay"
-Cohesion: 0.05
-Nodes (50): ItineraryRailSpacingTest, CompactPrimaryButton(), CompactSecondaryButton(), AddToItineraryResultContent(), AddToItineraryStep, COMPLETED, IDLE, SELECT_PLACES (+42 more)
+### Community 231 - "V1ScenarioExecutable.kt"
+Cohesion: 0.04
+Nodes (70): WorkspaceEmptyScenarioFixture, ConfirmationUiModel, AddPlacesOutcome, PartialSuccess, Success, TargetDayMissing, AddToItineraryResultContent(), AddToItineraryStep (+62 more)
 
 ### Community 232 - "5. 状态模型"
 Cohesion: 0.40
@@ -1620,8 +1646,8 @@ Cohesion: 0.50
 Nodes (4): 8.1 来源, 8.2 只读态, 8.3 编辑态, 8. PlaceDetailPanel
 
 ### Community 243 - "ViewportReason"
-Cohesion: 0.12
-Nodes (15): searchDetailMapModel(), MapMarkerKind, SAVED_ITINERARY, SAVED_PLACE_POOL, SEARCH_RESULT, UNSAVED_SEARCH, ViewportReason, INITIAL (+7 more)
+Cohesion: 0.14
+Nodes (13): MapMarkerKind, SAVED_ITINERARY, SAVED_PLACE_POOL, SEARCH_RESULT, UNSAVED_SEARCH, ViewportReason, INITIAL, INITIAL_CITY (+5 more)
 
 ### Community 244 - "Task 1 报告：搜索详情状态与统一返回"
 Cohesion: 0.29
@@ -1631,17 +1657,13 @@ Nodes (6): Fix round 1/5, Task 1 报告：搜索详情状态与统一返回, TDD
 Cohesion: 0.29
 Nodes (7): 14. 实施分解, Task 1：锁定行为基线, Task 2：收敛 ViewModel 状态, Task 3：加固日期事务, Task 4：统一提交完成与恢复, Task 5：完善 UI 与导航证据, Task 6：候选门禁与真机验收
 
-### Community 246 - "ExpenseRemovalRequired"
-Cohesion: 0.29
-Nodes (3): ExpenseRemovalRequired, IllegalStateException, ExpenseMutationErrorTest
-
 ### Community 247 - "Task 6 Report"
 Cohesion: 0.17
 Nodes (11): Fix round 1, Fix round 2, Task 6 Report, TDD 与验证, TDD 证据, TDD 证据与验证, 完成内容, 审查问题与修复 (+3 more)
 
 ### Community 248 - "WorkspaceLayoutMetricsTest"
-Cohesion: 0.13
-Nodes (12): Dp, Modifier, workspaceAssistantMapLayout(), WorkspaceLayoutMetrics, workspaceLegendTop(), WorkspaceMapLayout, workspacePlaceDetailSheetHeight(), WorkspaceScaffold() (+4 more)
+Cohesion: 0.16
+Nodes (5): workspaceAssistantMapLayout(), WorkspaceLayoutMetrics, WorkspaceMapLayout, workspaceViewportInsets(), WorkspaceLayoutMetricsTest
 
 ### Community 249 - "地图授权与定位权限候选验收记录"
 Cohesion: 0.22
@@ -1695,9 +1717,9 @@ Nodes (11): Fix round1, Task 6 Report, TDD 证据, TDD 证据, 修复, 关注点
 Cohesion: 0.33
 Nodes (6): 12.1 JVM ViewModel, 12.2 领域与 Room 集成, 12.3 Compose, 12.4 导航, 12.5 候选门禁, 12. 测试设计
 
-### Community 262 - ".productionLocationDependencies"
-Cohesion: 0.08
-Nodes (8): ConsentNavigationFixture, AmapConsentPersistence, AmapPrivacyReporter, LocationRecordingHost, MemoryConsentPersistence, PoiHost, RecordingConsentReporter, com
+### Community 262 - "WorkspaceFlowTest"
+Cohesion: 0.07
+Nodes (11): ConsentNavigationFixture, AmapConsentPersistence, AmapPrivacyReporter, ContextWrapper, LocationRecordingHost, MemoryConsentPersistence, PoiHost, RecordingConsentReporter (+3 more)
 
 ### Community 263 - "旅行入口与创建 UI 候选验收"
 Cohesion: 0.22
@@ -1708,27 +1730,27 @@ Cohesion: 0.29
 Nodes (6): GREEN, RED, Task 1 报告, 图谱与差异检查, 实现, 状态
 
 ### Community 265 - "ItineraryDao"
-Cohesion: 0.06
+Cohesion: 0.07
 Nodes (10): ExpenseDao, ExpenseTripReadSnapshot, Flow, DayItems, DayItineraryRow, ItineraryDao, com, Flow (+2 more)
 
 ### Community 266 - "Trips"
 Cohesion: 0.11
 Nodes (3): com, CreateTrip, Trips
 
-### Community 267 - "RouteLegRow.kt"
-Cohesion: 0.15
-Nodes (10): WorkspaceRefinementsTest, moveTargetDayLabel(), Dp, Modifier, modeLabel(), PendingRouteIndicator(), RouteLegConnector(), RouteLegRow() (+2 more)
+### Community 267 - "WorkspaceRefinementsTest"
+Cohesion: 0.26
+Nodes (3): WorkspaceRefinementsTest, moveTargetDayLabel(), RouteLegRow()
 
-### Community 268 - "AssistantProtocolCompatibilityTest"
-Cohesion: 0.09
-Nodes (15): AssistantAttractionLevelLiveTest, AssistantLinkLiveModelTest, AssistantMapBackgroundLiveModelTest, Fixture, AssistantMaterialPolicy, ModelPlaceNormalizer, PlaceNormalizationProtocol, independentPlaceQualifier() (+7 more)
+### Community 268 - "AssistantCityScope"
+Cohesion: 0.06
+Nodes (22): AssistantLinkLiveModelTest, AssistantMapBackgroundLiveModelTest, Fixture, AssistantCityScope, withCityScope(), AssistantMaterialPolicy, ModelPlaceNormalizer, PlaceNormalizationProtocol (+14 more)
 
 ### Community 269 - "旅行入口与创建 UI 冲突记录"
 Cohesion: 0.33
 Nodes (5): Task 3 final fix 裁决, 场景绑定, 已确认决策, 新授权聚焦修复裁决, 旅行入口与创建 UI 冲突记录
 
 ### Community 270 - "CreateTripUiState"
-Cohesion: 0.30
+Cohesion: 0.27
 Nodes (7): CreateTripUiState, createTripCommand(), CreateTripValidation, CreateTrip, validateCreateTrip(), ValidCreateTrip, CreateTripValidatorTest
 
 ### Community 271 - "8. 错误处理"
@@ -1740,8 +1762,8 @@ Cohesion: 0.50
 Nodes (4): 11.1 日期编辑, 11.2 危险确认, 11.3 忙碌状态, 11. UI 契约
 
 ### Community 273 - "design/README.md"
-Cohesion: 0.03
-Nodes (53): v2.2 地点分类与费用联动 · 设计评审, 原生画板索引, 基线与范围, 视觉与交互, 费用默认规则, v3.3 30地点追加状态（2026-10-13，46b4）, 100 地点：提交与推送记录, Pencil 与安装边界 (+45 more)
+Cohesion: 0.05
+Nodes (33): v2.2 地点分类与费用联动 · 设计评审, 原生画板索引, 基线与范围, 视觉与交互, 费用默认规则, v3.3 30地点追加状态（2026-10-13，46b4）, v2.2.0 分类快捷修改：手机安装, 回滚 (+25 more)
 
 ### Community 274 - "ApkInstaller"
 Cohesion: 0.18
@@ -1765,11 +1787,11 @@ Nodes (3): Pre-flight, Progress, SDD ledger — plan: docs/superpowers/plans/202
 
 ### Community 279 - "ExpenseReviewViewModel"
 Cohesion: 0.08
-Nodes (19): ExpenseSectionsUiTest, ExpenseRepository, Store, ExpenseRecordEditor(), ExpenseReviewScreen(), adjacent(), ExpenseLoadState, ExpenseRecordDraft (+11 more)
+Nodes (16): ExpenseSectionsUiTest, ExpenseRepository, Store, ExpenseRecordEditor(), ExpensePrimaryNavigation(), ExpenseReviewScreen(), adjacent(), ExpenseRecordDraft (+8 more)
 
 ### Community 280 - "v3.4 全局助手 UI 评审稿"
-Cohesion: 0.14
-Nodes (14): 2026-10-14：地点容量统一 100（8bc4，已开发验证，未交付 Git／手机）, v3.4 全局助手 UI 评审稿, 以下为此前设计与交付历史, 工具异常与验证边界, 已执行的验证, 最新修订：移除旅行名称下方说明, 最新修订：移除日期识别提示卡, 最新修订：首页底部双创建入口 (+6 more)
+Cohesion: 0.05
+Nodes (39): 2026-10-14：地点容量统一 100（8bc4，已开发验证，未交付 Git／手机）, v3.4 全局助手 UI 评审稿, 以下为此前设计与交付历史, 工具异常与验证边界, 已执行的验证, 最新修订：移除旅行名称下方说明, 最新修订：移除日期识别提示卡, 最新修订：首页底部双创建入口 (+31 more)
 
 ### Community 281 - "v1.9.0 花费一级入口与年月回顾"
 Cohesion: 0.11
@@ -1788,7 +1810,7 @@ Cohesion: 0.67
 Nodes (3): 2.1 包含, 2.2 不包含, 2. 范围
 
 ### Community 285 - "Easy Trip v3.0 Agent 统一规划：智能录入地点"
-Cohesion: 0.06
+Cohesion: 0.05
 Nodes (31): deepseek-flash：图片理解与工具调用核验, 后续真实验证（2026-10-10 23:13，Asia/Shanghai）, 图片接入要点, 官方来源, 对 Easy Trip 的影响（设计建议，不是实现结果）, 工具调用接入要点, 核验记录与限制, 结论 (+23 more)
 
 ### Community 287 - "6. 不可变请求快照"
@@ -1800,7 +1822,7 @@ Cohesion: 0.05
 Nodes (35): v3.4 城市优先创建旅行：Git交付, 干净提交验证, 提交与远端, 设计和验收边界, 证据与回滚, v3.4 城市优先创建旅行：手机安装, 安装结果, 数据与启动核验 (+27 more)
 
 ### Community 289 - "ThemePickerTest"
-Cohesion: 0.33
+Cohesion: 0.35
 Nodes (3): ThemePersistence, Memory, ThemePickerTest
 
 ### Community 290 - "CreateTripViewModel"
@@ -1828,24 +1850,24 @@ Cohesion: 0.33
 Nodes (6): 10.1 `AmapConsentStore`, 10.2 `LocationPermissionCoordinator`, 10.3 Route / Navigation, 10.4 Workspace, 10.5 Place Search / Route, 10. 组件职责
 
 ### Community 297 - "MapViewportInsets"
-Cohesion: 0.21
+Cohesion: 0.22
 Nodes (7): Bounds, SinglePoint, ViewportCenterOffset, ViewportCommand, ViewportRendering, MapViewportInsets, MapViewportRenderingPolicyTest
 
-### Community 298 - "TravelMode"
-Cohesion: 0.02
-Nodes (50): GatedRecordingPlanner, NetworkMonitor, StateFlow, MutableNetworkMonitor, OfflineRecoveryTest, FlexibleRouteDefaultsUpdateTest, Task8PersistenceTest, RoomDeleteImpactProviderTest (+42 more)
+### Community 298 - "SavedPlaceEntity"
+Cohesion: 0.05
+Nodes (24): Fixture, SchemaTest, GatedRecordingPlanner, NetworkMonitor, StateFlow, MutableNetworkMonitor, OfflineRecoveryTest, FlexibleRouteDefaultsUpdateTest (+16 more)
 
 ### Community 299 - "2026-10-11-easy-trip-v3-first-agent-design.md"
-Cohesion: 0.04
-Nodes (46): v2.2.1 实现与发布验证, 发布门禁, 实现与验证, 既有回归缺口, 正式设计, 范围, 证据与回滚, APK 与验证 (+38 more)
+Cohesion: 0.06
+Nodes (30): v2.2.1 实现与发布验证, 发布门禁, 实现与验证, 既有回归缺口, 正式设计, 范围, 证据与回滚, Pencil同源更新 (+22 more)
 
 ### Community 300 - "11. 测试设计"
 Cohesion: 0.33
 Nodes (6): 11.1 `AmapConsentStore` JVM, 11.2 定位 coordinator JVM, 11.3 Workspace / Search JVM, 11.4 Compose / instrumentation, 11.5 候选门禁, 11. 测试设计
 
 ### Community 301 - "TripListUiModels.kt"
-Cohesion: 0.13
-Nodes (23): tripEndDateOrNull(), ArrowIcon(), ContinuousReadinessProgress(), Color, Modifier, MoreIcon(), OtherTripRow(), PrimaryTripCard() (+15 more)
+Cohesion: 0.08
+Nodes (35): tripEndDateOrNull(), ArrowIcon(), ContinuousReadinessProgress(), Color, Modifier, MoreIcon(), OtherTripRow(), PrimaryTripCard() (+27 more)
 
 ### Community 302 - "MapMarkerUi"
 Cohesion: 0.10
@@ -1860,7 +1882,7 @@ Cohesion: 0.40
 Nodes (5): 7.1 点击定位, 7.2 用途说明与 launcher, 7.3 权限结果, 7.4 系统设置恢复, 7. 定位权限状态流
 
 ### Community 305 - "CreateTripContent"
-Cohesion: 0.22
+Cohesion: 0.20
 Nodes (6): CreateTripContentTest, CreateTripContent(), initialCreateTripMonth(), Modifier, YearMonth, StepNumber()
 
 ### Community 306 - "v2.0.0 花费一级入口、年月回顾与地点内联费用"
@@ -1879,21 +1901,21 @@ Nodes (4): 5.1 地图服务授权状态源, 5.2 定位权限状态机, 5.3 UI �
 Cohesion: 0.50
 Nodes (4): 9.1 地图授权更新失败, 9.2 定位平台动作失败, 9.3 授权变化隔离, 9. 错误与并发
 
-### Community 310 - "ControlledItineraries"
-Cohesion: 0.10
-Nodes (4): ControlledItineraries, DeletingDayItineraries, ItineraryRepository, java
+### Community 310 - "DeletingDayItineraries"
+Cohesion: 0.16
+Nodes (3): DeletingDayItineraries, ItineraryRepository, java
 
-### Community 311 - ".controller"
-Cohesion: 0.25
-Nodes (4): AssistantSearchPacingTest, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource
+### Community 311 - "AddPlacesRequest"
+Cohesion: 0.21
+Nodes (7): AddPlacesRoomIntegrationTest, DeleteTargetDayAfterFirstAddRepository, InterruptAfterCommittedAddRepository, com, ItineraryRepository, SequenceIds, AddPlacesRequest
 
-### Community 312 - "Itineraries"
-Cohesion: 0.12
-Nodes (4): Itineraries, ItineraryRepository, java, MutableItineraries
+### Community 312 - "MutableItineraries"
+Cohesion: 0.18
+Nodes (3): ItineraryRepository, java, MutableItineraries
 
 ### Community 313 - "OfficialRelease"
-Cohesion: 0.19
-Nodes (4): parseOfficialRelease(), OfficialRelease, UpdateService, UpdateService
+Cohesion: 0.18
+Nodes (5): progress(), parseOfficialRelease(), OfficialRelease, UpdateService, UpdateService
 
 ### Community 314 - "v1.3.0 行程日历设计"
 Cohesion: 0.20
@@ -1904,32 +1926,32 @@ Cohesion: 0.25
 Nodes (8): M8-1 网络与恢复, M8-2 保存失败, M8-3 大字体与小窗口, M8-4 IME, M8-5 冷启动和返回栈, M8：异常、响应式与最终回归, M8 阻断标准, 操作步骤
 
 ### Community 317 - "TripSettingsNavigationTest"
-Cohesion: 0.11
-Nodes (8): DayContent, AmapMapHost, CreateTrip, Flow, OwnedTripRows, PencilDeleteTrips, TestMapHost, TripSettingsNavigationTest
+Cohesion: 0.09
+Nodes (11): BackLockRepository, DayContent, com, CreateTrip, Flow, TripRepository, OwnedTripRows, PencilDeleteTrips (+3 more)
 
 ### Community 318 - "DefaultAssistantLinkLoader"
-Cohesion: 0.08
-Nodes (21): GuideMaterialStoreTest, AssistantLinkLoader, AssistantLinkLoader, AssistantImageStore, AssistantLinkLoader, ByteArray, optionalLinkFixture(), AssistantLinkLoader (+13 more)
+Cohesion: 0.06
+Nodes (23): GuideMaterialStoreTest, AssistantLinkLoader, AssistantLinkLoader, AssistantImageStore, AssistantLinkLoader, ByteArray, optionalLinkFixture(), AssistantLinkLoader (+15 more)
 
-### Community 319 - ".unsubmittedRecoveryCanEditMetadataAndCreateWithoutAStaleMapSession"
-Cohesion: 0.12
-Nodes (9): RoomTripCreationTest, ContextWrapper, TripCreationJournalCapacityTest, ContextWrapper, TripDraftRecoveryUiTest, RoomTripCreation, TripCreationReceiptDao, TripCreationReceiptEntity (+1 more)
+### Community 319 - "AppContainer"
+Cohesion: 0.06
+Nodes (21): RoomTripCreationTest, GlobalAssistantNavigationTest, AmapRuntimeSession, AmapRuntimeSessionManager, AppContainer, CoroutineScope, AssistantProtocolLogFile, AssistantProtocolOutcome (+13 more)
 
 ### Community 320 - "v1.8.2 可选出行日期：中断记录"
 Cohesion: 0.11
 Nodes (17): 2026-10-08 再次恢复与只读调用失败, 2026-10-08 只读修复成功，旧设计重试编号失效, 2026-10-08 连续修复授权与进度, v1.8.2 可选出行日期：中断记录, v1.8.2 可选出行日期：完成结论, v1.8.2 可选出行日期：当前验证结论, 下列为历史中断记录（不代表当前实现状态）, 以下为历史执行快照（旧BLOCKED不代表当前状态） (+9 more)
 
-### Community 321 - "MapPreferences"
+### Community 321 - "formatCount"
 Cohesion: 0.15
-Nodes (5): FakeMapPreferences, AmapMapHost, AmapMapHost, StateFlow, MapPreferences
+Nodes (18): formatCount(), ExpenseRemovalDialog(), itineraryDaySummary(), Modifier, PlacePickerFooter(), SelectablePlaceRow(), CityPill(), Color (+10 more)
 
 ### Community 322 - "RecordingTripRepository"
 Cohesion: 0.13
 Nodes (5): com, CreateTrip, Flow, TripRepository, RecordingTripRepository
 
 ### Community 323 - "TripDraftViewModelTest"
-Cohesion: 0.30
-Nodes (5): TripDraftMetadata, Creator, Journal, PendingTripCreation, TripDraftViewModelTest
+Cohesion: 0.17
+Nodes (10): Committed, Deleted, NotSubmitted, TripCreation, TripCreationRecovery, TripDraftMetadata, Creator, Journal (+2 more)
 
 ### Community 324 - "v3.4 地点整理错误隔离修复"
 Cohesion: 0.13
@@ -1956,24 +1978,24 @@ Cohesion: 0.14
 Nodes (12): README 图片来源, 历史材料：v1.6.0（不代表当前界面）, 当前介绍：v2.0.0, README 图文, v2.0.0 发布验证, 公开发布结果, 已完成验证, 已知限制 (+4 more)
 
 ### Community 331 - "GuideCreationViewModel.kt"
-Cohesion: 0.12
-Nodes (27): acknowledge(), applyRecovery(), backToInput(), create(), discard(), edit(), editable(), editCities() (+19 more)
+Cohesion: 0.11
+Nodes (29): acknowledge(), applyRecovery(), backToInput(), create(), discard(), edit(), editable(), editCities() (+21 more)
 
 ### Community 332 - "EvidenceMapSurface"
 Cohesion: 0.29
 Nodes (7): EvidenceMapSurface, DeterministicFakeSurface, FailureInjectingFakeMapHost, None, NonRecordingFakeMapHost, RealAmap, RecordingFakeMapHost
 
-### Community 333 - "AmapPlaceDataSource.kt"
+### Community 333 - "administrativeCity"
 Cohesion: 0.05
-Nodes (20): AssistantSearchPacingDiagnosticTest, PlaceSearchDataSource, PlaceSearchDataSource, AmapPrivacyGate, AmapPrivacyReporter, Context, assistantSearchKeyword(), CallbackBoundary (+12 more)
+Nodes (22): AssistantSearchPacingDiagnosticTest, PlaceSearchDataSource, PlaceSearchDataSource, CallbackBoundary, PoiSearch, CallbackBoundary, PoiSearch, CallbackBoundary (+14 more)
 
 ### Community 334 - "Trips"
 Cohesion: 0.14
 Nodes (3): CreateTrip, TripRepository, Trips
 
-### Community 335 - "DayItinerary"
-Cohesion: 0.16
-Nodes (10): Flow, DayItinerary, ItineraryItem, ItineraryPlace, mapWholeTripDays(), projectWholeTrip(), WholeTripProjection, DayMapSnapshot (+2 more)
+### Community 335 - "TripDay"
+Cohesion: 0.08
+Nodes (23): ItineraryDayActionsTest, currentDisplayItems(), mapWholeTripDays(), toItineraryItemUi(), toRouteErrorSummary(), toRouteLegUi(), projectWholeTrip(), WholeTripProjection (+15 more)
 
 ### Community 336 - "V1Scenario"
 Cohesion: 0.14
@@ -2007,29 +2029,29 @@ Nodes (13): Global Constraints, Review Focus, Task 1：费用领域、草稿校�
 Cohesion: 0.33
 Nodes (6): EvidenceStateSource, ControlledUiState, FileBackedRoomReopen, HandwrittenRepositoryFakes, InMemoryRoomNavigation, InstalledAppRestart
 
-### Community 347 - "formatCount"
-Cohesion: 0.07
-Nodes (31): formatCount(), groupDecimalDigits(), formatExpense(), parseExpense(), validExpense(), ExpenseRemovalDialog(), ExpenseMonthChart(), CompactItineraryStop() (+23 more)
+### Community 347 - "ItineraryPlaceContent"
+Cohesion: 0.24
+Nodes (12): CompactItineraryStop(), ItineraryCategoryButton(), ItineraryDragHandle(), ItineraryOrderBadge(), ItineraryPlaceContent(), Color, Composable, Dp (+4 more)
 
 ### Community 348 - "TripWithDays"
-Cohesion: 0.10
-Nodes (7): TripWithDays, WorkspaceSearchResults, TripRepository, Trips, Trips, TripWorkspaceContentStateTest, Places
+Cohesion: 0.11
+Nodes (6): TripWithDays, CreateTrip, TripRepository, Trips, Trips, Places
 
 ### Community 350 - ".createdExecutableRejectsCustomFactoryWithWrongFixtureDespiteMatchingScreenAndFactory"
 Cohesion: 0.40
 Nodes (3): V1ScenarioExecutable, V1ScenarioExecutable, V1ScenarioExecutable
 
-### Community 351 - ".fail"
-Cohesion: 0.19
-Nodes (11): AndroidAssistantLinkReader, WebChromeClient, WebViewClient, Bitmap, WebView, WebViewClient, PermissionRequest, RenderProcessGoneDetail (+3 more)
+### Community 351 - "PlaceAssistantController.kt"
+Cohesion: 0.06
+Nodes (29): AssistantLinkReaderTest, ExpensePersistenceTest, AndroidAssistantLinkReader, WebChromeClient, WebViewClient, Bitmap, WebView, WebViewClient (+21 more)
 
 ### Community 352 - "v3.2.0 助手交互精简 · UI评审"
 Cohesion: 0.07
 Nodes (25): v3.2.0 助手精简预览, 历史辅助预览, 实施收尾重导出, 2026-10-11 开发完成后的同源回写, 2026-10-11 追加：统一左侧选择列, v3.2.0 助手交互精简 · UI评审, 主交互, 保留而不增加打扰 (+17 more)
 
-### Community 353 - "ItineraryShareScreen.kt"
-Cohesion: 0.18
-Nodes (10): ShareMapCaptureTest, AmapAttachSmokeActivity, Bundle, ComponentActivity, MapView, Failed, Ready, ShareGeneration (+2 more)
+### Community 353 - "AmapAttachSmokeActivity"
+Cohesion: 0.23
+Nodes (8): AmapAttachSmokeActivity, Bundle, ComponentActivity, MapView, capture(), Exception, ShareConsentRevoked, FrameLayout
 
 ### Community 354 - "MissingTargetItineraries"
 Cohesion: 0.12
@@ -2075,21 +2097,21 @@ Nodes (4): 2026-09-04 · Batch 6 / Task 71 · 地图失败恢复可达性与定�
 Cohesion: 0.33
 Nodes (5): v1.6.0 全局主题实现验收, 回滚, 实际结果, 环境说明, 验证证据
 
-### Community 367 - "app/build.gradle.kts"
-Cohesion: 0.50
-Nodes (3): gitBytes(), ByteArray, sha256()
+### Community 367 - "ExpenseReviewComponents.kt"
+Cohesion: 0.13
+Nodes (17): groupDecimalDigits(), ExpenseGlyph, CALENDAR, CATEGORIES, HISTORY, INFO, RECORDS, TRIP (+9 more)
 
-### Community 368 - "EditRouteLegContent"
-Cohesion: 0.15
-Nodes (11): ExpenseField(), ExpenseRouteEditor(), EditRouteLegContent(), Modifier, label(), CrossDayMoveDraft, ItineraryDeleteConfirmation, RouteModeEditDraft (+3 more)
+### Community 368 - "formatExpense"
+Cohesion: 0.18
+Nodes (9): ExpenseSummary, formatExpense(), parseExpense(), validExpense(), ExpenseField(), ExpenseRowAmount(), InlineExpenseEditor(), InlineExpenseRow() (+1 more)
 
 ### Community 369 - "CreateTrip"
 Cohesion: 0.05
-Nodes (16): RoomSavedPlaceRepositoryTest, RoomManualTripStatusTest, IdFactory, Clock, T, MutableClock, RoomTripRepositoryTest, Content (+8 more)
+Nodes (15): RoomSavedPlaceRepositoryTest, RoomManualTripStatusTest, IdFactory, Clock, T, MutableClock, RoomTripRepositoryTest, Content (+7 more)
 
 ### Community 370 - "Canvas"
-Cohesion: 0.07
-Nodes (39): CurrentLocationIconTest, Role, MapLayerFlowTest, ContinuousProgressBar(), Color, Modifier, DragHandleIcon(), Modifier (+31 more)
+Cohesion: 0.09
+Nodes (29): CurrentLocationIconTest, ContinuousProgressBar(), Color, Modifier, DragHandleIcon(), Modifier, ItineraryEmptyIllustration(), Modifier (+21 more)
 
 ### Community 371 - "AssistantLinkDomTest"
 Cohesion: 0.18
@@ -2098,10 +2120,6 @@ Nodes (5): AssistantLinkDomTest, WebViewClient, JsonObject, WebView, WebViewClie
 ### Community 372 - "v1.5.0 发布验证"
 Cohesion: 0.40
 Nodes (4): v1.5.0 发布验证, 发布产物, 证据与回滚, 验证结果
-
-### Community 373 - "WorkspaceSheetLevel"
-Cohesion: 0.24
-Nodes (5): restoreWorkspaceSheetLevel(), WorkspaceSheetLevel, COLLAPSED, EXPANDED, HALF
 
 ### Community 374 - "v1.6.0 发布验证"
 Cohesion: 0.40
@@ -2131,25 +2149,21 @@ Nodes (3): Global Constraints, Task 1: 删除示例区域并验证, Theme Previe
 Cohesion: 0.50
 Nodes (3): 工作台修复验证, 日期按钮视觉修正, 真机验收
 
-### Community 385 - "TripWorkspaceNavigationStateTest"
-Cohesion: 0.10
-Nodes (6): CreateTrip, SavedStateHandle, TripRepository, Trips, Trips, TripWorkspaceNavigationStateTest
-
 ### Community 386 - "App Settings and Updates Implementation Plan"
 Cohesion: 0.33
 Nodes (5): App Settings and Updates Implementation Plan, Completion, Constraints, Review Focus, Tasks
 
 ### Community 397 - "RoundedCornerShape"
-Cohesion: 0.07
-Nodes (33): WorkspaceTitleWeightTest, EditorGlyph(), EditorSection(), EditorSectionGlyph, NOTE, TIME, WALLET, Modifier (+25 more)
+Cohesion: 0.05
+Nodes (45): AssistantImageStoreTest, WorkspaceTitleWeightTest, EditorGlyph(), EditorSection(), EditorSectionGlyph, NOTE, TIME, WALLET (+37 more)
 
 ### Community 398 - "取消花费调整不显示提示"
 Cohesion: 0.40
 Nodes (4): 产物与回滚, 取消花费调整不显示提示, 问题与修复, 验证
 
-### Community 399 - "Trips"
-Cohesion: 0.14
-Nodes (3): CreateTrip, TripRepository, Trips
+### Community 399 - "Legs"
+Cohesion: 0.04
+Nodes (14): Itineraries, com, CreateTrip, ItineraryRepository, Lifecycle, LifecycleOwner, SavedPlaceRepository, TripRepository (+6 more)
 
 ### Community 400 - "v3.4 全链路图片可选：Native 开发验收"
 Cohesion: 0.15
@@ -2160,40 +2174,48 @@ Cohesion: 0.20
 Nodes (9): v1.8.0 页面、状态与设计缺口盘点, 下一阶段的修复顺序（计划，尚未执行）, 基线与本轮边界, 完整版本设计的验收门槛, 必须先修正的设计差异, 本轮验证与撤销, 结论, 阅读入口 (+1 more)
 
 ### Community 402 - "DayDeleteImpact"
-Cohesion: 0.12
-Nodes (4): DeleteImpactProvider, DeleteImpactProvider, DeleteImpactDao, DayDeleteImpact
+Cohesion: 0.09
+Nodes (6): DeleteImpactProvider, DeleteImpactProvider, com, DeleteImpactDao, TripSettingsRoute(), DayDeleteImpact
 
 ### Community 403 - "v1.9.0 六类费用统计设计评审稿"
 Cohesion: 0.18
 Nodes (10): v1.9.0 六类费用统计设计评审稿, 仅撤销本轮修改, 仍开放的验收项, 已交付与边界, 已恢复的工具问题, 已执行验证, 新增页面与必要状态, 用户明确要求 (+2 more)
 
-### Community 405 - "AssistantCityScope"
-Cohesion: 0.06
-Nodes (27): AssistantCityScope, withCityScope(), decode(), ByteArray, JsonObject, OptionalImageAsset, OptionalImagePlan, OptionalImagePlanCodec (+19 more)
+### Community 404 - "CascadeCountDao"
+Cohesion: 0.07
+Nodes (4): CascadeCountDao, SchemaItineraryDao, SchemaPlaceDao, SchemaRouteDao
 
-### Community 406 - "RoomGuideCreation"
-Cohesion: 0.06
-Nodes (25): GuideEvidenceSnapshotStoreTest, RoomGuideCreationTest, Committed, CreateGuideTripCommand, Deleted, GuideCreationReceipt, GuideCreationRecovery, guideDigest() (+17 more)
+### Community 405 - "AssistantInputProcessor.kt"
+Cohesion: 0.04
+Nodes (49): AssistantAttractionLevelLiveTest, completionStage(), normalize(), ParsedInputBatch, publish(), skipped(), SourceProgress, SourceStage (+41 more)
+
+### Community 406 - "GuideCreationModels.kt"
+Cohesion: 0.14
+Nodes (14): GuideTripCreation, GuideTripCreation, Committed, CreateGuideTripCommand, Deleted, GuideCityEvidence, GuideCreationReceipt, GuideCreationRecovery (+6 more)
 
 ### Community 407 - "formatDistance"
 Cohesion: 0.29
 Nodes (4): formatDistance(), formatDuration(), RouteLegStatus(), RouteFormattingTest
 
-### Community 408 - "PlaceAssistantController.kt"
-Cohesion: 0.12
-Nodes (16): cancel(), addImages(), clear(), configurationChanged(), editCity(), editInput(), environment(), forgetLink() (+8 more)
+### Community 408 - "RoomGuideCreation"
+Cohesion: 0.15
+Nodes (6): GuideEvidenceSnapshotStoreTest, RoomGuideCreationTest, GuideHandoff, GuideHandoffStore, GuideTripCreation, RoomGuideCreation
 
-### Community 409 - "DayItinerarySheet.kt"
-Cohesion: 0.18
-Nodes (4): Modifier, TimelineDragState, TimelineMove, TimelineDragStateTest
+### Community 409 - "TimelineDragState"
+Cohesion: 0.20
+Nodes (3): TimelineDragState, TimelineMove, TimelineDragStateTest
+
+### Community 410 - "PlaceDetailPanelAction"
+Cohesion: 0.10
+Nodes (20): AddPresetTag, AddTag, CancelEdit, CategoryChanged, ConfirmDiscardEdit, ContinueEditing, Delete, Dismiss (+12 more)
 
 ### Community 411 - "导航页面（9）"
 Cohesion: 0.20
 Nodes (10): N01 我的旅行, N02 创建旅行, N03 旅行工作台外壳, N04 地点搜索, N05 分享行程长图, N06 旅行设置, N07 App 设置, N08 地图授权管理 (+2 more)
 
 ### Community 412 - "ItineraryRepository"
-Cohesion: 0.22
-Nodes (4): Flow, ItineraryRepository, java, ItineraryRepository
+Cohesion: 0.29
+Nodes (3): ItineraryRepository, java, ItineraryRepository
 
 ### Community 413 - "v3.4 模型返回协议兼容性修复"
 Cohesion: 0.08
@@ -2216,7 +2238,7 @@ Cohesion: 0.22
 Nodes (9): W01 地点池, W02 单日行程清单, W03 全程行程清单, W04 单日时间日历, W05 全程时间日历, W06 搜索结果返回地图, W07 地图图层与工作台更多, W08 地图 POI 与收藏标记详情 (+1 more)
 
 ### Community 420 - "com"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (3): com, com, com
 
 ### Community 421 - "v1.8.0 三项优化：本地开发验证"
@@ -2227,17 +2249,21 @@ Nodes (8): v1.8.0 三项优化：本地开发验证, 主要文件, 回滚, 完�
 Cohesion: 0.11
 Nodes (5): Itineraries, CompletableDeferred, ItineraryRepository, Trips, Itineraries
 
-### Community 424 - "PlaceImport"
-Cohesion: 0.14
-Nodes (6): PlaceImport, PlaceImport, PlaceImport, PlaceImport, PlaceImport, PlaceImport
+### Community 423 - "Legs"
+Cohesion: 0.09
+Nodes (3): com, Flow, Legs
+
+### Community 424 - "AmapMapHost"
+Cohesion: 0.09
+Nodes (3): AmapMapHost, AmapMapHost, AmapMapHost
 
 ### Community 425 - "当前城市重试修复验证"
 Cohesion: 0.22
 Nodes (8): 主要证据, 交付结果, 当前城市重试修复验证, 手机与诊断边界, 红绿证据, 结果, 追加授权：提交、推送、安装, 首轮交付与回滚
 
-### Community 426 - "SelectablePill"
-Cohesion: 0.24
-Nodes (6): SelectablePillTest, Modifier, Role, SelectablePill(), SelectablePillStyle, DaySelector()
+### Community 426 - "CompactSecondaryButton"
+Cohesion: 0.07
+Nodes (20): SelectablePillTest, Color, LakesideDayColorTest, CompactPrimaryButton(), CompactSecondaryButton(), Modifier, Role, SelectablePill() (+12 more)
 
 ### Community 427 - "v1.8.3 设计补全审计"
 Cohesion: 0.22
@@ -2252,8 +2278,8 @@ Cohesion: 0.33
 Nodes (5): 交付与回滚, 同步范围, 定位城市搜索与工作台地图恢复：上游同步验证, 验证结果, 验证边界
 
 ### Community 431 - "DayItineraryUiState"
-Cohesion: 0.07
-Nodes (26): CalendarResizeWorkspaceTest, AmapMapHost, LakesideWorkspaceVisualTest, AmapMapHost, SearchResultsMapFlowTest, TripWorkspaceContentTest, WorkspaceChromeTest, DayItineraryUiState (+18 more)
+Cohesion: 0.05
+Nodes (43): Batch4HostState, ControlledWorkspaceEvidence, DeterministicFakeMapHost, AmapMapHost, com, VisualBatch0EvidenceTest, AmapMapHost, LakesideWorkspaceVisualTest (+35 more)
 
 ### Community 432 - "v1.9.0 地点多笔费用与六类统计"
 Cohesion: 0.22
@@ -2267,9 +2293,9 @@ Nodes (5): EvidencePermissionSurface, ActivityResultContract, AndroidSystem, Con
 Cohesion: 0.21
 Nodes (9): calculateScrollbarThumb(), calculateScrollbarViewportCapacity(), estimateScrollbarItemSizePx(), Dp, LazyListState, Modifier, ReadOnlyLazyScrollbar(), ScrollbarThumb (+1 more)
 
-### Community 435 - "SavedPlacesContent"
-Cohesion: 0.29
-Nodes (6): LazyListState, Modifier, PlacePoolScrollbarTest, LazyListState, Modifier, SavedPlacesContent()
+### Community 435 - ".Content"
+Cohesion: 0.46
+Nodes (3): LazyListState, Modifier, PlacePoolScrollbarTest
 
 ### Community 436 - "v1.1 湖畔晴空 Implementation Plan"
 Cohesion: 0.33
@@ -2279,41 +2305,41 @@ Nodes (5): Global Constraints, Task 1: 统一主题和配色入口, Task 2: 构�
 Cohesion: 0.25
 Nodes (7): 修复, 原因, 回滚, 已有失败，不属于本次改动, 验证命令, 验证结果, 默认选中当天：本地修复验证
 
-### Community 438 - "PlaceCategory"
-Cohesion: 0.09
-Nodes (17): PlaceCategory, ATTRACTION, FOOD, LODGING, OTHER, TRANSPORT, Modifier, PlaceCategoryBadge() (+9 more)
+### Community 438 - "GeoPoint"
+Cohesion: 0.02
+Nodes (59): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, ContextWrapper, TripCreationJournalCapacityTest (+51 more)
 
 ### Community 439 - "AppSettingsContent.kt"
-Cohesion: 0.11
-Nodes (17): AssistantSettingsTest, AppSettingsTest, AmapConsentPersistence, AmapPrivacyReporter, AmapConsentPersistence, AmapPrivacyReporter, AppSettingsContent(), formatSize() (+9 more)
+Cohesion: 0.09
+Nodes (21): AssistantSettingsTest, AppSettingsTest, AmapConsentPersistence, AmapPrivacyReporter, AmapConsentPersistence, AmapPrivacyReporter, Modifier, ThemeOption() (+13 more)
 
 ### Community 440 - "v1.8.0 搜索返回地图：开发验证"
 Cohesion: 0.25
 Nodes (7): v1.8.0 搜索返回地图：开发验证, 后续提交、推送与安装, 基线已有失败, 备份与回滚, 实现范围, 审查与限制, 验证结果
 
-### Community 441 - "ConnectivityNetworkMonitor"
-Cohesion: 0.13
-Nodes (10): ConnectivityNetworkMonitorTest, canAttemptInternet(), DefaultNetworkState, T, ConnectivityNetworkMonitor, hasInternetAccess(), StateFlow, NetworkMonitor (+2 more)
-
-### Community 442 - "助手识别地点上限 30 → 100"
-Cohesion: 0.25
-Nodes (8): Pencil 与预览, 产物与追溯, 助手识别地点上限 30 → 100, 实现, 测试与构建, 范围与基线, 设备与截图边界, 风险与回滚
+### Community 441 - "TargetDayNotFoundException"
+Cohesion: 0.14
+Nodes (3): RecoverablePlaceAddException, TargetDayNotFoundException, com
 
 ### Community 443 - "expenseTransaction"
 Cohesion: 0.07
-Nodes (19): AbstractCoroutineContextElement, ExpenseConsent, expenseMutationErrorOrNull(), ExpenseRemovalPrompter, expenseTransaction(), RoomDatabase, T, RecordedExpense (+11 more)
+Nodes (18): AbstractCoroutineContextElement, ExpenseConsent, expenseMutationErrorOrNull(), ExpenseRemovalPrompter, ExpenseRemovalRequired, expenseTransaction(), IllegalStateException, RoomDatabase (+10 more)
 
 ### Community 444 - "v1.9.0 花费一级入口与年月回顾"
 Cohesion: 0.25
 Nodes (7): v1.9.0 花费一级入口与年月回顾, 当前正式源, 用户确认与本轮方案, 规格、证据、历史与回滚, 金额核对, 页面定位, 验证与边界
 
-### Community 447 - "DateRangeChangeImpact"
-Cohesion: 0.09
-Nodes (12): DateRangeApply, DateRangeChangeImpact, DateRangeDeletionSnapshot, IllegalStateException, TripDateRangeTargetNotFoundException, Applying, AwaitingConfirmation, AwaitingRoom (+4 more)
+### Community 446 - "WorkspaceSearchReturnTestActivity"
+Cohesion: 0.16
+Nodes (8): ClearedProbe, ViewModel, WorkspaceSearchReturnNavEntryTest, Bundle, ComponentActivity, WorkspaceSearchReturnTestActivity, NavBackStackEntry, NavHostController
 
-### Community 449 - "BridgeState"
-Cohesion: 0.33
-Nodes (6): BridgeState, CANCELLED, COMPLETED, READY, STARTED, STARTING
+### Community 447 - "DateRangeChangePhase"
+Cohesion: 0.29
+Nodes (7): Applying, AwaitingConfirmation, AwaitingRoom, DateRangeChangePhase, Idle, Previewing, SyncFailed
+
+### Community 449 - "PlaceAssistantViewModel.kt"
+Cohesion: 0.15
+Nodes (10): AssistantDetail, CANDIDATES, CATEGORY, clearLocalDraft(), focus(), Uri, saveLocalDraft(), selectImages() (+2 more)
 
 ### Community 451 - "v3.4 攻略来源覆盖核对：范围修订"
 Cohesion: 0.09
@@ -2327,9 +2353,13 @@ Nodes (8): Checkpoint status, Review Focus, Rollback, Task 1: Period navigation,
 Cohesion: 0.33
 Nodes (5): v2.0.0 开发交付验证, 回滚, 实现范围, 未通过项, 验证证据
 
-### Community 455 - "PlaceSearchDataSource"
+### Community 455 - "ExpenseReviewViewModelTest"
 Cohesion: 0.17
-Nodes (6): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource
+Nodes (4): ExpenseReviewViewModelTest, ExpenseRepository, Flow, Store
+
+### Community 456 - "Trips"
+Cohesion: 0.13
+Nodes (3): CreateTrip, TripRepository, Trips
 
 ### Community 457 - "v1.8.0 搜索结果返回地图 · UI 设计"
 Cohesion: 0.29
@@ -2339,9 +2369,9 @@ Nodes (6): v1.8.0 搜索结果返回地图 · UI 设计, 交付, 回滚, 图层�
 Cohesion: 0.29
 Nodes (7): T01 日期范围选择, T02 旅行卡片更多菜单, T03 删除旅行确认, T04 重命名旅行, T05 旅行日期变更及影响确认, T06 旅行日管理, 旅行管理附属状态（6）
 
-### Community 459 - "CallbackBoundary"
-Cohesion: 0.40
-Nodes (3): AMapLocationListener, CallbackBoundary, CallbackBoundary
+### Community 459 - "TestMapHost"
+Cohesion: 0.12
+Nodes (4): AmapMapHost, TestMapHost, AmapMapHost, AmapMapHost
 
 ### Community 460 - "v2.0.0 花费大改设计覆盖与验证"
 Cohesion: 0.29
@@ -2351,17 +2381,13 @@ Nodes (6): v2.0.0 花费大改设计覆盖与验证, 变更边界, 回滚, 结�
 Cohesion: 0.10
 Nodes (21): 1. 总体决策, 2. 组件图, 3. 当前 App 可以复用什么, 4.1 Agent 交互层, 4.2 Agent Runtime：原生 Kotlin 有界循环, 4.3 工具适配与授权层, 4.4 共享业务能力：不是“给每个按钮套一层”, 4.5 任务与数据存储 (+13 more)
 
-### Community 462 - "RouteRefreshCoordinator"
-Cohesion: 0.16
-Nodes (5): RouteRefreshCoordinator, RouteRefreshCoordinator, CoroutineScope, RouteRefreshCoordinator, RouteRefreshCoordinator
-
 ### Community 463 - "v3.4 攻略多图合并理解与分组并发"
 Cohesion: 0.10
 Nodes (20): 10. 官方能力依据与边界, 1. 已确认范围与本规格的具体选择, 2. 当前事实与方案取舍, 3. 数据流与职责, 4.1 本轮选择的预算, 4.2 确定性组包, 4.3 有界内存与文件, 4. 请求预算、组包与内存 (+12 more)
 
 ### Community 465 - "MapFacade.kt"
-Cohesion: 0.13
-Nodes (12): Color, LakesideDayColorTest, CorruptRoute, formatOccurrenceBadge(), MapPolylineUi, MapRouteLabelUi, MapUiModelMapper, MarkerVisit (+4 more)
+Cohesion: 0.09
+Nodes (20): automaticMapViewportPoints(), CorruptRoute, FocusSearchResult, formatOccurrenceBadge(), MapInteractionAction, MapInteractionState, MapPolylineUi, MapRouteLabelUi (+12 more)
 
 ### Community 466 - "v1.8.2 创建旅行可不设置日期和天数"
 Cohesion: 0.33
@@ -2371,9 +2397,9 @@ Nodes (6): v1.8.2 创建旅行可不设置日期和天数, 之前的任务记录
 Cohesion: 0.33
 Nodes (5): v1.8.0 发布验证, 发布产物, 发布范围, 证据与回滚, 验证结果
 
-### Community 468 - "PlaceAssistantViewModel.kt"
-Cohesion: 0.08
-Nodes (20): GuideBatchSnapshotStoreTest, AssistantDetail, CANDIDATES, CATEGORY, GuideLocalDraftRef, validGuideId(), GuideImportResultStore, decodeGuideImages() (+12 more)
+### Community 468 - "GuideImportResultStore"
+Cohesion: 0.17
+Nodes (9): GuideBatchSnapshotStoreTest, GuideLocalDraftRef, validGuideId(), GuideImportResultStore, decodeGuideImages(), GuideMaterials, JsonElement, readGuideFile() (+1 more)
 
 ### Community 469 - "行程默认选中当天"
 Cohesion: 0.33
@@ -2399,6 +2425,10 @@ Nodes (5): v1.9.0 编辑地点内联费用, 已画交互, 当前正式源, 状�
 Cohesion: 0.22
 Nodes (6): ItinerarySummaryHeaderTest, TextLayoutResult, ItinerarySummaryHeader(), Composable, Dp, Modifier
 
+### Community 475 - ".launchTripObservation"
+Cohesion: 0.18
+Nodes (3): com, Job, PendingAppendDay
+
 ### Community 476 - "Easy Trip v3.1.0 助手图片输入 Implementation Plan"
 Cohesion: 0.10
 Nodes (19): Easy Trip v3.1.0 助手图片输入 Implementation Plan, Global Constraints, Review Focus, Task 1: 文字直接发送，保留收藏授权, Task 2: 会话附件与安全图像准备, Task 3: 图片协议、来源校验和网络状态, Task 4: 分来源处理、取消重试和POI合并, Task 5: 选图、预览和草稿生命周期 (+11 more)
@@ -2423,9 +2453,9 @@ Nodes (4): v1.8.2 创建旅行可跳过日期与天数, 已确认需求, 用户�
 Cohesion: 0.49
 Nodes (10): BrandedField(), CreateTripFormFields(), DateChevron(), DateFieldIcon(), dateSelectionDescription(), errorSemantics(), Modifier, NameFieldIcon() (+2 more)
 
-### Community 483 - "reduceMapInteraction"
-Cohesion: 0.27
-Nodes (6): FocusSearchResult, MapInteractionAction, MapInteractionState, ReconcileSearchResults, reduceMapInteraction(), MapInteractionReducerTest
+### Community 483 - "PlaceSearchContentTest.kt"
+Cohesion: 0.15
+Nodes (4): AmapMapHost, View, AmapMapHost, AmapMapHost
 
 ### Community 485 - "搜索结果返回地图"
 Cohesion: 0.50
@@ -2460,23 +2490,23 @@ Cohesion: 0.40
 Nodes (5): EvidenceHost, PhysicalDevice, ProductionAppNavigation, ProductionCompose, ProductionRepository
 
 ### Community 514 - "v3.4 从攻略创建旅行：开发与验证"
-Cohesion: 0.06
-Nodes (28): v3.4 首页双创建入口设计修订, 后续修订：按钮收窄, 工具处理与边界, 当前对齐规则, 文件、证据与回滚, 范围与结果, 验证证据, Pencil与版本边界 (+20 more)
+Cohesion: 0.11
+Nodes (16): Pencil与版本边界, v3.4 从攻略创建旅行：Git交付与手机安装, 交付结果, 干净提交验证, 手机安装, 证据、通知与回滚, 1. 基线与实现范围, 2. 持久化、恢复与迁移 (+8 more)
 
 ### Community 516 - ".exercise"
-Cohesion: 0.18
-Nodes (9): AssistantEvidenceRecoveryTest, ContextWrapper, PlaceImport, ViewModel, ViewModel, ContextWrapper, PlaceImport, ViewModel (+1 more)
+Cohesion: 0.23
+Nodes (7): AssistantEvidenceRecoveryTest, ContextWrapper, ViewModel, ViewModel, ContextWrapper, ViewModel, referencedMaterialsForTest()
 
 ### Community 517 - "TripCreationCommand"
-Cohesion: 0.10
-Nodes (10): PendingTripCreation, PendingTripCreation, Committed, Deleted, NotSubmitted, TripCreation, TripCreationCommand, TripCreationRecovery (+2 more)
+Cohesion: 0.13
+Nodes (6): PendingTripCreation, PendingTripCreation, TripCreationCommand, ImportItem, PendingTripCreation, TripCreationJournal
 
 ### Community 518 - "GuideCreationDao"
 Cohesion: 0.17
 Nodes (5): GuideCreationDao, GuideCreationReceiptEntity, GuideDestinationEntity, GuideHandoffEntity, supplyMissingCity()
 
 ### Community 521 - "PlaceSearchDataSource"
-Cohesion: 0.12
+Cohesion: 0.13
 Nodes (9): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource (+1 more)
 
 ### Community 522 - "v3.4 攻略多图合并理解 Implementation Plan"
@@ -2491,9 +2521,9 @@ Nodes (17): 1. 用户意图与范围, 2. 方案与取舍, 3.1 全局输入, 3.2 
 Cohesion: 0.12
 Nodes (16): 1. 用户目标与范围, 2. 当前代码核对与升级原因, 3. 方案选择, 4.1 原帖文字与图片分别判定, 4.2 下载、解码与图片预算, 4. 统一素材读取规则, 5.1 全局创建, 5.2 已有旅行、交接导入和直接图文输入 (+8 more)
 
-### Community 525 - "com"
-Cohesion: 0.29
-Nodes (4): com, kotlinx, com, com
+### Community 525 - ".verifyReturn"
+Cohesion: 0.09
+Nodes (11): AmapConsentPersistence, AmapMapHost, AmapPrivacyReporter, com, kotlinx, WorkspaceReturnTransitionTest, AmapConsentPersistence, AmapMapHost (+3 more)
 
 ### Community 526 - "v3.3 最新规则：携程／小红书真实模型对比"
 Cohesion: 0.12
@@ -2523,13 +2553,17 @@ Nodes (16): 1. 基线与范围, 2. 实现结果, 3. 构建与 JVM, 4.1 已有三
 Cohesion: 0.50
 Nodes (4): P01 收藏地点详情与编辑, P02 搜索结果地图详情与编辑, P03 删除收藏/取消收藏影响确认, 地点详情与编辑（3）
 
-### Community 536 - "AmapConsentStore"
-Cohesion: 0.09
-Nodes (20): Accepted, AmapConsentDecisionSupersededException, AmapConsentFact, AmapConsentPersistence, AmapConsentState, AmapConsentStore, AmapPrivacyReporter, Declined (+12 more)
+### Community 536 - "ExpenseCategory"
+Cohesion: 0.16
+Nodes (10): ExpenseCategory, ATTRACTION, FOOD, LODGING, OTHER, SHOPPING, TRANSPORT, defaultExpenseCategory() (+2 more)
 
 ### Community 537 - ".exercise"
-Cohesion: 0.16
+Cohesion: 0.18
 Nodes (6): GlobalAssistantUiTest, PendingTripCreation, PlaceSearchDataSource, PendingTripCreation, PlaceSearchDataSource, TripDraftViewModel
+
+### Community 538 - ".complete"
+Cohesion: 0.21
+Nodes (3): ControlledSearchSource, IgnoringCancellationSearchSource, PlaceSearchDataSource
 
 ### Community 539 - "日历交互（2）"
 Cohesion: 0.67
@@ -2548,35 +2582,31 @@ Cohesion: 0.21
 Nodes (6): Decision, DROP, KEEP, REVIEW, GuidePlaceClassification, JsonObject
 
 ### Community 544 - "PlaceSearchDataSource"
-Cohesion: 0.29
-Nodes (4): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource
+Cohesion: 0.40
+Nodes (3): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource
 
-### Community 546 - "搜索框与助手统一默认城市"
-Cohesion: 0.06
-Nodes (28): 助手抽屉视角修复：手机安装, 安装前复验, 安装结果, 数据与启动, 证据与回滚, Pencil 与审查, 助手抽屉保持地图视角, 红测与根因 (+20 more)
+### Community 546 - "助手抽屉保持地图视角"
+Cohesion: 0.13
+Nodes (13): 助手抽屉视角修复：手机安装, 安装前复验, 安装结果, 数据与启动, 证据与回滚, Pencil 与审查, 助手抽屉保持地图视角, 红测与根因 (+5 more)
 
 ### Community 547 - ".publicGuideCreatesAnUndatedTripOnlyAfterFinalConfirmation"
 Cohesion: 0.11
 Nodes (14): GlobalAssistantLiveTest, PlaceImport, PlaceImport, TripDateRules, TripDateSuggestion, TripDraftInterpreter, TripDraftRequest, tripUserIntent() (+6 more)
 
-### Community 548 - "SourceStage"
-Cohesion: 0.20
-Nodes (10): completionStage(), SourceStage, CANCELLED, COMPLETE, FAILED, PREPARING, SELECTED, SENDING (+2 more)
-
 ### Community 549 - "Easy Trip v4.0 Agent 架构设计：手机端执行、云端推理"
 Cohesion: 0.14
 Nodes (14): ChangeSet、回执与生命周期, Easy Trip v4.0 Agent 架构设计：手机端执行、云端推理, TripCapabilities 与工具契约, 一次调整的完整时序, 依据与核对范围, 关键取舍与待验证事项, 原子提交与并发, 失败、后台与数据边界 (+6 more)
 
-### Community 550 - "助手收藏后自动开始下一轮"
-Cohesion: 0.10
-Nodes (19): Pencil, 助手自动新一轮：Git 交付, 结果, 证据与回滚, 通知, 验证, 助手自动新一轮：手机安装, 安装结果 (+11 more)
+### Community 550 - "助手自动新一轮：Git 交付"
+Cohesion: 0.15
+Nodes (11): Pencil, 助手自动新一轮：Git 交付, 结果, 证据与回滚, 通知, 验证, 助手自动新一轮：手机安装, 安装结果 (+3 more)
 
 ### Community 551 - "v3.0.1 地图地点卡：地址补全与紧凑按钮"
 Cohesion: 0.14
 Nodes (13): 1. 范围与基线, 2. 地址问题的原因及修复, 3. UI 最终实现, 4. 验证, 5. Pencil 同步与持久化, 6. 可回滚性与交付边界, 7. 后续授权：提交与推送, Rebase 后验证 (+5 more)
 
 ### Community 552 - "v3.1.0 助手图片输入：实施与验证"
-Cohesion: 0.15
+Cohesion: 0.14
 Nodes (13): B00–B17 覆盖与剩余边界, v3.1.0 助手图片输入：实施与验证, 修复与审查记录, 回滚, 基线与授权范围, 已实现, 批次、取消与设置, 收尾回读 (+5 more)
 
 ### Community 553 - "v3.2.0 助手首次检索补城市与脱敏诊断"
@@ -2592,16 +2622,16 @@ Cohesion: 0.14
 Nodes (13): 1. 结论与纠正, 2. 当前生产调用链, 3. 官方服务参数核验, 4. 离线完整输出容量对照, 5.1 实际读取默认值, 5.2 本机延迟响应, 5.3 响应边界, 5.4 期限选择依据与边界 (+5 more)
 
 ### Community 556 - "Fixture"
-Cohesion: 0.24
-Nodes (6): Fixture, GuideCreationRecoveryTest, GuideTripCreation, GuideTripCreation, GuideCreationViewModel, ViewModel
+Cohesion: 0.36
+Nodes (4): Fixture, GuideCreationRecoveryTest, GuideCreationViewModel, ViewModel
 
 ### Community 557 - ".runPreparedComparison"
 Cohesion: 0.24
 Nodes (6): DiagnosticCallBudget, GuideEvidenceDiagnosticBudgetTest, GuideEvidenceLiveTest, AssistantImageStore, AssistantImageStore, ByteArray
 
 ### Community 560 - "v3.3.0-release.md"
-Cohesion: 0.04
-Nodes (46): v3.3.0 发布执行计划与结果, v3.3 作者证据优化与 30 地点上限, 上限与UI, 与上一轮比较, 两轴审查, 作者目标与背景区分, 回滚, 实现 (+38 more)
+Cohesion: 0.15
+Nodes (8): v3.3.0 发布执行计划与结果, v3.3 小红书地图背景地名过滤专项, 修改范围, 回归和设计保存, 实际模型验证, 收尾核验, 用户反馈与确认, 边界与交付
 
 ### Community 561 - "v3.0 Agent Provider 协议验证"
 Cohesion: 0.15
@@ -2619,13 +2649,9 @@ Nodes (12): v3.4 攻略多图合并理解：开发与验收记录, 历史质量�
 Cohesion: 0.29
 Nodes (9): ItineraryItemMenu(), ItineraryItemMenuAction, Delete, EditTiming, MoveToOtherDay, ScheduleAgain, Modifier, MenuItem() (+1 more)
 
-### Community 565 - "Images"
-Cohesion: 0.22
-Nodes (4): Images, AssistantImageStore, Bitmap, Uri
-
 ### Community 566 - "ThemePickerViewModel"
-Cohesion: 0.21
-Nodes (7): ThemePickerScreen(), Factory, T, ViewModel, ViewModelProvider, ThemePickerState, ThemePickerViewModel
+Cohesion: 0.24
+Nodes (6): Factory, T, ViewModel, ViewModelProvider, ThemePickerState, ThemePickerViewModel
 
 ### Community 567 - "ThemePreferenceStore"
 Cohesion: 0.30
@@ -2635,9 +2661,21 @@ Nodes (4): ThemePreferenceStore, ThemePersistence, MemoryPersistence, ThemePrefe
 Cohesion: 0.17
 Nodes (12): 1. 基线与授权, 2. Phase 1：真实 POI 到现有业务闭环, 3. Phase 2：DeepSeek 工具调用接真实地点查询, 4. 失败与修正没有隐藏, 5. 可追溯证据, 6. 通过后完成的首稿设计（历史阶段）, 7. 未验证与下一门禁, 8. 首稿阶段回滚（历史） (+4 more)
 
+### Community 570 - "ItineraryPlaceRow"
+Cohesion: 0.20
+Nodes (3): ItineraryPlaceRow(), Color, Modifier
+
+### Community 571 - "ItineraryShareModels.kt"
+Cohesion: 0.33
+Nodes (8): shareFixture(), buildShareTrip(), isShareable(), ShareDay, shareLabel(), ShareLeg, ShareStop, ShareTrip
+
 ### Community 572 - "MapAssistantEntry.kt"
 Cohesion: 0.31
 Nodes (7): Dp, Modifier, MapAssistantEntry(), MapEntrySurface(), workspaceMapEntryHeight(), Modifier, WorkspaceSearchBar()
+
+### Community 573 - "WorkspaceScaffold.kt"
+Cohesion: 0.26
+Nodes (7): Dp, Modifier, workspaceLegendTop(), workspacePlaceDetailSheetHeight(), WorkspaceScaffold(), workspaceSearchMapLayout(), workspaceSearchMapMetrics()
 
 ### Community 574 - "CalendarContent.kt"
 Cohesion: 0.44
@@ -2660,11 +2698,11 @@ Cohesion: 0.18
 Nodes (10): Pencil保存与重启恢复, v3.1.0 图片输入设计验证, v3.1交付与验证, 发送确认修订（当前）, 回滚, 基线校准, 已恢复的问题, 未覆盖 (+2 more)
 
 ### Community 579 - "GuideDestinationResult"
-Cohesion: 0.46
-Nodes (4): GuideCityEvidence, GuideDestinationResult, GuideDestinationProtocol, interpret()
+Cohesion: 0.57
+Nodes (3): GuideDestinationResult, GuideDestinationProtocol, interpret()
 
 ### Community 580 - "v3.3.0 携程／小红书粘贴链接开发记录"
-Cohesion: 0.17
+Cohesion: 0.18
 Nodes (11): JVM、构建与静态检查, Pencil, UI与生命周期, v3.3.0 携程／小红书粘贴链接开发记录, 回滚, 实现, 已知边界, 平台实际读取 (+3 more)
 
 ### Community 581 - "v3.4 完整原文证据与64K整理：实施与验证"
@@ -2672,12 +2710,12 @@ Cohesion: 0.18
 Nodes (10): Pencil与数据边界, v3.4 完整原文证据与64K整理：实施与验证, 实际红绿修复, 尚未通过／阻塞, 已实施, 最终独立审查与收尾, 有界真实模型对照, 构建与离线设备 (+2 more)
 
 ### Community 582 - ".exercise"
-Cohesion: 0.26
+Cohesion: 0.29
 Nodes (3): GuideCityFirstUiTest, PlaceSearchDataSource, PlaceSearchDataSource
 
-### Community 584 - "AmapConsentToken"
-Cohesion: 0.15
-Nodes (5): AmapConsentToken, AmapPrivacyStateMachine, ConsentSnapshot, StateFlow, AmapPrivacyStateMachineTest
+### Community 584 - "v3.3 作者证据优化与 30 地点上限"
+Cohesion: 0.17
+Nodes (11): v3.3 作者证据优化与 30 地点上限, 上限与UI, 与上一轮比较, 两轴审查, 作者目标与背景区分, 回滚, 实现, 当前结论 (+3 more)
 
 ### Community 585 - "AtomicThemePersistence"
 Cohesion: 0.24
@@ -2691,9 +2729,9 @@ Nodes (7): ExpensePeriodImpact, ExpensePeriodPreview, ExpensePeriodPrompter, Exp
 Cohesion: 0.33
 Nodes (6): CalendarHintPosition, Floating, Summary, Wide, CalendarResizeHint(), Offset
 
-### Community 588 - ".controller"
-Cohesion: 0.17
-Nodes (6): AssistantDirectSaveTest, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource
+### Community 588 - ".verifyDragWinsOverLocationUpdates"
+Cohesion: 0.31
+Nodes (4): AmapLocateInteractionTest, LocationSource, TestLocationSource, Location
 
 ### Community 589 - "v3.4 地点整理错误隔离 Git 交付"
 Cohesion: 0.29
@@ -2711,25 +2749,37 @@ Nodes (9): Global Constraints, Review Focus, Task 1 — Provider与安全设置,
 Cohesion: 0.20
 Nodes (9): 1. 基线与设计, 2026-10-13 追加：语义去重与排除餐饮, 2. 数量限制纵切, 3. 输入和文档获取纵切, 4. 图片导入纵切, 5. 助手接线纵切, 6. 收尾, Review Focus (+1 more)
 
-### Community 593 - "v3.2.0 助手首次搜索请求节流修复"
-Cohesion: 0.05
-Nodes (33): Pencil 保存与边界, Red → Green, 修复, 助手收藏底栏对齐修复与地点行间距检查, 最终构建, 最终界面回归, 测试与视觉核验, 现场与原因 (+25 more)
+### Community 593 - "助手收藏底栏对齐修复与地点行间距检查"
+Cohesion: 0.20
+Nodes (10): Pencil 保存与边界, Red → Green, 修复, 助手收藏底栏对齐修复与地点行间距检查, 最终构建, 最终界面回归, 测试与视觉核验, 现场与原因 (+2 more)
 
-### Community 594 - "v3.0.0 地点助手：正式签名构建、安装与分支交付"
-Cohesion: 0.10
-Nodes (18): v3.0.0 地点助手：正式签名构建、安装与分支交付, 分支交付与完成通知, 回滚与边界, 已完成的安装前验证, 干净提交的正式构建, 正式签名已找回并核验, 真实手机同签名升级, 范围与来源 (+10 more)
+### Community 594 - "v3.0.0 地点助手首版实施与验证"
+Cohesion: 0.20
+Nodes (10): 1. 明早从这里看, 2. 实现范围, 3. 已执行验证, 4. 独立审查, 5. 安装包与限制, 6. 设计与范围一致性, 7. 证据与回滚, v3.0.0 地点助手首版实施与验证 (+2 more)
 
 ### Community 595 - "v3.2.0 助手首次批量搜索失败：频率对照诊断"
 Cohesion: 0.20
 Nodes (9): v3.2.0 助手首次批量搜索失败：频率对照诊断, 后续修复建议（尚未实施）, 对照设计, 手机证据, 构建与安全验证, 结果：21组，162次SDK调用, 结论与边界, 范围与基线 (+1 more)
 
+### Community 596 - "v3.3 粘贴链接：Git交付"
+Cohesion: 0.18
+Nodes (10): Pencil, Spec, Standards, v3.3 粘贴链接：Git交付, 两轴审查, 本轮干净验证, 结果, 证据与回滚 (+2 more)
+
 ### Community 597 - "RouteRefreshCoordinator"
 Cohesion: 0.33
 Nodes (3): RouteRefreshCoordinator, CoroutineScope, RouteRefreshCoordinator
 
+### Community 598 - "AmapMapHost"
+Cohesion: 0.22
+Nodes (3): AmapMapHost, AmapMapHost, AmapMapHost
+
 ### Community 599 - "CalendarTimingController"
 Cohesion: 0.39
 Nodes (3): CalendarSaveState, CalendarTimingController, StateFlow
+
+### Community 601 - "ReviewRow"
+Cohesion: 0.38
+Nodes (5): ExpenseProgressUiTest, Color, IntRange, ReviewRow(), PixelMap
 
 ### Community 602 - "RouteRefreshCoordinator"
 Cohesion: 0.33
@@ -2747,13 +2797,13 @@ Nodes (8): Global Constraints, Seams and Review Focus, Task 1: 原子创建与�
 Cohesion: 0.22
 Nodes (8): 1. 用户行为, 2026-10-13 作者证据与30地点修正, 2. 获取层, 3. 20 图与资源边界, 4. 状态与生命周期, 5. UI 与版本, 6. 测试公开边界, v3.3 携程／小红书粘贴链接规格
 
-### Community 607 - "AssistantSearchQueryTest.kt"
-Cohesion: 0.33
-Nodes (3): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource
+### Community 607 - "UndoAddedItemsRequest"
+Cohesion: 0.29
+Nodes (3): UndoAddedItemsOutcome, UndoAddedItemsRequest, UndoAddedItemsUseCaseTest
 
-### Community 608 - "GuideEvidenceControllerTest.kt"
-Cohesion: 0.33
-Nodes (3): PlaceSearchDataSource, PlaceSearchDataSource, PlaceSearchDataSource
+### Community 608 - "PlaceDetailEditPolicy.kt"
+Cohesion: 0.24
+Nodes (7): hasPlaceDetailChanges(), PlaceDetailCloseDecision, CLOSE, CONFIRM_DISCARD, IGNORE, PlaceDetailValues, PlaceDetailEditPolicyTest
 
 ### Community 609 - "v2.2.0 空旅行城市定位修复"
 Cohesion: 0.22
@@ -2767,9 +2817,9 @@ Nodes (8): Git 起点、目标与授权, rebase 与范围验证, v3.0 Agent 架�
 Cohesion: 0.22
 Nodes (9): v3 地图入口修正：设计评审, 修正内容, 备份与回滚, 成品, 最新补充：行程界面对齐当前 App, 最新补充验证：顶部日程标签, 用户反馈与本次范围, 验证 (+1 more)
 
-### Community 612 - "AssistantProtocolStage"
-Cohesion: 0.40
-Nodes (5): AssistantProtocolStage, GUIDE_BATCH, IMAGE, NORMALIZATION, TEXT
+### Community 612 - "Images"
+Cohesion: 0.22
+Nodes (4): Images, AssistantImageStore, Bitmap, Uri
 
 ### Community 613 - "GuidePartKind"
 Cohesion: 0.40
@@ -2795,25 +2845,41 @@ Nodes (8): Git 与干净构建, v3.4 模型协议兼容与部分成功：Git／�
 Cohesion: 0.22
 Nodes (8): v3.4 助手一次收藏结束整个批次, 交付边界与回滚, 实现, 收尾, 根因与责任边界, 用户明确的规则, 首轮失败与基线问题, 验证记录
 
-### Community 619 - "com"
-Cohesion: 0.29
-Nodes (4): com, com, com, kotlinx
+### Community 619 - ".openExistingTrips"
+Cohesion: 0.14
+Nodes (8): CityCase, ExistingEmptyTripCityNavigationTest, AmapConsentPersistence, com, com, AmapConsentPersistence, com, kotlinx
 
 ### Community 620 - "com"
 Cohesion: 0.29
 Nodes (4): com, kotlinx, com, com
 
-### Community 622 - "WorkspaceRootLayer"
-Cohesion: 0.40
-Nodes (4): WorkspaceRootLayer, Content, Overlay, workspaceRootLayers()
+### Community 623 - "AssistantFailureCode"
+Cohesion: 0.22
+Nodes (9): AssistantFailureCode, AUTH, LIMIT, NETWORK, NO_PLACES, OVERFLOW, PROTOCOL, UNKNOWN (+1 more)
 
-### Community 623 - "GlobalAssistantControllerTest.kt"
-Cohesion: 0.40
-Nodes (3): GlobalAssistantControllerTest, PlaceSearchDataSource, PlaceSearchDataSource
+### Community 624 - "Edge"
+Cohesion: 0.42
+Nodes (3): AdjacencyDiff, Edge, AdjacencyPlannerTest
+
+### Community 626 - "助手底栏修复：等待上游、提交推送与手机安装"
+Cohesion: 0.22
+Nodes (7): 助手底栏修复：等待上游、提交推送与手机安装, 安装与回读, 本批内容, 证据与回滚, 通知与收尾, 集成验证, 顺序与集成
 
 ### Community 627 - "v2.2.0 优化实现与专项验收"
 Cohesion: 0.25
 Nodes (7): Pencil正式设计, v2.2.0 优化实现与专项验收, 仅撤销本次修改, 基线和范围, 实现, 证据与边界, 验证
+
+### Community 628 - "v3.2.0-release.md"
+Cohesion: 0.22
+Nodes (7): v3.2.0 正式发布记录, 发布与独立下载核验, 发布身份, 本版变化, 本轮构建与验证, 设计、手机与已知限制, 证据、清理与回滚
+
+### Community 630 - "v3.2.0 请求节流修复：Git 交付"
+Cohesion: 0.22
+Nodes (7): rebase后验证, v3.2.0 请求节流修复：Git 交付, 主线集成与推送, 保留的失败与纠正过程, 本机证据与回滚, 构建与验收边界, 通知、清理及状态收尾
+
+### Community 631 - "v3.2.0 助手首次搜索请求节流修复"
+Cohesion: 0.22
+Nodes (9): v3.2.0 助手首次搜索请求节流修复, 保留的失败与审查结果, 原因与修复, 安装包与手机状态, 完整验证, 授权、基线与备份, 红绿回归, 证据与回滚 (+1 more)
 
 ### Community 632 - "v3.1.0 助手默认值 rebase 与交付"
 Cohesion: 0.25
@@ -2826,6 +2892,10 @@ Nodes (7): v3.1.0 图片输入开发基线检查, 备份、设计与回滚, 官�
 ### Community 634 - "v3.1.0 提交与主线集成"
 Cohesion: 0.25
 Nodes (7): v3.1.0 提交与主线集成, 交付和边界, 回滚, 失败及修正, 设计保护与缺口, 集成范围, 集成验证
+
+### Community 635 - "v3.3 链接资料语义去重与餐饮过滤"
+Cohesion: 0.22
+Nodes (9): Pencil, v3.3 链接资料语义去重与餐饮过滤, 实现, 最终回归, 真实模型证据, 结论, 证据、清理与回滚, 迭代与失败不隐去 (+1 more)
 
 ### Community 636 - "v3.4 独立景点分类：实际功能 Git 交付"
 Cohesion: 0.25
@@ -2851,9 +2921,25 @@ Nodes (7): Git与上游整合, v3.4 正圆地图标记：提交、推送与手�
 Cohesion: 0.25
 Nodes (7): Answer, v3.2 首次批量搜索失败：对照诊断, 反馈环与步骤, 可证伪假设（按优先级）, 回滚, 已知事实, 范围
 
+### Community 644 - "RouteLegRow.kt"
+Cohesion: 0.29
+Nodes (7): Dp, Modifier, modeLabel(), PendingRouteIndicator(), RouteLegConnector(), RouteRecoveryText(), WaitingForNetworkIndicator()
+
 ### Community 646 - "AssistantImageStore.kt"
 Cohesion: 0.06
-Nodes (26): AssistantImageStore, AssistantImageStore, Bitmap, Uri, AssistantImageStore, digest(), directory(), file() (+18 more)
+Nodes (25): AssistantImageStore, AssistantImageStore, Bitmap, Uri, AssistantImageStore, digest(), directory(), file() (+17 more)
+
+### Community 648 - "助手收藏后自动开始下一轮"
+Cohesion: 0.25
+Nodes (8): Pencil, 助手收藏后自动开始下一轮, 实现边界, 审阅, 收尾, 用户确认的行为, 证据与回滚, 验证
+
+### Community 649 - "搜索框与助手统一默认城市"
+Cohesion: 0.25
+Nodes (8): Pencil 同步, 回滚, 完成通知, 实现入口, 已实现规则, 搜索框与助手统一默认城市, 范围与基线, 验证结果
+
+### Community 651 - "v2.2.0 发布验证"
+Cohesion: 0.25
+Nodes (8): v2.2.0 发布验证, 发布构建与公开资产验证, 回滚与证据, 已有验证与限制, 本版内容, 正式设计, 版本与来源, 门禁与交付证据
 
 ### Community 652 - "EasyTripTokens.kt"
 Cohesion: 0.52
@@ -2863,9 +2949,9 @@ Nodes (5): EasyTripElevation, EasyTripSizes, EasyTripSpacing, EasyTripTheme, Eas
 Cohesion: 0.29
 Nodes (3): TripRepository, Flow, TripRepository
 
-### Community 654 - "RoutePlannerTest"
-Cohesion: 0.38
-Nodes (3): RouteDataSource, RoutePlannerTest, RouteDataSource
+### Community 654 - "v3.0.0 正式发布记录"
+Cohesion: 0.25
+Nodes (8): APK 与验证, v3.0.0 正式发布记录, 升级与风险边界, 发布身份与范围, 发布验证与主线交付, 本版功能, 正式设计同步, 证据与回滚
 
 ### Community 655 - "v3.4 地图标记：编号与地点名称 UI 评审"
 Cohesion: 0.29
@@ -2895,9 +2981,21 @@ Nodes (6): 基线与 rebase, 推送与通知, 统一默认城市：Git 交付, �
 Cohesion: 0.29
 Nodes (6): Git与构建, v2.2.0 提交、推送与手机安装, 安装包核验, 已确认基线, 手机回读, 证据与回滚
 
+### Community 662 - "v3.0.0 地点助手：正式签名构建、安装与分支交付"
+Cohesion: 0.25
+Nodes (8): v3.0.0 地点助手：正式签名构建、安装与分支交付, 分支交付与完成通知, 回滚与边界, 已完成的安装前验证, 干净提交的正式构建, 正式签名已找回并核验, 真实手机同签名升级, 范围与来源
+
 ### Community 663 - "v3.4 多图理解：剩余质量优化复测"
 Cohesion: 0.29
 Nodes (6): v3.4 多图理解：剩余质量优化复测, 实际诊断, 有限真实复测, 确定性验证, 范围, 证据、清理与下一步
+
+### Community 664 - "v3.0.0 地图入口修正实施与交付"
+Cohesion: 0.25
+Nodes (8): v3.0.0 地图入口修正实施与交付, 分支与安全, 实施范围, 既有缺口，不隐藏失败, 正式构建、安装与分支交付结果, 设计核对, 证据与回滚, 验证
+
+### Community 665 - "v3.3.0 正式发布记录"
+Cohesion: 0.25
+Nodes (8): APK与发布核验, v3.3.0 正式发布记录, 发布身份, 本版范围, 本轮构建与测试, 真实模型证据的沿用边界, 设计、安装与已知边界, 证据、收尾与回滚
 
 ### Community 670 - "v2.2.1 行程天标题两行设计评审"
 Cohesion: 0.33
@@ -2927,25 +3025,57 @@ Nodes (5): v3.4 一次收藏结束整批：Git 交付, 安全与回滚, 范围�
 Cohesion: 0.33
 Nodes (5): Answer, Comments, 范围, 费用领域、草稿与年月汇总, 验证
 
+### Community 683 - "GuideHandoffStatus"
+Cohesion: 0.29
+Nodes (7): GuideHandoffStatus, CANCELLED, CLAIMED, FAILED, FINISHED, IMPORTED, PENDING
+
 ### Community 684 - "v3.4 独立景点分类安装手机"
 Cohesion: 0.40
 Nodes (4): v3.4 独立景点分类安装手机, 启动和数据观察, 安装与包身份, 验证边界与收尾
 
-### Community 685 - "DayItineraryViewModel.kt"
-Cohesion: 0.09
-Nodes (13): Flow, Answer, 回滚, 多笔费用权威存储与升级迁移, 范围, Answer, 回滚, 花费一级入口与年月分类回顾 (+5 more)
-
-### Community 686 - "地点原位多笔费用闭环"
+### Community 685 - "多笔费用权威存储与升级迁移"
 Cohesion: 0.40
-Nodes (4): Answer, Context, 回滚, 地点原位多笔费用闭环
+Nodes (4): Answer, 回滚, 多笔费用权威存储与升级迁移, 范围
+
+### Community 686 - "v2.2.0 地点分类：手机安装与 Git 交付"
+Cohesion: 0.29
+Nodes (7): 1. 范围与基线, 2. Release 验证, 3. APK 来源, 4. 手机覆盖安装, 5. Git 交付记录, 6. 证据、凭据与回滚, v2.2.0 地点分类：手机安装与 Git 交付
 
 ### Community 687 - "助手请求发起节流"
 Cohesion: 0.40
 Nodes (4): Answer, 助手请求发起节流, 回滚, 检查
 
+### Community 689 - "TripDao.kt"
+Cohesion: 0.47
+Nodes (3): Flow, TripEntityWithDays, TripListProjection
+
+### Community 692 - "ExpenseLoadState"
+Cohesion: 0.50
+Nodes (4): ExpenseLoadState, Failed, Loading, Ready
+
+### Community 693 - "ItineraryShareScreen.kt"
+Cohesion: 0.50
+Nodes (4): Failed, Ready, ShareGeneration, Working
+
 ### Community 697 - "v3.2 请求发起节流修复（已确认范围）"
 Cohesion: 0.50
 Nodes (3): v3.2 请求发起节流修复（已确认范围）, 目的与约束, 验证
+
+### Community 698 - "ExpenseDraftField"
+Cohesion: 0.50
+Nodes (4): ExpenseDraftField, AMOUNT, CATEGORY, IDENTITY
+
+### Community 699 - "Factory"
+Cohesion: 0.50
+Nodes (3): Factory, T, ViewModelProvider
+
+### Community 700 - "AddToItineraryReconciliation"
+Cohesion: 0.50
+Nodes (4): AddToItineraryReconciliation, com, Reconcile, WaitForFullSnapshot
+
+### Community 702 - "花费一级入口与年月分类回顾"
+Cohesion: 0.50
+Nodes (3): Answer, 回滚, 花费一级入口与年月分类回顾
 
 ### Community 707 - "DayItineraryViewModelTest"
 Cohesion: 0.14
@@ -2962,17 +3092,17 @@ Nodes (3): 上轮：v3.4多图理解剩余质量优化, 上轮：住宿图遗漏
 ## Knowledge Gaps
 - **3406 isolated node(s):** `guard-adb-install.sh script`, `TRIP_LIST`, `CREATE_TRIP`, `DATE_PICKER`, `WORKSPACE` (+3401 more)
   These have ≤1 connection - possible missing edges or undocumented components.
-- **124 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
+- **129 thin communities (<3 nodes) omitted from report** — run `graphify query` to explore isolated nodes.
 
 ## Suggested Questions
 _Questions this graph is uniquely positioned to answer:_
 
-- **Why does `GeoPoint` connect `GeoPoint` to `MapUiModelMapperTest`, `ItineraryTimelineContentTest`, `.exercise`, `TripCreationCommand`, `PlaceIntent`, `PlaceSearchEvidenceTest`, `.check`, `MapUiModel`, `PlaceSearchDataSource`, `PlaceTag`, `PlacePoolViewModel`, `EasyTripDatabase`, `PlaceSearchReducer`, `.exercise`, `Itineraries`, `MutableStateFlow`, `RoomRouteLegRepositoryTest`, `ItineraryScope`, `decideCollectionToggle`, `VisualBatch0EvidenceTest`, `FakeRepository`, `TripWorkspaceViewModel.kt`, `FakeTrips`, `PlaceSearchDataSource`, `ItineraryItemUi`, `AmapMapHost`, `SavedPlaces`, `SavedPlace`, `.exercise`, `AmapServiceException`, `SavedPlaceRowUi`, `.controller`, `ItineraryRepository`, `PlaceCandidate`, `AssistantSearchQueryTest.kt`, `MapViewportControllerTest`, `GuideEvidenceControllerTest.kt`, `PlaceScheduleSummaryUi`, `AddPlacesRequest`, `PolylineCodec`, `RecordingHost`, `GlobalAssistantControllerTest.kt`, `AssistantSingleSaveRoundTest.kt`, `PlaceSearchDataSource`, `PlaceSearchDataSource`, `InsertSide`, `ItineraryShareModels.kt`, `PlaceAssistantState`, `AssistantImageStore.kt`, `.controller`, `RoutePlannerTest`, `com`, `AssistantModels.kt`, `lookupCity`, `ItineraryMoveTimingTest`, `MapPoiUi`, `Places`, `DayItineraryViewModel.kt`, `AutomaticItineraryTimingTest`, `TripWorkspaceViewModel`, `androidx`, `AppNavigation`, `Repository`, `DelayedDeletePlaces`, `RoomTripRepository`, `AddToItineraryViewModel`, `TripCity`, `TripDay`, `ViewportReason`, `RouteLegRow.kt`, `ExpensePersistenceTest`, `MapViewportInsets`, `TravelMode`, `MapMarkerUi`, `.controller`, `TripSettingsNavigationTest`, `.unsubmittedRecoveryCanEditMetadataAndCreateWithoutAStaleMapSession`, `TripDraftViewModelTest`, `AmapPlaceDataSource.kt`, `DayItinerary`, `SavedPlaceRepository`, `TripWithDays`, `ItineraryShareScreen.kt`, `CreateTrip`, `TripWorkspaceNavigationStateTest`, `RoomGuideCreation`, `com`, `DayItineraryUiState`, `SavedPlacesContent`, `PlaceCategory`, `expenseTransaction`, `PlaceSearchDataSource`, `Places`, `MapFacade.kt`, `reduceMapInteraction`?**
-  _High betweenness centrality (0.094) - this node is a cross-community bridge._
-- **Why does `PlaceCandidate` connect `PlaceCandidate` to `MapUiModelMapperTest`, `PlaceSearchAction`, `TripCreationCommand`, `PlaceIntent`, `PlaceSearchEvidenceTest`, `.check`, `PlaceSearchDataSource`, `PlaceTag`, `PlacePoolViewModel`, `ImportReceipt`, `EasyTripDatabase`, `PlaceSearchReducer`, `.exercise`, `Itineraries`, `MutableStateFlow`, `PlaceSearchDataSource`, `decideCollectionToggle`, `VisualBatch0EvidenceTest`, `TripWorkspaceViewModel.kt`, `TripWorkspaceRoute.kt`, `PlaceSearchDataSource`, `Places`, `AmapMapHost`, `SavedPlaces`, `Flow`, `SavedPlace`, `PlaceSearchDataSource`, `.exercise`, `SavedPlaceRowUi`, `GeoPoint`, `.controller`, `ItineraryRepository`, `AssistantSearchQueryTest.kt`, `GuideEvidenceControllerTest.kt`, `PlaceScheduleSummaryUi`, `PlaceSearchContent.kt`, `RecordingHost`, `GlobalAssistantControllerTest.kt`, `AssistantSingleSaveRoundTest.kt`, `PlaceSearchDataSource`, `PlaceSearchDataSource`, `InsertSide`, `PlaceAssistantState`, `AssistantImageStore.kt`, `.controller`, `com`, `MutablePlaces`, `AssistantModels.kt`, `lookupCity`, `MapPoiUi`, `Places`, `DayItineraryViewModel.kt`, `TripWorkspaceViewModel`, `AppNavigation`, `Repository`, `DelayedDeletePlaces`, `RoomTripRepository`, `TripCity`, `TripDay`, `ViewportReason`, `AssistantProtocolCompatibilityTest`, `TravelMode`, `.controller`, `Places`, `TripSettingsNavigationTest`, `.unsubmittedRecoveryCanEditMetadataAndCreateWithoutAStaleMapSession`, `TripDraftViewModelTest`, `AmapPlaceDataSource.kt`, `SavedPlaceRepository`, `TripWithDays`, `CreateTrip`, `RoundedCornerShape`, `RoomGuideCreation`, `com`, `DayItineraryUiState`, `PlaceCategory`, `expenseTransaction`, `PlaceSearchDataSource`, `Places`, `MapFacade.kt`, `reduceMapInteraction`?**
-  _High betweenness centrality (0.040) - this node is a cross-community bridge._
-- **Why does `TravelMode` connect `TravelMode` to `TripWorkspaceNavigationStateTest`, `.exercise`, `TripCreationCommand`, `.check`, `ItineraryDao`, `SchemaTest`, `Trips`, `TripListViewModel`, `Trips`, `Trips`, `com`, `EasyTripDatabase`, `RoomGuideCreation`, `MutableStateFlow`, `FakeTripRepository`, `TripListUiModelsTest`, `CreateTripViewModel`, `.publicGuideCreatesAnUndatedTripOnlyAfterFinalConfirmation`, `TripSettingsViewModel`, `BlockingRepository`, `TripListUiModels.kt`, `DayItineraryUiState`, `FakeRepository`, `CreateTripAction`, `FakeRepository`, `TripWorkspaceViewModel`, `FakeTrips`, `FakeTripRepository`, `TripListSortingTest`, `DateRangeChangeImpact`, `.unsubmittedRecoveryCanEditMetadataAndCreateWithoutAStaleMapSession`, `GuideCreationViewModel.kt`, `GeoPoint`, `Trips`, `TripDao`, `FakeRepository`, `ItineraryRepository`, `RoomTripRepository`, `TripWithDays`, `CreateTripFormFields.kt`, `Color.kt`, `CreateTrip`, `ItineraryTransactionTest`, `InsertSide`?**
-  _High betweenness centrality (0.029) - this node is a cross-community bridge._
+- **Why does `GeoPoint` connect `GeoPoint` to `MapUiModelMapperTest`, `ItineraryTimelineContentTest`, `.exercise`, `TripCreationCommand`, `PlaceIntent`, `PlaceSearchEvidenceTest`, `.check`, `MapUiModel`, `Flow`, `EasyTripDatabase`, `PlaceSearchReducer`, `.complete`, `MutableStateFlow`, `RoomRouteLegRepositoryTest`, `.model`, `RouteLegUi`, `PlaceDeletionImpact`, `RealAmapMapHost`, `FakeRepository`, `FakeTrips`, `V12ItineraryPolishTest`, `ItineraryShareModels.kt`, `AmapMapHost`, `Flow`, `PlaceSearchViewModelTest`, `PlacePoolViewModelTest`, `TripSearchCityResolver`, `AmapServiceException`, `SavedPlace`, `PlaceCity`, `MapLayer`, `V2AcceptanceTest.kt`, `PlaceSearchUiState`, `MapViewportControllerTest`, `.setContent`, `FakeItineraryRepository`, `.openExistingTrips`, `.poi`, `BlockingSavedPlaces`, `TravelMode`, `GuideContext`, `AssistantImageStore.kt`, `RouteStatus`, `.controller`, `lookupCity`, `ItineraryMoveTimingTest`, `MapPoiUi`, `Places`, `AutomaticItineraryTimingTest`, `TripWorkspaceViewModel`, `androidx`, `Repository`, `DelayedDeletePlaces`, `RoomTripRepository`, `TestConsentGate`, `V1ScenarioExecutable.kt`, `WorkspaceFlowTest`, `WorkspaceRefinementsTest`, `MapViewportInsets`, `SavedPlaceEntity`, `MapMarkerUi`, `TripSettingsNavigationTest`, `AppContainer`, `TripDraftViewModelTest`, `administrativeCity`, `TripDay`, `TripWorkspaceContentStateTest`, `TripWithDays`, `PlaceAssistantController.kt`, `CreateTrip`, `TripWorkspaceNavigationStateTest`, `Legs`, `AssistantInputProcessor.kt`, `com`, `Legs`, `DayItineraryUiState`, `.Content`, `expenseTransaction`, `MapFacade.kt`, `PlaceSearchContentTest.kt`?**
+  _High betweenness centrality (0.098) - this node is a cross-community bridge._
+- **Why does `PlaceCandidate` connect `GeoPoint` to `MapUiModelMapperTest`, `TripCreationCommand`, `WorkspaceFlowTest`, `PlaceSearchEvidenceTest`, `PlaceIntent`, `PlaceSearchDataSource`, `AssistantCityScope`, `RoundedCornerShape`, `.controller`, `Legs`, `Legs`, `ImportReceipt`, `EasyTripDatabase`, `PlacePoolViewModel`, `AppContainerTest`, `AssistantInputProcessor.kt`, `MutablePlaces`, `PlaceSearchReducer`, `PlaceDetailPanelAction`, `.complete`, `DelayedCollectionRepository`, `com`, `Legs`, `MapPoiUi`, `SavedPlaceEntity`, `PlaceDeletionImpact`, `Places`, `DayItineraryUiState`, `TripWorkspaceViewModel`, `PlaceSearchViewModel`, `expenseTransaction`, `Places`, `TripSettingsNavigationTest`, `Flow`, `AppContainer`, `PlacePoolViewModelTest`, `Flow`, `PlaceSearchViewModelTest`, `TripDraftViewModelTest`, `TripSearchCityResolver`, `Repository`, `SavedPlace`, `PlaceCity`, `administrativeCity`, `TripDay`, `DelayedDeletePlaces`, `MapFacade.kt`, `TripWorkspaceContentStateTest`, `V2AcceptanceTest.kt`, `RoomTripRepository`, `PlaceSearchUiState`, `TripWithDays`, `TestConsentGate`, `.setContent`, `PlaceSearchContentTest.kt`, `PlaceSearchContent.kt`, `V1ScenarioExecutable.kt`, `.openExistingTrips`, `.poi`, `CreateTrip`, `BlockingSavedPlaces`, `ViewportReason`, `TravelMode`, `GuideContext`?**
+  _High betweenness centrality (0.052) - this node is a cross-community bridge._
+- **Why does `TripDay` connect `TripDay` to `MapUiModelMapperTest`, `.setup`, `.check`, `Trips`, `RouteStatus`, `Legs`, `Legs`, `com`, `DayDeleteImpact`, `MutableStateFlow`, `FakeTripRepository`, `.model`, `RouteLegUi`, `Legs`, `TripSettingsViewModel`, `CompactSecondaryButton`, `SavedPlaceEntity`, `Places`, `DayItineraryUiState`, `FakeRepository`, `TripWorkspaceViewModel`, `FakeTrips`, `FakeTripRepository`, `DeletingDayItineraries`, `V12ItineraryPolishTest`, `TripSettingsNavigationTest`, `Trips`, `SavedPlace`, `Trips`, `MapFacade.kt`, `FakeRepository`, `TripWorkspaceContentStateTest`, `WorkspaceNavigationTest`, `ItinerarySummaryHeaderTest`, `RoomTripRepository`, `.launchTripObservation`, `TripWithDays`, `V1ScenarioExecutable.kt`, `TravelMode`, `.emit`?**
+  _High betweenness centrality (0.023) - this node is a cross-community bridge._
 - **Are the 11 inferred relationships involving `GeoPoint` (e.g. with `.unsubmittedRecoveryCanEditMetadataAndCreateWithoutAStaleMapSession()` and `.expenseSurvivesReopenAppendTimingAndDatedDayReorder()`) actually correct?**
   _`GeoPoint` has 11 INFERRED edges - model-reasoned connections that need verification._
 - **Are the 16 inferred relationships involving `TripDay` (e.g. with `FakeTrips` and `.trip()`) actually correct?**
