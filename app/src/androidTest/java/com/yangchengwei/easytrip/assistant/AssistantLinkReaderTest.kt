@@ -27,10 +27,15 @@ class AssistantLinkReaderTest {
             repeat(20) { images += store.importBytes(session, output.toByteArray(), images) }
             assertEquals((1..20).toList(), images.map { it.ordinal })
             images.forEach { assertTrue(store.prepare(session, it.id).bytes.isNotEmpty()) }
+            val filesBeforeOverflow = File(root, session).walkTopDown()
+                .filter { it.isFile }.map { it.relativeTo(root).path }.toSet()
             try {
                 store.importBytes(session, output.toByteArray(), images)
                 fail("21st image must be rejected")
-            } catch (_: AssistantFailure) {}
+            } catch (_: IllegalArgumentException) {}
+            assertEquals(filesBeforeOverflow, File(root, session).walkTopDown()
+                .filter { it.isFile }.map { it.relativeTo(root).path }.toSet())
+            images.forEach { assertTrue(store.prepare(session, it.id).bytes.isNotEmpty()) }
             store.release(session)
             assertFalse(File(root, session).exists())
         } finally { root.deleteRecursively() }
