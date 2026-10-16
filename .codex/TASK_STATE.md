@@ -1,4 +1,21 @@
-# 当前任务：助手默认景点提交、推送与安装
+# 当前任务：发布 v3.4
+
+状态：**DONE（正式发布、认证／匿名下载和通知回读完成；本状态随同轮docs-only收尾提交），2026-10-16。**
+
+- 用户最新授权「发布 v3.4」。22:17:16（Asia/Shanghai）公开v3.4.0为Latest，build27/schema13；Release ID `415041516`。认证API与匿名Latest页面／正式页面回读通过。
+- 正式构建与annotated tag固定`21b9c6bc879b4251123eaa6ba70949bda06d0843`，CLEAN、非debuggable；发布前功能分支快进推送main并独立回读。标签对象`5d56f9aefe8f0e4ff7b4563786a309435041f6dc`不随本轮文档收尾移动，最终main SHA见`final-push-verification.json`。
+- 正式APK `easy-trip-v3.4.0-release.apk`，63,794,255 bytes，SHA256 `09fb4da2619221f9e9bb3bd09a5215191aa8c2d8d7c5baff56d080186d43c0de`。签名／16KiB对齐／包内SHA与默认景点回读通过；草稿先完整下载，再公开，公开后的认证／匿名两份资产字节与hash一致。
+- Debug／Release各1325 JVM，lint0 Error/Fatal（64/61警告）；最终73项设备专项、5项系统320dp／2倍字体通过，迁移10→11→12→13专项通过。小红书12.921秒、携程16.104秒，各正文和6图真实下载解码通过，0模型／0 POI调用。
+- 首轮73项有4项失败，已定位为并发计数、非法UUID和超限异常类型夹具；仅3个androidTest文件与graphify生成文件变更，生产代码／JVM测试／schema／构建配置／Pencil保持起点`532d3feb`一致。失败日志和基线证据保留，完整复跑通过，未改产品刷绿。
+- 匿名REST API首次及两次重试为限额403；保留响应头，不冒称API匿名成功，以公开Latest页面跳转及完整匿名资产下载验证。System UI初始ANR通过Wait恢复；组件host截图状态栏覆盖不冒充完整手机视觉。
+- 本轮没有真实模型／高德质量复验，没有重复安装手机或操作真实旅行库。前轮手机安装功能`1bb3b34a`与本轮产品输入一致，但不是此次APK；既有质量、TalkBack、API26及真机闭环边界保留。
+- Pencil只读hash `f94d5da784209fbb02a28df81a17c90a3b35553e634fc8e445ef1fbd66b0034b`、358根不变；公开前1514tracked输入一致。自有emulator-5600显示恢复、Debug/Test包回拉hash一致、核验owner/PID后正常退出和释放锁，保留AVD，不重启共享ADB。graphify35文件提取不完整、首夹具提交hook扫描超时事实保留；未启动子代理。
+- 报告`docs/testing/v3.4.0-release.md`；证据`/Users/bytedance/.codex/artifacts/easy-trip/v3.4.0-release-1e8a-20261016-212659/`，只用`final2/assets/`正式资产。后续保持标签／资产固定，schema13仅同签名前向修复，不回装旧包、不卸载清数据、不强推。
+- punk-12通知`om_x100b62176171b0a0df73cfa4da76bc9`已独立回读全文、目标chat、机器人app及deleted=false一致；通知明确仅余文档收尾，再最后写本状态。公开发布和最终docs-only推送证据分别见`publication-verification.json`、`final-push-verification.json`。
+
+---
+
+# 历史任务：助手默认景点提交、推送与安装
 
 状态：**DONE（功能已推送、同签名安装及通知独立回读完成；本状态随同轮文档收尾提交），2026-10-16。**
 

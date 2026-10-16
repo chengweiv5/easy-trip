@@ -14,9 +14,19 @@
 
 </div>
 
-> 当前正式版为 **[v3.3.0](https://github.com/chengweiv5/easy-trip/releases/tag/v3.3.0)**（build26）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v3.3.0/easy-trip-v3.3.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v3.3.0/easy-trip-v3.3.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v3.3.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v3.3 新样式截图。
+> 当前正式版为 **[v3.4.0](https://github.com/chengweiv5/easy-trip/releases/tag/v3.4.0)**（build27）。[下载 APK](https://github.com/chengweiv5/easy-trip/releases/download/v3.4.0/easy-trip-v3.4.0-release.apk) · [SHA256](https://github.com/chengweiv5/easy-trip/releases/download/v3.4.0/easy-trip-v3.4.0-release.apk.sha256) · [发布验证与已知限制](docs/testing/v3.4.0-release.md)。下方界面截图仍为 v2.0.0 正式包的示例数据，展示已有能力，不作为 v3.4 新样式截图。
 
-## v3.3：把攻略链接变成旅行地点
+## v3.4：从攻略创建旅行，地点逐步完善
+
+- 首页「助手创建」可直接粘贴携程社区／小红书分享文案或 URL，先识别城市和旅行信息；日期可选、可修改或清空，多城市分别保留。
+- 确认「创建并导入攻略」后自动进入新旅行的助手，原攻略和城市上下文只交接一次，继续地点识别、地图匹配与手动收藏，不自动安排每日路线。
+- 新旅行和已有旅行均支持每批最多 **100 个地点、20 张图片**，旅行最多30天。图片全链路可选，失败可跳过；成功结果可继续，只有图片且无有效结果时仍提示失败。
+- 攻略自动识别聚焦独立游览目的地，剔除餐饮、推荐住宿、景区内部设施及底图背景名称，并按作者证据整理别名；手动添加不受该自动筛选范围限制。
+- 一次收藏成功结束本批；助手新候选默认「景点」，手动类型、旧草稿及已有收藏不回填。保留原有行程、费用和地图能力。
+- **3.4.0/build27/schema13**，同签名覆盖升级，不卸载、清数据或直接降级旧版。已安装同名build27体验版可能不提示更新，可手动覆盖正式包。
+- Debug／Release各1325项单测、73项设备专项、5项系统320dp／双倍字体复测及两平台原链接正文与各6图读取通过，lint0错误。模型处理可能计费，结果仍需人工核对；本次未新增真实模型／高德质量验证，也未重复安装手机，详见[发布记录](docs/testing/v3.4.0-release.md)。
+
+## v3.3（历史）：把攻略链接变成旅行地点
 
 - 在**已有旅行**的助手输入框粘贴携程社区或小红书分享文案／URL，点击后读取正文与原帖图片，提取地点并查询地图候选；一批一条链接。
 - 每批最多 **30 个最终地点、20 张图片**，独立体积限制仍在；超限明确提示，不静默截断。

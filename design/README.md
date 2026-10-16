@@ -1,5 +1,7 @@
 # Easy Trip 版本设计索引
 
+> **v3.4.0 已正式发布（2026-10-16）**：22:17:16公开为Latest，3.4.0/build27/schema13，发布标签与CLEAN包固定`21b9c6bc879b4251123eaa6ba70949bda06d0843`。唯一累积源仍为`easy-trip-v3.4.0.pen`，当前磁盘358根，SHA256 `f94d5da784209fbb02a28df81a17c90a3b35553e634fc8e445ef1fbd66b0034b`；本轮仅只读核验，未改Pencil或重新导出预览。旧预览属于各自阶段，不代表全链路图片可选等最终状态；详见[发布记录](../docs/testing/v3.4.0-release.md)。下方“当前增量／未发布”均为阶段历史。
+
 > **100 地点已提交推送（2026-10-14）**：功能 `3d1d2fb` 已快进推送 origin/main 并独立回读一致。设计只提交前轮已保存字节，源／预览不再修改；下方“未提交”是开发阶段历史。干净提交 Debug／Release 各 1135 JVM、lint 0 错误；未安装手机、未发布。见[Git 交付记录](../docs/testing/assistant-100-places-git-delivery.md)。
 
 ## 当前增量：100 地点（2026-10-14，8bc4）
