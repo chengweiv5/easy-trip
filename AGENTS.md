@@ -6,7 +6,7 @@
 
 ## 当前设计目标
 
-- **v3.4一次收藏修复正在提交推送（2026-10-16，d7c9）**：用户新授权提交推送，不安装手机／发布。先提交修复，再rebase最新`38a1c484`保留独立景点分类与上游成果，整合验证后仅快进推送main。详见`docs/testing/v3.4.0-single-save-git-delivery.md`及当前TASK_STATE；下条未提交为前轮开发状态。
+- **v3.4一次收藏结束整批已推送（2026-10-16，d7c9）**：功能`2103ae256dfc6c9d06acad7268e0c2f25529b637`rebase保留最新独立景点分类后，从`38a1c484`快进推送main，独立SHA回读一致。成功一次结束整批／失败项放弃，只有写入失败保留幂等重试，完成回执防旧草稿复活。干净Debug/Release各1294 JVM、37设备＋12系统320dp/2倍字体通过，lint0错误；三APK/验签/16KiB对齐及包内SHA/CLEAN通过，968输入不变。Pencil逐字节保持上游，3.4.0/build27/schema13不变。先读`docs/testing/v3.4.0-single-save-git-delivery.md`，保留2项旧Room夹具失败及上游真实模型质量未验边界。未安装手机/发布，手机仍是修复前包；最终文档SHA见交付证据。
 
 - **v3.4一次收藏结束整批已修复验证（2026-10-16，d7c9，未提交）**：用户明确失败项不再处理，一次收藏成功必须结束整批；此要求取代此前“部分收藏保留失败素材”例外。`codex/fix-assistant-single-save-round`基于`b6b53909`，去除成功保存提前返回，统一完成回执，并防已提交旧草稿重开复活；仅写入失败保留幂等重试。最终Debug/Release各1254 JVM、21设备＋9系统320dp/2倍字体通过，lint0错误；675输入hash不变。2项旧RoomGuideCreationTest非法结果ID夹具失败已在未修改8e742416 APK复现，不称全应用全绿。先读`docs/testing/v3.4.0-single-save-round.md`。Pencil/标记外观/3.4.0/build27/schema13不变，无真实模型/高德/手机操作，未提交推送/安装/发布；下条安装包仍为修复前版本。
 

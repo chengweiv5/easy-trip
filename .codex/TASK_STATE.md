@@ -1,12 +1,15 @@
 # 当前任务：v3.4 一次收藏结束整批提交推送
 
-状态：**IN_PROGRESS（已核验改动与备份，正在提交／整合上游），2026-10-16。**
+状态：**DONE（功能已推送、验收及通知回读完成；最终记录SHA见交付证据），2026-10-16。**
 
 - 用户最新授权“提交推送”，不安装手机或发布。
 - 当前10个变更文件已备份，前轮675项构建输入hash不变，开放PR为0。
-- 最新主线`38a1c484`已包含独立景点分类`276c4cce`；提交本轮后rebase保留上游，再干净验证并快进推送。
+- 功能`2103ae256dfc6c9d06acad7268e0c2f25529b637`已rebase保留主线`38a1c484`的独立景点分类`276c4cce`，快进推送main且独立SHA回读一致。两个状态文档与一处测试冲突保留双方意图；生产代码自动合并。
+- 干净Debug/Release各1294 JVM、lint0错误、三APK及包内功能SHA/CLEAN、Release验签/16KiB对齐通过。精确APK37设备＋12系统320dp/2倍字体通过，968项源码/测试/设计/构建输入不变。
+- Pencil与上游逐字节一致，本轮无改稿；自有5620已正常退出、临时AVD和锁已核验清理。无真实模型/高德调用，不触碰手机。
 - 报告：`docs/testing/v3.4.0-single-save-git-delivery.md`；证据：`/Users/bytedance/.codex/artifacts/easy-trip/v34-single-save-git-delivery-d7c9-20261016/`。
 - 前轮两项旧Room测试夹具失败边界保留，不作为全应用通过。手机仍为此前安装版本。
+- punk-12通知`om_x100b622294d97ca0c30e8a6a8dac23a`已回读全文、目标chat、bot身份和deleted=false一致。本次收尾仅三份交付记录，最终远端SHA与工作区检查见证据根`final-push-verification.json`；APK仍固定来源于功能提交`2103ae25`。
 
 ---
 
