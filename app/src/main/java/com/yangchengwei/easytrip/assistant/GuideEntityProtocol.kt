@@ -33,6 +33,8 @@ object GuideEntityProtocol {
             val o = it as? JsonObject ?: return@mapNotNull null
             (o["e"] as? JsonPrimitive)?.takeUnless { it.isString }?.intOrNull?.let { index -> index to o }
         }.groupBy({ it.first }, { it.second })
+        val invalidEvidence = linkedSetOf<String>()
+        val invalidOccurrences = linkedSetOf<Pair<Int, Int>>()
         evidence.forEachIndexed { index, e ->
             try {
                 val entry = entries[index].orEmpty().single()
@@ -55,34 +57,43 @@ object GuideEntityProtocol {
                 val list = entry.getValue("mentions").jsonArray
                 require(list.isNotEmpty())
                 list.forEachIndexed { m, value ->
-                    val o = value.jsonObject
-                    val literal = o.text("literal")
-                    require(literal.length in 1..100)
-                    val range = requireNotNull(GuideEntityValidation.locate(e.rawQuote, literal,
-                        o.getValue("occurrence").strictGuideInt()))
-                    val role = ImageEntityRole.valueOf(o.text("role"))
-                    val parent = o.text("parentLiteral")
-                    require(parent.isEmpty() || e.rawQuote.contains(parent))
-                    val requestedCity = o.text("city")
-                    require(requestedCity.length <= 50 && requestedCity.none(Char::isISOControl))
-                    val cityRefs = o.getValue("cityEvidenceRefs").jsonArray.map {
-                        evidence[it.strictGuideInt()]
+                    try {
+                        val o = value.jsonObject
+                        val literal = o.text("literal")
+                        require(literal.length in 1..100)
+                        val range = requireNotNull(GuideEntityValidation.locate(e.rawQuote, literal,
+                            o.getValue("occurrence").strictGuideInt()))
+                        val role = ImageEntityRole.valueOf(o.text("role"))
+                        val parent = o.text("parentLiteral")
+                        require(parent.isEmpty() || e.rawQuote.contains(parent))
+                        val requestedCity = o.text("city")
+                        require(requestedCity.length <= 50 && requestedCity.none(Char::isISOControl))
+                        val cityRefs = o.getValue("cityEvidenceRefs").jsonArray.map {
+                            evidence[it.strictGuideInt()]
+                        }
+                        val defaultCity = if (context.scope != null) context.scope.defaultCity.orEmpty() else context.city
+                        require(requestedCity.isEmpty() || requestedCity == defaultCity ||
+                            cityRefs.any { it.rawQuote.contains(requestedCity) })
+                        require(cityRefs.isEmpty() || requestedCity.isNotEmpty() &&
+                            cityRefs.all { it.rawQuote.contains(requestedCity) })
+                        val city = requestedCity.ifEmpty { defaultCity }
+                        val part = o["partKind"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.content?.let(GuidePartKind::valueOf)
+                        require(role != ImageEntityRole.PLACE || parent.isEmpty() && part == null)
+                        require(role != ImageEntityRole.DISTINCT_PART || part != null)
+                        val uncertainty = o.getValue("uncertain").jsonPrimitive
+                        require(!uncertainty.isString && uncertainty.booleanOrNull != null)
+                        mentions[index to m] = GuideMention(guideIdentity(e.id, range.toString(), city, role.name, parent),
+                            e.id, e.rawQuote.substring(range), range.first, range.last + 1, city,
+                            requestedCity.isEmpty() && city.isNotEmpty(), cityRefs.map { it.id }.toSet(), role, parent,
+                            part, e.uncertain || uncertainty.boolean)
+                    } catch (failure: Exception) {
+                        // Keep original [e, mentionIndex] identities. One malformed
+                        // occurrence must not prevent later independent destinations
+                        // in the same route excerpt from being validated.
+                        if (!requireClassification) throw failure
+                        pending += e.id
+                        invalidOccurrences += index to m
                     }
-                    val defaultCity = if (context.scope != null) context.scope.defaultCity.orEmpty() else context.city
-                    require(requestedCity.isEmpty() || requestedCity == defaultCity ||
-                        cityRefs.any { it.rawQuote.contains(requestedCity) })
-                    require(cityRefs.isEmpty() || requestedCity.isNotEmpty() &&
-                        cityRefs.all { it.rawQuote.contains(requestedCity) })
-                    val city = requestedCity.ifEmpty { defaultCity }
-                    val part = o["partKind"]?.takeUnless { it == JsonNull }?.jsonPrimitive?.content?.let(GuidePartKind::valueOf)
-                    require(role != ImageEntityRole.PLACE || parent.isEmpty() && part == null)
-                    require(role != ImageEntityRole.DISTINCT_PART || part != null)
-                    val uncertainty = o.getValue("uncertain").jsonPrimitive
-                    require(!uncertainty.isString && uncertainty.booleanOrNull != null)
-                    mentions[index to m] = GuideMention(guideIdentity(e.id, range.toString(), city, role.name, parent),
-                        e.id, e.rawQuote.substring(range), range.first, range.last + 1, city,
-                        requestedCity.isEmpty() && city.isNotEmpty(), cityRefs.map { it.id }.toSet(), role, parent,
-                        part, e.uncertain || uncertainty.boolean)
                 }
                 if (e.kind == GuideEvidenceKind.AUTHOR_LABEL) {
                     GuideEntityValidation.completeBracketParts(e.rawQuote)?.let { (outer, inner) ->
@@ -90,9 +101,8 @@ object GuideEntityProtocol {
                         require(outer in literals && inner in literals && e.rawQuote !in literals)
                     }
                 }
-            } catch (_: Exception) { pending += e.id }
+            } catch (_: Exception) { pending += e.id; invalidEvidence += e.id }
         }
-        val invalidEvidence = pending.toSet()
         // Classification is transient: retain every original quote and index for
         // recovery, but never send an excluded/unknown occurrence to POI search.
         val decisions = mentions.mapValues { (key, mention) ->
@@ -130,7 +140,12 @@ object GuideEntityProtocol {
                     require(pair.size == 2)
                     val eIndex = pair[0].strictGuideInt()
                     evidence.getOrNull(eIndex)?.let { e -> related += e.id }
-                    requireNotNull(mentions[eIndex to pair[1].strictGuideInt()])
+                    val key = eIndex to pair[1].strictGuideInt()
+                    // A known malformed occurrence is isolated, not an invalid
+                    // identity for every independently validated group member.
+                    // Unknown indices still invalidate the group below.
+                    if (requireClassification && key in invalidOccurrences) return@mapNotNull null
+                    requireNotNull(mentions[key])
                         .takeIf { it.id in eligibleIds }
                 }
                 if (members.isEmpty()) return@mapNotNull null

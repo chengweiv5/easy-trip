@@ -14,11 +14,13 @@ internal fun guideEntityRequest(config: ProviderConfig, evidence: List<GuideEvid
 只将整篇攻略的独立游览目的地作为待标记地点。作者标签外侧地点和括号内不同专名分别按自身用途分类，不能合成一个名称。普通入口/出口/停车场/LED舞台/打卡墙等内部细节排除；可独立参观的历史城门、纪念馆等按原文游览证据保留，不按名称关键词一刀切。仅方位、时间、票价括号不造新地点。父名称只表达关系，不自动新增父地点。
 ${GuidePlaceClassification.RULES.replace("sourceSpan", "rawQuote中的连续原文片段")}
 classification.evidenceQuote必须包含本literal并来自本条rawQuote的连续原字（EXCLUDED引用本条原文），不能引用模型detail、另一条证据或拼接句子。按整篇同名原文辨别用途，餐饮地址或住宿便利性中的短地名不能升级成独立景点；引用另一条用途证据时应在那条中另建mention。旅游目的地地图中的作者景点标签可证明独立站点，站间距离不等于仅参考；城市底图和园内攻略中的设施标签不是独立目的地。没有排除依据返回UNKNOWN/REVIEW，不用NOT_PLACE猜删作者目的地。
+主体景点与普通入口/出口分别判断，不能因为带入口或出口而把主体景点一并剔除。资料明确安排参观主体且本条出现其名称时，主体另建PLACE和独立游览classification，入口/出口仍按内部细节剔除。主体名称必须是本条原文中连续出现的原字；不能从别条补字、拼接、补全简称，不能仅去掉设施后缀就凭空制造父景点，也不能把主体与普通门放进同一别名组。仅途经、集合或借用设施，没有主体游览证据时不能升级成独立景点。
+路线中已安排游览的起点和终点仍是游览目的地，不能仅因箭头、步行或公交标记而判为TRANSPORT；仅抵离、换乘、集合的车站等才按交通用途剔除。参观后从景点前往下一站不取消前一景点的游览身份，同段餐饮和内部细节仍逐项排除。
 role为PLACE或DISTINCT_PART；parentLiteral只能取本quote实际所属名称原字，可空；partKind为ENTRANCE、EXIT、GATE、OTHER或null。不确定性只能保持或增加。
 城市默认值由客户端填写：沿用defaultCity时输出city=""、cityEvidenceRefs=[]。不要为默认城市填写本条e作为引用。
 只有要填写不同于defaultCity的明确城市时，city才填原字、cityEvidenceRefs才填实际包含该城市原字的e。每条引用都必须含城市名；多城不能套首城，无法归属为空。
 groups只列members=[[e,mentionIndex],...]、relation、evidenceRefs和frozenAnchors，不选canonical。只有SIGHTSEEING+DESTINATION+independentVisit=true的有效mention恰归一组，其余分类不进groups。relation仅SAME_LITERAL、CONTEXT_ALIAS、SPELLING_VARIANT；独立单项也成组。evidenceRefs列该组全部原文依据。
-只有同一实体才分组；同名字形并非充分依据。不同城市、分店、父子地点或不同父景点入口不能合并；同方位不是同一入口。没有同一实体的依据就分开或REVIEW。餐饮食品排除，已识别住宿保留，底图背景排除。
+只有同一实体才分组；同名字形并非充分依据。不同城市、分店、父子地点或不同父景点入口不能合并；同方位不是同一入口。没有同一实体的依据就分开或REVIEW。餐饮食品、住宿和底图背景均排除，推荐住宿也不例外。
 同一篇攻略同城、同角色、无分店或父关系冲突的相同原字，应把所有出现项归入同一个SAME_LITERAL组，不要逐段分成多个重复组。
 同篇路线和地图能支持同一地点时，短名/带城市前缀/带通用景区公园后缀应归入CONTEXT_ALIAS；疑似错别字归SPELLING_VARIANT。不要仅字面分桶，代表名由客户端按来源票数选择。
 groups是最终互斥分区，不是合并操作清单：一组含短名和全名时只输出一次完整CONTEXT_ALIAS组，绝不能同时保留其子集SAME_LITERAL组。输出前核对每对有效[e,mentionIndex]在整个groups中恰好一次，重叠会让这些地点无法查询。
