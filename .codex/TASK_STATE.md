@@ -1,4 +1,19 @@
-# 当前任务：助手新收藏默认景点
+# 当前任务：助手默认景点提交、推送与安装
+
+状态：**DONE（功能已推送、同签名安装及通知独立回读完成；本状态随同轮文档收尾提交），2026-10-16。**
+
+- 用户本轮明确授权「提交，推送，安装」。功能`1bb3b34a9f482a3125936ee3357dcc805842a9a1`从`3b0b973d`快进推送origin/main并独立SHA回读一致；开放PR为空，未rebase或改写上游。
+- 提交16文件含1生产＋6测试，不是仅文档；原图片可选安装记录保留并交付。仅新候选默认ATTRACTION，手动类型、旧恢复记录和已有收藏保持。
+- 干净提交Debug／Release各1325 JVM，lint0 Error/Fatal，三APK／Release验签／16KiB对齐、DEX精确SHA／CLEAN及默认类型回读通过。981项输入与开发轮20设备＋4系统功能验收一致；本轮未重跑设备专项。hook扫描超时未绕过，构建后shell保留变量报错已独立核实不影响成功产物。
+- 21:21同签名CLEAN Release覆盖华为ALN-AL00；安装后回拉SHA256`4a86c105a249aae7404a7318cb012368d015dd2a7bad90176ba97f831cb103e2`一致，UID／首次安装时间／dataDir保持，无卸载清数据。旧包实读`201ab389`，签名及祖先校验通过。
+- 启动Status ok／COLD／471ms。首次截图是通知面板，不作App验收；后续只读可见「徐州两日游」助手、城市徐州及地图，有限日志无FATAL／迁移错误。不称首页计数、全库或默认分类真机收藏闭环通过；未新建、识别、搜索或收藏。
+- 3.4.0/build27/schema13、100地点／20图／30天、图片可选及一次收藏结束规则保持；Pencil未改，未发布。手机owner锁核验释放，不停止共享ADB或操作其他设备。
+- 报告`docs/testing/v3.4.0-assistant-default-category-delivery.md`；证据根`/Users/bytedance/.codex/artifacts/easy-trip/v34-assistant-category-delivery-1e8a-20261016-211425/`。最终docs-only提交／远端SHA以`final-push-verification.json`为准，安装APK固定上述功能SHA。回退只能选择性前向修复，保留schema13及后续上游。
+- punk-12通知`om_x100b6216192400acdd1e45efda6c58c`已独立回读全文／chat／app／deleted=false一致，再最后写本状态；通知明确仅余文档收尾提交推送。
+
+---
+
+# 历史任务：助手新收藏默认景点
 
 状态：**DONE（代码修复、本地回归、环境清理和通知回读完成），2026-10-16。**
 

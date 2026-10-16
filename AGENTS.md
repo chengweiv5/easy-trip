@@ -6,6 +6,8 @@
 
 ## 当前设计目标
 
+- **助手默认景点已推送安装（2026-10-16，1e8a）**：功能`1bb3b34a`快进推送main并独立回读；21:21同签名CLEAN Release覆盖华为，APK回拉一致，UID／首次安装时间／dataDir保持。干净Debug/Release各1325 JVM、lint0错误；981输入匹配开发轮20设备＋4系统功能验收，本轮未重跑设备专项。后续读`docs/testing/v3.4.0-assistant-default-category-delivery.md`，保留旧类型不回填、真机收藏未验及schema13前向修复边界；Pencil未改，未发布。
+
 - **助手新收藏默认景点已修复（2026-10-16，1e8a，未提交）**：仅新候选默认改为ATTRACTION，手动类型、旧草稿及已有收藏保持；Debug/Release各1325 JVM、20设备＋4系统大字功能复跑通过，lint0错误。后续提交或安装前读`docs/testing/v3.4.0-assistant-default-category.md`，保留DIRTY开发包、fixture视觉边界及前轮安装记录；Pencil/schema未改，未推送、安装手机或发布。
 
 - **全链路图片可选已安装手机（2026-10-16，1e8a）**：20:33:20同签名CLEAN Release覆盖华为ALN-AL00，功能验收头`201ab3894cba85d9d4297b3ba848ad4c5d501819`、3.4.0/build27/schema13；手机APK回拉hash一致，UID/首次安装时间/dataDir保持，未卸载清数据。正常冷启动Status ok，首页6待出行/1已出行、青州20地点/3天及徐州旅行可见，有限日志无FATAL/迁移错误，不宣称全库或真机攻略闭环验收。729输入不变，本轮不重建、不模型/高德/攻略重试、不碰Pencil、不提交推送或发布。先读`docs/testing/v3.4.0-optional-images-install.md`，保留真实模型质量及材料/结果协议、schema13前向修复边界；下条未安装为Git交付历史。
