@@ -1,10 +1,15 @@
 # 当前任务：独立景点实际功能提交推送
 
-状态：**IN_PROGRESS，2026-10-16。**
+状态：**DONE（实际功能已提交并快进推送，最终交付文档收尾），2026-10-16。**
 
-- 实际功能已本地提交，正在rebase上游完整证据V2/64K与地图标记；不是只交文档。
-- 已将分类接入ModelGuideEvidenceResolver，保留原文证据、部分成功及冻结结果。Debug/Release各1291 JVM通过；待干净构建和精确设备验收、推送与通知。
-- 证据根：`/Users/bytedance/.codex/artifacts/easy-trip/v34-classified-attractions-git-1e8a-20261016/`。本轮无真实模型预算，不将旧链实测当V2验收；不安装手机、不发布。
+- 用户本轮仅授权提交推送；实际功能`276c4ccea64dec2e2a7b31ca13476772cf5877a2`已从`b6b53909`快进推送origin/main，独立远端SHA一致。28文件含11生产代码文件，不是只交文档。
+- rebase保留上游完整证据V2/64K及地图标记；强制分类接入实际resolver，住宿/餐饮/内部设施排除，unknown隔离，不阻塞成功项。旧V1恢复、冻结手动结果、100地点/20图/30天及3.4.0/build27/schema13保持。
+- 干净Debug/Release各1291 JVM、32设备+9系统320dp/2倍字体通过；lint0错误，三APK/Release验签/16KiB对齐、包内精确功能SHA/CLEAN通过。967项输入验收后不变。
+- Pencil同绝对路径原生保存重开回读，358根/47850节点，仅两context融合，地图12新增根与其它布局保持。自有模拟器5600退出/owner锁释放，系统设置恢复，未动手机或其他模拟器。
+- 本轮未真实DeepSeek/高德重跑；旧链实测不冒充V2质量验收，上游模型别名/误提/漏项仍需真实验证。独立审查任务为空未产出结论，仅父代理复核，不称双审通过。
+- punk-12通知`om_x100b6222ed50dca4dff4ad477a0d1ec`已回读全文、chat、bot与未删除一致；随后最后写本状态。只剩本状态/AGENTS/交付报告文档提交，最终SHA以证据根回读为准。
+- 报告：`docs/testing/v3.4.0-classified-attractions-git-delivery.md`。证据：`/Users/bytedance/.codex/artifacts/easy-trip/v34-classified-attractions-git-1e8a-20261016/`。
+- 未安装手机、未发布Release/标签。回滚只从最新主线前向选择性撤销，不丢上游，不降schema或清数据。
 
 ---
 
