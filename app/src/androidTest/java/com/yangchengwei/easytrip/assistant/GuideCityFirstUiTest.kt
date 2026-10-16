@@ -19,6 +19,7 @@ import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.*
 import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
+import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
 import java.io.File
 import java.util.UUID
@@ -197,6 +198,9 @@ class GuideCityFirstUiTest {
             compose.runOnUiThread { assistant.controller.selectAll(); assistant.controller.saveSelected() }
             compose.waitUntil(10_000) { assistant.guide.value == null && assistant.controller.state.value.items.isEmpty() }
             assertEquals(count, runBlocking { trips.observeTrips().first().single().placeCount })
+            val saved = runBlocking { RoomSavedPlaceRepository(db).observePlaces(trip.id, emptySet()).first() }
+            assertEquals(count, saved.size)
+            assertTrue(saved.all { it.category == PlaceCategory.ATTRACTION })
             assertEquals(GuideHandoffStatus.FINISHED, runBlocking { creation.find(trip.id) }!!.status)
             compose.runOnUiThread { assistant.consumePendingGuide() }
             compose.waitForIdle()

@@ -4,6 +4,7 @@ import android.graphics.Bitmap
 import android.net.Uri
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.*
+import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import kotlinx.coroutines.test.*
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
@@ -100,6 +101,7 @@ class AssistantImageControllerTest {
         assertEquals(1, queries)
         assertEquals(0, saves)
         assertEquals(IntakeStatus.READY, c.state.value.items.single().status)
+        assertEquals(PlaceCategory.ATTRACTION, c.state.value.items.single().category)
     }
     @Test fun stopRetainsSuccessfulSourceAndRejectsLateImageResult() = runTest {
         val slow = CompletableDeferred<Unit>()

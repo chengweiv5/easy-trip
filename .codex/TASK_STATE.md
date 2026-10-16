@@ -1,4 +1,32 @@
-# 当前任务：全链路图片可选 Git 交付
+# 当前任务：助手新收藏默认景点
+
+状态：**DONE（代码修复、本地回归、环境清理和通知回读完成），2026-10-16。**
+
+- 用户回复“可以”批准有界修复；本轮只在`codex/fix-assistant-default-category`开发，基于`3b0b973da29262dfe9f50edaab3454a07043bf87`，未提交、推送、安装手机或发布。
+- 唯一生产改动为`IntakeItem.category`默认从OTHER改为ATTRACTION，与搜索／地图POI收藏一致；保留手动类型、旧／当前恢复快照中的显式类型，以及已有收藏类别和备注。
+- controller收藏默认值回归先红后绿；Debug／Release各1325 JVM，20项设备专项＋4项系统320dp／2倍字体功能复跑通过，lint0 Error/Fatal。三APK、Release验签／16KiB对齐及DEX默认值回读通过；模拟器Debug／Test包回拉hash一致。
+- 981项源码／测试／schema／构建／设计输入hash保持，Pencil和模型prompt未改，100地点／20图／30天、图片可选、一次收藏结束整批及3.4.0/build27/schema13保持。图谱AST-only已更新，35文件提取不完整提示保留。
+- 包为未提交DIRTY开发构建，不称CLEAN；HTTP／POI为fixture，未真实模型或高德验证。窄屏组件fixture截图有左侧裁切／状态栏覆盖，不冒充完整手机视觉验收。无独立子代理审查。
+- 自有5600已恢复原显示，核验owner后正常退出／释放锁／保留AVD；未操作手机。手机仍为前轮图片可选安装版本，本轮没有交付到手机。
+- 报告`docs/testing/v3.4.0-assistant-default-category.md`；证据根`/Users/bytedance/.codex/artifacts/easy-trip/v34-assistant-category-1e8a-20261016-205435/`。备份与前轮本地安装记录均保留，撤销只能选择性回退本轮改动。
+- punk-12通知`om_x100b62166428d4acc420a726683fa47`独立回读全文／chat／app／deleted=false一致，再最后写本状态；最终hash与范围回读见证据根`final-verification.json`。
+
+---
+
+# 历史任务：全链路图片可选安装手机
+
+状态：**DONE（手机保留数据覆盖安装、APK回拉、启动／首页及通知回读完成），2026-10-16。**
+
+- 用户最新仅授权「安装」。20:33:20同签名CLEAN Release覆盖华为ALN-AL00成功；功能验收头`201ab3894cba85d9d4297b3ba848ad4c5d501819`，3.4.0/build27/schema13。手机安装后回拉SHA256`f5c4a2ba65cfae126a8791719d91583d9e5cfdb35715e0e0af98dbddfef3672a`与验收包一致。
+- 安装前实际包为`2103ae256dfc6c9d06acad7268e0c2f25529b637`的CLEAN Release，已备份原APK及元数据；确认祖先与同签名，不降级、不卸载或清数据。UID10477、首次安装时间2026-09-21 08:33:25及dataDir保持。
+- 正常冷启动Status ok／430ms，首页6待出行/1已出行、青州20地点/3天及徐州旅行可见；有限当前进程日志无FATAL/迁移错误，不宣称全库核验。仅打开首页，未攻略识别／重试／搜索／收藏，未真实模型或高德验证。
+- 本轮重新验签、16KiB对齐和包内SHA/CLEAN，729项产品／测试／schema／构建／设计输入不变，不重建、不重跑前轮测试；Pencil未操作。手机owner锁核验后已释放。
+- 报告`docs/testing/v3.4.0-optional-images-install.md`；证据`/Users/bytedance/.codex/artifacts/easy-trip/v34-optional-images-install-1e8a-20261016-203205/`。材料／结果协议和schema13仅前向修复，不自动回装旧包；本轮三份本地安装记录尚未提交，不沿用历史提交推送或发布授权。
+- punk-12通知`om_x100b6215ef4700a4dd7e7c7c3312e60`独立回读全文／chat／app／deleted=false一致，再最后写本状态。没有提交、推送或发布。
+
+---
+
+# 历史任务：全链路图片可选 Git 交付
 
 状态：**DONE（功能已提交并快进推送、独立远端及通知回读完成；本状态随同轮文档收尾提交），2026-10-16 12:32 +08:00。**
 

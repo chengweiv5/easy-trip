@@ -8,12 +8,15 @@ import com.yangchengwei.easytrip.assistant.data.RoomPlaceImport
 import com.yangchengwei.easytrip.core.database.EasyTripDatabase
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
+import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
 import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
 import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.runTest
+import kotlinx.coroutines.withTimeout
 import org.junit.*
 import org.junit.Assert.*
 import org.junit.runner.RunWith
@@ -27,6 +30,53 @@ class RoomPlaceImportTest {
     @After fun close() = db.close()
     private fun item(id: String) = ImportItem(id, 0, PlaceCandidate(id, "地点$id", "地址$id",
         GeoPoint(30.2, 120.1), null, "杭州"), PlaceCategory.ATTRACTION)
+
+    @Test fun controllerDefaultsMatchOrdinarySavesAndDoNotOverwriteExplicitOrExistingCategories() = runBlocking {
+        val trip = RoomTripRepository(db.tripDao()).createTrip(CreateTrip("收藏类型", 1))
+        val places = RoomSavedPlaceRepository(db)
+        val candidates = listOf("新景点", "手动其他", "已有地点", "普通收藏").associateWith { name ->
+            PlaceCandidate(name, name, "地址", GeoPoint(30.2, 120.1), null, "杭州")
+        }
+        places.save(trip, candidates.getValue("已有地点"))
+        val existing = places.observePlaces(trip, emptySet()).first().single()
+        places.updateDetails(existing.id, "保留用户备注", emptySet(), PlaceCategory.FOOD)
+        places.save(trip, candidates.getValue("普通收藏"))
+        val roomImporter = RoomPlaceImport(db)
+        val confirmations = mutableListOf<ImportConfirmation>()
+        val controller = PlaceAssistantController(trip, this,
+            PlaceIntentParser { _, _ ->
+                listOf("新景点", "手动其他", "已有地点").map { PlaceIntent(it, "杭州", it) }
+            },
+            object : PlaceSearchDataSource {
+                override suspend fun search(keyword: String, city: String?) =
+                    listOf(candidates.getValue(keyword.removePrefix("杭州")))
+            },
+            object : PlaceImport by roomImporter {
+                override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt {
+                    confirmations += confirmation
+                    return roomImporter.commit(confirmation)
+                }
+            })
+        controller.environment(true, true, true)
+        controller.editCity("杭州")
+        controller.editInput("新景点、手动其他、已有地点")
+        controller.submit()
+        withTimeout(10_000) { controller.state.first { !it.busy && it.eligible.size == 3 } }
+        controller.category(controller.state.value.items.single { it.poi?.poiId == "手动其他" }.id,
+            PlaceCategory.OTHER)
+        controller.selectAll()
+        controller.saveSelected()
+        val receipt = withTimeout(10_000) { controller.state.first { it.receipt != null }.receipt!! }
+        assertEquals(2, receipt.addedCount)
+        assertEquals(receipt, roomImporter.commit(confirmations.single()))
+        val saved = places.observePlaces(trip, emptySet()).first().associateBy { it.amapPoiId }
+        assertEquals(4, saved.size)
+        assertEquals(PlaceCategory.ATTRACTION, saved.getValue("普通收藏").category)
+        assertEquals(PlaceCategory.ATTRACTION, saved.getValue("新景点").category)
+        assertEquals(PlaceCategory.OTHER, saved.getValue("手动其他").category)
+        assertEquals(PlaceCategory.FOOD, saved.getValue("已有地点").category)
+        assertEquals("保留用户备注", saved.getValue("已有地点").note)
+    }
 
     @Test fun hundredPlacesCommitAtomicallyAndHundredFirstIsRejectedBeforeWrites() = runTest {
         val trip = RoomTripRepository(db.tripDao()).createTrip(CreateTrip("一百地点", 1))

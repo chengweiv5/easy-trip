@@ -71,7 +71,8 @@ data class IntakeItem(
     val status: IntakeStatus = IntakeStatus.WAITING,
     val candidates: List<PlaceCandidate> = emptyList(),
     val poi: PlaceCandidate? = null,
-    val category: PlaceCategory = PlaceCategory.OTHER,
+    // Match search/POI saves for new candidates; explicit and restored categories stay intact.
+    val category: PlaceCategory = PlaceCategory.ATTRACTION,
     val detail: String? = null,
     val cityConflict: Boolean = false,
     val sources: List<IntakeSource> = intent.sources,

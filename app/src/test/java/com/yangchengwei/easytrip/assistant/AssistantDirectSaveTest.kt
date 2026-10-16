@@ -1,5 +1,6 @@
 package com.yangchengwei.easytrip.assistant
 
+import com.yangchengwei.easytrip.assistant.cityfirst.GuideResultCodec
 import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.place.amap.PlaceCandidate
 import com.yangchengwei.easytrip.place.amap.PlaceSearchDataSource
@@ -8,6 +9,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.test.*
+import kotlinx.serialization.json.*
 import org.junit.Assert.*
 import org.junit.Test
 
@@ -27,6 +29,89 @@ class AssistantDirectSaveTest {
 
     private fun ImportConfirmation.success() = ImportReceipt(operationId, tripId, digest,
         items.map { ImportItemResult(it.itemId, it.poi.poiId, "saved-${it.itemId}", true) })
+
+    @Test fun newlyRecognizedPlacesAreSavedAsAttractionsByDefault() = runTest {
+        val requests = mutableListOf<ImportConfirmation>()
+        val c = controller(object : PlaceImport {
+            override suspend fun receipt(operationId: String): ImportReceipt? = null
+            override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt {
+                requests += confirmation
+                return confirmation.success()
+            }
+        })
+        advanceUntilIdle()
+        c.selectAll()
+        c.saveSelected()
+        advanceUntilIdle()
+
+        assertEquals(listOf("河坊街", "灵隐寺"), requests.single().items.map { it.poi.name }.sorted())
+        assertEquals(listOf(PlaceCategory.ATTRACTION, PlaceCategory.ATTRACTION),
+            requests.single().items.map { it.category })
+    }
+
+    @Test fun explicitOtherSurvivesSaveFailureAndRetryWithoutChangingTheOperation() = runTest {
+        val requests = mutableListOf<ImportConfirmation>()
+        val c = controller(object : PlaceImport {
+            override suspend fun receipt(operationId: String): ImportReceipt? = null
+            override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt {
+                requests += confirmation
+                if (requests.size == 1) error("write failed")
+                return confirmation.success()
+            }
+        })
+        advanceUntilIdle()
+        val chosen = c.state.value.items.first()
+        c.category(chosen.id, PlaceCategory.OTHER)
+        c.selectAll()
+        c.saveSelected(); advanceUntilIdle()
+        c.saveSelected(); advanceUntilIdle()
+
+        assertEquals(2, requests.size)
+        assertEquals(requests[0], requests[1])
+        assertEquals(PlaceCategory.OTHER, requests.last().items.single { it.itemId == chosen.id }.category)
+        assertEquals(PlaceCategory.ATTRACTION, requests.last().items.single { it.itemId != chosen.id }.category)
+    }
+
+    @Test fun oldAndCurrentGuideSnapshotsKeepExplicitCategoriesWhenSaved() = runTest {
+        for ((index, protocol) in listOf(
+            1 to GuideProtocolVersion.LEGACY_V1,
+            2 to GuideProtocolVersion.EVIDENCE_V2,
+            3 to GuideProtocolVersion.LEGACY_V1,
+            3 to GuideProtocolVersion.EVIDENCE_V2,
+        )) {
+            val categories = PlaceCategory.entries.toList()
+            val items = categories.mapIndexed { i, category ->
+                val poi = PlaceCandidate("poi-$i", "地点$i", "地址", GeoPoint(30.2, 120.1), null, "北市")
+                IntakeItem("item-$i", AssistantPlacePolicy.label(i), PlaceIntent(poi.name, "北市", poi.name),
+                    status = IntakeStatus.READY, poi = poi, category = category)
+            }
+            val checkpoint = if (protocol == GuideProtocolVersion.EVIDENCE_V2)
+                GuideEvidenceCheckpoint(GuideBatchBinding("batch", 0, "北市"), emptyList(),
+                    GuideResolution(emptyList(), emptyList(), emptySet()), emptyList()) else null
+            val state = PlaceAssistantState(input = "旧攻略", city = "北市", items = items,
+                selected = items.map { it.id }.toSet(), guideVersion = protocol, guideCheckpoint = checkpoint)
+            val encoded = GuideResultCodec.encode(state)
+            val snapshot = if (index == 3) encoded else {
+                val current = Json.parseToJsonElement(encoded).jsonObject
+                JsonObject(current - "protocolVersion" - "optionalImages" + ("version" to JsonPrimitive(index))).toString()
+            }
+            val restored = GuideResultCodec.decode(snapshot)
+            val requests = mutableListOf<ImportConfirmation>()
+            val c = PlaceAssistantController("trip", this,
+                PlaceIntentParser { _, _ -> error("Restored results must not be parsed again") }, null,
+                object : PlaceImport {
+                    override suspend fun receipt(operationId: String): ImportReceipt? = null
+                    override suspend fun commit(confirmation: ImportConfirmation): ImportReceipt {
+                        requests += confirmation
+                        return confirmation.success()
+                    }
+                })
+            c.restoreGuideState(restored, "restore-$index-${protocol.name}", null)
+            c.environment(true, true, true)
+            c.saveSelected(); advanceUntilIdle()
+            assertEquals("Envelope $index / $protocol", categories, requests.single().items.map { it.category })
+        }
+    }
 
     @Test fun selectionDoesNotWriteAndOneSaveClickWritesOnlySelectedPlaces() = runTest {
         val requests = mutableListOf<ImportConfirmation>()

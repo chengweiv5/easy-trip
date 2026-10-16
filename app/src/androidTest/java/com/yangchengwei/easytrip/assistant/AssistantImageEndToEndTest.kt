@@ -200,7 +200,8 @@ class AssistantImageEndToEndTest {
             compose.waitUntil(10_000) { model.controller.state.value.receipt != null }
             assertEquals(if (failAndDelayCleanup) 2 else 1, saveRequests.size)
             assertEquals(1, saveRequests.map { it.operationId }.distinct().size)
-            assertEquals(1, runBlocking { repo.observePlaces(trip, emptySet()).first() }.size)
+            val saved = runBlocking { repo.observePlaces(trip, emptySet()).first() }.single()
+            assertEquals(com.yangchengwei.easytrip.place.domain.PlaceCategory.ATTRACTION, saved.category)
             compose.waitUntil { !model.controller.state.value.hasDraft }
             assertNull(model.focus.value)
             assertNull(model.detail.value)

@@ -17,6 +17,7 @@ import com.yangchengwei.easytrip.core.model.GeoPoint
 import com.yangchengwei.easytrip.core.ui.theme.EasyTripTheme
 import com.yangchengwei.easytrip.place.amap.*
 import com.yangchengwei.easytrip.place.data.RoomSavedPlaceRepository
+import com.yangchengwei.easytrip.place.domain.PlaceCategory
 import com.yangchengwei.easytrip.trip.data.RoomTripRepository
 import com.yangchengwei.easytrip.trip.domain.CreateTrip
 import java.io.File
@@ -25,6 +26,7 @@ import java.util.concurrent.CountDownLatch
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 import kotlinx.coroutines.*
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.serialization.json.*
 import okhttp3.*
@@ -122,7 +124,10 @@ class AssistantEvidenceGuideFactoryTest {
             assertEquals(1, searches.get())
             assertEquals(listOf("美术馆"), model.controller.state.value.items.map { it.intent.query })
             compose.onNodeWithTag("assistant-select-A").performScrollTo().assertIsDisplayed().performClick()
-            compose.onNodeWithTag("assistant-save").assertIsEnabled().assertIsDisplayed()
+            compose.onNodeWithTag("assistant-save").assertIsEnabled().assertIsDisplayed().performClick()
+            compose.waitUntil(10_000) { model.controller.state.value.receipt != null }
+            assertEquals(PlaceCategory.ATTRACTION,
+                runBlocking { RoomSavedPlaceRepository(db).observePlaces(trip, emptySet()).first() }.single().category)
             assertTrue(File(root, "bodies").listFiles()!!.isEmpty())
         } finally {
             release.countDown()
