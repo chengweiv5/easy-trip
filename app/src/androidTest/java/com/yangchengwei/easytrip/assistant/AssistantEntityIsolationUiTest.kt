@@ -39,7 +39,7 @@ import org.junit.Test
 class AssistantEntityIsolationUiTest {
     @get:Rule val compose = createAndroidComposeRule<ComponentActivity>()
 
-    @Test fun validDestinationCanBeSavedAndRetriedWhileMalformedExitRemainsPending() {
+    @Test fun validDestinationCanBeRetriedThenSavedToFinishRoundDespiteMalformedExit() {
         val context = compose.activity
         val root = File(context.noBackupFilesDir, "entity-isolation-${UUID.randomUUID()}").apply { mkdirs() }
         val config = AssistantConfigStore(object : ContextWrapper(context) {
@@ -154,6 +154,12 @@ class AssistantEntityIsolationUiTest {
             assertEquals(listOf(destination), model.controller.state.value.items.map { it.intent.query })
             assertTrue(model.controller.state.value.normalizationPending)
             assertEquals(1, searches.get())
+            compose.runOnIdle { model.controller.retryNormalization() }
+            compose.waitUntil(15_000) { !model.controller.state.value.busy && resolutions.get() == 2 }
+            assertEquals(listOf(destination), model.controller.state.value.items.map { it.intent.query })
+            assertTrue(model.controller.state.value.normalizationPending)
+            assertEquals(1, extracts.get())
+            assertEquals(1, searches.get())
             compose.onNodeWithTag("assistant-select-A").performScrollTo().performClick()
             compose.onNodeWithTag("assistant-save").assertIsEnabled()
             InstrumentationRegistry.getInstrumentation().uiAutomation.takeScreenshot()?.let { bitmap ->
@@ -165,14 +171,18 @@ class AssistantEntityIsolationUiTest {
             compose.onNodeWithTag("assistant-save").performClick()
             compose.waitUntil(15_000) {
                 !model.controller.state.value.saving &&
-                    model.controller.state.value.items.singleOrNull()?.status == IntakeStatus.ALREADY_SAVED
+                    model.controller.state.value.receipt != null
             }
             assertEquals(1, runBlocking { places.observePlaces(trip, emptySet()).first() }.size)
+            assertTrue(model.controller.state.value.items.isEmpty())
+            assertTrue(model.controller.state.value.input.isEmpty())
+            assertFalse(model.controller.state.value.normalizationPending)
+            assertFalse(model.controller.state.value.hasIncompleteMaterials)
             compose.runOnIdle { model.controller.retryNormalization() }
-            compose.waitUntil(15_000) { !model.controller.state.value.busy && resolutions.get() == 2 }
-            assertEquals(1, model.controller.state.value.items.size)
-            assertEquals(IntakeStatus.ALREADY_SAVED, model.controller.state.value.items.single().status)
-            assertTrue(model.controller.state.value.normalizationPending)
+            compose.waitForIdle()
+            assertEquals(2, resolutions.get())
+            assertTrue(model.controller.state.value.items.isEmpty())
+            assertFalse(model.controller.state.value.normalizationPending)
             assertEquals(1, extracts.get())
             assertEquals(1, searches.get())
             assertEquals(1, runBlocking { places.observePlaces(trip, emptySet()).first() }.size)
